@@ -819,8 +819,6 @@ class ExecutionService:
                 num_status = None
                 if atom.status == "PASS":
                     num_status = 1
-                elif atom.status == "CONTESTED":
-                    num_status = 0
 
                 internal_logic = atom.internal_logic_en
                 word_count = len(atom.semantic_reasoning.split()) if atom.semantic_reasoning else 0

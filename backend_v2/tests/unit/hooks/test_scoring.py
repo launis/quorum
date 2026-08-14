@@ -779,14 +779,14 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
 
 
 @pytest.mark.asyncio
-async def test_matrix_scoring_hook_dynamic_penalty() -> None:
-    """Test that matrix_level score correctly applies the dynamic penalty without affecting the global scale improperly."""
+async def test_matrix_scoring_hook_contextual_override() -> None:
+    """Test that contextual_override correctly treats a missing quote as PASSED/TRUE without penalty."""
     from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
 
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
     evaluations = []
 
-    # Total 5 atoms, 1 CONTESTED, 4 PASS
+    # Total 5 atoms: 4 PASS, 1 OVERRIDE (acts as PASS)
     for i in range(1, 5):
         evaluations.append(
             {
@@ -801,7 +801,7 @@ async def test_matrix_scoring_hook_dynamic_penalty() -> None:
         {
             "tda_id": generate_atom_hash("atom_5", mandate),
             "status": ExecutionStatus.PASSED,
-            "evaluation_reasoning": "Contested",
+            "evaluation_reasoning": "Overridden correctly",
             "source_quote": "mock quote",
             "contextual_override": True,
         }
@@ -831,77 +831,9 @@ async def test_matrix_scoring_hook_dynamic_penalty() -> None:
     assert result.success is True
     assert result.state_delta is not None
 
-    # 5 atoms -> 100% hits. Unpenalized score is 5.0.
-    # 1 CONTESTED atom -> relative penalty (1/5 * 15% = 3%) -> 5.0 * 0.97 = 4.85.
+    # 5 atoms -> 100% hits. Unpenalized score is 5.0. No dynamic penalty applied.
     raw_score = result.state_delta["pb_1234567890123456"]["raw_score"]
-    assert abs(raw_score - 4.85) < 0.01
-    assert (
-        "DYNAMIC PENALTY APPLIED: -3.0% for CONTESTED atoms"
-        in result.state_delta["pb_1234567890123456"]["justification"]
-    )
-
-
-@pytest.mark.asyncio
-async def test_matrix_scoring_hook_cognitive_collapse() -> None:
-    """Test that Cognitive Collapse lock correctly rejects a matrix exceeding the 3 atom or 50% threshold."""
-    from backend_v2.models.enums import EvaluationMandate, ExecutionStatus
-
-    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-    evaluations = []
-
-    # 5 atoms, 4 CONTESTED, 1 PASS -> >3 contested atoms AND >50% contested
-    for i in range(1, 2):
-        evaluations.append(
-            {
-                "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-                "status": ExecutionStatus.PASSED,
-                "evaluation_reasoning": "Hyväksytty",
-                "source_quote": "mock quote",
-                "contextual_override": False,
-            }
-        )
-    for i in range(2, 6):
-        evaluations.append(
-            {
-                "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-                "status": ExecutionStatus.PASSED,
-                "evaluation_reasoning": "Contested",
-                "source_quote": "mock quote",
-                "contextual_override": True,
-            }
-        )
-
-    state = HookState(
-        execution_id="exec_abcdef0123456789",
-        workflow_id="wf1",
-        step_id="step1",
-        task_blueprint="step1",
-        metadata={},
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
-    )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
-
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
-    assert result.success is True
-    assert result.state_delta is not None
-
-    # Should trigger cognitive collapse lock but assign the minimum mathematical score (1.0)
-    raw_score = result.state_delta["pb_1234567890123456"].get("raw_score")
-    assert raw_score == 1.0
-    assert (
-        "[INDETERMINATE] Matrix score invalidated because the cognitive collapse safety lock was triggered"
-        in result.state_delta["pb_1234567890123456"]["justification"]
-    )
+    assert abs(raw_score - 5.0) < 0.01
 
 
 @pytest.mark.asyncio

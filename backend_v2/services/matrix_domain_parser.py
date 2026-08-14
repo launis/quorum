@@ -8,6 +8,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.atom_evaluation import (
     ReasoningStepDTO,
 )
+from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.v2_core import (
@@ -371,7 +372,14 @@ class MatrixDomainParser:
                                             level_name=l_name,
                                             claim_label=claim_label,
                                             extracted_facts={},
-                                            exact_quotes=[val_data.source_quote] if val_data.source_quote else [],
+                                            exact_quotes=[
+                                                QuoteEvidenceDTO.model_validate(
+                                                    {"quote": val_data.source_quote, "source_alias": []},
+                                                    context={"alias_registry": {}},
+                                                )
+                                            ]
+                                            if val_data.source_quote
+                                            else [],
                                             internal_logic_en=r_step,
                                             status=val_data.status,
                                             semantic_reasoning=val_data.evaluation_reasoning or "",

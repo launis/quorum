@@ -264,7 +264,6 @@ class ExecutionStatus(StrEnum):
 
     PASSED = "PASSED"
     FAILED = "FAILED"
-    CONTESTED = "CONTESTED"
     N_A = "N_A"
     SYSTEM_ERROR = "SYSTEM_ERROR"
     BLOCKED = "BLOCKED"

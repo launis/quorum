@@ -52,18 +52,6 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
     assert "global_matrices" in schema_passed.model_fields
     assert "blk_0123456789abcdef" in schema_passed.model_fields["global_matrices"].annotation.model_fields
 
-    # 3. dag_results with CONTESTED -> Matrix is included
-    dag_contested = {"tda_1234567890abcdef1234567890abcdef": {"status": "CONTESTED"}}
-    schema_contested = factory.build_dynamic_schema(
-        "TestSchemaContested",
-        criteria=[matrix],
-        strictness_level=50,
-        dag_results=dag_contested,
-        expected_sdui_type="grid",
-    )
-    assert "global_matrices" in schema_contested.model_fields
-    assert "blk_0123456789abcdef" in schema_contested.model_fields["global_matrices"].annotation.model_fields
-
     # 4. dag_results with FAILED -> Matrix is OMITTED
     dag_failed = {"tda_1234567890abcdef1234567890abcdef": {"status": "FAILED"}}
     schema_failed = factory.build_dynamic_schema(

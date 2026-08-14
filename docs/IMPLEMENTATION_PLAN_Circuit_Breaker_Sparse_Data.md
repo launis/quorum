@@ -1,78 +1,110 @@
 # IMPLEMENTATION PLAN: Circuit Breaker & Sparse Data Synthesis Rule
 
-**Objective**: Implement a deterministic Circuit Breaker in `DAGExecutor` to handle "Data Starvation" (0 atoms) and introduce a `sparse_data_rule` in `SynthesisEngine` to mitigate "Attention Dilution" for sparse data (1-2 atoms). This structurally prevents Prompt Leakage (hallucinated internal commands) without violating the Tripartite Pipeline or Zero-Compromise strictness.
+**Objective**: Implement a deterministic Circuit Breaker in `SynthesisEngine` to handle "Data Starvation" (0 atoms) and introduce a `sparse_data_rule` in `SynthesisEngine` to mitigate "Attention Dilution" for sparse data (1-2 atoms). This structurally prevents Prompt Leakage (hallucinated internal commands) without violating the Tripartite Pipeline, God Code Prevention mandates, or Zero-Compromise strictness.
 
 ## Root Cause Analysis
 
-1. **DAG Contract Violation (Circuit Breaker):** In a previous iteration, the skipped execution (Circuit Breaker) returned a `TraceEvent` object with the wrong name (`VirtualSystemStepID.DATA_STARVATION.value`). 
-   *Justification:* DAG nodes must fulfill their own contract. If node A returns data named B, the dependencies waiting for node A in the DAG network will remain in an eternal lock (`TopologicalEvaluator`). The plan is corrected to use the executed node's own ID (`step_def.step_id`).
+1. **Decoupled Engine Circuit Breaker (Domain Isolation):** Placing the Circuit Breaker inside `SynthesisEngine.execute()` preserves `DAGExecutor` as a domain-agnostic graph runner.
+   *Justification (`ki_god_code_prevention.md` & `ki_execution_engine_protocol.md`):* `DAGExecutor` must never contain domain-specific branching like `if model_strategy == "synthesis"`. In accordance with the Single Responsibility Principle and Anti-God Code rules, `SynthesisEngine` validates its own precondition (`GlobalAtomBlackboard`) and immediately short-circuits with `DataStarvationEvent` if `total_atoms <= starvation_threshold`, bypassing the structured LLM task executor.
 
-2. **Prefix Cache Invalidation (Sparse Data Rule):** A previous phase used string concatenation to set a dynamic rule at the beginning of the prompt (e.g. `f"{sparse_directive}\n...<user_payload>"`).
-   *Justification:* This violates the "Dynamic variables at absolute end" rule. When the beginning of the prompt changes, the LLM's Prefix Cache is destroyed for the entire massive `user_payload` section. The plan is mutated so that the directive is added to the absolute end of the prompt chain. This also prevents the "Attention Dilution" phenomenon by leveraging Recency Bias.
+2. **DAG Contract Preservation:** When skipped due to starvation, `SynthesisEngine` returns a `TraceEvent` with the executing step's exact identifier (`request.step.id`).
+   *Justification:* DAG nodes must fulfill their own contract. Using the node's own ID ensures downstream dependencies and `TopologicalEvaluator` resolve deterministically without topological deadlocks.
 
-3. **Orchestrator Concurrency Bottleneck:** The plan previously ambiguously advised running the `await _safe_commit()` function inside the asynchronous `_update_lock`.
-   *Justification:* Database transactions (I/O) inside an asynchronous lock halt the concurrency of the entire `TaskGroup` engine. State mutations (e.g. dictionary updates) must be done inside the lock to secure memory, but I/O operations (commit) must absolutely be executed outside the lock. The plan's protocol is clarified to forbid I/O inside the lock.
+3. **Prefix Cache Invalidation (Sparse Data Rule):** Directives injected at the top of system prompts destroy prefix cache.
+   *Justification:* Dynamic XML directives (`<sparse_data_rule>`) are appended strictly to the end of the user payload (`local_messages[-1]`), preserving LLM Context Caching (FinOps) and utilizing Recency Bias to prevent Attention Dilution.
 
-4. **AttributeError & Dead Code in BlueprintTransformer:** A previous phase attempted to read the `dto.block_id` field from tracked events (TraceEvent) where no such field exists. Registering the adapter in the dictionary was also unnecessary.
-   *Justification:* `TraceEvent` and `DataStarvationEvent` do not contain a `block_id` field. If they are run through the standard `_target_block_hydrators` loop in `blueprint.py`, it results in an `AttributeError`. The plan is corrected so that `DataStarvationEvent` is identified in a type-safe manner (e.g. `getattr(dto, "event_type", None) == "starvation"`) and the adapter rendering is called manually. Dead code regarding adapter registration and the `seed_data.json` dependency is removed.
+4. **Dedicated Prompt Asset File (Anti-God File Dumping):** Prompt rules must not bloat existing service files or generic utilities.
+   *Justification (`ki_god_code_prevention.md`):* `build_sparse_data_context()` is placed in a dedicated domain module `backend_v2/models/prompts/synthesis_directives.py` rather than inlined into `synthesis_engine.py` or dumped into generic helpers.
 
-5. **NameError & Pydantic ValidationError in SDUI:** The plan used `AlertBlock(severity=...)` and a potentially undefined `WarningType` enum.
-   *Justification:* Quorum's Pydantic SDUI standards (e.g. `AlertBlock`) strictly use the `intent` parameter (not `severity`). Additionally, a missing enum will immediately crash the Python application due to the `extra='forbid'` rule. The plan's protocol is updated to use the Pydantic model's `intent` parameter and ensure the existence of the enum.
+5. **TraceEvent Type Trap in WarningCardAdapter:** The starvation event payload is nested in `event.content`.
+   *Justification:* `context.execution.execution_trace` contains `TraceEvent` instances where `event_type` is strictly an event classification (`"output"`). The domain payload `DataStarvationEvent` is serialized into `TraceEvent.content`. The adapter MUST inspect `event.content` when `event.event_type == "output"` and verify `"event_type" in event.content and event.content["event_type"] == "starvation"`, immediately followed by strict validation via `DataStarvationEvent.model_validate(event.content, strict=True)`. Using `.get()` or `isinstance(data, dict)` is strictly forbidden.
+
+6. **SDUI AlertBlock Field Contract:**
+   *Justification:* In Quorum's Pydantic SDUI schema (`models/view/sdui.py`), `AlertBlock` strictly defines `severity: Annotated[LaxVisualIntent, Field(default=VisualIntent.INFO)]` (mapped from `VisualIntent.WARNING`), `text: str`, `exact_quotes: list[str]`, and `citations: list[int]`.
+
+7. **Raw Atoms vs. Compressed Matrix Calculation (Scenario C):** If `total_atoms` is counted from `reduced_atoms` (the token-compressed matrix payload), an evaluation where all 10 atoms are `PASSED` will compress to 0 rows (`len(reduced_atoms) == 0`), causing a False Starvation trigger and aborting a perfect score.
+   *Justification:* `total_atoms` MUST be computed from the raw uncompressed evaluation data via `len(blackboard.get_all_atom_ids())`, NEVER from `len(reduced_atoms)`.
+
+8. **UI Duplication & I18n Hallucination Prevention in WarningCardAdapter:**
+   *Justification:* The adapter MUST halt iteration on the first match (`break`) and use Quorum's standardized `I18nText(default_locale="en", translations={"en": "Evaluation data was insufficient to generate synthesis.", "fi": "Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi."}).resolve(context.locale)` (strictly adhering to Pydantic `extra="forbid"` with `default_locale` and `translations` dict).
 
 ## Scope & Target Files
 
-- **[MODIFY]** @[c:\src\quorum\backend_v2\services\orchestrator\dag_executor.py#L559-L752]
-- **[MODIFY]** @[c:\src\quorum\backend_v2\services\orchestrator\engines\synthesis_engine.py#L35-L161]
-- **[NEW]** @[c:\src\quorum\backend_v2\models\prompts\synthesis_directives.py]
-- **[MODIFY]** @[c:\src\quorum\backend_v2\models\dtos\trace.py]
-- **[MODIFY]** @[c:\src\quorum\backend_v2\models\enums.py]
-- **[NEW]** @[c:\src\quorum\backend_v2\services\sdui\adapters\warning_card_adapter.py]
-- **[MODIFY]** @[c:\src\quorum\backend_v2\services\blueprint.py]
-- **[MODIFY]** @[c:\src\quorum\backend_v2\settings.py]
-- **[MODIFY]** @[c:\src\quorum\backend_v2\seed\seed_data.json]
+- **[MODIFY]** @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
+- **[NEW]** @[backend_v2/models/prompts/synthesis_directives.py]
+- **[MODIFY]** @[backend_v2/models/prompts/__init__.py]
+- **[MODIFY]** @[backend_v2/models/dtos/trace.py]
+- **[MODIFY]** @[backend_v2/models/enums.py]
+- **[NEW]** @[backend_v2/services/sdui/adapters/warning_card_adapter.py]
+- **[MODIFY]** @[backend_v2/services/sdui/adapters/__init__.py]
+- **[MODIFY]** @[backend_v2/services/blueprint.py]
+- **[MODIFY]** @[backend_v2/settings.py]
+- **[MODIFY]** @[backend_v2/tests/unit/services/orchestrator/engines/test_synthesis_engine.py]
+- **[NEW]** @[backend_v2/tests/unit/services/sdui/adapters/test_warning_card_adapter.py]
 
 ## Knowledge Base Constraints (KIs) Applied
 
-The following core KIs have been structurally validated to support this plan:
-1. **`ki_synthesis_payload_compression.md` (Epic 141)**: Validates that preventing Data Starvation at the Orchestrator level safely fulfills the strict Fail-Fast mandate (stopping empty `evaluations` from reaching the LLM).
-2. **`ki_dag_engine_dto_projection_rules.md` (Epic 91.5)**: Validates that placing the Circuit Breaker inside `dag_executor.py` correctly adheres to the Macro-Orchestration boundary (Step-to-Step).
-3. **`ki_flat_polymorphic_pipeline.md` (Epic 131)**: Validates that injecting an `AlertBlock` via an adapter flawlessly integrates into the Dumb Painter frontend without requiring nested layout changes.
+1. **`ki_god_code_prevention.md` (Epic 133)**: Enforces domain isolation and prevents God Code in `DAGExecutor` by moving the Circuit Breaker to `SynthesisEngine`. Enforces `anti_god_file_dumping` by isolating prompt directives in `synthesis_directives.py`.
+2. **`ki_synthesis_payload_compression.md` (Epic 141)**: Validates that preventing Data Starvation at the Engine level safely fulfills the strict Fail-Fast mandate.
+3. **`ki_dag_engine_dto_projection_rules.md` (Epic 91.5)**: Validates that `DAGExecutor` remains domain-agnostic and that `SynthesisEngine` returns structured DTO envelopes (`EngineExecutionResult`).
+4. **`ki_flat_polymorphic_pipeline.md` (Epic 131)**: Validates that injecting an `AlertBlock` via an adapter flawlessly integrates into the Dumb Painter frontend.
+5. **`ki_sdui_adapter_pattern.md` (Epic 130)**: Validates the strict two-section canonical structure (`WARNING_CARD_RULES` + `WarningCardAdapter.build(context: AdapterContext)`).
+6. **@[ki_dual_axis_localization_architecture.md]**: Validates Axis 2 semantic localization where the backend computes dynamic alert text using `I18nText.resolve(context.locale)` without client-side guessing.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> - Are you satisfied with using the existing `AlertBlock` instead of inventing a new `SduiWarningCard`? The `AlertBlock` is already part of the `AnySduiBlock` union and perfectly suits this need via the strict Adapter Pattern.
-> - The XML execution protocol below defines the exact step-by-step logic. Approve with **"PROCEED"**.
+> - Circuit Breaker execution is strictly contained within `SynthesisEngine.execute()` to preserve `DAGExecutor` domain-agnostic purity.
+> - The existing `AlertBlock` with `severity=VisualIntent.WARNING` is reused, matching client-side `@FreezedUnionValue('alert_box')` with 100% parity.
+> - Approve the plan below with **"PROCEED"**.
 
 ## Implementation Protocol
 
 ```xml
 <execution_protocol level="0_create_plan">
-  <step id="1" name="DAGExecutor Circuit Breaker (Domain Event)">
-    <action>Modify `backend_v2/settings.py` to add `synthesis_starvation_threshold: int = 0` and `synthesis_sparse_threshold: int = 3`.</action>
-    <action>Modify `backend_v2/models/dtos/trace.py` to define a new strict Pydantic model `class DataStarvationEvent(BaseDTO):` with `event_type: Literal["starvation"] = "starvation"` and `total_atoms: int`.</action>
-    <action>Modify `backend_v2/models/enums.py` to add `WARNING_CARD_BLOCK = "warning_card_block"` to `TargetBlockType` AND define any missing Enums (specifically `WarningType` and `VisualIntent`) required for the Warning Card.</action>
-    <action>Modify `run_step_wrapper` in `dag_executor.py` to calculate `total_atoms`.</action>
+  <step id="1" name="SynthesisEngine Circuit Breaker (Domain Event)">
+    <action>Modify `backend_v2/settings.py` to add `synthesis_starvation_threshold: Annotated[int, Field(description="Atom count threshold at or below which synthesis short-circuits with a DataStarvationEvent.")] = 0` and `synthesis_sparse_threshold: Annotated[int, Field(description="Atom count threshold below which sparse data synthesis prompt rules are injected.")] = 3`.</action>
+    <action>
+      Modify `backend_v2/models/dtos/trace.py` to define a new strict Pydantic model:
+      ```python
+      class DataStarvationEvent(BaseDTO):
+          """Strict domain event emitted when SynthesisEngine aborts due to atom starvation."""
+          model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+          event_type: Annotated[Literal["starvation"], Field(default="starvation", description="Event discriminator")] = "starvation"
+          total_atoms: Annotated[int, Field(ge=0, description="Total raw atoms extracted before synthesis")]
+          reason: Annotated[str, Field(default="Data starvation: insufficient atoms", description="Reason for short-circuit")] = "Data starvation: insufficient atoms"
+      ```
+    </action>
+    <action>Modify `backend_v2/models/enums.py` to ensure `VisualIntent.WARNING` is present.</action>
+    <action>Ensure `from backend_v2.settings import get_settings` is imported globally at the top of `backend_v2/services/orchestrator/engines/synthesis_engine.py` (satisfying `global_settings_import`).</action>
+    <action>Modify `SynthesisEngine.execute()` in `backend_v2/services/orchestrator/engines/synthesis_engine.py` to calculate `total_atoms = len(all_atom_ids)` from the validated `GlobalAtomBlackboard` via `blackboard.get_all_atom_ids()`.</action>
     <action>Read the starvation threshold via `get_settings().synthesis_starvation_threshold`.</action>
-    <action>If `total_atoms <= starvation_threshold`, instantiate `DataStarvationEvent` and append it as a `TraceEvent` with `step_id=step_def.step_id` (Crucial: MUST use the node's own ID to satisfy the DAG contract and prevent topological deadlocks) and `event_type="output"` (serialized via `model_dump()`), update the step status to `PASSED`, and execute `continue` to bypass the `SynthesisEngine`.</action>
-    <constraint invariant="adapter_strict_fail_fast_routing">
-      The Orchestrator MUST remain blind to visual layout decisions. It ONLY extracts raw data into pure Domain DTOs (specifically `DataStarvationEvent`). It MUST NOT emit UI blocks directly.
+    <action>If `total_atoms <= starvation_threshold`:
+      1) Log a circuit breaker warning: `logger.warning("SynthesisEngine: Circuit breaker triggered due to data starvation (total_atoms=%d). Bypassing LLM execution.", total_atoms)`.
+      2) Instantiate `starvation_dto = DataStarvationEvent(total_atoms=total_atoms)`.
+      3) Serialize `starvation_content = starvation_dto.model_dump(mode="json")`.
+      4) Create `starvation_event = TraceEvent(step_name=request.step.id, event_type="output", content=starvation_content)`.
+      5) Return `EngineExecutionResult(results=[], hydrated_references={}, synthesis_output=starvation_content, trace_events=[starvation_event])` immediately without calling `self._executor.execute_structured_task()`. Setting `synthesis_output=starvation_content` ensures `LLMNodeStrategy` forwards the exact starvation payload into the execution trace `TraceEvent.content` for downstream SDUI adapters.
+    </action>
+    <constraint invariant="anti_god_code_dag_isolation">
+      `DAGExecutor` MUST remain completely domain-agnostic. No synthesis-specific starvation checks or short-circuits are placed in `dag_executor.py`. `SynthesisEngine` handles its own precondition and returns a valid `EngineExecutionResult`.
     </constraint>
-    <constraint invariant="tripartite_phase_isolation">
-      Ensure the synthetic TraceEvent uses a strict Event-Driven Data Envelope (Pydantic DTO shape) compatible with `ReportDataDTO` / `SduiMapperService`. No unstructured dicts.
+    <constraint invariant="raw_atoms_uncompressed_calculation">
+      `total_atoms` MUST be calculated strictly from raw `blackboard.get_all_atom_ids()`, NEVER from `len(reduced_atoms)` or `available_dtos` to prevent False Starvation on perfect scores and dimension mismatch.
+    </constraint>
+    <constraint invariant="adapter_strict_fail_fast_routing">
+      The Engine MUST remain blind to visual layout decisions. It ONLY extracts raw data into pure Domain DTOs (specifically `DataStarvationEvent`). It MUST NOT emit UI blocks directly.
     </constraint>
     <constraint invariant="structured_state_envelopes_mandate">
       The synthetic TraceEvent MUST be a valid, strict Pydantic model (`ConfigDict(strict=True, extra='forbid')`). No naked dictionaries are allowed in the state stream.
     </constraint>
-    <constraint invariant="remedial_strangler_fig_proxy">
-      Ensure modifications to the highly central `DAGExecutor` do not break downstream context variables. Memory state mutations MUST be strictly locked under `_update_lock`, but I/O operations (specifically `await _safe_commit()`) MUST be executed OUTSIDE the lock to prevent concurrency starvation of the `TaskGroup`.
-    </constraint>
   </step>
 
   <step id="2" name="Synthesis Directives (Sparse Data Rule)">
-    <action>Create a new file `backend_v2/models/prompts/synthesis_directives.py`.</action>
+    <action>Create a new dedicated file `backend_v2/models/prompts/synthesis_directives.py` conforming to `anti_god_file_dumping`.</action>
     <action>
-      Implement `build_sparse_data_context(total_atoms: int) -> str` which returns the following `<sparse_data_rule>` XML block ONLY if `total_atoms > 0` and `total_atoms < 3`:
+      Implement `build_sparse_data_context(total_atoms: int) -> str` which formats and returns the following `<sparse_data_rule>` XML block dynamically:
       ```xml
       <sparse_data_rule>
         <context>This execution contains extremely sparse data ({total_atoms} atoms). To prevent Attention Dilution and Prompt Leakage, strict constraints apply.</context>
@@ -85,44 +117,56 @@ The following core KIs have been structurally validated to support this plan:
       </sparse_data_rule>
       ```
     </action>
+    <action>Export `build_sparse_data_context` in `backend_v2/models/prompts/__init__.py`.</action>
     <constraint invariant="anti_god_file_dumping">
-      Creating a dedicated `synthesis_directives.py` prevents dumping this logic into generic files, specifically `global_mandates.py`, or bloating the `synthesis_engine.py`.
+      Creating a dedicated `synthesis_directives.py` prevents dumping prompt logic into generic helper files or bloating `synthesis_engine.py`.
     </constraint>
     <constraint invariant="split_cognitive_translation">
-      The Sparse Data Rule must instruct the LLM to write brief native English reasoning but output localized final text in the target language (no hallucinated JSON schemas).
+      The Sparse Data Rule must instruct the LLM to write brief native English reasoning but output localized final text in the target language.
     </constraint>
   </step>
 
   <step id="3" name="Sparse Data Rule Injection">
-    <action>Modify `_build_dynamic_prompt` in `synthesis_engine.py` to calculate `total_atoms`.</action>
-    <action>Read `sparse_threshold = get_settings().synthesis_sparse_threshold`.</action>
-    <action>If `total_atoms > starvation_threshold` AND `total_atoms < sparse_threshold`, it triggers the Sparse Data Rule.</action>
-    <action>Call `build_sparse_data_context(total_atoms)` and dynamically inject the resulting XML directive directly into the user message at the absolute end (AFTER `<user_payload>`) to preserve Prefix Caching and leverage Recency Bias.</action>
+    <action>In `synthesis_engine.py` `execute()`, read `starvation_threshold = get_settings().synthesis_starvation_threshold` and `sparse_threshold = get_settings().synthesis_sparse_threshold`.</action>
+    <action>If `total_atoms > starvation_threshold` AND `total_atoms < sparse_threshold`, trigger the Sparse Data Rule.</action>
+    <action>Call `build_sparse_data_context(total_atoms)` and append the resulting XML directive directly to the end of the user message (AFTER `<user_payload>` / `<raw_xai_extensions>`) to preserve Prefix Caching and leverage Recency Bias.</action>
+    <constraint invariant="ephemeral_caching_topology">
+      Dynamic prompt directives MUST be injected exclusively into the `user` message at the absolute end, keeping the static system prefix untouched for 100% caching efficiency.
+    </constraint>
   </step>
 
-  <step id="4" name="SDUI Adapter Pattern implementation">
+  <step id="4" name="SDUI Warning Card Adapter Implementation">
     <action>Create a NEW file `backend_v2/services/sdui/adapters/warning_card_adapter.py` following the EXACT two-section canonical template.</action>
-    <action>In Section 1: Define `WARNING_CARD_RULES = {"starvation": {"intent": VisualIntent.WARNING, "icon_name": "alert_triangle"}}`.</action>
-    <action>In Section 2: Implement `WarningCardAdapter.build(context: AdapterContext) -> list[AnySduiBlock]`. The adapter MUST directly scan `context.execution.execution_trace` to detect if a `DataStarvationEvent` occurred by checking `getattr(dto, "event_type", None) == "starvation"` type-safely. It returns an `AlertBlock` containing the translated warning text ONLY if starvation is found, otherwise it returns `[]`.</action>
-    <action>Modify `blueprint.py` to MANUALLY call `WarningCardAdapter.build(context)` and prepend/append its output to the final `inner_sdui_blocks` array.</action>
-    <action>Remove dead code: Do NOT register the adapter in `_target_block_hydrators` and do NOT modify `seed_data.json` to include `"warning_card_block"`. The warning card is an orchestrator-level override, not a standard blueprint component.</action>
+    <action>In Section 1: Define `WARNING_CARD_RULES: dict[str, dict[str, VisualIntent]] = {"starvation": {"severity": VisualIntent.WARNING}}` and define the SSOT localization constant `I18N_WARNING_STARVATION = I18nText(default_locale="en", translations={"en": "Evaluation data was insufficient to generate synthesis.", "fi": "Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi."})`.</action>
+    <action>In Section 2: Implement `WarningCardAdapter.build(context: AdapterContext) -> list[AnySduiBlock]`. Scan `context.execution.execution_trace` for `TraceEvent` objects where `event.event_type == "output"` and `"event_type" in event.content and event.content["event_type"] == "starvation"`. Validate using `DataStarvationEvent.model_validate(event.content, strict=True)`. Catch `ValidationError` with `logger.error("[WarningCardAdapter] Corrupted starvation payload", exc_info=True)` and raise `AppException` (Fail-Fast). If valid, retrieve `severity = WARNING_CARD_RULES[starvation_event.event_type]["severity"]` with Fail-Fast direct key access, resolve localized text via `warning_msg = I18N_WARNING_STARVATION.resolve(context.locale)`, append `AlertBlock(severity=severity, text=warning_msg, exact_quotes=[], citations=[])`, and execute `break` immediately to halt iteration on the first match (preventing duplicate cards in the UI). If no starvation event exists, return `[]`.</action>
+    <action>Export `WarningCardAdapter` in `backend_v2/services/sdui/adapters/__init__.py`.</action>
+    <action>
+      Modify `blueprint.py` `transform()`:
+      1) Import `WarningCardAdapter`.
+      2) In Phase 2 assembly (around line 686), before iterating `dispatch_order`:
+         ```python
+         warning_blocks = WarningCardAdapter.build(adapter_context)
+         if warning_blocks:
+             has_warning = True
+             inner_sdui_blocks.extend(warning_blocks)
+         ```
+      3) Retain the standard target block dispatch loop. If starvation occurred, `warning_blocks` populates `inner_sdui_blocks`, gracefully preventing the `if not inner_sdui_blocks: inner_sdui_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]` fallback from creating empty placeholder radar charts.
+    </action>
+    <action>Do NOT register the adapter in `_target_block_hydrators` and do NOT modify `seed_data.json` to include `"warning_card_block"`. The warning card is an orchestrator-level event projection, not a static blueprint component.</action>
     <constraint invariant="adapter_two_section_structure">
-      The adapter MUST have exactly two sections: a module-level dictionary for aesthetics, and a single class with a `@staticmethod build(context)` method. No inline visual logic is allowed.
+      The adapter MUST have exactly two sections: a module-level dictionary for aesthetics (and static I18nText assets), and a single class with a `@staticmethod build(context)` method. No inline visual logic is allowed.
     </constraint>
     <constraint invariant="adapter_fail_fast_dictionary_access">
       Aesthetic rule lookups MUST use strict direct key access: `WARNING_CARD_RULES[key]`. Using `.get()` is strictly forbidden.
     </constraint>
     <constraint invariant="strict_sdui_polymorphic_serialization">
-      The returned block MUST be a valid `AnySduiBlock` (specifically `AlertBlock`) with a strict `block_type` discriminator.
+      The returned block MUST be a valid `AnySduiBlock` (specifically `AlertBlock`) with a strict `block_type="alert_box"` discriminator and `severity` field.
     </constraint>
-    <constraint invariant="ki_flat_polymorphic_pipeline">
-      The returned `AlertBlock` will be flattened directly into the `inner_sdui_blocks` array by `blueprint.py` for the Dumb Painter frontend.
+    <constraint invariant="single_card_deduplication">
+      The adapter MUST halt iteration on the first matched starvation event (`break`) to ensure at most one AlertBlock is generated.
     </constraint>
     <constraint invariant="semantic_localization_axis">
-      The translated string (specifically "Not enough data" or equivalent `l10n_key`) MUST be resolved via Enum `l10n_key` mapping. The Frontend must NEVER run translation algorithms.
-    </constraint>
-    <constraint invariant="cross_language_enum_parity">
-      If a new Enum is introduced, it MUST have exact parity in `client_app_v2/lib/core/models/enums.dart` with a strict `@JsonEnum()`.
+      The dynamic warning text MUST be resolved through the SSOT `I18nText.resolve(context.locale)` method (Axis 2 semantic localization) without client-side guessing or ad-hoc translation functions.
     </constraint>
   </step>
 </execution_protocol>
@@ -131,29 +175,34 @@ The following core KIs have been structurally validated to support this plan:
 ## Verification Plan
 
 ### Automated Tests
-1. **DAGExecutor Audit:**
-   `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor.py --test`
-2. **Synthesis Engine Audit:**
-   `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/engines/synthesis_engine.py --test`
-3. **AST Guardrail Audit (If needed):**
-   `uv run python scripts/audit_markdown_boundaries.py --file c:\src\quorum\docs\IMPLEMENTATION_PLAN_Circuit_Breaker_Sparse_Data.md`
+1. **Synthesis Engine Unit Test (Circuit Breaker & Sparse Data):**
+   - File: `backend_v2/tests/unit/services/orchestrator/engines/test_synthesis_engine.py`
+   - Update `base_request` fixture or provide sample atoms (`>= 3`) for `test_synthesis_engine_happy_path`.
+   - Add `test_synthesis_engine_data_starvation_circuit_breaker`: Verifies that with 0 atoms (`atoms_by_input = {}`), the circuit breaker fires, returns `DataStarvationEvent` content in `synthesis_output` and `trace_events`, and bypasses `execute_structured_task`.
+   - Add `test_synthesis_engine_sparse_data_rule_injected`: Verifies that with 1-2 atoms, `<sparse_data_rule>` XML block is injected at the end of the user message, and `execute_structured_task` is executed.
+   - Command: `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/engines/synthesis_engine.py --test`
+2. **SDUI Warning Card Adapter Test:**
+   - File: `backend_v2/tests/unit/services/sdui/adapters/test_warning_card_adapter.py`
+   - Test: `test_warning_card_adapter_starvation_success` (creates execution trace with `DataStarvationEvent`, verifies returned `AlertBlock` has `severity=VisualIntent.WARNING` and localized text).
+   - Test: `test_warning_card_adapter_no_starvation` (execution trace with normal output, verifies returns `[]`).
+   - Test: `test_warning_card_adapter_deduplication` (multiple starvation events in trace, verifies only one `AlertBlock` returned).
+   - Test: `test_warning_card_adapter_corrupted_payload_fail_fast` (trace event with `"event_type": "starvation"` but invalid schema, verifies `AppException` is raised).
+   - Command: `uv run pytest backend_v2/tests/unit/services/sdui/adapters/test_warning_card_adapter.py`
+3. **Integration Pipeline Test:**
+   - Command: `uv run pytest backend_v2/tests/unit/test_dag_taskgroup.py`
 
 ### Anti-Happy-Path Scenarios
-- **Scenario A (Data Starvation / 0 Atoms):** Submit an evaluation with completely empty data.
-  - *Expected Output:* `DAGExecutor` triggers Circuit Breaker. `SynthesisEngine` is skipped. UI renders "Not enough data" Warning Card.
+- **Scenario A (Data Starvation / 0 Atoms):** Submit an evaluation with empty blackboard atoms (`total_atoms == 0`).
+  - *Expected Output:* `SynthesisEngine` triggers Circuit Breaker. LLM execution is bypassed. `TraceEvent` with `DataStarvationEvent` is returned. UI renders Warning Card (`AlertBlock`).
 - **Scenario B (Sparse Data / 1 Atom):** Submit an evaluation matching exactly 1 atom.
-  - *Expected Output:* `SynthesisEngine` executes. `sparse_data_rule` is injected into the prompt. LLM outputs a highly truncated JSON without hallucinating instructions.
+  - *Expected Output:* `SynthesisEngine` executes. `sparse_data_rule` is injected into the prompt end. LLM outputs concise response without hallucinated commands.
 - **Scenario C (Perfect Score Compression):** Submit an evaluation with 10 atoms, all `PASSED` (green).
-  - *Expected Output:* `MatrixReducer` compresses them to 0. `total_atoms` is still 10. Circuit Breaker does NOT fire. `SynthesisEngine` runs normally.
-- **Scenario D (Schema Mismatch / Enum Missing):** Provide a `DataStarvationEvent` that requests a missing enum or aesthetic key.
-  - *Expected Output:* The adapter catches the `KeyError`, logs it with `exc_info=True`, and throws an explicit `AppException` (Fail-Fast).
+  - *Expected Output:* `MatrixReducer` compresses `reduced_atoms` to 0, but `total_atoms` is correctly calculated as 10 from raw blackboard atoms. Circuit Breaker does NOT fire. `SynthesisEngine` runs normally.
+- **Scenario D (Schema Mismatch / Corrupted Trace Content):** Provide a `TraceEvent` with malformed starvation payload.
+  - *Expected Output:* The adapter catches the validation error / KeyError, logs structured error, and raises `AppException` (Fail-Fast).
 
 ### Final E2E REST API Verification Gate
 (Windows/PowerShell)
 ```powershell
 $env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py
-```
-(Unix/Bash)
-```bash
-RUN_LIVE_E2E="true" uv run pytest backend_v2/tests/integration/test_integration_real_llm.py
 ```

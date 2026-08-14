@@ -430,7 +430,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                                 status = dag_results.get(atom_id, {}).get("status", "")
                                 if hasattr(status, "name"):
                                     status = status.name
-                                if str(status) in ("PASSED", "CONTESTED"):
+                                if str(status) == "PASSED":
                                     has_evidence = True
                                     break
                     if not has_evidence:
