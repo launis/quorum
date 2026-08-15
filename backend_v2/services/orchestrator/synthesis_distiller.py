@@ -108,13 +108,13 @@ async def _fetch_historical_context(
     return "<HistoricalContext>\n" + "\n\n".join(historical_parts) + "\n</HistoricalContext>\n\n"
 
 
-def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], language: str) -> dict[str, str]:
+def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], target_locale: str) -> dict[str, str]:
     """Build an O(1) lookup map for resolving localized step and input titles.
 
     Args:
         workflow_data: The SSOT workflow definition blueprint.
         all_steps: Master list of all steps from the registry.
-        language: Target translation locale code.
+        target_locale: Target translation locale code.
 
     Returns:
         Dictionary mapping step/input keys to resolved title strings.
@@ -147,11 +147,11 @@ def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], lang
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-            title_map[str(step.id).lower()] = target_step.name.resolve(language)
+            title_map[str(step.id).lower()] = target_step.name.resolve(target_locale)
 
     if workflow_data.expected_inputs:
         for exp_in in workflow_data.expected_inputs:
-            title_map[str(exp_in.input_key).lower()] = exp_in.label.resolve(language)
+            title_map[str(exp_in.input_key).lower()] = exp_in.label.resolve(target_locale)
 
     return title_map
 
@@ -198,6 +198,17 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         msg = "Strict Fail-Fast Enforced: 'steps' key is missing from state inputs."
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+    if not state.metadata or "target_locale" not in state.metadata:
+        msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution metadata."
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+    raw_locale = state.metadata["target_locale"]
+    if not raw_locale or not str(raw_locale).strip():
+        msg = "Strict Fail-Fast Enforced: 'target_locale' in execution metadata must be a non-empty string."
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+    target_locale = str(raw_locale).strip().lower()
 
     # Phase 2, Milestone 1.6: Parse available DTOs from state
     available_dtos: list[StepOutputDTO] = []
@@ -247,29 +258,8 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     # Enforce strict hydration of the raw repository dictionary
     output_profile = OutputProfile.model_validate(p_dict)
 
-    # ARCHITECTURAL MANDATE: Filter available_dtos based on Output Profile target_blocks
-    # This strictly limits Token Context Window explosions during LLM Synthesis
-    target_block_ids = set()
-    for layout in output_profile.layouts:
-        for tb in layout.target_blocks:
-            if isinstance(tb, str):
-                target_block_ids.add(tb)
-            elif hasattr(tb, "value"):
-                target_block_ids.add(tb.value)
-
-    filtered_dtos = []
-    for dto in available_dtos:
-        if "*" in target_block_ids or dto.block_id in target_block_ids:
-            filtered_dtos.append(dto)
-        else:
-            logger.debug(f"[SynthesisDistiller] Skipping {dto.block_id} - not in target_blocks.")
-    available_dtos = filtered_dtos
-
-    if not state.metadata or "target_locale" not in state.metadata:
-        msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution metadata."
-        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-    language = str(state.metadata["target_locale"]).strip().lower()
+    # Ensure available_dtos contains the unfiltered execution state for `<source>` prompt blocks assembly
+    # Target_blocks layout filtering is explicitly removed to prevent Context Context Deprivation
 
     historical_mode = workflow_data.historical_context_mode
 
@@ -282,7 +272,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     raw_steps = await deps.workflow_repo.get_all_steps()
     all_steps = [Step.model_validate(rs) for rs in raw_steps]
 
-    title_map = _build_title_map(workflow_data, all_steps, language)
+    title_map = _build_title_map(workflow_data, all_steps, target_locale)
 
     alias_engine = AliasEngine()
 
@@ -312,7 +302,9 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     # Phase 2, Milestone 1.5: Assemble matrices_to_explain
     raw_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
     blocks_by_id = {str(b["id"]): PromptBlock.model_validate(b) for b in raw_blocks if "id" in b}
-    matrices_to_explain = MatrixExplanationService.assemble_matrices_to_explain(available_dtos, title_map, blocks_by_id)
+    matrices_to_explain = MatrixExplanationService.assemble_matrices_to_explain(
+        available_dtos, title_map, blocks_by_id, target_locale=target_locale
+    )
 
     return HookResult(
         success=True,
@@ -323,7 +315,8 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             "matrices_to_explain": matrices_to_explain,
             "source_alias_map": alias_engine.alias_map,
             "output_profile_id": output_profile_id,
-            "language": language,
+            "target_locale": target_locale,
+            "language": target_locale,
             "alias_registry": alias_engine.alias_map,
             "max_extensions": output_profile.max_extension_items,
         },
