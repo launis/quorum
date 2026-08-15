@@ -3,7 +3,7 @@
 ## 1. Goal Description & Background (Objective & Problem Statement)
 
 ### Business Objective
-Fix the architectural defect where `synthesis_distiller.py` conflates SDUI Presentation Layout filtering (`target_blocks`) with LLM Synthesis Context, starving both `MatrixExplanationService` (zero evidence quotes) and the LLM prompt's `<source>` blocks (`distilled_inputs` losing all cognitive sensor findings). Fix the illegitimate `target_blocks` filter loop in `synthesis_distiller.py` by removing it completely (passing all upstream cognitive sensors and matrices through unconditionally to LLM synthesis, while allowing Phase 3 SDUI adapters and `<section_instruction targets="...">` to handle visual and section-level scoping), hoist and unify `target_locale` validation at the start of the distiller hook to eliminate undefined variable and scope risks, create a centralized, pure SSOT generic utility `backend_v2/utils/ranked_round_robin.py` implementing `ranked_round_robin_select[T]` with $O(N \log N + K)$ algorithmic complexity via native $O(1)$ tail `.pop()` extraction and inverted sorting, harden `matrix_explanation_service.py` to eliminate 12 legacy anti-patterns, implement **Status-Aware Dual Reporting** (segregating `SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms to eliminate Positivity Bias), implement **Ranked Round-Robin Claim Diversity** in `matrix_explanation_service.py` (ranking quotes by length and unmet criteria by scale level) to prevent single-claim quote starvation, harden `xai_highlights_adapter.py` by integrating `ranked_round_robin_select` to curate highlights across active extension types ranked by informativeness/length (eliminating UI accordion Primacy Bias and Category Starvation without requiring Flutter DTO or database schema changes), filter low-substance quote fragments (< 15 characters), unify quote and criteria limits under centralized SSOT settings (`max_synthesis_quote_length` = 300, `max_synthesis_quotes_per_matrix` = 5, `max_synthesis_unmet_criteria_per_matrix` = 5) in `settings.py` to eliminate LLM Context Window Saturation risks, eliminate $O(N)$ settings lookup overhead via method-level hoisting, enforce strict multi-language support by requiring mandatory `target_locale: str` across all production and test call-sites (Zero Backwards Compatibility), update Knowledge Item documentation, and enforce strict compliance with `@[ki_god_code_prevention.md]`.
+Fix the architectural defect where `synthesis_distiller.py` conflates SDUI Presentation Layout filtering (`target_blocks`) with LLM Synthesis Context, starving both `MatrixExplanationService` (zero evidence quotes) and the LLM prompt's `<source>` blocks (`distilled_inputs` losing all cognitive sensor findings). Fix the illegitimate `target_blocks` filter loop in `synthesis_distiller.py` by removing it completely (passing all upstream cognitive sensors and matrices through unconditionally to LLM synthesis, while allowing Phase 3 SDUI adapters and `<section_instruction targets="...">` to handle visual and section-level scoping), hoist and unify `target_locale` validation at the start of the distiller hook to eliminate undefined variable and scope risks, create a centralized, pure SSOT generic utility `backend_v2/utils/ranked_round_robin.py` implementing `ranked_round_robin_select[T]` with $O(N \log N + K)$ algorithmic complexity via native $O(1)$ tail `.pop()` extraction and inverted sorting, harden `matrix_explanation_service.py` to eliminate 12 legacy anti-patterns, implement **Status-Aware Dual Reporting** (segregating `SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms to eliminate Positivity Bias), implement **Ranked Round-Robin Claim Diversity** in `matrix_explanation_service.py` (curating evidence quotes via ranked round-robin across claims by length, and curating unmet criteria deterministically sorted by deficit severity in ascending scale score order, Level 1 critical deficits first with claim deduplication) to prevent single-claim quote starvation and eliminate Priority Inversion, harden `xai_highlights_adapter.py` by integrating `ranked_round_robin_select` to curate highlights across active extension types ranked by informativeness/length (eliminating UI accordion Primacy Bias and Category Starvation without requiring Flutter DTO or database schema changes), filter low-substance quote fragments (< 15 characters), unify quote and criteria limits under centralized SSOT settings (`max_synthesis_quote_length` = 300, `max_synthesis_quotes_per_matrix` = 5, `max_synthesis_unmet_criteria_per_matrix` = 5) in `settings.py` to eliminate LLM Context Window Saturation risks, eliminate $O(N)$ settings lookup overhead via method-level hoisting, enforce strict multi-language support by requiring mandatory `target_locale: str` across all production and test call-sites (Zero Backwards Compatibility), update Knowledge Item documentation, and enforce strict compliance with `@[ki_god_code_prevention.md]`.
 
 ### Problem Statement
 The synthesis pipeline suffers from six distinct architectural defects that collectively degrade the quality of LLM synthesis outputs and SDUI rendering:
@@ -57,6 +57,8 @@ flowchart TD
     In naive round-robin selection, extracting items from the head of a Python list using `group_items.pop(0)` is an $O(M)$ operation where $M$ is the group length, due to contiguous array pointer shifting (`memmove`). When selecting $K \approx N$ items across large synthesis payloads, total extraction time degenerates to $\sum_{i=1}^N (N-i) = O(N^2)$. Per Tier 8 Feature Audit (`feature_audit_ranked_round_robin_o1.md`), the algorithm MUST be optimized by inverting internal sort order (`reverse = not reverse_rank`), placing the highest-priority item at the tail of the list and enabling native $O(1)$ `list.pop()` extractions to guarantee mathematical $O(N \log N + K)$ execution without memory reallocation overhead.
 12. **Atomic Test Data Migration & Blast Radius Verification (Golden Master & SDUI Parity Analysis) (RCA-12):**
     Per Tier 8 Feature Audit (`feature_audit_atomic_test_data_migration.md`), the introduction of Status-Aware Dual Reporting (`SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms) operates strictly in **Phase 2 (Synthesis Distillation)** as an intermediate prompt text formatting optimization (`MatrixExplanationContextDTO.justification: str`). It does **NOT** alter the downstream SDUI JSON payload structure (`MatrixScorecardRowDTO.row_explanation: str`), which remains a single string. Consequently, Golden Master serialization tests (@[backend_v2/tests/e2e/test_golden_master_sdui.py] and @[backend_v2/tests/integration/test_sdui_semantic_parity.py]) remain structurally non-breaking. However, an atomic test data migration IS required for direct unit tests (@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]) that assert legacy string literals, and contract verification tests (@[backend_v2/tests/unit/test_epic93_contract_verification.py]) requiring mandatory `target_locale: str`.
+13. **Priority Inversion & Singleton Group Collapse in Unmet Criteria Selection (RCA-13):**
+    In naive round-robin curation for unmet criteria, setting `reverse_rank=True` on `scale_score` inverts priority because in BARS, Level 1 represents baseline/critical prerequisites (catastrophic failure if missed) while Level 5 represents aspirational mastery. Because `ranked_round_robin_select` uses tail `.pop()`, `reverse_rank=True` pops Level 5 first, discarding critical Level 1 deficits when exceeding `max_synthesis_unmet_criteria_per_matrix`. Furthermore, grouping by `claim_label` produces singleton groups of size 1, rendering intra-group sorting inert and reverting selection to arrival order in `evaluated_atoms`. Per Tier 8 Feature Audit (@[feature_audit_priority_inversion_unmet_criteria.md]), unmet criteria MUST be curated deterministically by collecting `unmet_claim_to_min_scale: dict[str, int]`, sorting claims ascending by `(scale_score, claim_text)` (Level 1 critical deficits first, alphabetical tie-break), and taking the top `max_synthesis_unmet_criteria_per_matrix` (5) items.
 
 ---
 
@@ -399,7 +401,7 @@ graph TD
     - *<mutation_note> REVIEWED EXCEPTION to `the_duct_tape_ban`: The `except (ValidationError, ValueError): continue` blocks are PROBE BOUNDARIES — code iterates ALL `StepOutputDTO` instances (text, matrix, sensor) and probes `payload.results` for atom data and `payload` for matrix data. The `payload` field is `Any`-typed. Not every step carries valid `AtomResultDTO` or `LightweightMatrixOutput` payloads. Crashing Fail-Fast on an upstream malformed step during distillation would kill the entire synthesis. The executing agent MUST add inline `# REVIEWED EXCEPTION to the_duct_tape_ban:` comments documenting this justification. </mutation_note>*
   - **GUARD** prompt block category lookup: eliminate `.get(block_id)` and nullable assignment; enforce strict non-nullable guard via `if block_id not in blocks_by_id: continue` followed by `pb = blocks_by_id[block_id]` and `if pb.category_id != PromptBlockCategory.MATRIX: continue`.
   - **RESOLVE** claim labels: strictly resolve text using `claim.label.resolve(target_locale)` (Zero hardcoded "en", Zero hasattr duck-typing). Remove `hasattr(claim.label, "resolve")` guard entirely — `claim.label` is always `I18nText` per Pydantic schema, so `.resolve()` is guaranteed to exist.
-  - **COLLECT** atom evaluations: precompute `tda_to_claim` and `tda_to_scale` without fallback defaults, collect quote items as `(claim_label, quote_text)` tuples and unmet items as `(scale_score, claim_label)` tuples, and strictly guard against orphan TDAs without duck-typing (`.get(tda_id, "")`):
+  - **COLLECT** atom evaluations: precompute `tda_to_claim` and `tda_to_scale` without fallback defaults, collect quote items as `(claim_label, quote_text)` tuples and track unique unmet claims with their minimum (most severe) scale score in `unmet_claim_to_min_scale: dict[str, int]`, strictly guarding against orphan TDAs without duck-typing (`.get(tda_id, "")`):
     ```python
     tda_to_claim: dict[str, str] = {}
     tda_to_scale: dict[str, int] = {}
@@ -414,7 +416,7 @@ graph TD
                         tda_to_scale[tda.tda_id] = scale.score
 
     quote_candidates: list[tuple[str, str]] = []
-    unmet_candidates: list[tuple[int, str]] = []
+    unmet_claim_to_min_scale: dict[str, int] = {}
 
     for tda_id, hit_status in lw_matrix.evaluated_atoms.items():
         if hit_status == ExecutionStatus.N_A:
@@ -438,9 +440,14 @@ graph TD
                     quote_candidates.append((claim_label, q))
         elif hit_status == ExecutionStatus.FAILED:
             if claim_label:
-                unmet_candidates.append((scale_score, claim_label))
+                if claim_label not in unmet_claim_to_min_scale:
+                    unmet_claim_to_min_scale[claim_label] = scale_score
+                else:
+                    unmet_claim_to_min_scale[claim_label] = min(
+                        unmet_claim_to_min_scale[claim_label], scale_score
+                    )
     ```
-  - **CURATE** quotes and unmet criteria via `ranked_round_robin_select`:
+  - **CURATE** quotes via `ranked_round_robin_select` and unmet criteria via deterministic severity-first sorting (eliminating Priority Inversion per @[feature_audit_priority_inversion_unmet_criteria.md]):
     ```python
     # Curate quotes: Grouped by claim_label, ranked by quote length (longest first)
     ranked_quotes = ranked_round_robin_select(
@@ -453,15 +460,12 @@ graph TD
     # Deduplicate keeping order
     curated_quotes = list(dict.fromkeys(q for _, q in ranked_quotes))
 
-    # Curate unmet criteria: Grouped by claim_label, ranked by scale level (highest deficit first)
-    ranked_unmet = ranked_round_robin_select(
-        items=unmet_candidates,
-        group_key=lambda pair: pair[1],
-        rank_key=lambda pair: pair[0],
-        max_items=max_unmet_criteria,
-        reverse_rank=True,
+    # Curate unmet criteria: Deterministic severity-first sorting (Level 1 critical deficits first, alphabetical tie-break)
+    sorted_unmet_claims = sorted(
+        unmet_claim_to_min_scale.keys(),
+        key=lambda c: (unmet_claim_to_min_scale[c], c),
     )
-    unique_failed_claims = list(dict.fromkeys(c for _, c in ranked_unmet))
+    unique_failed_claims = sorted_unmet_claims[:max_unmet_criteria]
     ```
   - **RESOLVE** level stats: enclose iteration inside an explicit `if lw_matrix.level_breakdown:` guard. Inside the loop, perform UNCONDITIONAL `LevelStatsDTO.model_validate(stats_raw, strict=False)`. Construct `level_breakdown_str` strictly using Python f-strings, completely banning raw string concatenation with `+`:
     ```python
@@ -514,8 +518,9 @@ graph TD
   3. `test_assemble_matrices_to_explain_empty_quotes_list`: pass `target_locale="en"`, verify fallback string when neither quotes nor failed claims exist.
   4. `test_assemble_matrices_to_explain_deduplicates_by_block_id`: pass `target_locale="en"`.
   5. `test_assemble_matrices_to_explain_includes_failed_claims`: pass `target_locale="en"`, verify dual-reporting with both `SUPPORTING EVIDENCE:` and `UNMET CRITERIA / DEFICITS:` present simultaneously.
-  - Add 3 new unit tests:
+  - Add 4 new unit tests:
     - `test_assemble_matrices_to_explain_round_robin_diversity`: verify that when Claim A has 4 quotes and Claim B has 4 quotes, Ranked Round-Robin selects alternating quotes from both claims up to the limit of 5 (picking 3 longest from A and 2 longest from B) rather than exhausting Claim A.
+    - `test_assemble_matrices_to_explain_unmet_criteria_severity_order`: verify that when a matrix contains Level 1, Level 2, and Level 5 failed criteria, the service prioritizes Level 1 critical deficits first and truncates Level 5 aspirational misses when exceeding `max_synthesis_unmet_criteria_per_matrix` (5), eliminating Priority Inversion per @[feature_audit_priority_inversion_unmet_criteria.md].
     - `test_assemble_matrices_to_explain_short_quote_filtering`: verify that quote fragments shorter than 15 characters (specifically and exhaustively: short quote fragments "yes" and "OK") are excluded from `SUPPORTING EVIDENCE`.
     - `test_assemble_matrices_to_explain_multilingual_resolution`: verify that `target_locale="fi"` resolves Finnish claim translations while `target_locale="en"` resolves English translations.
 - **[MODIFY]** @[backend_v2/tests/unit/test_epic93_contract_verification.py]: Update call-site at line 306 to pass mandatory `target_locale="en"` in `test_matrices_to_explain_assembly`.
@@ -630,7 +635,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/services/sdui/adapters/ -
 | E | **Ranked Round-Robin Diversity Across Multiple Claims** | Provide a matrix with Claim A (4 quotes: lengths 100, 80, 60, 40) and Claim B (4 quotes: lengths 95, 75, 55, 35). Matrix justification contains 3 quotes from Claim A (lengths 100, 80, 60) and 2 quotes from Claim B (lengths 95, 75) in alternating round-robin order up to total 5, preventing Claim A from taking all 5 spots. | 1, 3 |
 | F | **Short Fragment Filtering** | Provide an evidence quote of length 4 ("yes!"). Excluded from `SUPPORTING EVIDENCE` due to < 15 character threshold. | 3 |
 | G | **Status-Aware Dual Justification (Mixed Pass/Fail)** | Provide a matrix with 1 `PASSED` atom (with quote) and 4 `FAILED` atoms (with claim labels). Justification contains BOTH `SUPPORTING EVIDENCE:` (with 1 quote) and `UNMET CRITERIA / DEFICITS:` (with 4 claim labels), eliminating Positivity Bias. | 3 |
-| H | **Unmet Criteria Capping Boundary** | Provide a matrix with 12 `FAILED` atoms. Justification contains exactly `max_synthesis_unmet_criteria_per_matrix` (5) claim labels under `UNMET CRITERIA / DEFICITS:`. | 1, 3 |
+| H | **Unmet Criteria Severity Ranking & Capping Boundary** | Provide a matrix with 12 `FAILED` atoms across scale levels 1 to 5. Justification contains exactly `max_synthesis_unmet_criteria_per_matrix` (5) claim labels under `UNMET CRITERIA / DEFICITS:` prioritized in ascending scale score order (Level 1 critical deficits first), proving elimination of Priority Inversion. | 1, 3 |
 | I | **Multilingual Localization Resolution** | Provide claim with translations `{"fi": "Suomalainen väite", "en": "English claim"}` and invoke with `target_locale="fi"`. `UNMET CRITERIA / DEFICITS:` contains `"Suomalainen väite"`. | 3 |
 | J | **Missing / Unknown Block ID** | Provide a step with a `block_id` not present in `blocks_by_id`. Handled cleanly without `getattr` fallbacks or broad exception masking. | 3 |
 | K | **Malformed Atom Payload Observability** | Pass a step output containing a malformed atom dictionary in `results` (with missing mandatory fields or invalid types). Emits `logger.warning` containing `ErrorCodes.INVALID_OUTPUT_SCHEMA.name`, step ID, block ID, and exception traceback (`exc_info=True`) without raising an unhandled crash or silently dropping the error. | 3 |
@@ -669,6 +674,9 @@ uv run pytest backend_v2/tests/integration/test_integration_real_llm.py
 4. **`ki_dual_axis_localization_architecture.md`**: Enforces semantic backend translation (Axis 2) by passing mandatory `target_locale: str` through `assemble_matrices_to_explain` to resolve claim labels without hardcoded `"en"`.
 
 <required_knowledge_items>
+- @[feature_audit_priority_inversion_unmet_criteria.md]
+- @[feature_audit_ranked_round_robin_o1.md]
+- @[feature_audit_atomic_test_data_migration.md]
 - @[ki_god_code_prevention.md]
 - @[ki_synthesis_payload_compression.md]
 - @[ki_matrix_boolean_evaluation_strictness.md]
