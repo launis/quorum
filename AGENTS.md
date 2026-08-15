@@ -110,7 +110,10 @@
         <tier id="5_resume" path="/tier5-resume">Resume & Zero-Shortcut Audit for new sessions.</tier>
         <tier id="6" path="/tier6-execution-monitor">Execution Monitor for real-time background log auditing.</tier>
         <tier id="7" path="/tier7-describe-architecture">As-Built architectural documentation from current codebase.</tier>
-        <tier id="8_audit" path="/tier8-red-teaming-audit">System 2 deep-dive evaluation and red-teaming.</tier>
+        <tier id="8_audit" path="/tier8-red-teaming-audit">System 2 deep-dive evaluation and red-teaming of rules and workflows.</tier>
+        <tier id="8_audit_feature" path="/tier8-audit-feature">System 2 First Principles analysis, Panel of Experts audit, and red-teaming of proposed features.</tier>
+        <tier id="8_audit_plan" path="/tier8-audit-plan">System 2 deep-dive evaluation and audit of a completed implementation plan.</tier>
+        <tier id="8_audit_epic" path="/tier8-audit-epic">System 2 reverse verification of an Epic against the physical codebase.</tier>
         <tier id="8_test_expansion" path="/tier8-test-coverage-expansion">ISTQB-based iterative test coverage expansion for negative and edge-case tests.</tier>
     </execution_tiers>
 </workflow_routing>

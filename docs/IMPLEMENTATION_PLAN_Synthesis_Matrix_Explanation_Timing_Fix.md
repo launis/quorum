@@ -1,6 +1,6 @@
 # IMPLEMENTATION PLAN: Synthesis Matrix Explanation Timing Fix & Architecture Hardening
 
-**Objective**: Fix the architectural defect where `synthesis_distiller.py` conflates SDUI Presentation Layout filtering (`target_blocks`) with LLM Synthesis Context, starving both `MatrixExplanationService` (zero evidence quotes) and the LLM prompt's `<source>` blocks (`distilled_inputs` losing all cognitive sensor findings). Fix the illegitimate `target_blocks` filter loop in `synthesis_distiller.py` by removing it completely (passing all upstream cognitive sensors and matrices through unconditionally to LLM synthesis, while allowing Phase 3 SDUI adapters and `<section_instruction targets="...">` to handle visual and section-level scoping), hoist and unify `target_locale` validation at the start of the distiller hook to eliminate undefined variable and scope risks, create a centralized, pure SSOT generic utility `backend_v2/utils/ranked_round_robin.py` implementing `ranked_round_robin_select[T]`, harden `matrix_explanation_service.py` to eliminate 12 legacy anti-patterns, implement **Status-Aware Dual Reporting** (segregating `SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms to eliminate Positivity Bias), implement **Ranked Round-Robin Claim Diversity** in `matrix_explanation_service.py` (ranking quotes by length and unmet criteria by scale level) to prevent single-claim quote starvation, harden `xai_highlights_adapter.py` by integrating `ranked_round_robin_select` to curate highlights across active extension types ranked by informativeness/length (eliminating UI accordion Primacy Bias and Category Starvation without requiring Flutter DTO or database schema changes), filter low-substance quote fragments (< 15 characters), unify quote and criteria limits under centralized SSOT settings (`max_synthesis_quote_length` = 300, `max_synthesis_quotes_per_matrix` = 5, `max_synthesis_unmet_criteria_per_matrix` = 5) in `settings.py` to eliminate LLM Context Window Saturation risks, eliminate $O(N)$ settings lookup overhead via method-level hoisting, enforce strict multi-language support by requiring mandatory `target_locale: str` across all production and test call-sites (Zero Backwards Compatibility), update Knowledge Item documentation, and enforce strict compliance with `@[ki_god_code_prevention.md]`.
+**Objective**: Fix the architectural defect where `synthesis_distiller.py` conflates SDUI Presentation Layout filtering (`target_blocks`) with LLM Synthesis Context, starving both `MatrixExplanationService` (zero evidence quotes) and the LLM prompt's `<source>` blocks (`distilled_inputs` losing all cognitive sensor findings). Fix the illegitimate `target_blocks` filter loop in `synthesis_distiller.py` by removing it completely (passing all upstream cognitive sensors and matrices through unconditionally to LLM synthesis, while allowing Phase 3 SDUI adapters and `<section_instruction targets="...">` to handle visual and section-level scoping), hoist and unify `target_locale` validation at the start of the distiller hook to eliminate undefined variable and scope risks, create a centralized, pure SSOT generic utility `backend_v2/utils/ranked_round_robin.py` implementing `ranked_round_robin_select[T]` with $O(N \log N + K)$ algorithmic complexity via native $O(1)$ tail `.pop()` extraction and inverted sorting, harden `matrix_explanation_service.py` to eliminate 12 legacy anti-patterns, implement **Status-Aware Dual Reporting** (segregating `SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms to eliminate Positivity Bias), implement **Ranked Round-Robin Claim Diversity** in `matrix_explanation_service.py` (ranking quotes by length and unmet criteria by scale level) to prevent single-claim quote starvation, harden `xai_highlights_adapter.py` by integrating `ranked_round_robin_select` to curate highlights across active extension types ranked by informativeness/length (eliminating UI accordion Primacy Bias and Category Starvation without requiring Flutter DTO or database schema changes), filter low-substance quote fragments (< 15 characters), unify quote and criteria limits under centralized SSOT settings (`max_synthesis_quote_length` = 300, `max_synthesis_quotes_per_matrix` = 5, `max_synthesis_unmet_criteria_per_matrix` = 5) in `settings.py` to eliminate LLM Context Window Saturation risks, eliminate $O(N)$ settings lookup overhead via method-level hoisting, enforce strict multi-language support by requiring mandatory `target_locale: str` across all production and test call-sites (Zero Backwards Compatibility), update Knowledge Item documentation, and enforce strict compliance with `@[ki_god_code_prevention.md]`.
 
 <required_context_rules>
 - @[.agents/rules/00-antigravity-core.md]
@@ -55,6 +55,8 @@
    In `@[backend_v2/models/dtos/lightweight_matrix.py#L55]`, `LightweightMatrixOutput.level_breakdown` is typed as `dict[str, dict[str, int]] | None = None`. In non-hierarchical matrices, sensor steps, or payloads without computed breakdowns, `level_breakdown` is `None`. Directly executing `for lvl, stats_raw in lw_matrix.level_breakdown.items():` without an explicit `if lw_matrix.level_breakdown:` check raises `AttributeError: 'NoneType' object has no attribute 'items'`, crashing matrix explanation assembly during synthesis.
 10. **Nomenclature Inconsistency, Scope Hoisting & Test Suite Blast Radius:**
     In `@[backend_v2/services/orchestrator/synthesis_distiller.py#L268-L273]`, `target_locale` was extracted from `state.metadata` into a local variable named `language` late in the function body (after layout filtering). The helper `_build_title_map` also accepted `language: str`. This created vocabulary dissonance (`language` vs `target_locale`) and hoisting risks where modifying execution order causes `NameError`. Furthermore, updating `MatrixExplanationService.assemble_matrices_to_explain` to require mandatory `target_locale: str` (no lazy defaults) breaks 6 existing test call-sites across `test_matrix_explanation_service.py` (5 tests) and `test_epic93_contract_verification.py` (1 test). The plan must explicitly hoist and normalize `target_locale` at the start of `synthesis_distiller_hook`, unify all internal identifiers to `target_locale`, and update 100% of test callers.
+11. **Algorithmic Bottleneck in Ranked Round-Robin ($O(N)$ `pop(0)` Degenerating to $O(N^2)$):**
+    In naive round-robin selection, extracting items from the head of a Python list using `group_items.pop(0)` is an $O(M)$ operation where $M$ is the group length, due to contiguous array pointer shifting (`memmove`). When selecting $K \approx N$ items across large synthesis payloads, total extraction time degenerates to $\sum_{i=1}^N (N-i) = O(N^2)$. Per Tier 8 Feature Audit (`feature_audit_ranked_round_robin_o1.md`), the algorithm MUST be optimized by inverting internal sort order (`reverse = not reverse_rank`), placing the highest-priority item at the tail of the list and enabling native $O(1)$ `list.pop()` extractions to guarantee mathematical $O(N \log N + K)$ execution without memory reallocation overhead.
 
 ---
 
@@ -112,7 +114,7 @@
 
 > [!IMPORTANT]
 > **Ranked Round-Robin SSOT (`backend_v2/utils/ranked_round_robin.py`):**
-> We introduce a generic, pure mathematical function `ranked_round_robin_select[T]` (PEP 695 generics, $O(N \log N)$ complexity, deterministic, side-effect free).
+> We introduce a generic, pure mathematical function `ranked_round_robin_select[T]` (PEP 695 generics, $O(N \log N + K)$ complexity via native $O(1)$ tail `.pop()` with reverse sorting, deterministic, side-effect free).
 > It serves as the single source of truth for equitable group interleaving across:
 > 1. `MatrixExplanationService`: Quotes grouped by claim and ranked by length (longest/most informative first); unmet criteria grouped by claim and ranked by scale level (highest deficit first).
 > 2. `XaiHighlightsAdapter`: Highlights grouped by `extension_type` and ranked by content length/informativeness, guaranteeing fair representation across coaching, falsification, risk flags, etc., without requiring Flutter DTO or database schema changes.
@@ -165,7 +167,14 @@
     <action>Create `[NEW] @[backend_v2/utils/ranked_round_robin.py]`:</action>
     <action>
     ```python
+    """Ranked Round-Robin Selection Utility.
+
+    Provides a pure, deterministic generic utility to interleave items across
+    distinct groups according to ranked criteria without algorithmic bottlenecks.
+    """
+
     from typing import Any, Callable, Hashable, Sequence
+
 
     def ranked_round_robin_select[T](
         items: Sequence[T],
@@ -177,11 +186,18 @@
     ) -> list[T]:
         """Select items using Ranked Round-Robin for equitable group representation.
 
+        Complexity:
+            - Grouping: O(N)
+            - Sorting: O(sum(M_i * log(M_i))) <= O(N log N)
+            - Selection: O(min(max_items, N) * 1) = O(K) via native tail .pop()
+            - Total: O(N log N + K) vs naive O(N^2)
+
         Algorithm:
-        1. Group items by group_key (preserving group order of first appearance)
-        2. Sort each group internally by rank_key (descending if reverse_rank=True)
-        3. Interleave groups in round-robin, picking the top remaining item from each group
-        4. Truncate selection at max_items
+            1. Group items by group_key (preserving group order of first appearance)
+            2. Sort each group internally such that the highest-priority item is at
+               the tail of the list (reverse = not reverse_rank)
+            3. Interleave groups in round-robin, popping from the tail in O(1) time
+            4. Truncate selection at max_items or when all groups are exhausted
         """
         if max_items <= 0 or not items:
             return []
@@ -191,20 +207,22 @@
             g_key = group_key(item)
             groups.setdefault(g_key, []).append(item)
 
-        # Sort within each group
+        # Sort within each group such that the best item is at the end (-1 index)
+        # allowing native O(1) .pop() extraction.
         for g_key in groups:
-            groups[g_key].sort(key=rank_key, reverse=reverse_rank)
+            groups[g_key].sort(key=rank_key, reverse=not reverse_rank)
 
         selected: list[T] = []
         while len(selected) < max_items and groups:
-            empty_groups = []
+            empty_groups: list[Hashable] = []
             for g_key, group_items in list(groups.items()):
                 if len(selected) >= max_items:
                     break
                 if group_items:
-                    selected.append(group_items.pop(0))
+                    selected.append(group_items.pop())
                 if not group_items:
                     empty_groups.append(g_key)
+
             for eg in empty_groups:
                 groups.pop(eg, None)
 
@@ -212,7 +230,7 @@
     ```
     </action>
     <constraint invariant="ssot_reuse_mandate">
-      Pure, side-effect free, deterministic function using modern Python PEP 695 generics. Single Source of Truth for group interleaving.
+      Pure, side-effect free, deterministic function using modern Python PEP 695 generics. Single Source of Truth for group interleaving with mathematical O(N log N + K) complexity.
     </constraint>
   </step>
 
@@ -259,24 +277,45 @@
     <mutation_note>REVIEWED EXCEPTION to `the_duct_tape_ban`: The `except (ValidationError, ValueError): continue` blocks are PROBE BOUNDARIES — code iterates ALL `StepOutputDTO` instances (text, matrix, sensor) and probes `payload.results` for atom data and `payload` for matrix data. The `payload` field is `Any`-typed. Not every step carries valid `AtomResultDTO` or `LightweightMatrixOutput` payloads. Crashing Fail-Fast on an upstream malformed step during distillation would kill the entire synthesis. The executing agent MUST add inline `# REVIEWED EXCEPTION to the_duct_tape_ban:` comments documenting this justification.</mutation_note>
     <action>In prompt block category lookup: eliminate `.get(block_id)` and nullable assignment; enforce strict non-nullable guard via `if block_id not in blocks_by_id: continue` followed by `pb = blocks_by_id[block_id]` and `if pb.category_id != PromptBlockCategory.MATRIX: continue`.</action>
     <action>In claim label resolution: strictly resolve text using `claim.label.resolve(target_locale)` (Zero hardcoded "en", Zero hasattr duck-typing). Remove `hasattr(claim.label, "resolve")` guard entirely — `claim.label` is always `I18nText` per Pydantic schema, so `.resolve()` is guaranteed to exist.</action>
-    <action>In atom evaluation collection: collect quote items as `(claim_label, quote_text)` tuples and unmet items as `(scale_score, claim_label)` tuples:
+    <action>In atom evaluation collection: precompute `tda_to_claim` and `tda_to_scale` without fallback defaults, collect quote items as `(claim_label, quote_text)` tuples and unmet items as `(scale_score, claim_label)` tuples, and strictly guard against orphan TDAs without duck-typing (`.get(tda_id, "")`):
     ```python
+    tda_to_claim: dict[str, str] = {}
+    tda_to_scale: dict[str, int] = {}
+
+    if pb.scales:
+        for scale in pb.scales:
+            for claim in scale.claims:
+                claim_text = claim.label.resolve(target_locale)
+                if claim_text:
+                    for tda in claim.tda_assertions:
+                        tda_to_claim[tda.tda_id] = claim_text
+                        tda_to_scale[tda.tda_id] = scale.score
+
     quote_candidates: list[tuple[str, str]] = []
-    unmet_candidates: list[tuple[int | float, str]] = []
+    unmet_candidates: list[tuple[int, str]] = []
 
-    for tda_id, hit_status in atoms.items():
-        if hit_status == ExecutionStatus.N_A:
-            continue
+    if isinstance(lw_matrix.evaluated_atoms, dict):
+        for tda_id, hit_status in lw_matrix.evaluated_atoms.items():
+            if hit_status == ExecutionStatus.N_A:
+                continue
 
-        claim_label = tda_to_claim.get(tda_id, "")
-        scale_score = tda_to_scale.get(tda_id, 0)
+            if tda_id not in tda_to_claim:
+                logger.warning(
+                    "[MatrixExplanationService] %s: Unknown TDA ID '%s' in evaluated_atoms for matrix block '%s'",
+                    ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                    tda_id,
+                    block_id,
+                )
+                continue
 
-        if hit_status == ExecutionStatus.PASSED:
-            if tda_id in global_quotes_map:
-                for q in global_quotes_map[tda_id]:
-                    quote_candidates.append((claim_label, q))
-        elif hit_status == ExecutionStatus.FAILED:
-            if claim_label:
+            claim_label = tda_to_claim[tda_id]
+            scale_score = tda_to_scale[tda_id]
+
+            if hit_status == ExecutionStatus.PASSED:
+                if tda_id in global_quotes_map:
+                    for q in global_quotes_map[tda_id]:
+                        quote_candidates.append((claim_label, q))
+            elif hit_status == ExecutionStatus.FAILED:
                 unmet_candidates.append((scale_score, claim_label))
     ```
     </action>
@@ -350,16 +389,23 @@
 
   <step id="5" name="XAI Highlights SDUI Adapter Hardening & Ranked Round-Robin Fair Distribution">
     <action>Modify `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py#L40-L133]`:</action>
-    <action>Import `ranked_round_robin_select` from `backend_v2.utils.ranked_round_robin`.</action>
-    <action>Eliminate duck-typing (`isinstance(item, dict)`, `.get()`, `getattr()`): parse raw highlight items via typed extraction or strict validation.</action>
+    <action>Import `ranked_round_robin_select` from `backend_v2.utils.ranked_round_robin` and `XaiHighlightItem` from `backend_v2.models.dtos.synthesis`.</action>
+    <action>Eliminate duck-typing (`isinstance(item, dict)`, `.get()`, `getattr()`): strictly convert all raw highlight items into validated `XaiHighlightItem` DTO instances using `XaiHighlightItem.model_validate(item, strict=False)` with diagnostic warning logging on malformed payloads.</action>
     <action>Pre-filter highlights across active extension types using `ranked_round_robin_select`:</action>
     <action>
     ```python
+    valid_highlights: list[XaiHighlightItem] = []
+    for raw_item in highlights:
+        try:
+            valid_highlights.append(XaiHighlightItem.model_validate(raw_item, strict=False))
+        except (ValidationError, ValueError) as e:
+            logger.warning("[XaiHighlightsAdapter] %s: Malformed XAI highlight item skipped: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, str(e))
+
     max_total_items = len(profile.visible_block_extensions or []) * (profile.max_extension_items or 4)
     curated_highlights = ranked_round_robin_select(
-        items=highlights,
-        group_key=lambda h: h.get("extension_type") if isinstance(h, dict) else getattr(h, "extension_type", ""),
-        rank_key=lambda h: len(h.get("content", "")) if isinstance(h, dict) else len(getattr(h, "content", "")),
+        items=valid_highlights,
+        group_key=lambda h: h.extension_type,
+        rank_key=lambda h: len(h.content),
         max_items=max_total_items,
         reverse_rank=True,
     )
@@ -367,7 +413,7 @@
     </action>
     <action>Iterate over `curated_highlights` when populating `AccordionBlock` and `AlertBlock` children, guaranteeing that all active extension types receive equitable representation in the SDUI tree without Primacy Bias.</action>
     <constraint invariant="the_zero_compromise_pledge">
-      Eliminates legacy duck typing and hardcodes zero fallback defaults in SDUI presentation logic.
+      Eliminates legacy duck typing (`getattr`, `.get()`, `isinstance(dict)`) and hardcodes zero fallback defaults in SDUI presentation logic.
     </constraint>
   </step>
 
@@ -390,6 +436,7 @@
     <action>- Multiple groups interleave in round-robin order picking top-ranked item from each group.</action>
     <action>- Budget truncation at exact `max_items` boundary.</action>
     <action>- Unequal group sizes where smaller groups deplete before larger groups.</action>
+    <action>- Large dataset $O(1)$ tail pop performance test: verify that selecting from $10^4$ items executes in under 25ms without $O(N^2)$ degradation.</action>
     <action>Update all 5 call-sites in `@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]` to pass mandatory `target_locale="en"` and assert updated Status-Aware justification format:</action>
     <action>1. `test_assemble_matrices_to_explain_basic`: pass `target_locale="en"`, verify `SUPPORTING EVIDENCE:` header with quotes.</action>
     <action>2. `test_assemble_matrices_to_explain_no_matching_quotes`: pass `target_locale="en"`, verify `UNMET CRITERIA / DEFICITS:` header with failed claim labels.</action>
@@ -479,6 +526,8 @@
   - *Expected Output:* All repository mocks supply valid schema dictionaries or Polyfactory models that pass real `model_validate(strict=False)` executions natively, proving that tests execute against real Pydantic runtime constraints without false-green mock bypasses.
 - **Scenario Q (XAI Highlights Primacy Bias Elimination):** Provide `xai_highlights` containing 6 items for `coaching` and 6 items for `falsification`.
   - *Expected Output:* `XaiHighlightsAdapter` interleaves them using `ranked_round_robin_select`, populating both categories with their longest/most informative items rather than exhausting all capacity on `coaching`.
+- **Scenario R (Ranked Round-Robin $O(1)$ Tail Pop Performance):** Run `ranked_round_robin_select` on a synthetic dataset of 10,000 items partitioned into 50 groups with `max_items=5000`.
+  - *Expected Output:* Execution completes in under 25ms, mathematically proving $O(1)$ tail `.pop()` efficiency and eliminating $O(N^2)$ `pop(0)` bottleneck.
 
 ### Manual Verification
 - Run local pipeline (`.\run_local.bat`) and verify in `client_debug.log` and `backend_debug.log` that the synthesis report contains full cognitive context from upstream sensors in `<source>` blocks, matrix justifications with authentic quotes and deficits, and fairly distributed XAI highlights in accordions.

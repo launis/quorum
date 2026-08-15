@@ -3,7 +3,7 @@
 ## 1. Goal Description & Background (Objective & Problem Statement)
 
 ### Business Objective
-Fix the architectural defect where `synthesis_distiller.py` conflates SDUI Presentation Layout filtering (`target_blocks`) with LLM Synthesis Context, starving both `MatrixExplanationService` (zero evidence quotes) and the LLM prompt's `<source>` blocks (`distilled_inputs` losing all cognitive sensor findings). Fix the illegitimate `target_blocks` filter loop in `synthesis_distiller.py` by removing it completely (passing all upstream cognitive sensors and matrices through unconditionally to LLM synthesis, while allowing Phase 3 SDUI adapters and `<section_instruction targets="...">` to handle visual and section-level scoping), hoist and unify `target_locale` validation at the start of the distiller hook to eliminate undefined variable and scope risks, create a centralized, pure SSOT generic utility `backend_v2/utils/ranked_round_robin.py` implementing `ranked_round_robin_select[T]`, harden `matrix_explanation_service.py` to eliminate 12 legacy anti-patterns, implement **Status-Aware Dual Reporting** (segregating `SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms to eliminate Positivity Bias), implement **Ranked Round-Robin Claim Diversity** in `matrix_explanation_service.py` (ranking quotes by length and unmet criteria by scale level) to prevent single-claim quote starvation, harden `xai_highlights_adapter.py` by integrating `ranked_round_robin_select` to curate highlights across active extension types ranked by informativeness/length (eliminating UI accordion Primacy Bias and Category Starvation without requiring Flutter DTO or database schema changes), filter low-substance quote fragments (< 15 characters), unify quote and criteria limits under centralized SSOT settings (`max_synthesis_quote_length` = 300, `max_synthesis_quotes_per_matrix` = 5, `max_synthesis_unmet_criteria_per_matrix` = 5) in `settings.py` to eliminate LLM Context Window Saturation risks, eliminate $O(N)$ settings lookup overhead via method-level hoisting, enforce strict multi-language support by requiring mandatory `target_locale: str` across all production and test call-sites (Zero Backwards Compatibility), update Knowledge Item documentation, and enforce strict compliance with `@[ki_god_code_prevention.md]`.
+Fix the architectural defect where `synthesis_distiller.py` conflates SDUI Presentation Layout filtering (`target_blocks`) with LLM Synthesis Context, starving both `MatrixExplanationService` (zero evidence quotes) and the LLM prompt's `<source>` blocks (`distilled_inputs` losing all cognitive sensor findings). Fix the illegitimate `target_blocks` filter loop in `synthesis_distiller.py` by removing it completely (passing all upstream cognitive sensors and matrices through unconditionally to LLM synthesis, while allowing Phase 3 SDUI adapters and `<section_instruction targets="...">` to handle visual and section-level scoping), hoist and unify `target_locale` validation at the start of the distiller hook to eliminate undefined variable and scope risks, create a centralized, pure SSOT generic utility `backend_v2/utils/ranked_round_robin.py` implementing `ranked_round_robin_select[T]` with $O(N \log N + K)$ algorithmic complexity via native $O(1)$ tail `.pop()` extraction and inverted sorting, harden `matrix_explanation_service.py` to eliminate 12 legacy anti-patterns, implement **Status-Aware Dual Reporting** (segregating `SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms to eliminate Positivity Bias), implement **Ranked Round-Robin Claim Diversity** in `matrix_explanation_service.py` (ranking quotes by length and unmet criteria by scale level) to prevent single-claim quote starvation, harden `xai_highlights_adapter.py` by integrating `ranked_round_robin_select` to curate highlights across active extension types ranked by informativeness/length (eliminating UI accordion Primacy Bias and Category Starvation without requiring Flutter DTO or database schema changes), filter low-substance quote fragments (< 15 characters), unify quote and criteria limits under centralized SSOT settings (`max_synthesis_quote_length` = 300, `max_synthesis_quotes_per_matrix` = 5, `max_synthesis_unmet_criteria_per_matrix` = 5) in `settings.py` to eliminate LLM Context Window Saturation risks, eliminate $O(N)$ settings lookup overhead via method-level hoisting, enforce strict multi-language support by requiring mandatory `target_locale: str` across all production and test call-sites (Zero Backwards Compatibility), update Knowledge Item documentation, and enforce strict compliance with `@[ki_god_code_prevention.md]`.
 
 ### Problem Statement
 The synthesis pipeline suffers from six distinct architectural defects that collectively degrade the quality of LLM synthesis outputs and SDUI rendering:
@@ -37,10 +37,10 @@ flowchart TD
    - **LLM `<source>` Context Deprivation:** `consolidated_distilled_parts` (`distilled_inputs`) iterated over the pruned list. Consequently, `<source id="DOC-X">` blocks passed into the LLM prompt's `DATA TO SYNTHESIZE` contained only boolean matrix results, completely stripping all cognitive sensor findings, exact quotes, and semantic reasoning from the synthesis prompt.
 3. **Positivity Bias & Single-Claim Starvation in Matrix Explanations (RCA-3):**
    In @[backend_v2/services/orchestrator/matrix_explanation_service.py] (lines 123-136), justifications used a mutually exclusive `if unique_quotes: ... elif evaluated_claims:` branch. 
-   - **Positivity Bias:** In Quorum's Null Hypothesis architecture (`@[ki_matrix_boolean_evaluation_strictness.md]`), `PASSED` atoms have verbatim quotes while `FAILED` atoms have `source_quote = None`. If a matrix has 1 `PASSED` atom and 9 `FAILED` atoms, the single quote triggered `if unique_quotes:`, completely hiding the 9 failed criteria. The LLM received a low score (specifically: 10%) with exclusively positive supporting quotes, causing hallucinated justifications or synthesis contradictions.
-   - **Blind Truncation & Starvation:** Slicing claims linearly (`[:5]`) truncated higher-level or barrier criteria situated later in the scale definition. If one claim had 5 quotes, linear slicing took all 5 quotes from that single claim, starving remaining claims of representation.
+    - **Positivity Bias:** In Quorum's Null Hypothesis architecture (`@[ki_matrix_boolean_evaluation_strictness.md]`), `PASSED` atoms have verbatim quotes while `FAILED` atoms have `source_quote = None`. If a matrix has 1 `PASSED` atom and 9 `FAILED` atoms, the single quote triggered `if unique_quotes:`, completely hiding the 9 failed criteria. The LLM received a low score (specifically and exhaustively: a fixed 10% normalized score) with exclusively positive supporting quotes, causing hallucinated justifications or synthesis contradictions.
+    - **Blind Truncation & Starvation:** Slicing claims linearly (`[:5]`) truncated higher-level or barrier criteria situated later in the scale definition. If one claim had 5 quotes, linear slicing took all 5 quotes from that single claim, starving remaining claims of representation.
 4. **Primacy Bias & Category Starvation in XAI Highlights SDUI Adapter (RCA-4):**
-   In @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] (lines 65-130), incoming highlights are processed in raw arrival order and appended to accordions until `len(accordion.children) < max_lines`. If earlier extension categories (specifically `coaching`) contain many items, they exhaust visual capacity before later critical categories (specifically `falsification` or `risk_flag`) are evaluated, creating **Primacy Bias** and **Category Starvation** in the UI. Furthermore, the adapter relies on duck-typing (`isinstance(item, dict)`, `.get()`, `getattr()`) violating `the_zero_compromise_pledge`.
+    In @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] (lines 65-130), incoming highlights are processed in raw arrival order and appended to accordions until `len(accordion.children) < max_lines`. If earlier extension categories (specifically and exhaustively: the `coaching` extension category) contain many items, they exhaust visual capacity before later critical categories (specifically and exhaustively: `falsification` or `risk_flag` extension categories) are evaluated, creating **Primacy Bias** and **Category Starvation** in the UI. Furthermore, the adapter relies on duck-typing (`isinstance(item, dict)`, `.get()`, `getattr()`) violating `the_zero_compromise_pledge`.
 5. **Anti-Pattern Proliferation, Raw String Concatenation & Hardcoded Language (RCA-5):**
    @[backend_v2/services/orchestrator/matrix_explanation_service.py] (lines 15-145) contains legacy anti-patterns (`isinstance` checks on payload dicts, `hasattr` reflection, `getattr` with fallback defaults, `.get()` defaults, raw string concatenation with `+` violating `naked_prompt_injection`, and `try/except Exception: continue` catch-alls) that violate `the_zero_compromise_pledge`, `the_duct_tape_ban`, and `naked_prompt_injection`. Additionally, `claim.label.resolve("en")` hardcodes English, violating the Dual-Axis Localization architecture.
 6. **$O(N)$ Settings Overhead & Scattered Limits (RCA-6):**
@@ -53,6 +53,10 @@ flowchart TD
    In @[backend_v2/models/dtos/lightweight_matrix.py] (line 55), `LightweightMatrixOutput.level_breakdown` is typed as `dict[str, dict[str, int]] | None = None`. In non-hierarchical matrices, sensor steps, or payloads without computed breakdowns, `level_breakdown` is `None`. Directly executing `for lvl, stats_raw in lw_matrix.level_breakdown.items():` without an explicit `if lw_matrix.level_breakdown:` check raises `AttributeError: 'NoneType' object has no attribute 'items'`, crashing matrix explanation assembly during synthesis.
 10. **Nomenclature Inconsistency, Scope Hoisting & Test Suite Blast Radius (RCA-10):**
     In @[backend_v2/services/orchestrator/synthesis_distiller.py] (lines 268-273), `target_locale` was extracted from `state.metadata` into a local variable named `language` late in the function body (after layout filtering). The helper `_build_title_map` also accepted `language: str`. This created vocabulary dissonance (`language` vs `target_locale`) and hoisting risks where modifying execution order causes `NameError`. Furthermore, updating `MatrixExplanationService.assemble_matrices_to_explain` to require mandatory `target_locale: str` (no lazy defaults) breaks 6 existing test call-sites across `test_matrix_explanation_service.py` (5 tests) and `test_epic93_contract_verification.py` (1 test). The plan must explicitly hoist and normalize `target_locale` at the start of `synthesis_distiller_hook`, unify all internal identifiers to `target_locale`, and update 100% of test callers.
+11. **Algorithmic Bottleneck in Ranked Round-Robin ($O(N)$ `pop(0)` Degenerating to $O(N^2)$) (RCA-11):**
+    In naive round-robin selection, extracting items from the head of a Python list using `group_items.pop(0)` is an $O(M)$ operation where $M$ is the group length, due to contiguous array pointer shifting (`memmove`). When selecting $K \approx N$ items across large synthesis payloads, total extraction time degenerates to $\sum_{i=1}^N (N-i) = O(N^2)$. Per Tier 8 Feature Audit (`feature_audit_ranked_round_robin_o1.md`), the algorithm MUST be optimized by inverting internal sort order (`reverse = not reverse_rank`), placing the highest-priority item at the tail of the list and enabling native $O(1)$ `list.pop()` extractions to guarantee mathematical $O(N \log N + K)$ execution without memory reallocation overhead.
+12. **Atomic Test Data Migration & Blast Radius Verification (Golden Master & SDUI Parity Analysis) (RCA-12):**
+    Per Tier 8 Feature Audit (`feature_audit_atomic_test_data_migration.md`), the introduction of Status-Aware Dual Reporting (`SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms) operates strictly in **Phase 2 (Synthesis Distillation)** as an intermediate prompt text formatting optimization (`MatrixExplanationContextDTO.justification: str`). It does **NOT** alter the downstream SDUI JSON payload structure (`MatrixScorecardRowDTO.row_explanation: str`), which remains a single string. Consequently, Golden Master serialization tests (@[backend_v2/tests/e2e/test_golden_master_sdui.py] and @[backend_v2/tests/integration/test_sdui_semantic_parity.py]) remain structurally non-breaking. However, an atomic test data migration IS required for direct unit tests (@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]) that assert legacy string literals, and contract verification tests (@[backend_v2/tests/unit/test_epic93_contract_verification.py]) requiring mandatory `target_locale: str`.
 
 ---
 
@@ -76,12 +80,51 @@ flowchart TD
 > [!WARNING]
 > **No-Data Handling Boundary:** If the execution produced zero atoms (Data Starvation), this is handled by the **Circuit Breaker** in `SynthesisEngine` (see `@[docs/IMPLEMENTATION_PLAN_Circuit_Breaker_Sparse_Data.md]`). This plan does NOT duplicate that logic. This plan ensures that when data EXISTS, each synthesis component receives all of it without illegitimate pruning.
 
+### Phase Boundary Isolation & SDUI Schema Invariance (Golden Master Non-Breaking Proof)
+
+Per Tier 8 Feature Audit (`feature_audit_atomic_test_data_migration.md`), Status-Aware Dual Reporting introduces a 2D structured string (`SUPPORTING EVIDENCE` and `UNMET CRITERIA / DEFICITS`) into `MatrixExplanationContextDTO.justification`. It is vital to formally document the architectural boundary isolation between Phase 2 (Synthesis Distillation) and Phase 3 (SDUI Presentation / Dumb Painter):
+
+```mermaid
+graph TD
+    MES[MatrixExplanationService] -->|Outputs 2D Justification| SD[SynthesisDistiller]
+    SD -->|MATRICES TO EXPLAIN| LLM[LLM Synthesis Worker]
+    LLM -->|Synthesizes 1-Sentence Summary| RSC[RenderedSynthesisCache]
+    RSC -->|Populates row_explanation| MDP[MatrixDomainParser]
+    MDP -->|Builds MatrixScorecardRowDTO| MTA[MatrixSummaryTableAdapter]
+    MTA -->|Outputs SduiMatrixTableBlock| SDUI[Flutter SDUI Engine]
+
+    subgraph Direct Test Blast Radius (Requires Atomic Test Migration)
+        MES -.-> TMES[test_matrix_explanation_service.py - 5 assertions migrated]
+        MES -.-> TE93[test_epic93_contract_verification.py - 1 call-site updated]
+        SD -.-> TSDW[test_synthesis_distiller_wiring.py - New test created]
+    end
+
+    subgraph SDUI Schema Invariant (Structurally Non-Breaking)
+        SDUI -.-> TGMS[test_golden_master_sdui.py - PASSES]
+        SDUI -.-> TSSP[test_sdui_semantic_parity.py - PASSES]
+    end
+```
+
+1. **Intermediate Prompt Formatting vs. SDUI Presentation Contract:**
+   - `MatrixExplanationService.assemble_matrices_to_explain()` produces `MatrixExplanationContextDTO` instances containing intermediate prompt text for the LLM synthesis prompt (`worker.py#L922`).
+   - The LLM reads this balanced evidence and generates a singular, synthesized narrative sentence (`RowExplanationItemDTO.row_explanation: str`).
+   - In Phase 3, `MatrixDomainParser` and `MatrixSummaryTableAdapter` populate `MatrixScorecardRowDTO.row_explanation: str`.
+   - The SDUI JSON payload (`SduiMatrixTableBlock`, `MatrixScorecardRowDTO`, `ReportDataDTO`) remains **100% structurally identical**. No schema fields are added or mutated, and no Flutter Freezed models (`client_app_v2`) require changes.
+
+2. **Golden Master & Parity Test Stability:**
+   - `test_golden_master_sdui.py` verifies static `ReportDataDTO` serialization and ICU Markdown tag restrictions (`<span`, `<div`, `<p>`). It does not invoke `MatrixExplanationService` and remains 100% passing.
+   - `test_sdui_semantic_parity.py` validates Flutter vs. Jinja PDF parity using `Polyfactory` fixtures and remains 100% passing.
+
+3. **Targeted Atomic Test Migration Scope:**
+   - `test_matrix_explanation_service.py`: 5 existing tests updated to assert `SUPPORTING EVIDENCE:` and `UNMET CRITERIA / DEFICITS:` headers + 3 new tests added.
+   - `test_epic93_contract_verification.py`: Line 306 updated to pass mandatory `target_locale="en"`.
+
 ### Deprecations & Sunset List (`What We Will REMOVE`)
 
 | Symbol | Location | Disposition |
 |---|---|---|
 | `target_blocks` filter loop | @[backend_v2/services/orchestrator/synthesis_distiller.py] | **INTENTIONALLY DROPPED**: The loop conflated Phase 3 visual rendering with Phase 2 data collection. `<section_instruction targets="...">` in worker.py handles per-section LLM focus. |
-| `language` local variable | @[backend_v2/services/orchestrator/synthesis_distiller.py] | **RENAMED** to `target_locale` (hoisted to function start) |
+| `language` local variable & legacy `state_delta` key | @[backend_v2/services/orchestrator/synthesis_distiller.py] | **PURGED / INTENTIONALLY DROPPED**: Renamed to `target_locale` (hoisted to function start). Legacy `"language"` export in `HookResult.state_delta` is completely removed to enforce Zero Backwards Compatibility (`the_no_legacy_mandate`). |
 | `if unique_quotes: ... elif evaluated_claims:` branch | @[backend_v2/services/orchestrator/matrix_explanation_service.py] | **REPLACED** with Status-Aware Dual Reporting (both `SUPPORTING EVIDENCE` and `UNMET CRITERIA / DEFICITS`) |
 | `isinstance(atoms, dict)` guard | @[backend_v2/services/orchestrator/matrix_explanation_service.py] | **INTENTIONALLY DROPPED** |
 | `hasattr(claim.label, "resolve")` guard | @[backend_v2/services/orchestrator/matrix_explanation_service.py] | **INTENTIONALLY DROPPED** |
@@ -105,7 +148,7 @@ flowchart TD
 |---|---|
 | Zero-Compromise Strict Typing | All legacy duck-typing (`isinstance`, `hasattr`, `getattr`, `.get()`) eliminated. Pydantic `model_validate()` at boundaries. |
 | Duct-Tape Ban | Raw string concatenation banned. All formatting via f-strings and `str.join()`. REVIEWED EXCEPTION for probe boundaries in atom/matrix iteration (documented inline). |
-| No-Legacy Mandate | `target_locale: str` mandatory parameter with zero optional defaults. |
+| No-Legacy Mandate | Zero Backwards Compatibility: `target_locale: str` mandatory parameter across all signatures without defaults; legacy `"language"` key completely purged from `HookResult.state_delta` (no dual-export fallbacks). |
 | Global Config Sovereignty | Three new SSOT settings in `Settings`: `max_synthesis_quote_length`, `max_synthesis_quotes_per_matrix`, `max_synthesis_unmet_criteria_per_matrix`. |
 | God Code Prevention | See expanded table below. |
 | Dual-Axis Localization | `claim.label.resolve(target_locale)` replaces hardcoded `"en"`. |
@@ -142,7 +185,7 @@ flowchart TD
 > **Complete Cognitive Preservation in `<source>` Prompt Blocks:** We DELETE the `target_blocks` filter from `synthesis_distiller.py` entirely. The filter conflated Phase 3 visual rendering decisions with Phase 2 data collection, starving the LLM of cognitive sensor findings. Because the LLM requires all data to write the Executive Summary, and `<section_instruction targets="...">` already guides per-section focus, there is no legitimate reason to pre-filter `available_dtos` in the distiller. `SynthesisPayloadCompressor` protects against Context Window Saturation via `max_synthesis_evaluations` and `max_synthesis_quote_length`.
 
 > [!IMPORTANT]
-> **Ranked Round-Robin SSOT (`backend_v2/utils/ranked_round_robin.py`):** We introduce a generic, pure mathematical function `ranked_round_robin_select[T]` (PEP 695 generics, $O(N \log N)$ complexity, deterministic, side-effect free). It serves as the single source of truth for equitable group interleaving across:
+> **Ranked Round-Robin SSOT (`backend_v2/utils/ranked_round_robin.py`):** We introduce a generic, pure mathematical function `ranked_round_robin_select[T]` (PEP 695 generics, $O(N \log N + K)$ complexity via native $O(1)$ tail `.pop()` with reverse sorting, deterministic, side-effect free). It serves as the single source of truth for equitable group interleaving across:
 > 1. `MatrixExplanationService`: Quotes grouped by claim and ranked by length (longest/most informative first); unmet criteria grouped by claim and ranked by scale level (highest deficit first).
 > 2. `XaiHighlightsAdapter`: Highlights grouped by `extension_type` and ranked by content length/informativeness, guaranteeing fair representation across coaching, falsification, risk flags, and other active categories, without requiring Flutter DTO or database schema changes.
 
@@ -159,10 +202,10 @@ flowchart TD
 > Both `SynthesisPayloadCompressor` and `MatrixExplanationService` will strictly reference these settings, eliminating hardcoded magic numbers and safeguarding against Context Window Saturation during LLM synthesis.
 
 > [!IMPORTANT]
-> **Zero Backwards Compatibility (No Optional Defaults) & Blast Radius Coverage:** `MatrixExplanationService.assemble_matrices_to_explain` strictly requires `target_locale: str` as a mandatory parameter:
+> **Zero Backwards Compatibility (No Optional Defaults or Dual-Exports) & Blast Radius Coverage:** `MatrixExplanationService.assemble_matrices_to_explain` strictly requires `target_locale: str` as a mandatory parameter:
 > `assemble_matrices_to_explain(available_dtos: list[StepOutputDTO], title_map: dict[str, str], blocks_by_id: dict[str, PromptBlock], target_locale: str) -> list[MatrixExplanationContextDTO]`.
 > All callers (specifically and exhaustively: `synthesis_distiller.py`, all 5 tests in `test_matrix_explanation_service.py`, and `test_epic93_contract_verification.py`) MUST provide `target_locale`. No optional `= None` or `="en"` fallbacks allowed per `the_no_legacy_mandate` and `anti_lazy_fallback_mandate`.
-> In `synthesis_distiller.py`, `target_locale` validation is hoisted to the top of `synthesis_distiller_hook` immediately after `inputs["steps"]` checking, and all references to the legacy `language` identifier are unified to `target_locale`.
+> In `synthesis_distiller.py`, `target_locale` validation is hoisted to the top of `synthesis_distiller_hook` immediately after `inputs["steps"]` checking, all internal references to the legacy `language` identifier are unified to `target_locale`, and `HookResult.state_delta` exports ONLY `"target_locale"` (the legacy `"language"` key is completely purged).
 
 ---
 
@@ -197,9 +240,15 @@ flowchart TD
 - Constraint `global_config_sovereignty`: Hardcoded magic numbers `[:300]` and `[:5]` in service files are strictly banned. All quote truncation, quote counts, and criteria limits must reference `max_synthesis_quote_length`, `max_synthesis_quotes_per_matrix`, and `max_synthesis_unmet_criteria_per_matrix` in `Settings`.
 
 #### Step 1.2: Ranked Round-Robin SSOT Utility Implementation
-- **[NEW]** `backend_v2/utils/ranked_round_robin.py`: Create pure, side-effect-free, deterministic `ranked_round_robin_select[T]` function using PEP 695 generics with $O(N \log N)$ complexity. Single Source of Truth for equitable group interleaving.
+- **[NEW]** `backend_v2/utils/ranked_round_robin.py`: Create pure, side-effect-free, deterministic `ranked_round_robin_select[T]` function using PEP 695 generics with $O(N \log N + K)$ complexity via native $O(1)$ tail `.pop()` extraction and inverted sorting. Single Source of Truth for equitable group interleaving.
 - Exact Implementation:
   ```python
+  """Ranked Round-Robin Selection Utility.
+
+  Provides a pure, deterministic generic utility to interleave items across
+  distinct groups according to ranked criteria without algorithmic bottlenecks.
+  """
+
   from typing import Any, Callable, Hashable, Sequence
 
 
@@ -213,11 +262,18 @@ flowchart TD
   ) -> list[T]:
       """Select items using Ranked Round-Robin for equitable group representation.
 
+      Complexity:
+          - Grouping: O(N)
+          - Sorting: O(sum(M_i * log(M_i))) <= O(N log N)
+          - Selection: O(min(max_items, N) * 1) = O(K) via native tail .pop()
+          - Total: O(N log N + K) vs naive O(N^2)
+
       Algorithm:
-      1. Group items by group_key (preserving group order of first appearance)
-      2. Sort each group internally by rank_key (descending if reverse_rank=True)
-      3. Interleave groups in round-robin, picking the top remaining item from each group
-      4. Truncate selection at max_items
+          1. Group items by group_key (preserving group order of first appearance)
+          2. Sort each group internally such that the highest-priority item is at
+             the tail of the list (reverse = not reverse_rank)
+          3. Interleave groups in round-robin, popping from the tail in O(1) time
+          4. Truncate selection at max_items or when all groups are exhausted
       """
       if max_items <= 0 or not items:
           return []
@@ -227,26 +283,28 @@ flowchart TD
           g_key = group_key(item)
           groups.setdefault(g_key, []).append(item)
 
-      # Sort within each group
+      # Sort within each group such that the best item is at the end (-1 index)
+      # allowing native O(1) .pop() extraction.
       for g_key in groups:
-          groups[g_key].sort(key=rank_key, reverse=reverse_rank)
+          groups[g_key].sort(key=rank_key, reverse=not reverse_rank)
 
       selected: list[T] = []
       while len(selected) < max_items and groups:
-          empty_groups = []
+          empty_groups: list[Hashable] = []
           for g_key, group_items in list(groups.items()):
               if len(selected) >= max_items:
                   break
               if group_items:
-                  selected.append(group_items.pop(0))
+                  selected.append(group_items.pop())
               if not group_items:
                   empty_groups.append(g_key)
+
           for eg in empty_groups:
               groups.pop(eg, None)
 
       return selected
   ```
-- Constraint `ssot_reuse_mandate`: Pure, side-effect free, deterministic function using modern Python PEP 695 generics. Single Source of Truth for group interleaving.
+- Constraint `ssot_reuse_mandate`: Pure, side-effect free, deterministic function using modern Python PEP 695 generics. Single Source of Truth for group interleaving with mathematical O(N log N + K) complexity.
 
 #### Step 1.3: Ranked Round-Robin Unit Tests
 - **[NEW]** `backend_v2/tests/unit/utils/test_ranked_round_robin.py` to test:
@@ -256,6 +314,7 @@ flowchart TD
   - Multiple groups interleave in round-robin order picking top-ranked item from each group.
   - Budget truncation at exact `max_items` boundary.
   - Unequal group sizes where smaller groups deplete before larger groups.
+  - Large dataset $O(1)$ tail pop performance test: verify that selecting from $10^4$ items executes in under 25ms without $O(N^2)$ degradation.
 - **Phase 1 Verification**: `uv run pytest backend_v2/tests/unit/utils/test_ranked_round_robin.py`
 
 ---
@@ -265,14 +324,14 @@ flowchart TD
 **Scope**: Remove the flawed `target_blocks` filter from `synthesis_distiller.py`, pass complete cognitive execution state to `<source>` prompt blocks and `MatrixExplanationService`, hoist and unify `target_locale` validation at hook entry, and create comprehensive distiller wiring tests.
 
 > [!IMPORTANT]
-> **IMPLEMENTATION STATUS (Verified 2026-08-15):** Step 2.1 core work is **ALREADY IMPLEMENTED** in the codebase:
+> **IMPLEMENTATION STATUS (Verified 2026-08-15):** Step 2.1 core work is **PARTIALLY IMPLEMENTED** in the codebase:
 > 1. `target_blocks` filter loop: **ALREADY REMOVED** (confirmed absent from file, comment at line 261-262).
 > 2. `target_locale` validation: **ALREADY HOISTED** to top of `synthesis_distiller_hook` at lines 202-211.
 > 3. `_build_title_map` signature: **ALREADY RENAMED** from `language` to `target_locale` (line 111).
 > 4. `MatrixExplanationService.assemble_matrices_to_explain`: **ALREADY CALLED** with `target_locale=target_locale` (line 306).
-> 5. `HookResult.state_delta`: **ALREADY EXPORTS** both `"target_locale"` and `"language"` keys (lines 318-319).
+> 5. `HookResult.state_delta`: **MUST PURGE LEGACY "language" KEY** (line 319 contains redundant `"language": target_locale` which must be deleted to enforce Zero Backwards Compatibility per `the_no_legacy_mandate`).
 >
-> The executing agent MUST VERIFY these items exist, not re-implement them. Step 2.2 (new wiring test file `test_synthesis_distiller_wiring.py`) is NOT yet implemented and remains in scope.
+> The executing agent MUST verify these items and PURGE the `"language"` key from `state_delta`. Step 2.2 (new wiring test file `test_synthesis_distiller_wiring.py`) is NOT yet implemented and remains in scope.
 
 **Target Files (2 files)**:
 - **[MODIFY]** @[backend_v2/services/orchestrator/synthesis_distiller.py]
@@ -284,7 +343,7 @@ flowchart TD
 - Use these mathematically verified bounds for all subsequent edits.
 - Constraint `ast_boundary_verification_mandate`: Per @[ki_god_code_prevention.md], you MUST NOT rely on `grep_search` to find method boundaries in files exceeding 300 lines.
 
-#### Step 2.1: Synthesis Distiller Locale Hoisting, Pruning Elimination & Unfiltered Context Pipeline
+#### Step 2.1: Synthesis Distiller Locale Hoisting, Pruning Elimination, Legacy Key Purge & Unfiltered Context Pipeline
 - **[MODIFY]** @[backend_v2/services/orchestrator/synthesis_distiller.py] (function `synthesis_distiller_hook`):
   - **HOIST** `target_locale` validation to the top of `synthesis_distiller_hook` immediately after `inputs["steps"]` validation, before executing any async repository queries:
     ```python
@@ -304,14 +363,15 @@ flowchart TD
   - **ENSURE** `available_dtos` (complete, unfiltered execution state from `inputs["steps"]`) is passed directly to alias registration, `<source>` prompt blocks assembly, and `MatrixExplanationService.assemble_matrices_to_explain`.
   - **UPDATE** `<source>` prompt block generation in `synthesis_distiller_hook` to iterate over all `available_dtos`, compressing each step payload via `SynthesisPayloadCompressor.compress_synthesis_payload` so that all cognitive sensor evaluations and matrix results are preserved in `distilled_inputs`.
   - **UPDATE** `MatrixExplanationService.assemble_matrices_to_explain` call to pass `available_dtos`, `title_map`, `blocks_by_id`, and mandatory `target_locale=target_locale`.
-  - **EXPORT** `"target_locale": target_locale` and `"language": target_locale` in `HookResult.state_delta` to guarantee contract compliance.
-  - Constraints `the_zero_compromise_pledge` and `anti_lazy_fallback_mandate`.
+  - **PURGE** the deprecated `"language": target_locale` key from `HookResult.state_delta` (exporting ONLY `"target_locale": target_locale`) to enforce Zero Backwards Compatibility per `the_no_legacy_mandate`.
+  - Constraints `the_zero_compromise_pledge`, `the_no_legacy_mandate`, and `anti_lazy_fallback_mandate`.
 
 #### Step 2.2: Synthesis Distiller Wiring Unit Tests
 - **[NEW]** `backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py` to test:
   - `synthesis_distiller_hook` passes unfiltered `available_dtos` to both `<source>` block distillation (`distilled_inputs`) and `MatrixExplanationService` along with `target_locale`.
   - `synthesis_distiller_hook` fails fast with `AppException(VALIDATION_FAILED)` when `target_locale` is missing from `state.metadata` or contains whitespace-only strings.
   - `distilled_inputs` preserves upstream cognitive sensor findings and verbatim evidence quotes.
+  - `result.state_delta` contains `"target_locale"` and STRICTLY DOES NOT contain `"language"`, mathematically proving Zero Backwards Compatibility (`the_no_legacy_mandate`).
 - **Phase 2 Verification**: `uv run pytest backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py`
 
 ---
@@ -339,17 +399,38 @@ flowchart TD
     - *<mutation_note> REVIEWED EXCEPTION to `the_duct_tape_ban`: The `except (ValidationError, ValueError): continue` blocks are PROBE BOUNDARIES — code iterates ALL `StepOutputDTO` instances (text, matrix, sensor) and probes `payload.results` for atom data and `payload` for matrix data. The `payload` field is `Any`-typed. Not every step carries valid `AtomResultDTO` or `LightweightMatrixOutput` payloads. Crashing Fail-Fast on an upstream malformed step during distillation would kill the entire synthesis. The executing agent MUST add inline `# REVIEWED EXCEPTION to the_duct_tape_ban:` comments documenting this justification. </mutation_note>*
   - **GUARD** prompt block category lookup: eliminate `.get(block_id)` and nullable assignment; enforce strict non-nullable guard via `if block_id not in blocks_by_id: continue` followed by `pb = blocks_by_id[block_id]` and `if pb.category_id != PromptBlockCategory.MATRIX: continue`.
   - **RESOLVE** claim labels: strictly resolve text using `claim.label.resolve(target_locale)` (Zero hardcoded "en", Zero hasattr duck-typing). Remove `hasattr(claim.label, "resolve")` guard entirely — `claim.label` is always `I18nText` per Pydantic schema, so `.resolve()` is guaranteed to exist.
-  - **COLLECT** atom evaluations: collect quote items as `(claim_label, quote_text)` tuples and unmet items as `(scale_score, claim_label)` tuples:
+  - **COLLECT** atom evaluations: precompute `tda_to_claim` and `tda_to_scale` without fallback defaults, collect quote items as `(claim_label, quote_text)` tuples and unmet items as `(scale_score, claim_label)` tuples, and strictly guard against orphan TDAs without duck-typing (`.get(tda_id, "")`):
     ```python
-    quote_candidates: list[tuple[str, str]] = []
-    unmet_candidates: list[tuple[int | float, str]] = []
+    tda_to_claim: dict[str, str] = {}
+    tda_to_scale: dict[str, int] = {}
 
-    for tda_id, hit_status in atoms.items():
+    if pb.scales:
+        for scale in pb.scales:
+            for claim in scale.claims:
+                claim_text = claim.label.resolve(target_locale)
+                if claim_text:
+                    for tda in claim.tda_assertions:
+                        tda_to_claim[tda.tda_id] = claim_text
+                        tda_to_scale[tda.tda_id] = scale.score
+
+    quote_candidates: list[tuple[str, str]] = []
+    unmet_candidates: list[tuple[int, str]] = []
+
+    for tda_id, hit_status in lw_matrix.evaluated_atoms.items():
         if hit_status == ExecutionStatus.N_A:
             continue
 
-        claim_label = tda_to_claim.get(tda_id, "")
-        scale_score = tda_to_scale.get(tda_id, 0)
+        if tda_id not in tda_to_claim or tda_id not in tda_to_scale:
+            logger.warning(
+                "[MatrixExplanationService] %s: Unknown TDA ID '%s' in evaluated_atoms for matrix block '%s'",
+                ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                tda_id,
+                block_id,
+            )
+            continue
+
+        claim_label = tda_to_claim[tda_id]
+        scale_score = tda_to_scale[tda_id]
 
         if hit_status == ExecutionStatus.PASSED:
             if tda_id in global_quotes_map:
@@ -435,7 +516,7 @@ flowchart TD
   5. `test_assemble_matrices_to_explain_includes_failed_claims`: pass `target_locale="en"`, verify dual-reporting with both `SUPPORTING EVIDENCE:` and `UNMET CRITERIA / DEFICITS:` present simultaneously.
   - Add 3 new unit tests:
     - `test_assemble_matrices_to_explain_round_robin_diversity`: verify that when Claim A has 4 quotes and Claim B has 4 quotes, Ranked Round-Robin selects alternating quotes from both claims up to the limit of 5 (picking 3 longest from A and 2 longest from B) rather than exhausting Claim A.
-    - `test_assemble_matrices_to_explain_short_quote_filtering`: verify that quote fragments shorter than 15 characters (specifically: "yes", "OK") are excluded from `SUPPORTING EVIDENCE`.
+    - `test_assemble_matrices_to_explain_short_quote_filtering`: verify that quote fragments shorter than 15 characters (specifically and exhaustively: short quote fragments "yes" and "OK") are excluded from `SUPPORTING EVIDENCE`.
     - `test_assemble_matrices_to_explain_multilingual_resolution`: verify that `target_locale="fi"` resolves Finnish claim translations while `target_locale="en"` resolves English translations.
 - **[MODIFY]** @[backend_v2/tests/unit/test_epic93_contract_verification.py]: Update call-site at line 306 to pass mandatory `target_locale="en"` in `test_matrices_to_explain_assembly`.
 - **Unit Test Mock Strictness (Anti-Fake-Green Mandate)**:
@@ -448,7 +529,7 @@ flowchart TD
 
 ### Phase 4: SDUI Presentation & XAI Highlights Fair Distribution (P1 — Enhancement)
 
-**Scope**: Fix Phase 3 (SDUI Presentation) Primacy Bias and Category Starvation in XAI Highlights accordion rendering by integrating `ranked_round_robin_select` and eliminating duck-typing.
+**Scope**: Fix Phase 3 (SDUI Presentation) Primacy Bias and Category Starvation in XAI Highlights accordion rendering by integrating `ranked_round_robin_select`, eliminating duck-typing, and introducing strict graceful UI degradation when XAI is disabled.
 
 **Dependency**: Phase 1 MUST be completed and committed before Phase 4 begins (relies on `ranked_round_robin_select` from `backend_v2/utils/ranked_round_robin.py`).
 
@@ -458,36 +539,43 @@ flowchart TD
 
 #### Step 4.1: XAI Highlights SDUI Adapter Hardening & Round-Robin Fair Distribution
 - **[MODIFY]** @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] (function `build`):
-  - **IMPORT** `ranked_round_robin_select` from `backend_v2.utils.ranked_round_robin`.
-  - **ELIMINATE** duck-typing (`isinstance(item, dict)`, `.get()`, `getattr()`): parse raw highlight items via typed extraction or strict validation.
+  - **IMPORT** `ranked_round_robin_select` from `backend_v2.utils.ranked_round_robin`, `XaiHighlightItem` from `backend_v2.models.dtos.synthesis`, and `ErrorCodes` from `backend_v2.exceptions`.
+  - **GRACEFUL UI DEGRADATION**: If `profile.visible_block_extensions` is empty/`None` or `profile.max_extension_items` is zero/`None`, immediately return empty block list `return []` to cleanly handle disabled XAI states without unneeded iterations.
+  - **ELIMINATE** duck-typing (`isinstance(item, dict)`, `.get()`, `getattr()`): strictly convert all raw highlight items into validated `XaiHighlightItem` DTO instances using `XaiHighlightItem.model_validate(raw_item, strict=False)` with diagnostic warning logging on malformed payloads (`logger.warning("[XaiHighlightsAdapter] %s: Malformed XAI highlight item skipped: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, str(e))`).
   - **PRE-FILTER** highlights across active extension types using `ranked_round_robin_select`:
     ```python
-    if not profile.visible_block_extensions:
-        msg = "Strict Fail-Fast Enforced: visible_block_extensions missing from output profile."
-        raise ConfigurationError(msg, details={"error_code": "CONFIGURATION_ERROR"})
-    if not profile.max_extension_items:
-        msg = "Strict Fail-Fast Enforced: max_extension_items missing from output profile."
-        raise ConfigurationError(msg, details={"error_code": "CONFIGURATION_ERROR"})
-    max_total_items = len(profile.visible_block_extensions) * profile.max_extension_items
+    valid_highlights: list[XaiHighlightItem] = []
+    for raw_item in raw_highlights:
+        try:
+            valid_highlights.append(XaiHighlightItem.model_validate(raw_item, strict=False))
+        except (ValidationError, ValueError) as e:
+            logger.warning(
+                "[XaiHighlightsAdapter] %s: Malformed XAI highlight item skipped: %s",
+                ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                str(e),
+            )
 
-    # Typed extraction: highlights MUST be validated into typed structures before processing.
-    # The exact typed model for highlight items MUST be determined from the codebase
-    # (specifically: the Pydantic model or TypedDict that represents XAI highlight payloads).
-    # All isinstance/getattr/get() duck-typing is STRICTLY BANNED per the_zero_compromise_pledge.
+    if not valid_highlights:
+        return blocks
+
+    max_total_items = len(profile.visible_block_extensions) * profile.max_extension_items
     curated_highlights = ranked_round_robin_select(
-        items=highlights,
+        items=valid_highlights,
         group_key=lambda h: h.extension_type,
         rank_key=lambda h: len(h.content),
         max_items=max_total_items,
         reverse_rank=True,
     )
     ```
-    - *<mutation_note> The original code sample used `isinstance(h, dict)`, `.get()`, and `getattr()` — the exact anti-patterns this Epic targets for elimination. The sample above assumes highlights are already typed objects with direct `.extension_type` and `.content` attribute access. The executing agent MUST verify the exact runtime type of highlight items and validate them via `model_validate` at the boundary before passing to `ranked_round_robin_select`. </mutation_note>*
-  - **ITERATE** over `curated_highlights` when populating `AccordionBlock` and `AlertBlock` children, guaranteeing that all active extension types receive equitable representation in the SDUI tree without Primacy Bias.
-  - Constraint `the_zero_compromise_pledge`.
+  - **ITERATE** over `curated_highlights` when populating `AccordionBlock` and `AlertBlock` children, guaranteeing that all active extension types receive equitable representation in the SDUI tree without Primacy Bias, while preserving strict aesthetics rule mappings and Fail-Fast dictionary access `XAI_AESTHETICS_RULES[ext_type_str]`.
+  - Constraint `the_zero_compromise_pledge`: Eliminates legacy duck typing (`getattr`, `.get()`, `isinstance(dict)`) and hardcodes zero fallback defaults in SDUI presentation logic.
 
 #### Step 4.2: XAI Highlights SDUI Adapter Unit Tests
-- **[MODIFY]** @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]: Add test `test_build_ranked_round_robin_distribution` verifying that when 3 extension categories (`coaching`, `falsification`, `remediation_steps`) have multiple items each, the adapter interleaves them fairly across accordions and prioritizes longer/more informative content.
+- **[MODIFY]** @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]:
+  - Add test `test_build_graceful_degradation_disabled_extensions`: Verify `visible_block_extensions=[]` returns `[]`.
+  - Add test `test_build_graceful_degradation_zero_max_items`: Verify `max_extension_items=0` returns `[]`.
+  - Add test `test_build_ranked_round_robin_distribution`: Verify that when 3 extension categories (specifically and exhaustively: `coaching`, `falsification`, and `remediation_steps`) have multiple items each, the adapter interleaves them fairly across accordions and prioritizes longer/more informative content.
+  - Add test `test_build_malformed_highlight_item_skipped`: Verify malformed dictionaries or invalid types are safely skipped with warning log and valid items are rendered.
 - **Phase 4 Verification**: `uv run python scripts/backend_audit_loop.py backend_v2/services/sdui/adapters/ --test`
 
 ---
@@ -546,12 +634,17 @@ uv run python scripts/backend_audit_loop.py backend_v2/services/sdui/adapters/ -
 | I | **Multilingual Localization Resolution** | Provide claim with translations `{"fi": "Suomalainen väite", "en": "English claim"}` and invoke with `target_locale="fi"`. `UNMET CRITERIA / DEFICITS:` contains `"Suomalainen väite"`. | 3 |
 | J | **Missing / Unknown Block ID** | Provide a step with a `block_id` not present in `blocks_by_id`. Handled cleanly without `getattr` fallbacks or broad exception masking. | 3 |
 | K | **Malformed Atom Payload Observability** | Pass a step output containing a malformed atom dictionary in `results` (with missing mandatory fields or invalid types). Emits `logger.warning` containing `ErrorCodes.INVALID_OUTPUT_SCHEMA.name`, step ID, block ID, and exception traceback (`exc_info=True`) without raising an unhandled crash or silently dropping the error. | 3 |
-| L | **Nullable Quote Guard Verification** | Pass an `AtomResultDTO` with `source_quote=None` (specifically: `contextual_override=True` with `ExecutionStatus.PASSED`, or `status=ExecutionStatus.FAILED`). Handled cleanly without `TypeError` (`object of type 'NoneType' has no len()` or subscripting errors). | 3 |
+| L | **Nullable Quote Guard Verification** | Pass an `AtomResultDTO` with `source_quote=None` (specifically and exhaustively: `contextual_override=True` with `ExecutionStatus.PASSED`, or `status=ExecutionStatus.FAILED`). Handled cleanly without `TypeError` (`object of type 'NoneType' has no len()` or subscripting errors). | 3 |
 | M | **Malformed Matrix Output Payload Observability** | Pass a step output with a matrix `block_id` containing a malformed or invalid dictionary payload (specifically and exhaustively: extra forbidden keys violating `extra='forbid'`, non-numeric `normalized_score`, or out-of-range `normalized_score=1.5`). Emits `logger.warning` containing `ErrorCodes.INVALID_OUTPUT_SCHEMA.name`, step ID, block ID, and exception traceback (`exc_info=True`) without raising an unhandled crash or terminating the pipeline, safely skipping the malformed matrix and processing remaining valid matrices. | 3 |
 | N | **Nullable Level Breakdown Guard Verification** | Pass a matrix step with `level_breakdown=None`. Handled cleanly without `AttributeError: 'NoneType' object has no attribute 'items'`, resulting in empty `level_breakdown_str` and successfully producing justification without crash. | 3 |
 | O | **Missing or Whitespace-Only Target Locale in Distiller** | Pass a `HookState` where `metadata["target_locale"]` is missing, `None`, or contains whitespace-only `"   "`. Hook fails fast immediately with `AppException(VALIDATION_FAILED)` before executing any asynchronous repository calls. | 2 |
 | P | **Pydantic V2 Mock Strictness & Zero Validation Bypass Gate** | Execute distiller hook tests without patching `Workflow.model_validate`, `PromptBlock.model_validate`, or passing unconstrained `MagicMock` instances as domain models. All repository mocks supply valid schema dictionaries or Polyfactory models that pass real `model_validate(strict=False)` executions natively, proving that tests execute against real Pydantic runtime constraints without false-green mock bypasses. | 2, 3 |
 | Q | **XAI Highlights Primacy Bias Elimination** | Provide `xai_highlights` containing 6 items for `coaching` and 6 items for `falsification`. `XaiHighlightsAdapter` interleaves them using `ranked_round_robin_select`, populating both categories with their longest/most informative items rather than exhausting all capacity on `coaching`. | 4 |
+| R | **Golden Master & SDUI Parity Non-Breaking Confirmation** | Execute @[backend_v2/tests/e2e/test_golden_master_sdui.py] and @[backend_v2/tests/integration/test_sdui_semantic_parity.py]. Proves that intermediate 2D prompt text formatting does not alter downstream SDUI schema or break Flutter Dumb Painter rendering. | 3, 4 |
+| S | **Ranked Round-Robin $O(1)$ Tail Pop Performance** | Run `ranked_round_robin_select` on a synthetic dataset of 10,000 items partitioned into 50 groups with `max_items=5000`. Execution completes in under 25ms, mathematically proving $O(1)$ tail `.pop()` efficiency and eliminating $O(N^2)$ `pop(0)` bottleneck. | 1 |
+| T | **Zero Backwards Compatibility & Legacy Language Key Purge** | Invoke `synthesis_distiller_hook` with valid state. Verify that `result.state_delta` contains `"target_locale"` and STRICTLY DOES NOT contain the deprecated `"language"` key, mathematically proving Zero Backwards Compatibility (`the_no_legacy_mandate`). | 2 |
+| U | **XAI Highlights Graceful UI Degradation** | Provide `OutputProfile` with `visible_block_extensions=[]` or `max_extension_items=0`. `XaiHighlightsAdapter.build()` returns `[]` immediately without errors. | 4 |
+| V | **Malformed XAI Highlight Item Observability** | Pass an invalid dictionary payload in `xai_highlights` (missing required fields). Emits `logger.warning` with `ErrorCodes.INVALID_OUTPUT_SCHEMA.name`, safely skipping the malformed item and rendering remaining valid items. | 4 |
 
 ### Manual Verification Steps
 - Run local pipeline (`.\run_local.bat`) and verify in `client_debug.log` and `backend_debug.log` that:
