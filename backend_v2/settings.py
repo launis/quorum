@@ -133,9 +133,16 @@ class Settings(BaseSettings):
     max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 2000000
     schema_max_evaluations: Annotated[int, Field(description="Max boolean metrics evaluation per prompt")] = 7
     max_synthesis_evaluations: Annotated[int, Field(description="Max evaluations for synthesis token shield")] = 40
-    max_synthesis_quote_length: Annotated[int, Field(description="Maximum character length for evidence quotes in synthesis payloads")] = 300
-    max_synthesis_quotes_per_matrix: Annotated[int, Field(description="Maximum number of evidence quotes per matrix in synthesis explanation context")] = 5
-    max_synthesis_unmet_criteria_per_matrix: Annotated[int, Field(description="Maximum number of unmet criteria descriptions per matrix in synthesis explanation context")] = 5
+    max_synthesis_quote_length: Annotated[
+        int, Field(description="Maximum character length for evidence quotes in synthesis payloads")
+    ] = 300
+    max_synthesis_quotes_per_matrix: Annotated[
+        int, Field(description="Maximum number of evidence quotes per matrix in synthesis explanation context")
+    ] = 5
+    max_synthesis_unmet_criteria_per_matrix: Annotated[
+        int,
+        Field(description="Maximum number of unmet criteria descriptions per matrix in synthesis explanation context"),
+    ] = 5
     context_cache_lock_ttl_seconds: Annotated[int, Field(description="Time-to-live for Vertex caching lock")] = 300
     context_cache_passive_ttl_seconds: Annotated[int, Field(description="Lifespan of Vertex context cache")] = 3600
     context_cache_lock_poll_interval_ms: Annotated[int, Field(description="Polling interval for lock acquire")] = 500

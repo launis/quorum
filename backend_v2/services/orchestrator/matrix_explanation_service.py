@@ -17,10 +17,10 @@ class MatrixExplanationService:
 
     @staticmethod
     def assemble_matrices_to_explain(
-        available_dtos: list[StepOutputDTO], 
-        title_map: dict[str, str], 
+        available_dtos: list[StepOutputDTO],
+        title_map: dict[str, str],
         blocks_by_id: dict[str, PromptBlock],
-        target_locale: str
+        target_locale: str,
     ) -> list[MatrixExplanationContextDTO]:
         """Assemble the matrices_to_explain list by extracting quotes from evaluated_atoms.
 
@@ -44,11 +44,11 @@ class MatrixExplanationService:
         for dto in available_dtos:
             if not isinstance(dto.payload, dict) or "results" not in dto.payload:
                 continue
-            
+
             results_list = dto.payload["results"]
             if not isinstance(results_list, list):
                 continue
-                
+
             for atom_dict in results_list:
                 if not isinstance(atom_dict, dict):
                     continue
@@ -61,6 +61,7 @@ class MatrixExplanationService:
 
         # Load limits from settings SSOT
         from backend_v2.settings import settings
+
         max_q = settings.max_synthesis_quotes_per_matrix
         max_len = settings.max_synthesis_quote_length
         max_u = settings.max_synthesis_unmet_criteria_per_matrix
@@ -122,7 +123,7 @@ class MatrixExplanationService:
 
             if block_id not in matrices_to_explain_map:
                 matrix_alias = alias_engine.register(block_id, prefix="MX-")
-                
+
                 # Truncate lists based on limits
                 unique_quotes = list(dict.fromkeys(supporting_quotes))[:max_q]
                 unique_unmet = list(dict.fromkeys(unmet_claims))[:max_u]
@@ -137,12 +138,12 @@ class MatrixExplanationService:
                         level_breakdown_str = "[DISTRIBUTION: " + ", ".join(breakdowns) + "]\n"
 
                 justification_parts = [level_breakdown_str] if level_breakdown_str else []
-                
+
                 if unique_quotes:
                     justification_parts.append("SUPPORTING EVIDENCE:")
                     for q in unique_quotes:
                         justification_parts.append(f'- "{q}"')
-                
+
                 if unique_unmet:
                     if justification_parts and justification_parts[-1] != level_breakdown_str:
                         justification_parts.append("\nUNMET CRITERIA:")

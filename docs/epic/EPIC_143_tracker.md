@@ -33,14 +33,15 @@
 
 ### Phase 1: Foundation & SSOT Utilities
 **Plan:** @[docs/epic/tasks_EPIC_143/01_phase1_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_143/01_phase1_plan.md] @[docs/epic/EPIC_143_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_143/01_phase1_plan.md] @[docs/epic/EPIC_143_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Centralized Settings SSOT Verification
-  - [ ] Step 2: Ranked Round-Robin SSOT Utility Implementation
-  - [ ] Step 3: Ranked Round-Robin Unit Tests
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/01_phase1_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_143/01_phase1_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_143/01_phase1_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Centralized Settings SSOT Verification (VERIFIED_EXISTING)
+  - [x] Step 2: Ranked Round-Robin SSOT Utility Implementation
+  - [x] Step 3: Ranked Round-Robin Unit Tests
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/01_phase1_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+
 
 ### Phase 2: Distiller Unfiltered Context Pipeline & Locale Hoisting
 **Plan:** @[docs/epic/tasks_EPIC_143/02_phase2_plan.md]
@@ -147,10 +148,20 @@
 ## Achieved
 - **[Epic 143 Planning & Architecture Finalized]**: All 4 implementation plans (`01_phase1_plan.md` through `04_phase4_plan.md`) generated, fully verified, and aligned with `@[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`.
 - **[Epic 143 Tracker Created]**: Authored `@[docs/epic/EPIC_143_tracker.md]` with granular execution status checkboxes, post-implementation quality gates, instructions for execution agent, and a 32-item Requirements Traceability Matrix covering RCA-1 through RCA-14 and Anti-Happy-Path scenarios A through X.
+- **[Phase 1 Red-Teaming Complete]**: Deep System 2 research, AST verification, and red-teaming completed on `@[docs/epic/tasks_EPIC_143/01_phase1_plan.md]`. Expanded test contracts to include ISTQB negative boundary and type exception tests.
+- **[Phase 1 Execution Complete]**:
+  - Centralized settings SSOT verified in `@[backend_v2/settings.py#L136-L138]` (`max_synthesis_quote_length: int = 300`, `max_synthesis_quotes_per_matrix: int = 5`, `max_synthesis_unmet_criteria_per_matrix: int = 5`).
+  - Implemented `ranked_round_robin_select[T]` in `@[backend_v2/utils/ranked_round_robin.py]` using PEP 695 generics with $O(N \log N + K)$ complexity, native $O(1)$ tail `.pop()` extraction, inverted sorting, and strict dictionary key deletion `del groups[k]`.
+  - Exported `ranked_round_robin_select` in `@[backend_v2/utils/__init__.py]`.
+  - Implemented unit test suite in `@[backend_v2/tests/unit/utils/test_ranked_round_robin.py]` covering all 13 test contracts.
+- **[Phase 1 Audit Complete]**: Tier 8 Red-Team Audit executed on `@[docs/epic/tasks_EPIC_143/01_phase1_plan.md]`. All 6 requirements, 13 test contracts, and Quality Gates passed cleanly (100% statement coverage on `ranked_round_robin.py`). Audit report written to `@[docs/epic/tasks_EPIC_143/red_team_audit_01_phase1_plan.md]`. Status marked `[x]` in tracker.
 
 ## Learned
-### Baseline State Snapshot
-- **Centralized Settings SSOT (`backend_v2/settings.py`)**: `max_synthesis_quote_length: int = 300`, `max_synthesis_quotes_per_matrix: int = 5`, and `max_synthesis_unmet_criteria_per_matrix: int = 5` are already defined in `Settings` (lines 136-138), ready for consumption.
+### Baseline State Snapshot & Phase 1 Execution Lessons
+- **Ranked Round-Robin Utility (`backend_v2/utils/ranked_round_robin.py`)**:
+  - Implemented and verified as the Single Source of Truth generic utility for interleaved selection.
+  - Inverted sort (`reverse = not reverse_rank`) ensures $O(1)$ tail `.pop()` extraction per selection round without memory shifting overhead.
+  - Passes all 13 test contracts including high-volume performance scaling ($10^4$ items across 50 groups selected in $< 50\text{ ms}$).
 - **Synthesis Distiller State (`backend_v2/services/orchestrator/synthesis_distiller.py`)**:
   - The flawed `target_blocks` filter loop has already been removed.
   - `target_locale` validation is hoisted to lines 202-211.
@@ -158,7 +169,6 @@
   - `assemble_matrices_to_explain` call at line 306 already passes `target_locale=target_locale`.
   - Line 319 still exports deprecated `"language": target_locale` in `HookResult.state_delta`, which must be purged in Phase 2.
   - File length is 324 lines (exceeds 300-line God File threshold), requiring AST boundary verification before editing.
-- **Ranked Round-Robin Utility (`backend_v2/utils/ranked_round_robin.py`)**: Does not yet exist; will be created in Phase 1 as a pure generic utility with $O(N \log N + K)$ complexity via native $O(1)$ tail `.pop()` and inverted sorting.
 - **Matrix Explanation Service (`backend_v2/services/orchestrator/matrix_explanation_service.py`)**:
   - Signature currently requires `target_locale: str` at line 59.
   - Contains legacy anti-patterns (`isinstance`, `hasattr`, `getattr`, `.get()`, raw `+` concatenation, unhandled validation errors) and mutually exclusive `if unique_quotes: ... elif evaluated_claims:` branch causing Positivity Bias.
@@ -168,11 +178,13 @@
   - Status-Aware Dual Reporting operates in Phase 2 (Synthesis Distillation) as intermediate prompt text (`MatrixExplanationContextDTO.justification`). Downstream SDUI payload (`MatrixScorecardRowDTO.row_explanation`) remains a single string; Flutter client DTOs are untouched and invariant.
 
 ## Remaining
-- **Phase 1 Execution**: Run `/tier0-research-plan` on Phase 1 plan to verify AST bounds and test contracts, then execute Phase 1 (`ranked_round_robin_select` utility and unit tests).
+- **Phase 2 Research & Red-Teaming**: Run `/tier0-research-plan @[docs/epic/tasks_EPIC_143/02_phase2_plan.md] @[docs/epic/EPIC_143_tracker.md]`.
 - **Phase 2 Execution**: Purge legacy `"language"` key from `synthesis_distiller.py` and create `test_synthesis_distiller_wiring.py`.
 - **Phase 3 Execution**: Harden `MatrixExplanationService`, implement Dual Reporting and Ranked Round-Robin curation, update `synthesis_payload_compressor.py`, update `ki_synthesis_payload_compression.md`, and execute atomic test migration.
 - **Phase 4 Execution**: Harden `XaiHighlightsAdapter` with Ranked Round-Robin highlight curation, graceful degradation, and expanded unit tests.
 - **Post-Implementation & Final Audits**: Tier 2 Hardening (Backend), Golden Master audit, E2E gate, documentation sync, and Tier 8 Reverse Epic Analysis.
 
 ## Resume Command
-`/tier0-research-plan @[docs/epic/tasks_EPIC_143/01_phase1_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+`/tier0-research-plan @[docs/epic/tasks_EPIC_143/02_phase2_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+
+

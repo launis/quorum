@@ -16,9 +16,9 @@
   </step>
 
   <dod_checklist>
-    - [ ] Settings SSOT verified or updated in @[backend_v2/settings.py] with max_synthesis_quote_length (300), max_synthesis_quotes_per_matrix (5), and max_synthesis_unmet_criteria_per_matrix (5).
-    - [ ] Pure, deterministic ranked_round_robin_select[T] utility implemented in `[NEW]` @[backend_v2/utils/ranked_round_robin.py] with O(N log N + K) complexity via native O(1) tail .pop() and inverted sorting.
-    - [ ] Comprehensive unit tests created in `[NEW]` @[backend_v2/tests/unit/utils/test_ranked_round_robin.py] covering empty inputs, single group, multi-group interleaving, budget capping, unequal groups, and O(1) performance scaling (&lt;25ms for 10^4 items).
+    - [x] Settings SSOT verified or updated in @[backend_v2/settings.py] with max_synthesis_quote_length (300), max_synthesis_quotes_per_matrix (5), and max_synthesis_unmet_criteria_per_matrix (5).
+    - [x] Pure, deterministic ranked_round_robin_select[T] utility implemented in `[NEW]` @[backend_v2/utils/ranked_round_robin.py] with O(N log N + K) complexity via native O(1) tail .pop() and inverted sorting.
+    - [x] Comprehensive unit tests created in `[NEW]` @[backend_v2/tests/unit/utils/test_ranked_round_robin.py] covering empty inputs, single group, multi-group interleaving, budget capping, unequal groups, and O(1) performance scaling (&lt;25ms for 10^4 items).
   </dod_checklist>
 
   <required_context_rules>
@@ -54,7 +54,7 @@
   </anti_targets>
 
   <step id="1" name="Centralized Settings SSOT Verification">
-    <action>[ALREADY_IMPLEMENTED] - Skip execution. Verified at: @[backend_v2/settings.py#L42-L602]. Verify that Settings class contains:
+    <action>[ALREADY_IMPLEMENTED] - Skip execution. Verified at: @[backend_v2/settings.py#L136-L138]. Verify that Settings class contains:
 max_synthesis_quote_length: Annotated[int, Field(description="Maximum character length for evidence quotes in synthesis payloads")] = 300
 max_synthesis_quotes_per_matrix: Annotated[int, Field(description="Maximum number of evidence quotes per matrix in synthesis explanation context")] = 5
 max_synthesis_unmet_criteria_per_matrix: Annotated[int, Field(description="Maximum number of unmet criteria descriptions per matrix in synthesis explanation context")] = 5
@@ -89,6 +89,10 @@ max_synthesis_unmet_criteria_per_matrix: Annotated[int, Field(description="Maxim
         <input>items=["a", "b"], group_key=lambda x: x, rank_key=lambda x: len(x), max_items=0</input>
         <expected>returns []</expected>
       </test>
+      <test name="test_ranked_round_robin_negative_max_items_returns_empty" category="boundary">
+        <input>items=["a", "b"], group_key=lambda x: x, rank_key=lambda x: len(x), max_items=-5</input>
+        <expected>returns []</expected>
+      </test>
       <test name="test_ranked_round_robin_single_group_maintains_rank_order" category="positive">
         <input>items=["short", "very_long_string", "medium"], group_key=lambda x: "g1", rank_key=lambda x: len(x), max_items=3, reverse_rank=True</input>
         <expected>returns ["very_long_string", "medium", "short"]</expected>
@@ -101,9 +105,29 @@ max_synthesis_unmet_criteria_per_matrix: Annotated[int, Field(description="Maxim
         <input>items=[("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", "b2")], group_key=lambda x: x[0], rank_key=lambda x: x[1], max_items=3</input>
         <expected>len(result) == 3</expected>
       </test>
+      <test name="test_ranked_round_robin_budget_exceeds_total_items_returns_all" category="boundary">
+        <input>items=[("A", "a1"), ("B", "b1")], group_key=lambda x: x[0], rank_key=lambda x: x[1], max_items=100</input>
+        <expected>returns all 2 items in round-robin order</expected>
+      </test>
       <test name="test_ranked_round_robin_unequal_groups" category="positive">
         <input>group A with 1 item, group B with 4 items, max_items=4</input>
         <expected>picks 1 from A, 1 from B, then remaining from B without error</expected>
+      </test>
+      <test name="test_ranked_round_robin_reverse_rank_false_sorts_ascending" category="positive">
+        <input>items=[("A", 10), ("A", 2), ("B", 20), ("B", 1)], group_key=lambda x: x[0], rank_key=lambda x: x[1], max_items=4, reverse_rank=False</input>
+        <expected>interleaves smallest values first: [("A", 2), ("B", 1), ("A", 10), ("B", 20)]</expected>
+      </test>
+      <test name="test_ranked_round_robin_sequence_tuple_input" category="boundary">
+        <input>items=(("A", "x"), ("B", "y")), group_key=lambda x: x[0], rank_key=lambda x: x[1], max_items=2</input>
+        <expected>accepts immutable Sequence tuple without error</expected>
+      </test>
+      <test name="test_ranked_round_robin_unhashable_group_key_raises_type_error" category="negative">
+        <input>items=[[1, 2], [3, 4]], group_key=lambda x: x, rank_key=lambda x: len(x), max_items=2</input>
+        <expected>raises TypeError</expected>
+      </test>
+      <test name="test_ranked_round_robin_incompatible_rank_keys_raises_type_error" category="negative">
+        <input>items=[("A", 1), ("A", "str_val")], group_key=lambda x: x[0], rank_key=lambda x: x[1], max_items=2</input>
+        <expected>raises TypeError</expected>
       </test>
       <test name="test_ranked_round_robin_performance_scaling_o1_tail_pop" category="boundary">
         <input>10,000 items in 50 groups, max_items=5000</input>
