@@ -15,20 +15,20 @@ The synthesis pipeline suffers from six distinct architectural defects that coll
 5. **Anti-Pattern Proliferation:** Legacy duck-typing (`isinstance`, `hasattr`, `getattr`, `.get()`) and raw string concatenation violate `the_zero_compromise_pledge`.
 6. **Scattered Hardcoded Limits:** Magic numbers (`[:300]`, `[:5]`) duplicated across services without centralized SSOT settings.
 
-### Source Implementation Plan & Phase Decomposition
-This Epic is derived deterministically from @[docs/IMPLEMENTATION_PLAN_Synthesis_Matrix_Explanation_Timing_Fix.md] (Steps 0-8, 485 lines, 12 target files). To prevent Context Amnesia (`context_amnesia_prevention`) and guarantee bite-sized, independently verifiable execution units with atomic quality gates (`atomic_checkpoint_mandate`), the scope is decomposed into **four decoupled phases** (each touching 2 to 5 files maximum):
+### Architecture & Phase Decomposition
+This Epic document serves as the authoritative Single Source of Truth (SSOT) consolidating all architectural research, first-principles analyses (RCA-1 through RCA-14), and phased implementation steps. To prevent Context Amnesia (`context_amnesia_prevention`) and guarantee bite-sized, independently verifiable execution units with atomic quality gates (`atomic_checkpoint_mandate`), the scope is decomposed into **four decoupled phases** (each touching 2 to 5 files maximum):
 
 ```mermaid
 flowchart TD
     P1["Phase 1: Foundation & SSOT Utilities (3 files)"] --> P2["Phase 2: Distiller Unfiltered Context Pipeline (2 files)"]
-    P2 --> P3["Phase 3: Matrix Explanation Service & Dual Reporting (5 files)"]
+    P2 --> P3["Phase 3: Matrix Explanation Service & Dual Reporting (7 files)"]
     P3 --> P4["Phase 4: SDUI Presentation & XAI Highlights (2 files)"]
 ```
 
 ### Root Cause Analysis
 
 > [!IMPORTANT]
-> The following Root Cause Analysis items are preserved verbatim from the source implementation plan. See @[docs/IMPLEMENTATION_PLAN_Synthesis_Matrix_Explanation_Timing_Fix.md] (lines 33-57) for full detail with exact line references.
+> The following 15 Root Cause Analysis items represent the complete, exhaustive architectural findings and defect mechanics across the entire synthesis pipeline.
 
 1. **Conflation of SDUI Presentation Filtering with Cognitive Synthesis Context (RCA-1):**
    In @[backend_v2/services/orchestrator/synthesis_distiller.py] (lines 159-330), incoming `available_dtos` from `inputs["steps"]` was filtered in-place against `output_profile.layouts[].target_blocks`. Per @[backend_v2/models/v2_core.py] (lines 1270-1308), `target_blocks` is strictly an SDUI layout directive ("Optional explicit block IDs to plot, filtering and ordering the axes") for frontend widgets and matrix charts. Cognitive sensor steps (specifically and exhaustively: analyst, profiler, logician, falsifier, fact checker, performativity detector, archivist, judge, coach, and causal analyst) are upstream analysis nodes whose `block_id` values are never in `target_blocks`.
@@ -49,16 +49,20 @@ flowchart TD
    In @[backend_v2/models/v2_core.py] (lines 1127-1160), `AtomResultDTO.source_quote` is nullable (`str | None`), especially when `contextual_override: True` forces `source_quote = None` or when an atom evaluation produces no verbatim quote. Attempting to measure length (`len(quote)`) or slice directly (`quote[:max_quote_len]`) without an explicit `None`-check (`quote-guard`) crashes the synthesis pipeline with `TypeError: object of type 'NoneType' has no len()` or `TypeError: 'NoneType' object is not subscriptable`.
 8. **Missing Pydantic Validation Error Handling for Matrix Outputs (`LightweightMatrixOutput.model_validate`) (RCA-8):**
    In @[backend_v2/services/orchestrator/matrix_explanation_service.py] (lines 85-89), `LightweightMatrixOutput.model_validate(payload_to_validate, strict=False)` is executed without a `try/except` block. Because `LightweightMatrixOutput` enforces `model_config = ConfigDict(strict=True, extra="forbid")`, any unexpected payload format (specifically and exhaustively: malformed dicts from upstream failures, unanticipated extra keys beyond popped `results`, or invalid numerical ranges) will raise an unhandled `ValidationError` or `ValueError`, crashing the entire `MatrixExplanationService` and terminating the synthesis pipeline.
-9. **AttributeError Hazard on Nullable Level Breakdown (`level_breakdown: dict[str, dict[str, int]] | None`) (RCA-9):**
-   In @[backend_v2/models/dtos/lightweight_matrix.py] (line 55), `LightweightMatrixOutput.level_breakdown` is typed as `dict[str, dict[str, int]] | None = None`. In non-hierarchical matrices, sensor steps, or payloads without computed breakdowns, `level_breakdown` is `None`. Directly executing `for lvl, stats_raw in lw_matrix.level_breakdown.items():` without an explicit `if lw_matrix.level_breakdown:` check raises `AttributeError: 'NoneType' object has no attribute 'items'`, crashing matrix explanation assembly during synthesis.
+9. **AttributeError & Nested Sub-Model Validation Hazards on Level Breakdown (`level_breakdown` & `LevelStatsDTO`) (RCA-9):**
+   In @[backend_v2/models/dtos/lightweight_matrix.py], `LightweightMatrixOutput.level_breakdown` is typed as `dict[str, dict[str, int]] | None = None`. In non-hierarchical matrices or payloads without computed breakdowns, `level_breakdown` is `None`, causing `AttributeError` if iterated directly without an explicit `if lw_matrix.level_breakdown:` guard. Furthermore, while parent model validation only checks that `level_breakdown` contains integer dictionaries, `LevelStatsDTO` strictly requires `hits` and `total` with `extra="forbid"`. Unconditionally executing `LevelStatsDTO.model_validate(stats_raw, strict=False)` without a `try/except (ValidationError, ValueError)` block raises an unhandled exception if `stats_raw` contains corrupt keys or missing fields, crashing the entire matrix explanation assembly and violating Probe Boundary isolation.
 10. **Nomenclature Inconsistency, Scope Hoisting & Test Suite Blast Radius (RCA-10):**
     In @[backend_v2/services/orchestrator/synthesis_distiller.py] (lines 268-273), `target_locale` was extracted from `state.metadata` into a local variable named `language` late in the function body (after layout filtering). The helper `_build_title_map` also accepted `language: str`. This created vocabulary dissonance (`language` vs `target_locale`) and hoisting risks where modifying execution order causes `NameError`. Furthermore, updating `MatrixExplanationService.assemble_matrices_to_explain` to require mandatory `target_locale: str` (no lazy defaults) breaks 6 existing test call-sites across `test_matrix_explanation_service.py` (5 tests) and `test_epic93_contract_verification.py` (1 test). The plan must explicitly hoist and normalize `target_locale` at the start of `synthesis_distiller_hook`, unify all internal identifiers to `target_locale`, and update 100% of test callers.
 11. **Algorithmic Bottleneck in Ranked Round-Robin ($O(N)$ `pop(0)` Degenerating to $O(N^2)$) (RCA-11):**
-    In naive round-robin selection, extracting items from the head of a Python list using `group_items.pop(0)` is an $O(M)$ operation where $M$ is the group length, due to contiguous array pointer shifting (`memmove`). When selecting $K \approx N$ items across large synthesis payloads, total extraction time degenerates to $\sum_{i=1}^N (N-i) = O(N^2)$. Per Tier 8 Feature Audit (`feature_audit_ranked_round_robin_o1.md`), the algorithm MUST be optimized by inverting internal sort order (`reverse = not reverse_rank`), placing the highest-priority item at the tail of the list and enabling native $O(1)$ `list.pop()` extractions to guarantee mathematical $O(N \log N + K)$ execution without memory reallocation overhead.
+    In naive round-robin selection, extracting items from the head of a Python list using `group_items.pop(0)` is an $O(M)$ operation where $M$ is the group length, due to contiguous array pointer shifting (`memmove`). When selecting $K \approx N$ items across large synthesis payloads, total extraction time degenerates to $\sum_{i=1}^N (N-i) = O(N^2)$. Per standard architecture, the algorithm MUST be optimized by inverting internal sort order (`reverse = not reverse_rank`), placing the highest-priority item at the tail of the list and enabling native $O(1)$ `list.pop()` extractions to guarantee mathematical $O(N \log N + K)$ execution without memory reallocation overhead.
 12. **Atomic Test Data Migration & Blast Radius Verification (Golden Master & SDUI Parity Analysis) (RCA-12):**
-    Per Tier 8 Feature Audit (`feature_audit_atomic_test_data_migration.md`), the introduction of Status-Aware Dual Reporting (`SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms) operates strictly in **Phase 2 (Synthesis Distillation)** as an intermediate prompt text formatting optimization (`MatrixExplanationContextDTO.justification: str`). It does **NOT** alter the downstream SDUI JSON payload structure (`MatrixScorecardRowDTO.row_explanation: str`), which remains a single string. Consequently, Golden Master serialization tests (@[backend_v2/tests/e2e/test_golden_master_sdui.py] and @[backend_v2/tests/integration/test_sdui_semantic_parity.py]) remain structurally non-breaking. However, an atomic test data migration IS required for direct unit tests (@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]) that assert legacy string literals, and contract verification tests (@[backend_v2/tests/unit/test_epic93_contract_verification.py]) requiring mandatory `target_locale: str`.
+    Per standard architecture, the introduction of Status-Aware Dual Reporting (`SUPPORTING EVIDENCE` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS` for `FAILED` atoms) operates strictly in **Phase 2 (Synthesis Distillation)** as an intermediate prompt text formatting optimization (`MatrixExplanationContextDTO.justification: str`). It does **NOT** alter the downstream SDUI JSON payload structure (`MatrixScorecardRowDTO.row_explanation: str`), which remains a single string. Consequently, Golden Master serialization tests (@[backend_v2/tests/e2e/test_golden_master_sdui.py] and @[backend_v2/tests/integration/test_sdui_semantic_parity.py]) remain structurally non-breaking. However, an atomic test data migration IS required for direct unit tests (@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]) that assert legacy string literals, and contract verification tests (@[backend_v2/tests/unit/test_epic93_contract_verification.py]) requiring mandatory `target_locale: str`.
 13. **Priority Inversion & Singleton Group Collapse in Unmet Criteria Selection (RCA-13):**
-    In naive round-robin curation for unmet criteria, setting `reverse_rank=True` on `scale_score` inverts priority because in BARS, Level 1 represents baseline/critical prerequisites (catastrophic failure if missed) while Level 5 represents aspirational mastery. Because `ranked_round_robin_select` uses tail `.pop()`, `reverse_rank=True` pops Level 5 first, discarding critical Level 1 deficits when exceeding `max_synthesis_unmet_criteria_per_matrix`. Furthermore, grouping by `claim_label` produces singleton groups of size 1, rendering intra-group sorting inert and reverting selection to arrival order in `evaluated_atoms`. Per Tier 8 Feature Audit (@[feature_audit_priority_inversion_unmet_criteria.md]), unmet criteria MUST be curated deterministically by collecting `unmet_claim_to_min_scale: dict[str, int]`, sorting claims ascending by `(scale_score, claim_text)` (Level 1 critical deficits first, alphabetical tie-break), and taking the top `max_synthesis_unmet_criteria_per_matrix` (5) items.
+    In naive round-robin curation for unmet criteria, setting `reverse_rank=True` on `scale_score` inverts priority because in BARS, Level 1 represents baseline/critical prerequisites (catastrophic failure if missed) while Level 5 represents aspirational mastery. Because `ranked_round_robin_select` uses tail `.pop()`, `reverse_rank=True` pops Level 5 first, discarding critical Level 1 deficits when exceeding `max_synthesis_unmet_criteria_per_matrix`. Furthermore, grouping by `claim_label` produces singleton groups of size 1, rendering intra-group sorting inert and reverting selection to arrival order in `evaluated_atoms`. Per standard architecture, unmet criteria MUST be curated deterministically by collecting `unmet_claim_to_min_scale: dict[str, int]`, sorting claims ascending by `(scale_score, claim_text)` (Level 1 critical deficits first, alphabetical tie-break), and taking the top `max_synthesis_unmet_criteria_per_matrix` (5) items.
+14. **Deduplication Starvation & Post-Selection Collapse in Evidence Curation (RCA-14):**
+    In naive candidate curation, evidence quotes are appended to `quote_candidates` without deduplication, relying on post-hoc `list(dict.fromkeys(q for _, q in ranked_quotes))` after `ranked_round_robin_select(..., max_items=max_quotes_per_matrix)`. If multiple TDAs or claims extract the same quote, round-robin fills the selection budget ($K=5$) with duplicate tuples `(Claim A, Quote X)` and `(Claim B, Quote X)`. Post-selection deduplication subsequently shrinks the curated list to $K - d$ items (specifically and exhaustively: 3 quotes instead of 5), discarding valid unique quotes from remaining claims that were cut off by the $K$-item ceiling. Per standard architecture, quote deduplication MUST be executed during the candidate collection phase using a per-matrix `seen_matrix_quotes: set[str]` hash set, guaranteeing that `quote_candidates` contains strictly unique quotes and that `ranked_round_robin_select` always returns $\min(K, N_{\text{unique}})$ quotes without post-selection collapse.
+15. **Double-Serialization & Intermediate Dict Allocation Hazard in Worker Prompt Assembly (RCA-15):**
+    In @[backend_v2/worker.py] (lines 922 and 964), serializing `matrices_to_explain` via `json.dumps([m.model_dump(exclude_none=True) for m in matrices_to_explain], indent=2)` introduces a Double-Serialization anti-pattern. List comprehension with `.model_dump()` forces intermediate Python `dict` allocations in interpreter memory and bypasses `pydantic-core`'s native C/Rust JSON serialization engine. Furthermore, passing raw dictionaries through Python's standard `json.dumps()` risks unhandled `TypeError` exceptions on complex types (specifically and exhaustively: `UUID`, `datetime`, and non-primitive enums). Defining `MatrixExplanationContextList = TypeAdapter(list[MatrixExplanationContextDTO])` in @[backend_v2/models/dtos/synthesis.py] and calling `MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode("utf-8")` directly eliminates intermediate dictionary allocations and guarantees deterministic, fail-fast serialization leveraging pydantic-core's optimized engine.
 
 ---
 
@@ -148,7 +152,7 @@ graph TD
 
 | Gate | Enforcement |
 |---|---|
-| Zero-Compromise Strict Typing | All legacy duck-typing (`isinstance`, `hasattr`, `getattr`, `.get()`) eliminated. Pydantic `model_validate()` at boundaries. |
+| Zero-Compromise Strict Typing | All legacy duck-typing (`isinstance`, `hasattr`, `getattr`, `.get()`, `.pop(key, default)`) eliminated. Pydantic `model_validate()` at boundaries, and strict subscription / explicit `del dict[key]` for dictionary mutations. |
 | Duct-Tape Ban | Raw string concatenation banned. All formatting via f-strings and `str.join()`. REVIEWED EXCEPTION for probe boundaries in atom/matrix iteration (documented inline). |
 | No-Legacy Mandate | Zero Backwards Compatibility: `target_locale: str` mandatory parameter across all signatures without defaults; legacy `"language"` key completely purged from `HookResult.state_delta` (no dual-export fallbacks). |
 | Global Config Sovereignty | Three new SSOT settings in `Settings`: `max_synthesis_quote_length`, `max_synthesis_quotes_per_matrix`, `max_synthesis_unmet_criteria_per_matrix`. |
@@ -220,8 +224,8 @@ graph TD
 
 **Target Files (3 files)**:
 - **[MODIFY]** @[backend_v2/settings.py]
-- **[NEW]** `backend_v2/utils/ranked_round_robin.py`
-- **[NEW]** `backend_v2/tests/unit/utils/test_ranked_round_robin.py`
+- **[NEW]** @[backend_v2/utils/ranked_round_robin.py]
+- **[NEW]** @[backend_v2/tests/unit/utils/test_ranked_round_robin.py]
 
 #### Step 1.1: Centralized Settings SSOT
 - **[MODIFY]** @[backend_v2/settings.py]: Add three centralized SSOT settings in `Settings` directly after `max_synthesis_evaluations`:
@@ -302,7 +306,7 @@ graph TD
                   empty_groups.append(g_key)
 
           for eg in empty_groups:
-              groups.pop(eg, None)
+              del groups[eg]
 
       return selected
   ```
@@ -337,7 +341,7 @@ graph TD
 
 **Target Files (2 files)**:
 - **[MODIFY]** @[backend_v2/services/orchestrator/synthesis_distiller.py]
-- **[NEW]** `backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py`
+- **[NEW]** @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]
 
 #### Step 2.0: AST Boundary Verification Pre-Step (God File Mandate)
 - @[backend_v2/services/orchestrator/synthesis_distiller.py] has 324 lines (exceeds 300-line God File threshold per @[ki_god_code_prevention.md]).
@@ -346,7 +350,7 @@ graph TD
 - Constraint `ast_boundary_verification_mandate`: Per @[ki_god_code_prevention.md], you MUST NOT rely on `grep_search` to find method boundaries in files exceeding 300 lines.
 
 #### Step 2.1: Synthesis Distiller Locale Hoisting, Pruning Elimination, Legacy Key Purge & Unfiltered Context Pipeline
-- **[MODIFY]** @[backend_v2/services/orchestrator/synthesis_distiller.py] (function `synthesis_distiller_hook`):
+- **[MODIFY]** @[backend_v2/services/orchestrator/synthesis_distiller.py] (functions `_build_title_map` and `synthesis_distiller_hook`):
   - **HOIST** `target_locale` validation to the top of `synthesis_distiller_hook` immediately after `inputs["steps"]` validation, before executing any async repository queries:
     ```python
     if not state.metadata or "target_locale" not in state.metadata:
@@ -380,9 +384,11 @@ graph TD
 
 ### Phase 3: Matrix Explanation Service Hardening & Dual Reporting (P0 — Critical Path)
 
-**Scope**: Harden `matrix_explanation_service.py` to eliminate 12 legacy anti-patterns, implement Status-Aware Dual Reporting (`SUPPORTING EVIDENCE` + `UNMET CRITERIA / DEFICITS`) with Ranked Round-Robin curation, integrate SSOT quote limits in `SynthesisPayloadCompressor`, update Knowledge Item documentation, and expand unit/contract test coverage.
+**Scope**: Harden `matrix_explanation_service.py` to eliminate 12 legacy anti-patterns, implement Status-Aware Dual Reporting (`SUPPORTING EVIDENCE` + `UNMET CRITERIA / DEFICITS`) with Ranked Round-Robin curation, define `MatrixExplanationContextList = TypeAdapter(list[MatrixExplanationContextDTO])` in `synthesis.py` to eliminate Double-Serialization in `worker.py`, integrate SSOT quote limits in `SynthesisPayloadCompressor`, update Knowledge Item documentation, and expand unit/contract test coverage.
 
-**Target Files (5 files)**:
+**Target Files (7 files)**:
+- **[MODIFY]** @[backend_v2/models/dtos/synthesis.py]
+- **[MODIFY]** @[backend_v2/worker.py]
 - **[MODIFY]** @[backend_v2/services/orchestrator/matrix_explanation_service.py]
 - **[MODIFY]** @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
 - **[MODIFY]** @[ki_synthesis_payload_compression.md]
@@ -416,6 +422,7 @@ graph TD
                         tda_to_scale[tda.tda_id] = scale.score
 
     quote_candidates: list[tuple[str, str]] = []
+    seen_matrix_quotes: set[str] = set()
     unmet_claim_to_min_scale: dict[str, int] = {}
 
     for tda_id, hit_status in lw_matrix.evaluated_atoms.items():
@@ -437,7 +444,9 @@ graph TD
         if hit_status == ExecutionStatus.PASSED:
             if tda_id in global_quotes_map:
                 for q in global_quotes_map[tda_id]:
-                    quote_candidates.append((claim_label, q))
+                    if q not in seen_matrix_quotes:
+                        seen_matrix_quotes.add(q)
+                        quote_candidates.append((claim_label, q))
         elif hit_status == ExecutionStatus.FAILED:
             if claim_label:
                 if claim_label not in unmet_claim_to_min_scale:
@@ -447,7 +456,7 @@ graph TD
                         unmet_claim_to_min_scale[claim_label], scale_score
                     )
     ```
-  - **CURATE** quotes via `ranked_round_robin_select` and unmet criteria via deterministic severity-first sorting (eliminating Priority Inversion per @[feature_audit_priority_inversion_unmet_criteria.md]):
+  - **CURATE** quotes via `ranked_round_robin_select` (pre-deduplicated) and unmet criteria via deterministic severity-first sorting (eliminating Priority Inversion and Deduplication Starvation per standard architecture):
     ```python
     # Curate quotes: Grouped by claim_label, ranked by quote length (longest first)
     ranked_quotes = ranked_round_robin_select(
@@ -457,8 +466,8 @@ graph TD
         max_items=max_quotes_per_matrix,
         reverse_rank=True,
     )
-    # Deduplicate keeping order
-    curated_quotes = list(dict.fromkeys(q for _, q in ranked_quotes))
+    # Extract curated quotes (already guaranteed 100% unique per matrix via seen_matrix_quotes)
+    curated_quotes = [q for _, q in ranked_quotes]
 
     # Curate unmet criteria: Deterministic severity-first sorting (Level 1 critical deficits first, alphabetical tie-break)
     sorted_unmet_claims = sorted(
@@ -467,14 +476,28 @@ graph TD
     )
     unique_failed_claims = sorted_unmet_claims[:max_unmet_criteria]
     ```
-  - **RESOLVE** level stats: enclose iteration inside an explicit `if lw_matrix.level_breakdown:` guard. Inside the loop, perform UNCONDITIONAL `LevelStatsDTO.model_validate(stats_raw, strict=False)`. Construct `level_breakdown_str` strictly using Python f-strings, completely banning raw string concatenation with `+`:
+  - **RESOLVE** level stats: enclose iteration inside an explicit `if lw_matrix.level_breakdown:` guard. Inside the loop, wrap `LevelStatsDTO.model_validate(stats_raw, strict=False)` in a `try...except (ValidationError, ValueError) as e:` block (PROBE BOUNDARY). On parse failure, log a warning via `logger.warning("[MatrixExplanationService] %s: Failed to parse level stats for level '%s' in matrix block '%s': %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, lvl, block_id, str(e), exc_info=True)` and `continue` to the next level without crashing the synthesis aggregation. Construct `level_breakdown_str` strictly using Python f-strings, completely banning raw string concatenation with `+`:
     ```python
     level_breakdown_str = ""
     if lw_matrix.level_breakdown:
         breakdowns = []
         for lvl, stats_raw in lw_matrix.level_breakdown.items():
-            stats_obj = LevelStatsDTO.model_validate(stats_raw, strict=False)
-            breakdowns.append(f"Level {lvl}: {stats_obj.hits}/{stats_obj.total} hits")
+            # REVIEWED EXCEPTION to the_duct_tape_ban: PROBE BOUNDARY
+            # stats_raw originates from dynamic step payloads and may contain corrupted or unexpected schema structures.
+            try:
+                stats_obj = LevelStatsDTO.model_validate(stats_raw, strict=False)
+                breakdowns.append(f"Level {lvl}: {stats_obj.hits}/{stats_obj.total} hits")
+            except (ValidationError, ValueError) as e:
+                logger.warning(
+                    "[MatrixExplanationService] %s: Failed to parse level stats for level '%s' in matrix block '%s': %s",
+                    ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                    lvl,
+                    block_id,
+                    str(e),
+                    exc_info=True,
+                )
+                continue
+
         if breakdowns:
             level_breakdown_str = f"[DISTRIBUTION CONTEXT: {', '.join(breakdowns)}]"
     ```
@@ -504,10 +527,22 @@ graph TD
 - **[MODIFY]** @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] (class `SynthesisPayloadCompressor`): Replace hardcoded `[:300]` with `settings_obj.max_synthesis_quote_length`.
 - Constraint `dry_composition_mandate`: Ensure single source of truth for synthesis quote truncation across all orchestrator services.
 
-#### Step 3.3: Knowledge Base Alignment
-- **[MODIFY]** @[ki_synthesis_payload_compression.md]: Update to replace references to `ExtractiveSensorService` with the SSOT `MatrixExplanationService`, and document centralized quote truncation (`max_synthesis_quote_length`), per-matrix quote capping (`max_synthesis_quotes_per_matrix`), per-matrix unmet criteria capping (`max_synthesis_unmet_criteria_per_matrix`), Ranked Round-Robin diversity curation across matrices and XAI highlights, and mandatory `target_locale` parameter.
+#### Step 3.3: Matrix Explanation Context List TypeAdapter Definition & Worker Direct Serialization (Double-Serialization Ban)
+- **[MODIFY]** @[backend_v2/models/dtos/synthesis.py]:
+  - Import `TypeAdapter` from `pydantic`.
+  - Define `MatrixExplanationContextList = TypeAdapter(list[MatrixExplanationContextDTO])`.
+- **[MODIFY]** @[backend_v2/worker.py] (lines 922 and 964):
+  - Import `MatrixExplanationContextList` from `backend_v2.models.dtos.synthesis`.
+  - At line 922 (Executive Synthesis prompt assembly), replace `json.dumps([m.model_dump(exclude_none=True) for m in matrices_to_explain], indent=2)` with:
+    `MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode("utf-8")`.
+  - At line 964 (Matrix Row Explanations prompt assembly), replace `json.dumps([m.model_dump(exclude_none=True) for m in matrices_to_explain], indent=2)` with:
+    `MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode("utf-8")`.
+- Constraints `strict_sdui_polymorphic_serialization` and `the_zero_compromise_pledge`: Enforce direct C/Rust pydantic-core serialization and ban intermediate Python dict allocations (Double-Serialization Ban).
 
-#### Step 3.4: Matrix Explanation Service Unit & Contract Tests
+#### Step 3.4: Knowledge Base Alignment
+- **[MODIFY]** @[ki_synthesis_payload_compression.md]: Update to replace references to `ExtractiveSensorService` with the SSOT `MatrixExplanationService`, and document centralized quote truncation (`max_synthesis_quote_length`), per-matrix quote capping (`max_synthesis_quotes_per_matrix`), per-matrix unmet criteria capping (`max_synthesis_unmet_criteria_per_matrix`), Ranked Round-Robin diversity curation across matrices and XAI highlights, `MatrixExplanationContextList` TypeAdapter direct serialization, and mandatory `target_locale` parameter.
+
+#### Step 3.5: Matrix Explanation Service Unit & Contract Tests
 
 > [!WARNING]
 > **BROKEN TEST BLAST RADIUS (Verified 2026-08-15):** All 6 test call-sites (5 in `test_matrix_explanation_service.py` + 1 in `test_epic93_contract_verification.py`) currently call `assemble_matrices_to_explain()` WITHOUT the mandatory `target_locale` parameter, despite the function signature already requiring `target_locale: str`. These tests will fail with `TypeError: missing required argument: 'target_locale'` if executed. Step 3.4 MUST be committed ATOMICALLY with Step 3.1 to prevent an intermediate broken test suite state. The executing agent MUST NOT commit Step 3.1 alone.
@@ -518,11 +553,13 @@ graph TD
   3. `test_assemble_matrices_to_explain_empty_quotes_list`: pass `target_locale="en"`, verify fallback string when neither quotes nor failed claims exist.
   4. `test_assemble_matrices_to_explain_deduplicates_by_block_id`: pass `target_locale="en"`.
   5. `test_assemble_matrices_to_explain_includes_failed_claims`: pass `target_locale="en"`, verify dual-reporting with both `SUPPORTING EVIDENCE:` and `UNMET CRITERIA / DEFICITS:` present simultaneously.
-  - Add 4 new unit tests:
+  - Add 6 new unit tests:
     - `test_assemble_matrices_to_explain_round_robin_diversity`: verify that when Claim A has 4 quotes and Claim B has 4 quotes, Ranked Round-Robin selects alternating quotes from both claims up to the limit of 5 (picking 3 longest from A and 2 longest from B) rather than exhausting Claim A.
-    - `test_assemble_matrices_to_explain_unmet_criteria_severity_order`: verify that when a matrix contains Level 1, Level 2, and Level 5 failed criteria, the service prioritizes Level 1 critical deficits first and truncates Level 5 aspirational misses when exceeding `max_synthesis_unmet_criteria_per_matrix` (5), eliminating Priority Inversion per @[feature_audit_priority_inversion_unmet_criteria.md].
+    - `test_assemble_matrices_to_explain_deduplication_starvation_prevention`: verify that when Claim A and Claim B share duplicate quotes across TDAs, candidate collection deduplicates via `seen_matrix_quotes` such that Ranked Round-Robin selects exactly `max_quotes_per_matrix` (5) unique quotes across distinct claims without post-selection collapse.
+    - `test_assemble_matrices_to_explain_unmet_criteria_severity_order`: verify that when a matrix contains Level 1, Level 2, and Level 5 failed criteria, the service prioritizes Level 1 critical deficits first and truncates Level 5 aspirational misses when exceeding `max_synthesis_unmet_criteria_per_matrix` (5), eliminating Priority Inversion per Tier 8 Feature Audit (Priority Inversion & Unmet Criteria).
     - `test_assemble_matrices_to_explain_short_quote_filtering`: verify that quote fragments shorter than 15 characters (specifically and exhaustively: short quote fragments "yes" and "OK") are excluded from `SUPPORTING EVIDENCE`.
     - `test_assemble_matrices_to_explain_multilingual_resolution`: verify that `target_locale="fi"` resolves Finnish claim translations while `target_locale="en"` resolves English translations.
+    - `test_assemble_matrices_to_explain_corrupt_level_stats_graceful_handling`: verify that when `level_breakdown` contains a malformed level stats dictionary (specifically and exhaustively: missing `total` key or unexpected extra keys), `LevelStatsDTO.model_validate` failure is caught at the probe boundary, logs a warning, and skips the corrupt level without raising an unhandled exception or aborting the remaining valid level stats and matrix justifications.
 - **[MODIFY]** @[backend_v2/tests/unit/test_epic93_contract_verification.py]: Update call-site at line 306 to pass mandatory `target_locale="en"` in `test_matrices_to_explain_assembly`.
 - **Unit Test Mock Strictness (Anti-Fake-Green Mandate)**:
   - BANNED: Patching `model_validate` or `model_validate_json` with unconstrained `MagicMock` or using loose `MagicMock(spec=PromptBlock)` that bypasses Pydantic V2 schema validations.
@@ -650,6 +687,9 @@ uv run python scripts/backend_audit_loop.py backend_v2/services/sdui/adapters/ -
 | T | **Zero Backwards Compatibility & Legacy Language Key Purge** | Invoke `synthesis_distiller_hook` with valid state. Verify that `result.state_delta` contains `"target_locale"` and STRICTLY DOES NOT contain the deprecated `"language"` key, mathematically proving Zero Backwards Compatibility (`the_no_legacy_mandate`). | 2 |
 | U | **XAI Highlights Graceful UI Degradation** | Provide `OutputProfile` with `visible_block_extensions=[]` or `max_extension_items=0`. `XaiHighlightsAdapter.build()` returns `[]` immediately without errors. | 4 |
 | V | **Malformed XAI Highlight Item Observability** | Pass an invalid dictionary payload in `xai_highlights` (missing required fields). Emits `logger.warning` with `ErrorCodes.INVALID_OUTPUT_SCHEMA.name`, safely skipping the malformed item and rendering remaining valid items. | 4 |
+| W | **Ranked Round-Robin Deduplication Starvation Prevention** | Provide a matrix with Claim A (duplicate quote $Q_1$, unique quote $Q_2$) and Claim B (duplicate quote $Q_1$, unique quotes $Q_3, Q_4, Q_5$). Total unique quotes = 5. Justification contains exactly `max_quotes_per_matrix` (5) unique quotes under `SUPPORTING EVIDENCE:`, proving elimination of Deduplication Starvation. | 3 |
+| X | **Strict Dictionary Deletion Fail-Fast & Invariant Verification** | Verify that `ranked_round_robin_select` cleans up exhausted groups using strict `del groups[eg]` without `.pop(eg, None)` fallback. In normal operation, empty groups are deleted with $O(1)$ efficiency; if state inconsistency or race condition occurs, fails fast loudly with `KeyError` rather than silently returning `None`. | 1 |
+| Y | **TypeAdapter Direct Serialization & Double-Serialization Ban Verification** | Execute `worker.py` synthesis prompt construction with `matrices_to_explain`. Serialization uses `MatrixExplanationContextList.dump_json(..., indent=2, exclude_none=True).decode("utf-8")` directly, eliminating intermediate `.model_dump()` dictionary allocations and verifying pydantic-core native C/Rust serialization. | 3 |
 
 ### Manual Verification Steps
 - Run local pipeline (`.\run_local.bat`) and verify in `client_debug.log` and `backend_debug.log` that:
@@ -674,9 +714,6 @@ uv run pytest backend_v2/tests/integration/test_integration_real_llm.py
 4. **`ki_dual_axis_localization_architecture.md`**: Enforces semantic backend translation (Axis 2) by passing mandatory `target_locale: str` through `assemble_matrices_to_explain` to resolve claim labels without hardcoded `"en"`.
 
 <required_knowledge_items>
-- @[feature_audit_priority_inversion_unmet_criteria.md]
-- @[feature_audit_ranked_round_robin_o1.md]
-- @[feature_audit_atomic_test_data_migration.md]
 - @[ki_god_code_prevention.md]
 - @[ki_synthesis_payload_compression.md]
 - @[ki_matrix_boolean_evaluation_strictness.md]
@@ -693,6 +730,10 @@ uv run pytest backend_v2/tests/integration/test_integration_real_llm.py
 - @[ki_epic_lifecycle_workflow.md]
 - @[ki_context_enriched_decompose_verify.md]
 - @[ki_strict_sdui_serialization.md]
+- @[ki_llm_extraction_architecture.md]
+- @[ki_topological_engine.md]
+- @[ki_execution_engine_protocol.md]
+- @[ki_matrix_sensor_prompt_builder.md]
 - @[.agents/rules/00-antigravity-core.md]
 - @[.agents/rules/01-python-backend.md]
 - @[.agents/rules/05_llm_architecture.md]
