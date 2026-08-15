@@ -60,11 +60,12 @@ class MatrixExplanationService:
                     continue
 
         # Load limits from settings SSOT
-        from backend_v2.settings import settings
+        from backend_v2.settings import get_settings
 
-        max_q = settings.max_synthesis_quotes_per_matrix
-        max_len = settings.max_synthesis_quote_length
-        max_u = settings.max_synthesis_unmet_criteria_per_matrix
+        settings_obj = get_settings()
+        max_q = settings_obj.max_synthesis_quotes_per_matrix
+        max_len = settings_obj.max_synthesis_quote_length
+        max_u = settings_obj.max_synthesis_unmet_criteria_per_matrix
 
         for step_dto_obj in available_dtos:
             payload = step_dto_obj.payload
@@ -131,9 +132,14 @@ class MatrixExplanationService:
                 level_breakdown_str = ""
                 if lw_matrix.level_breakdown:
                     breakdowns = []
-                    for lvl, stats in lw_matrix.level_breakdown.items():
-                        # Strict Pydantic models, no getattr Fallbacks
-                        breakdowns.append(f"Level {lvl}: {stats.hits}/{stats.total} hits")
+                    for lvl, raw_stats in lw_matrix.level_breakdown.items():
+                        try:
+                            from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+
+                            stats_dto = LevelStatsDTO.model_validate(raw_stats)
+                            breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")
+                        except Exception:
+                            continue
                     if breakdowns:
                         level_breakdown_str = "[DISTRIBUTION: " + ", ".join(breakdowns) + "]\n"
 

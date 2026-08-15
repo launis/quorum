@@ -316,7 +316,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             "source_alias_map": alias_engine.alias_map,
             "output_profile_id": output_profile_id,
             "target_locale": target_locale,
-            "language": target_locale,
             "alias_registry": alias_engine.alias_map,
             "max_extensions": output_profile.max_extension_items,
         },

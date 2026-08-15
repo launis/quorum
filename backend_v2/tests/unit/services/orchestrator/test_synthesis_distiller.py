@@ -108,3 +108,40 @@ def test_compress_synthesis_payload_compresses_anchors() -> None:
     assert "shuffled_atoms" not in compressed_str
     assert "value" in compressed_str
     assert "localized_anchors_found" in compressed_str
+
+
+# Import all wiring test functions so backend_audit_loop discovers and runs them
+from backend_v2.tests.unit.services.orchestrator.test_synthesis_distiller_wiring import (
+    test_synthesis_distiller_wiring_dict_steps_hydrated_successfully,
+    test_synthesis_distiller_wiring_empty_target_locale_raises_app_exception,
+    test_synthesis_distiller_wiring_invalid_inputs_type_raises_invalid_schema,
+    test_synthesis_distiller_wiring_missing_output_profile_id_raises_config_error,
+    test_synthesis_distiller_wiring_missing_steps_key_raises_validation_failed,
+    test_synthesis_distiller_wiring_missing_target_locale_raises_app_exception,
+    test_synthesis_distiller_wiring_none_state_raises_validation_failed,
+    test_synthesis_distiller_wiring_output_profile_not_found_raises_resource_not_found,
+    test_synthesis_distiller_wiring_passes_unfiltered_dtos,
+    test_synthesis_distiller_wiring_state_delta_purges_legacy_language_key,
+    test_synthesis_distiller_wiring_whitespace_target_locale_raises_app_exception,
+    test_synthesis_distiller_wiring_workflow_not_found_raises_resource_not_found,
+)
+
+__all__ = [
+    "test_compress_synthesis_payload_caps_evaluations_at_40",
+    "test_compress_synthesis_payload_compresses_anchors",
+    "test_compress_synthesis_payload_handles_string_input",
+    "test_compress_synthesis_payload_strips_heavy_keys",
+    "test_compress_synthesis_payload_strips_null_quotes",
+    "test_synthesis_distiller_wiring_dict_steps_hydrated_successfully",
+    "test_synthesis_distiller_wiring_empty_target_locale_raises_app_exception",
+    "test_synthesis_distiller_wiring_invalid_inputs_type_raises_invalid_schema",
+    "test_synthesis_distiller_wiring_missing_output_profile_id_raises_config_error",
+    "test_synthesis_distiller_wiring_missing_steps_key_raises_validation_failed",
+    "test_synthesis_distiller_wiring_missing_target_locale_raises_app_exception",
+    "test_synthesis_distiller_wiring_none_state_raises_validation_failed",
+    "test_synthesis_distiller_wiring_output_profile_not_found_raises_resource_not_found",
+    "test_synthesis_distiller_wiring_passes_unfiltered_dtos",
+    "test_synthesis_distiller_wiring_state_delta_purges_legacy_language_key",
+    "test_synthesis_distiller_wiring_whitespace_target_locale_raises_app_exception",
+    "test_synthesis_distiller_wiring_workflow_not_found_raises_resource_not_found",
+]

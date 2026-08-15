@@ -15,13 +15,13 @@
   </step>
 
   <dod_checklist>
-    - [ ] AST boundary verification pre-step executed for @[backend_v2/services/orchestrator/synthesis_distiller.py#L159-L323].
-    - [ ] `target_locale` validation hoisted to the start of `synthesis_distiller_hook` with strict Fail-Fast checks for non-empty string.
-    - [ ] Parameter renamed from `language` to `target_locale` in `_build_title_map`.
-    - [ ] `target_blocks` filter loop confirmed completely deleted from `synthesis_distiller.py`.
-    - [ ] `available_dtos` contains unfiltered execution state and is passed directly to `<source>` prompt blocks generation and `MatrixExplanationService.assemble_matrices_to_explain`.
-    - [ ] Deprecated `"language": target_locale` key purged from `HookResult.state_delta` (exporting ONLY `"target_locale"`).
-    - [ ] Comprehensive wiring unit tests implemented in `[NEW]` @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py].
+    - [x] AST boundary verification pre-step executed for @[backend_v2/services/orchestrator/synthesis_distiller.py#L160-L323].
+    - [x] `target_locale` validation hoisted to the start of `synthesis_distiller_hook` with strict Fail-Fast checks for non-empty string.
+    - [x] Parameter renamed from `language` to `target_locale` in `_build_title_map`.
+    - [x] `target_blocks` filter loop confirmed completely deleted from `synthesis_distiller.py`.
+    - [x] `available_dtos` contains unfiltered execution state and is passed directly to `<source>` prompt blocks generation and `MatrixExplanationService.assemble_matrices_to_explain`.
+    - [x] Deprecated `"language": target_locale` key purged from `HookResult.state_delta` (exporting ONLY `"target_locale"`).
+    - [x] Comprehensive wiring unit tests implemented in `[NEW]` @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py].
   </dod_checklist>
 
   <required_context_rules>
@@ -57,17 +57,17 @@
   </anti_targets>
 
   <step id="1" name="AST Boundary Verification Pre-Step (God File Mandate)">
-    <action>Write and execute a temporary Python AST verification script in the scratch directory to extract exact lineno and end_lineno of synthesis_distiller_hook (L159-L323) and _build_title_map (L111-L156) in @[backend_v2/services/orchestrator/synthesis_distiller.py#L159-L323].</action>
+    <action>Write and execute a temporary Python AST verification script in the scratch directory to extract exact lineno and end_lineno of synthesis_distiller_hook (L160-L323) and _build_title_map (L111-L156) in @[backend_v2/services/orchestrator/synthesis_distiller.py#L160-L323].</action>
     <constraint invariant="ast_boundary_verification_mandate">Per ki_god_code_prevention.md, you MUST NOT rely on grep_search to find method boundaries in files exceeding 300 lines.</constraint>
   </step>
 
   <step id="2" name="Synthesis Distiller Locale Hoisting &amp; Legacy Key Purge">
-    <action>[ALREADY_IMPLEMENTED] - Target_blocks pruning removal, locale hoisting, and assemble_matrices_to_explain call verified within @[backend_v2/services/orchestrator/synthesis_distiller.py#L159-L323].
+    <action>[ALREADY_IMPLEMENTED] - Target_blocks pruning removal, locale hoisting, and assemble_matrices_to_explain call verified within @[backend_v2/services/orchestrator/synthesis_distiller.py#L160-L323].
 [ALREADY_IMPLEMENTED] - _build_title_map parameter renaming verified at @[backend_v2/services/orchestrator/synthesis_distiller.py#L111-L156].
     </action>
-    <action>In @[backend_v2/services/orchestrator/synthesis_distiller.py#L159-L323], execute demolition of the legacy `"language"` key:
+    <action>In @[backend_v2/services/orchestrator/synthesis_distiller.py#L160-L323], execute demolition of the legacy `"language"` key:
     <demolish>
-REMOVE: `"language": target_locale,` inside HookResult.state_delta in synthesis_distiller_hook.
+REMOVE: `"language": target_locale,` inside HookResult.state_delta in synthesis_distiller_hook (line 319).
 REPLACE WITH: Complete removal of the line, keeping only `"target_locale": target_locale,` in state_delta.
     </demolish>
     </action>
@@ -77,14 +77,34 @@ REPLACE WITH: Complete removal of the line, keeping only `"target_locale": targe
   <step id="3" name="Synthesis Distiller Wiring Unit Tests">
     <action>Create `[NEW]` @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py] to test:
 1. synthesis_distiller_hook passes unfiltered available_dtos to both &lt;source&gt; block distillation (distilled_inputs) and MatrixExplanationService along with target_locale.
-2. synthesis_distiller_hook fails fast with AppException(VALIDATION_FAILED) when target_locale is missing from state.metadata or contains whitespace-only strings.
-3. distilled_inputs preserves upstream cognitive sensor findings and verbatim evidence quotes.
-4. result.state_delta contains "target_locale" and STRICTLY DOES NOT contain "language", proving Zero Backwards Compatibility (the_no_legacy_mandate).
+2. synthesis_distiller_hook fails fast with AppException(VALIDATION_FAILED) when state is None.
+3. synthesis_distiller_hook fails fast with AppException(INVALID_OUTPUT_SCHEMA) when state.inputs is not a dict.
+4. synthesis_distiller_hook fails fast with AppException(VALIDATION_FAILED) when "steps" key is missing from state.inputs.
+5. synthesis_distiller_hook fails fast with AppException(VALIDATION_FAILED) when target_locale is missing from state.metadata.
+6. synthesis_distiller_hook fails fast with AppException(VALIDATION_FAILED) when target_locale is whitespace-only or empty string.
+7. synthesis_distiller_hook handles raw dictionary step objects in inputs["steps"] via StepOutputDTO.model_validate.
+8. synthesis_distiller_hook raises AppException(CONFIGURATION_ERROR) when execution record has missing/empty output_profile_id.
+9. synthesis_distiller_hook raises AppException(RESOURCE_NOT_FOUND) when workflow_id is not found in workflow_repo.
+10. synthesis_distiller_hook raises AppException(RESOURCE_NOT_FOUND) when output_profile is not found in output_profile_repo.
+11. distilled_inputs preserves upstream cognitive sensor findings and verbatim evidence quotes in &lt;source&gt; tags with registered aliases.
+12. result.state_delta contains "target_locale" and STRICTLY DOES NOT contain "language", proving Zero Backwards Compatibility (the_no_legacy_mandate).
     </action>
     <test_contracts>
       <test name="test_synthesis_distiller_wiring_passes_unfiltered_dtos" category="positive">
         <input>HookState with 2 cognitive sensor steps and 1 matrix step</input>
         <expected>distilled_inputs contains all 3 steps in &lt;source&gt; blocks, matrices_to_explain receives all 3 steps</expected>
+      </test>
+      <test name="test_synthesis_distiller_wiring_none_state_raises_validation_failed" category="error_path">
+        <input>HookState is None (or empty state)</input>
+        <expected>raises AppException with error_code VALIDATION_FAILED</expected>
+      </test>
+      <test name="test_synthesis_distiller_wiring_invalid_inputs_type_raises_invalid_schema" category="error_path">
+        <input>HookState with inputs="not a dict"</input>
+        <expected>raises AppException with error_code INVALID_OUTPUT_SCHEMA</expected>
+      </test>
+      <test name="test_synthesis_distiller_wiring_missing_steps_key_raises_validation_failed" category="error_path">
+        <input>HookState with inputs={}</input>
+        <expected>raises AppException with error_code VALIDATION_FAILED</expected>
       </test>
       <test name="test_synthesis_distiller_wiring_missing_target_locale_raises_app_exception" category="error_path">
         <input>HookState with metadata missing "target_locale"</input>
@@ -93,6 +113,26 @@ REPLACE WITH: Complete removal of the line, keeping only `"target_locale": targe
       <test name="test_synthesis_distiller_wiring_whitespace_target_locale_raises_app_exception" category="boundary">
         <input>HookState with metadata["target_locale"] = "   "</input>
         <expected>raises AppException with error_code VALIDATION_FAILED</expected>
+      </test>
+      <test name="test_synthesis_distiller_wiring_empty_target_locale_raises_app_exception" category="boundary">
+        <input>HookState with metadata["target_locale"] = ""</input>
+        <expected>raises AppException with error_code VALIDATION_FAILED</expected>
+      </test>
+      <test name="test_synthesis_distiller_wiring_dict_steps_hydrated_successfully" category="positive">
+        <input>HookState with inputs["steps"] containing raw dicts instead of StepOutputDTO instances</input>
+        <expected>distilled_inputs and matrices_to_explain assemble successfully with hydrated models</expected>
+      </test>
+      <test name="test_synthesis_distiller_wiring_missing_output_profile_id_raises_config_error" category="error_path">
+        <input>ExecutionRecord with output_profile_id=None or missing</input>
+        <expected>raises AppException with error_code CONFIGURATION_ERROR</expected>
+      </test>
+      <test name="test_synthesis_distiller_wiring_workflow_not_found_raises_resource_not_found" category="error_path">
+        <input>workflow_repo.get_workflow_by_id returns None</input>
+        <expected>raises AppException with error_code RESOURCE_NOT_FOUND</expected>
+      </test>
+      <test name="test_synthesis_distiller_wiring_output_profile_not_found_raises_resource_not_found" category="error_path">
+        <input>output_profile_repo.get_output_profile_by_id returns None</input>
+        <expected>raises AppException with error_code RESOURCE_NOT_FOUND</expected>
       </test>
       <test name="test_synthesis_distiller_wiring_state_delta_purges_legacy_language_key" category="positive">
         <input>Valid HookState execution</input>
@@ -108,3 +148,4 @@ REPLACE WITH: Complete removal of the line, keeping only `"target_locale": targe
   </validation_gate>
 </execution_protocol>
 ```
+
