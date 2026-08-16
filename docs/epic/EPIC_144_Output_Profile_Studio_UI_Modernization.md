@@ -3,7 +3,7 @@
 ## 1. Goal Description & Background (Objective & Problem Statement)
 
 ### 1.1 Objective
-Modernize and decompose the Output Profile editing interface in Quorum Studio (`@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`) into a clean, 3-tab information architecture aligned with Quorum's Gold Standard Flat MVC and Sub-Tabs paradigm (matching `@[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]`). Replace the unintuitive, text-heavy layout block editor (`@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`) with an **Adaptive Visual Block Builder** where complex matrices have deep configuration cards, but straightforward components (like Metadata or Bibliography) are managed via simple toggle cards.
+Modernize and decompose the Output Profile editing interface in Quorum Studio (`@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`) into a clean, 3-tab information architecture aligned with Quorum's Gold Standard Flat MVC and Sub-Tabs paradigm (matching `@[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]`). Replace the unintuitive, text-heavy layout block editor (`@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`) with an **Adaptive Visual Block Builder** where complex matrices have deep configuration cards, while straightforward baseline components (specifically and exhaustively: `metadata_block`, `penalties_block`, `variance_validation_block`, `authenticity_evaluation_block`, and `printable_sources_block`) are managed via simple toggle cards.
 
 ### 1.2 Problem Statement
 The current Output Profile editor in Studio suffers from severe cognitive overload and architectural coupling:
@@ -24,9 +24,10 @@ The current Output Profile editor in Studio suffers from severe cognitive overlo
 | Comma-separated `steps` text field | `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]` | REMOVED | Eliminated manual string typing. Replaced by automatic resolution from workflow blueprints. |
 | Sub-tab segmented button inside layout block | `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]` | REMOVED | Replaced by single-page Adaptive Block Editor driven by selected visual presentation card. |
 | Raw Checkbox lists for XAI & Metadata | `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` | REMOVED | Replaced with themed `FilterChip` and `ChoiceChip` wrap pills grouped by domain category. |
+| Redundant legacy field `include_diagnostic_scorecard: bool` | `@[backend_v2/models/v2_core.py]`, `@[backend_v2/models/dtos/output_profile.py]`, `@[client_app_v2/lib/features/studio/models/output_profile.dart]` | REMOVED | Eliminated redundant boolean flag in favor of `target_block_order` SSOT. |
 
 ### 2.2 Retained SSOT Invariants (`What We Will RETAIN`)
-1. **SSOT Data Models**: The underlying domain models (`OutputProfile`, `OutputLayoutBlock`, `PresetView`, `TextDeliveryMode`, `XaiExtensionType`, `DisplayScale`, `StrictnessLevel`, `ScoringStrategy`) remain 100% identical in Python (`@[backend_v2/models/v2_core.py]`) and Dart Freezed (`@[client_app_v2/lib/features/studio/models/output_profile.dart]`).
+1. **SSOT Data Models & Universal Block Dispatch**: The underlying domain models (`OutputProfile`, `OutputLayoutBlock`, `PresetView`, `TextDeliveryMode`, `XaiExtensionType`, `DisplayScale`, `StrictnessLevel`, `ScoringStrategy`) remain 100% identical in Python (`@[backend_v2/models/v2_core.py]`) and Dart Freezed (`@[client_app_v2/lib/features/studio/models/output_profile.dart]`). All block visibility is driven 100% via `target_block_order: list[str]`.
 2. **Fail-Fast Boundary Parsing**: Strict Pydantic V2 and Dart Freezed deserialization (`disallowUnrecognizedKeys: true`) are strictly preserved.
 3. **Riverpod State Management**: `outputProfileFormProvider(id)` notifier pattern in `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]` is retained as the single source of truth for form mutations.
 
@@ -40,14 +41,16 @@ During codebase verification, the following 6 existing Fail-Fast violations were
 
 | # | Violation | Location | Rule Violated | Mandatory Fix |
 | :--- | :--- | :--- | :--- | :--- |
-| V1 | `unknownEnumValue: PresetView.defaultView` and `unknownEnumValue: TextDeliveryMode.full` Freezed fallbacks | `@[client_app_v2/lib/features/studio/models/output_profile.dart#L17-L28]` | `silent_json_fallbacks` / Modernity Checklist (Dart Freezed `@Default("Fallback")` and `fallbackUnion` FORBIDDEN) | REMOVE `unknownEnumValue` parameters. Unknown enum values MUST crash the Freezed parser via `CheckedFromJsonException`. |
+| V1 | `unknownEnumValue` Freezed fallbacks in `OutputLayoutBlock`, `SynthesisConfigDTO`, and `BlueprintConfig` | `@[client_app_v2/lib/features/studio/models/output_profile.dart#L17-L65]`, `@[client_app_v2/lib/features/studio/models/blueprint_config.dart#L13]` | `silent_json_fallbacks` / Modernity Checklist (Dart Freezed `@Default("Fallback")` and `fallbackUnion` FORBIDDEN) | REMOVE all `unknownEnumValue` parameters (`PresetView.defaultView`, `TextDeliveryMode.full`, `HistoricalContextMode.disabled`, `PresetView.metrics1d`). Unknown enum values MUST crash the Freezed parser via `CheckedFromJsonException`. |
 | V2 | `SizedBox.shrink()` to hide unavailable XAI extensions | `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart#L627]` and `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart#L635]` | `sized_box_shrink_ban` | Replace with programmatic filtering BEFORE the widget list is built (filter the iterable, not hide the output). |
 | V3 | `AsyncValue<List<dynamic>>` untyped state parameters | `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart#L108-L110]` | Modernity Checklist (`List<dynamic>` → Typed sealed classes) | Type all 3 parameters: `AsyncValue<List<PromptBlock>>`, `AsyncValue<List<Workflow>>`, `AsyncValue<List<NodeStrategy>>`. |
 | V4 | Hardcoded color `Color(0xFF2E7D32)` | `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart#L145]` | `design_token_absolute_rule` | Replace with `Theme.of(context).colorScheme.primary` or equivalent design token. |
 | V5 | Hardcoded pixel values `EdgeInsets.symmetric(horizontal: 16.0)` and `SizedBox(width: 20, height: 20)` | `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart#L805-L810]` | `design_token_absolute_rule` | Replace with `AppSpacing` design tokens. |
-| V6 | Raw `String displayScale` field (not a typed Enum) | `@[client_app_v2/lib/features/studio/models/output_profile.dart#L98]` | `no_raw_string_enum_mappings` / `cross_language_enum_parity` | Migrate to a strict `@JsonEnum() DisplayScale` enum in `enums.dart` with 3 values: `original`, `custom`, `normalized100`. |
-| V7 | Hardcoded Finnish labels in `MetadataAdapter` (`"Käyttäjä:"`, `"Organisaatio:"`, `"Arviointimoottori:"`, `"Ankaruustaso:"`) | `@[backend_v2/services/sdui/adapters/metadata_adapter.py#L59-L80]` | `structural_localization_axis` / `@[ki_dual_axis_localization_architecture.md]` | Replace hardcoded Finnish strings with localized label resolution via `OutputProfile.metric_mappings` I18nText dictionary. The adapter MUST emit only locale-resolved strings using `context.profile.metric_mappings[key].resolve(context.locale)`. |
+| V6 | Raw `String displayScale` field (not a typed Enum) | `@[client_app_v2/lib/features/studio/models/output_profile.dart#L98]` | `no_raw_string_enum_mappings` / `cross_language_enum_parity` | Migrate to a strict `@JsonEnum() DisplayScale` enum in `enums.dart` with 3 values: `original`, `custom`, `normalized100` (`@JsonValue('normalized_100')`), and create corresponding `DisplayScale(StrEnum)` in `@[backend_v2/models/enums.py]`. |
+| V7 | Hardcoded Finnish labels in `MetadataAdapter` (`"Käyttäjä:"`, `"Organisaatio:"`, `"Arviointimoottori:"`, `"Ankaruustaso:"`) | `@[backend_v2/services/sdui/adapters/metadata_adapter.py#L59-L80]` | `semantic_localization_axis` / `@[ki_dual_axis_localization_architecture.md]` | Replace hardcoded Finnish strings with localized label resolution via `OutputProfile.metric_mappings` I18nText dictionary (specifically and exhaustively: `metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`). The adapter MUST emit only locale-resolved strings using `context.profile.metric_mappings[key].resolve(context.locale)` and raise `AppException(VALIDATION_FAILED)` if a required key is missing. Seed all required keys across `seed_data.json` and backend test fixtures. |
 | V8 | `SynthesisTextAdapter` does not read `RenderedSynthesisCache.section_syntheses` | `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py#L39-L57]` | `tripartite_pipeline` / Dual-Mode synthesis | Extend adapter to read BOTH `context.profile.content_blocks` (static pre-defined blocks) AND `context.profile_cache.section_syntheses[layout_id]` (dynamic LLM-generated synthesis from Pipeline mode). Without this, Option A (Pipeline Way) produces no output. |
+| V9 | Absence of Atomic Data & Mock Fixture Migration for V1 & V6 Tightening | `@[backend_v2/seed/seed_data.json]`, `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`, `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]` | `universal_fail_fast` / `the_zero_compromise_pledge` | Synchronously update and verify all seed database entries and unit test mock fixtures when removing `unknownEnumValue` fallbacks and converting `displayScale` to a strict Enum. Re-seed local development database (`run_seed.py local`) to eliminate any legacy `include_diagnostic_scorecard` keys or unmapped string values before execution. |
+| V10 | DTO upper bound omission for `max_extension_items` | `@[backend_v2/models/dtos/output_profile.py#L93-L100]` | `global_config_sovereignty_mandate` / `strict_pydantic_v2_rust` | Mirror domain model mathematical bounds in DTO schema (`Field(ge=1, le=100)`) to maintain strict bidirectional boundary validation parity. |
 
 ### 2.5 Block Data Pipeline Reference (DB → Pydantic → Adapter → SDUI → Renderer)
 
@@ -81,7 +84,7 @@ The following table exhaustively documents the complete data lineage for every r
 | **DB Config** | `OutputProfile.synthesis: SynthesisConfigDTO`, `OutputProfile.content_blocks: list[AnySduiBlock]`, `OutputProfile.tone_instruction: I18nText` | `@[backend_v2/models/v2_core.py#L1330]`, `@[backend_v2/models/v2_core.py#L1372-L1374]`, `@[backend_v2/models/v2_core.py#L1393-L1395]` |
 | **Data Source** | `RenderedSynthesisCache.section_syntheses` (LLM-generated markdown) | `@[backend_v2/models/v2_core.py#L1601-L1603]` — Pre-computed Section-Level synthesis keyed by layout ID. |
 | **Adapter** | `SynthesisTextAdapter.build(context)` | `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]` — Reads `context.profile.content_blocks` (pre-defined static blocks). Emits deep-copied `AnySduiBlock` instances. |
-| **SDUI Output** | Polymorphic `AnySduiBlock` (typically `MarkdownBlock` or `ParagraphBlock`) | `@[backend_v2/models/view/sdui.py]` |
+| **SDUI Output** | Polymorphic `AnySduiBlock` (specifically all models defined in `LlmSduiBlock` in `@[backend_v2/models/dtos/synthesis.py]` or static `AnySduiBlock` in `@[backend_v2/models/view/sdui.py]`) | `@[backend_v2/models/view/sdui.py]` |
 | **UI Config** | Dual-mode selector (Pipeline / On-the-Fly), tone instruction text field | Tab 3 → `synthesis_text_block` card |
 
 #### Block 4: `matrix_graphs_block`
@@ -97,7 +100,7 @@ The following table exhaustively documents the complete data lineage for every r
 | Layer | Location | Detail |
 | :--- | :--- | :--- |
 | **DB Config** | `OutputProfile.visible_block_extensions: list[LaxXaiExtensionType]`, `OutputProfile.visible_workflow_extensions: list[LaxXaiExtensionType]`, `OutputProfile.max_extension_items: int`, `OutputProfile.extension_labels: dict[LaxXaiExtensionType, I18nText]` | `@[backend_v2/models/v2_core.py#L1336-L1349]` and `@[backend_v2/models/v2_core.py#L1364-L1367]` |
-| **Data Source** | `RenderedSynthesisCache.xai_highlights: list[Any]` | `@[backend_v2/models/v2_core.py#L1609]` — LLM-extracted XAI highlight items from synthesis Phase 2 (parsed as `XaiHighlightItem` from `@[backend_v2/models/dtos/synthesis.py]`). |
+| **Data Source** | `RenderedSynthesisCache.xai_highlights: list[XaiHighlightItem]` | `@[backend_v2/models/v2_core.py#L1609]` — LLM-extracted XAI highlight items from synthesis Phase 2 (parsed as `XaiHighlightItem` from `@[backend_v2/models/dtos/synthesis.py]`). |
 | **Adapter** | `XaiHighlightsAdapter.build(context)` | `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]` — Filters highlights by `visible_block_extensions` and `visible_workflow_extensions`. Applies `ranked_round_robin_select` capped at `max_extension_items`. Uses `XAI_AESTHETICS_RULES` for severity/icon mapping. Emits `AccordionBlock` and `AlertBlock`. |
 | **SDUI Output** | `AccordionBlock`, `AlertBlock` | `@[backend_v2/models/view/sdui.py]` |
 | **UI Config** | FilterChip pills for extension types, max items slider | Tab 3 → `grouped_extensions_block` card |
@@ -141,7 +144,7 @@ The following table exhaustively documents the complete data lineage for every r
 #### Block 10: `printable_sources_block` (Bibliography)
 | Layer | Location | Detail |
 | :--- | :--- | :--- |
-| **DB Config** | Currently: presence in `target_block_order`. NEW in Epic 144: `OutputProfile.include_bibliography: bool` (to be added). | `@[backend_v2/models/v2_core.py#L1375-L1389]` |
+| **DB Config** | Presence in `target_block_order` (Universal SSOT). No separate boolean flag permitted. | `@[backend_v2/models/v2_core.py#L1375-L1389]` |
 | **Data Source** | `RenderedSynthesisCache.cited_sources: list[str]` | `@[backend_v2/models/v2_core.py#L1608]` — Citations collected during synthesis Phase 2. Additionally, `AdapterContext.mcp_audit_map: dict[str, MCPAuditTrace]` provides `source_urls` from the MCP tool loop. |
 | **Adapter** | `PrintableSourcesAdapter.build(context)` | `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]` — Reads `profile_cache.cited_sources` and `mcp_audit_map` source URLs. Emits `MarkdownBlock` with formatted bibliography. |
 | **SDUI Output** | `MarkdownBlock` | `@[backend_v2/models/view/sdui.py]` |
@@ -167,6 +170,19 @@ The following table exhaustively documents the complete data lineage for every r
 
 ## 3. Phased Execution Plan (Implementation Strategy)
 
+### Phase 0: Atomic Data & Mock Fixture Migration Gate (Pre-requisite)
+To eliminate any catastrophic crash risk caused by removing `unknownEnumValue` fallbacks (V1) and introducing strict `@JsonEnum() DisplayScale` / removing `include_diagnostic_scorecard` (V6 & V9), the database and mock fixtures MUST be migrated at the boundary before UI and client refactoring:
+1. **SSOT Enum Parity & Centralized Constraints Creation:**
+   - Define `DisplayScale(StrEnum)` in `@[backend_v2/models/enums.py]` with values `ORIGINAL = "original"`, `CUSTOM = "custom"`, `NORMALIZED_100 = "normalized_100"` and property `l10n_key`.
+   - Define `@JsonEnum() enum DisplayScale` in `@[client_app_v2/lib/core/models/enums.dart]` with matching `@JsonValue('original') original`, `@JsonValue('custom') custom`, `@JsonValue('normalized_100') normalized100`.
+   - Define `SystemUiConstraints` enum in `@[client_app_v2/lib/core/models/enums.dart]` (specifically `maxExtensionItemsSliderMin(1)`, `maxExtensionItemsSliderMax(20)`, `maxExtensionItemsDefault(3)`) to enforce centralized UI limits per `frontend_enum_parity_mandate`.
+   - Ensure `OutputProfileCreateDTO` and `OutputProfileUpdateDTO` in `@[backend_v2/models/dtos/output_profile.py]` enforce strict boundary parity for `max_extension_items: Annotated[int | None, Field(default=None, ge=1, le=100)]`.
+2. **Seed Data Vault Audit & Reseed:**
+   - Audit `@[backend_v2/seed/seed_data.json]` to guarantee all `output_profiles` have valid enum keys (`"display_scale": "normalized_100"`, `"preset_view": "text_only"`, `"text_delivery_mode": "none"`) and zero occurrences of legacy `include_diagnostic_scorecard`.
+   - Re-seed the local environment via `uv run python backend_v2/seed/run_seed.py local`.
+3. **Mock & Unit Test Fixture Synchronization:**
+   - Update all test mocks and fixtures across `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`, `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]`, and `@[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]` to strictly use typed `DisplayScale` enums and valid `PresetView` strings.
+
 ### Phase 1: Sub-Tab Information Architecture & Scaffold Decomposition
 Decompose `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` into a highly streamlined 3-tab `DefaultTabController` scaffold matching the visual stepper idiom of `@[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]`. This strictly enforces the **God Code Prevention mandate** (`@[ki_god_code_prevention.md]`) by physically splitting the 896-line monolithic file into dedicated sub-widgets rather than appending more private helpers. All violations listed in Section 2.4 (Modernity Gate) MUST be eradicated during this phase:
 - **Tab 1: 📋 General & Preface (`ProfileGeneralTab`)**
@@ -183,39 +199,39 @@ Decompose `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.da
   - Contains all block-specific configuration cards (Metadata, Matrix Graphs, XAI, Bibliography, etc.).
 
 ### Phase 2: Adaptive Visual Block Builder & UI Patterns
-Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`) to strictly follow the new "Flat Master-Detail" architecture within the Report Structure tab. Implement the following approved UI patterns:
+Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`) to strictly follow the new "Flat Master-Detail" architecture within the Report Structure tab (`@[client_app_v2/lib/features/studio/views/widgets/profile/profile_layouts_tab.dart]`). To enforce the **God Code Prevention mandate** (`@[ki_god_code_prevention.md]`), all individual block editor cards MUST be implemented as dedicated single-responsibility widgets under `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/]` (specifically and exhaustively: `base_block_card.dart`, `matrix_graphs_block_card.dart`, `matrix_summary_table_card.dart`, `synthesis_text_block_card.dart`, `xai_extensions_block_card.dart`, `metadata_block_card.dart`, `bibliography_block_card.dart`, and `simple_toggle_block_card.dart`). Implement the following approved UI patterns:
 
 1. **Universal Baseline (The Block Visibility Toggle):**
-   - EVERY block editor (Metadata, Exec Summary, Matrix Results, etc.) MUST start with a primary toggle: `Include this block in the final report`. This controls the baseline visibility of the block in the final PDF/SDUI output.
+   - EVERY block editor (Metadata, Exec Summary, Matrix Results, etc.) MUST start with a primary toggle: `Include this block in the final report` (`base_block_card.dart`). This controls the baseline visibility of the block in the final PDF/SDUI output.
    - **SSOT Mechanism:** The toggle MUST map exclusively to adding/removing the block's `TargetBlockType` string from `OutputProfile.target_block_order: list[str]` (`@[backend_v2/models/v2_core.py#L1375-L1389]`). No separate `include_X: bool` fields are permitted. This ensures a single, universal visibility mechanism for ALL blocks.
 
 2. **Executive Summary Editor:**
    - Incorporates the `custom_preface` (multilingual preamble text).
    - User Role Mappings (specifically: "Architect", "Manager", or defined role strings) are hidden behind an explicit "Edit Role Translations ↗" modal to reduce cognitive overload in the main view.
 
-3. **Matrix Results Editor (Collection Builder & Inline Accordion):**
+3. **Matrix Results Editor (`matrix_graphs_block_card.dart` & `matrix_summary_table_card.dart`):**
    - Replaces monolithic routing with a **Collection Builder** (1-N matrices).
    - **Inline Editing (Accordion):** When editing a matrix, it expands inline rather than navigating to a new page, maintaining list context.
    - **Deterministic Visuals:** The "Auto Default" option is REMOVED. The user must explicitly select one of 5 presets (Summary Table, 1D, 2D, 3D, Text Only).
    - **Context-Adaptive Axes:** The UI reacts to the visual selection. Selecting 3D Bubble displays 3 axis dropdowns (X, Y, Z). Selecting 1D displays only 1.
 
-4. **Synthesis Text Editor (Dual-Mode LLM Configuration):**
+4. **Synthesis Text Editor (`synthesis_text_block_card.dart`):**
    - Exposes the architectural difference between Phase 1 deep analysis and Phase 3 on-the-fly generation.
    - Option A (Pipeline Way): Dropdown to select a `synthesis_block_id` (fetches existing deep analysis from `RenderedSynthesisCache.section_syntheses`).
-   - Option B (On-the-Fly): Text fields for `tone_instruction` and `preamble_text` to generate summaries at render-time, optionally combining with `historical_context_mode`. (Structural `system_prompt` rules MUST remain locked in Python `prompt_compiler.py`).
+   - Option B (On-the-Fly): Text fields for `tone_instruction` and `preamble_text` to configure summaries generated during Phase 2 (Synthesis Engine), optionally combining with `historical_context_mode`. (Structural `system_prompt` rules MUST remain locked in Python `prompt_compiler.py`). Note: All LLM generation MUST execute within Phase 2 (Synthesis Engine) before rendering; Phase 3 SDUI Adapters strictly operate as "Dumb Painters" reading from `profile_cache`.
    - Includes a multilingual `preamble_text` rich text editor.
    - **Adapter Gap (V8):** `SynthesisTextAdapter` (`@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]`) MUST be extended to read `context.profile_cache.section_syntheses` in addition to `context.profile.content_blocks`. Currently it only reads static blocks, which means Pipeline Way (Option A) synthesis output is silently dropped.
 
-6. **AI Extensions Block Editor (FilterChip Pattern):**
+5. **AI Extensions Block Editor (`xai_extensions_block_card.dart`):**
    - Utilizes interactive `FilterChip` pills to quickly enable/disable specific XAI extensions (specifically and exhaustively: Practical Tips, Devil's Advocate, Remedial Actions, Risk Analysis, Source Quotes, Evidence Reasoning).
-   - Includes a `Display Settings` slider to control `max_extension_items` (the maximum limit MUST be fetched programmatically from backend settings.py to respect global config sovereignty).
+   - Includes a `Display Settings` slider to control `max_extension_items` (clamped to `SystemUiConstraints.maxExtensionItemsSliderMax` in `@[client_app_v2/lib/core/models/enums.dart]` and validated server-side by backend Pydantic `Field(ge=1, le=100)`). To prevent Flutter Slider framework assertion crashes on profiles with database values > 20, the Slider MUST clamp its value via `.clamp(SystemUiConstraints.maxExtensionItemsSliderMin.value.toDouble(), SystemUiConstraints.maxExtensionItemsSliderMax.value.toDouble())` for rendering while providing a numerical text input override.
 
-7. **Metadata & Bibliography Block Editors:**
+6. **Metadata & Bibliography Block Editors (`metadata_block_card.dart` & `bibliography_block_card.dart`):**
    - Simple toggle-based cards in the block builder.
    - Metadata contains checkboxes for audit stamps and names.
    - Bibliography contains formatting toggles (grouped_by_matrix, anonymous mode).
 
-8. **Variance & Authenticity Evaluation Blocks:**
+7. **Variance & Authenticity Evaluation Blocks (`simple_toggle_block_card.dart`):**
    - Standalone, straightforward visual blocks available in the Report Structure builder.
    - Require no complex internal configuration beyond the Universal Baseline toggle (`Include this block in the final report`).
    - Maps directly to the static `variance_validation_block` and `authenticity_evaluation_block` rendering pipelines.
@@ -223,19 +239,28 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 ### Phase 3: Backend Execution & Synthesis Alignment
 
 1. **Tripartite Synthesis & SDUI Alignment (V8 Fix):**
-   - **Phase 2 (Synthesis Engine):** Must handle the LLM execution for Tapa B (`system_prompt`) and save the output to `profile_cache`.
-   - **Phase 3 (SDUI Adapter):** Refactor `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]` to read BOTH `context.profile.content_blocks` (static blocks) AND `context.profile_cache.section_syntheses` (dynamic Pipeline synthesis). It MUST strictly act as a "Dumb Painter" (`@[ki_tripartite_pipeline_architecture.md]`): no LLM calls, only reading pre-computed results.
+   - **Phase 2 (Synthesis Engine):** Must handle the LLM execution for both Option A and Option B (`tone_instruction`, `system_prompt`) and save the output to `profile_cache` (`RenderedSynthesisCache.section_syntheses`).
+   - **Phase 3 (SDUI Adapter):** Refactor `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]` to read BOTH `context.profile.content_blocks` (static blocks) AND `context.profile_cache.section_syntheses` (dynamic Pipeline synthesis). It MUST strictly act as a "Dumb Painter" (`@[ki_tripartite_pipeline_architecture.md]`): zero LLM calls, reading only pre-computed results from `AdapterContext`.
    - Ensure `SynthesisConfigDTO` robustly supports dual-mode synthesis.
-2. **Bibliography Alignment:** The `printable_sources_block` visibility is controlled exclusively via `target_block_order` (Universal Baseline Toggle SSOT). No separate `include_bibliography` boolean field is needed. Refactor `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]` to support new grouping settings if needed.
-3. **Metadata Localization Fix (V7):** Refactor `@[backend_v2/services/sdui/adapters/metadata_adapter.py#L59-L80]` to replace ALL hardcoded Finnish strings (`"Käyttäjä:"`, `"Organisaatio:"`, `"Arviointimoottori:"`, `"Ankaruustaso:"`) with locale-resolved labels from `OutputProfile.metric_mappings` I18nText dictionary, strictly adhering to Dual-Axis Localization (`@[ki_dual_axis_localization_architecture.md]`).
-4. **Adapter Pattern Strictness:** All modified adapters MUST strictly follow the 2-section canonical template (AESTHETICS_RULES dictionary + Adapter Class), utilizing fail-fast dictionary access and immutable `AdapterContext` (`@[ki_sdui_adapter_pattern.md]`).
+2. **Bibliography & Universal Block Alignment (SSOT):** The `printable_sources_block` visibility is controlled exclusively via `target_block_order` (Universal Baseline Toggle SSOT). No separate `include_bibliography` boolean field is permitted. Refactor `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]` to support new grouping settings if needed.
+3. **Legacy Redundancy Eradication (`include_diagnostic_scorecard`):** Completely remove `include_diagnostic_scorecard: bool` from `@[backend_v2/models/v2_core.py]`, `@[backend_v2/models/dtos/output_profile.py]`, and `@[client_app_v2/lib/features/studio/models/output_profile.dart]`. The presence of `matrix_summary_table_block` or `matrix_graphs_block` in `target_block_order` is the sole SSOT for scorecard rendering.
+4. **Metadata Localization Fix & Seed Data Contract (V7):**
+   - **SDUI Adapter:** Refactor `@[backend_v2/services/sdui/adapters/metadata_adapter.py#L59-L80]` to replace ALL hardcoded Finnish strings (`"Käyttäjä:"`, `"Organisaatio:"`, `"Arviointimoottori:"`, `"Ankaruustaso:"`) with locale-resolved labels from `context.profile.metric_mappings` I18nText dictionary, strictly adhering to Dual-Axis Localization (`@[ki_dual_axis_localization_architecture.md]`). The adapter MUST enforce Fail-Fast key lookups and raise `AppException(VALIDATION_FAILED)` if a required metric translation key is missing. Zero `.get(k, default)` fallbacks permitted.
+   - **Seed Data SSOT:** Synchronize all `output_profiles` in `@[backend_v2/seed/seed_data.json]` and all test fixtures in `@[backend_v2/tests/unit/services/test_blueprint.py]` and `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]` to explicitly define the complete set of metadata label keys (specifically and exhaustively: `metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`) with bilingual (`en` and `fi`) `I18nText` entries:
+     - `metadata_user`: `{"default_locale": "fi", "translations": {"fi": "Käyttäjä:", "en": "User:"}}`
+     - `metadata_organization`: `{"default_locale": "fi", "translations": {"fi": "Organisaatio:", "en": "Organization:"}}`
+     - `metadata_scoring_engine`: `{"default_locale": "fi", "translations": {"fi": "Arviointimoottori:", "en": "Scoring Engine:"}}`
+     - `metadata_strictness`: `{"default_locale": "fi", "translations": {"fi": "Ankaruustaso:", "en": "Strictness Level:"}}`
+   - **DTO Firewall:** Ensure `OutputProfileResponseDTO` and `OutputProfileUpdateDTO` in `@[backend_v2/models/dtos/output_profile.py]` maintain `metric_mappings` as `Field(exclude=True)` and `@[backend_v2/api/routers/studio/output_profiles.py]` retains `update_data.pop("metric_mappings", None)` to permanently prevent Studio UI CRUD operations from wiping or corrupting system translation maps.
+5. **Adapter Pattern Strictness:** All modified adapters MUST strictly follow the 2-section canonical template (AESTHETICS_RULES dictionary + Adapter Class), utilizing fail-fast dictionary access and immutable `AdapterContext` (`@[ki_sdui_adapter_pattern.md]`).
+6. **XAI Highlights Type Safety (`list[XaiHighlightItem]`):** Refactor `RenderedSynthesisCache.xai_highlights` (`@[backend_v2/models/v2_core.py#L1609]`) from `list[Any]` to `list[XaiHighlightItem]`, enforcing strict Fail-Fast Pydantic V2 parsing across synthesis cache storage. Remove the defensive runtime `model_validate` try-catch loop from `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`. Synchronize all backend test fixtures in `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]` and `@[backend_v2/tests/unit/services/test_blueprint.py]` to instantiate `XaiHighlightItem` objects explicitly.
 
 ### Phase 4: Localization Synchronization & Freezed Validation
 
 > [!IMPORTANT]
 > **Dual-Axis Localization Mandate (`@[ki_dual_axis_localization_architecture.md]`):** All UI text in Epic 144 MUST follow the strict two-axis separation:
 > - **Axis 1 (Structural / Flutter):** Tab titles, button labels, tooltip texts, card headers, and all compile-time-known UI chrome MUST be defined exclusively in `.arb` files (`@[client_app_v2/lib/l10n/app_en.arb]` and `@[client_app_v2/lib/l10n/app_fi.arb]`) and accessed via `AppLocalizations.of(context)!.keyName`. The backend MUST remain completely unaware of these strings.
-> - **Axis 2 (Semantic / Backend):** Dynamic, data-driven labels (profile names, matrix names, extension labels, metric labels) MUST be resolved by the backend via `I18nText.resolve(locale)` and delivered pre-localized to Flutter. Flutter blindly paints the `text` attribute.
+> - **Axis 2 (Semantic / Backend):** Dynamic, data-driven labels (profile names, matrix names, extension labels, metric labels like `metadata_user`, `metadata_organization`) MUST be resolved by the backend via `I18nText.resolve(locale)` from `OutputProfile.metric_mappings` and delivered pre-localized to Flutter inside `inner_sdui_blocks`. Flutter blindly paints the `text` attribute without client-side parsing or dictionary matrices.
 
 1. Update `@[client_app_v2/lib/l10n/app_en.arb]` and `@[client_app_v2/lib/l10n/app_fi.arb]` with comprehensive UI keys for all 3 tabs, all 9 block card titles, preset cards, and helper tooltips. Specifically and exhaustively:
    - Tab labels: `profileTabGeneral`, `profileTabScoring`, `profileTabReportStructure`
@@ -255,18 +280,31 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 ## 4. Definition of Done (DoD) & Verification Plan
 
 ### 4.1 Definition of Done (DoD)
+- [ ] `DisplayScale` Enum parity is mathematically enforced: `DisplayScale(StrEnum)` in Python and `@JsonEnum() DisplayScale` with `@JsonValue('normalized_100')` in Dart.
+- [ ] `SystemUiConstraints` enum is defined in `@[client_app_v2/lib/core/models/enums.dart]` for centralized UI slider bounds (`maxExtensionItemsSliderMin: 1`, `maxExtensionItemsSliderMax: 20`, `maxExtensionItemsDefault: 3`).
+- [ ] `OutputProfileCreateDTO` and `OutputProfileUpdateDTO` strictly validate `max_extension_items` with `Field(ge=1, le=100)`.
+- [ ] Flutter `xai_extensions_block_card.dart` safely clamps slider display values to prevent framework assertion crashes on out-of-bounds database values.
+- [ ] `unknownEnumValue` fallback parameters are completely removed from `OutputLayoutBlock` and `SynthesisConfigDTO` without runtime crashes.
+- [ ] `seed_data.json` and unit test fixtures in `output_profile_test.dart` and `output_profile_controller_test.dart` are synchronized with typed enums and reseeded.
 - [ ] `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` is decomposed into a 3-tab `DefaultTabController` scaffold.
 - [ ] Three dedicated sub-tab widgets exist in `@[client_app_v2/lib/features/studio/views/widgets/profile/]`:
   - `profile_general_tab.dart`
   - `profile_scoring_tab.dart`
   - `profile_layouts_tab.dart`
-- [ ] The `profile_layouts_tab.dart` contains dedicated block editor cards for all 9 layout blocks (Metadata, Exec Summary, Synthesis, Matrix Graphs, XAI Extensions, Penalties, Matrix Summary, Variance, Authenticity).
+- [ ] The `profile_layouts_tab.dart` coordinates dedicated single-responsibility block editor cards under `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/]` (specifically and exhaustively: `base_block_card.dart`, `matrix_graphs_block_card.dart`, `matrix_summary_table_card.dart`, `synthesis_text_block_card.dart`, `xai_extensions_block_card.dart`, `metadata_block_card.dart`, `bibliography_block_card.dart`, `simple_toggle_block_card.dart`) via a Registry Map pattern to strictly enforce the **God Code Prevention mandate** (`@[ki_god_code_prevention.md]`).
 - [ ] `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]` provides visual card selection for `PresetView` with adaptive form fields.
 - [ ] No manual comma-separated `steps` text fields remain in the UI.
 - [ ] All UI strings exist in both English (`app_en.arb`) and Finnish (`app_fi.arb`).
-- [ ] `MetadataAdapter` contains ZERO hardcoded Finnish strings. All labels resolved via `OutputProfile.metric_mappings` I18nText.
+- [ ] `MetadataAdapter` contains ZERO hardcoded Finnish strings. All labels (`metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`) are resolved via `OutputProfile.metric_mappings` `I18nText` with strict Fail-Fast `AppException` error handling.
+- [ ] `seed_data.json` and backend test fixtures in `test_blueprint.py` and `test_metadata_adapter.py` explicitly seed all required `metric_mappings` metadata keys in both English and Finnish.
+- [ ] `OutputProfileResponseDTO` and `OutputProfileUpdateDTO` maintain the DTO firewall (`metric_mappings` excluded) to prevent Studio UI CRUD operations from clobbering system metric mappings.
 - [ ] `SynthesisTextAdapter` reads both `content_blocks` (static) and `section_syntheses` (dynamic Pipeline synthesis).
 - [ ] Block visibility is controlled exclusively via `target_block_order` manipulation (no `include_X: bool` fields).
+- [ ] Redundant legacy field `include_diagnostic_scorecard: bool` is completely removed from Backend models/DTOs and Frontend Freezed models.
+- [ ] `RenderedSynthesisCache.xai_highlights` is strictly typed as `list[XaiHighlightItem]` and defensive try-catch loops in `XaiHighlightsAdapter` are removed.
+- [ ] All dynamic UI block arrays (`OutputProfile.content_blocks`, `ReportDataDTO.inner_sdui_blocks`) are strictly typed as `List<SduiBlockDTO>` (Dart) and `list[AnySduiBlock]` (Python) with zero occurrences of `List<dynamic>` or `list[dict[str, Any]]`.
+- [ ] `SduiBlockDTO` enforces `@Freezed(unionKey: 'block_type')` without `fallbackUnion` and with `@JsonSerializable(disallowUnrecognizedKeys: true)`.
+- [ ] Violation V3 (`AsyncValue<List<dynamic>>`) is completely eradicated in `output_profile_crud_view.dart` in favor of typed `AsyncValue<List<PromptBlock>>`, `AsyncValue<List<Workflow>>`, and `AsyncValue<List<NodeStrategy>>`.
 - [ ] All `.arb` keys for block titles, tab labels, and preset views are registered in both `app_en.arb` and `app_fi.arb`.
 - [ ] All automated tests pass without warnings or deprecations.
 
@@ -303,11 +341,11 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 
 | Rule ID | Binding Constraint for Epic 144 |
 |:--------|:-------------------------------|
-| `anti_god_file_dumping` | The 3 new tab files (`profile_general_tab.dart`, `profile_scoring_tab.dart`, `profile_layouts_tab.dart`) MUST each be dedicated single-responsibility widgets. No generic `utils.dart` or `helpers.dart` for shared logic — extract into named domain files. |
-| `private_helper_bloat_ban` | Extracted helper functions MUST NOT be placed as private methods in the parent `output_profile_crud_view.dart`. They MUST be physically separated into new widget files under `widgets/profile/`. |
+| `anti_god_file_dumping` | The 3 new tab files (`profile_general_tab.dart`, `profile_scoring_tab.dart`, `profile_layouts_tab.dart`) and all 8 block cards (`widgets/profile/blocks/`) MUST each be dedicated single-responsibility widgets. No generic `utils.dart` or `helpers.dart` for shared logic — extract into named domain files. |
+| `private_helper_bloat_ban` | Extracted helper functions MUST NOT be placed as private methods in the parent `output_profile_crud_view.dart` or `profile_layouts_tab.dart`. They MUST be physically separated into new widget files under `widgets/profile/` and `widgets/profile/blocks/`. |
 | `strategy_pattern_mandate` | The block editor routing in Tab 3 (selecting which block card to render) MUST use a Registry/Map pattern (`Map<TargetBlockType, Widget Function()>`), NOT an `if/elif/else` chain. |
 | `remedial_refactoring_coverage` | Before decomposing `output_profile_crud_view.dart`, existing widget test coverage MUST be verified. If below 80%, a Golden Master snapshot test MUST be written first. |
-| File limit: **200 lines** per file as hard architectural smell. New tab widgets exceeding this limit MUST be further decomposed. |
+| File limit: **200 lines** per file as hard architectural smell. New tab and block card widgets exceeding this limit MUST be further decomposed. |
 
 ---
 
@@ -342,14 +380,17 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 
 ### 5.4 Dual-Axis Localization Architecture (`@[ki_dual_axis_localization_architecture.md]`)
 
-**Why it applies:** Phase 4 localizes all UI strings. Phase 3 fixes hardcoded Finnish labels in `MetadataAdapter` (V7).
+**Why it applies:** Phase 4 localizes all UI strings. Phase 3 fixes hardcoded Finnish labels in `MetadataAdapter` (V7) and enforces DTO firewall integrity against CRUD clobbering.
 
 | Rule ID | Binding Constraint for Epic 144 |
 |:--------|:-------------------------------|
-| `structural_localization_axis` | **Axis 1 (Flutter):** Tab titles, button labels, card headers, toggle labels, and all compile-time-known UI chrome MUST use Flutter `.arb` files (`AppLocalizations.of(context)!.keyName`). Backend MUST NOT generate these. |
-| `semantic_localization_axis` | **Axis 2 (Backend):** Dynamic labels (profile names, matrix axis names, extension labels, metric labels like "Käyttäjä:", "Organisaatio:") MUST be resolved by backend via `I18nText.resolve(locale)` from `OutputProfile.metric_mappings`. Flutter blindly paints the delivered `text`. |
-| `strict_enum_l10n_adapter` | Backend Enums mapped to UI (specifically: `PresetView`, `XaiExtensionType`, `DisplayScale`, `ScoringStrategy`) MUST use explicit `@property def l10n_key(self) -> str:` mapping inside the Python Enum class. NO magic string manipulation (`.lower()`, `.split('_')`). |
+| `structural_localization_axis` | **Axis 1 (Flutter / Compile-Time):** Tab titles, button labels, card headers, toggle labels, helper tooltips, and all compile-time-known UI chrome MUST use Flutter `.arb` files (`AppLocalizations.of(context)!.keyName`). The backend MUST NOT generate or handle UI chrome text. |
+| `semantic_localization_axis` | **Axis 2 (Backend / Runtime Data):** Dynamic domain labels (profile names, matrix axis names, extension labels, and metadata prefixes `metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`) MUST be resolved by backend via `I18nText.resolve(locale)` from `OutputProfile.metric_mappings`. Flutter blindly paints the delivered `text` without client-side parsing. |
+| `strict_enum_l10n_adapter` | Backend Enums mapped to UI (specifically and exhaustively: `PresetView`, `XaiExtensionType`, `DisplayScale`, `ScoringStrategy`) MUST use explicit `@property def l10n_key(self) -> str:` mapping inside the Python Enum class. NO magic string manipulation (`.lower()`, `.split('_')`) or raw ID fallbacks. |
 | `dynamic_translation_fail_fast` | If a dynamic I18n translation is missing for the active locale, the resolution chain is: (1) active locale → (2) `en` fallback → (3) `throw AppException.validation('Fail-Fast: Missing required translation.')`. NEVER fallback to `fi` or raw IDs. |
+| `metric_mappings_dto_firewall` | `OutputProfileResponseDTO` and `OutputProfileUpdateDTO` MUST exclude `metric_mappings` (`Field(exclude=True)`), and `output_profiles.py` router MUST maintain `update_data.pop("metric_mappings", None)`. Studio UI CRUD MUST NEVER overwrite or strip system metric mappings in the database. |
+| `seed_metadata_contract` | All profiles in `seed_data.json` and backend test fixtures MUST explicitly define bilingual (`en` and `fi`) `I18nText` entries for `metadata_user`, `metadata_organization`, `metadata_scoring_engine`, and `metadata_strictness` under `metric_mappings`. |
+| `pdf_sdui_localization_parity` | Both the Flutter in-app report viewer and the Jinja2 HTML-PDF export renderer MUST consume the identical pre-localized `inner_sdui_blocks` array from `BlueprintTransformer` to guarantee zero visual or linguistic drift across export targets. |
 
 ---
 
@@ -357,11 +398,13 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 
 **Why it applies:** All block editor changes produce `AnySduiBlock` output. The Python↔Flutter boundary MUST remain type-safe.
 
-| Binding Constraint |
-|:-------------------|
-| All dynamic UI block arrays MUST be typed as `AnySduiBlock` (Python discriminated union) and `SduiBlockDTO` (Flutter Freezed sealed class). `List<dynamic>` or `list[dict[str, Any]]` is BANNED. |
-| Every block MUST have a `block_type` discriminator. Unrecognized `block_type` on the Flutter side MUST crash via `CheckedFromJsonException` (Fail-Fast), NOT silently drop. |
-| V3 violation (Section 2.4) directly enforces this: `AsyncValue<List<dynamic>>` → typed `AsyncValue<List<PromptBlock>>`. |
+| Rule ID | Binding Constraint for Epic 144 |
+|:--------|:-------------------------------|
+| `strict_sdui_polymorphic_serialization` | All dynamic UI block arrays (`content_blocks`, `inner_sdui_blocks`, `section_syntheses`) MUST be strictly typed using `AnySduiBlock` (Python Pydantic discriminated union with `ConfigDict(strict=True, extra="forbid")`) and `SduiBlockDTO` (Flutter Freezed Dart 3 sealed class with `@Freezed(unionKey: 'block_type')` and `@JsonSerializable(disallowUnrecognizedKeys: true)`). `List<dynamic>` or `list[dict[str, Any]]` is strictly BANNED across all state envelopes, DTOs, and widget parameters. |
+| `discriminator_fail_fast_mandate` | Every SDUI block MUST possess an explicit `block_type` discriminator. On the Flutter side, `SduiBlockDTO` MUST NOT define `fallbackUnion`. An unrecognized `block_type` or invalid schema payload MUST crash immediately via `CheckedFromJsonException` (Fail-Fast), propagating to `AppErrorBoundary` rather than silently dropping or rendering broken blank widgets. |
+| `exhaustive_renderer_matching` | Flutter UI rendering in `sdui_node_renderer.dart` and `sdui_blocks_renderer.dart` MUST use Dart 3 native `switch (block)` expressions to guarantee exhaustive compile-time pattern matching across all sealed `SduiBlockDTO` variants. Freezed `.when()`, `.map()`, or manual `if-else` chains with default fallbacks are strictly prohibited. |
+| `atomic_cross_domain_phase_mandate` | Whenever a new SDUI block variant is introduced, the Flutter Freezed model (`SduiBlockDTO`) and code generation (`flutter_audit_loop.py ... --build`) MUST be executed and verified before or atomically with backend emitters to prevent runtime `CheckedFromJsonException` crashes on deployed clients. |
+| `untyped_state_eradication_v3` | Violation V3 (Section 2.4) MUST be eradicated during Phase 1: convert all untyped `AsyncValue<List<dynamic>>` parameters in `output_profile_crud_view.dart` into strongly typed sealed classes (`AsyncValue<List<PromptBlock>>`, `AsyncValue<List<Workflow>>`, `AsyncValue<List<NodeStrategy>>`). |
 
 ---
 
@@ -393,13 +436,14 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 
 ### 5.8 Global Config Sovereignty (`@[ki_global_config_sovereignty.md]`)
 
-**Why it applies:** The AI Extensions block editor exposes `max_extension_items`. This limit MUST be fetched from backend `settings.py`, not hardcoded.
+**Why it applies:** The AI Extensions block editor exposes `max_extension_items`. Client UI bounds MUST be centralized in `enums.dart` per `frontend_enum_parity_mandate`, while backend Pydantic models enforce mathematical bounds (`ge=1, le=100`). Flutter MUST NEVER attempt to directly read backend `settings.py`.
 
 | Rule ID | Binding Constraint for Epic 144 |
 |:--------|:-------------------------------|
-| `global_config_sovereignty_mandate` | All numeric thresholds (`max_extension_items` slider max bound, UI timeout durations) MUST be defined in `backend_v2/settings.py` via Pydantic Settings. NO magic numbers in Flutter or Python business logic. |
-| `tripartite_configuration_segregation` | Enums in `enums.py` (finite constants), limits in `settings.py` (configurable), DTOs combine them at runtime. |
-| `frontend_enum_parity_mandate` | Any systemic Flutter constraints (like concurrency limits or max slider values) MUST be centralized in `client_app_v2/lib/core/models/enums.dart`. |
+| `frontend_enum_parity_mandate` | All systemic or global Flutter UI constraints (such as `SystemUiConstraints.maxExtensionItemsSliderMax` and timeout durations) MUST be centralized in `@[client_app_v2/lib/core/models/enums.dart]`. NO raw magic numbers in widget trees. |
+| `global_config_sovereignty_mandate` | All backend thresholds, batch sizes, and timeout limits MUST be defined centrally in `@[backend_v2/settings.py]` via Pydantic Settings and imported via top-level module imports. Backend Pydantic schema validation (`ge=1, le=100`) across domain models and DTOs serves as the definitive boundary guard for incoming API requests. |
+| `tripartite_configuration_segregation` | Enums in `enums.py` / `enums.dart` (finite constants), limits in `settings.py` (configurable backend), DTOs combine them at runtime across the network boundary. |
+| `slider_assertion_guard` | The Flutter slider UI for `maxExtensionItems` MUST clamp display values to `[SystemUiConstraints.maxExtensionItemsSliderMin, SystemUiConstraints.maxExtensionItemsSliderMax]` to prevent fatal assertion crashes on valid high-threshold backend profiles. |
 
 ---
 
@@ -413,4 +457,26 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 | Modified Python adapters (`MetadataAdapter`, `SynthesisTextAdapter`) MUST have unit tests with mock `AdapterContext`. |
 | All enum parity (Python↔Dart) MUST be verified via `test_enum_parity.py` if new enums are added (`DisplayScale`). |
 | Static test fixtures (`report_data_dto_fixture.json`, Flutter `mock_data` JSONs) MUST be updated if DTO schemas change. |
+
+---
+
+<required_knowledge_items>
+- @[ki_god_code_prevention.md]
+- @[ki_sdui_adapter_pattern.md]
+- @[ki_tripartite_pipeline_architecture.md]
+- @[ki_dual_axis_localization_architecture.md]
+- @[ki_strict_sdui_serialization.md]
+- @[ki_flat_polymorphic_pipeline.md]
+- @[ki_sdui_matrix_synthesis.md]
+- @[ki_global_config_sovereignty.md]
+- @[ki_ai_testing_standards.md]
+- @[ki_python_314_concurrency_strictness.md]
+- @[ki_epic_lifecycle_workflow.md]
+- @[.agents/rules/00-antigravity-core.md]
+- @[.agents/rules/01-python-backend.md]
+- @[.agents/rules/02_flutter_desktop.md]
+- @[.agents/rules/03_seed_vault.md]
+- @[.agents/rules/04_directory_reference.md]
+- @[.agents/rules/05_llm_architecture.md]
+</required_knowledge_items>
 
