@@ -244,7 +244,3 @@
 
 ## Resume Command
 `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
-
-
-
-
