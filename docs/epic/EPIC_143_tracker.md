@@ -223,15 +223,19 @@
   - `ranked_round_robin_select` ensures all active categories get interleaved representation, and the inner check `len(accordion.children) < max_lines` strictly caps each accordion to `profile.max_extension_items`.
 - **Automated Test Discovery Protocol (`backend_v2/services/orchestrator/synthesis_payload_compressor.py`)**:
   - `backend_audit_loop.py` path-based test discovery maps source files in `backend_v2/services/orchestrator/` to `backend_v2/tests/unit/services/orchestrator/test_<module_name>.py`. Ensuring co-located test wrappers or symlinks guarantees deterministic 100% test discovery.
-- **Live E2E Investigation & RCA (`test_real_llm_pdf_execution`, Execution `exe_ad7096ec457d44e2b1eb687b706d5905`)**:
+- **Live E2E Investigation & RCA 1 (`test_real_llm_pdf_execution`, Execution `exe_ad7096ec457d44e2b1eb687b706d5905`)**:
   - **Crash Site**: `backend_v2/worker.py:776` -> `backend_v2/services/orchestrator/synthesis_distiller.py:297` calling `SynthesisPayloadCompressor.compress_synthesis_payload(step_dto_obj.payload)`.
-  - **Root Cause (5 Whys)**: `StateProjector` folds the complete execution trace into `StepOutputDTO`s. When an upstream step produces a text/markdown block output (e.g. `sr_9e8d7c6b5a40312b` emitting `{"id": null, "block_type": "markdown", "text": "## Executive Summary..."}`), `step_dto_obj.payload` contains string/scalar text. `synthesis_distiller_hook` looped over `available_dtos` and passed all payloads directly to `compress_synthesis_payload`, which strictly raises `AppException(VALIDATION_FAILED, "Payload must be a dict or list for compression.")` on non-dict/non-list types.
-  - **Proof of Failure**: Unit regression test `test_synthesis_distiller_wiring_string_payload_fails_fast` in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]` reproduces the exact failure with 100% coverage.
-  - **Architectural Solution**: Support polymorphic payloads in `synthesis_distiller.py`: if `isinstance(step_dto_obj.payload, str)`, use the string payload directly (or string-format scalar) inside the `<source>` tag without routing through `SynthesisPayloadCompressor`, while routing structured dictionaries/lists through `SynthesisPayloadCompressor.compress_synthesis_payload`.
+  - **Root Cause**: `StateProjector` folds the complete execution trace into `StepOutputDTO`s. When an upstream step produces a text/markdown block output, `step_dto_obj.payload` contains string/scalar text.
+  - **Fix**: Implemented polymorphic string/scalar payload handling in `SynthesisPayloadCompressor` and filtered internal metadata (`_`) and empty payloads in `synthesis_distiller.py`.
+- **Live E2E Investigation & RCA 2 (LiteLLM LoggingWorker Redis Timeout Spam in `backend_debug.log#L703-856`)**:
+  - **Symptom Site**: `backend_debug.log` lines 703-856 showing `LiteLLM | LoggingWorker error: TimeoutError` inside `deployment_callback_on_success` -> `redis_cache.async_increment_pipeline`.
+  - **Root Cause (5 Whys)**: LiteLLM `Router` in `backend_v2/llm/provider.py` was passed `redis_host` and `redis_port`, spawning LiteLLM's internal unmanaged `LoggingWorker` task queue for proxy metrics. Under parallel TaskGroup atom evaluation, Redis async socket reads timed out. Quorum does not need LiteLLM's internal Redis cache because rate limits and semaphores are natively managed by Quorum.
+  - **Plan**: Generated `@[bug_fix_plan.md]` and `@[task.md]` to remove redundant Redis cache arguments from LiteLLM's `Router` constructor.
 
 ## Remaining
-- **Live E2E Verification & Fix**:
-  - [x] **[OK] Polymorphic Payload Handling in Synthesis Distillation**: Implemented string payload branch in `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]` and updated tests in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]` & `@[backend_v2/tests/unit/test_synthesis_payload_compression.py]`.
+- **Live E2E Verification & Fixes**:
+  - [x] **[OK] Polymorphic Payload & Metadata Filtering in Synthesis Distillation**: Implemented in `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]` and `@[backend_v2/services/orchestrator/synthesis_distiller.py]`.
+  - [ ] **[NOK] LiteLLM Router Redis Timeout Clean-Up**: Execute `@[bug_fix_plan.md]` via `/tier2-execute`.
   - [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
 - **Post-Implementation & Final Audits**:
   - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
@@ -243,5 +247,6 @@
   - [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`.
 
 ## Resume Command
-`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+`/tier5-resume --workflow=/tier2-execute --target="@[C:\Users\risto\.gemini\antigravity-ide\brain\aff0fd7f-4f4e-4c86-99d0-6449115ab352\task.md], @[C:\Users\risto\.gemini\antigravity-ide\brain\aff0fd7f-4f4e-4c86-99d0-6449115ab352\bug_fix_plan.md]" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md, .agents/rules/05_llm_architecture.md"`
+
 
