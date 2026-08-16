@@ -253,6 +253,7 @@
   - [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`.
 
 ## Resume Command
-`/tier5-resume --workflow=/tier2-execute --target="@[C:\Users\risto\.gemini\antigravity-ide\brain\aff0fd7f-4f4e-4c86-99d0-6449115ab352\task.md], @[C:\Users\risto\.gemini\antigravity-ide\brain\aff0fd7f-4f4e-4c86-99d0-6449115ab352\bug_fix_plan.md]" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md, .agents/rules/05_llm_architecture.md"`
+`/tier5-resume --workflow=/tier2-execute --target="@[C:\Users\risto\.gemini\antigravity-ide\brain\aff0fd7f-4f4e-4c86-99d0-6449115ab352\task.md], @[C:\Users\risto\.gemini\antigravity-ide\brain\aff0fd7f-4f4e-4c86-99d0-6449115ab352\bug_fix_plan.md], @[docs/epic/EPIC_143_tracker.md]" --rules=".agents/rules/00-antigravity-core.md, .agents/rules/01-python-backend.md, .agents/rules/05_llm_architecture.md"`
+
 
 
