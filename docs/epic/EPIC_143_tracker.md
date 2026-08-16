@@ -160,13 +160,13 @@
   - Re-exported wiring tests in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller.py]` and passed the Universal Quality Gate with 64% coverage (> 30% gate requirement).
   - Completed Tier 8 Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/02_phase2_plan.md] @[docs/epic/EPIC_143_tracker.md]`) with PASSED verdict documented in `@[docs/epic/tasks_EPIC_143/red_team_audit_02_phase2_plan.md]`.
 - **[Phase 3 Red-Teaming, Execution & Tests Complete]**:
-  - `MatrixExplanationService.assemble_matrices_to_explain` hardened with Status-Aware Dual Reporting (`SUPPORTING EVIDENCE:` and `UNMET CRITERIA / DEFICITS:`), Ranked Round-Robin quote selection, ascending scale score severity-first unmet criteria curation, and mandatory `target_locale: str` without fallback defaults.
-  - Eliminated legacy anti-patterns (`isinstance`, `hasattr`, `getattr`, `.get()`, raw `+` concatenation, unhandled validation errors) and added probe boundaries with `INVALID_OUTPUT_SCHEMA` warning logs.
+  - `MatrixExplanationService.assemble_matrices_to_explain` hardened with Status-Aware Dual Reporting (`SUPPORTING EVIDENCE:` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS:` for `FAILED` atoms), Ranked Round-Robin quote selection via `ranked_round_robin_select`, ascending scale score severity-first unmet criteria curation, and mandatory `target_locale: str` without fallback defaults.
+  - Eliminated 12 legacy anti-patterns (`isinstance`, `hasattr`, `getattr`, `.get()`, raw `+` concatenation, unhandled validation errors) and added probe boundaries with `INVALID_OUTPUT_SCHEMA` warning logs.
   - `MatrixExplanationContextList = TypeAdapter(list[MatrixExplanationContextDTO])` defined in `@[backend_v2/models/dtos/synthesis.py]`.
-  - Double-Serialization in `@[backend_v2/worker.py]` eliminated using direct `MatrixExplanationContextList.dump_json(...)`.
+  - Double-Serialization in `@[backend_v2/worker.py]` eliminated using direct `MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')` across both synthesis prompt assembly call-sites.
   - Quote length in `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]` centralized to `settings.max_synthesis_quote_length`.
-  - Updated `@[ki_synthesis_payload_compression.md]` with SSOT settings and TypeAdapter direct dump.
-  - Implemented 11 unit tests in `@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]` and updated contract test in `@[backend_v2/tests/unit/test_epic93_contract_verification.py]`.
+  - Updated `@[ki_synthesis_payload_compression.md]` with SSOT settings, TypeAdapter direct dump, and round-robin curation.
+  - Implemented 11 concrete unit tests in `@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]` and updated contract test in `@[backend_v2/tests/unit/test_epic93_contract_verification.py]`.
   - Universal Quality Gate passed with 93% line coverage on `MatrixExplanationService` and 79% overall on `backend_v2/services/orchestrator/`.
 
 ## Learned
@@ -184,6 +184,7 @@
   - Severity-first ascending scale order sorting for unmet criteria eliminates Priority Inversion.
   - `TypeAdapter(list[MatrixExplanationContextDTO])` direct dump in `worker.py` eliminates double-serialization overhead and intermediate Python dict allocations.
   - Mandatory `target_locale: str` across all production and test call-sites without fallback defaults.
+  - Probe validation boundary handles untrusted/corrupt `level_breakdown` entries individually via `LevelStatsDTO.model_validate` without discarding valid matrix scores or evaluations.
 
 ## Remaining
 - **Phase 3 Audit**: Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`.
