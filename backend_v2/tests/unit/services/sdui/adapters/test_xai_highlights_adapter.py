@@ -311,7 +311,5 @@ def test_build_malformed_highlight_item_skipped(
     assert blocks[0].children[0].text == "Valid coaching insight."
 
     assert any(
-        "INVALID_OUTPUT_SCHEMA: Malformed XAI highlight item skipped" in record.message
-        for record in caplog.records
+        "INVALID_OUTPUT_SCHEMA: Malformed XAI highlight item skipped" in record.message for record in caplog.records
     )
-

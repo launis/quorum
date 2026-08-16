@@ -75,7 +75,7 @@
   - [x] Step 1: XAI Highlights SDUI Adapter Hardening & Round-Robin Fair Distribution
   - [x] Step 2: XAI Highlights SDUI Adapter Unit Tests
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
 - [ ] Backend and Frontend full-stack integration test gates.
@@ -83,8 +83,8 @@
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend @[backend_v2/settings.py] @[backend_v2/utils/ranked_round_robin.py] @[backend_v2/tests/unit/utils/test_ranked_round_robin.py] @[backend_v2/services/orchestrator/synthesis_distiller.py] @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py] @[backend_v2/models/dtos/synthesis.py] @[backend_v2/worker.py] @[backend_v2/services/orchestrator/matrix_explanation_service.py] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] @[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py] @[backend_v2/tests/unit/test_epic93_contract_verification.py] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created/modified `@-referenced` Flutter files. (N/A - no Flutter files created/modified).
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend @[backend_v2/settings.py] @[backend_v2/utils/ranked_round_robin.py] @[backend_v2/tests/unit/utils/test_ranked_round_robin.py] @[backend_v2/services/orchestrator/synthesis_distiller.py] @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py] @[backend_v2/models/dtos/synthesis.py] @[backend_v2/worker.py] @[backend_v2/services/orchestrator/matrix_explanation_service.py] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] @[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py] @[backend_v2/tests/unit/test_epic93_contract_verification.py] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created/modified `@-referenced` Flutter files. (N/A - no Flutter files created/modified).
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 - [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
@@ -170,13 +170,15 @@
   - Fixed trace event structure in `@[backend_v2/tests/unit/test_worker_synthesis.py]` to align with `StateProjector` block dictionary schema.
   - Completed Tier 8 Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`) with PASSED verdict documented in `@[docs/epic/tasks_EPIC_143/red_team_audit_03_phase3_plan.md]`.
   - Universal Quality Gate passed with 93% line coverage on `MatrixExplanationService`, 79% on `backend_v2/services/orchestrator/`, 100% on `backend_v2/models/dtos/synthesis.py`, and full codebase completion gate (1359 passed, 83.71% coverage).
-- **[Phase 4 Execution & Verification Complete]**:
+- **[Phase 4 Execution, Verification & Tier 8 Audit Complete]**:
   - `XaiHighlightsAdapter.build` hardened in `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]` by eliminating duck-typing (`isinstance(item, dict)`, `.get()`, `getattr()`) in favor of strict `XaiHighlightItem.model_validate(raw_item, strict=False)` with structured RFC 7807 warning logging (`ErrorCodes.INVALID_OUTPUT_SCHEMA`).
-  - Integrated `ranked_round_robin_select` to fairly interleave highlights across active extension types ranked by content length/informativeness, eliminating Primacy Bias and Category Starvation.
-  - Implemented graceful UI degradation returning `[]` when `visible_block_extensions` is empty or `max_extension_items` is zero.
-  - Preserved SDUI presentation schema invariance (keeping `SduiMatrixTableBlock` and Flutter Freezed DTOs 100% structurally compatible without client-side modifications).
+  - Integrated `ranked_round_robin_select` to fairly interleave highlights across active extension types ranked by content length/informativeness (`reverse_rank=True`), eliminating Primacy Bias and Category Starvation.
+  - Implemented graceful UI degradation returning `[]` when `visible_block_extensions` is empty/None or `max_extension_items` is zero/None.
+  - Preserved SDUI presentation schema invariance (keeping `AccordionBlock` and `AlertBlock` component tree and Flutter Freezed DTOs 100% structurally compatible without client-side modifications).
   - Implemented and passed all 8 unit tests in `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]` covering graceful degradation (disabled extensions, zero max items), ranked round-robin multi-category distribution, and malformed highlight item skipping.
-  - Verified backend audit loop on `backend_v2/services/sdui/adapters/` (46 passed, 73% coverage, strict typing and ruff format passed), golden master SDUI test (`test_golden_master_sdui.py`), and semantic parity test (`test_sdui_semantic_parity.py`).
+  - Localized audit loop on `backend_v2/services/sdui/adapters/` passed (46 passed, 73% coverage, strict typing and ruff format passed), golden master SDUI test (`test_golden_master_sdui.py`), and semantic parity test (`test_sdui_semantic_parity.py`).
+  - Completed Tier 8 Plan Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`) with PASSED verdict documented in `@[docs/epic/tasks_EPIC_143/red_team_audit_04_phase4_plan.md]`.
+  - Global backend completion quality gate passed: **1363 passed, 0 failures, 83.74% total codebase coverage** (> 30% gate requirement).
 
 ## Learned
 ### Baseline State Snapshot & Execution Lessons
@@ -198,20 +200,63 @@
   - `StateProjector` expects trace event output contents to be dictionary-keyed by `block_id` (e.g., `{"blk_...": payload}`). Flat unkeyed dictionaries will cause `StepOutputDTO.payload` to receive raw strings or inner attributes, violating the `SynthesisPayloadCompressor` dictionary precondition.
 - **XAI Highlights SDUI Adapter Architecture (`backend_v2/services/sdui/adapters/xai_highlights_adapter.py`)**:
   - Co-located `XAI_AESTHETICS_RULES` dictionary remains the Single Source of Truth for visual properties (severity, icon name), accessed via strict Fail-Fast lookups `XAI_AESTHETICS_RULES[ext_type_str]`.
-  - Validating raw highlight dictionaries into `XaiHighlightItem` via `XaiHighlightItem.model_validate(raw_item, strict=False)` inside a `try...except (ValidationError, ValueError)` probe boundary eliminates all duck-typing while safely skipping malformed LLM outputs with structured RFC 7807 logs.
+  - Validating raw highlight dictionaries into `XaiHighlightItem` via `XaiHighlightItem.model_validate(raw_item, strict=False)` inside a `try...except (ValidationError, ValueError)` probe boundary eliminates all duck-typing while safely skipping malformed LLM outputs with structured RFC 7807 logs (`ErrorCodes.INVALID_OUTPUT_SCHEMA`).
+  - `ranked_round_robin_select` ensures all active categories get interleaved representation, and the inner check `len(accordion.children) < max_lines` strictly caps each accordion to `profile.max_extension_items`.
+
+- **[Tier 2 Backend Hardening Complete]**:
+  - Validated and audited all 8 target domain modules and 4 associated unit test suites against Phase 9, PEP 257, and Quorum V2 constraints:
+    1. `@[backend_v2/settings.py]` (78% coverage, 3 passed)
+    2. `@[backend_v2/utils/ranked_round_robin.py]` (100% coverage, 13 passed)
+    3. `@[backend_v2/tests/unit/utils/test_ranked_round_robin.py]`
+    4. `@[backend_v2/services/orchestrator/synthesis_distiller.py]` (64% coverage, 17 passed)
+    5. `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]`
+    6. `@[backend_v2/models/dtos/synthesis.py]` (100% coverage, 3 passed)
+    7. `@[backend_v2/worker.py]` (56% coverage, 11 passed)
+    8. `@[backend_v2/services/orchestrator/matrix_explanation_service.py]` (92% coverage, 11 passed)
+    9. `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]` (95% coverage, 7 passed)
+    10. `@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]`
+    11. `@[backend_v2/tests/unit/test_epic93_contract_verification.py]`
+    12. `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]` (87% coverage, 8 passed)
+    13. `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`
+  - Verified Neuro-Symbolic Audit Matrix via `scripts/audit_matrix_manager.py verify --file tmp/audit_matrix.json` (all 150 rules passed).
+  - Executed Global Backend Completion Gate (`scripts/backend_audit_loop.py backend_v2 --test`): **1370 passed, 0 failures, 83.74% total codebase coverage**.
+  - Updated Post-Implementation Gates in `@[docs/epic/EPIC_143_tracker.md]`.
+
+## Learned
+### Baseline State Snapshot & Execution Lessons
+- **Ranked Round-Robin Utility (`backend_v2/utils/ranked_round_robin.py`)**:
+  - Generic SSOT utility for interleaved selection with $O(1)$ tail pop extraction and strict dictionary key deletion `del groups[k]`.
+- **Synthesis Distiller Hook (`backend_v2/services/orchestrator/synthesis_distiller.py`)**:
+  - Confirmed `target_blocks` pruning loop is completely deleted, allowing full cognitive findings to flow into `<source>` tags and matrix explanation.
+  - `target_locale` is strictly validated at hook entry with Fail-Fast (`AppException(VALIDATION_FAILED)`) on missing or whitespace values.
+  - `HookResult.state_delta` exports strictly `"target_locale"`, eliminating legacy `"language"` duplication.
+  - Passes all 29 unit tests in `test_synthesis_distiller_wiring.py` and `test_synthesis_distiller.py` with 64% coverage.
+- **Matrix Explanation Service Hardening (`backend_v2/services/orchestrator/matrix_explanation_service.py`)**:
+  - Status-Aware Dual Reporting (`SUPPORTING EVIDENCE:` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS:` for `FAILED` atoms) cleanly eliminates Positivity Bias.
+  - Pre-deduplication with `seen_matrix_quotes: set[str]` before `ranked_round_robin_select` prevents post-selection quota collapse.
+  - Severity-first ascending scale order sorting for unmet criteria eliminates Priority Inversion.
+  - `TypeAdapter(list[MatrixExplanationContextDTO])` direct dump in `worker.py` eliminates double-serialization overhead and intermediate Python dict allocations.
+  - Mandatory `target_locale: str` across all production and test call-sites without fallback defaults.
+  - Probe validation boundary handles untrusted/corrupt `level_breakdown` entries individually via `LevelStatsDTO.model_validate` without discarding valid matrix scores or evaluations.
+- **Worker Synthesis Trace Integration (`backend_v2/tests/unit/test_worker_synthesis.py`)**:
+  - `StateProjector` expects trace event output contents to be dictionary-keyed by `block_id` (e.g., `{"blk_...": payload}`). Flat unkeyed dictionaries will cause `StepOutputDTO.payload` to receive raw strings or inner attributes, violating the `SynthesisPayloadCompressor` dictionary precondition.
+- **XAI Highlights SDUI Adapter Architecture (`backend_v2/services/sdui/adapters/xai_highlights_adapter.py`)**:
+  - Co-located `XAI_AESTHETICS_RULES` dictionary remains the Single Source of Truth for visual properties (severity, icon name), accessed via strict Fail-Fast lookups `XAI_AESTHETICS_RULES[ext_type_str]`.
+  - Validating raw highlight dictionaries into `XaiHighlightItem` via `XaiHighlightItem.model_validate(raw_item, strict=False)` inside a `try...except (ValidationError, ValueError)` probe boundary eliminates all duck-typing while safely skipping malformed LLM outputs with structured RFC 7807 logs (`ErrorCodes.INVALID_OUTPUT_SCHEMA`).
   - `ranked_round_robin_select` ensures all active categories get interleaved representation, and the inner check `len(accordion.children) < max_lines` strictly caps each accordion to `profile.max_extension_items`.
 
 ## Remaining
-- **Phase 4 Audit**: Execute `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`.
 - **Post-Implementation & Final Audits**:
-  - Tier 2 Hardening (Backend) across all 12 touched files.
-  - Golden Master & Test Restoration Audit.
-  - Proxy Sunset & Pre-Delete Audit.
-  - Final E2E REST API Verification Gate (`RUN_LIVE_E2E=true`).
-  - As-Built Architectural Sync (`/tier7-describe-architecture`).
-  - System 2 Reverse Epic Analysis (`/tier8-audit-epic @[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`).
+  - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+  - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+  - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+  - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+  - [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
+  - [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+  - [ ] **[NOK]** Final Epic Boundary Audit: Run `uv run python scripts/audit_markdown_boundaries.py --file @[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`.
+  - [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 
