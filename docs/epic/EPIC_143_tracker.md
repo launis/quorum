@@ -223,24 +223,28 @@
   - `ranked_round_robin_select` ensures all active categories get interleaved representation, and the inner check `len(accordion.children) < max_lines` strictly caps each accordion to `profile.max_extension_items`.
 - **Automated Test Discovery Protocol (`backend_v2/services/orchestrator/synthesis_payload_compressor.py`)**:
   - `backend_audit_loop.py` path-based test discovery maps source files in `backend_v2/services/orchestrator/` to `backend_v2/tests/unit/services/orchestrator/test_<module_name>.py`. Ensuring co-located test wrappers or symlinks guarantees deterministic 100% test discovery.
-- **Heterogeneous Step Outputs & Synthesis Distiller (`backend_v2/services/orchestrator/synthesis_distiller.py`)**:
-  - In real E2E executions (e.g. `test_real_llm_pdf_execution`), execution traces carry heterogeneous step output payloads including markdown/text strings (e.g. `sr_9e8d7c6b5a40312b`). `SynthesisPayloadCompressor.compress_synthesis_payload` strictly requires `dict | list | BaseModel` and raises `AppException: Payload must be a dict or list for compression` when given raw string scalars. Handling/formatting string payloads appropriately in the distillation pipeline is required for polymorphic payload safety.
+- **Live E2E Investigation & RCA (`test_real_llm_pdf_execution`, Execution `exe_ad7096ec457d44e2b1eb687b706d5905`)**:
+  - **Crash Site**: `backend_v2/worker.py:776` -> `backend_v2/services/orchestrator/synthesis_distiller.py:297` calling `SynthesisPayloadCompressor.compress_synthesis_payload(step_dto_obj.payload)`.
+  - **Root Cause (5 Whys)**: `StateProjector` folds the complete execution trace into `StepOutputDTO`s. When an upstream step produces a text/markdown block output (e.g. `sr_9e8d7c6b5a40312b` emitting `{"id": null, "block_type": "markdown", "text": "## Executive Summary..."}`), `step_dto_obj.payload` contains string/scalar text. `synthesis_distiller_hook` looped over `available_dtos` and passed all payloads directly to `compress_synthesis_payload`, which strictly raises `AppException(VALIDATION_FAILED, "Payload must be a dict or list for compression.")` on non-dict/non-list types.
+  - **Proof of Failure**: Unit regression test `test_synthesis_distiller_wiring_string_payload_fails_fast` in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]` reproduces the exact failure with 100% coverage.
+  - **Architectural Solution**: Support polymorphic payloads in `synthesis_distiller.py`: if `isinstance(step_dto_obj.payload, str)`, use the string payload directly (or string-format scalar) inside the `<source>` tag without routing through `SynthesisPayloadCompressor`, while routing structured dictionaries/lists through `SynthesisPayloadCompressor.compress_synthesis_payload`.
 
 ## Remaining
-- **Live E2E Investigation & Fix**:
-  - [ ] **[NOK] Polymorphic Payload Handling in Synthesis Distillation**: Address string/scalar payload formatting in `synthesis_distiller.py` or `SynthesisPayloadCompressor`.
+- **Live E2E Verification & Fix**:
+  - [ ] **[NOK] Polymorphic Payload Handling in Synthesis Distillation**: Implement string/scalar payload branch in `@[backend_v2/services/orchestrator/synthesis_distiller.py]` and update regression test in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]`.
+  - [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
 - **Post-Implementation & Final Audits**:
   - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
   - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
   - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
   - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
-  - [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
   - [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
   - [ ] **[NOK]** Final Epic Boundary Audit: Run `uv run python scripts/audit_markdown_boundaries.py --file @[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`.
   - [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`.
 
 ## Resume Command
 `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+
 
 
 
