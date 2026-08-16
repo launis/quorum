@@ -1,12 +1,14 @@
 """Unit tests for the XAI Highlights adapter."""
 
+import logging
+
 import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile
-from backend_v2.models.view.sdui import AccordionBlock
+from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile, RenderedSynthesisCache
+from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
 
@@ -80,9 +82,7 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
         mcp_audit_map=None,
         global_score=None,
         profile=valid_output_profile_fixture,
-        profile_cache=__import__(
-            "backend_v2.models.v2_core", fromlist=["RenderedSynthesisCache"]
-        ).RenderedSynthesisCache(
+        profile_cache=RenderedSynthesisCache(
             section_syntheses={},
             cited_sources=[],
             xai_highlights=[{"extension_type": "coaching", "content": "Good job!\\nKeep it up!"}],
@@ -122,9 +122,7 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
         mcp_audit_map=None,
         global_score=None,
         profile=valid_output_profile_fixture,
-        profile_cache=__import__(
-            "backend_v2.models.v2_core", fromlist=["RenderedSynthesisCache"]
-        ).RenderedSynthesisCache(
+        profile_cache=RenderedSynthesisCache(
             section_syntheses={},
             cited_sources=[],
             xai_highlights=[
@@ -162,3 +160,158 @@ def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfi
 
     with pytest.raises(ValidationError):
         context.locale = "fi"  # type: ignore[misc]
+
+
+def test_build_graceful_degradation_disabled_extensions(valid_output_profile_fixture: OutputProfile) -> None:
+    """Boundary: visible_block_extensions=[] returns empty list."""
+    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    disabled_profile = valid_output_profile_fixture.model_copy(update={"visible_block_extensions": []})
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=disabled_profile,
+        profile_cache=RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[{"extension_type": "coaching", "content": "Good job!"}],
+        ),
+        user_name=None,
+        org_name=None,
+    )
+    blocks = XaiHighlightsAdapter.build(context)
+    assert blocks == []
+
+
+def test_build_graceful_degradation_zero_max_items(valid_output_profile_fixture: OutputProfile) -> None:
+    """Boundary: max_extension_items=0 returns empty list."""
+    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    zero_max_profile = valid_output_profile_fixture.model_copy(update={"max_extension_items": 0})
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=zero_max_profile,
+        profile_cache=RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[{"extension_type": "coaching", "content": "Good job!"}],
+        ),
+        user_name=None,
+        org_name=None,
+    )
+    blocks = XaiHighlightsAdapter.build(context)
+    assert blocks == []
+
+
+def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: OutputProfile) -> None:
+    """Positive: 3 categories with 4 items each are curated fairly without Primacy Bias."""
+    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    profile = valid_output_profile_fixture.model_copy(update={"max_extension_items": 2})
+
+    highlights = [
+        # Coaching items of varying lengths
+        {"extension_type": "coaching", "content": "C1 short"},
+        {"extension_type": "coaching", "content": "C2 medium length insight"},
+        {"extension_type": "coaching", "content": "C3 longer coaching recommendation item"},
+        {"extension_type": "coaching", "content": "C4 the absolute longest coaching guidance sentence"},
+        # Falsification items of varying lengths
+        {"extension_type": "falsification", "content": "F1 short"},
+        {"extension_type": "falsification", "content": "F2 medium length critique"},
+        {"extension_type": "falsification", "content": "F3 longer falsification analysis item"},
+        {"extension_type": "falsification", "content": "F4 the absolute longest falsification argument sentence"},
+        # Remediation items of varying lengths
+        {"extension_type": "remediation_steps", "content": "R1 short"},
+        {"extension_type": "remediation_steps", "content": "R2 medium length remediation"},
+        {"extension_type": "remediation_steps", "content": "R3 longer remediation action item"},
+        {"extension_type": "remediation_steps", "content": "R4 the absolute longest remediation action sentence"},
+    ]
+
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=highlights,
+        ),
+        user_name=None,
+        org_name=None,
+    )
+
+    blocks = XaiHighlightsAdapter.build(context)
+    assert len(blocks) == 3
+
+    coaching_block = next(b for b in blocks if isinstance(b, AccordionBlock) and b.title == "Coaching")
+    falsification_block = next(b for b in blocks if isinstance(b, AccordionBlock) and b.title == "Falsification")
+    remediation_block = next(b for b in blocks if isinstance(b, AccordionBlock) and b.title == "Remediation")
+
+    # Each accordion should receive exactly max_extension_items (2) items
+    assert len(coaching_block.children) == 2
+    assert len(falsification_block.children) == 2
+    assert len(remediation_block.children) == 2
+
+    # Verify longest items were selected
+    coaching_texts = [c.text for c in coaching_block.children if isinstance(c, AlertBlock)]
+    assert "C4 the absolute longest coaching guidance sentence" in coaching_texts
+    assert "C3 longer coaching recommendation item" in coaching_texts
+    assert "C1 short" not in coaching_texts
+
+    falsification_texts = [c.text for c in falsification_block.children if isinstance(c, AlertBlock)]
+    assert "F4 the absolute longest falsification argument sentence" in falsification_texts
+    assert "F3 longer falsification analysis item" in falsification_texts
+    assert "F1 short" not in falsification_texts
+
+    remediation_texts = [c.text for c in remediation_block.children if isinstance(c, AlertBlock)]
+    assert "R4 the absolute longest remediation action sentence" in remediation_texts
+    assert "R3 longer remediation action item" in remediation_texts
+    assert "R1 short" not in remediation_texts
+
+
+def test_build_malformed_highlight_item_skipped(
+    valid_output_profile_fixture: OutputProfile, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Error path: malformed highlight item missing required fields is skipped with warning log."""
+    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[
+                {"corrupt_field": "no extension type or content"},
+                {"extension_type": "coaching", "content": "Valid coaching insight."},
+            ],
+        ),
+        user_name=None,
+        org_name=None,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        blocks = XaiHighlightsAdapter.build(context)
+
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], AccordionBlock)
+    assert blocks[0].title == "Coaching"
+    assert len(blocks[0].children) == 1
+    assert isinstance(blocks[0].children[0], AlertBlock)
+    assert blocks[0].children[0].text == "Valid coaching insight."
+
+    assert any(
+        "INVALID_OUTPUT_SCHEMA: Malformed XAI highlight item skipped" in record.message
+        for record in caplog.records
+    )
+

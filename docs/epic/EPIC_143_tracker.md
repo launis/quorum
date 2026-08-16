@@ -70,11 +70,11 @@
 ### Phase 4: SDUI Presentation & XAI Highlights Fair Distribution
 **Plan:** @[docs/epic/tasks_EPIC_143/04_phase4_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: XAI Highlights SDUI Adapter Hardening & Round-Robin Fair Distribution
-  - [ ] Step 2: XAI Highlights SDUI Adapter Unit Tests
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: XAI Highlights SDUI Adapter Hardening & Round-Robin Fair Distribution
+  - [x] Step 2: XAI Highlights SDUI Adapter Unit Tests
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
@@ -170,10 +170,13 @@
   - Fixed trace event structure in `@[backend_v2/tests/unit/test_worker_synthesis.py]` to align with `StateProjector` block dictionary schema.
   - Completed Tier 8 Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`) with PASSED verdict documented in `@[docs/epic/tasks_EPIC_143/red_team_audit_03_phase3_plan.md]`.
   - Universal Quality Gate passed with 93% line coverage on `MatrixExplanationService`, 79% on `backend_v2/services/orchestrator/`, 100% on `backend_v2/models/dtos/synthesis.py`, and full codebase completion gate (1359 passed, 83.71% coverage).
-- **[Phase 4 Red-Teaming Complete]**:
-  - System 2 Red Team analysis and falsification executed for `@[docs/epic/tasks_EPIC_143/04_phase4_plan.md]` and documented in artifact `research_notes.md`.
-  - Hardened plan with exact `XaiHighlightItem.model_validate(raw_item, strict=False)` probe boundary specifications, structured RFC 7807 `ErrorCodes.INVALID_OUTPUT_SCHEMA` warning logs, explicit graceful degradation conditions (`profile.visible_block_extensions` empty or `profile.max_extension_items == 0`), and concrete test contracts for Anti-Happy-Path scenarios Q, U, and V.
-  - Baseline quality gate verified: `backend_v2/services/sdui/adapters/` passes audit loop with 42 tests and 72.36% coverage; golden master and semantic parity tests verified 100% passing.
+- **[Phase 4 Execution & Verification Complete]**:
+  - `XaiHighlightsAdapter.build` hardened in `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]` by eliminating duck-typing (`isinstance(item, dict)`, `.get()`, `getattr()`) in favor of strict `XaiHighlightItem.model_validate(raw_item, strict=False)` with structured RFC 7807 warning logging (`ErrorCodes.INVALID_OUTPUT_SCHEMA`).
+  - Integrated `ranked_round_robin_select` to fairly interleave highlights across active extension types ranked by content length/informativeness, eliminating Primacy Bias and Category Starvation.
+  - Implemented graceful UI degradation returning `[]` when `visible_block_extensions` is empty or `max_extension_items` is zero.
+  - Preserved SDUI presentation schema invariance (keeping `SduiMatrixTableBlock` and Flutter Freezed DTOs 100% structurally compatible without client-side modifications).
+  - Implemented and passed all 8 unit tests in `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]` covering graceful degradation (disabled extensions, zero max items), ranked round-robin multi-category distribution, and malformed highlight item skipping.
+  - Verified backend audit loop on `backend_v2/services/sdui/adapters/` (46 passed, 73% coverage, strict typing and ruff format passed), golden master SDUI test (`test_golden_master_sdui.py`), and semantic parity test (`test_sdui_semantic_parity.py`).
 
 ## Learned
 ### Baseline State Snapshot & Execution Lessons
@@ -194,12 +197,11 @@
 - **Worker Synthesis Trace Integration (`backend_v2/tests/unit/test_worker_synthesis.py`)**:
   - `StateProjector` expects trace event output contents to be dictionary-keyed by `block_id` (e.g., `{"blk_...": payload}`). Flat unkeyed dictionaries will cause `StepOutputDTO.payload` to receive raw strings or inner attributes, violating the `SynthesisPayloadCompressor` dictionary precondition.
 - **XAI Highlights SDUI Adapter Architecture (`backend_v2/services/sdui/adapters/xai_highlights_adapter.py`)**:
-  - Co-located `XAI_AESTHETICS_RULES` dictionary must remain the Single Source of Truth for visual properties (severity, icon name), accessed via strict Fail-Fast lookups `XAI_AESTHETICS_RULES[ext_type_str]`.
+  - Co-located `XAI_AESTHETICS_RULES` dictionary remains the Single Source of Truth for visual properties (severity, icon name), accessed via strict Fail-Fast lookups `XAI_AESTHETICS_RULES[ext_type_str]`.
   - Validating raw highlight dictionaries into `XaiHighlightItem` via `XaiHighlightItem.model_validate(raw_item, strict=False)` inside a `try...except (ValidationError, ValueError)` probe boundary eliminates all duck-typing while safely skipping malformed LLM outputs with structured RFC 7807 logs.
   - `ranked_round_robin_select` ensures all active categories get interleaved representation, and the inner check `len(accordion.children) < max_lines` strictly caps each accordion to `profile.max_extension_items`.
 
 ## Remaining
-- **Phase 4 Execution**: Execute `/tier2-execute @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`.
 - **Phase 4 Audit**: Execute `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`.
 - **Post-Implementation & Final Audits**:
   - Tier 2 Hardening (Backend) across all 12 touched files.
@@ -210,5 +212,6 @@
   - System 2 Reverse Epic Analysis (`/tier8-audit-epic @[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`).
 
 ## Resume Command
-`/tier2-execute @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+
 

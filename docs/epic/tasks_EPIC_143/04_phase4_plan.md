@@ -15,11 +15,11 @@
   </step>
 
   <dod_checklist>
-    - [ ] `XaiHighlightsAdapter.build` integrates `ranked_round_robin_select` to curate highlights across active extension types ranked by informativeness/length.
-    - [ ] Graceful UI degradation implemented: returns `[]` immediately if `profile.visible_block_extensions` is empty/None or `profile.max_extension_items` is zero/None.
-    - [ ] Duck-typing eliminated (`isinstance(item, dict)`, `.get()`, `getattr()`): validates raw items into `XaiHighlightItem` using `XaiHighlightItem.model_validate(raw_item, strict=False)` with warning logging on parse failure (`logger.warning("[XaiHighlightsAdapter] %s: Malformed XAI highlight item skipped: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, str(e))`).
-    - [ ] Primacy Bias and Category Starvation eliminated in SDUI accordion rendering without requiring Flutter DTO or database schema changes.
-    - [ ] Unit tests in @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py] updated and expanded with 4 new tests covering Anti-Happy-Path scenarios Q, U, and V.
+    - [x] `XaiHighlightsAdapter.build` integrates `ranked_round_robin_select` to curate highlights across active extension types ranked by informativeness/length.
+    - [x] Graceful UI degradation implemented: returns `[]` immediately if `profile.visible_block_extensions` is empty/None or `profile.max_extension_items` is zero/None.
+    - [x] Duck-typing eliminated (`isinstance(item, dict)`, `.get()`, `getattr()`): validates raw items into `XaiHighlightItem` using `XaiHighlightItem.model_validate(raw_item, strict=False)` with warning logging on parse failure (`logger.warning("[XaiHighlightsAdapter] %s: Malformed XAI highlight item skipped: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, str(e))`).
+    - [x] Primacy Bias and Category Starvation eliminated in SDUI accordion rendering without requiring Flutter DTO or database schema changes.
+    - [x] Unit tests in @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py] updated and expanded with 4 new tests covering Anti-Happy-Path scenarios Q, U, and V.
   </dod_checklist>
 
   <required_context_rules>

@@ -8,10 +8,14 @@ XAI_AESTHETICS_RULES dictionary to enforce separation of presentation from logic
 import logging
 from typing import Any, Literal, cast
 
-from backend_v2.exceptions import AppException, ConfigurationError
+from pydantic import ValidationError
+
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.view.sdui import AccordionBlock, AlertBlock, AnySduiBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+from backend_v2.utils.ranked_round_robin import ranked_round_robin_select
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +63,40 @@ class XaiHighlightsAdapter:
         profile = context.profile
         locale = context.locale
 
-        global_exts: list[AccordionBlock] = []
-        highlights = context.profile_cache.xai_highlights
+        # Graceful UI degradation: return empty list if extensions disabled or max items zero
+        if not profile.visible_block_extensions or not profile.max_extension_items:
+            return blocks
 
-        for item in highlights:
-            ext_type_str = (
-                item.get("extension_type") if isinstance(item, dict) else getattr(item, "extension_type", None)
-            )
-            content_str = item.get("content") if isinstance(item, dict) else getattr(item, "content", None)
+        raw_highlights = context.profile_cache.xai_highlights
+
+        valid_highlights: list[XaiHighlightItem] = []
+        for raw_item in raw_highlights:
+            try:
+                valid_highlights.append(XaiHighlightItem.model_validate(raw_item, strict=False))
+            except (ValidationError, ValueError) as e:
+                logger.warning(
+                    "[XaiHighlightsAdapter] %s: Malformed XAI highlight item skipped: %s",
+                    ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                    str(e),
+                )
+
+        if not valid_highlights:
+            return blocks
+
+        max_total_items = len(profile.visible_block_extensions) * profile.max_extension_items
+        curated_highlights = ranked_round_robin_select(
+            items=valid_highlights,
+            group_key=lambda h: h.extension_type,
+            rank_key=lambda h: len(h.content),
+            max_items=max_total_items,
+            reverse_rank=True,
+        )
+
+        global_exts: list[AccordionBlock] = []
+
+        for item in curated_highlights:
+            ext_type_str = item.extension_type
+            content_str = item.content
 
             if not ext_type_str or not content_str:
                 continue
@@ -107,7 +137,7 @@ class XaiHighlightsAdapter:
                     acc_severity.value,
                 )
 
-                max_lines = profile.max_extension_items if profile.max_extension_items else 999
+                max_lines = profile.max_extension_items
 
                 accordion = next(
                     (b for b in global_exts if b.title == label_str),
