@@ -198,6 +198,12 @@
   - Verified Neuro-Symbolic Audit Matrix via `scripts/audit_matrix_manager.py verify --file tmp/audit_matrix.json` (all 150 rules passed).
   - Executed Global Backend Completion Gate (`scripts/backend_audit_loop.py backend_v2 --test`): **1370 passed, 0 failures, 83.74% total codebase coverage**.
   - Updated Post-Implementation Gates in `@[docs/epic/EPIC_143_tracker.md]`.
+- **[Live E2E Distillation Hardening & Fix Complete]**:
+  - Implemented polymorphic string and scalar (`int`, `float`, `bool`) payload support in `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]`.
+  - Added filter in `@[backend_v2/services/orchestrator/synthesis_distiller.py]` to skip internal runtime metadata (starting with `_`, e.g., `_step_metadata`, `_audit_signature`) and empty/falsy payloads (`None`, `{}`, `[]`, `""`) from being registered as `<source id="DOC-X">` prompt blocks.
+  - Added unit test coverage in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]` (`test_synthesis_distiller_wiring_string_payload_distills_successfully`, `test_synthesis_distiller_wiring_filters_empty_and_metadata_blocks`) and `@[backend_v2/tests/unit/test_synthesis_payload_compression.py]` (`test_compress_synthesis_payload_scalar_input`).
+  - Passed Universal Quality Gate (`backend_audit_loop.py`) with 100% test pass rate and 0 lint/typing errors.
+
 
 ## Learned
 ### Baseline State Snapshot & Execution Lessons
