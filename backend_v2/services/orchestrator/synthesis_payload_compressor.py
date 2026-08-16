@@ -18,12 +18,13 @@ class SynthesisPayloadCompressor:
     """Compresses payloads for synthesis LLM steps by stripping extraneous metadata."""
 
     @staticmethod
-    def compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | BaseModel) -> str:
+    def compress_synthesis_payload(
+        v: dict[str, Any] | list[Any] | str | int | float | bool | BaseModel,
+    ) -> str:
         """Deep copy and strip heavy Pydantic metadata and AI internal logs before sending to final synthesis.
 
-
         Args:
-            v: The extracted JSON payload or DTO value to compress.
+            v: The extracted JSON payload, scalar, or DTO value to compress.
 
         Returns:
             A stringified JSON dump stripped of extraneous AI inference variables.
@@ -31,6 +32,9 @@ class SynthesisPayloadCompressor:
         Raises:
             AppException: Triggered with VALIDATION_FAILED if the payload or its inner evaluation components are invalid or exceed limits.
         """
+        if isinstance(v, (int, float, bool)):
+            return str(v)
+
         if not v:
             raise AppException(
                 message="Cannot compress empty payload.",
@@ -55,7 +59,7 @@ class SynthesisPayloadCompressor:
 
         if not isinstance(v, (dict, list)):
             raise AppException(
-                message="Payload must be a dict or list for compression.",
+                message="Payload must be a dict, list, string, or scalar for compression.",
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )

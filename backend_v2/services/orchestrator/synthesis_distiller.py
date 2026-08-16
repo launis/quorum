@@ -276,8 +276,17 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     alias_engine = AliasEngine()
 
-    uid_to_alias: dict[str, str] = {}
+    # Filter valid source DTOs: skip internal metadata (starting with _) and empty payloads
+    valid_source_dtos: list[StepOutputDTO] = []
     for step_dto_obj in available_dtos:
+        if step_dto_obj.block_id.startswith("_"):
+            continue
+        if not step_dto_obj.payload and step_dto_obj.payload is not False and step_dto_obj.payload != 0:
+            continue
+        valid_source_dtos.append(step_dto_obj)
+
+    uid_to_alias: dict[str, str] = {}
+    for step_dto_obj in valid_source_dtos:
         step_id = step_dto_obj.step_id
         block_id = step_dto_obj.block_id
         uid = f"{step_id}_{block_id}"
@@ -285,7 +294,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     consolidated_distilled_parts: list[str] = []
 
-    for step_dto_obj in available_dtos:
+    for step_dto_obj in valid_source_dtos:
         step_id = step_dto_obj.step_id
         block_id = step_dto_obj.block_id
         uid = f"{step_id}_{block_id}"

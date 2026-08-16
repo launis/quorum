@@ -57,6 +57,13 @@ def test_compress_synthesis_payload_string_input() -> None:
     assert res == "hello markdown world"
 
 
+def test_compress_synthesis_payload_scalar_input() -> None:
+    """PROMISE: Prove that _compress_synthesis_payload stringifies int, float, and bool scalars."""
+    assert SynthesisPayloadCompressor.compress_synthesis_payload(42) == "42"
+    assert SynthesisPayloadCompressor.compress_synthesis_payload(3.14) == "3.14"
+    assert SynthesisPayloadCompressor.compress_synthesis_payload(True) == "True"
+
+
 def test_compress_synthesis_payload_negative_invalid_types() -> None:
     """PROMISE: Prove that _compress_synthesis_payload crashes on invalid payload structures (anti-happy-path)."""
     payload: dict[str, Any] = {

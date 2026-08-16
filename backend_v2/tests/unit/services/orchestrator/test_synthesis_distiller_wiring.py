@@ -414,3 +414,56 @@ async def test_synthesis_distiller_wiring_string_payload_distills_successfully()
     assert result.state_delta is not None
     assert "plain string scalar payload" in result.state_delta["distilled_inputs"]
     assert '<source id="DOC-0"' in result.state_delta["distilled_inputs"]
+
+
+@pytest.mark.asyncio
+async def test_synthesis_distiller_wiring_filters_empty_and_metadata_blocks() -> None:
+    """Contract: Verify empty payloads and internal metadata (starting with _) are filtered from prompt sources."""
+    deps = _build_mock_deps()
+
+    step_valid = StepOutputDTO(
+        step_id="stp_valid",
+        block_id="blk_valid",
+        data_type="text",
+        payload="valid cognitive content",
+    )
+    step_empty_dict = StepOutputDTO(
+        step_id="stp_empty",
+        block_id="atom_quotes",
+        data_type="unknown",
+        payload={},
+    )
+    step_meta = StepOutputDTO(
+        step_id="stp_meta",
+        block_id="_step_metadata",
+        data_type="unknown",
+        payload={"execution_id": "exe_123"},
+    )
+    step_none = StepOutputDTO(
+        step_id="raw_inputs",
+        block_id="organization_id",
+        data_type="unknown",
+        payload=None,
+    )
+
+    state = HookState(
+        execution_id="exe_0123456789abcdef01",
+        workflow_id="wor_0123456789abcdef01",
+        metadata={"target_locale": "en", "organization_id": "org_0123456789abcdef01"},
+        inputs={"steps": [step_valid, step_empty_dict, step_meta, step_none]},
+        global_context_vars={"organization_id": "org_0123456789abcdef01"},
+    )
+
+    result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    distilled = result.state_delta["distilled_inputs"]
+
+    # Only stp_valid should be registered as a source block
+    assert "valid cognitive content" in distilled
+    assert '<source id="DOC-0"' in distilled
+    assert "DOC-1" not in distilled
+    assert "atom_quotes" not in distilled
+    assert "_step_metadata" not in distilled
+    assert "raw_inputs" not in distilled
