@@ -59,13 +59,18 @@ def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
 
 
 def test_compress_synthesis_payload_handles_string_input() -> None:
-    """PROMISE: Test that _compress_synthesis_payload fails fast on plain string values."""
+    """PROMISE: Test that _compress_synthesis_payload strips whitespace for plain string values and fails fast on empty."""
     import pytest
 
     from backend_v2.exceptions import AppException
 
+    # Valid string returns trimmed string
+    res = SynthesisPayloadCompressor.compress_synthesis_payload("  plain text value  ")
+    assert res == "plain text value"
+
+    # Empty or whitespace string fails fast
     with pytest.raises(AppException) as exc_info:
-        SynthesisPayloadCompressor.compress_synthesis_payload("plain text value")
+        SynthesisPayloadCompressor.compress_synthesis_payload("   ")
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
 

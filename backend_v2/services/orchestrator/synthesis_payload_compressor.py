@@ -10,7 +10,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.synthesis import DistilledEvaluation, SynthesisStepDataDTO
+from backend_v2.models.domain.synthesis import DistilledEvaluation
 from backend_v2.settings import get_settings
 
 
@@ -18,8 +18,9 @@ class SynthesisPayloadCompressor:
     """Compresses payloads for synthesis LLM steps by stripping extraneous metadata."""
 
     @staticmethod
-    def compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | SynthesisStepDataDTO) -> str:
+    def compress_synthesis_payload(v: dict[str, Any] | list[Any] | str | BaseModel) -> str:
         """Deep copy and strip heavy Pydantic metadata and AI internal logs before sending to final synthesis.
+
 
         Args:
             v: The extracted JSON payload or DTO value to compress.
@@ -36,6 +37,16 @@ class SynthesisPayloadCompressor:
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
+
+        if isinstance(v, str):
+            trimmed = v.strip()
+            if not trimmed:
+                raise AppException(
+                    message="Cannot compress empty string payload.",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+            return trimmed
 
         if isinstance(v, BaseModel):
             v = v.model_dump(mode="json")

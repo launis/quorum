@@ -46,6 +46,16 @@ def test_compress_synthesis_payload_negative_empty_input() -> None:
         SynthesisPayloadCompressor.compress_synthesis_payload([])
     assert exc_info2.value.details["error_code"] == "VALIDATION_FAILED"
 
+    with pytest.raises(AppException) as exc_info3:
+        SynthesisPayloadCompressor.compress_synthesis_payload("   ")
+    assert exc_info3.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+def test_compress_synthesis_payload_string_input() -> None:
+    """PROMISE: Prove that _compress_synthesis_payload preserves and trims plain string payloads."""
+    res = SynthesisPayloadCompressor.compress_synthesis_payload("  hello markdown world  ")
+    assert res == "hello markdown world"
+
 
 def test_compress_synthesis_payload_negative_invalid_types() -> None:
     """PROMISE: Prove that _compress_synthesis_payload crashes on invalid payload structures (anti-happy-path)."""
@@ -86,7 +96,7 @@ def test_compress_synthesis_payload_negative_non_dict_evaluation() -> None:
 
 def test_compress_synthesis_payload_negative_missing_mandatory_field() -> None:
     """PROMISE: Prove that a missing mandatory field raises a KeyError wrapped in an AppException."""
-    payload = {"evaluations": [{"exact_quotes": []}]}  # missing atom_id
+    payload: dict[str, Any] = {"evaluations": [{"exact_quotes": []}]}  # missing atom_id
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
@@ -96,7 +106,8 @@ def test_compress_synthesis_payload_negative_missing_mandatory_field() -> None:
 def test_compress_synthesis_payload_negative_validation_error() -> None:
     """PROMISE: Prove that a pydantic validation error raises an AppException."""
     # exact_quotes should be a list of strings, providing a dict will cause a ValidationError
-    payload = {"evaluations": [{"atom_id": "tda_123", "exact_quotes": {"wrong": "type"}}]}
+    payload: dict[str, Any] = {"evaluations": [{"atom_id": "tda_123", "exact_quotes": {"wrong": "type"}}]}
+
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"

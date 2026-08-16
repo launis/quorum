@@ -231,7 +231,7 @@
 
 ## Remaining
 - **Live E2E Verification & Fix**:
-  - [ ] **[NOK] Polymorphic Payload Handling in Synthesis Distillation**: Implement string/scalar payload branch in `@[backend_v2/services/orchestrator/synthesis_distiller.py]` and update regression test in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]`.
+  - [x] **[OK] Polymorphic Payload Handling in Synthesis Distillation**: Implemented string payload branch in `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]` and updated tests in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]` & `@[backend_v2/tests/unit/test_synthesis_payload_compression.py]`.
   - [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
 - **Post-Implementation & Final Audits**:
   - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
@@ -244,3 +244,4 @@
 
 ## Resume Command
 `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+

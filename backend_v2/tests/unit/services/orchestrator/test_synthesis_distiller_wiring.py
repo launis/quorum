@@ -389,8 +389,8 @@ async def test_synthesis_distiller_wiring_state_delta_purges_legacy_language_key
 
 
 @pytest.mark.asyncio
-async def test_synthesis_distiller_wiring_string_payload_fails_fast() -> None:
-    """Contract: Verify non-dict/non-list payload in StepOutputDTO fails fast during compression in distillation."""
+async def test_synthesis_distiller_wiring_string_payload_distills_successfully() -> None:
+    """Contract: Verify non-dict string payload in StepOutputDTO distills directly into <source> tag."""
     deps = _build_mock_deps()
 
     step_output = StepOutputDTO(
@@ -408,9 +408,9 @@ async def test_synthesis_distiller_wiring_string_payload_fails_fast() -> None:
         global_context_vars={"organization_id": "org_0123456789abcdef01"},
     )
 
-    with pytest.raises(AppException) as exc_info:
-        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
+    result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
-    assert exc_info.value.status_code == 400
-    assert "Payload must be a dict or list for compression" in exc_info.value.message
+    assert result.success is True
+    assert result.state_delta is not None
+    assert "plain string scalar payload" in result.state_delta["distilled_inputs"]
+    assert '<source id="DOC-0"' in result.state_delta["distilled_inputs"]
