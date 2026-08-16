@@ -43,6 +43,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Dynamic UI block arrays must never rely on unstructured dictionaries or duck-typing.
 - **Enforcement:** All dynamic UI layout blocks (e.g., within reports or profiles) MUST be strictly typed using the polymorphic `AnySduiBlock` (Python Pydantic discriminated union) and `SduiBlockDTO` (Flutter Freezed sealed class). Every block MUST possess a discrete `block_type` discriminator. If an unrecognized `block_type` is received by the frontend, the Freezed parser MUST fail-fast (triggering the App Error Boundary) rather than silently dropping or misinterpreting the block, ensuring 100% schema fidelity across boundaries.
 
+### 2.10. Self-Contained SDUI Presentation Adapters
+- **Law:** Presentation logic must be strictly decoupled from raw execution states using isolated, modular presentation adapters.
+- **Enforcement:** Every SDUI presentation adapter acts as a self-contained builder with co-located aesthetic rules and strict input validation. Adapters employ fair round-robin distribution to interleave multi-category findings (such as XAI explanation highlights) without primacy bias or category starvation, ensuring balanced and deterministic visual presentations.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

@@ -97,7 +97,7 @@
 
     <module path="backend_v2/utils/">
         <responsibility>MATHEMATICAL ENGINES & SYSTEM INVARIANTS (PILLAR 1)</responsibility>
-        <key_domains>alias_engine.py, math_utils.py, scoring/ (mathematical engines)</key_domains>
+        <key_domains>alias_engine.py, math_utils.py, ranked_round_robin.py, scoring/ (mathematical engines)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">

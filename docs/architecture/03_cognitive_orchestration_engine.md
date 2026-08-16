@@ -27,7 +27,7 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Complex workflows require iterative decomposition and execution.
 - **Enforcement:** The orchestrator employs Two-Pass Atomization to break down high-level tasks into atomic steps. These atomic units are then routed through a DAG (Directed Acyclic Graph) Engine, ensuring dependencies are resolved correctly before dispatching to the Cognitive Execution Engines (such as TDA and Synthesis engines).
 
-### 2.6. Background Execution & Celery Workers
+### 2.6. Background Execution & Asynchronous Workers
 - **Law:** Heavy cognitive executions must never block the synchronous HTTP request-response cycle.
 - **Enforcement:** The system strictly decouples API entry points from LLM execution utilizing an asynchronous background worker. The synchronous FastAPI routes must instantly return an `Execution ID` or a `202 Accepted` status. The orchestration DAG, LLM multiplexing, and heavy synthesis are executed asynchronously by the worker pool, reporting state progression back via the `ExecutionStatus` enum.
 
@@ -35,9 +35,9 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Context Caching topology must remain intact and O(1) highly efficient even when evaluating disparate structures (Regular TDA vs. Matrix Assertion TDA).
 - **Enforcement:** The `MatrixSensorPromptBuilder` enforces structural caching parity by compiling all global logic, Matrix Context, and the massive source document text into the static `build_caching_prefix()`. Highly dynamic, batch-specific data (e.g., matrix assertions wrapped in CDATA encapsulation) are strictly isolated into the dynamic execution parameters. This guarantees that parallel evaluations across the same document reliably hit the Context Cache, avoiding token waste and latency.
 
-### 2.8. Synthesis Payload Compression
-- **Law:** The orchestrator must never send raw, unfiltered DAG evaluation context directly into text synthesis generation.
-- **Enforcement:** Before data is passed to the Synthesis Phase, the `SynthesisPayloadCompressor` must strip heavy raw keys (like `shuffled_atoms` and `atom_quotes`), truncate `exact_quotes` and `semantic_reasoning`, and enforce a hard cutoff limit on total evaluations (`settings.max_synthesis_evaluations`). If the payload evaluates to empty, the system must Fail-Fast to prevent LLM hallucination. This protects against context window saturation and token explosions during Phase 2 generation.
+### 2.8. Synthesis Payload Compression & Explanation Synthesis
+- **Law:** The orchestrator must never send raw, unfiltered DAG evaluation context directly into text synthesis generation, nor generate biased or starved syntheses.
+- **Enforcement:** Before data is passed to the Synthesis Phase, the `SynthesisPayloadCompressor` and `MatrixExplanationService` distill execution context into structured, compressed payloads. The pipeline strips heavy raw keys, truncates quotes according to centralized configuration thresholds, filters internal runtime metadata blocks, and enforces hard limits on total evaluations. To eliminate Positivity Bias and Priority Inversion, synthesis context is segregated via Status-Aware Dual Reporting (supporting evidence for passed atoms vs. unmet criteria deficits for failed atoms, sorted by severity). Furthermore, claim curation employs ranked round-robin selection to guarantee fair multi-category representation without category starvation.
 
 ## 3. Logical Data Flow
 ```mermaid

@@ -293,7 +293,7 @@ class LiteLLMProvider(LLMProvider):
             settings = get_settings()
 
             # CRITICAL: Disable internal Router retries (num_retries=0) to allow Fail-Fast Tenacity handling.
-            # Configure Router with Redis for distributed rate limit tracking.
+            # Use native in-memory caching to avoid unmanaged background Redis socket timeouts.
             self.router = Router(
                 model_list=[model_config],
                 set_verbose=False,
@@ -302,13 +302,6 @@ class LiteLLMProvider(LLMProvider):
                 routing_strategy="simple-shuffle",
                 allowed_fails=0,
                 cooldown_time=0,
-                redis_host=settings.redis_host,
-                redis_port=settings.redis_port,
-                cache_kwargs={
-                    "socket_timeout": 5.0,
-                    "socket_connect_timeout": 5.0,
-                    "retry_on_timeout": True,
-                },
             )
 
             # Save to class cache
