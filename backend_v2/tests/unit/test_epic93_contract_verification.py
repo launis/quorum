@@ -265,52 +265,102 @@ class TestPhase2PipelineUnification:
             MatrixExplanationService,
         )
 
+        block_id_1 = "blk_111111111111111111111111"
+        block_id_2 = "blk_222222222222222222222222"
         dtos = [
             StepOutputDTO(
                 step_id="s1",
-                block_id="blk_m1",
+                block_id=block_id_1,
                 data_type="matrix",
                 payload={
                     "normalized_score": 80.0,
-                    "results": [{"tda_id": "a1", "exact_quotes": [{"quote": "Q1"}]}],
+                    "results": [
+                        {
+                            "tda_id": "a1",
+                            "status": "PASSED",
+                            "evaluation_reasoning": "Reason",
+                            "source_quote": "Q1 verbatim quote longer than 15 chars",
+                            "depends_on_tda_ids": [],
+                            "short_circuit_reason_tda_ids": [],
+                        }
+                    ],
                     "evaluated_atoms": {"a1": ExecutionStatus.PASSED},
                 },
             ),
             StepOutputDTO(
                 step_id="s2",
-                block_id="blk_m2",
+                block_id=block_id_2,
                 data_type="matrix",
                 payload={
                     "normalized_score": 60.0,
-                    "results": [{"tda_id": "a2", "exact_quotes": []}],
+                    "results": [
+                        {
+                            "tda_id": "a2",
+                            "status": "PASSED",
+                            "evaluation_reasoning": "Reason",
+                            "source_quote": None,
+                            "depends_on_tda_ids": [],
+                            "short_circuit_reason_tda_ids": [],
+                        }
+                    ],
                     "evaluated_atoms": {"a2": ExecutionStatus.PASSED},
                 },
             ),
         ]
-        from typing import cast
-        from unittest.mock import MagicMock
+        from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+        from backend_v2.models.v2_core import (
+            I18nText,
+            MatrixClaim,
+            MatrixScale,
+            PromptBlock,
+            TDAAssertion,
+        )
 
-        from backend_v2.models.v2_core import PromptBlock
-
-        mock_m1 = MagicMock(spec=PromptBlock)
-        mock_m1.category_id = "matrix"
-        mock_m1.scales = None
-        mock_m2 = MagicMock(spec=PromptBlock)
-        mock_m2.category_id = "matrix"
-        mock_m2.scales = None
+        def _make_pb(block_id: str, label_en: str) -> PromptBlock:
+            return PromptBlock(
+                id=block_id,
+                slug=f"slug_{block_id}",
+                label=I18nText(default_locale="en", translations={"en": label_en}),
+                description=I18nText(default_locale="en", translations={"en": "Description"}),
+                ai_description="Instructions",
+                category_id=PromptBlockCategory.MATRIX,
+                type=BlockDataType.FLOAT,
+                scales=[
+                    MatrixScale(
+                        score=1,
+                        ai_label="INITIAL",
+                        claims=[
+                            MatrixClaim(
+                                label=I18nText(default_locale="en", translations={"en": "Claim"}),
+                                ai_description="Claim description",
+                                tda_assertions=[
+                                    TDAAssertion(
+                                        tda_id="tda_00000000000000000000000000000001",
+                                        inverse_evidence=False,
+                                        aggregation_mode="ALL_MUST_COMPLY",
+                                        concept_description="Concept",
+                                    )
+                                ],
+                            )
+                        ],
+                    )
+                ],
+            )
 
         blocks_by_id: dict[str, PromptBlock] = {
-            "blk_m1": cast(PromptBlock, mock_m1),
-            "blk_m2": cast(PromptBlock, mock_m2),
+            block_id_1: _make_pb(block_id_1, "Matrix M1"),
+            block_id_2: _make_pb(block_id_2, "Matrix M2"),
         }
-        result = MatrixExplanationService.assemble_matrices_to_explain(dtos, title_map={}, blocks_by_id=blocks_by_id)
-        # blk_m1 has quotes, blk_m2 has empty quotes
+        result = MatrixExplanationService.assemble_matrices_to_explain(
+            dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+        )
+        # blk_111111111111111111111111 has quotes, blk_222222222222222222222222 has empty quotes
         assert len(result) == 2
         assert result[0].matrix_id == "MX-0"
-        assert result[0].real_matrix_id == "blk_m1"
+        assert result[0].real_matrix_id == block_id_1
         assert result[1].matrix_id == "MX-1"
-        assert result[1].real_matrix_id == "blk_m2"
-        assert result[1].justification == "No direct evidence quotes extracted for this matrix."
+        assert result[1].real_matrix_id == block_id_2
+        assert result[1].justification == "No direct evidence quotes or specific deficits recorded for this matrix."
 
 
 # ============================================================================

@@ -23,7 +23,11 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundErro
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
-from backend_v2.models.dtos.synthesis import MatrixExplanationsResult, SynthesisOutputDTO
+from backend_v2.models.dtos.synthesis import (
+    MatrixExplanationContextList,
+    MatrixExplanationsResult,
+    SynthesisOutputDTO,
+)
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
@@ -919,7 +923,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 matrix_context = ""
                 if matrices_to_explain:
-                    matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{json.dumps([m.model_dump(exclude_none=True) for m in matrices_to_explain], indent=2)}"
+                    matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')}"
 
                 synth_messages: list[dict[str, Any]] = [
                     {"role": "system", "content": sys_prompt},
@@ -961,7 +965,7 @@ async def generate_profile_synthesis_and_pdf_task(
                             "role": "user",
                             "content": (
                                 f"<dynamic_context>\n{row_dynamic_ctx}\n</dynamic_context>"
-                                f"\n\nMATRICES TO EXPLAIN:\n{json.dumps([m.model_dump(exclude_none=True) for m in matrices_to_explain], indent=2)}"
+                                f"\n\nMATRICES TO EXPLAIN:\n{MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')}"
                             ),
                         },
                     ]

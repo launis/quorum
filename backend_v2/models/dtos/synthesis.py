@@ -6,7 +6,7 @@ outputs of the reporting synthesis pipeline.
 
 from typing import Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, TypeAdapter
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.prompts.linguistic_directives import DESC_TRANSLATION_MANDATE
@@ -78,6 +78,9 @@ class MatrixExplanationContextDTO(V2CoreBase):
     matrix_label: Annotated[str, Field(description="The localized matrix title")]
     score: Annotated[float | None, Field(description="The normalized score", default=None)]
     justification: Annotated[str, Field(description="The structured justification text including quotes")]
+
+
+MatrixExplanationContextList = TypeAdapter(list[MatrixExplanationContextDTO])
 
 
 class SynthesisRowExplanationDTO(V2CoreBase):

@@ -116,7 +116,7 @@ class SynthesisPayloadCompressor:
                         if valid_quotes:
                             lite_ev_obj = lite_ev_obj.model_copy(
                                 update={
-                                    "exact_quotes": [q[:300] for q in valid_quotes],
+                                    "exact_quotes": [q[: settings.max_synthesis_quote_length] for q in valid_quotes],
                                     "semantic_reasoning": str(lite_ev_obj.semantic_reasoning)[:300]
                                     if lite_ev_obj.semantic_reasoning
                                     else None,
