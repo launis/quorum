@@ -56,15 +56,15 @@
 
 ### Phase 3: Matrix Explanation Service Hardening & Dual Reporting
 **Plan:** @[docs/epic/tasks_EPIC_143/03_phase3_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Matrix Explanation Service Hardening & Dual Reporting
-  - [ ] Step 2: Synthesis Payload Compressor SSOT Alignment
-  - [ ] Step 3: TypeAdapter Definition & Worker Direct Serialization (Double-Serialization Ban)
-  - [ ] Step 4: Knowledge Base Alignment
-  - [ ] Step 5: Matrix Explanation Service Unit & Contract Tests (Atomic Test Migration)
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Matrix Explanation Service Hardening & Dual Reporting
+  - [x] Step 2: Synthesis Payload Compressor SSOT Alignment
+  - [x] Step 3: TypeAdapter Definition & Worker Direct Serialization (Double-Serialization Ban)
+  - [x] Step 4: Knowledge Base Alignment
+  - [x] Step 5: Matrix Explanation Service Unit & Contract Tests (Atomic Test Migration)
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
 
 ### Phase 4: SDUI Presentation & XAI Highlights Fair Distribution
@@ -153,30 +153,43 @@
   - Implemented `ranked_round_robin_select[T]` in `@[backend_v2/utils/ranked_round_robin.py]` with inverted sort and $O(1)$ tail pop.
   - Implemented and passed all 13 unit test contracts in `@[backend_v2/tests/unit/utils/test_ranked_round_robin.py]`.
   - Tier 8 audit passed cleanly with 100% test coverage.
-- [Phase 2 Red-Teaming, Execution & Audit Complete]:
-  - AST boundaries verified for @[backend_v2/services/orchestrator/synthesis_distiller.py]: _build_title_map (L111-L156), synthesis_distiller_hook (L160-L323).
-  - Purged deprecated "language": target_locale key from HookResult.state_delta in @[backend_v2/services/orchestrator/synthesis_distiller.py#L309-L322] (exporting ONLY "target_locale"), enforcing Zero Backwards Compatibility per the_no_legacy_mandate.
-  - Created and passed 12 comprehensive unit test contracts in @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py].
-  - Re-exported wiring tests in @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller.py] and passed the Universal Quality Gate with 64% coverage (> 30% gate requirement).
-  - Completed Tier 8 Audit (/tier8-audit-plan @[docs/epic/tasks_EPIC_143/02_phase2_plan.md] @[docs/epic/EPIC_143_tracker.md]) with PASSED verdict documented in @[docs/epic/tasks_EPIC_143/red_team_audit_02_phase2_plan.md].
+- **[Phase 2 Red-Teaming, Execution & Audit Complete]**:
+  - AST boundaries verified for `@[backend_v2/services/orchestrator/synthesis_distiller.py]`: `_build_title_map` (L111-L156), `synthesis_distiller_hook` (L160-L323).
+  - Purged deprecated `"language": target_locale` key from `HookResult.state_delta` in `@[backend_v2/services/orchestrator/synthesis_distiller.py#L309-L322]` (exporting ONLY `"target_locale"`), enforcing Zero Backwards Compatibility per `the_no_legacy_mandate`.
+  - Created and passed 12 comprehensive unit test contracts in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]`.
+  - Re-exported wiring tests in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller.py]` and passed the Universal Quality Gate with 64% coverage (> 30% gate requirement).
+  - Completed Tier 8 Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/02_phase2_plan.md] @[docs/epic/EPIC_143_tracker.md]`) with PASSED verdict documented in `@[docs/epic/tasks_EPIC_143/red_team_audit_02_phase2_plan.md]`.
+- **[Phase 3 Red-Teaming, Execution & Tests Complete]**:
+  - `MatrixExplanationService.assemble_matrices_to_explain` hardened with Status-Aware Dual Reporting (`SUPPORTING EVIDENCE:` and `UNMET CRITERIA / DEFICITS:`), Ranked Round-Robin quote selection, ascending scale score severity-first unmet criteria curation, and mandatory `target_locale: str` without fallback defaults.
+  - Eliminated legacy anti-patterns (`isinstance`, `hasattr`, `getattr`, `.get()`, raw `+` concatenation, unhandled validation errors) and added probe boundaries with `INVALID_OUTPUT_SCHEMA` warning logs.
+  - `MatrixExplanationContextList = TypeAdapter(list[MatrixExplanationContextDTO])` defined in `@[backend_v2/models/dtos/synthesis.py]`.
+  - Double-Serialization in `@[backend_v2/worker.py]` eliminated using direct `MatrixExplanationContextList.dump_json(...)`.
+  - Quote length in `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]` centralized to `settings.max_synthesis_quote_length`.
+  - Updated `@[ki_synthesis_payload_compression.md]` with SSOT settings and TypeAdapter direct dump.
+  - Implemented 11 unit tests in `@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]` and updated contract test in `@[backend_v2/tests/unit/test_epic93_contract_verification.py]`.
+  - Universal Quality Gate passed with 93% line coverage on `MatrixExplanationService` and 79% overall on `backend_v2/services/orchestrator/`.
 
 ## Learned
-### Baseline State Snapshot & Phase 1 & 2 Execution Lessons
-- Ranked Round-Robin Utility (backend_v2/utils/ranked_round_robin.py):
-  - Generic SSOT utility for interleaved selection with O(1) tail pop extraction and strict dictionary key deletion del groups[k].
-- Synthesis Distiller Hook (backend_v2/services/orchestrator/synthesis_distiller.py):
-  - Confirmed target_blocks pruning loop is completely deleted, allowing full cognitive findings to flow into <source> tags and matrix explanation.
-  - target_locale is strictly validated at hook entry with Fail-Fast (AppException(VALIDATION_FAILED)) on missing or whitespace values.
-  - HookResult.state_delta exports strictly "target_locale", eliminating legacy "language" duplication.
-  - Passes all 29 unit tests in test_synthesis_distiller_wiring.py and test_synthesis_distiller.py with 64% coverage.
-- Matrix Explanation Service (backend_v2/services/orchestrator/matrix_explanation_service.py):
-  - get_settings() hoisted; LevelStatsDTO.model_validate used to safely hydrate level stats.
-  - Ready for full Status-Aware Dual Reporting and Ranked Round-Robin refactoring in Phase 3.
+### Baseline State Snapshot & Execution Lessons
+- **Ranked Round-Robin Utility (`backend_v2/utils/ranked_round_robin.py`)**:
+  - Generic SSOT utility for interleaved selection with $O(1)$ tail pop extraction and strict dictionary key deletion `del groups[k]`.
+- **Synthesis Distiller Hook (`backend_v2/services/orchestrator/synthesis_distiller.py`)**:
+  - Confirmed `target_blocks` pruning loop is completely deleted, allowing full cognitive findings to flow into `<source>` tags and matrix explanation.
+  - `target_locale` is strictly validated at hook entry with Fail-Fast (`AppException(VALIDATION_FAILED)`) on missing or whitespace values.
+  - `HookResult.state_delta` exports strictly `"target_locale"`, eliminating legacy `"language"` duplication.
+  - Passes all 29 unit tests in `test_synthesis_distiller_wiring.py` and `test_synthesis_distiller.py` with 64% coverage.
+- **Matrix Explanation Service Hardening (`backend_v2/services/orchestrator/matrix_explanation_service.py`)**:
+  - Status-Aware Dual Reporting (`SUPPORTING EVIDENCE:` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS:` for `FAILED` atoms) cleanly eliminates Positivity Bias.
+  - Pre-deduplication with `seen_matrix_quotes: set[str]` before `ranked_round_robin_select` prevents post-selection quota collapse.
+  - Severity-first ascending scale order sorting for unmet criteria eliminates Priority Inversion.
+  - `TypeAdapter(list[MatrixExplanationContextDTO])` direct dump in `worker.py` eliminates double-serialization overhead and intermediate Python dict allocations.
+  - Mandatory `target_locale: str` across all production and test call-sites without fallback defaults.
 
 ## Remaining
-- Phase 3 Execution & Audit: Harden MatrixExplanationService, implement Dual Reporting and Ranked Round-Robin curation, update synthesis_payload_compressor.py, update ki_synthesis_payload_compression.md, and execute atomic test migration.
-- Phase 4 Execution & Audit: Harden XaiHighlightsAdapter with Ranked Round-Robin highlight curation, graceful degradation, and expanded unit tests.
-- Post-Implementation & Final Audits: Tier 2 Hardening (Backend), Golden Master audit, E2E gate, documentation sync, and Tier 8 Reverse Epic Analysis.
+- **Phase 3 Audit**: Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`.
+- **Phase 4 Planning, Execution & Audit**: Harden `XaiHighlightsAdapter` with Ranked Round-Robin highlight curation, graceful degradation, and expanded unit tests.
+- **Post-Implementation & Final Audits**: Tier 2 Hardening (Backend), Golden Master audit, E2E gate, documentation sync, and Tier 8 Reverse Epic Analysis.
 
 ## Resume Command
-`/tier0-research-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+
