@@ -165,6 +165,12 @@
         <catastrophic_reason>Dictionary flatteners cause brittle "loose dictionary" traps, and string-parsing lineage leads to fatal reporting bugs.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="polymorphic_dag_payload_handling">
+        <banned_pattern>Assuming that `StepOutputDTO.payload` is always a JSON dictionary (`dict`), or writing downstream consumers/compressors that crash when receiving pure string/Markdown text (`str`), scalar values, or empty payloads produced by upstream DAG synthesis steps.</banned_pattern>
+        <mandatory_pattern>Downstream consumers of DAG state (specifically `SynthesisPayloadCompressor`, `synthesis_distiller_hook`, and reporting hooks) MUST polymorphically handle all 4 valid payload data partitions (`dict`, `list`, `str`, `int`/`float`/`bool`), and gracefully filter internal metadata (`_`) and empty payloads without raising unhandled `AppException(VALIDATION_FAILED)`. Unit tests for these components MUST test all 4 partitions.</mandatory_pattern>
+        <catastrophic_reason>Assuming payloads are always dictionaries causes immediate crashes in live E2E runs when Markdown text synthesis steps pass raw text into distillation.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="pydantic_native_field_priority">
         <banned_pattern>Using `@field_validator` for simple bounds checking or regex.</banned_pattern>
         <mandatory_pattern>ALWAYS prefer native `Field(ge=0, pattern=...)`. Native Field is executed in Rust (pydantic-core) at lightning speed.</mandatory_pattern>

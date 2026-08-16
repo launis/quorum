@@ -265,4 +265,15 @@ trigger: always_on
         <mandatory_pattern>When defining new architectural rules or deprecating code patterns, you MUST proactively build AST Guardrail tests (using the Python `ast` module) to mathematically enforce the new rules statically BEFORE executing standard unit tests. This ensures Zero-Tolerance enforcement against "Agentic Drift" or lazy refactoring.</mandatory_pattern>
         <catastrophic_reason>Without structural AST tests, AI agents or developers will eventually bypass the rules (e.g., removing Semaphores or using duck typing) to make a failing unit test pass, leading to silent architectural collapse.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="heterogeneous_payload_testing_mandate">
+        <banned_pattern>Testing methods, hooks, or compressors that process heterogeneous state envelopes (e.g., `StepOutputDTO`, `payload: Any`, `inputs`, `state_delta`) using exclusively a single data type (such as assuming `payload` is always a `dict`), or fixing a bug observed in E2E execution without first writing a unit test that fails with the real observed runtime payload.</banned_pattern>
+        <mandatory_pattern>When testing components that receive or compress heterogeneous DAG state (specifically `SynthesisPayloadCompressor`, `synthesis_distiller_hook`, or `StepOutputDTO` consumers), unit tests MUST explicitly cover the 4 ISTQB Equivalence Partitions for data payloads:
+        1. **Structured JSON / Dictionary** (`dict[str, Any]`, e.g. matrix outputs, evaluated atoms)
+        2. **List collections** (`list[Any]`, e.g. batch items, lists of DTOs)
+        3. **Pure String / Markdown text** (`str`, e.g. executive summary, raw text blocks)
+        4. **Scalars / Primitives** (`int`, `float`, `bool`) as well as empty/falsy inputs (`None`, `""`, `{}`).
+        Additionally, when resolving a defect found in E2E integration, you MUST follow the Regression Reproduction Lock: write a failing test with the exact runtime payload structure BEFORE modifying domain logic.</mandatory_pattern>
+        <catastrophic_reason>Mock data monoculture (testing only dicts) creates "Fake Green" test suites (1300+ tests passing) that instantly crash in production or live E2E runs when text/scalar steps (like Markdown blocks) reach downstream consumers.</catastrophic_reason>
+    </rule_block>
 </universal_quality_gate>
