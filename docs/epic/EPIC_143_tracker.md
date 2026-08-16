@@ -223,8 +223,12 @@
   - `ranked_round_robin_select` ensures all active categories get interleaved representation, and the inner check `len(accordion.children) < max_lines` strictly caps each accordion to `profile.max_extension_items`.
 - **Automated Test Discovery Protocol (`backend_v2/services/orchestrator/synthesis_payload_compressor.py`)**:
   - `backend_audit_loop.py` path-based test discovery maps source files in `backend_v2/services/orchestrator/` to `backend_v2/tests/unit/services/orchestrator/test_<module_name>.py`. Ensuring co-located test wrappers or symlinks guarantees deterministic 100% test discovery.
+- **Heterogeneous Step Outputs & Synthesis Distiller (`backend_v2/services/orchestrator/synthesis_distiller.py`)**:
+  - In real E2E executions (e.g. `test_real_llm_pdf_execution`), execution traces carry heterogeneous step output payloads including markdown/text strings (e.g. `sr_9e8d7c6b5a40312b`). `SynthesisPayloadCompressor.compress_synthesis_payload` strictly requires `dict | list | BaseModel` and raises `AppException: Payload must be a dict or list for compression` when given raw string scalars. Handling/formatting string payloads appropriately in the distillation pipeline is required for polymorphic payload safety.
 
 ## Remaining
+- **Live E2E Investigation & Fix**:
+  - [ ] **[NOK] Polymorphic Payload Handling in Synthesis Distillation**: Address string/scalar payload formatting in `synthesis_distiller.py` or `SynthesisPayloadCompressor`.
 - **Post-Implementation & Final Audits**:
   - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
   - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
@@ -237,5 +241,6 @@
 
 ## Resume Command
 `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+
 
 

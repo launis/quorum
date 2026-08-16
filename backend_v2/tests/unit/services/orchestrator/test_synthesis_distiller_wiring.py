@@ -104,7 +104,8 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
     matrix_output = LightweightMatrixOutput(
         evaluated_atoms={
             "tda_0123456789abcdef01": ExecutionStatus.PASSED,
-        }
+        },
+        extensions={},
     )
     step3 = StepOutputDTO(
         step_id="stp_matrix_1",
@@ -150,7 +151,7 @@ async def test_synthesis_distiller_wiring_none_state_raises_validation_failed() 
     deps = _build_mock_deps()
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(None, deps)  # type: ignore[arg-type]
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(None, deps))  # type: ignore[arg-type]
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert exc_info.value.status_code == 500
@@ -171,7 +172,7 @@ async def test_synthesis_distiller_wiring_invalid_inputs_type_raises_invalid_sch
     object.__setattr__(state, "inputs", "invalid_inputs_string")
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(state, deps)
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "INVALID_OUTPUT_SCHEMA"
     assert exc_info.value.status_code == 400
@@ -191,7 +192,7 @@ async def test_synthesis_distiller_wiring_missing_steps_key_raises_validation_fa
     )
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(state, deps)
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert exc_info.value.status_code == 500
@@ -211,7 +212,7 @@ async def test_synthesis_distiller_wiring_missing_target_locale_raises_app_excep
     )
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(state, deps)
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert exc_info.value.status_code == 500
@@ -231,7 +232,7 @@ async def test_synthesis_distiller_wiring_whitespace_target_locale_raises_app_ex
     )
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(state, deps)
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert exc_info.value.status_code == 500
@@ -251,7 +252,7 @@ async def test_synthesis_distiller_wiring_empty_target_locale_raises_app_excepti
     )
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(state, deps)
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert exc_info.value.status_code == 500
@@ -308,7 +309,7 @@ async def test_synthesis_distiller_wiring_missing_output_profile_id_raises_confi
     )
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(state, deps)
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"
     assert exc_info.value.status_code == 400
@@ -329,7 +330,7 @@ async def test_synthesis_distiller_wiring_workflow_not_found_raises_resource_not
     )
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(state, deps)
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "RESOURCE_NOT_FOUND"
     assert exc_info.value.status_code == 404
@@ -350,7 +351,7 @@ async def test_synthesis_distiller_wiring_output_profile_not_found_raises_resour
     )
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(state, deps)
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "RESOURCE_NOT_FOUND"
     assert exc_info.value.status_code == 404
@@ -385,3 +386,31 @@ async def test_synthesis_distiller_wiring_state_delta_purges_legacy_language_key
     assert "target_locale" in result.state_delta
     assert result.state_delta["target_locale"] == "fi"
     assert "language" not in result.state_delta
+
+
+@pytest.mark.asyncio
+async def test_synthesis_distiller_wiring_string_payload_fails_fast() -> None:
+    """Contract: Verify non-dict/non-list payload in StepOutputDTO fails fast during compression in distillation."""
+    deps = _build_mock_deps()
+
+    step_output = StepOutputDTO(
+        step_id="stp_string_payload_1",
+        block_id="blk_string_payload_1",
+        data_type="text",
+        payload="plain string scalar payload",
+    )
+
+    state = HookState(
+        execution_id="exe_0123456789abcdef01",
+        workflow_id="wor_0123456789abcdef01",
+        metadata={"target_locale": "en", "organization_id": "org_0123456789abcdef01"},
+        inputs={"steps": [step_output]},
+        global_context_vars={"organization_id": "org_0123456789abcdef01"},
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
+
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert exc_info.value.status_code == 400
+    assert "Payload must be a dict or list for compression" in exc_info.value.message
