@@ -1,11 +1,14 @@
+from typing import Any
+
 import pytest
 from pydantic import BaseModel
 
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, LaxPromptBlockCategory, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, OutputProfile, PromptBlock, TDAAssertion
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
 
-def get_dummy_profile():
+def get_dummy_profile() -> OutputProfile:
     return OutputProfile(
         id="prof_1234567890abcdef1234567890abcdef",
         slug="test",
@@ -15,12 +18,12 @@ def get_dummy_profile():
     )
 
 
-def get_dummy_pb(category="matrix"):
+def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) -> PromptBlock:
     return PromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug="test",
         category_id=category,
-        type="float",
+        type=BlockDataType.FLOAT,
         is_evaluative=True,
         label=I18nText(default_locale="en", translations={"en": "test"}),
         description=I18nText(default_locale="en", translations={"en": "test"}),
@@ -63,17 +66,17 @@ def get_dummy_pb(category="matrix"):
     )
 
 
-def test_clean_hallucinated_numbers():
+def test_clean_hallucinated_numbers() -> None:
     text = "This is a test. Taso: 5. Another sentence. piste:3."
     cleaned = MatrixDomainParser._clean_hallucinated_numbers(text)
     assert cleaned == "This is a test. Another sentence."
 
 
-def test_clean_hallucinated_numbers_empty():
+def test_clean_hallucinated_numbers_empty() -> None:
     assert MatrixDomainParser._clean_hallucinated_numbers("") == ""
 
 
-def test_clean_hallucinated_numbers_no_match():
+def test_clean_hallucinated_numbers_no_match() -> None:
     text = "This is a normal sentence without scores."
     assert MatrixDomainParser._clean_hallucinated_numbers(text) == text
 
@@ -81,10 +84,10 @@ def test_clean_hallucinated_numbers_no_match():
 class MockDTO(BaseModel):
     step_id: str
     block_id: str
-    payload: dict
+    payload: dict[str, Any]
 
 
-def test_parse_matrices_empty_results():
+def test_parse_matrices_empty_results() -> None:
     profile = get_dummy_profile()
     eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
         results=[],
@@ -101,10 +104,10 @@ def test_parse_matrices_empty_results():
     assert not all_parsed
 
 
-def test_parse_matrices_skip_non_matrix():
+def test_parse_matrices_skip_non_matrix() -> None:
     profile = get_dummy_profile()
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload={"key": "val"})
-    pb = get_dummy_pb(category="agent_role")
+    pb = get_dummy_pb(category=PromptBlockCategory.AGENT_ROLE)
 
     eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
         results=[dto],
@@ -119,7 +122,7 @@ def test_parse_matrices_skip_non_matrix():
     assert not eval_m
 
 
-def test_parse_matrices_invalid_payload_fail_fast():
+def test_parse_matrices_invalid_payload_fail_fast() -> None:
     profile = get_dummy_profile()
 
     class BadDTO:
@@ -127,7 +130,7 @@ def test_parse_matrices_invalid_payload_fail_fast():
         block_id = "blk_1234567890abcdef1234567890abcdef"
         payload = "not a dict"
 
-    pb = get_dummy_pb(category="matrix")
+    pb = get_dummy_pb(category=PromptBlockCategory.MATRIX)
 
     from backend_v2.exceptions import AppException
 
@@ -145,7 +148,7 @@ def test_parse_matrices_invalid_payload_fail_fast():
     assert "Invalid matrix payload format" in str(exc_info.value)
 
 
-def test_parse_matrices_success():
+def test_parse_matrices_success() -> None:
     profile = get_dummy_profile()
     pb = get_dummy_pb()
 
@@ -167,11 +170,9 @@ def test_parse_matrices_success():
     assert matrix.row_explanation == "Good!"
 
 
-def test_parse_matrices_na_bypass():
+def test_parse_matrices_na_bypass() -> None:
     profile = get_dummy_profile()
     pb = get_dummy_pb()
-
-    from backend_v2.models.enums import ExecutionStatus
 
     payload = {
         "raw_score": None,
@@ -200,11 +201,9 @@ def test_parse_matrices_na_bypass():
     assert matrix.total_atoms == 0
 
 
-def test_parse_matrices_failed_does_not_increment():
+def test_parse_matrices_failed_does_not_increment() -> None:
     profile = get_dummy_profile()
     pb = get_dummy_pb()
-
-    from backend_v2.models.enums import ExecutionStatus
 
     payload = {
         "raw_score": None,
@@ -232,3 +231,54 @@ def test_parse_matrices_failed_does_not_increment():
     assert matrix.true_atoms == 1
     assert matrix.total_atoms == 3
     assert matrix.score == 0.3
+
+
+@pytest.mark.parametrize(
+    "is_evaluative,allow_override,expected_eval_count,expected_info_count",
+    [
+        (True, True, 1, 0),
+        (True, False, 1, 0),
+        (False, True, 0, 1),
+        (False, False, 0, 1),
+    ],
+)
+def test_parse_matrices_indicator_partitions(
+    is_evaluative: bool,
+    allow_override: bool,
+    expected_eval_count: int,
+    expected_info_count: int,
+) -> None:
+    """ISTQB Partitions:
+    1. Evaluative=True, Override=True
+    2. Evaluative=True, Override=False
+    3. Evaluative=False, Override=True
+    4. Evaluative=False, Override=False
+    Verifies that axis_name is never mutated with string asterisks and DTO flags are strictly preserved.
+    """
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+    pb = pb.model_copy(update={"is_evaluative": is_evaluative, "allow_contextual_override": allow_override})
+
+    payload = {"raw_score": 0.8, "normalized_score": 80.0, "evaluated_atoms": {}}
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+
+    assert len(eval_m) == expected_eval_count
+    assert len(info_m) == expected_info_count
+
+    matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    # Clean axis name without appended asterisks
+    assert matrix.name == "test"
+    assert not matrix.name.endswith("*")
+    assert matrix.is_evaluative is is_evaluative
+    assert matrix.allow_contextual_override is allow_override

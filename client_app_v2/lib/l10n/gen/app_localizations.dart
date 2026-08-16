@@ -488,6 +488,12 @@ abstract class AppLocalizations {
   /// **'* = Evaluative Matrix (Impacts global score)'**
   String get matrixEvaluativeAsteriskLegend;
 
+  /// No description provided for @matrixOverrideAsteriskLegend.
+  ///
+  /// In en, this message translates to:
+  /// **'** = Contextual override allowed'**
+  String get matrixOverrideAsteriskLegend;
+
   /// No description provided for @reportPenaltiesApplied.
   ///
   /// In en, this message translates to:

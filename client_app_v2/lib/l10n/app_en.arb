@@ -165,6 +165,7 @@
   "rowExplanationTitle": "Explanation",
   "normalizedScore": "100 %",
   "matrixEvaluativeAsteriskLegend": "* = Evaluative Matrix (Impacts global score)",
+  "matrixOverrideAsteriskLegend": "** = Contextual override allowed",
   "reportPenaltiesApplied": "Penalties (Applied Biases)",
   "rawData": "Raw Data",
   "status": "STATUS",

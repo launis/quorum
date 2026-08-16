@@ -191,6 +191,24 @@ void main() {
       expect(grouped.length, 2);
       expect(grouped[1]?.length, 2);
       expect(grouped[2]?.length, 1);
+      expect(dto.allowContextualOverride, isFalse);
+    });
+
+    test('allowContextualOverride correctly parses from JSON', () {
+      final json = {
+        'block_id': 'blk_1',
+        'name': 'test_matrix',
+        'label_i18n': {
+          'default_locale': 'en',
+          'translations': {'en': 'Test', 'fi': 'Testi'},
+        },
+        'allow_contextual_override': true,
+        'is_evaluative': true,
+      };
+
+      final dto = MatrixScorecardRowDto.fromJson(json);
+      expect(dto.allowContextualOverride, isTrue);
+      expect(dto.isEvaluative, isTrue);
     });
   });
 }

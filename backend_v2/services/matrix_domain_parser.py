@@ -161,8 +161,6 @@ class MatrixDomainParser:
             axis_name = pb_meta.label.resolve(locale) if pb_meta.label else b_id
             if not axis_name:
                 axis_name = b_id
-            if pb_meta.is_evaluative:
-                axis_name += " *"
 
             if not pb_meta.label:
                 logger.error(
@@ -465,6 +463,7 @@ class MatrixDomainParser:
                 ui_boundary_labels=ui_boundary_labels,
                 ui_plot_ratio=ui_plot_ratio,
                 is_evaluative=pb_meta.is_evaluative,
+                allow_contextual_override=pb_meta.allow_contextual_override,
                 evaluated_atoms=evaluated_atoms_list,
                 clustered_row_sources=clustered_row_sources,
                 used_evidence_ids=[],

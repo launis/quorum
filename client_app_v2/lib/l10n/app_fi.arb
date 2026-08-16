@@ -48,6 +48,7 @@
   "rowExplanationTitle": "Selite",
   "normalizedScore": "100 %",
   "matrixEvaluativeAsteriskLegend": "* = Arvioiva matriisi (Vaikuttaa kokonaisarvosanaan)",
+  "matrixOverrideAsteriskLegend": "** = Kognitiivinen ohitus sallittu",
   "reportPenaltiesApplied": "Rangaistukset (Sovelletut vääristymät)",
   "rawData": "Raakadata",
   "status": "TILA",

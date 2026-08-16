@@ -231,6 +231,10 @@ class AppLocalizationsFi extends AppLocalizations {
       '* = Arvioiva matriisi (Vaikuttaa kokonaisarvosanaan)';
 
   @override
+  String get matrixOverrideAsteriskLegend =>
+      '** = Kognitiivinen ohitus sallittu';
+
+  @override
   String get reportPenaltiesApplied => 'Rangaistukset (Sovelletut vääristymät)';
 
   @override

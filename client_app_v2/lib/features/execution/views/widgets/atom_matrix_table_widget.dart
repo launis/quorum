@@ -59,15 +59,24 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   ? _buildMobileList(context, ref, tableMatrices, theme)
                   : _buildDataTable(context, ref, tableMatrices, theme),
             ),
-            if (tableMatrices.any((m) => m.isEvaluative)) ...[
+            if (tableMatrices.any((m) => m.isEvaluative || m.allowContextualOverride)) ...[
               const SizedBox(height: 8),
-              Text(
-                l10n.matrixEvaluativeAsteriskLegend,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontStyle: FontStyle.italic,
-                  color: theme.colorScheme.onSurfaceVariant,
+              if (tableMatrices.any((m) => m.isEvaluative))
+                Text(
+                  l10n.matrixEvaluativeAsteriskLegend,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
+              if (tableMatrices.any((m) => m.allowContextualOverride))
+                Text(
+                  l10n.matrixOverrideAsteriskLegend,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
             ],
           ],
         );
@@ -179,7 +188,8 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                               'fi'
                                           ? (m.labelI18n.get('fi'))
                                           : (m.labelI18n.get('en'))) +
-                                      (m.isEvaluative ? ' *' : ''),
+                                      (m.isEvaluative ? ' *' : '') +
+                                      (m.allowContextualOverride ? ' **' : ''),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -319,7 +329,8 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                     (Localizations.localeOf(context).languageCode == 'fi'
                             ? (m.labelI18n.get('fi'))
                             : (m.labelI18n.get('en'))) +
-                        (m.isEvaluative ? ' *' : ''),
+                        (m.isEvaluative ? ' *' : '') +
+                        (m.allowContextualOverride ? ' **' : ''),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],

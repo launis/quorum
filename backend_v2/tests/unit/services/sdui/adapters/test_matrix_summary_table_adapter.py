@@ -7,7 +7,7 @@ from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
 
 
-def test_matrix_summary_table_adapter_empty_layouts():
+def test_matrix_summary_table_adapter_empty_layouts() -> None:
     profile = OutputProfile(
         id="prf_1234567890abcdef",
         slug="test",
@@ -31,7 +31,7 @@ def test_matrix_summary_table_adapter_empty_layouts():
     assert len(blocks) == 0
 
 
-def test_matrix_summary_table_adapter_structural_failure():
+def test_matrix_summary_table_adapter_structural_failure() -> None:
     # matrix_summary requires at least 1 axis
     profile = OutputProfile(
         id="prf_1234567890abcdef",
@@ -64,7 +64,7 @@ def test_matrix_summary_table_adapter_structural_failure():
     assert "Structurally incompatible: layout 'matrix_summary' requires at least 1 axes, found 0." in str(exc.value)
 
 
-def test_matrix_summary_table_adapter_success():
+def test_matrix_summary_table_adapter_success() -> None:
     profile = OutputProfile(
         id="prf_1234567890abcdef",
         slug="test",
@@ -111,7 +111,7 @@ def test_matrix_summary_table_adapter_success():
     assert blocks[1].matrix_visible_columns == ["label", "score"]
 
 
-def test_matrix_summary_table_adapter_validation_missing_id():
+def test_matrix_summary_table_adapter_validation_missing_id() -> None:
     """EP (Validation Missing ID): Target block not found in parsed_matrices triggers exception."""
     profile = OutputProfile(
         id="prf_1234567890abcdef",
@@ -155,7 +155,7 @@ def test_matrix_summary_table_adapter_validation_missing_id():
     assert "requires at least 1 axes, found 0" in str(exc.value)
 
 
-def test_matrix_summary_table_adapter_empty_scorecard_atoms():
+def test_matrix_summary_table_adapter_empty_scorecard_atoms() -> None:
     """BVA (Empty Scorecard Atoms): Provide a scorecard with an empty list of evaluated_atoms to assert it renders gracefully."""
     profile = OutputProfile(
         id="prf_1234567890abcdef",
@@ -202,7 +202,7 @@ def test_matrix_summary_table_adapter_empty_scorecard_atoms():
     assert blocks[1].axes[0].evaluated_atoms == []
 
 
-def test_matrix_summary_table_adapter_wildcard_target_blocks():
+def test_matrix_summary_table_adapter_wildcard_target_blocks() -> None:
     """EP (Wildcard Target Blocks): Provide target_blocks=["*"] to trigger the list(all_parsed_matrices.values()) branch."""
     profile = OutputProfile(
         id="prf_1234567890abcdef",
@@ -257,7 +257,7 @@ def test_matrix_summary_table_adapter_wildcard_target_blocks():
     assert len(blocks[1].axes) == 2
 
 
-def test_matrix_summary_table_adapter_layout_description_and_section_syntheses():
+def test_matrix_summary_table_adapter_layout_description_and_section_syntheses() -> None:
     """EP (Layout Description and Section Syntheses): verify description and section_blocks injection."""
     from backend_v2.models.v2_core import RenderedSynthesisCache, SynthesisConfigDTO
     from backend_v2.models.view.sdui import MarkdownBlock, ParagraphBlock
@@ -326,7 +326,7 @@ class MockDict:
         raise KeyError(item)
 
 
-def test_matrix_summary_table_adapter_key_error(monkeypatch: pytest.MonkeyPatch):
+def test_matrix_summary_table_adapter_key_error(monkeypatch: pytest.MonkeyPatch) -> None:
     """Negative Path (Configuration Error): Mock a deletion in MATRIX_SUMMARY_RULES dynamically to trigger KeyError."""
     from backend_v2.services.sdui.adapters import matrix_summary_table_adapter
 

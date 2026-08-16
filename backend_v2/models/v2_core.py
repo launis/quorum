@@ -1049,6 +1049,9 @@ class MatrixScorecardRowDTO(V2CoreBase):
     )
 
     is_evaluative: bool = Field(..., description="Whether this block contributes to global average.")
+    allow_contextual_override: bool = Field(
+        default=False, description="Whether contextual override is allowed on this PromptBlock matrix."
+    )
 
     used_evidence_ids: list[str] = Field(default_factory=list, description="Trace IDs used for this row.")
     evaluated_atoms: list[ScorecardAtomDTO] = Field(

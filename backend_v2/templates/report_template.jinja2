@@ -328,7 +328,7 @@
                             <tr style="border-bottom: 1px solid #eee;">
                                 {% if 'label' in visible_cols %}
                                 <td style="padding: 10px; vertical-align: top;">
-                                    <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">{{ axis.name }}{% if axis.is_evaluative %} *{% endif %}</div>
+                                    <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">{{ axis.name }}{% if axis.is_evaluative %} *{% endif %}{% if axis.allow_contextual_override %} **{% endif %}</div>
                                     {% if axis.description %}
                                     <div style="font-size: 10px; color: #666; font-weight: normal; line-height: 1.3;">{{ axis.description }}</div>
                                     {% endif %}
@@ -424,12 +424,15 @@
                         </tbody>
                     </table>
                     {% set has_evaluative = false %}
+                    {% set has_override = false %}
                     {% for axis in block.axes %}
                         {% if axis.is_evaluative %}{% set has_evaluative = true %}{% endif %}
+                        {% if axis.allow_contextual_override %}{% set has_override = true %}{% endif %}
                     {% endfor %}
-                    {% if has_evaluative %}
+                    {% if has_evaluative or has_override %}
                     <div style="font-size: 11px; color: #666; margin-top: 8px; font-style: italic;">
-                        {{ l10n.matrixEvaluativeAsteriskLegend if l10n is defined else 'Matrix Evaluative Asterisk Legend' }}
+                        {% if has_evaluative %}<div>{{ l10n.matrixEvaluativeAsteriskLegend if l10n is defined and l10n.matrixEvaluativeAsteriskLegend else '* Arvioiva matriisi' }}</div>{% endif %}
+                        {% if has_override %}<div>{{ l10n.matrixOverrideAsteriskLegend if l10n is defined and l10n.matrixOverrideAsteriskLegend else '** Kognitiivinen ohitus sallittu' }}</div>{% endif %}
                     </div>
                     {% endif %}
                 </div>

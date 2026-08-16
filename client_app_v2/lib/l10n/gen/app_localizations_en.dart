@@ -229,6 +229,9 @@ class AppLocalizationsEn extends AppLocalizations {
       '* = Evaluative Matrix (Impacts global score)';
 
   @override
+  String get matrixOverrideAsteriskLegend => '** = Contextual override allowed';
+
+  @override
   String get reportPenaltiesApplied => 'Penalties (Applied Biases)';
 
   @override

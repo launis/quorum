@@ -17,6 +17,7 @@
   "normalizedScore": "Skaalattu piste",
   "score": "Piste",
   "matrixEvaluativeAsteriskLegend": "* Arvioiva matriisi",
+  "matrixOverrideAsteriskLegend": "** Kognitiivinen ohitus sallittu",
   "systemAuditTrailLabel": "Järjestelmän auditointiloki",
   "pdfAuditDuration": "Kesto:",
   "pdfAuditQuery": "Kysely:",

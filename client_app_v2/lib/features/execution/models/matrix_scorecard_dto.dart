@@ -149,6 +149,9 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'ui_plot_ratio') double? uiPlotRatio,
 
     @JsonKey(name: 'is_evaluative') @Default(true) bool isEvaluative,
+    @JsonKey(name: 'allow_contextual_override')
+    @Default(false)
+    bool allowContextualOverride,
     @JsonKey(name: 'contextual_override') bool? contextualOverride,
     @JsonKey(name: 'semantic_reasoning') String? semanticReasoning,
 

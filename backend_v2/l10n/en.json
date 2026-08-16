@@ -17,6 +17,7 @@
   "normalizedScore": "Normalized Score",
   "score": "Score",
   "matrixEvaluativeAsteriskLegend": "* Evaluative Matrix",
+  "matrixOverrideAsteriskLegend": "** Contextual override allowed",
   "systemAuditTrailLabel": "System Audit Trail",
   "pdfAuditDuration": "Duration:",
   "pdfAuditQuery": "Query:",

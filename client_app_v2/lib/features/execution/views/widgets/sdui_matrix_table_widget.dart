@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class SduiMatrixTableWidget extends StatelessWidget {
   final SduiMatrixTableBlock block;
@@ -14,8 +15,12 @@ class SduiMatrixTableWidget extends StatelessWidget {
     }
 
     final locale = Localizations.localeOf(context).languageCode;
+    final l10n = AppLocalizations.of(context);
     final visibleCols = block.matrixVisibleColumns;
     final labels = block.matrixColumnLabels;
+
+    final hasEvaluative = block.axes.any((a) => a.isEvaluative);
+    final hasOverride = block.axes.any((a) => a.allowContextualOverride);
 
     Widget table = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -48,7 +53,9 @@ class SduiMatrixTableWidget extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        axis.name + (axis.isEvaluative ? ' *' : ''),
+                        axis.name +
+                            (axis.isEvaluative ? ' *' : '') +
+                            (axis.allowContextualOverride ? ' **' : ''),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       if (axis.description != null &&
@@ -134,6 +141,35 @@ class SduiMatrixTableWidget extends StatelessWidget {
       ),
     );
 
+    Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        table,
+        if (hasEvaluative || hasOverride) ...[
+          AppSpacing.h8,
+          if (hasEvaluative)
+            Text(
+              l10n?.matrixEvaluativeAsteriskLegend ??
+                  '* = Evaluative Matrix (Impacts global score)',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          if (hasOverride)
+            Text(
+              l10n?.matrixOverrideAsteriskLegend ??
+                  '** = Contextual override allowed',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+        ],
+      ],
+    );
+
     if (block.title != null) {
       return Padding(
         padding: const EdgeInsets.symmetric(
@@ -148,7 +184,7 @@ class SduiMatrixTableWidget extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             AppSpacing.h16,
-            table,
+            content,
           ],
         ),
       );
@@ -159,7 +195,7 @@ class SduiMatrixTableWidget extends StatelessWidget {
         horizontal: AppSpacing.s24,
         vertical: AppSpacing.s16,
       ),
-      child: table,
+      child: content,
     );
   }
 }
