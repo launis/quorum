@@ -65,11 +65,11 @@
   - [x] Step 4: Knowledge Base Alignment
   - [x] Step 5: Matrix Explanation Service Unit & Contract Tests (Atomic Test Migration)
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
 
 ### Phase 4: SDUI Presentation & XAI Highlights Fair Distribution
 **Plan:** @[docs/epic/tasks_EPIC_143/04_phase4_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
   - [ ] Step 0: Strategic Alignment Check
   - [ ] Step 1: XAI Highlights SDUI Adapter Hardening & Round-Robin Fair Distribution
@@ -159,7 +159,7 @@
   - Created and passed 12 comprehensive unit test contracts in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py]`.
   - Re-exported wiring tests in `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller.py]` and passed the Universal Quality Gate with 64% coverage (> 30% gate requirement).
   - Completed Tier 8 Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/02_phase2_plan.md] @[docs/epic/EPIC_143_tracker.md]`) with PASSED verdict documented in `@[docs/epic/tasks_EPIC_143/red_team_audit_02_phase2_plan.md]`.
-- **[Phase 3 Red-Teaming, Execution & Tests Complete]**:
+- **[Phase 3 Red-Teaming, Execution & Audit Complete]**:
   - `MatrixExplanationService.assemble_matrices_to_explain` hardened with Status-Aware Dual Reporting (`SUPPORTING EVIDENCE:` for `PASSED` atoms and `UNMET CRITERIA / DEFICITS:` for `FAILED` atoms), Ranked Round-Robin quote selection via `ranked_round_robin_select`, ascending scale score severity-first unmet criteria curation, and mandatory `target_locale: str` without fallback defaults.
   - Eliminated 12 legacy anti-patterns (`isinstance`, `hasattr`, `getattr`, `.get()`, raw `+` concatenation, unhandled validation errors) and added probe boundaries with `INVALID_OUTPUT_SCHEMA` warning logs.
   - `MatrixExplanationContextList = TypeAdapter(list[MatrixExplanationContextDTO])` defined in `@[backend_v2/models/dtos/synthesis.py]`.
@@ -167,7 +167,13 @@
   - Quote length in `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]` centralized to `settings.max_synthesis_quote_length`.
   - Updated `@[ki_synthesis_payload_compression.md]` with SSOT settings, TypeAdapter direct dump, and round-robin curation.
   - Implemented 11 concrete unit tests in `@[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]` and updated contract test in `@[backend_v2/tests/unit/test_epic93_contract_verification.py]`.
-  - Universal Quality Gate passed with 93% line coverage on `MatrixExplanationService` and 79% overall on `backend_v2/services/orchestrator/`.
+  - Fixed trace event structure in `@[backend_v2/tests/unit/test_worker_synthesis.py]` to align with `StateProjector` block dictionary schema.
+  - Completed Tier 8 Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`) with PASSED verdict documented in `@[docs/epic/tasks_EPIC_143/red_team_audit_03_phase3_plan.md]`.
+  - Universal Quality Gate passed with 93% line coverage on `MatrixExplanationService`, 79% on `backend_v2/services/orchestrator/`, 100% on `backend_v2/models/dtos/synthesis.py`, and full codebase completion gate (1359 passed, 83.71% coverage).
+- **[Phase 4 Red-Teaming Complete]**:
+  - System 2 Red Team analysis and falsification executed for `@[docs/epic/tasks_EPIC_143/04_phase4_plan.md]` and documented in artifact `research_notes.md`.
+  - Hardened plan with exact `XaiHighlightItem.model_validate(raw_item, strict=False)` probe boundary specifications, structured RFC 7807 `ErrorCodes.INVALID_OUTPUT_SCHEMA` warning logs, explicit graceful degradation conditions (`profile.visible_block_extensions` empty or `profile.max_extension_items == 0`), and concrete test contracts for Anti-Happy-Path scenarios Q, U, and V.
+  - Baseline quality gate verified: `backend_v2/services/sdui/adapters/` passes audit loop with 42 tests and 72.36% coverage; golden master and semantic parity tests verified 100% passing.
 
 ## Learned
 ### Baseline State Snapshot & Execution Lessons
@@ -185,12 +191,24 @@
   - `TypeAdapter(list[MatrixExplanationContextDTO])` direct dump in `worker.py` eliminates double-serialization overhead and intermediate Python dict allocations.
   - Mandatory `target_locale: str` across all production and test call-sites without fallback defaults.
   - Probe validation boundary handles untrusted/corrupt `level_breakdown` entries individually via `LevelStatsDTO.model_validate` without discarding valid matrix scores or evaluations.
+- **Worker Synthesis Trace Integration (`backend_v2/tests/unit/test_worker_synthesis.py`)**:
+  - `StateProjector` expects trace event output contents to be dictionary-keyed by `block_id` (e.g., `{"blk_...": payload}`). Flat unkeyed dictionaries will cause `StepOutputDTO.payload` to receive raw strings or inner attributes, violating the `SynthesisPayloadCompressor` dictionary precondition.
+- **XAI Highlights SDUI Adapter Architecture (`backend_v2/services/sdui/adapters/xai_highlights_adapter.py`)**:
+  - Co-located `XAI_AESTHETICS_RULES` dictionary must remain the Single Source of Truth for visual properties (severity, icon name), accessed via strict Fail-Fast lookups `XAI_AESTHETICS_RULES[ext_type_str]`.
+  - Validating raw highlight dictionaries into `XaiHighlightItem` via `XaiHighlightItem.model_validate(raw_item, strict=False)` inside a `try...except (ValidationError, ValueError)` probe boundary eliminates all duck-typing while safely skipping malformed LLM outputs with structured RFC 7807 logs.
+  - `ranked_round_robin_select` ensures all active categories get interleaved representation, and the inner check `len(accordion.children) < max_lines` strictly caps each accordion to `profile.max_extension_items`.
 
 ## Remaining
-- **Phase 3 Audit**: Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`.
-- **Phase 4 Planning, Execution & Audit**: Harden `XaiHighlightsAdapter` with Ranked Round-Robin highlight curation, graceful degradation, and expanded unit tests.
-- **Post-Implementation & Final Audits**: Tier 2 Hardening (Backend), Golden Master audit, E2E gate, documentation sync, and Tier 8 Reverse Epic Analysis.
+- **Phase 4 Execution**: Execute `/tier2-execute @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`.
+- **Phase 4 Audit**: Execute `/tier8-audit-plan @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`.
+- **Post-Implementation & Final Audits**:
+  - Tier 2 Hardening (Backend) across all 12 touched files.
+  - Golden Master & Test Restoration Audit.
+  - Proxy Sunset & Pre-Delete Audit.
+  - Final E2E REST API Verification Gate (`RUN_LIVE_E2E=true`).
+  - As-Built Architectural Sync (`/tier7-describe-architecture`).
+  - System 2 Reverse Epic Analysis (`/tier8-audit-epic @[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]`).
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_143/03_phase3_plan.md] @[docs/epic/EPIC_143_tracker.md]`
+`/tier2-execute @[docs/epic/tasks_EPIC_143/04_phase4_plan.md] @[docs/epic/EPIC_143_tracker.md]`
 

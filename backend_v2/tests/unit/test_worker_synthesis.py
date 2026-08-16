@@ -32,7 +32,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
                 timestamp=datetime.now(timezone.utc),
                 event_type="output",
                 step_name="sr_1234567812345678",
-                content={"synthesized_markdown": "Test MD"},
+                content={"blk_synth12345678": {"synthesized_markdown": "Test MD"}},
             )
         ],
     )

@@ -8,7 +8,7 @@
 ```xml
 <execution_protocol>
   <step id="0" name="STRATEGIC ALIGNMENT CHECK">
-    <action>Look backward: Read the actual codebase state left by Phase 1, Phase 2, and Phase 3. Verify ranked_round_robin utility, distiller wiring, and hardened MatrixExplanationService pass all tests.</action>
+    <action>Look backward: Read the actual codebase state left by Phase 1, Phase 2, and Phase 3. Verify `ranked_round_robin_select` in @[backend_v2/utils/ranked_round_robin.py], distiller wiring in @[backend_v2/services/orchestrator/synthesis_distiller.py], and hardened `MatrixExplanationService` in @[backend_v2/services/orchestrator/matrix_explanation_service.py] pass all tests.</action>
     <action>Look forward: Verify if the current plan's assumptions still hold true in @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] and @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py].</action>
     <constraint>If alignment is broken, STOP and request Course Correction.</constraint>
     <directive>EPIC SYNC MANDATE: If this plan is mutated during Tier 0 analysis, you MUST simultaneously open the parent Epic document (@[docs/epic/EPIC_143_Synthesis_Matrix_Explanation_Fix.md]) and the Tracker document if available, and synchronize the architectural corrections back into them to maintain them as the true SSOT.</directive>
@@ -17,9 +17,9 @@
   <dod_checklist>
     - [ ] `XaiHighlightsAdapter.build` integrates `ranked_round_robin_select` to curate highlights across active extension types ranked by informativeness/length.
     - [ ] Graceful UI degradation implemented: returns `[]` immediately if `profile.visible_block_extensions` is empty/None or `profile.max_extension_items` is zero/None.
-    - [ ] Duck-typing eliminated (`isinstance(item, dict)`, `.get()`, `getattr()`): validates raw items into `XaiHighlightItem` with warning logging on parse failure.
+    - [ ] Duck-typing eliminated (`isinstance(item, dict)`, `.get()`, `getattr()`): validates raw items into `XaiHighlightItem` using `XaiHighlightItem.model_validate(raw_item, strict=False)` with warning logging on parse failure (`logger.warning("[XaiHighlightsAdapter] %s: Malformed XAI highlight item skipped: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, str(e))`).
     - [ ] Primacy Bias and Category Starvation eliminated in SDUI accordion rendering without requiring Flutter DTO or database schema changes.
-    - [ ] Unit tests in @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py] updated and expanded with 4 new tests.
+    - [ ] Unit tests in @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py] updated and expanded with 4 new tests covering Anti-Happy-Path scenarios Q, U, and V.
   </dod_checklist>
 
   <required_context_rules>
@@ -57,15 +57,39 @@
   <step id="1" name="XAI Highlights SDUI Adapter Hardening &amp; Round-Robin Fair Distribution">
     <action>Modify @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] (function `build`):
 1. Import `ranked_round_robin_select` from `backend_v2.utils.ranked_round_robin`, `XaiHighlightItem` from `backend_v2.models.dtos.synthesis`, and `ErrorCodes` from `backend_v2.exceptions`.
-2. Graceful UI degradation: if not profile.visible_block_extensions or not profile.max_extension_items: return [].
-3. Validate raw highlight items strictly using XaiHighlightItem.model_validate(raw_item, strict=False) inside a try/except (ValidationError, ValueError) block with warning log.
-4. Pre-filter and curate highlights using ranked_round_robin_select:
-   - items=valid_highlights
-   - group_key=lambda h: h.extension_type
-   - rank_key=lambda h: len(h.content)
-   - max_items=len(profile.visible_block_extensions) * profile.max_extension_items
-   - reverse_rank=True
-5. Populate AccordionBlock and AlertBlock children from curated_highlights, preserving XAI_AESTHETICS_RULES and Fail-Fast dictionary lookups.
+2. Graceful UI degradation:
+   ```python
+   if not profile.visible_block_extensions or not profile.max_extension_items:
+       return blocks
+   ```
+3. Validate raw highlight items strictly using `XaiHighlightItem.model_validate(raw_item, strict=False)` inside a `try/except (ValidationError, ValueError)` block with diagnostic warning log:
+   ```python
+   valid_highlights: list[XaiHighlightItem] = []
+   for raw_item in raw_highlights:
+       try:
+           valid_highlights.append(XaiHighlightItem.model_validate(raw_item, strict=False))
+       except (ValidationError, ValueError) as e:
+           logger.warning(
+               "[XaiHighlightsAdapter] %s: Malformed XAI highlight item skipped: %s",
+               ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+               str(e),
+           )
+
+   if not valid_highlights:
+       return blocks
+   ```
+4. Pre-filter and curate highlights using `ranked_round_robin_select`:
+   ```python
+   max_total_items = len(profile.visible_block_extensions) * profile.max_extension_items
+   curated_highlights = ranked_round_robin_select(
+       items=valid_highlights,
+       group_key=lambda h: h.extension_type,
+       rank_key=lambda h: len(h.content),
+       max_items=max_total_items,
+       reverse_rank=True,
+   )
+   ```
+5. Populate `AccordionBlock` and `AlertBlock` children from `curated_highlights`, preserving `XAI_AESTHETICS_RULES` and Fail-Fast dictionary lookups.
     </action>
     <constraint invariant="the_zero_compromise_pledge">Eliminate all duck-typing and fallback defaults in SDUI presentation logic.</constraint>
     <constraint invariant="sdui_contract_fracture_prevention">Ensure SDUI block output structures remain 100% compliant with existing Flutter client parsers.</constraint>
@@ -73,27 +97,27 @@
 
   <step id="2" name="XAI Highlights SDUI Adapter Unit Tests">
     <action>Modify @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]:
-1. Add test_build_graceful_degradation_disabled_extensions (visible_block_extensions=[] returns []).
-2. Add test_build_graceful_degradation_zero_max_items (max_extension_items=0 returns []).
-3. Add test_build_ranked_round_robin_distribution (verifies fair interleaving across coaching, falsification, and remediation_steps with longest content prioritized).
-4. Add test_build_malformed_highlight_item_skipped (verifies malformed dict is logged and skipped while valid items render).
+1. Add `test_build_graceful_degradation_disabled_extensions`: Verifies `visible_block_extensions=[]` returns `[]`.
+2. Add `test_build_graceful_degradation_zero_max_items`: Verifies `max_extension_items=0` returns `[]`.
+3. Add `test_build_ranked_round_robin_distribution`: Verifies that when 3 extension categories (specifically and exhaustively: `coaching`, `falsification`, and `remediation_steps`) have 4 items each, `ranked_round_robin_select` interleaves them fairly across accordions and prioritizes longest content without Primacy Bias.
+4. Add `test_build_malformed_highlight_item_skipped`: Verifies malformed dict missing required fields is safely skipped with warning log while valid items render properly.
     </action>
     <test_contracts>
       <test name="test_build_graceful_degradation_disabled_extensions" category="boundary">
-        <input>context with profile.visible_block_extensions=[]</input>
+        <input>AdapterContext with profile.visible_block_extensions=[] and non-empty xai_highlights</input>
         <expected>returns []</expected>
       </test>
       <test name="test_build_graceful_degradation_zero_max_items" category="boundary">
-        <input>context with profile.max_extension_items=0</input>
+        <input>AdapterContext with profile.max_extension_items=0 and non-empty xai_highlights</input>
         <expected>returns []</expected>
       </test>
       <test name="test_build_ranked_round_robin_distribution" category="positive">
-        <input>highlights with 3 categories having 4 items each, max_items=2 per category</input>
-        <expected>accordions receive longest items interleaved equitably without Primacy Bias</expected>
+        <input>highlights with 3 categories (coaching, falsification, remediation_steps) having 4 items each of varying lengths, profile.max_extension_items=2</input>
+        <expected>accordions receive longest items interleaved equitably without Primacy Bias, total 2 items per accordion</expected>
       </test>
       <test name="test_build_malformed_highlight_item_skipped" category="error_path">
-        <input>highlights containing malformed dict missing required content</input>
-        <expected>logs warning with INVALID_OUTPUT_SCHEMA and renders valid items</expected>
+        <input>highlights containing a malformed dict missing 'content' alongside valid coaching highlight</input>
+        <expected>logs warning with INVALID_OUTPUT_SCHEMA and renders valid coaching accordion with 1 AlertBlock</expected>
       </test>
     </test_contracts>
   </step>

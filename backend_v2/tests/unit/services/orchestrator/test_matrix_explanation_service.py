@@ -310,7 +310,12 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
                 label=I18nText(default_locale="en", translations={"en": "Claim Alpha"}),
                 ai_description="Alpha",
                 tda_assertions=[
-                    TDAAssertion(tda_id=f"tda_a000000000000000000000000000000{i}", inverse_evidence=False, aggregation_mode="ALL_MUST_COMPLY", concept_description="Alpha")
+                    TDAAssertion(
+                        tda_id=f"tda_a000000000000000000000000000000{i}",
+                        inverse_evidence=False,
+                        aggregation_mode="ALL_MUST_COMPLY",
+                        concept_description="Alpha",
+                    )
                     for i in range(4)
                 ],
             ),
@@ -318,7 +323,12 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
                 label=I18nText(default_locale="en", translations={"en": "Claim Beta"}),
                 ai_description="Beta",
                 tda_assertions=[
-                    TDAAssertion(tda_id=f"tda_b000000000000000000000000000000{i}", inverse_evidence=False, aggregation_mode="ALL_MUST_COMPLY", concept_description="Beta")
+                    TDAAssertion(
+                        tda_id=f"tda_b000000000000000000000000000000{i}",
+                        inverse_evidence=False,
+                        aggregation_mode="ALL_MUST_COMPLY",
+                        concept_description="Beta",
+                    )
                     for i in range(4)
                 ],
             ),
@@ -330,22 +340,26 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
     for i in range(4):
         tda_a = f"tda_a000000000000000000000000000000{i}"
         tda_b = f"tda_b000000000000000000000000000000{i}"
-        results.append({
-            "tda_id": tda_a,
-            "status": "PASSED",
-            "evaluation_reasoning": "Reason",
-            "source_quote": f"Alpha long verbatim quote sentence number {i}.",
-            "depends_on_tda_ids": [],
-            "short_circuit_reason_tda_ids": [],
-        })
-        results.append({
-            "tda_id": tda_b,
-            "status": "PASSED",
-            "evaluation_reasoning": "Reason",
-            "source_quote": f"Beta long verbatim quote sentence number {i}.",
-            "depends_on_tda_ids": [],
-            "short_circuit_reason_tda_ids": [],
-        })
+        results.append(
+            {
+                "tda_id": tda_a,
+                "status": "PASSED",
+                "evaluation_reasoning": "Reason",
+                "source_quote": f"Alpha long verbatim quote sentence number {i}.",
+                "depends_on_tda_ids": [],
+                "short_circuit_reason_tda_ids": [],
+            }
+        )
+        results.append(
+            {
+                "tda_id": tda_b,
+                "status": "PASSED",
+                "evaluation_reasoning": "Reason",
+                "source_quote": f"Beta long verbatim quote sentence number {i}.",
+                "depends_on_tda_ids": [],
+                "short_circuit_reason_tda_ids": [],
+            }
+        )
         evaluated_atoms[tda_a] = ExecutionStatus.PASSED
         evaluated_atoms[tda_b] = ExecutionStatus.PASSED
 
@@ -390,7 +404,12 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
                 label=I18nText(default_locale="en", translations={"en": "Claim A"}),
                 ai_description="A",
                 tda_assertions=[
-                    TDAAssertion(tda_id=f"tda_da00000000000000000000000000000{i}", inverse_evidence=False, aggregation_mode="ALL_MUST_COMPLY", concept_description="A")
+                    TDAAssertion(
+                        tda_id=f"tda_da00000000000000000000000000000{i}",
+                        inverse_evidence=False,
+                        aggregation_mode="ALL_MUST_COMPLY",
+                        concept_description="A",
+                    )
                     for i in range(5)
                 ],
             ),
@@ -398,7 +417,12 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
                 label=I18nText(default_locale="en", translations={"en": "Claim B"}),
                 ai_description="B",
                 tda_assertions=[
-                    TDAAssertion(tda_id=f"tda_db00000000000000000000000000000{i}", inverse_evidence=False, aggregation_mode="ALL_MUST_COMPLY", concept_description="B")
+                    TDAAssertion(
+                        tda_id=f"tda_db00000000000000000000000000000{i}",
+                        inverse_evidence=False,
+                        aggregation_mode="ALL_MUST_COMPLY",
+                        concept_description="B",
+                    )
                     for i in range(5)
                 ],
             ),
@@ -415,22 +439,26 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
         quote_a = f"Duplicate shared verbatim quote index {i if i < 2 else f'unique_a_{i}'}."
         quote_b = f"Duplicate shared verbatim quote index {i if i < 2 else f'unique_b_{i}'}."
 
-        results.append({
-            "tda_id": tda_a,
-            "status": "PASSED",
-            "evaluation_reasoning": "Reason",
-            "source_quote": quote_a,
-            "depends_on_tda_ids": [],
-            "short_circuit_reason_tda_ids": [],
-        })
-        results.append({
-            "tda_id": tda_b,
-            "status": "PASSED",
-            "evaluation_reasoning": "Reason",
-            "source_quote": quote_b,
-            "depends_on_tda_ids": [],
-            "short_circuit_reason_tda_ids": [],
-        })
+        results.append(
+            {
+                "tda_id": tda_a,
+                "status": "PASSED",
+                "evaluation_reasoning": "Reason",
+                "source_quote": quote_a,
+                "depends_on_tda_ids": [],
+                "short_circuit_reason_tda_ids": [],
+            }
+        )
+        results.append(
+            {
+                "tda_id": tda_b,
+                "status": "PASSED",
+                "evaluation_reasoning": "Reason",
+                "source_quote": quote_b,
+                "depends_on_tda_ids": [],
+                "short_circuit_reason_tda_ids": [],
+            }
+        )
         evaluated_atoms[tda_a] = ExecutionStatus.PASSED
         evaluated_atoms[tda_b] = ExecutionStatus.PASSED
 
@@ -471,7 +499,12 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
                     label=I18nText(default_locale="en", translations={"en": f"Deficit Level 1 Claim {i}"}),
                     ai_description=f"Deficit L1 {i}",
                     tda_assertions=[
-                        TDAAssertion(tda_id=f"tda_1111111111111111111111111111111{i}", inverse_evidence=False, aggregation_mode="ALL_MUST_COMPLY", concept_description="L1")
+                        TDAAssertion(
+                            tda_id=f"tda_1111111111111111111111111111111{i}",
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="L1",
+                        )
                     ],
                 )
                 for i in range(3)
@@ -485,7 +518,12 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
                     label=I18nText(default_locale="en", translations={"en": f"Deficit Level 2 Claim {i}"}),
                     ai_description=f"Deficit L2 {i}",
                     tda_assertions=[
-                        TDAAssertion(tda_id=f"tda_2222222222222222222222222222222{i}", inverse_evidence=False, aggregation_mode="ALL_MUST_COMPLY", concept_description="L2")
+                        TDAAssertion(
+                            tda_id=f"tda_2222222222222222222222222222222{i}",
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="L2",
+                        )
                     ],
                 )
                 for i in range(3)
@@ -499,7 +537,12 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
                     label=I18nText(default_locale="en", translations={"en": f"Deficit Level 5 Claim {i}"}),
                     ai_description=f"Deficit L5 {i}",
                     tda_assertions=[
-                        TDAAssertion(tda_id=f"tda_5555555555555555555555555555555{i}", inverse_evidence=False, aggregation_mode="ALL_MUST_COMPLY", concept_description="L5")
+                        TDAAssertion(
+                            tda_id=f"tda_5555555555555555555555555555555{i}",
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="L5",
+                        )
                     ],
                 )
                 for i in range(3)
@@ -512,14 +555,16 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
     for s in scales:
         for c in s.claims:
             tda_id = c.tda_assertions[0].tda_id
-            results.append({
-                "tda_id": tda_id,
-                "status": "FAILED",
-                "evaluation_reasoning": "Reason",
-                "source_quote": None,
-                "depends_on_tda_ids": [],
-                "short_circuit_reason_tda_ids": [],
-            })
+            results.append(
+                {
+                    "tda_id": tda_id,
+                    "status": "FAILED",
+                    "evaluation_reasoning": "Reason",
+                    "source_quote": None,
+                    "depends_on_tda_ids": [],
+                    "short_circuit_reason_tda_ids": [],
+                }
+            )
             evaluated_atoms[tda_id] = ExecutionStatus.FAILED
 
     dtos = [
@@ -620,10 +665,17 @@ def test_assemble_matrices_to_explain_multilingual_resolution() -> None:
         ai_label="MULTILINGUAL",
         claims=[
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": "English Criteria Name", "fi": "Suomalainen Kriteeri"}),
+                label=I18nText(
+                    default_locale="en", translations={"en": "English Criteria Name", "fi": "Suomalainen Kriteeri"}
+                ),
                 ai_description="AI rule",
                 tda_assertions=[
-                    TDAAssertion(tda_id=tda_id, inverse_evidence=False, aggregation_mode="ALL_MUST_COMPLY", concept_description="Multi")
+                    TDAAssertion(
+                        tda_id=tda_id,
+                        inverse_evidence=False,
+                        aggregation_mode="ALL_MUST_COMPLY",
+                        concept_description="Multi",
+                    )
                 ],
             )
         ],
