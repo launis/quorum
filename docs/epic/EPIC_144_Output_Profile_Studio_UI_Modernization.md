@@ -53,9 +53,10 @@ During codebase verification, the following 12 existing Fail-Fast violations wer
 | V7c | `isinstance(dt, datetime)` duck-typing check | `@[backend_v2/services/sdui/adapters/metadata_adapter.py]` | `strict_pydantic_v2_rust` | Remove runtime `isinstance` guard on `context.execution.created_at`. The field is strictly typed as `datetime` in `ExecutionRecord`; format directly via `.strftime("%d.%m.%Y %H:%M")`. |
 | V8 | `SynthesisTextAdapter` does not read `RenderedSynthesisCache.section_syntheses` | `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]` | `tripartite_pipeline` / Dual-Mode synthesis | Extend adapter to read BOTH `context.profile.content_blocks` (static pre-defined blocks) AND `context.profile_cache.section_syntheses[layout_id]` (dynamic LLM-generated synthesis from Pipeline mode). Without this, Option A (Pipeline Way) produces no output. |
 | V9 | Absence of Atomic Data & Mock Fixture Migration for V1 & V6 Tightening (Blast Radius) | `@[backend_v2/seed/seed_data.json]`, `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`, `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]`, `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`, `@[backend_v2/tests/unit/services/test_blueprint.py]`, `@[backend_v2/tests/unit/hooks/test_scoring.py]`, `@[backend_v2/tests/unit/test_worker_synthesis.py]`, `@[backend_v2/tests/unit/test_v2_core_models.py]` | `universal_fail_fast` / `the_zero_compromise_pledge` | Synchronously update and verify all seed database entries and unit test mock fixtures across both frontend and backend blast radius test suites when removing `unknownEnumValue` fallbacks and converting `display_scale` to a strict Enum. Re-seed local development database (`run_seed.py local`) to eliminate any unmapped string values before execution. |
-| V10 | DTO upper bound omission for `max_extension_items` | `@[backend_v2/models/dtos/output_profile.py]` | `global_config_sovereignty_mandate` / `strict_pydantic_v2_rust` | Mirror domain model mathematical bounds in DTO schema (`Field(ge=1, le=100)`) to maintain strict bidirectional boundary validation parity. |
+| V10 | DTO upper bound omission for `max_extension_items` & Flutter UI Slider Boundary Mismatch Crash Risk | `@[backend_v2/models/dtos/output_profile.py]`, `@[client_app_v2/lib/core/models/enums.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]` | `global_config_sovereignty_mandate` / `strict_pydantic_v2_rust` / `universal_fail_fast` | Mirror domain model mathematical bounds in DTO schema (`Field(ge=1, le=100)`) to maintain strict bidirectional boundary validation parity. To prevent Flutter framework assertion crashes (`Assertion failed: value >= min && value <= max: is not true`) when database/API returns values outside the 1–20 UI slider range (up to 100), define `SystemUiConstraints` enum in `@[client_app_v2/lib/core/models/enums.dart]` (`maxExtensionItemsSliderMin: 1`, `maxExtensionItemsSliderMax: 20`, `maxExtensionItemsAbsoluteMax: 100`, `maxExtensionItemsDefault: 3`). Implement safe clamping `currentVal.clamp(minVal, sliderMax).toDouble()` on the `Slider` in `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]` combined with a companion `TextFormField` validating the full `[1, 100]` range. |
 | V11 | Absence of Automated Code Generation Gate for Freezed & OpenAPI | `@[backend_v2/scripts/generate_openapi.py]`, `@[docs/swagger/openapi.json]`, `@[client_app_v2/lib/features/studio/models/output_profile.freezed.dart]`, `@[client_app_v2/lib/features/studio/models/output_profile.g.dart]` | `automated_code_generation_mandate` / `pydantic_namespace_collisions` / `sdui_contract_fracture_prevention` | Execute `uv run python backend_v2/scripts/generate_openapi.py` to synchronize OpenAPI specification, and execute `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build` to re-generate Freezed stubs immediately after DTO and Enum modifications in Phase 0. |
 | V12 | Fatal Backend Deserialization Crash Risk under `ConfigDict(extra="forbid")` during `include_diagnostic_scorecard` purge | `@[backend_v2/models/v2_core.py]`, `@[backend_v2/database/repositories/components/output_profile.py]` | `the_zero_compromise_pledge` / `python_314_concurrency_strictness` | When `include_diagnostic_scorecard` is removed from `OutputProfile`, running against any local TinyDB/Firestore database containing the legacy key triggers fatal `pydantic.ValidationError` (`extra_forbidden`) on read in `OutputProfileRepositoryImpl.get_all_output_profiles_models()`. Implement an idempotent pre-flight migration script `backend_v2/database/migrations/purge_legacy_output_profile_keys.py` and mandate local re-seeding (`run_seed.py local`). BANNED: Relaxing to `extra="ignore"` or adding `.pop()` duct-tape in repository. |
+| V13 | Hardcoded Business Logic Thresholds in SDUI Adapter (`AUTHENTICITY_THRESHOLDS = {"high": 80.0, "low": 50.0}`) | `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]` | `global_config_sovereignty_mandate` / `tripartite_configuration_segregation` / `@[ki_global_config_sovereignty.md]` / `@[ki_sdui_adapter_pattern.md]` | Eradicate module-level hardcoded `AUTHENTICITY_THRESHOLDS` dictionary in `authenticity_adapter.py`. Define centralized configurable threshold settings in `@[backend_v2/settings.py]` (`authenticity_threshold_high: float = Field(default=80.0, ge=0.0, le=100.0)` and `authenticity_threshold_low: float = Field(default=50.0, ge=0.0, le=100.0)`). Refactor `AuthenticityAdapter.build()` to import `get_settings` at module level and read dynamic thresholds, preserving pure visual role for `AUTHENTICITY_RULES` (severity/icon mapping only). |
 
 ### 2.5 Block Data Pipeline Reference (DB → Pydantic → Adapter → SDUI → Renderer)
 
@@ -142,7 +143,7 @@ The following table exhaustively documents the complete data lineage for every r
 | :--- | :--- | :--- |
 | **DB Config** | No profile-level configuration fields. Block is purely computed. | Presence in `target_block_order` controls visibility. |
 | **Data Source** | `ExtensionMetricsDTO.authenticity_score: float`, `ExtensionMetricsDTO.performative_phrases_count: float` | `@[backend_v2/models/v2_core.py]` — Pre-calculated metrics. Also reads `MatrixScorecardRowDTO` for per-matrix authenticity breakdowns. |
-| **Adapter** | `AuthenticityAdapter.build(context)` | `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]` — Uses `AUTHENTICITY_RULES` with 3 severity levels (`level_high` → INFO, `level_medium` → WARNING, `level_low` → ERROR) and `AUTHENTICITY_THRESHOLDS` (high: 80.0, low: 50.0). Emits `SduiMetrics1DBlock`, `SduiGridBlock`, `AlertBlock`, `MarkdownBlock`, `ParagraphBlock`. |
+| **Adapter** | `AuthenticityAdapter.build(context)` | `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]` — Uses `AUTHENTICITY_RULES` with 3 severity levels (`level_high` → INFO, `level_medium` → WARNING, `level_low` → ERROR) and centralized dynamic thresholds from `@[backend_v2/settings.py]` (`settings.authenticity_threshold_high`, `settings.authenticity_threshold_low` per `@[ki_global_config_sovereignty.md]`). Emits `SduiMetrics1DBlock`, `SduiGridBlock`, `AlertBlock`, `MarkdownBlock`, `ParagraphBlock`. |
 | **SDUI Output** | `SduiMetrics1DBlock`, `SduiGridBlock`, `AlertBlock`, `MarkdownBlock`, `ParagraphBlock` | `@[backend_v2/models/view/sdui.py]` |
 | **UI Config** | Universal Baseline toggle only | Tab 3 → `authenticity_evaluation_block` card (simple toggle) |
 
@@ -175,8 +176,51 @@ The following table exhaustively documents the complete data lineage for every r
 
 ## 3. Phased Execution Plan (Implementation Strategy)
 
+### 3.0 MANDATORY Deployment & Execution Sequence (6-Step Atomic Pipeline)
+
+To eliminate any catastrophic crash risk caused by removing `unknownEnumValue` fallbacks (V1), introducing strict `@JsonEnum() DisplayScale` (V6), and purging `include_diagnostic_scorecard` under strict Pydantic `extra="forbid"` deserialization (V9, V11 & V12; see `@[ki_python_314_concurrency_strictness.md]`), all implementation workflows MUST execute according to the following strict 6-step atomic sequence:
+
+```mermaid
+graph TD
+    Step1["Step 1: Raw Data Migration & Seed Cleansing"] --> Step2["Step 2: Backend Models & DTO Strict Purge"]
+    Step2 --> Step3["Step 3: OpenAPI Contract Synchronization"]
+    Step3 --> Step4["Step 4: Frontend Freezed & Enum Code Generation"]
+    Step4 --> Step5["Step 5: Frontend UI Sub-Tab & Block Card Decomposition"]
+    Step5 --> Step6["Step 6: Atomic Verification & Anti-Happy-Path Gate"]
+```
+
+1. **Step 1: Pre-Flight Raw Storage Migration & Master Seed Sanitization**
+   - Execute standalone raw storage migration script `@[backend_v2/database/migrations/purge_legacy_output_profile_keys.py]` on raw JSON/TinyDB dictionary structures (`data/db_v2.json`) stripping `"include_diagnostic_scorecard"` without importing Pydantic domain models.
+   - Synchronize `@[backend_v2/seed/seed_data.json]` ensuring all output profile objects have `display_scale` set to valid enum strings (`normalized_100`, `custom`, `original`), zero `include_diagnostic_scorecard` keys, and complete `metric_mappings`.
+   - Execute local environment database re-seeding via `uv run python backend_v2/seed/run_seed.py local`.
+2. **Step 2: Backend Domain Model, Settings & DTO Synchronization**
+   - In `@[backend_v2/settings.py]`, define centralized authenticity thresholds `authenticity_threshold_high: Annotated[float, Field(default=80.0, ge=0.0, le=100.0)]` and `authenticity_threshold_low: Annotated[float, Field(default=50.0, ge=0.0, le=100.0)]` per `global_config_sovereignty_mandate`.
+   - In `@[backend_v2/models/enums.py]`, define `DisplayScale(StrEnum)` with values `ORIGINAL = "original"`, `CUSTOM = "custom"`, `NORMALIZED_100 = "normalized_100"` and property `l10n_key`.
+   - In `@[backend_v2/models/v2_core.py]`, delete `include_diagnostic_scorecard: bool` from `OutputProfile`, change `display_scale` type to `DisplayScale`, and ensure `model_config = ConfigDict(strict=True, extra="forbid")`.
+   - In `@[backend_v2/models/dtos/output_profile.py]`, delete `include_diagnostic_scorecard` across `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, `OutputProfileResponseDTO`. Enforce `max_extension_items: Annotated[int | None, Field(ge=1, le=100)]`.
+   - Run backend unit models audit: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_v2_core_models.py --test`.
+3. **Step 3: OpenAPI Specification Synchronization Gate**
+   - Execute OpenAPI generator: `uv run python backend_v2/scripts/generate_openapi.py`.
+   - Verify OpenAPI parity test: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py --test`.
+4. **Step 4: Frontend Freezed Model & Enum Synchronization**
+   - In `@[client_app_v2/lib/core/models/enums.dart]`, define `@JsonEnum() enum DisplayScale` and `enum SystemUiConstraints`.
+   - In `@[client_app_v2/lib/features/studio/models/output_profile.dart]`, delete `includeDiagnosticScorecard`, set `DisplayScale displayScale`, and remove ALL `unknownEnumValue` fallback parameters.
+   - Execute code generation: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build`.
+   - Run Freezed deserialization tests: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/models/output_profile_test.dart --test`.
+5. **Step 5: Frontend UI Scaffold & Block Builder Decomposition**
+   - Update localization files `app_en.arb` and `app_fi.arb`, compile with `cd client_app_v2; flutter gen-l10n; cd ..`.
+   - Decompose `output_profile_crud_view.dart` into `ProfileGeneralTab`, `ProfileScoringTab`, and `ProfileLayoutsTab`.
+   - Build dedicated block cards under `lib/features/studio/views/widgets/profile/blocks/` adhering to God Code Prevention (<200 lines per file).
+   - Implement slider clamping and companion text field validation for `max_extension_items` in `xai_extensions_block_card.dart`.
+6. **Step 6: Global Quality Gates & Anti-Happy-Path Falsification**
+   - Run full backend negative test suite via `uv run python scripts/backend_audit_loop.py backend_v2 --test`.
+   - Run full frontend test suite and build verification via `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio --build` and `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio --test`.
+
+---
+
 ### Phase 0: Atomic Data, Mock Fixture & Code Generation Gate (Pre-requisite)
 **Target Files (Modify / New / Execute):**
+- `[MODIFY]` `@[backend_v2/settings.py]`
 - `[MODIFY]` `@[backend_v2/models/enums.py]`
 - `[MODIFY]` `@[client_app_v2/lib/core/models/enums.dart]`
 - `[MODIFY]` `@[backend_v2/models/v2_core.py]`
@@ -195,14 +239,15 @@ The following table exhaustively documents the complete data lineage for every r
 - `[EXECUTE]` `@[backend_v2/scripts/generate_openapi.py]`
 - `[EXECUTE]` `@[docs/swagger/openapi.json]`
 
-To eliminate any catastrophic crash risk caused by removing `unknownEnumValue` fallbacks (V1), introducing strict `@JsonEnum() DisplayScale` (V6), and purging `include_diagnostic_scorecard` under strict Pydantic `extra="forbid"` deserialization (V9, V11 & V12; see `@[ki_python_314_concurrency_strictness.md]`), the database, mock fixtures, and generated code stubs MUST be migrated at the boundary before UI and client refactoring:
+To eliminate any catastrophic crash risk caused by removing `unknownEnumValue` fallbacks (V1), introducing strict `@JsonEnum() DisplayScale` (V6), and purging `include_diagnostic_scorecard` under strict Pydantic `extra="forbid"` deserialization (V9, V11 & V12; see `@[ki_python_314_concurrency_strictness.md]`), the database, mock fixtures, and generated code stubs MUST be migrated at the boundary following Steps 1–4 of the Mandatory Deployment Sequence before UI and client refactoring:
 
 > [!IMPORTANT]
 > **CRITICAL OPENAPI SYNC:** You MUST run `uv run python backend_v2/scripts/generate_openapi.py` followed by `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build` to mathematically propagate the Pydantic schema changes (V6, V10) to the Dart API client before compiling any Flutter UI.
 1. **SSOT Enum Parity & Centralized Constraints Creation:**
+   - Define centralized settings in `@[backend_v2/settings.py]` (`authenticity_threshold_high: Annotated[float, Field(default=80.0, ge=0.0, le=100.0)]` and `authenticity_threshold_low: Annotated[float, Field(default=50.0, ge=0.0, le=100.0)]`) to eradicate hardcoded business logic thresholds (V13).
    - Define `DisplayScale(StrEnum)` in `@[backend_v2/models/enums.py]` with values `ORIGINAL = "original"`, `CUSTOM = "custom"`, `NORMALIZED_100 = "normalized_100"` and property `l10n_key`.
    - Define `@JsonEnum() enum DisplayScale` in `@[client_app_v2/lib/core/models/enums.dart]` with matching `@JsonValue('original') original`, `@JsonValue('custom') custom`, `@JsonValue('normalized_100') normalized100`.
-   - Define `SystemUiConstraints` enum in `@[client_app_v2/lib/core/models/enums.dart]` (specifically `maxExtensionItemsSliderMin(1)`, `maxExtensionItemsSliderMax(20)`, `maxExtensionItemsDefault(3)`) to enforce centralized UI limits per `frontend_enum_parity_mandate`.
+   - Define `SystemUiConstraints` enum in `@[client_app_v2/lib/core/models/enums.dart]` (specifically `maxExtensionItemsSliderMin(1)`, `maxExtensionItemsSliderMax(20)`, `maxExtensionItemsAbsoluteMax(100)`, `maxExtensionItemsDefault(3)`) to enforce centralized UI limits per `frontend_enum_parity_mandate`.
    - Ensure `OutputProfileCreateDTO` and `OutputProfileUpdateDTO` in `@[backend_v2/models/dtos/output_profile.py]` enforce strict boundary parity for `max_extension_items: Annotated[int | None, Field(default=None, ge=1, le=100)]`.
    - Update `@[client_app_v2/lib/features/studio/models/output_profile.dart]` to use `DisplayScale displayScale` and eradicate all `unknownEnumValue` parameters (`PresetView.defaultView`, `TextDeliveryMode.full`, `HistoricalContextMode.disabled`, `PresetView.metrics1d`).
 2. **Pre-Flight Database Migration & Reseed Gate:**
@@ -284,8 +329,9 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
    - **Adapter Gap (V8):** `SynthesisTextAdapter` (`@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]`) MUST be extended to read `context.profile_cache.section_syntheses` in addition to `context.profile.content_blocks`. Currently it only reads static blocks, which means Pipeline Way (Option A) synthesis output is silently dropped.
 
 5. **AI Extensions Block Editor (`client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart`):**
-   - Uses interactive `FilterChip` pills. Slider for `max_extension_items` MUST be clamped to `SystemUiConstraints` to prevent framework assertion crashes.
-   - **Client-Side Boundary Validation:** The numerical text input override MUST include a `TextFormField` validator ensuring the value is `>= 1` and `<= 100`. This guarantees local Fail-Fast before the API network call.
+   - Uses interactive `FilterChip` pills for selecting active XAI extension categories.
+   - **Dual-Input Hybrid Pattern & Clamping:** Slider for `max_extension_items` MUST safely clamp incoming values via `currentVal.clamp(minVal, sliderMax).toDouble()` against `SystemUiConstraints.maxExtensionItemsSliderMin` (1) and `SystemUiConstraints.maxExtensionItemsSliderMax` (20) to prevent Flutter framework assertion crashes on out-of-bounds database values (`>20`).
+   - **Client-Side Boundary Validation:** The companion `TextFormField` numerical text input override MUST include a `FormFieldValidator` ensuring the parsed value is `>= SystemUiConstraints.maxExtensionItemsSliderMin.value` (1) and `<= SystemUiConstraints.maxExtensionItemsAbsoluteMax.value` (100). This guarantees local Fail-Fast before the API network call while allowing power-users to specify values between 21 and 100 without crashing the UI.
 
 6. **Metadata & Bibliography Block Editors (`metadata_block_card.dart` & `bibliography_block_card.dart`):**
    - Simple toggle-based cards in the block builder.
@@ -299,17 +345,20 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 
 ### Phase 3: Backend Execution & Synthesis Alignment
 **Target Files (Modify):**
+- `[MODIFY]` `@[backend_v2/settings.py]`
 - `[MODIFY]` `@[backend_v2/services/matrix_domain_parser.py]`
 - `[MODIFY]` `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]`
 - `[MODIFY]` `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`
 - `[MODIFY]` `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`
 - `[MODIFY]` `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`
+- `[MODIFY]` `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`
 - `[MODIFY]` `@[backend_v2/models/v2_core.py]`
 - `[MODIFY]` `@[backend_v2/models/dtos/output_profile.py]`
 - `[MODIFY]` `@[backend_v2/seed/seed_data.json]`
 - `[MODIFY]` `@[backend_v2/tests/unit/services/test_blueprint.py]`
 - `[MODIFY]` `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]`
 - `[MODIFY]` `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`
+- `[MODIFY]` `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]`
 
 1. **Tripartite Synthesis & SDUI Alignment (V8 Fix):**
    - **Phase 2 (Synthesis Engine):** Must handle the LLM execution for both Option A and Option B (`tone_instruction`, `system_prompt`) and save the output to `profile_cache` (`RenderedSynthesisCache.section_syntheses`).
@@ -318,7 +367,7 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 2. **Bibliography & Universal Block Alignment (SSOT):** The `printable_sources_block` visibility is controlled exclusively via `target_block_order` (Universal Baseline Toggle SSOT). No separate `include_bibliography` boolean field is permitted. Refactor `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]` to support new grouping settings if needed.
 3. **Legacy Redundancy Eradication & Strictness Defense (`include_diagnostic_scorecard`):**
    - Completely remove `include_diagnostic_scorecard: bool` from `@[backend_v2/models/v2_core.py]`, `@[backend_v2/models/dtos/output_profile.py]`, and `@[client_app_v2/lib/features/studio/models/output_profile.dart]`. The presence of `matrix_summary_table_block` or `matrix_graphs_block` in `target_block_order` is the sole SSOT for scorecard rendering.
-   - **Pydantic Strictness Contract (`@[ki_python_314_concurrency_strictness.md]`):** All domain models and DTOs MUST maintain `ConfigDict(strict=True, extra="forbid")`. To prevent fatal `extra_forbidden` validation crashes on stored documents during `OutputProfileRepositoryImpl.get_all_output_profiles_models()`, the pre-flight migration script `backend_v2/database/migrations/purge_legacy_output_profile_keys.py` (Phase 0) MUST be executed to purge persistent TinyDB/Firestore storage before deployment. Relaxing Pydantic to `extra="ignore"`, adding `.pop()` in repositories, or injecting `@model_validator(mode="before")` legacy field scrubbing hooks (for example `_remove_legacy_fields`) into Pydantic models is strictly BANNED (`the_zero_compromise_pledge`, `zero_legacy_fallback_hacks`). Legacy data must be cleansed at the database source, keeping domain schemas mathematically pure.
+   - **Pydantic Strictness Contract (`@[ki_python_314_concurrency_strictness.md]`):** All domain models and DTOs MUST maintain `ConfigDict(strict=True, extra="forbid")`. To prevent fatal `extra_forbidden` validation crashes on stored documents during `OutputProfileRepositoryImpl.get_all_output_profiles_models()`, the pre-flight migration script `backend_v2/database/migrations/purge_legacy_output_profile_keys.py` (Phase 0) MUST be executed to purge persistent TinyDB/Firestore storage before deployment. Relaxing Pydantic to `extra="ignore"`, adding `.pop()` in repositories, or injecting any `@model_validator(mode="before")` legacy field scrubbing hooks into Pydantic models is strictly BANNED (`the_zero_compromise_pledge`, `zero_legacy_fallback_hacks`). Legacy data must be cleansed at the database source, keeping domain schemas mathematically pure.
 4. **Metadata Localization & Modernity Fix (V7, V7a, V7b, V7c) and Seed Data Contract:**
    - **SDUI Adapter:** Refactor `@[backend_v2/services/sdui/adapters/metadata_adapter.py]` to:
      1. **Eradicate V7 (Hardcoded Finnish strings):** Replace ALL hardcoded Finnish strings (`"Käyttäjä:"`, `"Organisaatio:"`, `"Arviointimoottori:"`, `"Ankaruustaso:"`) with locale-resolved labels from `context.profile.metric_mappings` I18nText dictionary, strictly adhering to Dual-Axis Localization (`@[ki_dual_axis_localization_architecture.md]`). The adapter MUST enforce Fail-Fast key lookups and raise `AppException(VALIDATION_FAILED)` if a required metric translation key is missing. Zero `.get(k, default)` fallbacks permitted.
@@ -331,7 +380,9 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
      - `metadata_scoring_engine`: `{"default_locale": "fi", "translations": {"fi": "Arviointimoottori:", "en": "Scoring Engine:"}}`
      - `metadata_strictness`: `{"default_locale": "fi", "translations": {"fi": "Ankaruustaso:", "en": "Strictness Level:"}}`
    - **DTO Firewall:** Ensure `OutputProfileResponseDTO` and `OutputProfileUpdateDTO` in `@[backend_v2/models/dtos/output_profile.py]` maintain `metric_mappings` as `Field(exclude=True)` and `@[backend_v2/api/routers/studio/output_profiles.py]` retains `update_data.pop("metric_mappings", None)` to permanently prevent Studio UI CRUD operations from wiping or corrupting system translation maps.
-5. **Adapter Pattern Strictness:** All modified adapters MUST strictly follow the 2-section canonical template (AESTHETICS_RULES dictionary + Adapter Class), utilizing fail-fast dictionary access and immutable `AdapterContext` (`@[ki_sdui_adapter_pattern.md]`).
+5. **Adapter Pattern Strictness & Global Config Sovereignty (V13 Fix):**
+   - All modified adapters MUST strictly follow the 2-section canonical template (AESTHETICS_RULES dictionary + Adapter Class), utilizing fail-fast dictionary access and immutable `AdapterContext` (`@[ki_sdui_adapter_pattern.md]`).
+   - Refactor `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]` to completely delete the hardcoded `AUTHENTICITY_THRESHOLDS = {"high": 80.0, "low": 50.0}` dictionary. The adapter MUST import `get_settings` at the top of the file and resolve `high_thresh` and `low_thresh` from `settings.authenticity_threshold_high` and `settings.authenticity_threshold_low` dynamically per `@[ki_global_config_sovereignty.md]`.
 6. **XAI Highlights Type Safety (`list[XaiHighlightItem]`):** Refactor `RenderedSynthesisCache.xai_highlights` (`@[backend_v2/models/v2_core.py]`) from `list[Any]` to `list[XaiHighlightItem]`, enforcing strict Fail-Fast Pydantic V2 parsing across synthesis cache storage. Remove the defensive runtime `model_validate` try-catch loop from `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`. Synchronize all backend test fixtures in `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]` and `@[backend_v2/tests/unit/services/test_blueprint.py]` to instantiate `XaiHighlightItem` objects explicitly.
 7. **DisplayScale Domain Service Alignment (`matrix_domain_parser.py`):** Refactor `@[backend_v2/services/matrix_domain_parser.py]` to compare native `DisplayScale` enum members (`NORMALIZED_100`, `CUSTOM`) instead of raw string literals (`if display_scale == "normalized_100":` at L238, L242, L268), strictly satisfying `strict_enum_hydration_and_validation` (`@[ki_python_314_concurrency_strictness.md]`).
 
@@ -360,6 +411,7 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 ### Phase 5: Automated Verification & Quality Gates (Anti-Happy-Path Mandate)
 **Target Files (Test Targets):**
 - `[TEST]` `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]`
+- `[TEST]` `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]`
 - `[NEW]` `backend_v2/tests/unit/models/dtos/test_output_profile_dto.py`
 - `[TEST]` `@[backend_v2/tests/unit/test_output_profile_models.py]`
 - `[TEST]` `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`
@@ -372,6 +424,7 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 
 1. **Backend Fail-Fast & Negative Unit Tests (`@[ki_ai_testing_standards.md]`):**
    - Execute negative tests in `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]` verifying that `MetadataAdapter.build()` raises `AppException(VALIDATION_FAILED)` when `metric_mappings` lacks required keys (`metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`) or when a translation is missing for the active locale (specifically preventing silent fallback to Finnish strings or `.get()` defaults).
+   - Execute negative and boundary tests in `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]` verifying that `AuthenticityAdapter.build()` correctly categorizes severity levels across the exact thresholds configured in `settings.py` (`authenticity_threshold_high`, `authenticity_threshold_low`) and reacts deterministically to `monkeypatch` settings overrides.
    - Execute negative tests in `backend_v2/tests/unit/models/dtos/test_output_profile_dto.py` and `@[backend_v2/tests/unit/test_output_profile_models.py]` verifying that `pydantic.ValidationError` is raised on out-of-bounds `max_extension_items` (`ge=1, le=100`, specifically testing values `0`, `-1`, and `101`), invalid `display_scale` strings, and legacy `include_diagnostic_scorecard` keys under `ConfigDict(strict=True, extra="forbid")`.
    - Verify that `matrix_domain_parser.py` tests in `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]` evaluate correctly under all `DisplayScale` enum options (`ORIGINAL`, `CUSTOM`, `NORMALIZED_100`).
 2. **Frontend Freezed Falsification & Negative Tests:**
@@ -386,12 +439,19 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 ## 4. Definition of Done (DoD) & Verification Plan
 
 ### 4.1 Definition of Done (DoD)
+- [ ] **Mandatory 6-Step Deployment Sequence Enforced:**
+  - [ ] Step 1: Pre-flight raw storage migration script `purge_legacy_output_profile_keys.py` and `seed_data.json` sanitization executed without Pydantic model imports before domain model removal.
+  - [ ] Step 2: Backend `DisplayScale(StrEnum)` added, `include_diagnostic_scorecard` purged from `OutputProfile` domain models and DTOs with `ConfigDict(strict=True, extra="forbid")`.
+  - [ ] Step 3: Backend OpenAPI specification synchronized via `generate_openapi.py` and verified by test.
+  - [ ] Step 4: Frontend `@JsonEnum() DisplayScale` and `SystemUiConstraints` added, `includeDiagnosticScorecard` and `unknownEnumValue` fallbacks purged from Freezed models, code generation (`--build`) passing cleanly.
+  - [ ] Step 5: Frontend UI decomposed into 3 tabs (`ProfileGeneralTab`, `ProfileScoringTab`, `ProfileLayoutsTab`) and dedicated single-responsibility block cards with slider clamping and companion text validation.
+  - [ ] Step 6: Full backend and frontend test suites and anti-happy-path negative test gates passing green.
 - [ ] `DisplayScale` Enum parity is mathematically enforced: `DisplayScale(StrEnum)` in Python and `@JsonEnum() DisplayScale` with `@JsonValue('normalized_100')` in Dart.
 - [ ] `matrix_domain_parser.py` compares native `DisplayScale` enum members (`NORMALIZED_100`, `CUSTOM`) directly without magic string literals.
 - [ ] All backend test fixtures across `test_matrix_domain_parser.py`, `test_blueprint.py`, `test_scoring.py`, `test_worker_synthesis.py`, and `test_v2_core_models.py` pass with `DisplayScale` enums.
-- [ ] `SystemUiConstraints` enum is defined in `@[client_app_v2/lib/core/models/enums.dart]` for centralized UI slider bounds (`maxExtensionItemsSliderMin: 1`, `maxExtensionItemsSliderMax: 20`, `maxExtensionItemsDefault: 3`).
+- [ ] `SystemUiConstraints` enum is defined in `@[client_app_v2/lib/core/models/enums.dart]` for centralized UI slider and boundary limits (`maxExtensionItemsSliderMin: 1`, `maxExtensionItemsSliderMax: 20`, `maxExtensionItemsAbsoluteMax: 100`, `maxExtensionItemsDefault: 3`).
 - [ ] `OutputProfileCreateDTO` and `OutputProfileUpdateDTO` strictly validate `max_extension_items` with `Field(ge=1, le=100)`.
-- [ ] Flutter `client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart` safely clamps slider display values to prevent framework assertion crashes on out-of-bounds database values.
+- [ ] Flutter `client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart` implements Dual-Input Hybrid Pattern, safely clamping slider display values (`currentVal.clamp(minVal, sliderMax)`) and validating companion `TextFormField` (`1 <= val <= 100`) to prevent framework assertion crashes on out-of-bounds database values.
 - [ ] `unknownEnumValue` fallback parameters are completely removed from `OutputLayoutBlock` and `SynthesisConfigDTO` without runtime crashes.
 - [ ] `seed_data.json` and unit test fixtures in `output_profile_test.dart` and `output_profile_controller_test.dart` are synchronized with typed enums and reseeded.
 - [ ] `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` is decomposed into a 3-tab `DefaultTabController` scaffold.
@@ -404,6 +464,7 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 - [ ] No manual comma-separated `steps` text fields remain in the UI.
 - [ ] All UI strings exist in both English (`app_en.arb`) and Finnish (`app_fi.arb`).
 - [ ] `MetadataAdapter` contains ZERO hardcoded Finnish strings (V7), ZERO duck-typing `getattr` calls or latent attribute name mismatches (`custom_preface` strictly resolved) (V7a), ZERO hardcoded title fallbacks (strictly resolved `name` + Fail-Fast) (V7b), and ZERO runtime `isinstance` guards on `created_at` (V7c). All labels (`metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`) are resolved via `OutputProfile.metric_mappings` `I18nText` with strict Fail-Fast `AppException` error handling.
+- [ ] `AuthenticityAdapter` contains ZERO hardcoded business logic thresholds (V13). The module-level `AUTHENTICITY_THRESHOLDS` dictionary is completely removed, and thresholds are resolved dynamically from `settings.authenticity_threshold_high` and `settings.authenticity_threshold_low` via top-level `get_settings()` import per `@[ki_global_config_sovereignty.md]`.
 - [ ] `seed_data.json` and backend test fixtures in `test_blueprint.py` and `test_metadata_adapter.py` explicitly seed all required `metric_mappings` metadata keys in both English and Finnish.
 - [ ] `OutputProfileResponseDTO` and `OutputProfileUpdateDTO` maintain the DTO firewall (`metric_mappings` excluded) to prevent Studio UI CRUD operations from clobbering system metric mappings.
 - [ ] `SynthesisTextAdapter` reads both `content_blocks` (static) and `section_syntheses` (dynamic Pipeline synthesis).
@@ -566,13 +627,13 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 
 ### 5.8 Global Config Sovereignty (`@[ki_global_config_sovereignty.md]`)
 
-**Why it applies:** The AI Extensions block editor exposes `max_extension_items`. Client UI bounds MUST be centralized in `enums.dart` per `frontend_enum_parity_mandate`, while backend Pydantic models enforce mathematical bounds (`ge=1, le=100`). Flutter MUST NEVER attempt to directly read backend `settings.py`.
+**Why it applies:** The AI Extensions block editor exposes `max_extension_items` and the Authenticity Evaluation block evaluates thresholds. Client UI bounds MUST be centralized in `enums.dart` per `frontend_enum_parity_mandate`, while backend Pydantic models enforce mathematical bounds (`ge=1, le=100`) and all backend evaluation limits / classification thresholds (specifically `authenticity_threshold_high`, `authenticity_threshold_low`) MUST live centrally in `settings.py`. Flutter MUST NEVER attempt to directly read backend `settings.py`.
 
 | Rule ID | Binding Constraint for Epic 144 |
 |:--------|:-------------------------------|
 | `frontend_enum_parity_mandate` | All systemic or global Flutter UI constraints (including `SystemUiConstraints.maxExtensionItemsSliderMax` and timeout durations) MUST be centralized in `@[client_app_v2/lib/core/models/enums.dart]`. NO raw magic numbers in widget trees. |
-| `global_config_sovereignty_mandate` | All backend thresholds, batch sizes, and timeout limits MUST be defined centrally in `@[backend_v2/settings.py]` via Pydantic Settings and imported via top-level module imports. Backend Pydantic schema validation (`ge=1, le=100`) across domain models and DTOs serves as the definitive boundary guard for incoming API requests. |
-| `tripartite_configuration_segregation` | Enums in `enums.py` / `enums.dart` (finite constants), limits in `settings.py` (configurable backend), DTOs combine them at runtime across the network boundary. |
+| `global_config_sovereignty_mandate` | All backend thresholds, batch sizes, timeout limits, and evaluation boundaries (specifically `authenticity_threshold_high` and `authenticity_threshold_low`) MUST be defined centrally in `@[backend_v2/settings.py]` via Pydantic Settings and imported via top-level module imports. Backend Pydantic schema validation (`ge=1, le=100`) across domain models and DTOs serves as the definitive boundary guard for incoming API requests. |
+| `tripartite_configuration_segregation` | Enums in `enums.py` / `enums.dart` (finite constants), limits and thresholds in `settings.py` (configurable backend), DTOs combine them at runtime across the network boundary. SDUI Adapters MUST NOT contain hardcoded numeric threshold dictionaries. |
 | `slider_assertion_guard` | The Flutter slider UI for `maxExtensionItems` MUST clamp display values to `[SystemUiConstraints.maxExtensionItemsSliderMin, SystemUiConstraints.maxExtensionItemsSliderMax]` to prevent fatal assertion crashes on valid high-threshold backend profiles. |
 
 ---
