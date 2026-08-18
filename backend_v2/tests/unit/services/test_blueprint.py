@@ -1383,15 +1383,17 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         system_repo=mock_repo_transformer,
     )
 
+    from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
+
     dto = await transformer.build_report_dto("exe_0000000000000016", accept_language="en")
 
     assert len(dto.inner_sdui_blocks) > 1
-    accordions = [b for b in dto.inner_sdui_blocks if getattr(b, "block_type", "") == "accordion"]
+    accordions = [b for b in dto.inner_sdui_blocks if isinstance(b, AccordionBlock)]
     assert len(accordions) >= 1
 
-    alert_blocks = getattr(accordions[0], "children", [])
+    alert_blocks = [c for c in accordions[0].children if isinstance(c, AlertBlock)]
 
-    coaching_alert = next((b for b in alert_blocks if "Good job" in getattr(b, "text", "")), None)
+    coaching_alert = next((b for b in alert_blocks if "Good job" in b.text), None)
     assert coaching_alert is not None
     assert accordions[0].title == "Coaching"
 
@@ -1973,6 +1975,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
             computed_max=100,
             scale_min=0,
             scale_max=10,
+            allow_contextual_override=False,
             scales=[
                 SimpleNamespace(
                     score=100.0,
@@ -2241,3 +2244,108 @@ async def test_blueprint_slop_and_penalty_coverage(mock_scan: Any, mock_repo_tra
 
     dto = await transformer.build_report_dto("exe_0000000000000101")
     assert dto.has_warning is True
+
+
+@pytest.mark.asyncio
+async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer: Any) -> None:
+    """Verifies that OutputProfile settings strictly drive SDUI block dispatch, metadata filtering, and XAI highlight limits."""
+    from datetime import datetime, timezone
+
+    from backend_v2.models.view.sdui import AccordionBlock, SduiMetadataBlock
+
+    custom_profile = OutputProfile(
+        id="prf_1111222233334444",
+        slug="test-profile",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="fi", translations={"fi": "Testiprofiili", "en": "Test Profile"}),
+        description=I18nText(default_locale="fi", translations={"fi": "Testikuvaus", "en": "Test Description"}),
+        user_role_label=I18nText(default_locale="fi", translations={"fi": "Kohderyhmä", "en": "Target Audience"}),
+        user_role_mappings={
+            "ROLE_ARCHITECT": I18nText(
+                default_locale="fi", translations={"fi": "Pääarkkitehti", "en": "Lead Architect"}
+            )
+        },
+        custom_preface=I18nText(
+            default_locale="fi", translations={"fi": "Mukautettu esipuhe.", "en": "Custom preface."}
+        ),
+        visible_metadata=["user", "date", "scoring_engine"],
+        visible_block_extensions=[XaiExtensionType.COACHING, XaiExtensionType.FALSIFICATION],
+        max_extension_items=2,
+        strictness_level=85,
+        scoring_strategy=ScoringStrategy.WATERFALL,
+        display_scale="normalized_100",
+        target_block_order=[
+            "metadata_block",
+            "executive_summary_block",
+            "grouped_extensions_block",
+            "matrix_graphs_block",
+        ],
+        layouts=[
+            OutputLayoutBlock(
+                preset_view="1d_metrics",
+                text_delivery_mode="full",
+                title=I18nText(default_locale="fi", translations={"fi": "Mittarit", "en": "Metrics"}),
+            )
+        ],
+        extension_labels={
+            XaiExtensionType.COACHING: I18nText(
+                default_locale="fi", translations={"fi": "Valmennusvinkit", "en": "Coaching Tips"}
+            ),
+            XaiExtensionType.FALSIFICATION: I18nText(
+                default_locale="fi", translations={"fi": "Falsifiointi", "en": "Falsification"}
+            ),
+        },
+    )
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [custom_profile.model_dump()]
+
+    mock_exec = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=custom_profile.id,
+        created_at=datetime.now(timezone.utc),
+        created_by="usr_admin",
+        metadata={"target_locale": "fi"},
+        execution_trace=[],
+        profile_syntheses={
+            custom_profile.id: RenderedSynthesisCache(
+                user_role="ROLE_ARCHITECT",
+                xai_highlights=[
+                    {"extension_type": "coaching", "content": "Focus on modular architecture."},
+                    {"extension_type": "coaching", "content": "Avoid monolithic God classes."},
+                    {"extension_type": "falsification", "content": "Validate performance assumptions."},
+                ],
+                section_syntheses={},
+            )
+        },
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec
+    mock_repo_transformer.get_user.return_value = {"display_name": "Test User"}
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    report_dto = await transformer.build_report_dto(
+        execution_id="exe_1111222233334444",
+        profile_id=custom_profile.id,
+        accept_language="fi",
+    )
+
+    block_type_names = [type(b).__name__ for b in report_dto.inner_sdui_blocks]
+    assert block_type_names == ["SduiMetadataBlock", "ParagraphBlock", "AccordionBlock", "AccordionBlock"]
+
+    meta_block = next(b for b in report_dto.inner_sdui_blocks if isinstance(b, SduiMetadataBlock))
+    assert any("Käyttäjä" in line for line in meta_block.metadata_lines)
+    assert not any("Organisaatio" in line for line in meta_block.metadata_lines)
+
+    coaching = next(
+        b for b in report_dto.inner_sdui_blocks if isinstance(b, AccordionBlock) and b.title == "Valmennusvinkit"
+    )
+    assert len(coaching.children) == 2
