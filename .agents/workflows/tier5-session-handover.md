@@ -40,6 +40,11 @@ description: Tier 5 (Session Handover Export) - Generates a context-transition c
       - `learned`: Any architectural nuances, bug resolutions, or KI discoveries.
       - `remaining`: Exactly what is left to do (or what the next workflow should focus on).
       Then, determine the exact slash command the next agent must adopt to continue (e.g., `/tier2-execute`, `/tier1-planner`, `/tier4-bug-hunting`).
+
+      HARDENING STATE SNAPSHOT: Before finalizing the handover block, check if `tmp/hardening_state.json` exists. If it exists, read it and append a `### Hardening State Snapshot` sub-section inside `## Remaining`:
+      - Compute `REMAINING` dynamically as `TARGETS - DONE` (do NOT store `REMAINING` in the JSON — it is a derived value).
+      - Format: `TARGETS: [total count], DONE: [done count], REMAINING: [@[file1], @[file2]]`
+      - The `REMAINING` list MUST use `@-reference` syntax for each file path.
     </step>
     
     <step id="4">KNOWLEDGE &amp; RULES ROUTING: Determine WHICH specific rules from `.agents/rules/` and WHICH Knowledge Items (KIs) are critical for the next agent to read to prevent amnesia.</step>

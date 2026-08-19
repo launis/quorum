@@ -84,9 +84,21 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
           ```
           The `## Resume Command` MUST be an exact copy-pasteable slash command for the user to execute next, properly injecting the `@-referenced` target files. Do NOT use `--workflow=` flags for standard workflows, just output the direct slash command. Do NOT include a `--rules` parameter; rules are now self-hydrated directly from the `<required_context_rules>` blocks in the plans and tracker.
       </constraint>
+      <constraint name="GRANULAR_FILE_LEVEL_HARDENING_CHECKLIST">
+        When generating or updating the `### Post-Implementation Gates` section, you MUST construct deterministic file-level checklists under the hardening gates:
+        1. Parse all `.md` sub-plans in the task directory `docs/epic/tasks_EPIC_XXX/`.
+        2. For each `.md` file in the task directory, extract all lines matching the regex `#### \[(MODIFY|NEW)\]` and capture the file path from the markdown link.
+        3. Under `### Post-Implementation Gates`, for `Tier 2 Hardening (Backend)`, generate an explicitly indented `  - [ ] @[relative/path.py]` child checkbox for EVERY individual backend `.py` file target extracted from the sub-plans.
+        4. For `Tier 2 Hardening (Frontend)`, generate an explicitly indented `  - [ ] @[relative/path.dart]` child checkbox for EVERY individual frontend `.dart` file target extracted from the sub-plans.
+        5. The parent-level hardening command (`/tier2-hardening-backend` or `/tier2-hardening-frontend`) remains as the parent checkbox. The individual file checkboxes are children.
+        6. When updating an existing tracker, you MUST preserve all existing `  - [x]` checkboxes on previously completed files.
+      </constraint>
     </step>
     <step id="3" name="SELF-HEALING TRACKER STRUCTURAL AUDIT">
       <action>After generating or updating the tracker, you MUST physically run the structural audit script: `uv run python scripts/audit_tracker_output.py --tracker <path_to_tracker>`. If a task directory exists (plan files were generated), additionally pass `--plan-dir <path_to_task_dir>` to enable bidirectional Traceability Matrix mapping verification. If it fails, you MUST correct the tracker and re-run. If it fails 3 times sequentially, you MUST STOP, output &lt;circuit_breaker_tripped&gt;, and ask the user for guidance.</action>
+      <constraint name="HARDENING_FILE_PARITY_VALIDATION">
+        The tracker structural verification MUST validate that the indented file list in `### Post-Implementation Gates` under `Tier 2 Hardening (Backend)` and `Tier 2 Hardening (Frontend)` exactly matches the union of all `[MODIFY]` and `[NEW]` targets from the sub-plans in `docs/epic/tasks_EPIC_XXX/`. If there is any discrepancy or missing file, the tracker MUST be corrected before declaring generation complete.
+      </constraint>
     </step>
   </execution_protocol>
 </system_prompt>

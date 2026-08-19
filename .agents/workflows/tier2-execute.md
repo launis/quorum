@@ -93,6 +93,9 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <action name="NEW FUNCTIONALITY MANDATE">You MUST write a failing test first (Red-Green-Refactor) for new logic.</action>
       <gate name="TEST CONTRACT ENFORCEMENT">If the plan contains a `<test_contracts>` XML block, you MUST implement ALL specified test contracts BEFORE or ALONGSIDE the implementation code. The test contracts define exact test names, inputs, expected outputs, and categories. You MUST NOT mark the phase as complete until every specified test contract has been implemented as an actual test function and passes. Treat the test contracts as a hard checklist — missing any contract is a blocking failure.</gate>
       <action>You MUST run the Universal Quality Gate YOURSELF using `run_command` as defined in `AGENTS.md`. Enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
+      <constraint name="LINTER_GATE_BEFORE_STEP_COMPLETION">
+        `backend_audit_loop.py` or `flutter_audit_loop.py` MUST be run immediately at the completion of each cohesive step. You are STRICTLY FORBIDDEN from marking any `- [ ] Step X:` as `[x]` in the tracker or `task.md` if the linter rules (Ruff, MyPy, or Flutter analyze) have failures. If the audit script fails, the step remains `[ ]` and you must fix the lint errors before re-running and marking complete.
+      </constraint>
     </step>
 
     <step id="5" name="TASK MANAGEMENT & STATE RECOVERY">
