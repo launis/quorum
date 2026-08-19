@@ -4,7 +4,7 @@ from typing import Any
 
 from backend_v2.models.v2_core import OutputProfile, PromptBlock, Workflow
 
-SEED_FILE = Path(r"c:\src\quorum\backend_v2\seed\seed_data.json")
+SEED_FILE = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
 
 
 def test_prompt_blocks_do_not_contain_ui_logic() -> None:
@@ -90,3 +90,140 @@ def test_model_strategies_are_bound_to_registry() -> None:
                     assert strategy in valid_strategies, (
                         f"Workflow '{raw_wf.get('slug')}' profile '{p_id}' references unknown model_strategy '{strategy}'"
                     )
+
+
+def test_output_profiles_zero_legacy_diagnostic_scorecard() -> None:
+    """Architectural Guardrail: OutputProfiles MUST NOT contain legacy 'include_diagnostic_scorecard'."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Positive seed verification
+    profiles = data.get("output_profiles", [])
+    assert profiles, "At least one output profile must exist in master seed"
+
+    for profile in profiles:
+        assert "include_diagnostic_scorecard" not in profile, (
+            f"Legacy key 'include_diagnostic_scorecard' found in profile '{profile.get('id')}'"
+        )
+
+    # Anti-happy-path negative verification
+    malformed_profile = {"id": "prf_invalid", "include_diagnostic_scorecard": True}
+    assert "include_diagnostic_scorecard" in malformed_profile
+
+
+def test_output_profiles_metric_mappings_contain_bilingual_metadata_keys() -> None:
+    """Architectural Guardrail: All output profiles must have complete bilingual metadata label keys."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    required_keys = [
+        "metadata_user",
+        "metadata_organization",
+        "metadata_scoring_engine",
+        "metadata_strictness",
+    ]
+
+    profiles = data.get("output_profiles", [])
+    assert profiles, "At least one output profile must exist in master seed"
+
+    for profile in profiles:
+        mappings = profile.get("metric_mappings", {})
+        for req_key in required_keys:
+            assert req_key in mappings, (
+                f"Required metadata key '{req_key}' missing from metric_mappings in profile '{profile.get('id')}'"
+            )
+            i18n_entry = mappings[req_key]
+            translations = i18n_entry.get("translations", {})
+            assert "fi" in translations and bool(translations["fi"]), (
+                f"Missing or empty 'fi' translation for '{req_key}' in profile '{profile.get('id')}'"
+            )
+            assert "en" in translations and bool(translations["en"]), (
+                f"Missing or empty 'en' translation for '{req_key}' in profile '{profile.get('id')}'"
+            )
+
+    # Anti-happy-path negative verification
+    def validate_metadata_keys(mappings_dict: dict[str, Any]) -> bool:
+        for key in required_keys:
+            if key not in mappings_dict:
+                return False
+            t = mappings_dict[key].get("translations", {})
+            if not t.get("fi") or not t.get("en"):
+                return False
+        return True
+
+    assert not validate_metadata_keys({})
+    assert not validate_metadata_keys({"metadata_user": {"translations": {"fi": "Käyttäjä:"}}})
+    assert not validate_metadata_keys(
+        {
+            "metadata_user": {"translations": {"fi": "Käyttäjä:", "en": "User:"}},
+            "metadata_organization": {"translations": {"fi": "Org:", "en": "Org:"}},
+            "metadata_scoring_engine": {"translations": {"fi": "Moottori:", "en": ""}},
+            "metadata_strictness": {"translations": {"fi": "Taso:", "en": "Level:"}},
+        }
+    )
+
+
+def test_output_profiles_enums_valid() -> None:
+    """Architectural Guardrail: OutputProfile fields must only use valid enum-compatible values."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    valid_display_scales = {"original", "custom", "normalized_100"}
+    valid_scoring_strategies = {
+        "AVERAGE",
+        "WATERFALL",
+        "WEIGHTED_AVERAGE",
+        "PURE_MATH",
+        "average",
+        "waterfall",
+        "weighted_average",
+        "pure_math",
+    }
+    valid_preset_views = {"1d_metrics", "2d_compare", "3d_matrix", "text_only", "matrix_summary"}
+    valid_text_delivery_modes = {"full", "summary", "bullets"}
+
+    profiles = data.get("output_profiles", [])
+    assert profiles, "At least one output profile must exist in master seed"
+
+    for profile in profiles:
+        if "display_scale" in profile:
+            assert profile["display_scale"] in valid_display_scales, (
+                f"Invalid display_scale '{profile['display_scale']}' in profile '{profile.get('id')}'"
+            )
+        if "scoring_strategy" in profile:
+            assert profile["scoring_strategy"] in valid_scoring_strategies, (
+                f"Invalid scoring_strategy '{profile['scoring_strategy']}' in profile '{profile.get('id')}'"
+            )
+        if "preset_view" in profile:
+            assert profile["preset_view"] in valid_preset_views, (
+                f"Invalid preset_view '{profile['preset_view']}' in profile '{profile.get('id')}'"
+            )
+        if "text_delivery_mode" in profile:
+            assert profile["text_delivery_mode"] in valid_text_delivery_modes, (
+                f"Invalid text_delivery_mode '{profile['text_delivery_mode']}' in profile '{profile.get('id')}'"
+            )
+
+    # Anti-happy-path negative verification
+    def validate_profile_enums(profile_dict: dict[str, Any]) -> bool:
+        if "display_scale" in profile_dict and profile_dict["display_scale"] not in valid_display_scales:
+            return False
+        if "scoring_strategy" in profile_dict and profile_dict["scoring_strategy"] not in valid_scoring_strategies:
+            return False
+        if "preset_view" in profile_dict and profile_dict["preset_view"] not in valid_preset_views:
+            return False
+        if "text_delivery_mode" in profile_dict and profile_dict["text_delivery_mode"] not in valid_text_delivery_modes:
+            return False
+        return True
+
+    assert validate_profile_enums(
+        {
+            "display_scale": "original",
+            "scoring_strategy": "AVERAGE",
+            "preset_view": "3d_matrix",
+            "text_delivery_mode": "full",
+        }
+    )
+    assert not validate_profile_enums({"display_scale": "unsupported_scale_1000"})
+    assert not validate_profile_enums({"scoring_strategy": "NON_EXISTENT_STRATEGY"})
+    assert not validate_profile_enums({"preset_view": "invalid_preset"})
+    assert not validate_profile_enums({"text_delivery_mode": "invalid_mode"})

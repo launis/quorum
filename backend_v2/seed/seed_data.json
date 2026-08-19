@@ -9258,6 +9258,34 @@
         }
       },
       "metric_mappings": {
+        "metadata_user": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Käyttäjä:",
+            "en": "User:"
+          }
+        },
+        "metadata_organization": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Organisaatio:",
+            "en": "Organization:"
+          }
+        },
+        "metadata_scoring_engine": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Arviointimoottori:",
+            "en": "Scoring Engine:"
+          }
+        },
+        "metadata_strictness": {
+          "default_locale": "fi",
+          "translations": {
+            "fi": "Ankaruustaso:",
+            "en": "Strictness Level:"
+          }
+        },
         "variance_mechanical": {
           "default_locale": "fi",
           "translations": {
