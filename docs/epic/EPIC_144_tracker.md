@@ -139,7 +139,7 @@
 
 #### Phase 0-H: Frontend Test Fixtures & Negative Tests
 **Plan:** `@[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
 - [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
   - [x] Step 0: Strategic Alignment Check
   - [x] Step 1: Update output_profile_test.dart
@@ -160,7 +160,7 @@
   - [x] Step 2: Frontend Studio Model Build and Test
   - [x] Step 3: Cross-Stack Parity Assertions
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
 
@@ -168,12 +168,12 @@
 
 #### Phase 1-A: Golden Master Test Baseline
 **Plan:** `@[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Analyze Current View Structure
-  - [ ] Step 2: Create Golden Master Widget Tests
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Analyze Current View Structure
+  - [x] Step 2: Create Golden Master Widget Tests
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
@@ -245,11 +245,11 @@
 
 ### Integration Checkpoint: Full-Stack Validation
 
-- [ ] **[NOK]** Full backend test suite: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
-- [ ] **[NOK]** Full frontend Studio build: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio --build`
-- [ ] **[NOK]** Full frontend Studio tests: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio --test`
-- [ ] **[NOK]** OpenAPI parity: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py --test`
-- [ ] **[NOK]** Enum parity (all skips removed): `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test`
+- [x] **[OK]** Full backend test suite: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+- [x] **[OK]** Full frontend Studio build: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio --build`
+- [x] **[OK]** Full frontend Studio tests: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio --test`
+- [x] **[OK]** OpenAPI parity: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py --test`
+- [x] **[OK]** Enum parity (all skips removed): `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test`
 
 ---
 
@@ -582,6 +582,41 @@
     3. Python cross-language enum parity tests in `test_enum_parity.py` pass 13/13 with 0 skips.
     4. Static OpenAPI schema in `docs/swagger/openapi.json` contains `DisplayScale` enum (3 members), `TargetBlockType` enum (13 members), and zero references to legacy `include_diagnostic_scorecard`.
   - **Atomic Commit:** `478679ff feat(epic-144): execute Phase 0-I integration checkpoint and verify cross-stack parity`.
+- **Phase 0-I Post-Implementation Audit Signed Off (`[OK]`):**
+  - Executed `/tier8-audit-plan` against `@[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md]`.
+  - Verified 100% physical traceability for requirements R49–R51 across backend, frontend, and OpenAPI schemas.
+  - Verified full backend regression test suite (`1492 passed`, 30 skipped, 4 xpassed, `0 failures`).
+  - Confirmed Freezed model generation and static analysis produce `0 analyzer issues` via `flutter_audit_loop.py`.
+  - Confirmed frontend unit test suite passes `107/107 tests green` via `flutter_audit_loop.py`.
+  - Confirmed cross-language enum parity test passes `13/13 active tests with 0 skips` (98% coverage).
+  - Confirmed zero occurrences of legacy `include_diagnostic_scorecard` across models, DTOs, seed data, and frontend `lib/`.
+  - Confirmed zero occurrences of `unknownEnumValue` across frontend `lib/`.
+  - Confirmed zero supply-chain violations (banned AI bloatware packages in `pyproject.toml` and `pubspec.yaml`).
+  - Confirmed 100% Epic boundary fidelity via `audit_planner_output.py`.
+  - Emitted formal artifact: `@[red_team_audit_09_p0_integration_checkpoint.md]`.
+
+- **Phase 1-A Red-Teaming & Falsification Passed (`[OK]`):**
+  - Completed System 2 Red-Teaming on `@[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md]`.
+  - Audited monolithic `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` (897 lines) and verified all Riverpod providers and Hook states.
+  - Enriched `<test_contracts>` with 10 explicit positive and negative test cases covering `AsyncLoading`, `AsyncError`, wide-screen 3-pane `Row` layout (1920x1080), narrow-screen `ListView` layout (800x600), identity and scoring fields, workflow selector and XAI extensions, empty workflow warning state, max extension items integer validation, and save failure exception handling.
+  - Enforced full compliance with `anti_happy_path_mandate` and `remedial_refactoring_coverage` (`@[ki_god_code_prevention.md]`).
+  - Mutated Plan 10 and re-verified 100% boundary fidelity via `audit_planner_output.py`.
+
+- **Phase 1-A Execution Passed (`[OK]`):**
+  - **Golden Master Characterization Suite Established:** Implemented `@[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]` with 10 comprehensive widget test contracts locking down form state, error handling, layout responsiveness, and submission flows:
+    1. `test_crud_view_renders_loading_state`: verified `AsyncLoading` displays `CircularProgressIndicator` inside AppBar body.
+    2. `test_crud_view_renders_error_state`: verified `AsyncError` renders `ErrorView` with `AppException` diagnostics without UI crashes.
+    3. `test_crud_view_renders_data_state_wide_screen`: verified wide-screen viewport (1920x1080) renders 3-pane `Row` layout (`buildIdentityPane`, `buildLayoutPane`, `buildTargetBlockOrderPane`) without overflow or rendering assertion errors.
+    4. `test_crud_view_renders_data_state_narrow_screen`: verified compact viewport (800x600) renders single-column `ListView` layout without overflow.
+    5. `test_crud_view_displays_identity_and_scoring_fields`: verified text fields for ID, slug, display name, strictness level dropdown (`StrictnessLevel.balanced.value` = 50), and scoring strategy dropdown (`ScoringStrategy.waterfall`).
+    6. `test_crud_view_displays_workflow_selector_and_extensions`: verified workflow selector dropdown and XAI extension checkboxes (`Source Citation`, `Justification`).
+    7. `test_crud_view_displays_workflow_warning_when_unselected`: verified unselected workflow (`workflowId: ''`) displays localized `workflowSelectWarning` in Layout pane.
+    8. `test_crud_view_validates_max_extension_items`: verified invalid string/negative inputs (`-5`) fail form validation with localized `extensionItemsMustBeIntError` ("Given value must be an integer >= 1").
+    9. `test_crud_view_triggers_save_action`: verified tapping `Save Changes` button invokes `outputProfileFormProvider` notifier `.submit()` with updated payload.
+    10. `test_crud_view_handles_save_failure_gracefully`: verified `AppException.validation` error during submission triggers error `SnackBar` via `ScaffoldMessenger` without widget tree unmounting or unhandled exceptions.
+  - **Type Synchronization in Legacy View:** Surgically adapted `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` to strongly typed `DisplayScale` enum in `DropdownButton<DisplayScale>` (L368–L403) and `TargetBlockType` enum in `ReorderableListView` (L776–L791) introduced in Phase 0-G.
+  - **Quality Gate Audit Passed:** Executed `flutter_audit_loop.py` on the test suite: **All 117 tests passed green with 0 errors**.
+  - **Committed Atomically:** `feat(studio): establish phase 1-a golden master characterization tests for output profile crud view`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
@@ -608,17 +643,18 @@
 - **Cross-Stack Integration Scope Isolation:** Phase 0 integration gates must validate the domain boundaries modified during Phase 0 (`lib/features/studio/models/`) while reserving un-decomposed view structures (`output_profile_crud_view.dart`) for Phase 1 decomposition to prevent cross-phase test collision.
 - **Topological Evaluator Callback Contract Parity:** `TopologicalEvaluator.evaluate_graph` passes `(pending_nodes, states)` to its `batch_evaluation_callback`. Mock callbacks in integration tests must accept `current_states: dict[str, AtomExecutionState]` to avoid `TypeError` when evaluating waves.
 - **Standalone Script Coverage Testing in Isolation:** When running `backend_audit_loop.py` on standalone helper scripts (e.g., `generate_openapi.py`), test suites must exercise both top-level execution functions and the `if __name__ == '__main__':` entrypoint to meet the strict 90% coverage threshold without relying on side effects.
+- **Characterization Testing for Legacy God Widgets:** Establishing a Golden Master widget test before refactoring monolithic UI files requires mocking the entire Riverpod provider tree (including `outputProfileFormProvider`, `studioClientProvider`, `loggerServiceProvider`, and related lookup providers) and testing both happy path rendering and error boundary handling.
+- **Riverpod Family Provider Overrides in Widget Tests:** When overriding Riverpod family providers in widget tests (such as `workflowAvailableExtensionsProvider(currentWorkflowId)`), argument matchers like `any()` are invalid and cause runtime `ArgumentError`; explicit parameter bindings (e.g., `workflowAvailableExtensionsProvider('wf_test')` and `workflowAvailableExtensionsProvider('')`) are required.
+- **LayoutBuilder Constraints in Widget Testing:** In Flutter widget testing of responsive layouts with `LayoutBuilder`, `MediaQueryData(size: ...)` alone does not constrain the physical canvas; setting `tester.view.physicalSize = const Size(1920, 1080)` and `tester.view.devicePixelRatio = 1.0` with `addTearDown` cleanup is required to properly trigger wide-screen branches (e.g., 3-pane `Row` vs `ListView`).
+- **DotEnv Initialization in Widget Tests:** Notifier callbacks that call `ref.read(loggerServiceProvider)` trigger logger initialization which accesses `DotEnv.env`. Mocking `loggerServiceProvider.overrideWithValue(mockLogger)` in `ProviderScope.overrides` isolates widget tests from global environment variables.
 
 ## Remaining
-- **Phase 0-I Audit:** Execute `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md] @[docs\epic\EPIC_144_tracker.md]` to formally certify cross-stack Phase 0 completion.
-- **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
+- **Phase 1-B (Plan 11):** 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%), and Live E2E verification (`test_integration_real_llm.py`).
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
 ```bash
-/tier8-audit-plan @[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md] @[docs\epic\EPIC_144_tracker.md]
+/tier8-audit-plan @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]
 ```
-
-

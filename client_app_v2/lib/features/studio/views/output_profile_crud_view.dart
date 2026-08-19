@@ -368,27 +368,27 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   border: const OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
+                  child: DropdownButton<DisplayScale>(
                     value: payload.displayScale,
                     isDense: true,
                     isExpanded: true,
                     items: [
                       DropdownMenuItem(
-                        value: 'original',
+                        value: DisplayScale.original,
                         child: Text(
                           l10n.scaleOriginal,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       DropdownMenuItem(
-                        value: 'custom',
+                        value: DisplayScale.custom,
                         child: Text(
                           l10n.scaleCustom,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       DropdownMenuItem(
-                        value: 'normalized_100',
+                        value: DisplayScale.normalized100,
                         child: Text(
                           l10n.scaleNormalized100,
                           overflow: TextOverflow.ellipsis,
@@ -776,15 +776,17 @@ class OutputProfileCrudView extends HookConsumerWidget {
                   if (oldIndex < newIndex) {
                     newIndex -= 1;
                   }
-                  final list = List<String>.from(payload.targetBlockOrder);
+                  final list = List<TargetBlockType>.from(
+                    payload.targetBlockOrder,
+                  );
                   final item = list.removeAt(oldIndex);
                   list.insert(newIndex, item);
                   updatePayload(payload.copyWith(targetBlockOrder: list));
                 },
-                children: payload.targetBlockOrder.map((blockId) {
+                children: payload.targetBlockOrder.map((blockType) {
                   return ListTile(
-                    key: ValueKey(blockId),
-                    title: Text(blockId),
+                    key: ValueKey(blockType),
+                    title: Text(blockType.name),
                     trailing: const Icon(Icons.drag_handle),
                   );
                 }).toList(),
