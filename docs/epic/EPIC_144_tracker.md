@@ -510,10 +510,16 @@
   - Executed `/tier8-audit-plan` against `@[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md]`.
   - Verified 100% physical traceability for requirements R31–R33.
   - Confirmed `generate_openapi.py` executed cleanly and regenerated `@[docs/swagger/openapi.json]`.
-  - Verified 5 deterministic schema assertions: `DisplayScale` enum (`["original", "custom", "normalized_100"]`), 13-member `TargetBlockType` enum, eradication of `include_diagnostic_scorecard`, integer range bounds [1..100] on `max_extension_items`, and `$ref` to `TargetBlockType` in `OutputProfileResponseDTO.target_block_order`.
+  - Verified 5 deterministic schema assertions via Python script:
+    1. `DisplayScale` enum in `components/schemas` with values `["original", "custom", "normalized_100"]`.
+    2. `TargetBlockType` enum in `components/schemas` with 13 members (`global_score_block`, `penalties_block`, `audit_trail_block`, `jargon_ratio_block`, `printable_sources_block`, `grouped_extensions_block`, `executive_summary_block`, `metadata_block`, `synthesis_text_block`, `matrix_graphs_block`, `matrix_summary_table_block`, `variance_validation_block`, `authenticity_evaluation_block`).
+    3. Complete eradication of `include_diagnostic_scorecard` from `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO`.
+    4. `OutputProfileCreateDTO.properties.max_extension_items` enforces `minimum: 1.0` and `maximum: 100.0`.
+    5. `OutputProfileResponseDTO.properties.target_block_order.items` correctly references `#/components/schemas/TargetBlockType`.
   - Confirmed zero supply-chain violations (banned AI bloatware packages).
-  - Executed OpenAPI unit tests (2/2 passed) and full quality gate checks (ruff, mypy strict, seed dry-run).
+  - Executed OpenAPI unit tests (`test_generate_openapi.py` 2/2 passed) and full quality gate checks (ruff check, ruff format, mypy strict, Jinja validation, seed dry-run).
   - Emitted formal artifact: `@[red_team_audit_06_p0_openapi_sync_gate.md]`.
+  - Committed tracker sign-off: `4b3add75 docs(epic-144): sign off Phase 0-F audit in tracker and advance resume command`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
@@ -535,7 +541,9 @@
 - **OpenAPI Schema Dynamic Enum Exposure:** Regenerating OpenAPI via `generate_openapi.py` captures newly added domain enums (`DisplayScale`, `TargetBlockType`) directly into `components/schemas` and updates collection items references (`#/components/schemas/TargetBlockType`), ensuring downstream Dart/TypeScript client generators remain strictly synchronized with Pydantic V2 backend models.
 
 ## Remaining
-- **Phase 0-G through Phase 0-I (Plans 07-09):** Frontend enum & Freezed sync, frontend test fixtures, integration checkpoint.
+- **Phase 0-G: Frontend Enum & Freezed Synchronization (`@[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md]`):** Add `DisplayScale` enum, add 4 missing `TargetBlockType` enum members, add `SystemUiConstraints` enum, purge `includeDiagnosticScorecard`, eradicate `unknownEnumValue` fallback parameters, run Freezed code generator (`build_runner`).
+- **Phase 0-H: Frontend Test Fixtures & Negative Tests (`@[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md]`):** Update `output_profile_test.dart`, create `blueprint_config_test.dart`, update controller and widget tests with Freezed models.
+- **Phase 0-I: Integration Checkpoint (`@[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md]`):** Full cross-stack backend regression + frontend Studio build and test + cross-language enum parity verification.
 - **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%), and Live E2E verification (`test_integration_real_llm.py`).
@@ -545,4 +553,5 @@
 ```bash
 /tier0-research-plan @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]
 ```
+
 
