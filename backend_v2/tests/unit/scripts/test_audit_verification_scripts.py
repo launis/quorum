@@ -34,8 +34,10 @@ from audit_dto_parity import (
 )
 from audit_epic_coverage import (  # noqa: E402
     extract_phase_content,
-    main as audit_epic_coverage_main,
     scan_for_lingering_symbols,
+)
+from audit_epic_coverage import (
+    main as audit_epic_coverage_main,
 )
 from audit_rules_staleness import (  # noqa: E402
     audit_rules_staleness,
@@ -891,4 +893,3 @@ def test_audit_epic_coverage_main_direct(tmp_path: Path, monkeypatch: pytest.Mon
         audit_epic_coverage_main()
     except SystemExit as e:
         assert e.code == 1
-

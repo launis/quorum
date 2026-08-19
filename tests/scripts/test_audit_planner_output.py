@@ -1,9 +1,14 @@
-"""Tests for audit_planner_output.py."""
-
-import pytest
+import subprocess
 import sys
 from pathlib import Path
-from scripts.audit_planner_output import main
+import pytest
+
+# Add scripts to sys.path
+scripts_dir = Path("scripts").resolve()
+if str(scripts_dir) not in sys.path:
+    sys.path.insert(0, str(scripts_dir))
+
+from audit_planner_output import main
 
 def test_main_missing_epic_file():
     """Test that missing epic file exits with 1."""

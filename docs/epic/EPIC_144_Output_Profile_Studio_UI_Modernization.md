@@ -66,9 +66,9 @@ During codebase verification, the following Fail-Fast violations (V1–V14) were
 | V10 | DTO nullability & upper bound omission for `max_extension_items` & Flutter UI Slider Boundary Mismatch Crash Risk | `@[backend_v2/models/dtos/output_profile.py]`, `@[client_app_v2/lib/features/studio/models/output_profile.dart]`, `@[client_app_v2/lib/core/models/enums.dart]`, [NEW] `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]` | `global_config_sovereignty_mandate` / `strict_pydantic_v2_rust` / `universal_fail_fast` / `the_zero_compromise_pledge` | Eliminate nullability (`| None`) in `OutputProfileCreateDTO` and `OutputProfileResponseDTO`, strictly typing as `max_extension_items: Annotated[int, Field(default=3, ge=1, le=100)]` (and in `OutputProfileUpdateDTO` as `Annotated[int | None, Field(default=None, ge=1, le=100)]`). In Dart Freezed `@[client_app_v2/lib/features/studio/models/output_profile.dart]`, migrate from nullable `int? maxExtensionItems` to non-nullable `@Default(3) @JsonKey(name: 'max_extension_items') int maxExtensionItems`, eradicating all frontend null-check fallbacks (`?? 21`, `?? 3`). To prevent Flutter framework assertion crashes (`Assertion failed: value >= min && value <= max: is not true`) when database/API returns values outside the 1–20 UI slider range (up to 100), define `SystemUiConstraints` enum in `@[client_app_v2/lib/core/models/enums.dart]` (`maxExtensionItemsSliderMin: 1`, `maxExtensionItemsSliderMax: 20`, `maxExtensionItemsAbsoluteMax: 100`, `maxExtensionItemsDefault: 3`). Implement safe clamping `rawVal.clamp(minVal, sliderMax).toDouble()` on the `Slider` in `xai_extensions_block_card.dart` combined with a companion `TextFormField` validating the full `[1, 100]` range directly from the non-nullable integer value. |
 | V11 | Absence of Automated Code Generation Gate for Freezed & OpenAPI | `@[backend_v2/scripts/generate_openapi.py]`, `@[docs/swagger/openapi.json]`, `@[client_app_v2/lib/features/studio/models/output_profile.freezed.dart]`, `@[client_app_v2/lib/features/studio/models/output_profile.g.dart]` | `automated_code_generation_mandate` / `pydantic_namespace_collisions` / `sdui_contract_fracture_prevention` | Execute `uv run python backend_v2/scripts/generate_openapi.py` to synchronize OpenAPI specification, and execute `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build` to re-generate Freezed stubs immediately after DTO and Enum modifications in Phase 0. |
 | V12 | Fatal Backend Deserialization Crash Risk under `ConfigDict(extra="forbid")` during `include_diagnostic_scorecard` purge & Local Seed Cleansing | `@[backend_v2/models/v2_core.py]`, `@[backend_v2/database/repositories/components/output_profile.py]` | `the_zero_compromise_pledge` / `python_314_concurrency_strictness` | When `include_diagnostic_scorecard` is removed from `OutputProfile`, running against any local TinyDB database containing the legacy key triggers fatal `pydantic.ValidationError` (`extra_forbidden`) on read in `OutputProfileRepositoryImpl.get_all_output_profiles_models()`. **Pre-Production Scope Rationale:** Quorum is in active development with no live production customer data; the database layer is ephemeral and governed by the Seed Vault Protocol (`@[ki_python_314_concurrency_strictness.md]`). Therefore, writing standalone database migration scripts is rejected as premature over-engineering (YAGNI). Purge `include_diagnostic_scorecard` directly from master seed data (`@[backend_v2/seed/seed_data.json]`) and re-seed the local development database via `uv run python backend_v2/seed/run_seed.py local` before modifying backend models. BANNED: Relaxing to `extra="ignore"` or adding `.pop()` duct-tape in repository. |
-| V13 | Hardcoded Business Logic Thresholds in SDUI Adapter (`AUTHENTICITY_THRESHOLDS = {"high": 80.0, "low": 50.0}`) | `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]` | `global_config_sovereignty_mandate` / `tripartite_configuration_segregation` / `@[ki_global_config_sovereignty.md]` / `@[ki_sdui_adapter_pattern.md]` | Eradicate module-level hardcoded `AUTHENTICITY_THRESHOLDS` dictionary in `authenticity_adapter.py`. Define centralized configurable threshold settings in `@[backend_v2/settings.py]` (`authenticity_threshold_high: float = Field(default=80.0, ge=0.0, le=100.0)` and `authenticity_threshold_low: float = Field(default=50.0, ge=0.0, le=100.0)`). Refactor `AuthenticityAdapter.build()` to import `get_settings` at module level and read dynamic thresholds, preserving pure visual role for `AUTHENTICITY_RULES` (severity/icon mapping only). |
+| V13 | Hardcoded Business Logic Thresholds in SDUI Adapter (`AUTHENTICITY_THRESHOLDS = {"high": 80.0, "low": 50.0}`) | `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]` | `global_config_sovereignty_mandate` / `tripartite_configuration_segregation` / `@[ki_global_config_sovereignty.md]` / `@[ki_sdui_adapter_pattern.md]` | Eradicate module-level hardcoded `AUTHENTICITY_THRESHOLDS` dictionary in `authenticity_adapter.py`. Define centralized configurable threshold settings in `@[backend_v2/settings.py]` (`authenticity_threshold_high: Annotated[float, Field(default=80.0, ge=0.0, le=100.0, description="Minimum score required for HIGH authenticity level classification")] = 80.0` and `authenticity_threshold_low: Annotated[float, Field(default=50.0, ge=0.0, le=100.0, description="Minimum score required for MEDIUM authenticity level classification")] = 50.0`) with `@model_validator(mode="after")` enforcing `authenticity_threshold_high >= authenticity_threshold_low`. Refactor `AuthenticityAdapter.build()` to import `get_settings` globally at module level and resolve dynamic thresholds, preserving pure visual role for `AUTHENTICITY_RULES` (severity/icon mapping only). |
 | V14 | Raw string list `target_block_order: list[str]` / `List<String>` & Missing 4 `TargetBlockType` enum members in Flutter `enums.dart` | `@[backend_v2/models/v2_core.py]`, `@[backend_v2/models/dtos/output_profile.py]`, `@[client_app_v2/lib/core/models/enums.dart]`, `@[client_app_v2/lib/features/studio/models/output_profile.dart]`, `@[backend_v2/services/blueprint.py]` | `strict_enum_hydration_and_validation` / `cross_language_enum_parity` / `no_raw_string_enum_mappings` / `universal_fail_fast` | Add missing 4 enum values with `@JsonValue` to `@[client_app_v2/lib/core/models/enums.dart]` (specifically and exhaustively: `matrixGraphsBlock: 'matrix_graphs_block'`, `matrixSummaryTableBlock: 'matrix_summary_table_block'`, `varianceValidationBlock: 'variance_validation_block'`, `authenticityEvaluationBlock: 'authenticity_evaluation_block'`). Migrate `target_block_order` across Python domain model (`OutputProfile`) and DTOs (`OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, `OutputProfileResponseDTO`) to `list[TargetBlockType]`. Migrate Dart Freezed model (`OutputProfile`) to `List<TargetBlockType>`. Refactor `blueprint.py` `self._target_block_hydrators` to `dict[TargetBlockType, Callable]`, eliminating `str()` casting and silent `in` skips. Enforce strict `try...except KeyError:` wrapping around registry lookups, raising `AppException(VALIDATION_FAILED)` with error code details when an unmapped `TargetBlockType` is encountered. |
-| V15 | Synthesis Config Duplication & Prompt Rule Redundancy | `@[backend_v2/seed/seed_data.json]` (lines 9461–9907), `@[backend_v2/worker.py]`, [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]` | `ssot_reuse_mandate` / `prompt_asset_ssot_mandate` / `high_fidelity_prompting_and_caching` / `ephemeral_caching_topology` | **Three compound violations:** (A) 12 layout-level `synthesis` objects repeat identical dead-weight fields (`model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) that `worker.py` never reads — only `synthesis_block_id` (and optionally `row_explanations_block_id`) are consumed. Strip all 6 dead-weight fields, leaving only `{"synthesis_block_id": "..."}`. (B) Three hardcoded graph synthesis PromptBlocks (`blk_111122223333444a` at L7721, `blk_111122223333444b` at L7744, `blk_111122223333444c` at L7767) contain redundant rules (mathematical anchoring, visual storytelling, language mandate) already injected by `worker.py` via `GLOBAL_MANDATES_XML` and `build_linguistic_context()`, wasting ~300 tokens per prompt. Extract shared mandates into [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]` as Python constants and strip them from the PromptBlock `ai_description` fields. (C) Synthesis section rules block (`blk_34def5d628ba4ed4` at L7586) and row explanation block (`blk_ad303690b26b413d` at L7608) contain inline language and ID mandates already covered by the global injection pipeline. |
+| V15 | Synthesis Config Duplication & Prompt Rule Redundancy | `@[backend_v2/seed/seed_data.json]` (lines 9461–9907), `@[backend_v2/worker.py]`, [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]`, `@[backend_v2/models/prompts/__init__.py]` | `ssot_reuse_mandate` / `prompt_asset_ssot_mandate` / `high_fidelity_prompting_and_caching` / `ephemeral_caching_topology` / `de_generator_mandate_no_xml` / `prompt_preservation_mandate` | **Three compound violations:** (A) 12 layout-level `synthesis` objects repeat identical dead-weight fields (`model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) that `worker.py` never reads — only `synthesis_block_id` (and optionally `row_explanations_block_id`) are consumed. Strip all 6 dead-weight fields, leaving only `{"synthesis_block_id": "..."}`. (B) Three hardcoded graph synthesis PromptBlocks (`blk_111122223333444a` at L7721, `blk_111122223333444b` at L7744, `blk_111122223333444c` at L7767) contain redundant rules (mathematical anchoring, visual storytelling, language mandate) already injected by `worker.py` via `GLOBAL_MANDATES_XML` and `build_linguistic_context()`, wasting ~300 tokens per prompt and violating `de_generator_mandate_no_xml` by wrapping prompts in raw XML tags (`<system_directive>`, `<rules>`, `<rule>`). Extract shared structural mandates into [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]` as Python XML constants (`SYNTHESIS_MATHEMATICAL_ANCHORING_MANDATE`, `SYNTHESIS_VISUAL_STORYTELLING_MANDATE`, `SYNTHESIS_GRAPH_DIRECTIVES_XML`, `ROW_EXPLANATION_MANDATE`, and `build_xai_curation_mandate()`), re-export in `@[backend_v2/models/prompts/__init__.py]`, and cleanse `seed_data.json` PromptBlock `ai_description` fields into pure Markdown headings (`ROLE:`, `OBJECTIVE:`) while preserving unique qualitative coaching philosophy (Toulmin, Goodhart, Kahneman, Pearl, Popper, Humility) per `prompt_preservation_mandate`. (C) Synthesis section rules block (`blk_34def5d628ba4ed4` at L7586) and row explanation block (`blk_ad303690b26b413d` at L7608) contain inline language and ID mandates already covered by the global injection pipeline. |
 
 ### 2.5 Block Data Pipeline Reference (DB → Pydantic → Adapter → SDUI → Renderer)
 
@@ -240,7 +240,7 @@ graph TD
    - Synchronize `@[backend_v2/seed/seed_data.json]` ensuring all output profile objects have `display_scale` set to valid enum strings (`normalized_100`, `custom`, `original`), zero `include_diagnostic_scorecard` keys, and complete `metric_mappings`.
    - Execute local environment database re-seeding via `uv run python backend_v2/seed/run_seed.py local` to establish a clean, validated local TinyDB state (`data/db_v2.json`) matching the updated schema prior to backend model modifications.
 2. **Step 2: Backend Domain Model, Settings & DTO Synchronization**
-   - In `@[backend_v2/settings.py]`, define centralized authenticity thresholds `authenticity_threshold_high: Annotated[float, Field(default=80.0, ge=0.0, le=100.0)]` and `authenticity_threshold_low: Annotated[float, Field(default=50.0, ge=0.0, le=100.0)]` per `global_config_sovereignty_mandate`.
+   - In `@[backend_v2/settings.py]`, define centralized authenticity thresholds `authenticity_threshold_high: Annotated[float, Field(default=80.0, ge=0.0, le=100.0, description="Minimum score required for HIGH authenticity level classification")] = 80.0` and `authenticity_threshold_low: Annotated[float, Field(default=50.0, ge=0.0, le=100.0, description="Minimum score required for MEDIUM authenticity level classification")] = 50.0` with `@model_validator(mode="after")` enforcing `authenticity_threshold_high >= authenticity_threshold_low` per `global_config_sovereignty_mandate`.
    - In `@[backend_v2/models/enums.py]`, define `DisplayScale(StrEnum)` with values `ORIGINAL = "original"`, `CUSTOM = "custom"`, `NORMALIZED_100 = "normalized_100"` and property `l10n_key`.
    - In `@[backend_v2/models/v2_core.py]`, delete `include_diagnostic_scorecard: bool` from `OutputProfile`, change `display_scale` type to `DisplayScale`, and ensure `model_config = ConfigDict(strict=True, extra="forbid")` is enforced on `OutputProfile`, `OutputLayoutBlock`, and `SynthesisConfigDTO`.
    - In `@[backend_v2/models/dtos/output_profile.py]`, delete `include_diagnostic_scorecard` across `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, `OutputProfileResponseDTO`, ensuring each DTO and all nested types enforce `ConfigDict(strict=True, extra="forbid")`. Enforce non-nullable `max_extension_items: Annotated[int, Field(default=3, ge=1, le=100)]` on `OutputProfileCreateDTO` and `OutputProfileResponseDTO`, and `max_extension_items: Annotated[int | None, Field(default=None, ge=1, le=100)]` on `OutputProfileUpdateDTO`.
@@ -265,96 +265,94 @@ graph TD
 ---
 
 ### Phase 0: Atomic Data, Mock Fixture & Code Generation Gate (Pre-requisite)
-**Target Files (Modify / New / Execute):**
-- `[MODIFY]` `@[backend_v2/settings.py]`
-- `[MODIFY]` `@[backend_v2/models/enums.py]`
-- `[MODIFY]` `@[client_app_v2/lib/core/models/enums.dart]`
-- `[MODIFY]` `@[backend_v2/models/v2_core.py]`
-- `[MODIFY]` `@[backend_v2/models/dtos/output_profile.py]`
-- `[MODIFY]` `@[client_app_v2/lib/features/studio/models/output_profile.dart]`
-- `[MODIFY]` `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]`
-- `[MODIFY]` `@[backend_v2/tests/unit/test_settings.py]`
-- `[MODIFY]` `@[backend_v2/seed/seed_data.json]`
-- `[MODIFY]` `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`
-- `[MODIFY]` `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]`
-- `[MODIFY]` `@[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]`
-- `[NEW]` `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]`
-- `[MODIFY]` `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`
-- `[MODIFY]` `@[backend_v2/tests/unit/services/test_blueprint.py]`
-- `[MODIFY]` `@[backend_v2/tests/unit/hooks/test_scoring.py]`
-- `[MODIFY]` `@[backend_v2/tests/unit/test_worker_synthesis.py]`
-- `[MODIFY]` `@[backend_v2/tests/unit/test_v2_core_models.py]`
-- `[EXECUTE]` `@[backend_v2/scripts/generate_openapi.py]`
-- `[EXECUTE]` `@[docs/swagger/openapi.json]`
 
-To eliminate any catastrophic crash risk caused by removing `unknownEnumValue` fallbacks (V1), introducing strict `@JsonEnum() DisplayScale` (V6), and purging `include_diagnostic_scorecard` under strict Pydantic `extra="forbid"` deserialization (V9, V11 & V12; see `@[ki_python_314_concurrency_strictness.md]`), the database, mock fixtures, and generated code stubs MUST be migrated at the boundary following Steps 1–4 of the Mandatory Deployment Sequence before UI and client refactoring:
+This phase sets the structural foundation required before any UI refactoring in the Studio app. It strictly enforces `extra="forbid"` JSON deserialization, establishes 1:1 cross-language enum parity, migrates thresholds to centralized settings, and eradicates legacy fallback mechanisms.
 
-> [!IMPORTANT]
-> **CRITICAL OPENAPI SYNC:** You MUST run `uv run python backend_v2/scripts/generate_openapi.py` followed by `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build` to mathematically propagate the Pydantic schema changes (V6, V10) to the Dart API client before compiling any Flutter UI.
-1. **SSOT Enum Parity & Centralized Constraints Creation:**
-   - Define centralized settings in `@[backend_v2/settings.py]` (`authenticity_threshold_high: Annotated[float, Field(default=80.0, ge=0.0, le=100.0)]` and `authenticity_threshold_low: Annotated[float, Field(default=50.0, ge=0.0, le=100.0)]`) to eradicate hardcoded business logic thresholds (V13). Implement `@model_validator(mode="after")` enforcing `authenticity_threshold_high >= authenticity_threshold_low`.
-   - Update `@[backend_v2/tests/unit/test_settings.py]` with boundary validation tests (`ge=0.0, le=100.0` testing `-0.1`, `100.1`), inversion checks (`high < low`), and environment variable overrides.
-   - Define `DisplayScale(StrEnum)` in `@[backend_v2/models/enums.py]` with values `ORIGINAL = "original"`, `CUSTOM = "custom"`, `NORMALIZED_100 = "normalized_100"` and property `l10n_key`.
-   - Define `@JsonEnum() enum DisplayScale` in `@[client_app_v2/lib/core/models/enums.dart]` with matching `@JsonValue('original') original`, `@JsonValue('custom') custom`, `@JsonValue('normalized_100') normalized100`.
-   - Add missing 4 `TargetBlockType` enum members to `@[client_app_v2/lib/core/models/enums.dart]` (`matrixGraphsBlock: 'matrix_graphs_block'`, `matrixSummaryTableBlock: 'matrix_summary_table_block'`, `varianceValidationBlock: 'variance_validation_block'`, `authenticityEvaluationBlock: 'authenticity_evaluation_block'`) to achieve 1:1 mathematical parity with Python `TargetBlockType(StrEnum)` (V14).
-   - Migrate `OutputProfile` (`@[backend_v2/models/v2_core.py]`), `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO` (`@[backend_v2/models/dtos/output_profile.py]`) to strictly type `target_block_order: list[TargetBlockType]` (V14).
-   - Update `@[client_app_v2/lib/features/studio/models/output_profile.dart]` to use `DisplayScale displayScale` and `List<TargetBlockType> targetBlockOrder`, and eradicate all `unknownEnumValue` parameters.
-   - Update `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]` to eradicate its `unknownEnumValue: PresetView.metrics1d` fallback parameter.
-   - Define `SystemUiConstraints` enum in `@[client_app_v2/lib/core/models/enums.dart]` (specifically and exhaustively: `maxExtensionItemsSliderMin(1)`, `maxExtensionItemsSliderMax(20)`, `maxExtensionItemsAbsoluteMax(100)`, `maxExtensionItemsDefault(3)`) to enforce centralized UI limits per `frontend_enum_parity_mandate`:
-     ```dart
-     /// System-wide UI constraints and slider boundaries.
-     /// STRICT PARITY MANDATE: Boundaries mirror backend Pydantic model constraints.
-     enum SystemUiConstraints {
-       maxExtensionItemsSliderMin(1),
-       maxExtensionItemsSliderMax(20),
-       maxExtensionItemsAbsoluteMax(100),
-       maxExtensionItemsDefault(3);
+#### Proposed Changes
 
-       final int value;
-       const SystemUiConstraints(this.value);
-     }
-     ```
-   - Ensure `OutputProfileCreateDTO` and `OutputProfileResponseDTO` in `@[backend_v2/models/dtos/output_profile.py]` enforce strict non-nullable typing `max_extension_items: Annotated[int, Field(default=3, ge=1, le=100)]` and `OutputProfileUpdateDTO` enforces `max_extension_items: Annotated[int | None, Field(default=None, ge=1, le=100)]`:
-     ```python
-     # OutputProfileCreateDTO & OutputProfileResponseDTO:
-     max_extension_items: Annotated[
-         int,
-         Field(
-             default=3,
-             ge=1,
-             le=100,
-             description="Max number of items to show per grouped XAI extension. Sorted by severity.",
-         ),
-     ]
+**1. Backend Config & Enums**
+Centralize authentication thresholds to eradicate hardcoded business logic and enforce cross-language enum parity.
 
-     # OutputProfileUpdateDTO:
-     max_extension_items: Annotated[
-         int | None,
-         Field(
-             default=None,
-             ge=1,
-             le=100,
-             description="Max number of items to show per grouped XAI extension. Sorted by severity.",
-         ),
-     ]
-     ```
-   - In `@[client_app_v2/lib/features/studio/models/output_profile.dart]`, enforce non-nullable `@Default(3) @JsonKey(name: 'max_extension_items') int maxExtensionItems` so that no null-checks or fallback assertions are needed in client state or UI widgets.
-2. **Master Seed Sanitization & Database Reseed Gate:**
-   - *Pre-Production Scope Rationale:* Quorum is currently in active pre-production development where the database layer is ephemeral and populated directly from `seed_data.json` via the Seed Vault Protocol (`@[ki_python_314_concurrency_strictness.md]`). Because there is zero live customer data to migrate, implementing standalone migration scripts is avoided as premature over-engineering (YAGNI).
-   - Audit and sanitize `@[backend_v2/seed/seed_data.json]` to guarantee all `output_profiles` (stored in the single root `output_profiles` SSOT array, specifically and exhaustively: `prf_5d6e7f8091a2b3c4`) have valid enum keys (`"display_scale": "normalized_100"`, `"preset_view": "text_only"`, `"text_delivery_mode": "none"`), complete bilingual `metric_mappings`, and zero occurrences of legacy `include_diagnostic_scorecard`.
-   - Execute local environment database re-seeding via `uv run python backend_v2/seed/run_seed.py local` to populate TinyDB (`data/db_v2.json`) from `seed_data.json`, establishing a clean state before domain model and DTO modifications.
-3. **Synchronous Backend Model & DTO Purge:**
-   - Completely remove `include_diagnostic_scorecard` from `@[backend_v2/models/v2_core.py]` (`OutputProfile`), `@[backend_v2/models/dtos/output_profile.py]` (`OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, `OutputProfileResponseDTO`), and `@[client_app_v2/lib/features/studio/models/output_profile.dart]`.
-   - Maintain `model_config = ConfigDict(strict=True, extra="forbid")` without relaxing serialization rules (`the_zero_compromise_pledge`) across `OutputProfile`, all DTOs, and all nested sub-DTOs (`SynthesisConfigDTO`, `OutputLayoutBlock`, `I18nText`, `AnySduiBlock`).
-4. **Automated Schema & Code Generation Gate (MANDATORY):**
-   - **Backend OpenAPI Generation:** Run `uv run python backend_v2/scripts/generate_openapi.py` to synchronize `@[docs/swagger/openapi.json]`.
-   - **Frontend Freezed/JsonSerializable Generation:** Run `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build` to re-generate `output_profile.freezed.dart` and `output_profile.g.dart`.
-   - Verify backend OpenAPI test compliance via `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py --test`.
-5. **Mock & Unit Test Fixture Synchronization (Blast Radius Coverage):**
-   - Update all test mocks and in-memory test fixtures (specifically and exhaustively: in-memory test fixture `prof_1111111111111111` in `test_worker_synthesis.py`, `test_scoring.py`, and `test_synthesis_distiller_hook.py`, which is an isolated unit test fixture and not part of `seed_data.json`) and frontend mocks across `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`, `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]`, `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`, `@[backend_v2/tests/unit/services/test_blueprint.py]`, `@[backend_v2/tests/unit/hooks/test_scoring.py]`, `@[backend_v2/tests/unit/test_worker_synthesis.py]`, and `@[backend_v2/tests/unit/test_v2_core_models.py]` to strictly use typed `DisplayScale` enums and valid `PresetView` strings without legacy `include_diagnostic_scorecard` keys.
-   - Create [NEW] `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]` with Freezed deserialization falsification tests asserting `CheckedFromJsonException` on unmapped `preset_view` enum strings and forbidden extra JSON keys (`disallowUnrecognizedKeys: true`).
-   - Run `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/models/output_profile_test.dart --test`.
-   - Run `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/models/blueprint_config_test.dart --test`.
+*   `[MODIFY]` `@[backend_v2/settings.py]`
+    *   Add `authenticity_threshold_high` (default=80.0, ge=0.0, le=100.0)
+    *   Add `authenticity_threshold_low` (default=50.0, ge=0.0, le=100.0)
+    *   Implement `@model_validator(mode="after")` enforcing `authenticity_threshold_high >= authenticity_threshold_low`
+*   `[MODIFY]` `@[backend_v2/tests/unit/test_settings.py]`
+    *   Add boundary validation tests for the new thresholds (`ge=0.0, le=100.0`).
+    *   Add tests for inversion failure (`high < low` raising `pydantic.ValidationError`).
+    *   Add tests for environment variable overrides.
+*   `[MODIFY]` `@[backend_v2/models/enums.py]`
+    *   Define `DisplayScale(StrEnum)`: `ORIGINAL = "original"`, `CUSTOM = "custom"`, `NORMALIZED_100 = "normalized_100"`.
+*   `[NEW]` `@[backend_v2/tests/unit/test_enum_parity.py]`
+    *   Automatically verify 1:1 cross-language enum parity via AST/regex parsing between Python `enums.py` and Dart `enums.dart` for all shared enums.
+
+**2. Frontend Enums**
+Synchronize Dart enums with Python enums.
+
+*   `[MODIFY]` `@[client_app_v2/lib/core/models/enums.dart]`
+    *   Define `@JsonEnum() enum DisplayScale`.
+    *   Add missing 4 `TargetBlockType` enum members (`matrixGraphsBlock`, `matrixSummaryTableBlock`, `varianceValidationBlock`, `authenticityEvaluationBlock`).
+    *   Define `SystemUiConstraints` enum (`maxExtensionItemsSliderMin(1)`, `maxExtensionItemsSliderMax(20)`, `maxExtensionItemsAbsoluteMax(100)`, `maxExtensionItemsDefault(3)`).
+
+**3. Master Seed Sanitization**
+Sanitize the SSOT database before any strict Pydantic parsing occurs.
+
+*   `[MODIFY]` `@[backend_v2/seed/seed_data.json]`
+    *   Ensure all `output_profiles` have valid enum keys (`display_scale`, `preset_view`, `text_delivery_mode`).
+    *   Ensure all `metric_mappings` are complete and bilingual.
+    *   Eliminate all occurrences of `include_diagnostic_scorecard`.
+
+**4. Synchronous Backend Model & DTO Purge**
+Eradicate legacy fallbacks and enforce strict models.
+
+*   `[MODIFY]` `@[backend_v2/models/v2_core.py]`
+    *   Remove `include_diagnostic_scorecard` from `OutputProfile`.
+    *   Change `display_scale` type to `DisplayScale`.
+    *   Migrate `target_block_order` to `list[TargetBlockType]`.
+    *   Ensure `model_config = ConfigDict(strict=True, extra="forbid")` is enforced.
+*   `[MODIFY]` `@[backend_v2/models/dtos/output_profile.py]`
+    *   Remove `include_diagnostic_scorecard` from all DTOs.
+    *   Enforce non-nullable `max_extension_items` on `OutputProfileCreateDTO` and `OutputProfileResponseDTO`.
+    *   Enforce `max_extension_items: int | None` on `OutputProfileUpdateDTO`.
+    *   Migrate `target_block_order` to `list[TargetBlockType]`.
+
+**5. Frontend Freezed & Code Gen Synchronisation**
+Eradicate fallbacks in Freezed definitions.
+
+*   `[MODIFY]` `@[client_app_v2/lib/features/studio/models/output_profile.dart]`
+    *   Remove `includeDiagnosticScorecard`.
+    *   Set `DisplayScale displayScale` and `List<TargetBlockType> targetBlockOrder`.
+    *   Strictly type `@Default(3) @JsonKey(name: 'max_extension_items') int maxExtensionItems`.
+    *   Remove ALL `unknownEnumValue` fallback parameters.
+*   `[MODIFY]` `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]`
+    *   Eradicate its `unknownEnumValue: PresetView.metrics1d` fallback parameter.
+
+**6. Mock & Unit Test Fixtures Update**
+Align all unit test fixtures to the new strictly typed structure.
+
+*   `[MODIFY]` **Backend Tests**
+    *   `backend_v2/tests/unit/models/dtos/test_output_profile.py`
+    *   `backend_v2/tests/unit/services/test_matrix_domain_parser.py`
+    *   `backend_v2/tests/unit/services/test_blueprint.py`
+    *   `backend_v2/tests/unit/hooks/test_scoring.py`
+    *   `backend_v2/tests/unit/test_worker_synthesis.py`
+    *   `backend_v2/tests/unit/test_v2_core_models.py`
+    *   `backend_v2/tests/unit/test_synthesis_distiller_hook.py`
+*   `[MODIFY]` **Frontend Tests**
+    *   `client_app_v2/test/features/studio/models/output_profile_test.dart`
+    *   `client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart`
+    *   `client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart`
+*   `[NEW]` **Frontend Test**
+    *   `client_app_v2/test/features/studio/models/blueprint_config_test.dart` (assert `CheckedFromJsonException` on unmapped `preset_view` strings).
+
+#### Verification Plan
+
+**Automated Tests**
+- Execute `uv run python backend_v2/seed/run_seed.py local`
+- Execute `uv run python backend_v2/scripts/generate_openapi.py`
+- Execute `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build`
+- Run full backend negative test suite via `uv run python scripts/backend_audit_loop.py backend_v2 --test`.
+- Run full frontend test suite and build verification via `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio --build` and `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio --test`.
 
 ### Phase 1: Sub-Tab Information Architecture & Scaffold Decomposition
 **Target Files (Modify / New):**
@@ -454,7 +452,7 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
              },
            ),
          ),
-         AppSpacing.w12,
+         AppSpacing.w16,
          SizedBox(
            width: 64,
            child: TextFormField(
@@ -497,6 +495,7 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 ### Phase 3: Backend Execution, Synthesis Alignment & Prompt DRY Simplification
 **Target Files (Modify / New):**
 - `[NEW]` `@[backend_v2/models/prompts/synthesis_directives.py]`
+- `[MODIFY]` `@[backend_v2/models/prompts/__init__.py]`
 - `[MODIFY]` `@[backend_v2/settings.py]`
 - `[MODIFY]` `@[backend_v2/services/matrix_domain_parser.py]`
 - `[MODIFY]` `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]`
@@ -505,6 +504,7 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 - `[MODIFY]` `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`
 - `[MODIFY]` `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`
 - `[MODIFY]` `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`
+- `[MODIFY]` `@[backend_v2/services/blueprint.py]`
 - `[MODIFY]` `@[backend_v2/models/v2_core.py]`
 - `[MODIFY]` `@[backend_v2/models/dtos/output_profile.py]`
 - `[MODIFY]` `@[client_app_v2/lib/features/studio/models/output_profile.dart]`
@@ -539,28 +539,72 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
      - `metadata_strictness`: `{"default_locale": "fi", "translations": {"fi": "Ankaruustaso:", "en": "Strictness Level:"}}`
    - **DTO Firewall:** Ensure `OutputProfileResponseDTO` and `OutputProfileUpdateDTO` in `@[backend_v2/models/dtos/output_profile.py]` maintain `metric_mappings` as `Field(exclude=True)` and `@[backend_v2/api/routers/studio/output_profiles.py]` retains `update_data.pop("metric_mappings", None)` to permanently prevent Studio UI CRUD operations from wiping or corrupting system translation maps.
 5. **TargetBlockType Dispatcher Strictness & Typed Hydrators (`blueprint.py` - V14 Fix):**
-   - Refactor `@[backend_v2/services/blueprint    - The dispatch loop iterating `profile.target_block_order` MUST index directly via native `TargetBlockType` keys without `str()` casting and without silent `if key in dict:` checks. The dictionary lookup MUST be wrapped in a localized `try...except KeyError:` block that catches missing adapter registrations and raises an explicit `AppException(message=f"No SDUI presentation adapter registered for TargetBlockType: '{target_k.value}'", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "target_block_type": target_k.value})` per `strict_enum_hydration_and_validation` and `universal_fail_fast`.
+   - Refactor `@[backend_v2/services/blueprint.py]`: The dispatch loop iterating `profile.target_block_order` MUST index directly via native `TargetBlockType` keys without `str()` casting and without silent `if key in dict:` checks. The dictionary lookup MUST be wrapped in a localized `try...except KeyError:` block that catches missing adapter registrations and raises an explicit `AppException(message=f"No SDUI presentation adapter registered for TargetBlockType: '{target_k.value}'", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "target_block_type": target_k.value})` per `strict_enum_hydration_and_validation` and `universal_fail_fast`.
 6. **Adapter Pattern Strictness & Global Config Sovereignty (V13 Fix):**
    - All modified adapters MUST strictly follow the 2-section canonical template (AESTHETICS_RULES dictionary + Adapter Class), utilizing fail-fast dictionary access and immutable `AdapterContext` (`@[ki_sdui_adapter_pattern.md]`).
    - All adapter exception handling MUST follow `adapter_dual_logging_process`: (1) catch the expected native error, (2) log locally via `logger.error("[AdapterName] ERROR_TYPE: %s", msg, exc_info=True)`, (3) `raise AppException(...) from e`. Silent swallows and raises without prior `logger.error` are BANNED.
    - Matrix graph adapters MUST follow `adapter_flat_element_sequencing`: emit blocks in the strict order `MarkdownBlock(### {title})` → `ParagraphBlock(synthesis text)` → `GraphBlock(title=None)`. For `text_only` matrices, the graph block is omitted.
    - Graph adapters encountering structurally incompatible data (specifically: `len(axes) < 3` for a 3D graph) MUST implement Explicit Graceful Degradation per `adapter_strict_fail_fast_routing`: downgrade to `2d_compare` or `1d_metrics`, log `logger.warning`, and return downgraded SDUI blocks.
-   - Refactor `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]` to completely delete the hardcoded `AUTHENTICITY_THRESHOLDS = {"high": 80.0, "low": 50.0}` dictionary. The adapter MUST import `get_settings` at the top of the file and resolve `high_thresh` and `low_thresh` from Settings.authenticity_threshold_high and Settings.authenticity_threshold_low dynamically per `@[ki_global_config_sovereignty.md]`.
+   - Refactor `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]` to completely delete the hardcoded `AUTHENTICITY_THRESHOLDS = {"high": 80.0, "low": 50.0}` dictionary (V13). The adapter MUST import `get_settings` globally at module level (`from backend_v2.settings import get_settings`) and resolve `high_thresh` and `low_thresh` dynamically via `get_settings()` (`authenticity_threshold_high`, `authenticity_threshold_low`) per `@[ki_global_config_sovereignty.md]`. The classification logic in `build()` resolves `lvl_key` (`level_high` if `auth_score_rounded >= high_thresh`, else `level_medium` if `auth_score_rounded >= low_thresh`, else `level_low`) and looks up visual aesthetics strictly from `AUTHENTICITY_RULES[lvl_key]` without `.get()` fallbacks.
 7. **XAI Highlights Type Safety (`list[XaiHighlightItem]`):** Refactor `RenderedSynthesisCache.xai_highlights` (`@[backend_v2/models/v2_core.py]`) from `list[Any]` to `list[XaiHighlightItem]`, enforcing strict Fail-Fast Pydantic V2 parsing across synthesis cache storage. Remove the defensive runtime `model_validate` try-catch loop from `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`. Synchronize all backend test fixtures in `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]` and `@[backend_v2/tests/unit/services/test_blueprint.py]` to instantiate `XaiHighlightItem` objects explicitly.
 8. **DisplayScale Domain Service Alignment (`matrix_domain_parser.py`):** Refactor `@[backend_v2/services/matrix_domain_parser.py]` to compare native `DisplayScale` enum members (`NORMALIZED_100`, `CUSTOM`) instead of raw string literals (`if display_scale == "normalized_100":` at L238, L242, L268), strictly satisfying `strict_enum_hydration_and_validation` (`@[ki_python_314_concurrency_strictness.md]`).
 9. **Unified Synthesis Prompt DRY Simplification (V15 Fix — `synthesis_directives.py` SSOT):**
    All four synthesis domains (Executive Summary, 1D/2D/3D Graph Synthesis, Row Explanations, and XAI Output Extensions) are unified under a single [NEW] Python SSOT module `@[backend_v2/models/prompts/synthesis_directives.py]` to eliminate prompt rule duplication across `seed_data.json` PromptBlocks and achieve Epic 144 scalability for arbitrary graph dimensionalities:
-   - **9a. Create [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]`:** Define four mandate constant groups as XML-structured Python string constants (following `xml_structural_sovereignty_mandate` from `@[.agents/rules/05_llm_architecture.md]`):-structured Python string constants (following `xml_structural_sovereignty_mandate` from `@[.agents/rules/05_llm_architecture.md]`):
-     1. **Graph Synthesis Mandates** (specifically and exhaustively: `GRAPH_MATHEMATICAL_ANCHORING_MANDATE`, `GRAPH_VISUAL_STORYTELLING_MANDATE`, `GRAPH_DIMENSIONAL_SYNTHESIS_MANDATE`, `GRAPH_STRUCTURE_MANDATE`, combined into `GRAPH_SYNTHESIS_SHARED_MANDATES_XML`) — covering dynamic scale anchoring, spatial metaphors, 1D/2D/3D multi-axis synergy, and the two-paragraph output structure.
-     2. **Row Explanation Mandate** (`ROW_EXPLANATION_MANDATE`) — enforcing exactly one sentence of maximum 30 words, plain text, causal reasoning.
-     3. **XAI Extension Curation Mandates** (specifically and exhaustively: `XAI_EXTENSION_DEFINITIONS`, `XAI_CURATION_MANDATE_TEMPLATE`, and builder function `build_xai_curation_mandate(requested_extensions, max_extension_items)`) — covering category definitions, curation instructions with dynamic parameters, and anchoring rules.
-     4. **Imports from existing SSOT:** `ANTI_ID_MANDATE`, `ANTI_SCORE_MANDATE`, `EXTENSION_ANCHORING_MANDATE`, `LANGUAGE_MANDATE`, `SCHEMA_PURITY_MANDATE` from `@[backend_v2/models/prompts/global_mandates.py]`.
-   - **9b. Strip Dead-Weight Fields from `seed_data.json` Layouts:** Remove the following 6 unused fields from all 12 layout-level `synthesis` objects (lines 9461–9907): `model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`. Retain only `synthesis_block_id` (and `row_explanations_block_id` where present). This eliminates ~80 lines of duplicated boilerplate.
-   - **9c. Simplify Graph Synthesis PromptBlocks:** Strip redundant inline rules from three hardcoded PromptBlocks (`blk_111122223333444a` at L7721, `blk_111122223333444b` at L7744, `blk_111122223333444c` at L7767). Each block's `ai_description` retains ONLY the unique domain-specific semantic flavor (role, objective with axis interpretation mappings) while shared mandates (mathematical anchoring, visual storytelling, dimensional synthesis, output structure, language, and technical gates) are injected dynamically from `synthesis_directives.py` via `worker.py`.
-   - **9d. Simplify Section & Row Explanation PromptBlocks:** Strip redundant language and brevity mandates from `blk_34def5d628ba4ed4` (Synthesis Section Rules, L7586) and `blk_ad303690b26b413d` (Row Explanation Rules, L7608). Shared rules are injected from `synthesis_directives.py`.
-   - **9e. Worker Dynamic Context Injection:** Extend the synthesis dynamic context construction in `@[backend_v2/worker.py]` to inject the appropriate `synthesis_directives.py` mandate constants alongside the existing `GLOBAL_MANDATES_XML` and `build_linguistic_context()` injections. Graph synthesis tasks inject `GRAPH_SYNTHESIS_SHARED_MANDATES_XML`. Row explanation tasks inject `ROW_EXPLANATION_MANDATE`. XAI curation tasks inject the output of `build_xai_curation_mandate()`.
-   - **9f. Executive Summary Alignment & Adapter Synthesis Extension:** The Executive Summary synthesis (`blk_1a2b3c4d5e6f7a8b` at L7674, referenced at lines 9462 and 9898) is confirmed to follow the same `worker.py` synthesis pipeline. Its `ai_description` is USER intellectual property (coaching philosophy) protected by `prompt_preservation_mandate`. The shared mandates from `synthesis_directives.py` provide structural anchoring without modifying the Executive Summary's unique coaching tone and four-paragraph structure. Furthermore, refactor `ExecutiveSummaryAdapter.build(context)` in `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]` to read and append the synthesis paragraphs from `context.profile_cache.section_syntheses` (or `user_role_justification`) alongside the localized user role badge, ensuring Executive Summary output delivers full multi-paragraph synthesis to SDUI matching all other layout syntheses.
-   - **9g. `SynthesisConfigDTO` Complete Dead-Weight Field Purge:** Completely remove all 6 unused dead-weight fields (specifically and exhaustively: `model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) from `SynthesisConfigDTO` in `@[backend_v2/models/v2_core.py]`, Dart Freezed models (`@[client_app_v2/lib/features/studio/models/output_profile.dart]` and `@[client_app_v2/lib/features/execution/models/synthesis_config_dto.dart]`), and all `synthesis` objects in `@[backend_v2/seed/seed_data.json]`. Under `ConfigDict(strict=True, extra="forbid")` and `@JsonSerializable(disallowUnrecognizedKeys: true)`, `SynthesisConfigDTO` retains specifically and exhaustively only active functional fields: `synthesis_block_id: str | None`, `row_explanations_block_id: str | None`, `system_prompt: str | None`, `length_constraint: int | None`, `preamble_text: I18nText | None`, and `tone_instruction: I18nText | None`. The `synthesis_block_id: str | None` field remains the primary SSOT key. All `@Default` and `unknownEnumValue` fallback annotations for these dead fields are completely eradicated across the codebase.
+   - **9a. Create [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]`:** Define mandate constant groups as XML-structured Python string constants (following `xml_structural_sovereignty_mandate` from `@[.agents/rules/05_llm_architecture.md]`):
+     ```python
+     """Synthesis Directives for Graph Explanation and Visual Storytelling.
+
+     This module serves as the Single Source of Truth (SSOT) for structural graph synthesis
+     and visual storytelling rules in Quorum V2 reporting pipelines.
+     """
+
+     SYNTHESIS_MATHEMATICAL_ANCHORING_MANDATE = (
+         "<mathematical_anchoring_mandate>\n"
+         "- MATHEMATICAL SCALE VERIFICATION: The scales for the X, Y, and Z axes are dynamic and injected "
+         "via the prompt context. Before describing any position as 'high', 'low', or 'middle', you MUST "
+         "explicitly verify the raw score against its absolute boundary limits.\n"
+         "- Erroneous spatial orientation due to scale hallucination constitutes a critical failure.\n"
+         "</mathematical_anchoring_mandate>"
+     )
+
+     SYNTHESIS_VISUAL_STORYTELLING_MANDATE = (
+         "<visual_storytelling_mandate>\n"
+         "- PARAGRAPH 1 (VISUAL STORYTELLING): Ground your analysis in the visual graph natively in the target "
+         "language (specifically and exhaustively using exact spatial phrases: 'Position on the right horizontal axis indicates...', 'Position on the vertical axis reveals...').\n"
+         "- Describe X, Y, and Z positions accurately based ONLY on verified scale boundaries.\n"
+         "- PARAGRAPH 2 (COMBINED EFFECT & CAPSTONE): Explain the dangerous or powerful synergy between the dimensions. "
+         "Conclude this paragraph with a concrete, actionable takeaway.\n"
+         "- TWO-PARAGRAPH STRUCTURE: Output exactly two cohesive paragraphs. Do NOT use bullet points or markdown headers.\n"
+         "- CONCRETE CRITICISM: Speak truthfully without sugarcoating. Translate theoretical concepts into business reality.\n"
+         "</visual_storytelling_mandate>"
+     )
+
+     SYNTHESIS_GRAPH_DIRECTIVES_XML = f"""<graph_synthesis_directives>
+     {SYNTHESIS_MATHEMATICAL_ANCHORING_MANDATE.strip()}
+
+     {SYNTHESIS_VISUAL_STORYTELLING_MANDATE.strip()}
+     </graph_synthesis_directives>
+     """
+
+     ROW_EXPLANATION_MANDATE = (
+         "<row_explanation_mandate>\n"
+         "- Output EXACTLY ONE sentence of maximum 30 words.\n"
+         "- Do NOT use markdown. Output plain text only.\n"
+         "- Focus on causal reasoning: what specific evidence in the source data drove the score up or down.\n"
+         "</row_explanation_mandate>"
+     )
+     ```
+   - **9b. Re-export Directives in `@[backend_v2/models/prompts/__init__.py]`:** Export `SYNTHESIS_MATHEMATICAL_ANCHORING_MANDATE`, `SYNTHESIS_VISUAL_STORYTELLING_MANDATE`, `SYNTHESIS_GRAPH_DIRECTIVES_XML`, and `ROW_EXPLANATION_MANDATE` in `__all__`.
+   - **9c. Strip Dead-Weight Fields from `seed_data.json` Layouts:** Remove the following 6 unused fields from all 12 layout-level `synthesis` objects (lines 9461–9907): `model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`. Retain only `synthesis_block_id` (and `row_explanations_block_id` where present). This eliminates ~80 lines of duplicated boilerplate.
+   - **9c-reseed. Mandatory Local Database Reseed Gate:** After completing step 9c and 9d/9e seed_data.json modifications, execute `uv run python backend_v2/seed/run_seed.py local` to cleanse the local TinyDB of dead-weight fields before modifying the Pydantic `SynthesisConfigDTO` model in step 9h. Under `ConfigDict(strict=True, extra="forbid")`, removing fields from the Pydantic model while stale keys remain in the local database causes immediate `pydantic.ValidationError(extra_forbidden)` crash on the next database read.
+   - **9d. Simplify Graph Synthesis PromptBlocks (`seed_data.json`):** Strip redundant inline rules and XML tags from three hardcoded PromptBlocks (`blk_111122223333444a` at L7721, `blk_111122223333444b` at L7744, `blk_111122223333444c` at L7767). In accordance with `de_generator_mandate_no_xml` and `prompt_preservation_mandate`, each block's `ai_description` is converted to clean Markdown headers (`## Role`, `## Objective`) retaining ONLY the unique domain-specific coaching philosophy (Toulmin, Goodhart, Kahneman, Pearl, Popper, Humility, Traceability, Coherence):
+     ```json
+     "ai_description": "## Role\nSenior Executive Coach & Visual Analyst\n\n## Objective\nSynthesize the evaluation results by bridging the visual dimensions to the \"Toulmin-Goodhart-Kahneman test\" – an intellectual self-defense radar against bad strategy (3D-Cognitive Analysis):\n\n1. Horizontal Shift (X-Axis): Toulmin's Model. Moving right means strong structural logic and validated underlying assumptions.\n2. Vertical Height (Y-Axis): Goodhart's Law (Performativity). Moving up means they successfully fought off performativity and didn't just game the system.\n3. Bubble Size (Z-Axis): Kahneman's Dual Process. In this graph, larger is better. A LARGE, robust ball (high score) means deep analytical System 2 thinking instead of fast intuition. A TINY, collapsed ball (low score) exposes lazy, automated, or purely intuitive System 1 guessing."
+     ```
+   - **9e. Simplify Section & Row Explanation PromptBlocks (`seed_data.json`):** Strip redundant language, brevities, and XML tags from `blk_34def5d628ba4ed4` (Synthesis Section Rules, L7586) and `blk_ad303690b26b413d` (Row Explanation Rules, L7608). Shared rules are injected from `synthesis_directives.py` and `global_mandates.py`.
+   - **9f. Worker Dynamic Context Injection (`@[backend_v2/worker.py]`):** Extend the synthesis dynamic context construction in `worker.py` to inject `SYNTHESIS_GRAPH_DIRECTIVES_XML` into `dynamic_ctx_parts` (inside `<dynamic_context>` in the user payload) when synthesizing graph sections, while keeping `sys_prompt` 100% static to preserve Vertex AI / Anthropic Prompt Caching (`ephemeral_caching_topology`). Row explanation tasks inject `ROW_EXPLANATION_MANDATE`.
+   - **9g. Executive Summary Alignment & Adapter Synthesis Extension:** The Executive Summary synthesis (`blk_1a2b3c4d5e6f7a8b` at L7674, referenced at lines 9462 and 9898) follows the same `worker.py` synthesis pipeline. Its `ai_description` is USER intellectual property (coaching philosophy) protected by `prompt_preservation_mandate`. Refactor `ExecutiveSummaryAdapter.build(context)` in `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]` to read and append the synthesis paragraphs from `context.profile_cache.section_syntheses` (or `user_role_justification`) alongside the localized user role badge.
+   - **9h. `SynthesisConfigDTO` Complete Dead-Weight Field Purge:** Completely remove all 6 unused dead-weight fields (specifically and exhaustively: `model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) from `SynthesisConfigDTO` in `@[backend_v2/models/v2_core.py]`, Dart Freezed models (`@[client_app_v2/lib/features/studio/models/output_profile.dart]` and `@[client_app_v2/lib/features/execution/models/synthesis_config_dto.dart]`), and all `synthesis` objects in `@[backend_v2/seed/seed_data.json]`. Under `ConfigDict(strict=True, extra="forbid")` and `@JsonSerializable(disallowUnrecognizedKeys: true)`, `SynthesisConfigDTO` retains specifically and exhaustively only active functional fields: `synthesis_block_id: str | None`, `row_explanations_block_id: str | None`, `system_prompt: str | None`, `length_constraint: int | None`, `preamble_text: I18nText | None`, and `tone_instruction: I18nText | None`. All `@Default` and `unknownEnumValue` fallback annotations for these dead fields are completely eradicated across the codebase.
 
 ### Phase 4: Localization Synchronization & Freezed Validation
 **Target Files (Modify / Execute):**
@@ -590,10 +634,11 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 - `[TEST]` `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]`
 - `[TEST]` `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]`
 - `[NEW]` `[TEST]` `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]`
-- `[NEW]` `backend_v2/tests/unit/models/dtos/test_output_profile_dto.py`
-- `[TEST]` `@[backend_v2/tests/unit/test_output_profile_models.py]`
+- `[NEW]` `[TEST]` `@[backend_v2/tests/unit/test_enum_parity.py]`
 - `[TEST]` `@[backend_v2/tests/unit/test_settings.py]`
 - `[TEST]` `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`
+- `[NEW]` `[TEST]` `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]`
+- `[TEST]` `@[client_app_v2/test/shared/models/sdui_block_dto_test.dart]`
 - `[NEW]` `client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart`
 - `[TEST]` `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`
 - `[TEST]` `@[backend_v2/tests/unit/services/test_blueprint.py]`
@@ -604,16 +649,23 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 1. **Backend Fail-Fast & Negative Unit Tests (`@[ki_ai_testing_standards.md]`):**
    - Execute negative tests in `@[backend_v2/tests/unit/services/test_blueprint.py]` verifying that `BlueprintTransformer.build_report_dto()` raises `AppException(VALIDATION_FAILED)` when `target_block_order` contains an unmapped or un-hydrated `TargetBlockType` key without fallback.
    - Execute negative tests in `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]` verifying that `MetadataAdapter.build()` raises `AppException(VALIDATION_FAILED)` when `metric_mappings` lacks required keys (`metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`) or when a translation is missing for the active locale (specifically and exhaustively preventing silent fallback to Finnish strings and `.get()` defaults).
-   - Execute negative and boundary tests in `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]` verifying that `AuthenticityAdapter.build()` correctly categorizes severity levels across the exact thresholds configured in `settings.py` (`authenticity_threshold_high`, `authenticity_threshold_low`) and reacts deterministically to `monkeypatch` settings overrides.
-   - Execute negative and boundary tests in `@[backend_v2/tests/unit/test_settings.py]` asserting that `pydantic.ValidationError` is raised on out-of-bounds `authenticity_threshold_high` and `authenticity_threshold_low` (`ge=0.0, le=100.0`, specifically and exhaustively testing boundary failure inputs `-0.1`, `100.1`), logical inversion (`high < low`), and environment variable overrides.
+   - Execute negative and boundary tests in `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]` verifying that `AuthenticityAdapter.build()` correctly categorizes severity levels across the exact thresholds configured in `settings.py` (specifically and exhaustively: exact boundary inputs `80.0` -> `level_high`, `79.99` -> `level_medium`, `50.0` -> `level_medium`, `49.99` -> `level_low`). Verify that dynamic settings overrides via `monkeypatch` targeting `backend_v2.services.sdui.adapters.authenticity_adapter.get_settings` (specifically overriding `high=90.0, low=60.0` causing `85.0` to classify as `level_medium`) operate deterministically without polluting singleton state across other test modules.
+   - Execute negative and boundary tests in `@[backend_v2/tests/unit/test_settings.py]` asserting that `pydantic.ValidationError` is raised on out-of-bounds `authenticity_threshold_high` and `authenticity_threshold_low` (`ge=0.0, le=100.0`, specifically and exhaustively testing boundary failure inputs `-0.1`, `100.1`), logical inversion (`high < low`, specifically `high=40.0, low=70.0`), and environment variable overrides.
    - Execute negative tests in `backend_v2/tests/unit/models/dtos/test_output_profile_dto.py` and `@[backend_v2/tests/unit/test_output_profile_models.py]` verifying that `pydantic.ValidationError` is raised on out-of-bounds `max_extension_items` (`ge=1, le=100`, specifically and exhaustively testing boundary failure values `0`, `-1`, and `101`), invalid `display_scale` strings, invalid/unmapped `target_block_order` block strings (V14), legacy `include_diagnostic_scorecard` keys, and unexpected extra keys inside nested sub-DTOs (`SynthesisConfigDTO`, `OutputLayoutBlock`) under `ConfigDict(strict=True, extra="forbid")`.
    - Verify that `matrix_domain_parser.py` tests in `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]` evaluate correctly under all `DisplayScale` enum options (`ORIGINAL`, `CUSTOM`, `NORMALIZED_100`).
    - Execute negative tests across all modified adapter test files (specifically and exhaustively: `test_metadata_adapter.py`, `test_authenticity_adapter.py`, `test_executive_summary_adapter.py`, `test_xai_highlights_adapter.py`) verifying that adapter exceptions follow `adapter_dual_logging_process`: assert that `logger.error` is called with `exc_info=True` BEFORE `AppException` is raised (using `unittest.mock.patch` on the adapter's logger).
    - Execute boundary tests for graph adapters (in `@[backend_v2/tests/unit/services/test_blueprint.py]` or dedicated adapter tests) verifying `adapter_strict_fail_fast_routing` Graceful Degradation: when `preset_view == '3d_matrix'` but `len(axes) < 3`, the adapter returns downgraded 2D/1D blocks and emits a `logger.warning` instead of raising an exception.
-2. **Frontend Freezed Falsification & Negative Tests:**
-   - Execute negative tests in `@[client_app_v2/test/features/studio/models/output_profile_test.dart]` asserting that `CheckedFromJsonException` is thrown when unmapped enum values (for `PresetView`, `TextDeliveryMode`, `DisplayScale`, or `TargetBlockType` in `targetBlockOrder`) or unrecognized JSON keys (both at root `OutputProfile` level and inside nested `SynthesisConfigDTO` / `OutputLayoutBlock` objects) are parsed, verifying that `@Default` and `unknownEnumValue` fallbacks have been completely eradicated.
+   - Execute tests in [NEW] `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]` verifying:
+     1. `test_synthesis_directives_xml_validity`: All mandate constants (`SYNTHESIS_MATHEMATICAL_ANCHORING_MANDATE`, `SYNTHESIS_VISUAL_STORYTELLING_MANDATE`, `SYNTHESIS_GRAPH_DIRECTIVES_XML`, `ROW_EXPLANATION_MANDATE`) are valid non-empty XML strings that parse without errors via `xml.etree.ElementTree.fromstring()`.
+     2. `test_synthesis_directives_exports`: `backend_v2.models.prompts.__all__` contains all new directives constants.
+     3. `test_seed_prompt_blocks_cleansed`: PromptBlocks `blk_111122223333444a`, `blk_111122223333444b`, `blk_111122223333444c`, `blk_34def5d628ba4ed4`, and `blk_ad303690b26b413d` in `seed_data.json` contain zero raw XML tags (`<system_directive>`, `<rules>`, `<rule>`), strictly satisfying `de_generator_mandate_no_xml`.
+     4. `test_prompt_preservation_qualitative_integrity`: Core qualitative coaching concepts (Toulmin, Goodhart, Kahneman, Popper, Pearl, Humility, Traceability, Coherence) are intact in `seed_data.json` PromptBlock `ai_description` strings per `prompt_preservation_mandate`.
+   - Execute tests in `@[backend_v2/tests/unit/test_worker_synthesis.py]` verifying that `worker.py` injects `SYNTHESIS_GRAPH_DIRECTIVES_XML` into `<dynamic_context>` in the user payload during graph synthesis while maintaining a 100% static system instruction prefix (`ephemeral_caching_topology`).
+2. **Frontend Freezed Falsification & Anti-Happy-Path Negative Tests:**
+   - Execute negative tests in `@[client_app_v2/test/features/studio/models/output_profile_test.dart]` and `[NEW]` `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]` asserting that `CheckedFromJsonException` is thrown when unmapped enum values (for `PresetView`, `TextDeliveryMode`, `HistoricalContextMode`, `DisplayScale`, or `TargetBlockType` in `targetBlockOrder`) or unrecognized JSON keys (both at root `OutputProfile` level and inside nested `SynthesisConfigDTO` / `OutputLayoutBlock` objects) are parsed, verifying that `@Default` and `unknownEnumValue` fallbacks have been completely eradicated.
+   - Execute negative tests in `@[client_app_v2/test/shared/models/sdui_block_dto_test.dart]` verifying that unknown SDUI block types (`block_type: 'unknown_type'`), missing required fields, and unrecognized extra keys across polymorphic block types throw exceptions (`CheckedFromJsonException` / `FormatException`) to prevent silent UI fallback degradation.
 3. **Studio UI & Widget Test Suite:**
-   - Run localized Flutter unit and widget test suite on Studio output profile views and block cards.
+   - Run localized Flutter unit and widget test suite on Studio output profile views and block cards, verifying that out-of-bounds database values (specifically testing boundary scenario `max_extension_items = 50`) safely clamp on the visual Slider while displaying accurately in the companion text field without framework assertion crashes.
 4. **Global Quality Gates:**
    - Run global quality gates: `uv run python scripts/backend_audit_loop.py backend_v2 --test` and `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio --build`.
 
@@ -642,7 +694,7 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 - [ ] No manual comma-separated `steps` text fields remain in the UI.
 - [ ] All UI strings exist in both English (`app_en.arb`) and Finnish (`app_fi.arb`).
 - [ ] `MetadataAdapter` contains ZERO hardcoded Finnish strings (V7), ZERO duck-typing `getattr` calls or latent attribute name mismatches (`custom_preface` strictly resolved) (V7a), ZERO hardcoded title fallbacks (strictly resolved `name` + Fail-Fast) (V7b), and ZERO runtime `isinstance` guards on `created_at` (V7c) while safely guarding existence via `if context.execution.created_at:` prior to `.strftime()`. All labels (`metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`) are resolved bilingually.
-- [ ] `AuthenticityAdapter` contains ZERO hardcoded business logic thresholds (V13). The module-level `AUTHENTICITY_THRESHOLDS` dictionary is completely removed, and thresholds are resolved dynamically from Settings.authenticity_threshold_high and Settings.authenticity_threshold_low via top-level `get_settings()` import per `@[ki_global_config_sovereignty.md]`.
+- [ ] `AuthenticityAdapter` contains ZERO hardcoded business logic thresholds (V13). The module-level `AUTHENTICITY_THRESHOLDS` dictionary is completely removed, and thresholds are resolved dynamically from `Settings.authenticity_threshold_high` and `Settings.authenticity_threshold_low` via top-level `get_settings()` import per `@[ki_global_config_sovereignty.md]`.
 - [ ] `seed_data.json` and backend test fixtures in `test_blueprint.py` and `test_metadata_adapter.py` explicitly seed all required `metric_mappings` metadata keys in both English and Finnish.
 - [ ] `OutputProfileResponseDTO` and `OutputProfileUpdateDTO` maintain the DTO firewall (`metric_mappings` excluded) to prevent Studio UI CRUD operations from clobbering system metric mappings.
 - [ ] `SynthesisTextAdapter` reads both `content_blocks` (static) and `section_syntheses` (dynamic Pipeline synthesis).
@@ -651,18 +703,19 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
 - [ ] Graph adapters implement `adapter_strict_fail_fast_routing` Graceful Degradation: if `len(axes) < 3` for a 3D graph request, the adapter downgrades to `2d_compare` or `1d_metrics` and logs `logger.warning` instead of crashing.
 - [ ] Block visibility is controlled exclusively via `target_block_order` manipulation (no `include_X: bool` fields).
 - [ ] Redundant legacy field `include_diagnostic_scorecard: bool` is completely removed from Backend models/DTOs and Frontend Freezed models.
-- [ ] Dedicated unit tests in `@[backend_v2/tests/unit/test_settings.py]` verify `authenticity_threshold_high` and `authenticity_threshold_low` boundary bounds (`ge=0.0, le=100.0`), cross-field validation (`high >= low`), and environment variable overrides.
+- [ ] Dedicated unit tests in `@[backend_v2/tests/unit/test_settings.py]` verify `authenticity_threshold_high` and `authenticity_threshold_low` boundary limits (`ge=0.0, le=100.0`), cross-field validation (`high >= low`), and environment variable overrides.
+- [ ] Dedicated unit tests in `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]` verify boundary classifications (`80.0`, `79.99`, `50.0`, `49.99`), `monkeypatch` settings isolation, and dual-logging exception handling.
 - [ ] `OutputProfile`, all OutputProfile DTOs, and all nested sub-DTOs (`SynthesisConfigDTO`, `OutputLayoutBlock`, `I18nText`, and all `AnySduiBlock` / SduiBlockDTO polymorphic subtypes) maintain `model_config = ConfigDict(strict=True, extra="forbid")` in Python and `@JsonSerializable(disallowUnrecognizedKeys: true)` without `unknownEnumValue` in Dart Freezed, with zero relaxed serialization flags (`extra="ignore"` strictly banned).
 - [ ] Backend OpenAPI generation and Frontend Freezed generation are synchronized in lockstep to guarantee zero HTTP 422 Unprocessable Entity or 500 Validation Failed deserialization crashes.
 - [ ] `RenderedSynthesisCache.xai_highlights` is strictly typed as `list[XaiHighlightItem]` and defensive try-catch loops in `XaiHighlightsAdapter` are removed.
 - [ ] All dynamic UI block arrays (`OutputProfile.content_blocks`, `ReportDataDTO.inner_sdui_blocks`) are strictly typed as polymorphic Dart SduiBlockDTO models and Python `list[AnySduiBlock]` with zero occurrences of `List<dynamic>` or `list[dict[str, Any]]`.
 - [ ] In Flutter, the polymorphic block DTO (SduiBlockDTO) enforces `@Freezed(unionKey: 'block_type')` without `fallbackUnion` and with `@JsonSerializable(disallowUnrecognizedKeys: true)`.
 - [ ] **Unified Synthesis Prompt SSOT (V15):**
-  - [ ] [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]` exists and defines four mandate constant groups: Graph Synthesis Mandates (`GRAPH_SYNTHESIS_SHARED_MANDATES_XML`), Row Explanation Mandate (`ROW_EXPLANATION_MANDATE`), XAI Extension Curation Mandates (`build_xai_curation_mandate()`), and imports from `@[backend_v2/models/prompts/global_mandates.py]`.
-  - [ ] All 12 layout-level `synthesis` objects in `@[backend_v2/seed/seed_data.json]` contain ONLY `synthesis_block_id` (and `row_explanations_block_id` where applicable). The 6 dead-weight fields (`model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) are completely removed.
-  - [ ] Graph synthesis PromptBlocks (`blk_111122223333444a`, `blk_111122223333444b`, `blk_111122223333444c`) contain ONLY unique domain-specific semantic flavor (role + axis interpretation). Shared structural mandates are injected from `synthesis_directives.py`.
-  - [ ] `@[backend_v2/worker.py]` injects the appropriate `synthesis_directives.py` mandate constants into the synthesis dynamic context alongside `GLOBAL_MANDATES_XML` and `build_linguistic_context()`.
-  - [ ] Unit tests in [NEW] `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]` verify that all mandate constants are valid non-empty XML strings and that `build_xai_curation_mandate()` produces correct output for given inputs.
+  - [ ] [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]` exists and defines structural mandate constants (`SYNTHESIS_MATHEMATICAL_ANCHORING_MANDATE`, `SYNTHESIS_VISUAL_STORYTELLING_MANDATE`, `SYNTHESIS_GRAPH_DIRECTIVES_XML`, `ROW_EXPLANATION_MANDATE`) re-exported via `@[backend_v2/models/prompts/__init__.py]`.
+  - [ ] All 12 layout-level `synthesis` objects in `@[backend_v2/seed/seed_data.json]` contain ONLY `synthesis_block_id` (and `row_explanations_block_id` where applicable). The 6 dead-weight fields (`model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) are completely removed from `SynthesisConfigDTO` and `seed_data.json`.
+  - [ ] Graph synthesis PromptBlocks (`blk_111122223333444a`, `blk_111122223333444b`, `blk_111122223333444c`), Synthesis Section Rules (`blk_34def5d628ba4ed4`), and Row Explanation Rules (`blk_ad303690b26b413d`) in `@[backend_v2/seed/seed_data.json]` are converted to clean Markdown headers (`## Role`, `## Objective`) without raw XML tags per `de_generator_mandate_no_xml`, preserving unique qualitative coaching philosophy (Toulmin, Goodhart, Kahneman, Popper, Pearl) per `prompt_preservation_mandate`.
+  - [ ] `@[backend_v2/worker.py]` injects `SYNTHESIS_GRAPH_DIRECTIVES_XML` into `<dynamic_context>` in the user payload during graph synthesis while keeping `sys_prompt` 100% static for Prompt Caching (`ephemeral_caching_topology`).
+  - [ ] Unit tests in [NEW] `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]` verify XML structure validity for all mandate constants, prompt module exports, and absence of raw XML tags in cleansed `seed_data.json` PromptBlocks.
   - [ ] `ExecutiveSummaryAdapter` in `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]` reads and appends `section_syntheses` synthesis blocks from `profile_cache` alongside the localized user role classification badge, verified by `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]`.
 - [ ] Violation V3 (`AsyncValue<List<dynamic>>`) is completely eradicated in `output_profile_crud_view.dart` in favor of typed `AsyncValue<List<PromptBlock>>`, `AsyncValue<List<Workflow>>`, and `AsyncValue<List<NodeStrategy>>`.
 - [ ] All `.arb` keys for block titles, tab labels, and preset views are registered in both `app_en.arb` and `app_fi.arb`.
@@ -671,7 +724,10 @@ Refactor the UI (`@[client_app_v2/lib/features/studio/views/widgets/profile/layo
   - [ ] Backend unit tests in `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]` explicitly test and verify that `MetadataAdapter.build()` fails fast (`AppException(VALIDATION_FAILED)`) on missing `metric_mappings` keys and unmapped locales.
   - [ ] Backend unit tests in `@[backend_v2/tests/unit/test_settings.py]` explicitly test and verify that out-of-bounds threshold values (`-0.1`, `100.1`) and inverted thresholds (`high < low`) raise `pydantic.ValidationError`.
   - [ ] Backend unit tests in `backend_v2/tests/unit/models/dtos/test_output_profile_dto.py` and `@[backend_v2/tests/unit/test_output_profile_models.py]` explicitly test and verify that out-of-bounds `max_extension_items` (`<1` or `>100`), invalid `display_scale` values, legacy `include_diagnostic_scorecard` keys, and unexpected extra keys inside nested sub-DTOs (`SynthesisConfigDTO`, `OutputLayoutBlock`) fail fast with `pydantic.ValidationError`.
-  - [ ] Frontend unit tests in `@[client_app_v2/test/features/studio/models/output_profile_test.dart]` explicitly test and verify that unknown `PresetView`, `TextDeliveryMode`, `DisplayScale`, or unrecognized JSON keys (both at root level and inside nested sub-models `synthesis` and `layouts`) throw `CheckedFromJsonException`.
+  - [ ] Automated enum parity tests in [NEW] `@[backend_v2/tests/unit/test_enum_parity.py]` pass green, mathematically proving 1:1 cross-language enum parity between Python `enums.py` and Dart `enums.dart` across all shared enums.
+  - [ ] Frontend unit tests in `@[client_app_v2/test/features/studio/models/output_profile_test.dart]` and `[NEW]` `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]` explicitly test and verify that unknown enum strings (for `PresetView`, `TextDeliveryMode`, `HistoricalContextMode`, `DisplayScale`, and `TargetBlockType` in `targetBlockOrder`) or unrecognized JSON keys (both at root level and inside nested sub-models `synthesis` and `layouts`) throw `CheckedFromJsonException`.
+  - [ ] Frontend unit tests in `@[client_app_v2/test/shared/models/sdui_block_dto_test.dart]` explicitly test and verify that unknown SDUI block types (`block_type: 'unknown_type'`), missing required fields, and unrecognized extra keys across polymorphic block types throw exceptions (`CheckedFromJsonException` / `FormatException`).
+  - [ ] Frontend widget tests in `client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart` explicitly verify that out-of-bounds database values (specifically testing boundary input `max_extension_items = 50`) safely clamp on the visual Slider while displaying accurately in the companion text field without Flutter framework assertion crashes.
 - [ ] All automated tests pass without warnings or deprecations.
 
 ### 4.2 Automated Unit & Widget Tests
@@ -682,6 +738,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_g
 
 # Backend Fail-Fast & Negative Unit Tests
 uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_settings.py --test
+uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test
 uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py --test
 uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py --test
 uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/models/prompts/test_synthesis_directives.py --test
@@ -701,6 +758,8 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio --
 
 # Frontend Negative & Widget Tests
 uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/models/output_profile_test.dart --test
+uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/models/blueprint_config_test.dart --test
+uv run python scripts/flutter_audit_loop.py client_app_v2/test/shared/models/sdui_block_dto_test.dart --test
 uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/views/
 ```
 
@@ -816,7 +875,7 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 |:--------|:-------------------------------|
 | `dumb_painter_ui` | Flutter MUST NOT compute scores or apply visual thresholds. Backend `BlueprintTransformer` maps `TargetBlockType` into explicit SDUI blocks. |
 | `polymorphic_sdui_serialization` | Enum parity between Python and Dart MUST be verified with `test_enum_parity.py`. If `DisplayScale` enum is added (V6 violation fix), its Dart counterpart MUST have matching `@JsonValue` annotations. |
-| `database_ssot_synthesis_outputs` | `seed_data.json` is the SSOT for **unique semantic content** (coaching tone, role descriptions, domain-specific axis interpretations in PromptBlock `ai_description` fields). UI titles MUST come from `output_profile.extension_labels`. **V15 DRY Refinement:** SHARED structural prompt mandates (mathematical anchoring, visual storytelling, output format gates, language injection) belong in the Python SSOT (`@[backend_v2/models/prompts/synthesis_directives.py]`) to eliminate ~300-token duplication per PromptBlock. This does NOT violate database SSOT — it segregates unique semantic content (database) from shared structural rules (Python). |
+| `database_ssot_synthesis_outputs` | `seed_data.json` is the SSOT for **unique semantic content** (coaching tone, role descriptions, domain-specific axis interpretations in PromptBlock `ai_description` fields). UI titles MUST come from `output_profile.extension_labels`. **V15 DRY Refinement:** SHARED structural prompt mandates (mathematical anchoring, visual storytelling, output format gates, language injection) belong in the Python SSOT (`[NEW]` `@[backend_v2/models/prompts/synthesis_directives.py]`) to eliminate ~300-token duplication per PromptBlock. This does NOT violate database SSOT — it segregates unique semantic content (database) from shared structural rules (Python). |
 | `unified_sdui_graphing_architecture` | All graph visualizations (1D, 2D, 3D) are unified under `OutputLayoutBlock.preset_view`. Backend MUST ALWAYS generate baseline 1D textual blocks (`SduiGridBlock`, `MarkdownBlock`) into `inner_sdui_blocks` for every matrix row, ensuring 100% fallback parity. |
 
 ---
@@ -828,7 +887,7 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 | Rule ID | Binding Constraint for Epic 144 |
 |:--------|:-------------------------------|
 | `frontend_enum_parity_mandate` | All systemic or global Flutter UI constraints (specifically and exhaustively: `SystemUiConstraints` enum members and timeout durations) MUST be centralized in `@[client_app_v2/lib/core/models/enums.dart]`. NO raw magic numbers in widget trees. |
-| `global_config_sovereignty_mandate` | All backend thresholds, batch sizes, timeout limits, and evaluation boundaries (specifically and exhaustively: authenticity_threshold_high and authenticity_threshold_low) MUST be defined centrally in `@[backend_v2/settings.py]` via Pydantic Settings and imported via top-level module imports. Backend Pydantic schema validation (`ge=1, le=100`) across domain models and DTOs serves as the definitive boundary guard for incoming API requests. |
+| `global_config_sovereignty_mandate` | All backend thresholds, batch sizes, timeout limits, and evaluation boundaries (specifically and exhaustively: `authenticity_threshold_high` and `authenticity_threshold_low` in `@[backend_v2/settings.py]`) MUST be defined centrally in `@[backend_v2/settings.py]` via Pydantic Settings and imported via top-level module imports. Backend Pydantic schema validation (`ge=1, le=100`) across domain models and DTOs serves as the definitive boundary guard for incoming API requests. |
 | `settings_fail_fast_validation_gate` | `settings.py` MUST enforce cross-field consistency via `@model_validator(mode="after")` (`authenticity_threshold_high >= authenticity_threshold_low`) and `test_settings.py` MUST test boundary limits (`ge=0.0, le=100.0`) and logical inversion failures. |
 | `tripartite_configuration_segregation` | Enums in `enums.py` / `enums.dart` (finite constants), limits and thresholds in `settings.py` (configurable backend), DTOs combine them at runtime across the network boundary. SDUI Adapters MUST NOT contain hardcoded numeric threshold dictionaries. |
 | `slider_assertion_guard` | The Flutter slider UI for `maxExtensionItems` MUST clamp display values to `[SystemUiConstraints.maxExtensionItemsSliderMin, SystemUiConstraints.maxExtensionItemsSliderMax]` to prevent fatal assertion crashes on valid high-threshold backend profiles. |
@@ -845,7 +904,8 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 | `settings_boundary_negative_test_gate` | `test_settings.py` MUST test out-of-bounds `authenticity_threshold_high`/`low` (`-0.1`, `100.1`) and inverted configuration (`high < low`) asserting `pydantic.ValidationError`. |
 | `metadata_adapter_negative_test_gate` | `test_metadata_adapter.py` MUST test missing `metric_mappings` keys and missing locale translations, asserting immediate `AppException(VALIDATION_FAILED)` to prevent silent re-introduction of Finnish string defaults or `.get()` fallbacks. |
 | `dto_boundary_negative_test_gate` | `test_output_profile_dto.py` MUST test `max_extension_items` bounds (`ge=1, le=100`, asserting `ValidationError` on `0`, `-1`, `101`) and invalid enum strings to prevent boundary relaxation. |
-| `freezed_deserialization_falsification` | `output_profile_test.dart` MUST verify that unmapped enum strings (for `PresetView`, `TextDeliveryMode`, `DisplayScale`) and forbidden extra JSON keys throw `CheckedFromJsonException`. |
+| `freezed_deserialization_falsification` | `output_profile_test.dart` and `blueprint_config_test.dart` MUST verify that unmapped enum strings (for `PresetView`, `TextDeliveryMode`, `HistoricalContextMode`, `DisplayScale`, and `TargetBlockType` in `targetBlockOrder`) and forbidden extra JSON keys throw `CheckedFromJsonException`. |
+| `cross_language_enum_parity_gate` | `test_enum_parity.py` MUST mathematically verify that Dart `enums.dart` contains matching `@JsonValue` members for all Python `enums.py` definitions (`DisplayScale`, `TargetBlockType`, `PresetView`, `TextDeliveryMode`, `ScoringStrategy`, `HistoricalContextMode`, `XaiExtensionType`). |
 | `legacy_key_purge_falsification` | `test_output_profile_models.py` MUST test deserialization of dictionaries containing `include_diagnostic_scorecard` and assert `ValidationError(extra_forbidden)` under `ConfigDict(strict=True, extra="forbid")`. |
 
 ---
@@ -892,11 +952,12 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 
 | Rule ID | Binding Constraint for Epic 144 |
 |:--------|:-------------------------------|
-| `prompt_asset_ssot_mandate` | All synthesis mandate constants (graph anchoring, visual storytelling, dimensional synthesis, row explanations, XAI curation) MUST be defined exclusively in [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]`. Service layers (`worker.py`) MUST only import and inject these pre-defined assets. They MUST NOT construct structural XML rules dynamically. |
-| `xml_structural_sovereignty_mandate` | All mandate constants in `synthesis_directives.py` MUST use rigid, named XML tags (specifically and exhaustively: `<graph_anchoring_mandate>`, `<graph_storytelling_mandate>`, `<graph_dimensional_synthesis_mandate>`, `<graph_structure_mandate>`, `<row_explanation_mandate>`, `<xai_extension_definitions>`, `<xai_curation_mandate>`) to provide mathematically optimal semantic boundaries. |
+| `prompt_asset_ssot_mandate` | All synthesis mandate constants (mathematical scale anchoring, visual storytelling, graph directives, row explanations) MUST be defined exclusively in [NEW] `@[backend_v2/models/prompts/synthesis_directives.py]`. Service layers (`worker.py`) MUST only import and inject these pre-defined assets. They MUST NOT construct structural XML rules dynamically. |
+| `xml_structural_sovereignty_mandate` | All mandate constants in `synthesis_directives.py` MUST use rigid, named XML tags (specifically and exhaustively: `<mathematical_anchoring_mandate>`, `<visual_storytelling_mandate>`, `<graph_synthesis_directives>`, `<row_explanation_mandate>`) to provide mathematically optimal semantic boundaries. |
+| `de_generator_mandate_no_xml` | PromptBlocks in `@[backend_v2/seed/seed_data.json]` (`blk_111122223333444a`, `blk_111122223333444b`, `blk_111122223333444c`, `blk_34def5d628ba4ed4`, `blk_ad303690b26b413d`) MUST NOT contain raw XML tags (`<system_directive>`, `<rules>`, `<rule>`). Their `ai_description` strings must be structured using clean Markdown headings (`## Role`, `## Objective`), delegating all XML structural tagging to Python prompt modules (`synthesis_directives.py`, `global_mandates.py`). |
 | `high_fidelity_prompting_and_caching` | All synthesis mandates in `synthesis_directives.py` MUST be 100% static (zero dynamic variables). Dynamic execution parameters (axis names, score boundaries, target language) MUST be injected exclusively into the `user` message at the end by `worker.py`, preserving the static prefix for maximum LLM Context Caching efficiency. |
-| `ephemeral_caching_topology` | Injecting timestamps, UUIDs, or per-execution variables into the system instruction constants is strictly BANNED. The `XAI_CURATION_MANDATE_TEMPLATE` uses `.format()` placeholders for dynamic values, but these are rendered in the `user` message by `build_xai_curation_mandate()`, NOT injected into the cached system instruction. |
-| `prompt_preservation_mandate` | The Executive Summary PromptBlock (`blk_1a2b3c4d5e6f7a8b`) `ai_description` is the USER's intellectual property representing deliberate coaching philosophy. It MUST NOT be simplified, truncated, or roboticized during V15 remediation. Shared mandates from `synthesis_directives.py` supplement it; they do NOT replace its unique tone and structure. |
+| `ephemeral_caching_topology` | Injecting timestamps, UUIDs, or per-execution variables into the system instruction constants is strictly BANNED. Dynamic context parts are rendered inside `<dynamic_context>` in the `user` payload, NOT injected into the cached system instruction. |
+| `prompt_preservation_mandate` | The qualitative coaching philosophy (Toulmin, Goodhart, Kahneman, Popper, Pearl, Humility) in PromptBlocks `blk_111122223333444a/b/c` and Executive Summary `blk_1a2b3c4d5e6f7a8b` is the USER's intellectual property. It MUST NOT be simplified, truncated, or roboticized during V15 remediation. Shared mandates from `synthesis_directives.py` supplement it; they do NOT replace its unique tone and structure. |
 | `native_english_generation_mandate` | All mandate constants in `synthesis_directives.py` MUST be written strictly in English per `native_language_system_prompts`. Translation to the user's target language is handled downstream by `build_linguistic_context()` and the translation hook. |
 
 ---
@@ -1010,6 +1071,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/models/prompts
 - @[ki_sdui_matrix_synthesis.md]
 - @[ki_global_config_sovereignty.md]
 - @[ki_ai_testing_standards.md]
+- @[ki_ast_guardrail_testing.md]
 - @[ki_python_314_concurrency_strictness.md]
 - @[ki_epic_lifecycle_workflow.md]
 - @[ki_synthesis_payload_compression.md]

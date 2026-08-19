@@ -85,5 +85,8 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
           The `## Resume Command` MUST be an exact copy-pasteable slash command for the user to execute next, properly injecting the `@-referenced` target files. Do NOT use `--workflow=` flags for standard workflows, just output the direct slash command. Do NOT include a `--rules` parameter; rules are now self-hydrated directly from the `<required_context_rules>` blocks in the plans and tracker.
       </constraint>
     </step>
+    <step id="3" name="SELF-HEALING TRACKER STRUCTURAL AUDIT">
+      <action>After generating or updating the tracker, you MUST physically run the structural audit script: `uv run python scripts/audit_tracker_output.py --tracker <path_to_tracker>`. If a task directory exists (plan files were generated), additionally pass `--plan-dir <path_to_task_dir>` to enable bidirectional Traceability Matrix mapping verification. If it fails, you MUST correct the tracker and re-run. If it fails 3 times sequentially, you MUST STOP, output &lt;circuit_breaker_tripped&gt;, and ask the user for guidance.</action>
+    </step>
   </execution_protocol>
 </system_prompt>

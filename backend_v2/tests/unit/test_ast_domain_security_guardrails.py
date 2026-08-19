@@ -207,3 +207,87 @@ def test_aspirational_html_escape() -> None:
                 found_escape = True
                 break
     assert found_escape, "html.escape not found for payload sanitization"
+
+
+class DeprecatedSymbolVisitor(ast.NodeVisitor):
+    """AST visitor to detect definition occurrences of deprecated symbol names."""
+
+    def __init__(self, target_symbols: set[str]) -> None:
+        self.target_symbols = target_symbols
+        self.found_symbols: dict[str, list[int]] = {sym: [] for sym in target_symbols}
+
+    def _record(self, name: str, lineno: int) -> None:
+        if name in self.target_symbols:
+            self.found_symbols[name].append(lineno)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        self._record(node.name, node.lineno)
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._record(node.name, node.lineno)
+        self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._record(node.name, node.lineno)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if isinstance(node.target, ast.Name):
+            self._record(node.target.id, node.lineno)
+        self.generic_visit(node)
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                self._record(target.id, node.lineno)
+        self.generic_visit(node)
+
+
+def scan_code_for_deprecated_symbols(code: str, symbols: set[str]) -> dict[str, list[int]]:
+    """Scan Python source code string for definitions of deprecated symbols using AST parsing."""
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return {sym: [] for sym in symbols}
+
+    visitor = DeprecatedSymbolVisitor(symbols)
+    visitor.visit(tree)
+    return {sym: lines for sym, lines in visitor.found_symbols.items() if lines}
+
+
+def test_deprecated_symbol_eradication_positive() -> None:
+    """Verify that code without deprecated symbols returns empty detections."""
+    code = """
+class ModernService:
+    def execute_modern_task(self) -> None:
+        pass
+"""
+    results = scan_code_for_deprecated_symbols(code, {"old_feature_symbol", "LegacyModel"})
+    assert results == {}
+
+
+def test_deprecated_symbol_eradication_negative() -> None:
+    """Verify that code containing deprecated class and function definitions is detected."""
+    code = """
+class LegacyModel:
+    pass
+
+def old_feature_symbol() -> None:
+    pass
+"""
+    results = scan_code_for_deprecated_symbols(code, {"old_feature_symbol", "LegacyModel"})
+    assert "LegacyModel" in results
+    assert "old_feature_symbol" in results
+    assert len(results["LegacyModel"]) == 1
+    assert len(results["old_feature_symbol"]) == 1
+
+
+def test_deprecated_symbol_ignores_string_literals() -> None:
+    """Verify that string literals mentioning deprecated symbol names are not flagged as definitions."""
+    code = """
+name = "old_feature_symbol"
+doc = "This references LegacyModel in text."
+"""
+    results = scan_code_for_deprecated_symbols(code, {"old_feature_symbol", "LegacyModel"})
+    assert results == {}
