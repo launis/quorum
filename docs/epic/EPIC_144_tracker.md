@@ -35,41 +35,28 @@
 - **Current Epic:** EPIC 144 (`@[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md]`)
 - **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend)
 - **Execution Status:** **100% EXECUTED & AUDITED (PASSED)** across all 6 Phases (Phase 0-A through 0-H, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5).
-- **Hardening Status:** **Backend Hardening 0/15 (0%) Completed** (Test files removed from hardening queue; only core source targets tracked). 15 production targets in backend queue, 17 in frontend queue.
+- **Hardening Status:** **Backend Hardening 5/15 (33%) Completed** (15 production source targets tracked: 5 done, 10 remaining; 17 in frontend queue).
 - **Tier 8 Plan Audit:** `red_team_audit_15_placeholder_phase5_quality_gates.md` verified 100% pass across all requirements, DoD checklist items, Freezed/Pydantic deserialization firewalls, and SDUI adapter dual-logging contracts.
 - **Mandatory Final Gate:** `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` **PASSED 100%** (full PDF ingestion, DAG execution, SDUI synthesis, and report rendering verified against live FastAPI backend and Arq worker).
 - **Backend Quality Audit Loop:** `uv run python scripts/backend_audit_loop.py` configured with 100% Ruff linting, formatting, MyPy strict typing, Jinja dumb painter templates, Seed Data dry-run validation, and $\ge$90% test coverage per target.
 
 ## 2. Key Accomplishments & State in Latest Session
-- **Tier 2 Backend Hardening Execution (18/30 Files Hardened):**
-  - **`backend_v2/models/enums.py` & `test_enums.py`:** Achieved 98% line coverage; unskipped and verified cross-language Dart parity tests against `client_app_v2/lib/core/models/enums.dart`.
-  - **`backend_v2/models/v2_core.py` & `test_v2_core.py`:** Achieved 96% line coverage with comprehensive validation tests for `I18nText`, `TDAAssertion`, `PromptBlock` scales, `Step`, `StepRule`, `ExpectedInput`, `Workflow`, `AtomResultDTO`, and `SynthesisConfigDTO` strict negative tests.
-  - **`backend_v2/settings.py` & `test_settings.py`:** Achieved 100% line coverage for authenticity threshold bounds, cross-field inversion validation, and singleton caching.
-  - **`backend_v2/models/dtos/output_profile.py`:** Achieved 100% line coverage for `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO`.
-  - **`backend_v2/services/blueprint.py` & `test_blueprint.py`:** Achieved 90% line coverage across 27 unit tests verifying fail-fast error branches (404/500/locale/system config/penalty formats) and DTO projection/dispatch routines.
-  - **`backend_v2/services/matrix_domain_parser.py` & `test_matrix_domain_parser.py`:** Added `__all__ = ["MatrixDomainParser"]`, cleaned docstrings; achieved 91% line coverage across 20 unit tests covering scale bounds, level breakdown formatting, synthesis cache requirements, and atom evaluations.
-  - **`backend_v2/services/sdui/adapters/authenticity_adapter.py` & `test_authenticity_adapter.py`:** Added `__all__ = ["AUTHENTICITY_RULES", "AuthenticityAdapter"]`; achieved 94% line coverage across 12 unit tests verifying dynamic settings injection and dual-logging exception contracts.
-  - **`backend_v2/services/sdui/adapters/metadata_adapter.py` & `test_metadata_adapter.py`:** Added `__all__ = ["METADATA_RULES", "MetadataAdapter"]`; achieved 100% line coverage across 5 unit tests.
-  - **`backend_v2/services/sdui/adapters/synthesis_text_adapter.py` & `test_synthesis_text_adapter.py`:** Added `__all__ = ["SYNTHESIS_TEXT_RULES", "SynthesisTextAdapter"]`; achieved 100% line coverage across 2 unit tests.
-  - **`backend_v2/services/sdui/adapters/executive_summary_adapter.py` & `test_executive_summary_adapter.py`:** Added `__all__ = ["EXECUTIVE_SUMMARY_RULES", "ExecutiveSummaryAdapter"]`; achieved 90% line coverage across 6 unit tests.
-  - **`backend_v2/services/sdui/adapters/xai_highlights_adapter.py` & `test_xai_highlights_adapter.py`:** Added `__all__ = ["XAI_AESTHETICS_RULES", "XaiHighlightsAdapter"]`; achieved 92% line coverage across 9 unit tests.
-  - **`backend_v2/services/sdui/adapters/printable_sources_adapter.py` & `test_printable_sources_adapter.py`:** Added `__all__ = ["PRINTABLE_SOURCES_RULES", "PrintableSourcesAdapter"]`; achieved 98% line coverage across 7 unit tests.
-  - **`backend_v2/models/prompts/synthesis_directives.py` & `test_synthesis_directives.py`:** Added `__all__ = ["SDUI_SYNTHESIS_MANDATE_BLOCK", "SECTION_SYNTHESIS_DIRECTIVE_BLOCK", "STATE_ISOLATION_BLOCK"]`; achieved 100% line coverage across 6 unit tests.
-  - **`backend_v2/models/prompts/__init__.py` & `test___init__.py`:** Verified package exports and added comprehensive package unit tests with 100% line coverage.
-  - **`backend_v2/tests/unit/test_worker_synthesis.py`:** Hardened and passed quality audit loop with 98% statement coverage.
-  - **`backend_v2/tests/unit/test_settings.py`:** Hardened and passed quality audit loop with 100% statement coverage across 15 unit tests.
-  - **`backend_v2/tests/unit/test_enum_parity.py`:** Hardened and passed quality audit loop with 98% statement coverage across 14 unit tests.
-  - **`backend_v2/tests/unit/test_v2_core_models.py`:** Hardened and passed quality audit loop with 100% statement coverage across 13 unit tests.
-  - **Neuro-Symbolic Audit Matrix (`tmp/audit_matrix.json`):** Generated and verified 152/152 rules with `[SUCCESS]` across all 18 audited files.
-  - **Hardening State Tracker:** Synchronized `@[tmp/hardening_state.json]` with 18 `DONE` files and 12 `REMAINING`.
+- **Tier 2 Backend Hardening Execution (5/15 Targets Hardened in Batch 1):**
+  - **`backend_v2/settings.py` & `test_settings.py`:** Added strict public export `__all__ = ["MyBool", "Settings", "StorageBackend", "get_lexical_fuzz_threshold", "get_settings", "strip_whitespace"]`; achieved 96% line coverage across 15 unit tests.
+  - **`backend_v2/models/enums.py` & `test_enums.py`:** Added strict public export `__all__` covering all 84 public enums and aliases; achieved 97% line coverage across 6 unit tests and verified cross-language Dart parity tests against `client_app_v2/lib/core/models/enums.dart`.
+  - **`backend_v2/models/v2_core.py` & `test_v2_core.py`:** Verified complete public export `__all__`, `ConfigDict(strict=True, extra="forbid")`, frozen models, and PEP 593 Annotated fields; achieved 96% line coverage across 56 unit tests.
+  - **`backend_v2/models/dtos/output_profile.py` & `test_output_profile.py`:** Verified complete public export `__all__`, `ConfigDict(strict=True, extra="forbid")`, non-nullable `max_extension_items`, and `DisplayScale` enum mapping; achieved 100% line coverage across 13 unit tests.
+  - **`backend_v2/services/blueprint.py` & `test_blueprint.py`:** Cleaned module-level import ordering, verified `__all__ = ["BlueprintTransformer"]`, Fail-Fast `TargetBlockType` hydrator dispatching, and RFC 7807 dual logging; achieved 90% line coverage across 27 unit tests.
+  - **Neuro-Symbolic Audit Matrix (`tmp/audit_matrix.json`):** Generated and verified 152/152 rules with `[SUCCESS]` across all 5 audited files.
+  - **Hardening State Tracker:** Synchronized `@[tmp/hardening_state.json]` with 5 `DONE` files and 10 `REMAINING`.
 
 ## 3. Atomic Commits in this Epic Hardening
-- `4540875b chore(hardening): audit and harden core backend models, settings, and blueprint service`
-- `b39a7b16 chore(hardening): add __all__ exports and harden SDUI adapters and domain parser`
-- `59126c32 chore(hardening): audit and harden printable sources adapter, prompt directives, and test suites`
+- `ac2a9457 chore(hardening): audit and export __all__ in backend_v2/settings.py`
+- `e025f612 chore(hardening): audit and export __all__ in backend_v2/models/enums.py`
+- `fee01892 chore(hardening): audit and clean imports in backend_v2/services/blueprint.py`
 
 ## 4. Key Architectural Invariants & Gotchas
-- **SDUI Presentation Adapter Encapsulation (`ki_sdui_adapter_pattern.md`):** All presentation adapters must define strict `__all__ = ["<RULE_DICT>", "<AdapterClass>"]` export lists to isolate internal helpers and establish clean public module boundaries.
+- **Core Module Encapsulation (`01-python-backend.md`):** All core modules (including `settings.py`, `enums.py`, `v2_core.py`, DTOs, and services) must declare explicit `__all__ = [...]` export lists to isolate internal helpers and establish clean public module boundaries.
 - **Prompt Directives SSOT (`backend_v2/models/prompts/`):** All prompt XML blocks and directives are centralized in dedicated files and re-exported through `backend_v2/models/prompts/__init__.py`, with `__init__.py` coverage verified via dedicated package test suite.
 - **RFC 7807 Dual-Logging:** Every SDUI Presentation Adapter MUST log errors via `logger.error("[AdapterName] ...", exc_info=True)` before raising `AppException(VALIDATION_FAILED)`.
 - **Cross-Language Enum Parity:** Every UI-driving Python enum (`ScoringStrategy`, `DisplayScale`, `XaiExtensionType`) must define `@property def l10n_key(self) -> str:` mapping to explicit camelCase Flutter ARB keys.
@@ -351,11 +338,11 @@ Followed by remaining Post-Implementation Gates (Frontend Hardening, Golden Mast
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains (specifically and exhaustively: `@[backend_v2/tests/unit/test_settings.py]`, `@[backend_v2/tests/unit/test_enum_parity.py]`, `@[backend_v2/tests/unit/test_v2_core_models.py]`, `@[backend_v2/tests/unit/models/dtos/test_output_profile.py]`, `@[backend_v2/tests/unit/models/test_output_profile_regression.py]`, `@[backend_v2/tests/unit/test_synthesis_distiller_hook.py]`, `@[backend_v2/tests/unit/services/test_blueprint.py]`, `@[backend_v2/tests/unit/hooks/test_scoring.py]`, `@[backend_v2/tests/unit/test_worker_synthesis.py]`, `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`, `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]`, `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`, `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]`, `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]`, `@[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]`, `@[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]`).
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths — verify zero references to `include_diagnostic_scorecard`, zero `unknownEnumValue` usage, zero `Literal["original", "custom", "normalized_100"]` string type definitions, zero raw `list[str]` `target_block_order` types.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: `/tier2-hardening-backend`
-  - [ ] @[backend_v2/settings.py]
-  - [ ] @[backend_v2/models/enums.py]
-  - [ ] @[backend_v2/models/v2_core.py]
-  - [ ] @[backend_v2/models/dtos/output_profile.py]
-  - [ ] @[backend_v2/services/blueprint.py]
+  - [x] @[backend_v2/settings.py]
+  - [x] @[backend_v2/models/enums.py]
+  - [x] @[backend_v2/models/v2_core.py]
+  - [x] @[backend_v2/models/dtos/output_profile.py]
+  - [x] @[backend_v2/services/blueprint.py]
   - [ ] @[backend_v2/services/matrix_domain_parser.py]
   - [ ] @[backend_v2/services/sdui/adapters/authenticity_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
@@ -754,7 +741,7 @@ Followed by remaining Post-Implementation Gates (Frontend Hardening, Golden Mast
 - **Phase 1-B Red-Teaming & Falsification Passed (`[OK]`):**
   - Completed System 2 Red-Teaming on `@[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md]`.
   - Diagnosed and resolved 4 critical architectural findings:
-    1. Fixed field mapping drift in Plan 11 (removed layout-level fields `preset_view`, `text_delivery_mode`, etc. from Tab 1 and anchored exact root-level fields: Tab 1 General = ID, slug, workflowId, name, description, customPreface; Tab 2 Scoring = displayScale, strictnessLevel, scoringStrategy, visibleMetadata, maxExtensionItems, visibleBlockExtensions, visibleWorkflowExtensions; Tab 3 Layouts = workflow check warning, LayoutEditorCard, targetBlockOrder).
+    1. Fixed field mapping drift in Plan 11 (removed layout-level fields `preset_view`, `text_delivery_mode`, and related layout attributes from Tab 1 and anchored exact root-level fields: Tab 1 General = ID, slug, workflowId, name, description, customPreface; Tab 2 Scoring = displayScale, strictnessLevel, scoringStrategy, visibleMetadata, maxExtensionItems, visibleBlockExtensions, visibleWorkflowExtensions; Tab 3 Layouts = workflow check warning, LayoutEditorCard, targetBlockOrder).
     2. Enforced Riverpod O(1) state resolution: extracted tabs accept `id: id` and watch `outputProfileFormProvider(id)` directly, eliminating multi-parameter drilling and reducing parent shell `output_profile_crud_view.dart` to ~90 lines.
     3. Mandated eradication of Phase 9 Modernity Gate violations (R81 silent shrink removal, R82 untyped `AsyncValue<List<dynamic>>` elimination, R83 hex color replacement with Theme tokens, R84 double padding replacement with `AppSpacing`).
     4. Synchronized `client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart` to assert tab navigation across the 3 `TabBarView` pages.
@@ -919,29 +906,26 @@ Followed by remaining Post-Implementation Gates (Frontend Hardening, Golden Mast
 # Session Handover Context
 
 ## Achieved
-- **Tier 2 Backend Hardening Session 3 Completed (`[OK]`):**
-  - Audited, hardened, and verified 7 backend domain, prompt directives, and core test suite files against Quorum V2 (Phase 9) architecture, strict encapsulation (`__all__`), PEP 257 docstring standards, and English-only mandates:
-    1. `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`: Added strict public export `__all__ = ["PRINTABLE_SOURCES_RULES", "PrintableSourcesAdapter"]`. Passed quality audit loop with **98% line coverage** across 7 unit tests.
-    2. `@[backend_v2/models/prompts/synthesis_directives.py]`: Added strict public export `__all__ = ["SDUI_SYNTHESIS_MANDATE_BLOCK", "SECTION_SYNTHESIS_DIRECTIVE_BLOCK", "STATE_ISOLATION_BLOCK"]`. Passed quality audit loop with **100% line coverage** across 6 unit tests.
-    3. `@[backend_v2/models/prompts/__init__.py]`: Verified public exports and package structure with dedicated unit tests in `@[backend_v2/tests/unit/models/prompts/test___init__.py]` passing quality audit loop with **100% line coverage**.
-    4. `@[backend_v2/tests/unit/test_worker_synthesis.py]`: Passed quality audit loop with **98% line coverage** across 6 unit tests.
-    5. `@[backend_v2/tests/unit/test_settings.py]`: Passed quality audit loop with **100% line coverage** across 15 unit tests.
-    6. `@[backend_v2/tests/unit/test_enum_parity.py]`: Passed quality audit loop with **98% line coverage** across 14 unit tests.
-    7. `@[backend_v2/tests/unit/test_v2_core_models.py]`: Passed quality audit loop with **100% line coverage** across 13 unit tests.
-  - Neuro-Symbolic Audit Matrix verified via `scripts/audit_matrix_manager.py verify` for all 7 audited targets.
-  - Hardening state persisted in `@[tmp/hardening_state.json]` with 18 completed targets recorded in `DONE` (60% backend progress).
+- **Tier 2 Backend Hardening Session 4 Completed (`[OK]`):**
+  - Audited, hardened, and verified 5 core backend files against Quorum V2 (Phase 9) architecture, strict encapsulation (`__all__`), PEP 257 docstring standards, and English-only mandates:
+    1. `@[backend_v2/settings.py]`: Added strict public export `__all__ = ["MyBool", "Settings", "StorageBackend", "get_lexical_fuzz_threshold", "get_settings", "strip_whitespace"]`. Passed quality audit loop with **96% line coverage** across 15 unit tests.
+    2. `@[backend_v2/models/enums.py]`: Added strict public export `__all__` covering all 84 public enums and aliases. Passed quality audit loop with **97% line coverage** across 6 unit tests and cross-language enum parity tests.
+    3. `@[backend_v2/models/v2_core.py]`: Verified strict public export `__all__`, `ConfigDict(strict=True, extra="forbid")`, frozen models, and PEP 593 Annotated fields. Passed quality audit loop with **96% line coverage** across 56 unit tests.
+    4. `@[backend_v2/models/dtos/output_profile.py]`: Verified strict public export `__all__`, `ConfigDict(strict=True, extra="forbid")`, non-nullable `max_extension_items`, and `DisplayScale` enum mapping. Passed quality audit loop with **100% line coverage** across 13 unit tests.
+    5. `@[backend_v2/services/blueprint.py]`: Standardized import ordering and verified strict public export `__all__ = ["BlueprintTransformer"]`, fail-fast `TargetBlockType` hydrator dispatching, and RFC 7807 dual logging. Passed quality audit loop with **90% line coverage** across 27 unit tests.
+  - Neuro-Symbolic Audit Matrix verified via `scripts/audit_matrix_manager.py verify` for all 5 audited targets.
+  - State persisted in `@[tmp/hardening_state.json]` with 5 `DONE` and 10 `REMAINING`.
 
 ## Learned & Key Architectural Invariants
-- **SDUI Presentation Adapter Encapsulation (`ki_sdui_adapter_pattern.md`):** All presentation adapters (`printable_sources_adapter.py`, `authenticity_adapter.py`, `metadata_adapter.py`, `synthesis_text_adapter.py`, `executive_summary_adapter.py`, `xai_highlights_adapter.py`) must define strict `__all__ = ["<RULE_DICT>", "<AdapterClass>"]` export lists to isolate internal helpers and establish clean public module boundaries.
-- **Prompt Directives SSOT (`backend_v2/models/prompts/`):** All prompt XML blocks and directives are centralized in dedicated files and re-exported through `backend_v2/models/prompts/__init__.py`, with `__init__.py` coverage verified via dedicated package test suite.
-- **Deterministic File-Level Hardening State (`ki_deterministic_hardening_state.md`):** Post-implementation hardening gates track targets as indented file-level child checkboxes under `Tier 2 Hardening (Backend/Frontend)`. State is persisted in `tmp/hardening_state.json` (`{"TARGETS": [...], "DONE": [...]}`) with dynamic computation `REMAINING = TARGETS - DONE`, auditing maximum 10 files per session.
+- **Core Module Encapsulation (`01-python-backend.md`):** All core modules (including `settings.py`, `enums.py`, `v2_core.py`, DTOs, and services) must declare explicit `__all__ = [...]` export lists to isolate internal helpers and establish clean public module boundaries.
+- **Deterministic File-Level Hardening State (`ki_deterministic_hardening_state.md`):** Post-implementation hardening gates track targets as indented file-level child checkboxes under `Tier 2 Hardening (Backend/Frontend)`. State is persisted in `tmp/hardening_state.json` (`{"TARGETS": [...], "DONE": [...]}`) with dynamic computation `REMAINING = TARGETS - DONE`, auditing maximum 5 files per session.
 
 ## Remaining
 ### Hardening State Snapshot
-- **Backend Targets (15 production targets, 0 done, 15 remaining):**
+- **Backend Targets (15 production targets, 5 done, 10 remaining):**
   - `TARGETS`: 15 production files (`@[backend_v2/settings.py]`, `@[backend_v2/models/enums.py]`, `@[backend_v2/models/v2_core.py]`, `@[backend_v2/models/dtos/output_profile.py]`, `@[backend_v2/services/blueprint.py]`, `@[backend_v2/services/matrix_domain_parser.py]`, `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`, `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`, `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]`, `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`, `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`, `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`, `@[backend_v2/models/prompts/synthesis_directives.py]`, `@[backend_v2/models/prompts/__init__.py]`, `@[backend_v2/worker.py]`)
-  - `DONE`: 0 files
-  - `REMAINING`: 15 production files (Test files removed from hardening queue; tests are executed as validation evidence via `backend_audit_loop.py`).
+  - `DONE`: 5 files (`@[backend_v2/settings.py]`, `@[backend_v2/models/enums.py]`, `@[backend_v2/models/v2_core.py]`, `@[backend_v2/models/dtos/output_profile.py]`, `@[backend_v2/services/blueprint.py]`)
+  - `REMAINING`: 10 files (`@[backend_v2/services/matrix_domain_parser.py]`, `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`, `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`, `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]`, `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`, `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`, `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`, `@[backend_v2/models/prompts/synthesis_directives.py]`, `@[backend_v2/models/prompts/__init__.py]`, `@[backend_v2/worker.py]`)
 - **Frontend Targets (17 production targets, 0 done, 17 remaining):**
   - 17 production files queued in tracker under `Tier 2 Hardening (Frontend)`.
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%).
