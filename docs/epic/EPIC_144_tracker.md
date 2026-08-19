@@ -36,7 +36,7 @@
 - **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend COMPLETED -> Frontend IN PROGRESS)
 - **Execution Status:** **100% EXECUTED & AUDITED (PASSED)** across all 6 Phases (Phase 0-A through 0-H, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5).
 - **Backend Hardening Status:** **15 / 15 (100%) COMPLETED** (All 15 production source targets hardened with target-locked audit matrices and $\ge 90\%$ test coverage).
-- **Frontend Hardening Status:** **15 / 17 (88%) COMPLETED** (15 targets audited with zero regressions, 2 remaining).
+- **Frontend Hardening Status:** **17 / 17 (100%) COMPLETED** (All 17 production source targets hardened with target-locked audit matrices and zero regressions).
 - **Tier 8 Plan Audit:** `red_team_audit_15_placeholder_phase5_quality_gates.md` verified 100% pass across all requirements, DoD checklist items, Freezed/Pydantic deserialization firewalls, and SDUI adapter dual-logging contracts.
 - **Mandatory Final Gate:** `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` **PASSED 100%** (full PDF ingestion, DAG execution, SDUI synthesis, and report rendering verified against live FastAPI backend and Arq worker).
 - **Backend Quality Audit Loop:** `uv run python scripts/backend_audit_loop.py` configured with 100% Ruff linting, formatting, MyPy strict typing, Jinja dumb painter templates, Seed Data dry-run validation, and $\ge 90\%$ test coverage per target.
@@ -80,8 +80,8 @@
 | 13 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart` | `test/features/studio/views/widgets/profile/blocks/matrix_summary_table_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 | 14 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/xai_extensions_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 | 15 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/bibliography_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
-| 16 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart` | Integrated test suite | PENDING | PENDING | `REMAINING` |
-| 17 | `client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart` | Integrated test suite | PENDING | PENDING | `REMAINING` |
+| 16 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/simple_toggle_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 17 | `client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart` | `test/features/studio/views/widgets/profile/layout_editor_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 
 ## 3. Key Accomplishments in Latest Session (Frontend Hardening Targets 11–15)
 - **Target 11 (`synthesis_text_block_card.dart`):** Audited 131-line synthesis text block config card. Verified `DropdownButtonFormField<String?>` `isExpanded: true`, `TextOverflow.ellipsis` on menu item labels, and localized preamble/tone instruction fields. Created TDD test `synthesis_text_block_card_test.dart`.
@@ -390,7 +390,7 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
   - [x] (b39a7b16) @[backend_v2/models/prompts/synthesis_directives.py]
   - [x] (757b9478) @[backend_v2/models/prompts/__init__.py]
   - [x] @[backend_v2/worker.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: `/tier2-hardening-frontend`
+- [x] **[OK] Tier 2 Hardening (Frontend)**: `/tier2-hardening-frontend`
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/features/studio/models/output_profile.dart]
   - [x] @[client_app_v2/lib/features/studio/models/blueprint_config.dart]
@@ -406,8 +406,8 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain — zero imports of deleted `include_diagnostic_scorecard` field, zero references to removed `AUTHENTICITY_THRESHOLDS` dict in adapters, zero raw XML tags in cleansed PromptBlocks.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic across `@[backend_v2/services/blueprint.py]`, `@[backend_v2/services/sdui/adapters/]`, and `@[backend_v2/models/v2_core.py]`.
 - [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
