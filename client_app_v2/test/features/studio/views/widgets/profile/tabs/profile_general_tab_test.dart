@@ -12,7 +12,9 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 class MockNullOutputProfileForm extends OutputProfileForm {
   @override
   FutureOr<OutputProfile> build(String id) {
-    throw StateError('Profile payload must not be null when rendering ProfileGeneralTab');
+    throw StateError(
+      'Profile payload must not be null when rendering ProfileGeneralTab',
+    );
   }
 }
 
@@ -24,29 +26,28 @@ class MockWorkflowsController extends WorkflowsController {
 }
 
 void main() {
-  testWidgets('ProfileGeneralTab throws StateError when payload is missing (Fail-Fast)', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          outputProfileFormProvider('test_id').overrideWith(
-            () => MockNullOutputProfileForm(),
-          ),
-          workflowsControllerProvider.overrideWith(
-            () => MockWorkflowsController(),
-          ),
-        ],
-        child: const MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: ProfileGeneralTab(id: 'test_id'),
+  testWidgets(
+    'ProfileGeneralTab throws StateError when payload is missing (Fail-Fast)',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            outputProfileFormProvider(
+              'test_id',
+            ).overrideWith(() => MockNullOutputProfileForm()),
+            workflowsControllerProvider.overrideWith(
+              () => MockWorkflowsController(),
+            ),
+          ],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: ProfileGeneralTab(id: 'test_id')),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(tester.takeException(), isA<StateError>());
-  });
+      expect(tester.takeException(), isA<StateError>());
+    },
+  );
 }

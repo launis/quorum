@@ -29,4 +29,3 @@ def test_prompts_package_all_integrity() -> None:
     for item in prompts.__all__:
         assert isinstance(item, str)
         assert len(item.strip()) > 0
-

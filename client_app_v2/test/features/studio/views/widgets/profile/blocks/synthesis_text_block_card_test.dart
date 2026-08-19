@@ -15,7 +15,10 @@ void main() {
     OutputProfile payload = const OutputProfile(
       id: 'profile_1',
       workflowId: 'wf_1',
-      name: I18nText(defaultLocale: 'en', translations: {'en': 'Default Profile'}),
+      name: I18nText(
+        defaultLocale: 'en',
+        translations: {'en': 'Default Profile'},
+      ),
       targetBlockOrder: [TargetBlockType.synthesisTextBlock],
       synthesis: SynthesisConfigDTO(synthesisBlockId: 'block_1'),
     );
@@ -23,8 +26,14 @@ void main() {
     final mockPromptBlock = PromptBlock(
       id: 'block_1',
       slug: 'exec_summary',
-      label: const I18nText(defaultLocale: 'en', translations: {'en': 'Executive Summary'}),
-      description: const I18nText(defaultLocale: 'en', translations: {'en': 'Exec summary block'}),
+      label: const I18nText(
+        defaultLocale: 'en',
+        translations: {'en': 'Executive Summary'},
+      ),
+      description: const I18nText(
+        defaultLocale: 'en',
+        translations: {'en': 'Exec summary block'},
+      ),
       categoryId: 'general',
     );
 

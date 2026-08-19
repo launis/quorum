@@ -25,7 +25,11 @@ void main() {
       ProviderScope(
         overrides: [
           workflowAvailableExtensionsProvider('wf_1').overrideWithValue(
-            const AsyncValue.data(['citation', 'justification', 'falsification']),
+            const AsyncValue.data([
+              'citation',
+              'justification',
+              'falsification',
+            ]),
           ),
         ],
         child: MaterialApp(

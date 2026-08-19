@@ -41,6 +41,9 @@ void main() {
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
 
-    expect(payload.targetBlockOrder.contains(TargetBlockType.printableSourcesBlock), isFalse);
+    expect(
+      payload.targetBlockOrder.contains(TargetBlockType.printableSourcesBlock),
+      isFalse,
+    );
   });
 }

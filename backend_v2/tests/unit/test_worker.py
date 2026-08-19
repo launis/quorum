@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException, ErrorCodes, ServiceUnavailableError, WorkflowNotFoundError
-from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStepState
+from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.settings import get_settings
 from backend_v2.tests.unit.test_worker_dlq_fallback import (
     test_render_profile_job_catches_service_unavailable_error as _test_dlq_service_unavailable,
@@ -351,7 +351,9 @@ async def test_generate_pdf_task_success_path() -> None:
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "metadata": {"target_locale": "fi"},
-                "step_states": {"sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}},
+                "step_states": {
+                    "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
+                },
             }
 
             with patch("backend_v2.worker.BlueprintTransformer") as mock_transformer_class:
@@ -373,7 +375,9 @@ async def test_generate_pdf_task_success_path() -> None:
                         mock_storage.save.return_value = "executions/exe_1234567890123456/report.pdf"
 
                         await generate_pdf_task("exe_1234567890123456", None, "prof_1111222233334444")
-                        mock_transformer.build_report_dto.assert_called_once_with("exe_1234567890123456", "prof_1111222233334444", "fi")
+                        mock_transformer.build_report_dto.assert_called_once_with(
+                            "exe_1234567890123456", "prof_1111222233334444", "fi"
+                        )
                         mock_storage.save.assert_called_once()
                         assert mock_repo.update_execution.call_count >= 1
 
@@ -390,7 +394,9 @@ async def test_generate_pdf_task_exception_handling() -> None:
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
-                "step_states": {"sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}},
+                "step_states": {
+                    "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
+                },
             }
 
             with patch("backend_v2.worker.BlueprintTransformer", side_effect=RuntimeError("Transformer error")):
@@ -494,7 +500,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_synthesis_block()
 
             with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
                 mock_distiller.return_value = MagicMock(state_delta={"distilled_inputs": "Data"})
-                with pytest.raises(Exception):
+                with pytest.raises((AppException, ExceptionGroup)):
                     await generate_profile_synthesis_and_pdf_task(
                         "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
                     )
@@ -551,7 +557,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
 
             with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
                 mock_distiller.return_value = MagicMock(state_delta={"distilled_inputs": "Data"})
-                with pytest.raises(Exception):
+                with pytest.raises(AppException):
                     await generate_profile_synthesis_and_pdf_task(
                         "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
                     )
@@ -576,9 +582,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "profile_syntheses": {},
                 "context_variables": {
                     "step_linguistics": {
-                        "performative_patterns": [
-                            {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}
-                        ],
+                        "performative_patterns": [{"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}],
                     }
                 },
                 "execution_trace": [
@@ -608,12 +612,18 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                     "synthesis_block_id": "blk_1111222233334444",
                     "row_explanations_block_id": "blk_2222333344445555",
                     "length_constraint": 500,
-                    "tone_instruction": {"default_locale": "en", "translations": {"en": "Direct tone", "fi": "Suora sävy"}},
+                    "tone_instruction": {
+                        "default_locale": "en",
+                        "translations": {"en": "Direct tone", "fi": "Suora sävy"},
+                    },
                 },
                 "layouts": [
                     {
                         "preset_view": "2d_compare",
-                        "title": {"default_locale": "en", "translations": {"en": "Matrix Section", "fi": "Matriisiosio"}},
+                        "title": {
+                            "default_locale": "en",
+                            "translations": {"en": "Matrix Section", "fi": "Matriisiosio"},
+                        },
                         "synthesis": {"synthesis_block_id": "blk_3333444455556666"},
                         "target_blocks": ["blk_1111222233334444"],
                     }
@@ -982,7 +992,7 @@ async def test_generate_profile_synthesis_and_pdf_task_database_failure_raises()
 
             mock_repo.get_execution.side_effect = RuntimeError("DB connection lost")
 
-            with pytest.raises(Exception):
+            with pytest.raises(RuntimeError):
                 await generate_profile_synthesis_and_pdf_task(
                     "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
                 )
@@ -1000,17 +1010,20 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
-                "step_states": {"sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}},
+                "step_states": {
+                    "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
+                },
             }
 
             with patch("backend_v2.worker.BlueprintTransformer") as mock_transformer_class:
                 mock_transformer = AsyncMock()
                 mock_transformer_class.return_value = mock_transformer
                 mock_transformer.build_report_dto.side_effect = AppException(
-                    message="Blueprint render error", status_code=500, details={"error_code": ErrorCodes.PDF_GENERATION_FAILED.value}
+                    message="Blueprint render error",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.PDF_GENERATION_FAILED.value},
                 )
 
                 with pytest.raises(AppException):
                     await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
                 assert mock_repo.update_execution.call_count >= 1
-

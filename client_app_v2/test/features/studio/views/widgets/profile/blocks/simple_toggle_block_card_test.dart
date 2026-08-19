@@ -14,7 +14,10 @@ void main() {
       OutputProfile payload = const OutputProfile(
         id: 'profile_1',
         workflowId: 'wf_1',
-        name: I18nText(defaultLocale: 'en', translations: {'en': 'Test Profile'}),
+        name: I18nText(
+          defaultLocale: 'en',
+          translations: {'en': 'Test Profile'},
+        ),
         targetBlockOrder: [],
       );
 
@@ -41,14 +44,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Authenticity Evaluation'), findsOneWidget);
-      expect(find.text('Evaluates document authenticity metrics'), findsOneWidget);
+      expect(
+        find.text('Evaluates document authenticity metrics'),
+        findsOneWidget,
+      );
       expect(find.byType(Switch), findsOneWidget);
 
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
 
       expect(
-        payload.targetBlockOrder.contains(TargetBlockType.authenticityEvaluationBlock),
+        payload.targetBlockOrder.contains(
+          TargetBlockType.authenticityEvaluationBlock,
+        ),
         isTrue,
       );
     });
@@ -59,7 +67,10 @@ void main() {
       OutputProfile payload = const OutputProfile(
         id: 'profile_1',
         workflowId: 'wf_1',
-        name: I18nText(defaultLocale: 'en', translations: {'en': 'Test Profile'}),
+        name: I18nText(
+          defaultLocale: 'en',
+          translations: {'en': 'Test Profile'},
+        ),
         targetBlockOrder: [TargetBlockType.authenticityEvaluationBlock],
       );
 
@@ -89,7 +100,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        payload.targetBlockOrder.contains(TargetBlockType.authenticityEvaluationBlock),
+        payload.targetBlockOrder.contains(
+          TargetBlockType.authenticityEvaluationBlock,
+        ),
         isFalse,
       );
     });
