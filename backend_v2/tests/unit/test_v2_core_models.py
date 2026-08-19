@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.enums import DisplayScale
 from backend_v2.models.state import WorkflowState  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
 from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace, OutputProfile, PromptBlock
 
@@ -48,7 +49,7 @@ def test_embedded_output_profile_description_parsing() -> None:
             "default_locale": "en",
             "translations": {"en": "A valid description", "fi": "A valid description"},
         },
-        "display_scale": "original",
+        "display_scale": DisplayScale.ORIGINAL,
         "layouts": [],
     }
     profile_success = OutputProfile.model_validate(valid_data)
@@ -62,7 +63,7 @@ def test_embedded_output_profile_description_parsing() -> None:
         "workflow_id": "wf_9d68c573802341db",
         "name": {"default_locale": "en", "translations": {"en": "My Profile", "fi": "My Profile"}},
         "description": "This is a simple string instead of I18nText dict",
-        "display_scale": "original",
+        "display_scale": DisplayScale.ORIGINAL,
     }
     with pytest.raises(ValidationError) as exc_info:
         OutputProfile.model_validate(invalid_data)

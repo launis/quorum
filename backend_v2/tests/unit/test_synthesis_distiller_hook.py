@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.state import StepOutputDTO
@@ -83,8 +83,6 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         global_context_vars={"organization_id": "org1"},
     )
 
-    from backend_v2.core.hook_registry import HookResult
-
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert result.success is True
@@ -146,6 +144,6 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
     )
 
     with pytest.raises(AppException) as exc_info:
-        await synthesis_distiller_hook(state, deps)
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"

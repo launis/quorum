@@ -64,67 +64,68 @@
 
   <step id="1" name="UPDATE test_v2_core_models.py FIXTURES">
     <action>In @[backend_v2/tests/unit/test_v2_core_models.py]:
-1. Replace all `"display_scale": "original"` with `"display_scale": "original"` (string is fine since Pydantic coerces StrEnum in lax mode, but verify via LaxTargetBlockType pattern).
-2. Remove ALL `"include_diagnostic_scorecard": ...` entries from test fixtures.
-3. Ensure `target_block_order` fixtures use valid TargetBlockType string values.</action>
+1. Update `"display_scale": "original"` to use `DisplayScale.ORIGINAL` or valid enum string across test fixtures.
+2. Confirm zero occurrences of `"include_diagnostic_scorecard"` in test fixtures.
+3. Ensure `target_block_order` fixtures use valid TargetBlockType enum values.</action>
     <demolish>REMOVE: all "include_diagnostic_scorecard" key-value pairs from test fixtures in test_v2_core_models.py.</demolish>
   </step>
 
   <step id="2" name="UPDATE AND ADD NEGATIVE TESTS TO test_output_profile.py">
-    <action>In the DTO test file (@[backend_v2/tests/unit/models/dtos/test_output_profile.py] or equivalent — resolve via grep_search):
+    <action>In @[backend_v2/tests/unit/models/dtos/test_output_profile.py]:
 1. Remove `include_diagnostic_scorecard` from all positive test fixtures.
-2. Update `display_scale` values in fixtures to use valid enum strings.
-3. Add the following negative tests:</action>
+2. Update `display_scale` values in fixtures to use valid `DisplayScale` enum values.
+3. Add the following negative and boundary tests:</action>
     <test_contracts>
       <test name="test_create_dto_max_extension_items_zero_raises" category="boundary">
-        <input>OutputProfileCreateDTO(max_extension_items=0, ...valid fields...)</input>
-        <expected>raises pydantic.ValidationError (ge=1 violated)</expected>
+        <input>OutputProfileCreateDTO.model_validate({...valid fields..., "max_extension_items": 0})</input>
+        <expected>raises pydantic.ValidationError (ge=1 violated, match="greater than or equal to 1")</expected>
       </test>
       <test name="test_create_dto_max_extension_items_negative_raises" category="boundary">
-        <input>OutputProfileCreateDTO(max_extension_items=-1, ...valid fields...)</input>
-        <expected>raises pydantic.ValidationError (ge=1 violated)</expected>
+        <input>OutputProfileCreateDTO.model_validate({...valid fields..., "max_extension_items": -1})</input>
+        <expected>raises pydantic.ValidationError (ge=1 violated, match="greater than or equal to 1")</expected>
       </test>
       <test name="test_create_dto_max_extension_items_101_raises" category="boundary">
-        <input>OutputProfileCreateDTO(max_extension_items=101, ...valid fields...)</input>
-        <expected>raises pydantic.ValidationError (le=100 violated)</expected>
+        <input>OutputProfileCreateDTO.model_validate({...valid fields..., "max_extension_items": 101})</input>
+        <expected>raises pydantic.ValidationError (le=100 violated, match="less than or equal to 100")</expected>
       </test>
       <test name="test_create_dto_invalid_display_scale_raises" category="negative">
-        <input>OutputProfileCreateDTO(display_scale="invalid_scale", ...valid fields...)</input>
-        <expected>raises pydantic.ValidationError</expected>
+        <input>OutputProfileCreateDTO.model_validate({...valid fields..., "display_scale": "invalid_scale"})</input>
+        <expected>raises pydantic.ValidationError (match="Input should be")</expected>
       </test>
       <test name="test_create_dto_legacy_include_diagnostic_scorecard_raises" category="negative">
-        <input>dict with valid fields + "include_diagnostic_scorecard": True</input>
-        <expected>raises pydantic.ValidationError (extra_forbidden)</expected>
+        <input>OutputProfileCreateDTO.model_validate({...valid fields..., "include_diagnostic_scorecard": True})</input>
+        <expected>raises pydantic.ValidationError (extra_forbidden, match="Extra inputs are not permitted")</expected>
       </test>
       <test name="test_create_dto_extra_key_in_synthesis_config_raises" category="negative">
-        <input>dict with valid fields but synthesis config containing unknown key "ghost_field"</input>
-        <expected>raises pydantic.ValidationError (extra_forbidden on nested SynthesisConfigDTO)</expected>
+        <input>OutputProfileCreateDTO.model_validate({...valid fields..., "synthesis": {"synthesis_block_id": "blk_1", "ghost_field": "illegal"}})</input>
+        <expected>raises pydantic.ValidationError (extra_forbidden on nested SynthesisConfigDTO, match="Extra inputs are not permitted")</expected>
       </test>
       <test name="test_create_dto_invalid_target_block_raises" category="negative">
-        <input>OutputProfileCreateDTO(target_block_order=["invalid_block_type"], ...valid fields...)</input>
-        <expected>raises pydantic.ValidationError (invalid TargetBlockType)</expected>
+        <input>OutputProfileCreateDTO.model_validate({...valid fields..., "target_block_order": ["invalid_block_type"]})</input>
+        <expected>raises pydantic.ValidationError (invalid TargetBlockType, match="Input should be")</expected>
       </test>
       <test name="test_create_dto_max_extension_items_100_valid" category="boundary">
-        <input>OutputProfileCreateDTO(max_extension_items=100, ...valid fields...)</input>
-        <expected>passes validation (le=100 boundary)</expected>
+        <input>OutputProfileCreateDTO.model_validate({...valid fields..., "max_extension_items": 100})</input>
+        <expected>passes validation (le=100 boundary, dto.max_extension_items == 100)</expected>
       </test>
       <test name="test_create_dto_max_extension_items_1_valid" category="boundary">
-        <input>OutputProfileCreateDTO(max_extension_items=1, ...valid fields...)</input>
-        <expected>passes validation (ge=1 boundary)</expected>
+        <input>OutputProfileCreateDTO.model_validate({...valid fields..., "max_extension_items": 1})</input>
+        <expected>passes validation (ge=1 boundary, dto.max_extension_items == 1)</expected>
       </test>
     </test_contracts>
   </step>
 
   <step id="3" name="UPDATE test_output_profile_regression.py">
     <action>In @[backend_v2/tests/unit/models/test_output_profile_regression.py]:
-1. Update `target_block_order` fixture from string values to valid TargetBlockType string values (specifically and exhaustively: "metadata_block", "synthesis_text_block", and other values from TargetBlockType enum — these are already valid enum values).
-2. Verify the assertion on `dto.target_block_order` checks for proper TargetBlockType enum members or their string values depending on the DTO's field type.</action>
+1. Import `TargetBlockType` from `backend_v2.models.enums`.
+2. Update `test_output_profile_response_dto_target_block_order_parity` fixture from raw string list `["metadata_block", "synthesis_text_block"]` to `[TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK]` to satisfy strict Pydantic V2 model validation.
+3. Update the assertion to verify `dto.target_block_order == [TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK]`.</action>
   </step>
 
   <step id="4" name="UPDATE test_synthesis_distiller_hook.py">
     <action>In @[backend_v2/tests/unit/test_synthesis_distiller_hook.py]:
-1. Remove any `include_diagnostic_scorecard` from test fixtures.
-2. Verify `display_scale` values are valid enum strings.</action>
+1. Confirm zero occurrences of `include_diagnostic_scorecard` in test fixtures.
+2. Verify `display_scale` values are valid `DisplayScale` enum strings or enum values.</action>
   </step>
 
   <validation_gate>

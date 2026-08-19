@@ -80,14 +80,14 @@
 
 #### Phase 0-D: Backend Test Fixtures Alignment Batch 1
 **Plan:** `@[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Update test_v2_core_models.py Fixtures
-  - [ ] Step 2: Update and Add Negative Tests to test_output_profile.py
-  - [ ] Step 3: Update test_output_profile_regression.py
-  - [ ] Step 4: Update test_synthesis_distiller_hook.py
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Update test_v2_core_models.py Fixtures
+  - [x] Step 2: Update and Add Negative Tests to test_output_profile.py
+  - [x] Step 3: Update test_output_profile_regression.py
+  - [x] Step 4: Update test_synthesis_distiller_hook.py
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
@@ -447,6 +447,19 @@
   - Executed target quality gates and full suite audit (1446 passed, 29 skipped, 4 xpassed).
   - Verified 100% planner fidelity via `audit_planner_output.py`.
   - Emitted formal artifact: `@[red_team_audit_03_p0_backend_models_dto_purge.md]`.
+- **Phase 0-D Red-Teaming & Falsification Passed (`[OK]`):**
+  - Completed System 2 Red-Teaming on `@[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md]`.
+  - Diagnosed baseline test failure in `@[backend_v2/tests/unit/models/test_output_profile_regression.py]` where `target_block_order` fixture passed raw string list `["metadata_block", ...]` causing `ValidationError` against strict `OutputProfileResponseDTO`.
+  - Refined Step 3 to explicitly pass `[TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK]` enum instances and assert against enum members.
+  - Refined Step 2 test contracts in `@[backend_v2/tests/unit/models/dtos/test_output_profile.py]` with 9 deterministic boundary and negative assertions (`max_extension_items` 0, -1, 101, 1, 100; invalid `display_scale`; legacy `include_diagnostic_scorecard`; nested `synthesis.ghost_field`; invalid `target_block_order`).
+  - Removed ambiguous file references, locking `@[backend_v2/tests/unit/models/dtos/test_output_profile.py]`.
+  - Re-verified planner output fidelity via `audit_planner_output.py` with 100% compliance.
+- **Phase 0-D Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - Updated `@[backend_v2/tests/unit/test_v2_core_models.py#L4-L70]` to import `DisplayScale` and use `DisplayScale.ORIGINAL` across test fixtures. Verified zero occurrences of `include_diagnostic_scorecard`.
+  - Updated `@[backend_v2/tests/unit/models/dtos/test_output_profile.py#L1-L150]` with all 9 mandated negative & boundary test contracts for `OutputProfileCreateDTO` (0, -1, 101, 1, 100 on `max_extension_items`; invalid `display_scale`; legacy `include_diagnostic_scorecard` forbidden extra; nested `SynthesisConfigDTO` forbidden extra; invalid `target_block_order`), and updated `OutputProfileUpdateDTO`/`OutputProfileResponseDTO` strictness tests.
+  - Updated `@[backend_v2/tests/unit/models/test_output_profile_regression.py#L1-L45]` to import `TargetBlockType` and pass `[TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK]` in `target_block_order` fixture and assertions.
+  - Updated `@[backend_v2/tests/unit/test_synthesis_distiller_hook.py#L1-L150]` to import `HookResult` at top level per `inline_imports_ban`, verified zero occurrences of `include_diagnostic_scorecard`, and added explicit `cast(Awaitable[HookResult], ...)` for full MyPy strict compliance.
+  - Passed Universal Quality Gate (`backend_audit_loop.py`) with 100% test pass rate and 100% TDD coverage across all 4 target files.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
@@ -459,16 +472,20 @@
 - **Enum Parity Testing Paradigm:** Python `ast.parse` and regex extraction over Dart `@JsonValue` provide deterministic verification without importing heavy cross-stack runtimes.
 - **DTO Optionality vs Domain Strictness:** When creating DTOs for REST APIs, fields that have sensible defaults in the domain model (e.g. `target_block_order`) should remain optional (`| None = None`) in `CreateDTO`/`UpdateDTO` to prevent forced over-specification by API clients, while remaining strictly typed non-nullable enums in `ResponseDTO` and the domain model.
 - **Test Fixture Ripple Effects on Enum Migration:** Migrating `target_block_order` from `list[str]` to `list[TargetBlockType]` causes legacy test fixtures passing raw strings like `["metadata_block", ...]` to fail under strict Pydantic V2 validation; these fixtures are scheduled for comprehensive alignment in Phase 0-D (Plan 04).
+- **Strict DTO Validation on Enum Collections:** In Pydantic V2 models configured with `strict=True` (e.g., `OutputProfileResponseDTO`), lists of StrEnums (`list[TargetBlockType]`) strictly reject raw string inputs (`str`) during `.model_validate(payload)`. Test fixtures for strict DTOs MUST construct payloads using native Enum instances (`TargetBlockType.METADATA_BLOCK`), whereas domain models utilizing lax aliases (`LaxTargetBlockType` with `Field(strict=False)`) permit string coercion during database hydration.
+- **Pydantic V2 Instantiation vs Field Defaults in Mypy:** In strict Mypy environments, instantiating Pydantic DTOs via constructor kwargs (`OutputProfileUpdateDTO(slug="...")`) flags missing arguments if fields declare `Field(default=None)` without `= None` at the Python class attribute syntax level. Instantiating via `.model_validate({"slug": "..."})` guarantees full runtime validation and static type checking compatibility without mutating domain class definitions.
+- **Async Hook Testing & Awaitable Typing:** In pytest-asyncio test suites, calling async hook functions returning `HookResult | Awaitable[HookResult]` requires wrapping calls in `cast(Awaitable[HookResult], ...)` when awaiting under MyPy `--strict` mode to prevent type union awaitability errors.
 
 ## Remaining
-- **Phase 0-D through Phase 0-I (Plans 04-09):** Test fixtures alignment batches 1 & 2, OpenAPI generation, frontend enum sync, frontend test fixtures, integration checkpoint.
+- **Phase 0-D Post-Implementation Audit (Plan 04):** Execute `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`.
+- **Phase 0-E through Phase 0-I (Plans 05-09):** Test fixtures alignment batch 2, OpenAPI generation, frontend enum sync, frontend test fixtures, integration checkpoint.
 - **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%), and Live E2E verification (`test_integration_real_llm.py`).
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
-`/tier5-resume --target="@[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]" --workflow=/tier0-research-plan`
+`/tier8-audit-plan --target="@[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]"`
 
 
 

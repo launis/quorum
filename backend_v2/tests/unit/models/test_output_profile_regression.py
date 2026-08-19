@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
+from backend_v2.models.enums import TargetBlockType
 from backend_v2.models.v2_core import OutputProfile
 
 
@@ -31,12 +32,12 @@ def test_output_profile_response_dto_target_block_order_parity() -> None:
         "workflow_id": "wf_9d68c573802341db",
         "name": {"default_locale": "en", "translations": {"en": "Test"}},
         "layouts": [],
-        "target_block_order": ["metadata_block", "synthesis_text_block"],
+        "target_block_order": [TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK],
     }
 
     # This should pass without raising extra_forbidden
     dto = OutputProfileResponseDTO.model_validate(payload)
-    assert dto.target_block_order == ["metadata_block", "synthesis_text_block"]
+    assert dto.target_block_order == [TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK]
 
 
 def test_embedded_output_profile_schema_parity() -> None:
