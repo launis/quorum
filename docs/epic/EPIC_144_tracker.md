@@ -35,20 +35,20 @@
 - **Current Epic:** EPIC 144 (`@[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md]`)
 - **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend)
 - **Execution Status:** **100% EXECUTED & AUDITED (PASSED)** across all 6 Phases (Phase 0-A through 0-H, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5).
-- **Hardening Status:** **Backend Hardening 5/15 (33%) Completed** (15 production source targets tracked: 5 done, 10 remaining; 17 in frontend queue).
+- **Hardening Status:** **Backend Hardening 10/15 (67%) Completed** (15 production source targets tracked: 10 done, 5 remaining; 17 in frontend queue).
 - **Tier 8 Plan Audit:** `red_team_audit_15_placeholder_phase5_quality_gates.md` verified 100% pass across all requirements, DoD checklist items, Freezed/Pydantic deserialization firewalls, and SDUI adapter dual-logging contracts.
 - **Mandatory Final Gate:** `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` **PASSED 100%** (full PDF ingestion, DAG execution, SDUI synthesis, and report rendering verified against live FastAPI backend and Arq worker).
 - **Backend Quality Audit Loop:** `uv run python scripts/backend_audit_loop.py` configured with 100% Ruff linting, formatting, MyPy strict typing, Jinja dumb painter templates, Seed Data dry-run validation, and $\ge$90% test coverage per target.
 
 ## 2. Key Accomplishments & State in Latest Session
-- **Tier 2 Backend Hardening Execution (5/15 Targets Hardened in Batch 1):**
-  - **`backend_v2/settings.py` & `test_settings.py`:** Added strict public export `__all__ = ["MyBool", "Settings", "StorageBackend", "get_lexical_fuzz_threshold", "get_settings", "strip_whitespace"]`; achieved 96% line coverage across 15 unit tests.
-  - **`backend_v2/models/enums.py` & `test_enums.py`:** Added strict public export `__all__` covering all 84 public enums and aliases; achieved 97% line coverage across 6 unit tests and verified cross-language Dart parity tests against `client_app_v2/lib/core/models/enums.dart`.
-  - **`backend_v2/models/v2_core.py` & `test_v2_core.py`:** Verified complete public export `__all__`, `ConfigDict(strict=True, extra="forbid")`, frozen models, and PEP 593 Annotated fields; achieved 96% line coverage across 56 unit tests.
-  - **`backend_v2/models/dtos/output_profile.py` & `test_output_profile.py`:** Verified complete public export `__all__`, `ConfigDict(strict=True, extra="forbid")`, non-nullable `max_extension_items`, and `DisplayScale` enum mapping; achieved 100% line coverage across 13 unit tests.
-  - **`backend_v2/services/blueprint.py` & `test_blueprint.py`:** Cleaned module-level import ordering, verified `__all__ = ["BlueprintTransformer"]`, Fail-Fast `TargetBlockType` hydrator dispatching, and RFC 7807 dual logging; achieved 90% line coverage across 27 unit tests.
-  - **Neuro-Symbolic Audit Matrix (`tmp/audit_matrix.json`):** Generated and verified 152/152 rules with `[SUCCESS]` across all 5 audited files.
-  - **Hardening State Tracker:** Synchronized `@[tmp/hardening_state.json]` with 5 `DONE` files and 10 `REMAINING`.
+- **Tier 2 Backend Hardening Execution (Batch 2: 5 Targets Hardened, Total 10/15 Completed):**
+  - **`backend_v2/services/matrix_domain_parser.py` & `test_matrix_domain_parser.py`:** Verified `__all__ = ["MatrixDomainParser"]`, strict Fail-Fast validation on missing PromptBlock labels/scales/computed bounds with `AppException`, dynamic `DisplayScale` enum handling, and RFC 7807 dual logging; achieved 91% line coverage across 20 unit tests.
+  - **`backend_v2/services/sdui/adapters/authenticity_adapter.py` & `test_authenticity_adapter.py`:** Verified `__all__ = ["AUTHENTICITY_RULES", "AuthenticityAdapter"]`, dynamic `get_settings()` threshold resolution (`authenticity_threshold_high/low`), Fail-Fast `metric_mappings` / `extension_labels` resolution, and RFC 7807 dual logging (`logger.error(..., exc_info=True)`); achieved 94% line coverage across 12 unit tests.
+  - **`backend_v2/services/sdui/adapters/metadata_adapter.py` & `test_metadata_adapter.py`:** Verified `__all__ = ["METADATA_RULES", "MetadataAdapter"]`, bilingual metadata label resolution via `metric_mappings`, Fail-Fast `AppException` on missing translations, and RFC 7807 dual logging; achieved 100% line coverage across 5 unit tests.
+  - **`backend_v2/services/sdui/adapters/synthesis_text_adapter.py` & `test_synthesis_text_adapter.py`:** Verified `__all__ = ["SYNTHESIS_TEXT_RULES", "SynthesisTextAdapter"]`, dumb painter integration rendering both static `content_blocks` and dynamic `section_syntheses`; achieved 100% line coverage across 2 unit tests.
+  - **`backend_v2/services/sdui/adapters/executive_summary_adapter.py` & `test_executive_summary_adapter.py`:** Verified `__all__ = ["EXECUTIVE_SUMMARY_RULES", "ExecutiveSummaryAdapter"]`, `RoleClassification` enum mapping, Fail-Fast `user_role_mappings` / `user_role_label` resolution with `AppException`, and RFC 7807 dual logging; achieved 90% line coverage across 6 unit tests.
+  - **Neuro-Symbolic Audit Matrix (`tmp/audit_matrix.json`):** Generated and verified 152/152 rules with `[SUCCESS]` across all 5 audited batch targets.
+  - **Hardening State Tracker:** Synchronized `@[tmp/hardening_state.json]` with 10 `DONE` files and 5 `REMAINING`.
 
 ## 3. Atomic Commits in this Epic Hardening
 - `ac2a9457 chore(hardening): audit and export __all__ in backend_v2/settings.py`
@@ -343,11 +343,11 @@ Followed by remaining Post-Implementation Gates (Frontend Hardening, Golden Mast
   - [x] @[backend_v2/models/v2_core.py]
   - [x] @[backend_v2/models/dtos/output_profile.py]
   - [x] @[backend_v2/services/blueprint.py]
-  - [ ] @[backend_v2/services/matrix_domain_parser.py]
-  - [ ] @[backend_v2/services/sdui/adapters/authenticity_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
+  - [x] @[backend_v2/services/matrix_domain_parser.py]
+  - [x] @[backend_v2/services/sdui/adapters/authenticity_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
   - [ ] @[backend_v2/models/prompts/synthesis_directives.py]
