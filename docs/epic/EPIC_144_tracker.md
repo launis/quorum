@@ -49,15 +49,17 @@
 
 #### Phase 0-B: Master Seed Sanitization & Local Reseed
 **Plan:** `@[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Audit Current Seed Data State
-  - [ ] Step 2: Remove include_diagnostic_scorecard from All Output Profiles
-  - [ ] Step 3: Verify and Complete metric_mappings Metadata Keys
-  - [ ] Step 4: Verify Enum-Compatible Values
-  - [ ] Step 5: Execute Local Database Reseed
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Create Timestamped Backup of Master Seed Data
+  - [x] Step 2: Audit Current Seed Data State via Python
+  - [x] Step 3: Surgically Inject Bilingual Metadata Keys into metric_mappings
+  - [x] Step 4: JSON Integrity & Syntax Check
+  - [x] Step 5: Implement Automated Seed Integrity Unit Tests
+  - [x] Step 6: Execute Local Database Reseed
+  - [x] Step 7: Run Quality Audit Gate
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
@@ -406,17 +408,26 @@
   - Executed global test suite (1444 tests passed, 0 failures).
   - Emitted formal artifact: `@[red_team_audit_01_p0_backend_config_enums.md]`.
   - Committed tracker sign-off: `5155ff2f docs(epic-144): sign off Phase 0-A audit in tracker`.
+- **Phase 0-B Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - Created timestamped backup `@[backend_v2/seed/backups/seed_data_backup_p0b.json]`.
+  - Surgically injected 4 bilingual metadata label keys (`metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`) into `metric_mappings` of profile `prf_5d6e7f8091a2b3c4` in `@[backend_v2/seed/seed_data.json#L9260-L9290]`.
+  - Verified zero occurrences of `include_diagnostic_scorecard` across `seed_data.json`.
+  - Implemented automated guardrail tests in `@[backend_v2/tests/unit/test_seed_architectural_guardrails.py#L95-L215]` covering positive and negative assertions for legacy scorecard absence, complete bilingual metadata keys, and valid enum values.
+  - Executed local database reseed (`uv run python backend_v2/seed/run_seed.py local`) successfully.
+  - Passed Universal Quality Gate (`backend_audit_loop.py`) with 100% test pass rate and 92% TDD coverage.
+  - Committed atomically: `15607978 feat(seed): sanitize output profiles and inject bilingual metadata keys in metric_mappings`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
 - **Fail-Fast Hydration Invariant:** The `OutputProfile` model currently contains legacy `include_diagnostic_scorecard: bool`, uses raw `Literal["original", "custom", "normalized_100"]` for `display_scale`, and `list[str]` for `target_block_order`. Flutter models utilize `unknownEnumValue` fallback annotations.
 - **Atomic 6-Step Execution Protocol:** To prevent fatal `pydantic.ValidationError(extra_forbidden)` crashes under `ConfigDict(strict=True, extra="forbid")`, modifications MUST execute in strict order: Seed Sanitization & Local Reseed (02) → Models & DTO Purge (03) → OpenAPI Sync (06) → Frontend Enums & Freezed (07) → UI Decomposition (10-11) → Quality Gates.
+- **Seed Vault Protocol Invariants:** When auditing or modifying `seed_data.json`, CRLF encoding causes `grep_search` to silently fail; deterministic Python scripts using `json.load` and bounded reads are mandatory. Pre-mutation backups in `backend_v2/seed/backups/` are strictly required before any JSON modifications.
 - **Testing Architecture Consolidation:** Architectural tests in `tests/architecture/` must be transitioned to the standard test pyramid (`tests/unit/`) to maintain single test suite sovereignty without duplicate scanners.
 - **Settings Post-Init Credential Scanning:** Testing `Settings.model_post_init` credential checks requires mocking `Path.exists` because `Settings` automatically scans the filesystem root for `service-account.json`.
 - **Enum Parity Testing Paradigm:** Python `ast.parse` and regex extraction over Dart `@JsonValue` provide deterministic verification without importing heavy cross-stack runtimes.
 
 ## Remaining
-- **Phase 0-B (Plan 02):** Master Seed Sanitization & Local Reseed (`@[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md]`) — Red-Teaming -> Execution -> Audit.
+- **Phase 0-B (Plan 02):** Master Seed Sanitization & Local Reseed (`@[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md]`) — Audit (`/tier8-audit-plan`).
 - **Phase 0-C through Phase 0-I (Plans 03-09):** Model & DTO purge, test fixtures alignment batches 1 & 2, OpenAPI generation, frontend enum sync, frontend test fixtures, integration checkpoint.
 - **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
@@ -424,5 +435,7 @@
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
-`/tier5-resume --target="@[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]" --workflow=/tier0-research-plan`
+`/tier5-resume --target="@[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]" --workflow=/tier8-audit-plan`
+
+
 
