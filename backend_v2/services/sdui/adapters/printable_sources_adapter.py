@@ -16,6 +16,8 @@ from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["PRINTABLE_SOURCES_RULES", "PrintableSourcesAdapter"]
+
 # ============================================================================
 # SECTION 1: AESTHETICS RULES
 # ============================================================================

@@ -4,6 +4,12 @@ This module acts as the Single Source of Truth (SSOT) for synthesis prompt block
 ensuring strict DRY compliance and zero-hardcoding across workers and hooks.
 """
 
+__all__ = [
+    "SDUI_SYNTHESIS_MANDATE_BLOCK",
+    "SECTION_SYNTHESIS_DIRECTIVE_BLOCK",
+    "STATE_ISOLATION_BLOCK",
+]
+
 SDUI_SYNTHESIS_MANDATE_BLOCK: str = (
     "<sdui_synthesis_mandate>\n"
     "- SDUI POLYMORPHIC SYNTHESIS MANDATE: Structure your response by mapping output directly "
