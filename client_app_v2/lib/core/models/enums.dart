@@ -413,4 +413,3 @@ enum TargetBlockType {
   @JsonValue('authenticity_evaluation_block')
   authenticityEvaluationBlock,
 }
-

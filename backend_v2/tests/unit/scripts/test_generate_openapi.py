@@ -108,7 +108,6 @@ def test_generate_openapi_main_block(monkeypatch: pytest.MonkeyPatch, tmp_path: 
         del sys.modules["backend_v2.main"]
 
 
-
 def test_generate_openapi_main_block_exception(tmp_path: Path) -> None:
     """Tests the exception handling path in the __main__ block."""
     import runpy
@@ -134,10 +133,3 @@ def test_generate_openapi_main_block_exception(tmp_path: Path) -> None:
     assert exc_info.value.code == 1
 
     del sys.modules["backend_v2.main"]
-
-
-
-
-
-
-

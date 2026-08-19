@@ -84,8 +84,9 @@ class ProfileGeneralTab extends ConsumerWidget {
                           ),
                           ...workflows.map((flow) {
                             final flowId = flow.id;
-                            final localeCode =
-                                Localizations.localeOf(context).languageCode;
+                            final localeCode = Localizations.localeOf(
+                              context,
+                            ).languageCode;
                             final displayName = flow.name.get(localeCode);
                             return DropdownMenuItem(
                               value: flowId,

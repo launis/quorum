@@ -6,11 +6,11 @@ import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/features/studio/views/widgets/profile/layout_editor_card.dart';
+import 'package:client_app/features/studio/views/widgets/profile/blocks/block_card_registry.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 
-/// Tab 3: Output layout block list and target block ordering.
+/// Tab 3: Visual Block Builder driven by targetBlockOrder and BlockCardRegistry.
 class ProfileLayoutsTab extends ConsumerWidget {
   final String id;
   const ProfileLayoutsTab({super.key, required this.id});
@@ -50,7 +50,8 @@ class ProfileLayoutsTab extends ConsumerWidget {
 
         for (final step in steps) {
           if (taskBlueprintIds.contains(step.id)) {
-            if (step.roleBlockId != null) allowedBlockIds.add(step.roleBlockId!);
+            if (step.roleBlockId != null)
+              allowedBlockIds.add(step.roleBlockId!);
             if (step.extractionProtocolBlockId != null) {
               allowedBlockIds.add(step.extractionProtocolBlockId!);
             }
@@ -82,60 +83,114 @@ class ProfileLayoutsTab extends ConsumerWidget {
       );
     }
 
+    final inactiveBlocks = TargetBlockType.values
+        .where((b) => !payload.targetBlockOrder.contains(b))
+        .toList();
+
     return ListView(
       padding: AppSpacing.p16,
       children: [
-        LayoutEditorCard(
-          layouts: payload.layouts,
-          onChanged: (val) {
-            updatePayload(payload.copyWith(layouts: val));
-          },
-          allowedBlockIds: allowedBlockIds,
-          promptBlocksState: promptBlocksState,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Report Visual Blocks',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              '${payload.targetBlockOrder.length} active',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ),
-        AppSpacing.h24,
-        Card(
-          child: Padding(
-            padding: AppSpacing.p16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l10n.targetBlockOrderTitle,
-                  style: Theme.of(context).textTheme.titleSmall,
+        const SizedBox(height: AppSpacing.s4),
+        Text(
+          l10n.targetBlockOrderSubtitle,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        AppSpacing.h16,
+        ReorderableListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          onReorder: (oldIndex, newIndex) {
+            if (oldIndex < newIndex) {
+              newIndex -= 1;
+            }
+            final list = List<TargetBlockType>.from(payload.targetBlockOrder);
+            final item = list.removeAt(oldIndex);
+            list.insert(newIndex, item);
+            updatePayload(payload.copyWith(targetBlockOrder: list));
+          },
+          children: payload.targetBlockOrder.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final blockType = entry.value;
+
+            return BlockCardRegistry.getBlockCard(
+              key: ValueKey(blockType),
+              type: blockType,
+              context: context,
+              profileId: id,
+              payload: payload,
+              updatePayload: updatePayload,
+              allowedBlockIds: allowedBlockIds,
+              promptBlocksState: promptBlocksState,
+              dragHandle: ReorderableDragStartListener(
+                index: idx,
+                child: const Padding(
+                  padding: EdgeInsets.all(4.0),
+                  child: Icon(Icons.drag_handle),
                 ),
-                AppSpacing.h8,
-                Text(
-                  l10n.targetBlockOrderSubtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                AppSpacing.h16,
-                ReorderableListView(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  onReorder: (oldIndex, newIndex) {
-                    if (oldIndex < newIndex) {
-                      newIndex -= 1;
-                    }
-                    final list = List<TargetBlockType>.from(
-                      payload.targetBlockOrder,
-                    );
-                    final item = list.removeAt(oldIndex);
-                    list.insert(newIndex, item);
-                    updatePayload(payload.copyWith(targetBlockOrder: list));
-                  },
-                  children: payload.targetBlockOrder.map((blockType) {
-                    return ListTile(
-                      key: ValueKey(blockType),
-                      title: Text(blockType.name),
-                      trailing: const Icon(Icons.drag_handle),
-                    );
-                  }).toList(),
-                ),
-              ],
+              ),
+            );
+          }).toList(),
+        ),
+        if (inactiveBlocks.isNotEmpty) ...[
+          AppSpacing.h16,
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.s8),
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            child: Padding(
+              padding: AppSpacing.p12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Available Blocks (Click to enable)',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                  Wrap(
+                    spacing: AppSpacing.s8,
+                    runSpacing: AppSpacing.s4,
+                    children: inactiveBlocks.map((b) {
+                      return ActionChip(
+                        avatar: const Icon(Icons.add, size: 16),
+                        label: Text(b.name),
+                        onPressed: () {
+                          final newOrder = List<TargetBlockType>.from(
+                            payload.targetBlockOrder,
+                          )..add(b);
+                          updatePayload(
+                            payload.copyWith(targetBlockOrder: newOrder),
+                          );
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }

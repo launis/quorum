@@ -153,18 +153,18 @@ class SduiMatrixTableWidget extends StatelessWidget {
               l10n?.matrixEvaluativeAsteriskLegend ??
                   '* = Evaluative Matrix (Impacts global score)',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                fontStyle: FontStyle.italic,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           if (hasOverride)
             Text(
               l10n?.matrixOverrideAsteriskLegend ??
                   '** = Contextual override allowed',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                fontStyle: FontStyle.italic,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
         ],
       ],

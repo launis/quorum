@@ -61,9 +61,8 @@ class ProfileMetadataSection extends ConsumerWidget {
                 list.remove(meta);
               }
               list.sort(
-                (a, b) => _masterOrder
-                    .indexOf(a)
-                    .compareTo(_masterOrder.indexOf(b)),
+                (a, b) =>
+                    _masterOrder.indexOf(a).compareTo(_masterOrder.indexOf(b)),
               );
               updatePayload(payload.copyWith(visibleMetadata: list));
             },

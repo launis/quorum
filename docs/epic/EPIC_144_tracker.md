@@ -191,7 +191,7 @@
   - [x] Step 6: Update & Verify Golden Master Tests
   - [x] Step 7: Line Count Verification
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
 
@@ -199,11 +199,21 @@
 
 #### Phase 2: Visual Block Builder
 **Plan:** `@[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md]`
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md] --phase=2`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md] --phase=2`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Create Base Block Card
+  - [x] Step 2: Create Simple Toggle Block Card & Bibliography Block Card
+  - [x] Step 3: Create Metadata & Synthesis Text Block Cards
+  - [x] Step 4: Create XAI Extensions Block Card
+  - [x] Step 5: Create Matrix Summary Table Card
+  - [x] Step 6: Create Matrix Graphs Block Card (Collection Builder)
+  - [x] Step 7: Implement Block Card Registry
+  - [x] Step 8: Refactor Profile Layouts Tab to Flat Visual Block Builder
+  - [x] Step 9: Implement Comprehensive Widget Tests & Regression Gate
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
 
@@ -211,9 +221,18 @@
 
 #### Phase 3: Backend Execution Alignment
 **Plan:** `@[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md]`
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md] --phase=3`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md] --phase=3`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 1: Global Config Sovereignty (Authenticity Thresholds in `settings.py` & `authenticity_adapter.py`)
+  - [ ] Step 2: Metadata Adapter Localization & Duck-Typing Eradication (`metadata_adapter.py`)
+  - [ ] Step 3: SDUI Synthesis Text & Executive Summary Adapter Enhancements (`synthesis_text_adapter.py`, `executive_summary_adapter.py`, `printable_sources_adapter.py`)
+  - [ ] Step 4: Target Block Dispatcher Strictness & Domain Parser Enum Alignment (`blueprint.py`, `matrix_domain_parser.py`)
+  - [ ] Step 5: Prompt Directives SSOT & Worker Dynamic Context Injection (`synthesis_directives.py`, `worker.py`)
+  - [ ] Step 6: Seed Data Sanitization & Local Database Reseed Gate (`seed_data.json`, `run_seed.py local`)
+  - [ ] Step 7: Synthesis Config DTO Purge & XAI Highlights Strict Typing (`v2_core.py`, `xai_highlights_adapter.py`, `output_profile.dart`, `synthesis_config_dto.dart`)
+  - [ ] Step 8: Cross-Stack Compilation & Freezed Codegen Gate (`flutter_audit_loop.py`)
+  - [ ] Step 9: Full Backend Regression & Quality Gate Audit (`backend_audit_loop.py`)
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md]`
 
@@ -352,11 +371,11 @@
 | R55 | [NEW] `profile_scoring_tab.dart` ≤200 lines | Epic Phase 1 (L375-378) | Plan 11 | Step 3 |
 | R56 | [NEW] `profile_layouts_tab.dart` ≤200 lines | Epic Phase 1 (L379-381) | Plan 11 | Step 4 |
 | R57 | Golden Master parity tests still pass after decomposition | Epic Phase 1 (L365-367) | Plan 11 | Step 6 |
-| R58 | Visual Block Builder with Registry Map pattern `Map<TargetBlockType, Widget Function()>` | Epic Phase 2 (L397) | Plan 12 | DEFERRED |
-| R59 | 9 dedicated block card widgets under `blocks/` directory | Epic Phase 2 (L384-395) | Plan 12 | DEFERRED |
-| R60 | Matrix Graphs Collection Builder with inline accordion editing | Epic Phase 2 (L407-412) | Plan 12 | DEFERRED |
-| R61 | Matrix Summary Table independent block card with FilterChip column toggles | Epic Phase 2 (L414-418) | Plan 12 | DEFERRED |
-| R62 | XAI Extensions slider with clamping + companion TextFormField validation | Epic Phase 2 (L427-483) | Plan 12 | DEFERRED |
+| R58 | Visual Block Builder with Registry Map pattern `Map<TargetBlockType, Widget Function()>` | Epic Phase 2 (L397) | Plan 12 | Step 7 |
+| R59 | 9 dedicated block card widgets under `blocks/` directory | Epic Phase 2 (L384-395) | Plan 12 | Steps 1-6 |
+| R60 | Matrix Graphs Collection Builder with inline accordion editing | Epic Phase 2 (L407-412) | Plan 12 | Step 6 |
+| R61 | Matrix Summary Table independent block card with FilterChip column toggles | Epic Phase 2 (L414-418) | Plan 12 | Step 5 |
+| R62 | XAI Extensions slider with clamping + companion TextFormField validation | Epic Phase 2 (L427-483) | Plan 12 | Step 4 |
 | R63 | Migrate `AUTHENTICITY_THRESHOLDS` from adapter to `get_settings()` dynamic resolution | Epic V13 (L69) | Plan 13 | DEFERRED |
 | R64 | MetadataAdapter: eradicate V7 hardcoded Finnish strings, V7a getattr duck-typing, V7b title fallback, V7c isinstance guard | Epic V7/V7a/V7b/V7c (L60-63) | Plan 13 | DEFERRED |
 | R65 | SynthesisTextAdapter: read both `content_blocks` and `section_syntheses` (V8 fix) | Epic V8 (L64) | Plan 13 | DEFERRED |
@@ -687,13 +706,134 @@
 - **Root Form Validation Across TabBarViews:** Wrapping the entire `TabBarView` in a single parent `Form(key: formKey)` preserves atomic validation and persistence across all tabs concurrently without state loss or requiring disjointed per-tab form controllers.
 - **ARB Localization Duplicate Overrides:** In `.arb` files, duplicate translation keys at the bottom of the file silently override earlier keys during `flutter gen-l10n`; maintaining single-source localized keys is essential for deterministic widget testing.
 
+- **Phase 1-B Post-Implementation Audit Signed Off (`[OK]`):**
+  - Executed `/tier8-audit-plan` against `@[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md]`.
+  - Verified 100% physical traceability for requirements R53–R57 and R81–R84 across extracted tabs and test suites.
+  - Confirmed strict compliance with `ki_god_code_prevention.md` line cap: all 6 target UI files measure ≤200 lines (`output_profile_crud_view.dart` 188 lines, `profile_general_tab.dart` 151 lines, `profile_scoring_tab.dart` 191 lines, `profile_layouts_tab.dart` 132 lines, `profile_metadata_section.dart` 70 lines, `profile_xai_extensions_section.dart` 134 lines).
+  - Confirmed eradication of all Phase 9 anti-patterns: zero `SizedBox.shrink()` anti-patterns for unavailable XAI extensions, zero untyped `AsyncValue<List<dynamic>>`, zero hardcoded hex colors, and zero magic double paddings/margins.
+  - Confirmed zero supply-chain violations (banned AI bloatware packages in `pubspec.yaml` and `pyproject.toml`).
+  - Executed Universal Quality Gate audits: localized tests passing 117/117, full Studio build runner clean (5 outputs written), 0 Dart analyzer issues, and full frontend test suite passing 117/117 green.
+  - Emitted formal artifact: `@[red_team_audit_11_p1_tab_scaffold_decomposition.md]`.
+
+- **Phase 2 Implementation Plan Generated & Validated (`[OK]`):**
+  - Generated detailed implementation plan for Phase 2: Adaptive Visual Block Builder & UI Patterns in `@[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md]` and synchronized with `implementation_plan.md` artifact.
+  - Decomposed legacy monolithic 642-line `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]` into 9 dedicated single-responsibility block card widgets under `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/]` (each strictly $\le 200$ lines):
+    1. `BaseBlockCard`: Universal baseline toggle container (`Include this block in report` switch modifying `payload.targetBlockOrder`) with drag handle, elevation: 0, outline border.
+    2. `BlockCardRegistry`: Strategy/Registry Map pattern mapping all 13 `TargetBlockType` members eagerly to avoid runtime switch/if-else branching cascades.
+    3. `MetadataBlockCard`: Granular checkboxes for `visibleMetadata` (`date`, `organization`, `user`, `scoring_engine`, `strictness`, `cost`, `tokens`).
+    4. `SynthesisTextBlockCard`: Dual-mode selection (Mode A: Pipeline `synthesis_block_id` dropdown vs Mode B: On-the-Fly `tone_instruction` & `preamble_text`).
+    5. `MatrixGraphsBlockCard`: Deep Collection Builder for 1–N graph entries in `payload.layouts` with inline accordion editing, 4 preset selectors (1D, 2D, 3D, Text Only), and context-adaptive X/Y/Z axis dropdowns.
+    6. `MatrixSummaryTableCard`: Standalone card for `preset_view == matrixSummary` with `FilterChip` column toggles (`matrixVisibleColumns`), `I18nTextField` column labels (`matrixColumnLabels`), and axis filters (`targetBlocks`).
+    7. `XaiExtensionsBlockCard`: Block/Workflow `FilterChip` wrap pills and V10 hybrid Slider/TextFormField pattern for `maxExtensionItems` with safe clamping against `SystemUiConstraints` (1–20 clamped slider, 1–100 validated text field).
+    8. `BibliographyBlockCard`: Formatting options for `printableSourcesBlock` (`grouped_by_matrix`, `anonymous_mode`).
+    9. `SimpleToggleBlockCard`: Reusable toggle card for computed blocks (`penaltiesBlock`, `varianceValidationBlock`, `authenticityEvaluationBlock`, `executiveSummaryBlock`).
+  - Refactored `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]` to render the master `ReorderableListView` canvas driven by `payload.targetBlockOrder` and `BlockCardRegistry`.
+  - Updated Requirements Traceability Matrix (`R58`–`R62`) from DEFERRED to Plan 12 step bindings.
+  - Executed and passed both boundary and planner audits: `audit_markdown_boundaries.py` (0 errors) and `audit_planner_output.py` (100% boundary fidelity across all 72 target files and 15 KIs).
+
+- **Phase 2 Red-Teaming & Falsification Passed (`[OK]`):
+  - Completed System 2 Red-Teaming on `@[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md]`.
+  - Audited target UI files (`@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`) and verified complete separation of concerns.
+  - Formulated 5 critical Red-Teaming protections and architectural invariants:
+    1. **Layouts State Partitioning SSOT:** `MatrixGraphsBlockCard` manages graph layouts (`presetView != PresetView.matrixSummary`), while `MatrixSummaryTableCard` manages the standalone table layout (`presetView == PresetView.matrixSummary`), preventing accidental deletion of the summary table during graph collection mutations.
+    2. **Universal Baseline Toggle Integration:** `BaseBlockCard` binds the `Include this block in report` switch exclusively to adding/removing the `TargetBlockType` from `OutputProfile.targetBlockOrder` with non-null validation and atomic Riverpod dispatch.
+    3. **Reorderable Drag Listener Parity:** Integrated `ReorderableDragStartListener` directly on `BaseBlockCard` header drag handle, preventing nested viewport bounding errors in `ProfileLayoutsTab`.
+    4. **Safe Hybrid Slider Clamping (V10 / R80):** Enforced canonical clamping `rawVal.clamp(1, 20).toDouble()` against `SystemUiConstraints` enum to prevent Flutter assertion crashes on out-of-bounds database values while supporting 1–100 numerical text input.
+    5. **Golden Master Test Safety Net:** Verified that existing Studio test suite passes 117/117 green via `flutter_audit_loop.py` before execution begins.
+  - Re-verified planner boundary fidelity via `audit_planner_output.py` with 100% compliance across all 72 target files and 15 KIs.
+- **Phase 2 Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - **BaseBlockCard Container:** Created `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart]` (114 lines $\le 200$) with Material 3 styling, header icon, localized title, drag handle slot, and Universal Baseline Toggle Switch (`Include this block in report`). Binds block inclusion directly to `OutputProfile.targetBlockOrder`.
+  - **Single-Responsibility Block Cards:** Created 8 dedicated block cards under `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/]`, all strictly $\le 200$ lines:
+    1. `simple_toggle_block_card.dart` (53 lines): Reusable toggle card for pure-computed blocks (`executiveSummaryBlock`, `penaltiesBlock`, `varianceValidationBlock`, `authenticityEvaluationBlock`, `globalScoreBlock`, `auditTrailBlock`, `jargonRatioBlock`).
+    2. `bibliography_block_card.dart` (54 lines): Card for `printableSourcesBlock` (Bibliography & Sources).
+    3. `metadata_block_card.dart` (92 lines): Checklist `FilterChip` configuration for `visibleMetadata` (`date`, `organization`, `user`, `scoring_engine`, `strictness`, `cost`, `tokens`).
+    4. `synthesis_text_block_card.dart` (130 lines): Pipeline synthesis prompt block selection (`synthesisBlockId`) vs on-the-fly synthesis parameters (`toneInstruction`, `preambleText`).
+    5. `xai_extensions_block_card.dart` (192 lines): Block-level and workflow-level `FilterChip` selection with hybrid Slider (1–20 clamped) + `TextFormField` (1–100 validated) for `maxExtensionItems` clamped to `SystemUiConstraints`.
+    6. `matrix_summary_table_card.dart` (155 lines): Dedicated standalone card for `presetView == PresetView.matrixSummary` with `FilterChip` column visibility (`matrixVisibleColumns`) and `I18nTextField` column label overrides (`matrixColumnLabels`).
+    7. `matrix_graph_item_editor.dart` (200 lines): Sub-item editor for graph layouts with 4 visual presets (1D Table, 2D Grid, 3D Matrix, Text Only) and context-adaptive X/Y/Z axis dropdowns with duplicate detection.
+    8. `matrix_graphs_block_card.dart` (122 lines): Collection Builder managing 1–N graph items in `payload.layouts` with `+ Add Graph` action.
+  - **Exhaustive Block Card Registry:** Created `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]` (140 lines $\le 200$) using a compile-time exhaustive Dart 3 switch expression mapping all 13 `TargetBlockType` values to their builder widgets.
+  - **Refactored ProfileLayoutsTab:** Refactored `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]` (198 lines $\le 200$) to render the Visual Block Builder using `ReorderableListView` drag-and-drop reordering driven by `payload.targetBlockOrder` and `BlockCardRegistry`, with an "Available Blocks" palette for re-enabling inactive blocks.
+  - **Streamlined Legacy Layout Editor:** Streamlined `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]` (166 lines $\le 200$) to satisfy backward compatibility without violating the God Code Prevention line cap.
+  - **Comprehensive Widget & Parity Tests:** Created `@[client_app_v2/test/features/studio/views/widgets/profile/blocks/block_card_registry_test.dart]` covering all 13 block type renderings, universal toggle state mutations, slider clamping bounds, and matrix graph collection actions. Updated `layout_editor_card_test.dart` and verified `output_profile_crud_view_test.dart`.
+  - **Flutter Universal Quality Gate Passed:** Executed `flutter_audit_loop.py` on both `lib/features/studio` (with `--build`) and `test/features/studio` (with `--test`): **136/136 tests passed green** with **0 analyzer errors, 0 warnings, and 0 deprecations**.
+- **Phase 2 Post-Implementation Audit Signed Off (`[OK]`):**
+  - Executed `/tier8-audit-plan` against `@[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md]`.
+  - Verified 100% physical traceability for requirements R58–R62.
+  - Verified all 10 created/modified block builder Dart files strictly adhere to `≤200` line threshold.
+  - Verified zero supply-chain violations (banned AI bloatware packages).
+  - Executed Flutter localized & global audit loops (136/136 tests passed, 0 analyzer errors) and global Backend test suite (1464 passed).
+  - Emitted formal artifact: `@[red_team_audit_12_phase2_block_builder.md]`.
+- **Phase 3 Tier 0 Planning & AST Boundary Verification Completed (`[OK]`):**
+  - Synthesized comprehensive architectural implementation plan for **Phase 3: Backend Execution & Synthesis Alignment** (`@[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md]`).
+  - Formulated 9-step atomic execution protocol:
+    1. Global Config Sovereignty: Migrate `AUTHENTICITY_THRESHOLDS` from `authenticity_adapter.py` to `backend_v2/settings.py` (`authenticity_threshold_high: 80.0`, `authenticity_threshold_low: 50.0`).
+    2. Metadata Adapter Modernization: Eradicate hardcoded Finnish strings (`"Käyttäjä:"`, `"Organisaatio:"`, etc.), resolve dynamic labels via `context.profile.metric_mappings` with Fail-Fast key lookup, fix `custom_preface` resolution, and eliminate `isinstance(dt, datetime)` runtime duck-typing.
+    3. SDUI Adapter Synthesis Decoupling: Modernize `synthesis_text_adapter.py` to render both static `content_blocks` and dynamic `context.profile_cache.section_syntheses` as a Dumb Painter. Modernize `executive_summary_adapter.py` to append synthesized narratives alongside the localized user role badge. Standardize `printable_sources_adapter.py` deduplication.
+    4. Target Block Dispatcher Strictness: Index `_target_block_hydrators` in `blueprint.py` via native `TargetBlockType` keys with `try...except KeyError:` logging RFC-7807 error and raising `AppException(VALIDATION_FAILED)`. Replace string comparisons in `matrix_domain_parser.py` with native `DisplayScale` enum members.
+    5. Prompt Directives SSOT: Create `backend_v2/models/prompts/synthesis_directives.py` centralizing mathematical anchoring, visual storytelling, and row explanation XML mandates. Inject dynamically in `worker.py` while keeping static system prompts 100% cacheable.
+    6. Seed Sanitization Gate: Purge 6 dead-weight fields from all 12 layout synthesis objects and root synthesis in `seed_data.json`. Simplify prompt blocks (`blk_111122223333444a/b/c`, `blk_34def5d628ba4ed4`, `blk_ad303690b26b413d`) preserving coaching philosophies without XML tags. Execute `uv run python backend_v2/seed/run_seed.py local` to sanitize TinyDB.
+    7. Model & DTO Strictness: Purge 6 dead-weight fields (`model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) from backend `SynthesisConfigDTO` and Flutter `SynthesisConfigDTO`/`SynthesisConfigDto`. Refactor `RenderedSynthesisCache.xai_highlights` from `list[Any]` to typed `list[XaiHighlightItem]` and remove defensive adapter try-catch parsing.
+    8. Cross-Stack Codegen Gate: Re-run `flutter_audit_loop.py` with `--build` to regenerate Freezed and JSON serialization models cleanly.
+    9. Quality Gate & Regression Audit: Run localized and global backend test suites with `>=90%` coverage gate.
+  - Validated plan markdown boundaries and layout rules via `audit_markdown_boundaries.py` (0 errors).
+  - Verified 100% target coverage and AST boundaries via `audit_planner_output.py` across all 72 target files, 15 KIs, and required XML blocks.
+  - Emitted interactive system artifact: `implementation_plan.md`.
+
+## Learned
+- **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
+- **Fail-Fast Hydration Invariant:** The `OutputProfile` model currently contains legacy `include_diagnostic_scorecard: bool`, uses raw `Literal["original", "custom", "normalized_100"]` for `display_scale`, and `list[str]` for `target_block_order`. Flutter models utilize `unknownEnumValue` fallback annotations.
+- **Atomic 6-Step Execution Protocol:** To prevent fatal `pydantic.ValidationError(extra_forbidden)` crashes under `ConfigDict(strict=True, extra="forbid")`, modifications MUST execute in strict order: Seed Sanitization & Local Reseed (02) → Models & DTO Purge (03) → OpenAPI Sync (06) → Frontend Enums & Freezed (07) → UI Decomposition (10-11) → Quality Gates.
+- **Seed Vault Protocol Invariants:** When auditing or modifying `seed_data.json`, CRLF encoding causes `grep_search` to silently fail; deterministic Python scripts using `json.load` and bounded reads are mandatory. Pre-mutation backups in `backend_v2/seed/backups/` are strictly required before any JSON modifications.
+- **Testing Architecture Consolidation:** Architectural tests in `tests/architecture/` must be transitioned to the standard test pyramid (`tests/unit/`) to maintain single test suite sovereignty without duplicate scanners.
+- **Dynamic File Path SSOT in Tests:** In test fixtures accessing seed files, hardcoded Windows absolute paths (e.g., `c:\src\quorum\...`) must be replaced with `Path(__file__).resolve().parents[N]` to prevent cross-machine amnesia.
+- **Settings Post-Init Credential Scanning:** Testing `Settings.model_post_init` credential checks requires mocking `Path.exists` because `Settings` automatically scans the filesystem root for `service-account.json`.
+- **Enum Parity Testing Paradigm:** Python `ast.parse` and regex extraction over Dart `@JsonValue` provide deterministic verification without importing heavy cross-stack runtimes.
+- **DTO Optionality vs Domain Strictness:** When creating DTOs for REST APIs, fields that have sensible defaults in the domain model (e.g. `target_block_order`) should remain optional (`| None = None`) in `CreateDTO`/`UpdateDTO` to prevent forced over-specification by API clients, while remaining strictly typed non-nullable enums in `ResponseDTO` and the domain model.
+- **Test Fixture Ripple Effects on Enum Migration:** Migrating `target_block_order` from `list[str]` to `list[TargetBlockType]` causes legacy test fixtures passing raw strings like `["metadata_block", ...]` to fail under strict Pydantic V2 validation; these fixtures are scheduled for comprehensive alignment in Phase 0-D (Plan 04).
+- **Strict DTO Validation on Enum Collections:** In Pydantic V2 models configured with `strict=True` (e.g., `OutputProfileResponseDTO`), lists of StrEnums (`list[TargetBlockType]`) strictly reject raw string inputs (`str`) during `.model_validate(payload)`. Test fixtures for strict DTOs MUST construct payloads using native Enum instances (`TargetBlockType.METADATA_BLOCK`), whereas domain models utilizing lax aliases (`LaxTargetBlockType` with `Field(strict=False)`) permit string coercion during database hydration.
+- **Pydantic V2 Instantiation vs Field Defaults in Mypy:** In strict Mypy environments, instantiating Pydantic DTOs via constructor kwargs (`OutputProfileUpdateDTO(slug="...")`) flags missing arguments if fields declare `Field(default=None)` without `= None` at the Python class attribute syntax level. Instantiating via `.model_validate({"slug": "..."})` guarantees full runtime validation and static type checking compatibility without mutating domain class definitions.
+- **Async Hook Testing & Awaitable Typing:** In pytest-asyncio test suites, calling async hook functions returning `HookResult | Awaitable[HookResult]` requires wrapping calls in `cast(Awaitable[HookResult], ...)` when awaiting under MyPy `--strict` mode to prevent type union awaitability errors.
+- **DisplayScale Enum Isolation in Domain Parsers:** `MatrixDomainParser` tests must explicitly test all 3 `DisplayScale` enum options (`ORIGINAL`, `NORMALIZED_100`, `CUSTOM`) to verify mathematical score scaling and bound definitions (`display_scale_min`/`display_scale_max`), as well as Fail-Fast validation on missing custom bounds.
+- **Blueprint Dispatch Loop Block Order Contract:** In test fixtures instantiating `OutputProfile` or `OutputProfile.model_construct` for `BlueprintTransformer`, `target_block_order` must be populated with `_DEFAULT_TARGET_BLOCK_ORDER` to ensure downstream SDUI blocks (`GROUPED_EXTENSIONS_BLOCK`, `AUTHENTICITY_EVALUATION_BLOCK`, etc.) are dispatched during report synthesis.
+- **OpenAPI Schema Generation & Standalone Script Testing:** `backend_v2/scripts/generate_openapi.py` safely writes to `docs/swagger/openapi.json` without side effects. Standalone scripts that execute outside the `backend_v2` module structure should have their unit tests verified directly with `pytest` alongside the standard linting and typing quality gates.
+- **OpenAPI Schema Dynamic Enum Exposure:** Regenerating OpenAPI via `generate_openapi.py` captures newly added domain enums (`DisplayScale`, `TargetBlockType`) directly into `components/schemas` and updates collection items references (`#/components/schemas/TargetBlockType`), ensuring downstream Dart/TypeScript client generators remain strictly synchronized with Pydantic V2 backend models.
+- **Freezed Model Default Enum Value Parity:** When migrating a Freezed field from `List<String>` to `List<TargetBlockType>`, `@Default(...)` expressions must simultaneously be converted from string literals to native Dart enum values to avoid compile-time type assignment failures.
+- **Frontend Systemic Constants Centralization:** All UI boundary constraints (e.g. `maxExtensionItems` slider bounds 1-20, absolute max 100, default 3) MUST be centralized in `SystemUiConstraints` enum in `enums.dart` to prevent magic numbers across widget trees.
+- **Fail-Fast Client Firewall vs Fallbacks:** Eradicating `unknownEnumValue` fallback parameters from Freezed models forces unrecognized server payloads to throw `CheckedFromJsonException` caught by `AppErrorBoundary` instead of silently coercing to defaults.
+- **CheckedFromJsonException Assertion on Freezed Models:** In Flutter unit tests testing Fail-Fast deserialization on Freezed models with `disallowUnrecognizedKeys: true` and strict enums, invalid or unmapped values throw `CheckedFromJsonException` rather than `FormatException` or silent nulls.
+- **Cross-Stack Integration Scope Isolation:** Phase 0 integration gates must validate the domain boundaries modified during Phase 0 (`lib/features/studio/models/`) while reserving un-decomposed view structures (`output_profile_crud_view.dart`) for Phase 1 decomposition to prevent cross-phase test collision.
+- **Topological Evaluator Callback Contract Parity:** `TopologicalEvaluator.evaluate_graph` passes `(pending_nodes, states)` to its `batch_evaluation_callback`. Mock callbacks in integration tests must accept `current_states: dict[str, AtomExecutionState]` to avoid `TypeError` when evaluating waves.
+- **Standalone Script Coverage Testing in Isolation:** When running `backend_audit_loop.py` on standalone helper scripts (e.g., `generate_openapi.py`), test suites must exercise both top-level execution functions and the `if __name__ == '__main__':` entrypoint to meet the strict 90% coverage threshold without relying on side effects.
+- **Characterization Testing for Legacy God Widgets:** Establishing a Golden Master widget test before refactoring monolithic UI files requires mocking the entire Riverpod provider tree (including `outputProfileFormProvider`, `studioClientProvider`, `loggerServiceProvider`, and related lookup providers) and testing both happy path rendering and error boundary handling.
+- **Riverpod Family Provider Overrides in Widget Tests:** When overriding Riverpod family providers in widget tests (such as `workflowAvailableExtensionsProvider(currentWorkflowId)`), argument matchers like `any()` are invalid and cause runtime `ArgumentError`; explicit parameter bindings (e.g., `workflowAvailableExtensionsProvider('wf_test')` and `workflowAvailableExtensionsProvider('')`) are required.
+- **LayoutBuilder Constraints in Widget Testing:** In Flutter widget testing of responsive layouts with `LayoutBuilder`, `MediaQueryData(size: ...)` alone does not constrain the physical canvas; setting `tester.view.physicalSize = const Size(1920, 1080)` and `tester.view.devicePixelRatio = 1.0` with `addTearDown` cleanup is required to properly trigger wide-screen branches (e.g., 3-pane `Row` vs `ListView`).
+- **DotEnv Initialization in Widget Tests:** Notifier callbacks that call `ref.read(loggerServiceProvider)` trigger logger initialization which accesses `DotEnv.env`. Mocking `loggerServiceProvider.overrideWithValue(mockLogger)` in `ProviderScope.overrides` isolates widget tests from global environment variables.
+- **Global Studio View Parity on Freezed Migrations:** When migrating a Freezed model field from nullable `int?` to non-nullable `int` or from `String` to `Enum`, all legacy views consuming that model (e.g., `profile_editor_view.dart` as well as `output_profile_crud_view.dart`) must have their dropdown values and slider bounds synchronized with `SystemUiConstraints` to prevent Dart analyzer compilation errors during global `--build` audits.
+- **Tab Scaffold Decomposition & Widget Isolation:** Decomposing monolithic UI forms into Riverpod `ConsumerWidget` tabs accepting `id` allows each tab to watch its own dependencies (`workflowsControllerProvider`, `promptBlocksControllerProvider`, `workflowAvailableExtensionsProvider`) independently without constructor prop drilling, satisfying the ≤200 line cap per file.
+- **God Code Sub-Widget Extraction & Anti-Pattern Eradication:** Breaking down large tab widgets into dedicated sub-widgets (`ProfileMetadataSection` and `ProfileXaiExtensionsSection`) ensures every component remains strictly under the 200-line cap while eliminating `SizedBox.shrink()` anti-patterns, untyped `AsyncValue<List<dynamic>>`, and hardcoded colors/dimensions.
+- **Root Form Validation Across TabBarViews:** Wrapping the entire `TabBarView` in a single parent `Form(key: formKey)` preserves atomic validation and persistence across all tabs concurrently without state loss or requiring disjointed per-tab form controllers.
+- **Visual Block Builder Registry Map Pattern:** Managing diverse block cards via `BlockCardRegistry` using Dart 3 pattern matching provides O(1) builder resolution, completely isolates each block type into a single-responsibility $\le 200$-line component (`ki_god_code_prevention.md`), and prevents monolithic conditional branching in parent tab builders.
+- **Universal Baseline Toggle SSOT:** Anchoring report block inclusion strictly to presence in `OutputProfile.targetBlockOrder` eliminates redundant boolean visibility flags across sub-models and guarantees deterministic serialization parity between the Frontend canvas and Backend SDUI blueprint dispatchers.
+- **Layouts Array Partitioning Contract:** Multiple block cards operating on `OutputProfile.layouts` must strictly partition access by `PresetView` (e.g., `MatrixGraphsBlockCard` filters `presetView != matrixSummary` whereas `MatrixSummaryTableCard` targets `presetView == matrixSummary`) to avoid destructive state overwrites during granular form updates.
+- **Flutter 3.33+ Form Field Initial Value Deprecation:** In modern Flutter `DropdownButtonFormField`, the `value` parameter is deprecated in favor of `initialValue` to ensure proper reactive form state encapsulation.
+- **Zero-Fallback Prompt SSOT Separation:** Prompt directives in `seed_data.json` must be strictly decoupled from architectural rules. Formatting, XML structuring, and mathematical grounding belong in code-level SSOTs (`synthesis_directives.py`), while human-authored prompts retain solely qualitative coaching philosophy (`prompt_preservation_mandate`).
+- **Pre-Validation Database Reseed Necessity:** When modifying Pydantic schemas to remove fields under `extra="forbid"`, the local persistence store (TinyDB) must be reseeded with sanitized data BEFORE running model tests to prevent hydration crashes during test fixture bootstrapping.
+
 ## Remaining
-- **Phase 1-B (Plan 11) Audit:** Audit Phase 1-B via `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`.
-- **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
+- **Phases 3-5 Detailed Execution & Planning (Plans 13-15):**
+  - Phase 3: Backend Execution & Synthesis Alignment (`@[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md]`) — Plan ready for Red-Teaming (`/tier0-research-plan`) & Execution (`/tier2-execute`).
+  - Phase 4: Localization & Freezed Validation (`@[docs\epic\tasks_EPIC_144\14_placeholder_phase4_localization.md]`)
+  - Phase 5: Automated Verification & Quality Gates (`@[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md]`)
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%), and Live E2E verification (`test_integration_real_llm.py`).
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
 ```bash
-/tier8-audit-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]
+/tier0-research-plan @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md]
 ```
+
+
+
+
+

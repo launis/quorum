@@ -59,7 +59,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   ? _buildMobileList(context, ref, tableMatrices, theme)
                   : _buildDataTable(context, ref, tableMatrices, theme),
             ),
-            if (tableMatrices.any((m) => m.isEvaluative || m.allowContextualOverride)) ...[
+            if (tableMatrices.any(
+              (m) => m.isEvaluative || m.allowContextualOverride,
+            )) ...[
               const SizedBox(height: 8),
               if (tableMatrices.any((m) => m.isEvaluative))
                 Text(

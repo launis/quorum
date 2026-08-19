@@ -57,9 +57,7 @@ class ProfileXaiExtensionsSection extends ConsumerWidget {
                           updatedList.remove(ext);
                         }
                         updatePayload(
-                          payload.copyWith(
-                            visibleBlockExtensions: updatedList,
-                          ),
+                          payload.copyWith(visibleBlockExtensions: updatedList),
                         );
                       },
                       controlAffinity: ListTileControlAffinity.leading,
@@ -67,9 +65,7 @@ class ProfileXaiExtensionsSection extends ConsumerWidget {
                     ),
               ],
             ),
-            AsyncLoading() => const Center(
-              child: CircularProgressIndicator(),
-            ),
+            AsyncLoading() => const Center(child: CircularProgressIndicator()),
             AsyncError(:final error) => Text(error.toString()),
           },
         ),
@@ -82,39 +78,40 @@ class ProfileXaiExtensionsSection extends ConsumerWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              XaiExtensionType.varianceValidation,
-              XaiExtensionType.authenticityEvaluation,
-            ].map((ext) {
-              final title = switch (ext) {
-                XaiExtensionType.varianceValidation =>
-                  l10n.xaiVarianceValidationTitle,
-                XaiExtensionType.authenticityEvaluation =>
-                  l10n.xaiAuthenticityEvaluationTitle,
-                _ => ext.name,
-              };
-              return CheckboxListTile(
-                title: Text(title),
-                value: payload.visibleWorkflowExtensions.contains(ext),
-                onChanged: (val) {
-                  final updatedList = List<XaiExtensionType>.from(
-                    payload.visibleWorkflowExtensions,
+            children:
+                [
+                  XaiExtensionType.varianceValidation,
+                  XaiExtensionType.authenticityEvaluation,
+                ].map((ext) {
+                  final title = switch (ext) {
+                    XaiExtensionType.varianceValidation =>
+                      l10n.xaiVarianceValidationTitle,
+                    XaiExtensionType.authenticityEvaluation =>
+                      l10n.xaiAuthenticityEvaluationTitle,
+                    _ => ext.name,
+                  };
+                  return CheckboxListTile(
+                    title: Text(title),
+                    value: payload.visibleWorkflowExtensions.contains(ext),
+                    onChanged: (val) {
+                      final updatedList = List<XaiExtensionType>.from(
+                        payload.visibleWorkflowExtensions,
+                      );
+                      if (val == true) {
+                        updatedList.add(ext);
+                      } else {
+                        updatedList.remove(ext);
+                      }
+                      updatePayload(
+                        payload.copyWith(
+                          visibleWorkflowExtensions: updatedList,
+                        ),
+                      );
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    dense: true,
                   );
-                  if (val == true) {
-                    updatedList.add(ext);
-                  } else {
-                    updatedList.remove(ext);
-                  }
-                  updatePayload(
-                    payload.copyWith(
-                      visibleWorkflowExtensions: updatedList,
-                    ),
-                  );
-                },
-                controlAffinity: ListTileControlAffinity.leading,
-                dense: true,
-              );
-            }).toList(),
+                }).toList(),
           ),
         ),
       ],
