@@ -377,21 +377,21 @@ class ProfileEditorView extends HookConsumerWidget {
                             border: const OutlineInputBorder(),
                           ),
                           child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
+                            child: DropdownButton<DisplayScale>(
                               value: profileDef.displayScale,
                               isDense: true,
                               isExpanded: true,
                               items: [
                                 DropdownMenuItem(
-                                  value: 'original',
+                                  value: DisplayScale.original,
                                   child: Text(l10n.scaleOriginal),
                                 ),
                                 DropdownMenuItem(
-                                  value: 'custom',
+                                  value: DisplayScale.custom,
                                   child: Text(l10n.scaleCustom),
                                 ),
                                 DropdownMenuItem(
-                                  value: 'normalized_100',
+                                  value: DisplayScale.normalized100,
                                   child: Text(l10n.scaleNormalized100),
                                 ),
                               ],
@@ -599,37 +599,38 @@ class ProfileEditorView extends HookConsumerWidget {
                               children: [
                                 Expanded(
                                   child: Slider(
-                                    value: (profileDef.maxExtensionItems ?? 21)
+                                    value: profileDef.maxExtensionItems
                                         .toDouble(),
-                                    min: 1,
-                                    max: 21,
-                                    divisions: 20,
-                                    label: profileDef.maxExtensionItems == null
-                                        ? '∞'
-                                        : profileDef.maxExtensionItems
-                                              .toString(),
+                                    min: SystemUiConstraints
+                                        .maxExtensionItemsSliderMin
+                                        .value
+                                        .toDouble(),
+                                    max: SystemUiConstraints
+                                        .maxExtensionItemsSliderMax
+                                        .value
+                                        .toDouble(),
+                                    divisions:
+                                        SystemUiConstraints
+                                            .maxExtensionItemsSliderMax
+                                            .value -
+                                        SystemUiConstraints
+                                            .maxExtensionItemsSliderMin
+                                            .value,
+                                    label: profileDef.maxExtensionItems
+                                        .toString(),
                                     onChanged: (val) {
-                                      if (val.round() >= 21) {
-                                        rebuildProfile(
-                                          profileDef.copyWith(
-                                            maxExtensionItems: null,
-                                          ),
-                                        );
-                                      } else {
-                                        rebuildProfile(
-                                          profileDef.copyWith(
-                                            maxExtensionItems: val.round(),
-                                          ),
-                                        );
-                                      }
+                                      rebuildProfile(
+                                        profileDef.copyWith(
+                                          maxExtensionItems: val.round(),
+                                        ),
+                                      );
                                     },
                                   ),
                                 ),
                                 SizedBox(
                                   width: 40,
                                   child: Text(
-                                    profileDef.maxExtensionItems?.toString() ??
-                                        '∞',
+                                    profileDef.maxExtensionItems.toString(),
                                     textAlign: TextAlign.center,
                                     style: Theme.of(
                                       context,

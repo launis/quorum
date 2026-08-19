@@ -543,7 +543,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
               }),
               AppSpacing.h16,
               TextFormField(
-                initialValue: payload.maxExtensionItems?.toString() ?? '3',
+                initialValue: payload.maxExtensionItems.toString(),
                 decoration: InputDecoration(
                   labelText: l10n.maxExtensionItemsLabel,
                   border: const OutlineInputBorder(),

@@ -174,7 +174,7 @@
   - [x] Step 1: Analyze Current View Structure
   - [x] Step 2: Create Golden Master Widget Tests
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
 
@@ -618,6 +618,15 @@
   - **Quality Gate Audit Passed:** Executed `flutter_audit_loop.py` on the test suite: **All 117 tests passed green with 0 errors**.
   - **Committed Atomically:** `feat(studio): establish phase 1-a golden master characterization tests for output profile crud view`.
 
+- **Phase 1-A Post-Implementation Audit Signed Off (`[OK]`):**
+  - Executed `/tier8-audit-plan` against `@[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md]`.
+  - Verified 100% physical traceability for requirement R52 and all 10 Golden Master characterization test contracts.
+  - Confirmed `@[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]` (578 lines) comprehensively tests loading (`CircularProgressIndicator`), error (`ErrorView`), wide-screen (3-pane Row layout at 1920x1080), narrow-screen (single-column ListView layout at 800x600), identity and scoring fields, workflow selector and XAI extensions, empty workflow warning state, max extension items integer validation, form submission, and submission failure `SnackBar` handling.
+  - **E2E Static Analysis Remediation across Studio Views:** Resolved analyzer errors in `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]` by strongly typing `DropdownButton<DisplayScale>` with `DisplayScale` enum members and binding `Slider` bounds to `SystemUiConstraints` enum (`maxExtensionItemsSliderMin`/`maxExtensionItemsSliderMax`), eliminating all magic numbers and invalid null-aware operators.
+  - Confirmed zero supply-chain violations (banned AI bloatware packages in `pubspec.yaml`).
+  - Executed global quality gates (`flutter_audit_loop.py`): build runner clean (55 outputs), **0 analyzer issues**, full frontend test suite passing **117/117 tests green**.
+  - Emitted formal artifact: `@[red_team_audit_10_p1_golden_master_baseline.md]`.
+
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
 - **Fail-Fast Hydration Invariant:** The `OutputProfile` model currently contains legacy `include_diagnostic_scorecard: bool`, uses raw `Literal["original", "custom", "normalized_100"]` for `display_scale`, and `list[str]` for `target_block_order`. Flutter models utilize `unknownEnumValue` fallback annotations.
@@ -647,14 +656,15 @@
 - **Riverpod Family Provider Overrides in Widget Tests:** When overriding Riverpod family providers in widget tests (such as `workflowAvailableExtensionsProvider(currentWorkflowId)`), argument matchers like `any()` are invalid and cause runtime `ArgumentError`; explicit parameter bindings (e.g., `workflowAvailableExtensionsProvider('wf_test')` and `workflowAvailableExtensionsProvider('')`) are required.
 - **LayoutBuilder Constraints in Widget Testing:** In Flutter widget testing of responsive layouts with `LayoutBuilder`, `MediaQueryData(size: ...)` alone does not constrain the physical canvas; setting `tester.view.physicalSize = const Size(1920, 1080)` and `tester.view.devicePixelRatio = 1.0` with `addTearDown` cleanup is required to properly trigger wide-screen branches (e.g., 3-pane `Row` vs `ListView`).
 - **DotEnv Initialization in Widget Tests:** Notifier callbacks that call `ref.read(loggerServiceProvider)` trigger logger initialization which accesses `DotEnv.env`. Mocking `loggerServiceProvider.overrideWithValue(mockLogger)` in `ProviderScope.overrides` isolates widget tests from global environment variables.
+- **Global Studio View Parity on Freezed Migrations:** When migrating a Freezed model field from nullable `int?` to non-nullable `int` or from `String` to `Enum`, all legacy views consuming that model (e.g., `profile_editor_view.dart` as well as `output_profile_crud_view.dart`) must have their dropdown values and slider bounds synchronized with `SystemUiConstraints` to prevent Dart analyzer compilation errors during global `--build` audits.
 
 ## Remaining
-- **Phase 1-B (Plan 11):** 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
+- **Phase 1-B (Plan 11):** 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs: `profile_general_tab.dart`, `profile_scoring_tab.dart`, `profile_layouts_tab.dart`).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%), and Live E2E verification (`test_integration_real_llm.py`).
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
 ```bash
-/tier8-audit-plan @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]
+/tier0-research-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]
 ```
