@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 
 // Mock controller to intercept saveProfile and prevent API calls
@@ -41,15 +42,20 @@ void main() {
           userRoleLabel: emptyI18n,
           customPreface: emptyI18n,
           toneInstruction: emptyI18n,
+          maxExtensionItems: 3,
+          displayScale: DisplayScale.original,
           extensionLabels: {'ext1': emptyI18n},
           layouts: [
             OutputLayoutBlock(
               title: emptyI18n,
               description: emptyI18n,
+              presetView: PresetView.defaultView,
+              textDeliveryMode: TextDeliveryMode.full,
               matrixColumnLabels: {'col1': emptyI18n},
               synthesis: SynthesisConfigDTO(
                 preambleText: emptyI18n,
                 toneInstruction: emptyI18n,
+                historicalContextMode: HistoricalContextMode.disabled,
               ),
             ),
           ],
@@ -84,6 +90,16 @@ void main() {
           sanitized.extensionLabels,
           isEmpty,
           reason: 'profile.extensionLabels should be sanitized to empty map',
+        );
+        expect(
+          sanitized.maxExtensionItems,
+          3,
+          reason: 'maxExtensionItems should be preserved as 3',
+        );
+        expect(
+          sanitized.displayScale,
+          DisplayScale.original,
+          reason: 'displayScale should be preserved as original',
         );
 
         final layout = sanitized.layouts.first;

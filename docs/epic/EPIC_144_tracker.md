@@ -140,13 +140,13 @@
 #### Phase 0-H: Frontend Test Fixtures & Negative Tests
 **Plan:** `@[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md]`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Update output_profile_test.dart
-  - [ ] Step 2: Create blueprint_config_test.dart
-  - [ ] Step 3: Update output_profile_controller_test.dart
-  - [ ] Step 4: Update layout_editor_card_test.dart
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Update output_profile_test.dart
+  - [x] Step 2: Create blueprint_config_test.dart
+  - [x] Step 3: Update output_profile_controller_test.dart
+  - [x] Step 4: Update layout_editor_card_test.dart
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
@@ -536,17 +536,29 @@
   - Executed Universal Quality Gate on parity tests: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test` passing 13/13 tests green with 0 skipped and 98% coverage.
   - Executed Frontend Unit Test suite: `uv run python scripts/flutter_audit_loop.py client_app_v2/test --test` passing 95/95 tests green with 0 errors.
   - Verified all 8 Validation Gate assertions in Plan 07 with 100% compliance (zero `unknownEnumValue`, zero `includeDiagnosticScorecard`, 13 `TargetBlockType` members, clean builds).
-- **Phase 0-G Post-Implementation Audit Signed Off (`[OK]`):**
-  - Executed `/tier8-audit-plan` against `@[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md]`.
-  - Verified 100% physical traceability for requirements R34–R41 and demolitions D02–D04.
-  - Confirmed `DisplayScale`, `TargetBlockType` (13 members), and `SystemUiConstraints` enums defined with exact character-for-character `@JsonValue` parity in `@[client_app_v2/lib/core/models/enums.dart]`.
-  - Confirmed complete eradication of `unknownEnumValue` fallback parameters from all studio Freezed models (`output_profile.dart` and `blueprint_config.dart`), restoring the Fail-Fast Client Firewall.
-  - Confirmed complete removal of legacy `includeDiagnosticScorecard` field and annotations.
-  - Verified non-nullable `maxExtensionItems: int`, `displayScale: DisplayScale`, and `targetBlockOrder: List<TargetBlockType>` with 12 enum defaults.
-  - Confirmed Freezed code generation (`flutter_audit_loop.py ... --build`) passes cleanly with 0 analyzer issues.
-  - Confirmed zero supply-chain violations (banned AI bloatware packages).
-  - Executed cross-language enum parity quality gate (`test_enum_parity.py` 13/13 passed, 0 skipped, 98% coverage), frontend test suite (95/95 passed), and full backend regression suite (1462 passed, 27 skipped, 4 xpassed, 0 failures).
-  - Emitted formal artifact: `@[red_team_audit_07_p0_frontend_enums_freezed.md]`.
+- **Phase 0-H Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - Updated `@[client_app_v2/test/features/studio/models/output_profile_test.dart]` positive test fixtures with typed `DisplayScale` and `TargetBlockType` enums, and non-nullable `maxExtensionItems: 3`.
+  - Implemented all 9 negative and positive test contracts in `output_profile_test.dart`:
+    1. `test_output_layout_block_unknown_preset_view_throws`: unmapped `preset_view` string throws `CheckedFromJsonException`.
+    2. `test_output_layout_block_unknown_text_delivery_mode_throws`: unmapped `text_delivery_mode` string throws `CheckedFromJsonException`.
+    3. `test_synthesis_config_dto_unknown_historical_context_mode_throws`: unmapped `historical_context_mode` string throws `CheckedFromJsonException`.
+    4. `test_output_profile_unknown_display_scale_throws`: unmapped `display_scale` string throws `CheckedFromJsonException`.
+    5. `test_output_profile_unknown_target_block_type_throws`: unmapped `target_block_order` string throws `CheckedFromJsonException`.
+    6. `test_output_profile_extra_root_key_throws`: unrecognized root key (`include_diagnostic_scorecard`) throws `CheckedFromJsonException` under `disallowUnrecognizedKeys`.
+    7. `test_output_profile_extra_key_in_synthesis_config_throws`: extra key in nested `synthesis` object throws `CheckedFromJsonException`.
+    8. `test_output_profile_extra_key_in_layout_throws`: extra key in nested `layouts[]` entry throws `CheckedFromJsonException`.
+    9. `test_output_profile_valid_deserialization`: complete valid JSON with all required fields deserializes successfully into strongly typed Freezed models.
+  - Created `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]` with all 3 specified test contracts:
+    1. `test_blueprint_config_valid_preset_view`: valid preset view deserializes to `PresetView.metrics1d`.
+    2. `test_blueprint_config_unknown_preset_view_throws`: unmapped `preset_view` string throws `CheckedFromJsonException`.
+    3. `test_blueprint_config_extra_key_throws`: unrecognized key in `BlueprintConfig` throws `CheckedFromJsonException` under `disallowUnrecognizedKeys`.
+  - Updated `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]` mock fixtures with `DisplayScale.original`, `maxExtensionItems: 3`, and `HistoricalContextMode.disabled`, eliminating all legacy defaults.
+  - Verified `@[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]` passes cleanly with typed `PresetView.matrixSummary` and `TextDeliveryMode.full`.
+  - Executed Universal Quality Gate audits across all 4 target test suites via `flutter_audit_loop.py`:
+    - `output_profile_test.dart`: format passed, analyze passed (0 issues), all tests passed.
+    - `blueprint_config_test.dart`: format passed, analyze passed (0 issues), all tests passed.
+    - `output_profile_controller_test.dart`: format passed, analyze passed (0 issues), all tests passed.
+    - `layout_editor_card_test.dart`: format passed, analyze passed (0 issues), all tests passed.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
@@ -569,9 +581,10 @@
 - **Freezed Model Default Enum Value Parity:** When migrating a Freezed field from `List<String>` to `List<TargetBlockType>`, `@Default(...)` expressions must simultaneously be converted from string literals to native Dart enum values to avoid compile-time type assignment failures.
 - **Frontend Systemic Constants Centralization:** All UI boundary constraints (e.g. `maxExtensionItems` slider bounds 1-20, absolute max 100, default 3) MUST be centralized in `SystemUiConstraints` enum in `enums.dart` to prevent magic numbers across widget trees.
 - **Fail-Fast Client Firewall vs Fallbacks:** Eradicating `unknownEnumValue` fallback parameters from Freezed models forces unrecognized server payloads to throw `CheckedFromJsonException` caught by `AppErrorBoundary` instead of silently coercing to defaults.
+- **CheckedFromJsonException Assertion on Freezed Models:** In Flutter unit tests testing Fail-Fast deserialization on Freezed models with `disallowUnrecognizedKeys: true` and strict enums, invalid or unmapped values throw `CheckedFromJsonException` rather than `FormatException` or silent nulls.
 
 ## Remaining
-- **Phase 0-H: Frontend Test Fixtures & Negative Tests (`@[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md]`):** Update `output_profile_test.dart`, create `blueprint_config_test.dart`, update controller and widget tests with Freezed models.
+- **Phase 0-H Audit (`@[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md]`):** Post-implementation System 2 Red-Team audit via `/tier8-audit-plan`.
 - **Phase 0-I: Integration Checkpoint (`@[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md]`):** Full cross-stack backend regression + frontend Studio build and test + cross-language enum parity verification.
 - **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
@@ -580,6 +593,6 @@
 
 ## Resume Command
 ```bash
-/tier2-execute @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]
+/tier8-audit-plan @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]
 ```
 
