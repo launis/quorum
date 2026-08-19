@@ -209,4 +209,3 @@ def test_build_whitespace_and_empty_strings_in_sources_filtered(
     assert len(blocks) == 1
     assert isinstance(blocks[0], MarkdownBlock)
     assert blocks[0].text == "- Valid Source"
-

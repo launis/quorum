@@ -388,4 +388,3 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
 
     assert "Missing rule mapping for extension key: coaching" in str(exc_info.value)
     assert exc_info.value.details == {"error_code": "CONFIGURATION_ERROR"}
-
