@@ -33,10 +33,10 @@
 
 ## 1. Executive Summary & Progress Status
 - **Current Epic:** EPIC 144 (`@[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md]`)
-- **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend COMPLETED -> Frontend NEXT)
+- **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend COMPLETED -> Frontend IN PROGRESS)
 - **Execution Status:** **100% EXECUTED & AUDITED (PASSED)** across all 6 Phases (Phase 0-A through 0-H, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5).
 - **Backend Hardening Status:** **15 / 15 (100%) COMPLETED** (All 15 production source targets hardened with target-locked audit matrices and $\ge 90\%$ test coverage).
-- **Frontend Hardening Status:** **5 / 17 (29%) COMPLETED** (5 targets audited with zero regressions, 12 remaining).
+- **Frontend Hardening Status:** **10 / 17 (59%) COMPLETED** (10 targets audited with zero regressions, 7 remaining).
 - **Tier 8 Plan Audit:** `red_team_audit_15_placeholder_phase5_quality_gates.md` verified 100% pass across all requirements, DoD checklist items, Freezed/Pydantic deserialization firewalls, and SDUI adapter dual-logging contracts.
 - **Mandatory Final Gate:** `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` **PASSED 100%** (full PDF ingestion, DAG execution, SDUI synthesis, and report rendering verified against live FastAPI backend and Arq worker).
 - **Backend Quality Audit Loop:** `uv run python scripts/backend_audit_loop.py` configured with 100% Ruff linting, formatting, MyPy strict typing, Jinja dumb painter templates, Seed Data dry-run validation, and $\ge 90\%$ test coverage per target.
@@ -62,7 +62,7 @@
 | 14 | `backend_v2/models/prompts/__init__.py` | `models/prompts/test_prompts_init.py` | 6 | 12 | 0 | 100% | 152 / 152 `[PASS]` | `757b9478` |
 | 15 | `backend_v2/worker.py` | `tests/unit/test_worker.py` | 37 | 638 | 51 | 92% | 152 / 152 `[PASS]` | `d60868cd` |
 
-### 2.2 Frontend Targets (5 / 17 COMPLETED, 12 REMAINING)
+### 2.2 Frontend Targets (10 / 17 COMPLETED, 7 REMAINING)
 | # | Target File | Test File | Audit Matrix | Quality Gate | Status |
 |:---|:---|:---|:---|:---|:---|
 | 1 | `client_app_v2/lib/core/models/enums.dart` | Integrated test suite | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
@@ -70,14 +70,19 @@
 | 3 | `client_app_v2/lib/features/studio/models/blueprint_config.dart` | `test/features/studio/models/blueprint_config_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 | 4 | `client_app_v2/lib/features/studio/views/output_profile_crud_view.dart` | `test/features/studio/views/output_profile_crud_view_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 | 5 | `client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart` | `test/features/studio/views/widgets/profile/tabs/profile_general_tab_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 6 | `client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart` | `test/features/studio/views/widgets/profile/tabs/profile_scoring_tab_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 7 | `client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart` | `test/features/studio/views/widgets/profile/tabs/profile_layouts_tab_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 8 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/base_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 9 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart` | `test/features/studio/views/widgets/profile/blocks/block_card_registry_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 10 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart` | Integrated test suite | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 
-## 3. Key Accomplishments in Latest Session (Frontend Hardening Targets 1–5)
-- **Target 1 (`enums.dart`):** Enforced 100% client enum centralization, zero raw string mappings, explicit `@JsonEnum()` and `@JsonValue()` annotations across `DisplayScale`, `TargetBlockType`, `PresetView`, `SystemConcurrency`, and `SystemUiConstraints`. Verified database category grouping lists in `PromptBlockCategoryGroups`.
-- **Target 2 (`output_profile.dart`):** Applied `@Freezed(equal: false)` to prevent O(N^2) deep equality overhead on list collections. Locked `@JsonSerializable(disallowUnrecognizedKeys: true)` deserialization firewall. Eradicated `includeDiagnosticScorecard` and `unknownEnumValue` fallback properties.
-- **Target 3 (`blueprint_config.dart`):** Hardened Freezed configuration model with strict `@JsonSerializable(disallowUnrecognizedKeys: true)` and `@Freezed(equal: false)`. Verified `PresetView.metrics1d` default enum mapping.
-- **Target 4 (`output_profile_crud_view.dart`):** Hardened 201-line dumb shell view. Enforced Dart 3 native `switch (formState)` pattern matching destructuring, `if (!context.mounted) return;` checks after all async gaps, and `ref.watch`/`ref.read` separation.
-- **Target 5 (`profile_general_tab.dart`):** Enforced `sized_box_shrink_ban` by removing `if (payload == null) return const SizedBox.shrink();` and replacing it with a Fail-Fast `StateError`. Created dedicated TDD test suite `profile_general_tab_test.dart`.
-- **Automated Verification:** All 5 targets passed target-locked audit matrix verification (`audit_matrix_manager.py verify`) with 88/88 rules validated, and full Flutter quality audit loops (`flutter_audit_loop.py`) passed cleanly.
+## 3. Key Accomplishments in Latest Session (Frontend Hardening Targets 6–10)
+- **Target 6 (`profile_scoring_tab.dart`):** Replaced `if (payload == null) return const SizedBox.shrink();` with Fail-Fast `throw StateError('Profile payload must not be null when rendering ProfileScoringTab');` to satisfy `sized_box_shrink_ban`. Created TDD test `profile_scoring_tab_test.dart`.
+- **Target 7 (`profile_layouts_tab.dart`):** Eradicated `SizedBox.shrink()` on missing payload state and enforced Fail-Fast `StateError`. Verified reorderable drag-and-drop list updates. Created TDD test `profile_layouts_tab_test.dart`.
+- **Target 8 (`base_block_card.dart`):** Audited 114-line canonical block card container. Verified `overflow: TextOverflow.ellipsis` on title/subtitle and design token usage. Created dedicated test `base_block_card_test.dart`.
+- **Target 9 (`block_card_registry.dart`):** Audited 194-line exhaustive block card registry. Verified 100% Dart 3 native `switch` pattern matching across all 13 `TargetBlockType` members.
+- **Target 10 (`metadata_block_card.dart`):** Audited 94-line metadata config card. Verified FilterChip toggles update `payload.visibleMetadata` without hardcoded indices or magical defaults.
+- **Automated Verification:** All 5 targets passed target-locked audit matrix verification (`audit_matrix_manager.py verify`) with 88/88 rules validated per file, and full Flutter quality audit loops (`flutter_audit_loop.py`) passed cleanly with 100% test pass.
 
 ## 4. Key Architectural Invariants & Gotchas
 - **Core Module Encapsulation (`01-python-backend.md`):** All core modules (including `settings.py`, `enums.py`, `v2_core.py`, DTOs, and services) must declare explicit `__all__ = [...]` export lists to isolate internal helpers and establish clean public module boundaries.
@@ -388,7 +393,7 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart]
@@ -959,10 +964,10 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
 ### Hardening State Snapshot
 - **Backend Targets (15 production targets, 15 done, 0 remaining):**
   - All 15 backend targets 100% hardened and verified.
-- **Frontend Targets (17 production targets, 5 done, 12 remaining):**
-  - `DONE`: 5 files (`@[client_app_v2/lib/core/models/enums.dart]`, `@[client_app_v2/lib/features/studio/models/output_profile.dart]`, `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]`, `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]`)
-  - `REMAINING`: 12 files (`@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`)
-- **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Frontend (in progress: 5/17), Pre-delete audit, Semantic coverage (>90%).
+- **Frontend Targets (17 production targets, 10 done, 7 remaining):**
+  - `DONE`: 10 files (`@[client_app_v2/lib/core/models/enums.dart]`, `@[client_app_v2/lib/features/studio/models/output_profile.dart]`, `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]`, `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart]`)
+  - `REMAINING`: 7 files (`@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`)
+- **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Frontend (in progress: 10/17), Pre-delete audit, Semantic coverage (>90%).
 - **Documentation & Knowledge Item Update:** Create KIs for new SSOTs (`synthesis_directives.py`, `SystemUiConstraints`, `DisplayScale`, `TargetBlockType`), As-Built Architectural Sync (`/tier7-describe-architecture`).
 - **Final Epic Audit:** Boundary audit (`audit_markdown_boundaries.py`), System 2 Reverse Epic Analysis (`/tier8-audit-epic`).
 
