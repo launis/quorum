@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.v2_core import PromptBlock, Step, Workflow
 from backend_v2.services.studio import (
@@ -320,6 +320,69 @@ async def test_delete_output_profile(
     mock_seed_output_profile_repo.get_output_profile_by_id.return_value = prof_data
     await output_profile_service.delete_output_profile(admin_token, "prof_1234567890abcdef12")
     mock_seed_output_profile_repo.delete_output_profile.assert_called_once()
+
+
+async def test_list_output_profiles_corrupted_legacy_keys_raises_state_integrity_error(
+    output_profile_service: Any, root_token: Any, mock_seed_output_profile_repo: Any
+) -> None:
+    """Regression test: OutputProfile with legacy purged keys in synthesis raises STATE_INTEGRITY_ERROR."""
+    corrupted_profile = {
+        "id": "prof_1234567890abcdef12",
+        "slug": "prof_1",
+        "name": {"default_locale": "en", "translations": {"en": "Prof"}},
+        "organization_id": "org_123",
+        "workflow_id": "wf_1234567890abcdef12",
+        "synthesis": {
+            "model_strategy": "synthesis",
+            "historical_context_mode": "DISABLED",
+            "enable_pii_masking": False,
+            "allowed_exports": ["pdf"],
+            "omit_empty_sections": True,
+            "allowed_mcp_tools": [],
+        },
+    }
+    mock_seed_output_profile_repo.get_all_output_profiles.return_value = [corrupted_profile]
+    with pytest.raises(AppException) as exc_info:
+        await output_profile_service.list_output_profiles(root_token)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR
+
+
+async def test_list_workflows_corrupted_legacy_output_profile_raises_state_integrity_error(
+    workflow_service: Any, root_token: Any, mock_workflow_repo: Any, mock_seed_output_profile_repo: Any
+) -> None:
+    """Regression test: list_workflows stitching with corrupted output profile in DB raises STATE_INTEGRITY_ERROR."""
+    wf_data = {
+        "id": "wf_1234567890abcdef12",
+        "slug": "wf-1",
+        "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
+        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "status": "active",
+        "version": 1,
+        "organization_id": "org_123",
+        "expected_inputs": [],
+        "steps": [],
+        "default_profile_id": "prof_1234567890abcdef12",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+    }
+    corrupted_profile = {
+        "id": "prof_1234567890abcdef12",
+        "slug": "prof_1",
+        "name": {"default_locale": "en", "translations": {"en": "Prof"}},
+        "organization_id": "org_123",
+        "workflow_id": "wf_1234567890abcdef12",
+        "synthesis": {
+            "model_strategy": "synthesis",
+            "historical_context_mode": "DISABLED",
+        },
+    }
+    mock_workflow_repo.get_all_workflows.return_value = [wf_data]
+    mock_seed_output_profile_repo.get_all_output_profiles.return_value = [corrupted_profile]
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.list_workflows(root_token)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR
 
 
 async def test_list_mcp_gateways_empty(system_config_service: Any, root_token: Any, mock_system_repo: Any) -> None:

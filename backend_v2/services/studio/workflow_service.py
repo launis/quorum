@@ -58,18 +58,36 @@ class StudioWorkflowService:
 
         Returns:
             The list of workflows with embedded profiles attached.
+
+        Raises:
+            AppException (ErrorCodes.STATE_INTEGRITY_ERROR): If an output profile fails strict validation.
         """
         all_profiles_data = await self.output_profile_repo.get_all_output_profiles()
-        all_profiles = [OutputProfile.model_validate(p, strict=False) for p in all_profiles_data]
+        all_profiles: list[OutputProfile] = []
+        for p_data in all_profiles_data:
+            try:
+                all_profiles.append(OutputProfile.model_validate(p_data, strict=False))
+            except ValidationError as e:
+                logger.error(
+                    "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
+                    ErrorCodes.STATE_INTEGRITY_ERROR.name,
+                    p_data.get("id"),
+                    str(e),
+                )
+                raise AppException(
+                    message=f"Database integrity error: OutputProfile {p_data.get('id')} failed strict validation.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                ) from e
 
         response_dtos = []
         for wf in workflows:
             attached = {}
-            for p in all_profiles:
-                if p.workflow_id == wf.id or p.workflow_id == "*":
+            for profile in all_profiles:
+                if profile.workflow_id == wf.id or profile.workflow_id == "*":
                     # Safely convert to DTO without triggering extra_forbidden
-                    p_dict = p.model_dump(mode="json", exclude={"metric_mappings", "score_display_label"})
-                    attached[p.id] = OutputProfileResponseDTO.model_validate(p_dict, strict=False)
+                    p_dict = profile.model_dump(mode="json", exclude={"metric_mappings", "score_display_label"})
+                    attached[profile.id] = OutputProfileResponseDTO.model_validate(p_dict, strict=False)
 
             wf_dict = wf.model_dump(mode="json")
             wf_dict["output_profiles"] = attached

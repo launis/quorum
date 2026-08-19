@@ -4,6 +4,8 @@ import logging
 import uuid
 from typing import Any
 
+from pydantic import ValidationError
+
 from backend_v2.database.interfaces import IOutputProfileRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
@@ -42,14 +44,33 @@ class StudioOutputProfileService:
 
         Returns:
             A list of OutputProfiles.
+
+        Raises:
+            AppException (ErrorCodes.STATE_INTEGRITY_ERROR): If an output profile fails strict validation.
         """
         all_data = await self.output_profile_repo.get_all_output_profiles()
+        profiles = []
+        for x in all_data:
+            try:
+                profiles.append(OutputProfile.model_validate(x, strict=False))
+            except ValidationError as e:
+                logger.error(
+                    "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
+                    ErrorCodes.STATE_INTEGRITY_ERROR.name,
+                    x.get("id"),
+                    str(e),
+                )
+                raise AppException(
+                    message=f"Database integrity error: OutputProfile {x.get('id')} failed strict validation.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                ) from e
+
         if initiator.role == UserRole.ROOT:
-            return [OutputProfile.model_validate(x, strict=False) for x in all_data]
+            return profiles
 
         org_id = initiator.organization_id
-        data = [x for x in all_data if x.get("organization_id") in [org_id, SystemOrganizations.ROOT_SYSTEM]]
-        return [OutputProfile.model_validate(x, strict=False) for x in data]
+        return [p for p in profiles if p.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
 
     async def get_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
         """Get output profile.

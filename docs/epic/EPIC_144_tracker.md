@@ -262,9 +262,18 @@
 
 #### Phase 5: Quality Gates & Anti-Happy-Path Falsification
 **Plan:** `@[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md]`
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md] --phase=5`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md] --phase=5`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment & Pre-Flight Baseline Audit
+  - [ ] Step 1: Backend Pydantic Strictness & Domain Negative Tests
+  - [ ] Step 2: SDUI Adapter Dual-Logging & Fail-Fast Exception Audit
+  - [ ] Step 3: Prompt Directives SSOT & Cross-Language Enum Parity Gate
+  - [ ] Step 4: Frontend Freezed Deserialization & CheckedFromJsonException Firewall
+  - [ ] Step 5: Studio UI Widget Boundaries & Slider Clamping Verification
+  - [ ] Step 6: Global Quality Gate Audit Loops
+  - [ ] Step 7: Final Live E2E REST API Verification Gate
+  - [ ] Step 8: Post-Execution Architecture Sync & Epic Completion Sign-Off
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]`
 
@@ -844,12 +853,52 @@
 - **LayoutBuilder Constraints in Widget Testing:** In Flutter widget testing of responsive layouts with `LayoutBuilder`, setting `tester.view.physicalSize = const Size(1920, 1080)` and `tester.view.devicePixelRatio = 1.0` with `addTearDown` cleanup is required to properly trigger wide-screen branches.
 - **CheckedFromJsonException Assertion on Freezed Models:** In Flutter unit tests testing Fail-Fast deserialization on Freezed models with `disallowUnrecognizedKeys: true` and strict enums, invalid or unmapped values throw `CheckedFromJsonException` rather than `FormatException` or silent nulls.
 
+- **Phase 5 Planning & Quality Gate Sweep Completed (`[OK]`):**
+  - Generated comprehensive hybrid implementation plan `@[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md]` and system artifacts (`implementation_plan.md`, `task.md`).
+  - Defined 9 deterministic steps (Step 0 through Step 8) locking down Pydantic strictness boundaries, SDUI adapter dual-logging, Prompt Directives SSOT, Freezed `CheckedFromJsonException` firewall, Studio slider clamping, global quality gates, and Final Live E2E REST API Verification.
+  - Executed automated boundary audit:
+    - `audit_markdown_boundaries.py`: **0 errors, Passed**.
+
+- **Phase 5 Red-Teaming & Falsification Passed (`[OK]`):**
+  - Completed System 2 Red-Teaming on `@[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md]`.
+  - Audited target test files and verified complete alignment with Quorum testing invariants (`@[ki_ai_testing_standards.md]`).
+  - Aligned prompt directives testing with physical SSOT constants in `@[backend_v2/models/prompts/synthesis_directives.py]` (`SDUI_SYNTHESIS_MANDATE_BLOCK`, `SECTION_SYNTHESIS_DIRECTIVE_BLOCK`, `STATE_ISOLATION_BLOCK`).
+  - Verified SDUI presentation adapter dual-logging (`logger.error("[Adapter] ...", exc_info=True)` before `AppException`) and RFC 7807 structured error codes across `metadata_adapter.py`, `authenticity_adapter.py`, `executive_summary_adapter.py`, and `xai_highlights_adapter.py`.
+  - Verified that all 99 target backend unit tests and 138 frontend Studio tests pass cleanly with 0 errors and 0 warnings.
+  - Mutated Plan 15 and re-verified markdown boundaries with `audit_markdown_boundaries.py` (0 errors).
+
+## Learned & Key Architectural Invariants
+- **Dual-Axis Localization Paradigm (`ki_dual_axis_localization_architecture.md`):**
+  - **Axis 1 (Structural Chrome):** All static UI labels, tab headers, block card titles, card subtitles, button texts, and helper tooltips belong strictly in compile-time `.arb` files and must be retrieved via `AppLocalizations.of(context)!`.
+  - **Axis 2 (Semantic Domain Data):** Dynamic user-defined strings (profile names, metric mappings, role justifications) are stored as multilingual `I18nText` objects and resolved dynamically by the backend.
+- **Backend Enum l10n_key Adapter Pattern (`strict_enum_l10n_mapping`):** Python StrEnums that drive UI choices (specifically: `ScoringStrategy`, `DisplayScale`, `XaiExtensionType`) must define `@property def l10n_key(self) -> str:` returning explicit camelCase keys matching `flutter gen-l10n` via static dictionary mapping. Merging or manipulating strings via `.lower()` or `.split('_')` is strictly forbidden.
+- **Fail-Fast Freezed Deserialization Firewall (`sdui_contract_fracture_prevention`):** Purging dead-weight layout fields (`model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) synchronously from Python Pydantic (`backend_v2/models/v2_core.py`) and Dart Freezed models with `@JsonSerializable(disallowUnrecognizedKeys: true)` turns legacy payload attributes into `CheckedFromJsonException` failures caught by `AppErrorBoundary` instead of silent state pollution.
+- **Dynamic Settings Injection in SDUI Adapters (`ki_global_config_sovereignty.md`):** Eliminating static constants from presentation adapters decouples threshold tuning from deployment artifacts and guarantees central configuration sovereignty.
+- **Fail-Fast Metric Mappings Resolution:** Enforcing localized label lookups directly from `profile.metric_mappings` with `AppException(VALIDATION_FAILED)` eliminates silent fallback drift and catches incomplete seed data or missing translations early.
+- **Dumb Painter Synthesis Integration (`ki_tripartite_pipeline_architecture.md`):** SDUI Presentation Adapters act as pure dumb painters by rendering dynamic section syntheses from `profile_cache.section_syntheses` without parsing raw traces or guessing layouts.
+- **Native Enum Dispatching in Blueprint Assemblies:** Using `dict[TargetBlockType, Callable]` with `try...except (KeyError, ValueError)` provides bulletproof compile-time and runtime type safety over string-based dispatching.
+- **Prompt SSOT vs Qualitative Philosophy (`prompt_preservation_mandate`):** Centralizing structural XML rules into Python prompt models (`synthesis_directives.py`) allows system prompts in seed data to remain clean, human-readable, and 100% cache-efficient while strictly adhering to `prompt_preservation_mandate`.
+- **Typed DTO Lists on Caches:** Typing `RenderedSynthesisCache.xai_highlights` as `list[XaiHighlightItem]` rather than `list[Any]` shifts schema enforcement to the Pydantic ingestion boundary and eliminates defensive try-catch loops inside presentation adapters.
+- **Tab Scaffold Decomposition & Widget Isolation (`ki_god_code_prevention.md`):** Decomposing monolithic UI forms into Riverpod `ConsumerWidget` tabs accepting `id` allows each tab to watch its own dependencies independently without constructor prop drilling, satisfying the ≤200 line cap per file.
+- **Visual Block Builder Registry Map Pattern:** Managing diverse block cards via `BlockCardRegistry` using Dart 3 pattern matching provides O(1) builder resolution, completely isolates each block type into a single-responsibility $\le 200$-line component, and prevents monolithic conditional branching in parent tab builders.
+- **Universal Baseline Toggle SSOT:** Anchoring report block inclusion strictly to presence in `OutputProfile.targetBlockOrder` eliminates redundant boolean visibility flags across sub-models and guarantees deterministic serialization parity between the Frontend canvas and Backend SDUI blueprint dispatchers.
+- **Layouts Array Partitioning Contract:** Multiple block cards operating on `OutputProfile.layouts` must strictly partition access by `PresetView` (specifically, `MatrixGraphsBlockCard` filters `presetView != matrixSummary` whereas `MatrixSummaryTableCard` targets `presetView == matrixSummary`) to avoid destructive state overwrites during granular form updates.
+- **Flutter 3.33+ Form Field Initial Value Deprecation:** In modern Flutter `DropdownButtonFormField`, the `value` parameter is deprecated in favor of `initialValue` to ensure proper reactive form state encapsulation.
+- **Seed Vault Protocol Invariants:** When auditing or modifying `seed_data.json`, CRLF encoding causes `grep_search` to silently fail; deterministic Python scripts using `json.load` and bounded reads are mandatory. Pre-mutation backups in `backend_v2/seed/backups/` are strictly required before any JSON modifications.
+- **AST-Bounded Markdown Verification in Plans:** `audit_markdown_boundaries.py` enforces that Python line references in plan artifacts (`@[file.py#Lstart-Lend]`) must correspond strictly to real `ClassDef` or `FunctionDef` boundaries in the physical AST, preventing documentation-code drift.
+- **Riverpod Family Provider Overrides in Widget Tests:** When overriding Riverpod family providers in widget tests, explicit parameter bindings (specifically: `workflowAvailableExtensionsProvider('wf_test')`) are required instead of argument matchers.
+- **LayoutBuilder Constraints in Widget Testing:** In Flutter widget testing of responsive layouts with `LayoutBuilder`, setting `tester.view.physicalSize = const Size(1920, 1080)` and `tester.view.devicePixelRatio = 1.0` with `addTearDown` cleanup is required to properly trigger wide-screen branches.
+- **CheckedFromJsonException Assertion on Freezed Models:** In Flutter unit tests testing Fail-Fast deserialization on Freezed models with `disallowUnrecognizedKeys: true` and strict enums, invalid or unmapped values throw `CheckedFromJsonException` rather than `FormatException` or silent nulls.
+
 ## Remaining
-- **Phase 5 Detailed Execution & Planning:** Plan 15 (`@[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md]`).
+- **Phase 5 Execution:** Plan 15 (`@[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md]`).
+- **Phase 5 Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]`
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%), and Live E2E verification (`test_integration_real_llm.py`).
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
 ```bash
-/tier0-create-plan @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]
+/tier2-execute @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]
 ```
+
+
