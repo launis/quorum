@@ -139,3 +139,7 @@ ignore_no_config = true
 python-version = "3.14.0"
 preset = "legacy"
 ignore-missing-imports = ["*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+

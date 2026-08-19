@@ -54,14 +54,13 @@ def run_tests_with_strict_coverage(target: str) -> None:
 
     # Convert file path to dotted module path for accurate coverage (e.g. backend_v2/services/execution.py -> backend_v2.services.execution)
     if target.endswith(".py"):
-        if target.replace("\\", "/").startswith("scripts/"):
-            cov_target = target.replace("\\", "/").split("/")[-1].replace(".py", "")
-        elif target.replace("\\", "/").endswith("/__init__.py"):
+        if target.replace("\\", "/").endswith("/__init__.py"):
             cov_target = target.replace("\\", "/").removesuffix("/__init__.py").replace("/", ".")
         else:
             cov_target = target.replace("\\", "/").replace(".py", "").replace("/", ".")
     else:
         cov_target = target
+
 
     if target.endswith(".py"):
         parts = target.replace("\\", "/").split("/")

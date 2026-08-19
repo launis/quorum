@@ -14,6 +14,7 @@ def main() -> None:
     """Execute the matrix auto-filler."""
     parser = argparse.ArgumentParser(description="Auto-fill the Audit Matrix")
     parser.add_argument("--file", default="tmp/audit_matrix.json", help="Path to matrix JSON")
+    parser.add_argument("--target", help="Update target file path in matrix JSON")
     parser.add_argument("--fail", help="Comma-separated list of rule IDs that failed")
     parser.add_argument("--na", help="Comma-separated list of rule IDs that are not applicable")
 
@@ -31,6 +32,13 @@ def main() -> None:
         print(f"Error parsing JSON: {e}")
         sys.exit(1)
 
+    if args.target:
+        matrix["target_file"] = Path(args.target).as_posix()
+
+    target_name = matrix.get("target_file", "").strip()
+    if not target_name:
+        target_name = "target"
+
     rules = matrix.get("rules", [])
     if not rules:
         print("Error: No rules found in matrix.")
@@ -46,14 +54,16 @@ def main() -> None:
 
         if rule_id in fail_list:
             rule["status"] = "FAIL"
-            rule["justification"] = f"Manual override FAIL for rule {rule_id}. Code violates architectural constraints."
+            rule["justification"] = (
+                f"Manual override FAIL for rule {rule_id} in {target_name}. Code violates architectural constraints."
+            )
         elif rule_id in na_list:
             rule["status"] = "NA"
             rule["justification"] = f"Manual override NA for rule {rule_id}. Rule is not applicable to this target."
         else:
             rule["status"] = "PASS"
             rule["justification"] = (
-                f"Automated PASS for rule {rule_id}. The target code adheres to all architectural constraints."
+                f"Automated PASS for rule {rule_id} in {target_name}. The target code adheres to all architectural constraints."
             )
 
         modified_count += 1
@@ -61,7 +71,7 @@ def main() -> None:
     with open(matrix_path, "w", encoding="utf-8") as f:
         json.dump(matrix, f, indent=2)
 
-    print(f"[SUCCESS] Auto-filled {modified_count} rules in {matrix_path}")
+    print(f"[SUCCESS] Auto-filled {modified_count} rules in {matrix_path} for target '{matrix.get('target_file', '')}'")
     print(f"  - FAIL: {len(fail_list)} rules")
     print(f"  - NA: {len(na_list)} rules")
     print(f"  - PASS: {modified_count - len(fail_list) - len(na_list)} rules")

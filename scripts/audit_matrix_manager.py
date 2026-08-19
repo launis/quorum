@@ -9,6 +9,7 @@ import argparse
 import json
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -52,10 +53,10 @@ def extract_rule_blocks(file_path: Path) -> list[dict[str, str]]:
 
 
 def cmd_generate(args: argparse.Namespace) -> None:
-    """Generate a blank JSON matrix with injected context.
+    """Generate a blank JSON matrix with injected context for a specific target file.
 
     Args:
-        args: CLI arguments.
+        args: CLI arguments containing target domain type and target file.
     """
     repo_root = get_repo_root()
     core_rules = repo_root / ".agents" / "rules" / "00-antigravity-core.md"
@@ -77,8 +78,17 @@ def cmd_generate(args: argparse.Namespace) -> None:
             seen.add(r["rule_id"])
             unique_rules.append(r)
 
+    normalized_target = Path(args.target).as_posix() if hasattr(args, "target") and args.target else ""
+    if not normalized_target:
+        print("ERROR: Mandatory argument '--target' cannot be empty.")
+        sys.exit(1)
+
     matrix_rules: list[dict[str, str]] = []
-    matrix: dict[str, Any] = {"target_file": "", "rules": matrix_rules}
+    matrix: dict[str, Any] = {
+        "target_file": normalized_target,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "rules": matrix_rules,
+    }
 
     for rule in unique_rules:
         matrix_rules.append(
@@ -98,7 +108,9 @@ def cmd_generate(args: argparse.Namespace) -> None:
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(matrix, f, indent=2)
 
-    print(f"[SUCCESS] Generated strict JSON audit matrix at {out_path} with {len(unique_rules)} rules.")
+    print(
+        f"[SUCCESS] Generated strict JSON audit matrix at {out_path} for target '{normalized_target}' with {len(unique_rules)} rules."
+    )
     print("AI MUST fill out this JSON explicitly. 'status' must be PASS, FAIL, or NA.")
 
 
@@ -121,8 +133,43 @@ def check_anti_laziness(justification: str) -> str | None:
     return None
 
 
+def check_conflicting_file_references(justification: str, target_file: str) -> str | None:
+    """Check whether justification cites code files conflicting with the target file.
+
+    Args:
+        justification: The justification text.
+        target_file: The normalized target file path.
+
+    Returns:
+        Error message if a conflicting file reference is found, else None.
+    """
+    target_posix = Path(target_file).as_posix()
+    target_stem = Path(target_file).name
+
+    # Find file path patterns ending in .py or .dart
+    file_pattern = r"(?:[\w./\\]+[/\\])?([a-zA-Z0-9_]+\.(?:py|dart))"
+    found_files = re.findall(file_pattern, justification)
+
+    # Allowed common files mentioned as systemic dependencies or rules
+    allowed_mentions = {
+        target_stem,
+        "settings.py",
+        "enums.py",
+        "conftest.py",
+        "audit_matrix_manager.py",
+        "backend_audit_loop.py",
+        "flutter_audit_loop.py",
+    }
+
+    for file_name in found_files:
+        if file_name not in allowed_mentions and not target_posix.endswith(file_name):
+            return f"Conflicting file reference '{file_name}' detected in justification. Justification must anchor to target '{target_stem}'."
+
+    return None
+
+
 def cmd_verify(args: argparse.Namespace) -> None:
-    """Verify a filled JSON matrix for strict compliance and anti-laziness.
+    """Verify a filled JSON matrix for strict compliance, target lock, and anti-laziness.
 
     Args:
         args: CLI arguments.
@@ -139,8 +186,23 @@ def cmd_verify(args: argparse.Namespace) -> None:
         print(f"Error parsing JSON: {e}")
         sys.exit(1)
 
-    if not matrix.get("target_file"):
-        print("ERROR: Validation Failed: 'target_file' is empty.")
+    matrix_target = matrix.get("target_file", "").strip()
+    if not matrix_target:
+        print("ERROR: Validation Failed: 'target_file' is empty in matrix JSON.")
+        sys.exit(1)
+
+    normalized_matrix_target = Path(matrix_target).as_posix()
+    normalized_cli_target = Path(args.target).as_posix() if hasattr(args, "target") and args.target else ""
+
+    if not normalized_cli_target:
+        print("ERROR: Validation Failed: Mandatory argument '--target' was not provided.")
+        sys.exit(1)
+
+    if normalized_matrix_target != normalized_cli_target:
+        print(
+            f"ERROR: Target mismatch. Matrix was generated for '{normalized_matrix_target}', "
+            f"but verification requested for '{normalized_cli_target}'."
+        )
         sys.exit(1)
 
     rules = matrix.get("rules", [])
@@ -148,15 +210,19 @@ def cmd_verify(args: argparse.Namespace) -> None:
         print("ERROR: Validation Failed: No rules found in matrix.")
         sys.exit(1)
 
-    errors = []
+    errors: list[str] = []
     valid_statuses = {"PASS", "FAIL", "NA"}
-    seen_justifications = set()
-    duplicate_count = 0
+    seen_pass_justifications: set[str] = set()
+    seen_na_justifications: dict[str, int] = {}
 
     for idx, rule in enumerate(rules):
         rule_id = rule.get("rule_id", f"unknown_rule_{idx}")
         status = rule.get("status", "").upper()
         justification = rule.get("justification", "").strip()
+
+        if status == "PENDING":
+            errors.append(f"Rule '{rule_id}': Status is still PENDING. AI must audit this rule.")
+            continue
 
         if status not in valid_statuses:
             errors.append(f"Rule '{rule_id}' has invalid status '{status}'. Must be one of: {valid_statuses}")
@@ -165,13 +231,22 @@ def cmd_verify(args: argparse.Namespace) -> None:
         if lazy_error:
             errors.append(f"Rule '{rule_id}': {lazy_error}")
 
-        # Anti-Copy-Paste logic
-        if justification in seen_justifications:
-            duplicate_count += 1
-            if duplicate_count > 3:  # Allow max 3 identical justifications
-                errors.append(f"Rule '{rule_id}': Duplicate justification detected. AI is copy-pasting answers.")
-        else:
-            seen_justifications.add(justification)
+        conflict_error = check_conflicting_file_references(justification, normalized_matrix_target)
+        if conflict_error:
+            errors.append(f"Rule '{rule_id}': {conflict_error}")
+
+        if status == "PASS":
+            if justification in seen_pass_justifications:
+                errors.append(
+                    f"Rule '{rule_id}': Duplicate PASS justification detected. "
+                    f"Each PASS rule must cite unique substantive code evidence."
+                )
+            else:
+                seen_pass_justifications.add(justification)
+        elif status == "NA":
+            seen_na_justifications[justification] = seen_na_justifications.get(justification, 0) + 1
+            if seen_na_justifications[justification] > 40:
+                errors.append(f"Rule '{rule_id}': NA justification repeated more than 40 times.")
 
     if errors:
         print(f"ERROR: Validation Failed with {len(errors)} errors:")
@@ -180,7 +255,7 @@ def cmd_verify(args: argparse.Namespace) -> None:
         print("\nThe AI MUST correct the JSON file before proceeding to fixes.")
         sys.exit(1)
 
-    print(f"[SUCCESS] All {len(rules)} rules have been strictly validated for {matrix['target_file']}.")
+    print(f"[SUCCESS] All {len(rules)} rules have been strictly validated for target '{normalized_matrix_target}'.")
     sys.exit(0)
 
 
@@ -191,9 +266,11 @@ def main() -> None:
 
     gen_parser = subparsers.add_parser("generate", help="Generate a blank JSON matrix")
     gen_parser.add_argument("--type", required=True, choices=["backend", "frontend"], help="Target domain rules")
+    gen_parser.add_argument("--target", required=True, help="Target file path being audited")
 
     ver_parser = subparsers.add_parser("verify", help="Verify a filled JSON matrix")
-    ver_parser.add_argument("--file", required=True, help="Path to the filled JSON matrix")
+    ver_parser.add_argument("--file", default="tmp/audit_matrix.json", help="Path to the filled JSON matrix")
+    ver_parser.add_argument("--target", required=True, help="Expected target file path")
 
     args = parser.parse_args()
 
