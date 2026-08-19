@@ -25,7 +25,8 @@ class BlockCardRegistry {
       TargetBlockType.penaltiesBlock => l10n.blockPenaltiesTitle,
       TargetBlockType.matrixSummaryTableBlock => l10n.blockMatrixSummaryTitle,
       TargetBlockType.varianceValidationBlock => l10n.blockVarianceTitle,
-      TargetBlockType.authenticityEvaluationBlock => l10n.blockAuthenticityTitle,
+      TargetBlockType.authenticityEvaluationBlock =>
+        l10n.blockAuthenticityTitle,
       TargetBlockType.printableSourcesBlock => l10n.blockBibliographyTitle,
       TargetBlockType.globalScoreBlock => l10n.blockGlobalScoreTitle,
       TargetBlockType.auditTrailBlock => l10n.blockAuditTrailTitle,
@@ -36,14 +37,17 @@ class BlockCardRegistry {
   static String getBlockSubtitle(TargetBlockType type, AppLocalizations l10n) {
     return switch (type) {
       TargetBlockType.metadataBlock => l10n.blockMetadataSubtitle,
-      TargetBlockType.executiveSummaryBlock => l10n.blockExecutiveSummarySubtitle,
+      TargetBlockType.executiveSummaryBlock =>
+        l10n.blockExecutiveSummarySubtitle,
       TargetBlockType.synthesisTextBlock => l10n.blockSynthesisTextSubtitle,
       TargetBlockType.matrixGraphsBlock => l10n.blockMatrixGraphsSubtitle,
       TargetBlockType.groupedExtensionsBlock => l10n.blockAiExtensionsSubtitle,
       TargetBlockType.penaltiesBlock => l10n.blockPenaltiesSubtitle,
-      TargetBlockType.matrixSummaryTableBlock => l10n.blockMatrixSummarySubtitle,
+      TargetBlockType.matrixSummaryTableBlock =>
+        l10n.blockMatrixSummarySubtitle,
       TargetBlockType.varianceValidationBlock => l10n.blockVarianceSubtitle,
-      TargetBlockType.authenticityEvaluationBlock => l10n.blockAuthenticitySubtitle,
+      TargetBlockType.authenticityEvaluationBlock =>
+        l10n.blockAuthenticitySubtitle,
       TargetBlockType.printableSourcesBlock => l10n.blockBibliographySubtitle,
       TargetBlockType.globalScoreBlock => l10n.blockGlobalScoreSubtitle,
       TargetBlockType.auditTrailBlock => l10n.blockAuditTrailSubtitle,
@@ -122,7 +126,10 @@ class BlockCardRegistry {
         key: key,
         blockType: TargetBlockType.varianceValidationBlock,
         title: getBlockTitle(TargetBlockType.varianceValidationBlock, l10n),
-        subtitle: getBlockSubtitle(TargetBlockType.varianceValidationBlock, l10n),
+        subtitle: getBlockSubtitle(
+          TargetBlockType.varianceValidationBlock,
+          l10n,
+        ),
         icon: Icons.rule_outlined,
         payload: payload,
         updatePayload: updatePayload,
@@ -132,7 +139,10 @@ class BlockCardRegistry {
         key: key,
         blockType: TargetBlockType.authenticityEvaluationBlock,
         title: getBlockTitle(TargetBlockType.authenticityEvaluationBlock, l10n),
-        subtitle: getBlockSubtitle(TargetBlockType.authenticityEvaluationBlock, l10n),
+        subtitle: getBlockSubtitle(
+          TargetBlockType.authenticityEvaluationBlock,
+          l10n,
+        ),
         icon: Icons.verified_user_outlined,
         payload: payload,
         updatePayload: updatePayload,
