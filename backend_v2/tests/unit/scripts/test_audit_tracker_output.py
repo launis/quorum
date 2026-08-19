@@ -40,7 +40,9 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
 
     # check_phase_format
     assert len(check_phase_format("no phases")) == 1
-    phase_text = "### Phase 1: Test\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n"
+    phase_text = (
+        "### Phase 1: Test\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n"
+    )
     assert check_phase_format(phase_text) == []
     broken_phase = "### Phase 1: Test\nNo plan reference here"
     assert len(check_phase_format(broken_phase)) > 0
