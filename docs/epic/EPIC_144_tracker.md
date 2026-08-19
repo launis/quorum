@@ -181,16 +181,16 @@
 #### Phase 1-B: 3-Tab Scaffold Decomposition
 **Plan:** `@[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md]`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Map Monolithic View Structure & Field Boundaries
-  - [ ] Step 2: Extract General Tab
-  - [ ] Step 3: Extract Scoring Tab
-  - [ ] Step 4: Extract Layouts Tab
-  - [ ] Step 5: Refactor CRUD View to Tab Shell
-  - [ ] Step 6: Update & Verify Golden Master Tests
-  - [ ] Step 7: Line Count Verification
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Map Monolithic View Structure & Field Boundaries
+  - [x] Step 2: Extract General Tab
+  - [x] Step 3: Extract Scoring Tab
+  - [x] Step 4: Extract Layouts Tab
+  - [x] Step 5: Refactor CRUD View to Tab Shell
+  - [x] Step 6: Update & Verify Golden Master Tests
+  - [x] Step 7: Line Count Verification
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
@@ -636,6 +636,22 @@
   - Synchronized target tab paths (`widgets/profile/tabs/`) across `docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md`, `11_p1_tab_scaffold_decomposition.md`, and this tracker.
   - Re-verified planner boundary fidelity with `audit_planner_output.py` (100% pass).
 
+- **Phase 1-B Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - **Monolithic View Decomposition:** Decomposed 899-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` into a clean **188-line** desktop tab shell featuring `DefaultTabController(length: 3)` with `TabBar` and `TabBarView`.
+  - **Proactive Outward Widget Decomposition (≤200 lines each):**
+    1. `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]` (**150 lines**): Profile ID, slug, workflowId binding dropdown, display name, description, and custom preface `I18nTextField`s.
+    2. `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]` (**191 lines**): Display scale, strictness level, scoring strategy, and max extension items input with `1 <= parsed <= 100` validation.
+    3. `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_metadata_section.dart]` (**71 lines**): Master-ordered identity metadata checkboxes.
+    4. `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_xai_extensions_section.dart]` (**137 lines**): Block-level and workflow-level XAI extension toggles.
+    5. `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]` (**131 lines**): Workflow binding warning banner, `LayoutEditorCard`, and `ReorderableListView` for `targetBlockOrder`.
+  - **Phase 9 Anti-Pattern Eradication:**
+    - **R81:** Eradicated `SizedBox.shrink()` hiding unavailable XAI extensions in favor of declarative collection-`for` filtering in `ProfileXaiExtensionsSection`.
+    - **R82:** Replaced untyped `AsyncValue<List<dynamic>>` with strongly typed `workflowAvailableExtensionsProvider` (`AsyncValue<List<String>>`).
+    - **R83:** Replaced hardcoded `Color(0xFF2E7D32)` with `Theme.of(context).colorScheme.primary`.
+    - **R84:** Replaced raw double paddings/margins with `AppSpacing` design tokens (`p16`, `h8`, `h16`, `h24`).
+  - **Golden Master Test Suite Synchronized:** Updated `@[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]` with explicit tab navigation assertions matching localized tab titles (`General`, `Extensions (XAI)`, `Layouts`).
+  - **Universal Quality Gate Passed:** Executed `flutter_audit_loop.py` on the test suite: **All 117 tests passed green with 0 analyzer issues**.
+
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
 - **Fail-Fast Hydration Invariant:** The `OutputProfile` model currently contains legacy `include_diagnostic_scorecard: bool`, uses raw `Literal["original", "custom", "normalized_100"]` for `display_scale`, and `list[str]` for `target_block_order`. Flutter models utilize `unknownEnumValue` fallback annotations.
@@ -667,14 +683,17 @@
 - **DotEnv Initialization in Widget Tests:** Notifier callbacks that call `ref.read(loggerServiceProvider)` trigger logger initialization which accesses `DotEnv.env`. Mocking `loggerServiceProvider.overrideWithValue(mockLogger)` in `ProviderScope.overrides` isolates widget tests from global environment variables.
 - **Global Studio View Parity on Freezed Migrations:** When migrating a Freezed model field from nullable `int?` to non-nullable `int` or from `String` to `Enum`, all legacy views consuming that model (e.g., `profile_editor_view.dart` as well as `output_profile_crud_view.dart`) must have their dropdown values and slider bounds synchronized with `SystemUiConstraints` to prevent Dart analyzer compilation errors during global `--build` audits.
 - **Tab Scaffold Decomposition & Widget Isolation:** Decomposing monolithic UI forms into Riverpod `ConsumerWidget` tabs accepting `id` allows each tab to watch its own dependencies (`workflowsControllerProvider`, `promptBlocksControllerProvider`, `workflowAvailableExtensionsProvider`) independently without constructor prop drilling, satisfying the ≤200 line cap per file.
+- **God Code Sub-Widget Extraction & Anti-Pattern Eradication:** Breaking down large tab widgets into dedicated sub-widgets (`ProfileMetadataSection` and `ProfileXaiExtensionsSection`) ensures every component remains strictly under the 200-line cap while eliminating `SizedBox.shrink()` anti-patterns, untyped `AsyncValue<List<dynamic>>`, and hardcoded colors/dimensions.
+- **Root Form Validation Across TabBarViews:** Wrapping the entire `TabBarView` in a single parent `Form(key: formKey)` preserves atomic validation and persistence across all tabs concurrently without state loss or requiring disjointed per-tab form controllers.
+- **ARB Localization Duplicate Overrides:** In `.arb` files, duplicate translation keys at the bottom of the file silently override earlier keys during `flutter gen-l10n`; maintaining single-source localized keys is essential for deterministic widget testing.
 
 ## Remaining
-- **Phase 1-B (Plan 11):** 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs: `profile_general_tab.dart`, `profile_scoring_tab.dart`, `profile_layouts_tab.dart`).
+- **Phase 1-B (Plan 11) Audit:** Audit Phase 1-B via `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`.
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%), and Live E2E verification (`test_integration_real_llm.py`).
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
 ```bash
-/tier2-execute @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]
+/tier8-audit-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]
 ```

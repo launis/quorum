@@ -263,8 +263,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Expected: renders 3-pane Row layout without assertion or overflow errors
-      expect(find.byType(Row), findsWidgets);
+      // Expected: renders 3-tab layout without assertion or overflow errors
+      expect(find.byType(TabBar), findsOneWidget);
+      expect(find.byType(TabBarView), findsOneWidget);
       expect(find.text('prf_test'), findsOneWidget);
       expect(find.byIcon(Icons.save), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -307,8 +308,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Expected: renders single-column ListView layout without assertion or overflow errors
-      expect(find.byType(ListView), findsWidgets);
+      // Expected: renders TabBar layout without assertion or overflow errors
+      expect(find.byType(TabBar), findsOneWidget);
       expect(find.text('prf_test'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -344,10 +345,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Expected: finds TextFormField containing ID and slug, finds display name, finds strictness and scoring strategy dropdowns
+      // Expected on Tab 1: finds TextFormField containing ID and slug, finds display name
       expect(find.text('prf_test'), findsOneWidget);
       expect(find.text('exec-summary'), findsOneWidget);
       expect(find.text('Executive Summary Profile'), findsOneWidget);
+
+      // Switch to Tab 2 (Extensions (XAI))
+      await tester.tap(find.text('Extensions (XAI)'));
+      await tester.pumpAndSettle();
+
+      // Expected on Tab 2: finds strictness and scoring strategy dropdowns
       expect(find.text('Balanced (50 - Default)'), findsOneWidget);
     });
 
@@ -387,8 +394,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Expected: finds DropdownButtonFormField with "Test Flow (wf_test)", finds CheckboxListTile for citation
+      // Expected on Tab 1: finds DropdownButtonFormField with "Test Flow (wf_test)"
       expect(find.text('Test Flow (wf_test)'), findsOneWidget);
+
+      // Switch to Tab 2 (Extensions (XAI))
+      await tester.tap(find.text('Extensions (XAI)'));
+      await tester.pumpAndSettle();
+
+      // Expected on Tab 2: finds CheckboxListTile for citation and justification
       expect(
         find.widgetWithText(CheckboxListTile, 'Source Citation'),
         findsOneWidget,
@@ -434,6 +447,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // Switch to Tab 3 (Layouts)
+      await tester.tap(find.text('Layouts'));
+      await tester.pumpAndSettle();
+
       // Expected: finds workflowSelectWarning text inside Layout pane
       expect(
         find.textContaining('Please select a Workflow ID Binding above'),
@@ -465,6 +482,10 @@ void main() {
       await tester.pumpWidget(
         createWidgetUnderTest(profileId: 'prf_test', overrides: overrides),
       );
+      await tester.pumpAndSettle();
+
+      // Switch to Tab 2 (Extensions (XAI))
+      await tester.tap(find.text('Extensions (XAI)'));
       await tester.pumpAndSettle();
 
       // Find TextFormField with initial value '3'
