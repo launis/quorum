@@ -138,13 +138,11 @@ def test_historical_context_mode_parity() -> None:
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "HistoricalContextMode")
 
 
-@pytest.mark.skip(reason="Awaiting Plan 07: Frontend Enum Sync")
 def test_display_scale_parity() -> None:
     """Verify DisplayScale members match between Python and Dart."""
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "DisplayScale")
 
 
-@pytest.mark.skip(reason="Awaiting Plan 07: Frontend Enum Sync")
 def test_target_block_type_parity() -> None:
     """Verify TargetBlockType members match between Python and Dart."""
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "TargetBlockType")

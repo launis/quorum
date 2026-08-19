@@ -361,6 +361,28 @@ enum HistoricalContextMode {
   slidingWindow3,
 }
 
+/// Display scale configuration for matrix score rendering.
+@JsonEnum()
+enum DisplayScale {
+  @JsonValue('original')
+  original,
+  @JsonValue('custom')
+  custom,
+  @JsonValue('normalized_100')
+  normalized100,
+}
+
+/// Global systemic UI constraints and bounds.
+enum SystemUiConstraints {
+  maxExtensionItemsSliderMin(1),
+  maxExtensionItemsSliderMax(20),
+  maxExtensionItemsAbsoluteMax(100),
+  maxExtensionItemsDefault(3);
+
+  const SystemUiConstraints(this.value);
+  final int value;
+}
+
 /// Explicit layout hydration target blocks for SDUI.
 @JsonEnum()
 enum TargetBlockType {
@@ -382,4 +404,13 @@ enum TargetBlockType {
   metadataBlock,
   @JsonValue('synthesis_text_block')
   synthesisTextBlock,
+  @JsonValue('matrix_graphs_block')
+  matrixGraphsBlock,
+  @JsonValue('matrix_summary_table_block')
+  matrixSummaryTableBlock,
+  @JsonValue('variance_validation_block')
+  varianceValidationBlock,
+  @JsonValue('authenticity_evaluation_block')
+  authenticityEvaluationBlock,
 }
+

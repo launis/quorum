@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BlueprintConfig {
 
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d) PresetView get presetView;
+@JsonKey(name: 'preset_view') PresetView get presetView;
 /// Create a copy of BlueprintConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $BlueprintConfigCopyWith<$Res>  {
   factory $BlueprintConfigCopyWith(BlueprintConfig value, $Res Function(BlueprintConfig) _then) = _$BlueprintConfigCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d) PresetView presetView
+@JsonKey(name: 'preset_view') PresetView presetView
 });
 
 
@@ -153,7 +153,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d)  PresetView presetView)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BlueprintConfig() when $default != null:
 return $default(_that.presetView);case _:
@@ -174,7 +174,7 @@ return $default(_that.presetView);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d)  PresetView presetView)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'preset_view')  PresetView presetView)  $default,) {final _that = this;
 switch (_that) {
 case _BlueprintConfig():
 return $default(_that.presetView);case _:
@@ -194,7 +194,7 @@ return $default(_that.presetView);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d)  PresetView presetView)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'preset_view')  PresetView presetView)?  $default,) {final _that = this;
 switch (_that) {
 case _BlueprintConfig() when $default != null:
 return $default(_that.presetView);case _:
@@ -209,10 +209,10 @@ return $default(_that.presetView);case _:
 @JsonSerializable()
 
 class _BlueprintConfig implements BlueprintConfig {
-  const _BlueprintConfig({@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d) this.presetView = PresetView.metrics1d});
+  const _BlueprintConfig({@JsonKey(name: 'preset_view') this.presetView = PresetView.metrics1d});
   factory _BlueprintConfig.fromJson(Map<String, dynamic> json) => _$BlueprintConfigFromJson(json);
 
-@override@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d) final  PresetView presetView;
+@override@JsonKey(name: 'preset_view') final  PresetView presetView;
 
 /// Create a copy of BlueprintConfig
 /// with the given fields replaced by the non-null parameter values.
@@ -247,7 +247,7 @@ abstract mixin class _$BlueprintConfigCopyWith<$Res> implements $BlueprintConfig
   factory _$BlueprintConfigCopyWith(_BlueprintConfig value, $Res Function(_BlueprintConfig) _then) = __$BlueprintConfigCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d) PresetView presetView
+@JsonKey(name: 'preset_view') PresetView presetView
 });
 
 

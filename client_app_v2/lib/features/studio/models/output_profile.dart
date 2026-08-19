@@ -15,17 +15,14 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory OutputLayoutBlock({
     @Default(PresetView.defaultView)
-    @JsonKey(name: 'preset_view', unknownEnumValue: PresetView.defaultView)
+    @JsonKey(name: 'preset_view')
     PresetView presetView,
     I18nText? title,
     I18nText? description,
     @Default([]) List<String> steps,
     @Default([]) List<String> targetBlocks,
     @Default(TextDeliveryMode.full)
-    @JsonKey(
-      name: 'text_delivery_mode',
-      unknownEnumValue: TextDeliveryMode.full,
-    )
+    @JsonKey(name: 'text_delivery_mode')
     TextDeliveryMode textDeliveryMode,
     @JsonKey(name: 'is_synthesis_enabled')
     @Default(true)
@@ -58,10 +55,7 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     int? lengthConstraint,
     I18nText? preambleText,
     @Default(HistoricalContextMode.disabled)
-    @JsonKey(
-      name: 'historical_context_mode',
-      unknownEnumValue: HistoricalContextMode.disabled,
-    )
+    @JsonKey(name: 'historical_context_mode')
     HistoricalContextMode historicalContextMode,
     @Default(false) bool enablePiiMasking,
     @Default(['pdf', 'raw_json']) List<String> allowedExports,
@@ -94,11 +88,10 @@ abstract class OutputProfile with _$OutputProfile {
     @Default(['date', 'organization']) List<String> visibleMetadata,
     @Default([]) List<XaiExtensionType> visibleBlockExtensions,
     @Default([]) List<XaiExtensionType> visibleWorkflowExtensions,
-    @JsonKey(name: 'max_extension_items') int? maxExtensionItems,
-    @Default('original') String displayScale,
-    @Default(false)
-    @JsonKey(name: 'include_diagnostic_scorecard')
-    bool includeDiagnosticScorecard,
+    @Default(3) @JsonKey(name: 'max_extension_items') int maxExtensionItems,
+    @Default(DisplayScale.original)
+    @JsonKey(name: 'display_scale')
+    DisplayScale displayScale,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
@@ -118,20 +111,20 @@ abstract class OutputProfile with _$OutputProfile {
     List<SduiBlockDTO> contentBlocks,
     @JsonKey(name: 'target_block_order')
     @Default([
-      'metadata_block',
-      'executive_summary_block',
-      'synthesis_text_block',
-      'matrix_graphs_block',
-      'grouped_extensions_block',
-      'penalties_block',
-      'matrix_summary_table_block',
-      'variance_validation_block',
-      'authenticity_evaluation_block',
-      'printable_sources_block',
-      'global_score_block',
-      'audit_trail_block',
+      TargetBlockType.metadataBlock,
+      TargetBlockType.executiveSummaryBlock,
+      TargetBlockType.synthesisTextBlock,
+      TargetBlockType.matrixGraphsBlock,
+      TargetBlockType.groupedExtensionsBlock,
+      TargetBlockType.penaltiesBlock,
+      TargetBlockType.matrixSummaryTableBlock,
+      TargetBlockType.varianceValidationBlock,
+      TargetBlockType.authenticityEvaluationBlock,
+      TargetBlockType.printableSourcesBlock,
+      TargetBlockType.globalScoreBlock,
+      TargetBlockType.auditTrailBlock,
     ])
-    List<String> targetBlockOrder,
+    List<TargetBlockType> targetBlockOrder,
     SynthesisConfigDTO? synthesis,
     @JsonKey(name: 'performativity_detector_step_id')
     String? performativityDetectorStepId,

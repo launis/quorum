@@ -13,11 +13,7 @@ _BlueprintConfig _$BlueprintConfigFromJson(Map<String, dynamic> json) =>
         presetView: $checkedConvert(
           'preset_view',
           (v) =>
-              $enumDecodeNullable(
-                _$PresetViewEnumMap,
-                v,
-                unknownValue: PresetView.metrics1d,
-              ) ??
+              $enumDecodeNullable(_$PresetViewEnumMap, v) ??
               PresetView.metrics1d,
         ),
       );

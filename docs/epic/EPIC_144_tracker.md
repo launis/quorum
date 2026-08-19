@@ -122,16 +122,17 @@
 
 #### Phase 0-G: Frontend Enum & Freezed Synchronization
 **Plan:** `@[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Add DisplayScale Enum to enums.dart
-  - [ ] Step 2: Add Missing TargetBlockType Members
-  - [ ] Step 3: Add SystemUiConstraints Enum
-  - [ ] Step 4: Modify output_profile.dart Freezed Model
-  - [ ] Step 5: Modify blueprint_config.dart Freezed Model
-  - [ ] Step 6: Run Freezed Code Generation
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Add DisplayScale Enum to enums.dart
+  - [x] Step 2: Add Missing TargetBlockType Members
+  - [x] Step 3: Add SystemUiConstraints Enum
+  - [x] Step 4: Modify output_profile.dart Freezed Model
+  - [x] Step 5: Modify blueprint_config.dart Freezed Model
+  - [x] Step 6: Run Freezed Code Generation
+  - [x] Step 7: Unskip Python Cross-Language Enum Parity Tests
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
@@ -521,6 +522,20 @@
   - Emitted formal artifact: `@[red_team_audit_06_p0_openapi_sync_gate.md]`.
   - Committed tracker sign-off: `4b3add75 docs(epic-144): sign off Phase 0-F audit in tracker and advance resume command`.
 
+- **Phase 0-G Execution Completed (`[OK]`):**
+  - Added `DisplayScale` enum to `@[client_app_v2/lib/core/models/enums.dart]` with `@JsonEnum()` and `@JsonValue` annotations matching Python (`original`, `custom`, `normalized_100`).
+  - Added 4 missing `TargetBlockType` enum members (`matrix_graphs_block`, `matrix_summary_table_block`, `variance_validation_block`, `authenticity_evaluation_block`) bringing total member count to 13 matching Python SSOT.
+  - Added `SystemUiConstraints` enum to `enums.dart` centralizing `maxExtensionItems` bounds (`min=1`, `max=20`, `absoluteMax=100`, `default=3`).
+  - Eradicated all `unknownEnumValue` fallback parameters from `@[client_app_v2/lib/features/studio/models/output_profile.dart]` and `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]`.
+  - Purged `includeDiagnosticScorecard` field from `OutputProfile` Freezed model.
+  - Converted `displayScale` to `@Default(DisplayScale.original) @JsonKey(name: 'display_scale') DisplayScale displayScale`.
+  - Converted `targetBlockOrder` to `@JsonKey(name: 'target_block_order') @Default([...12 enum items...]) List<TargetBlockType> targetBlockOrder`.
+  - Converted `maxExtensionItems` to non-nullable `@Default(3) @JsonKey(name: 'max_extension_items') int maxExtensionItems`.
+  - Executed Freezed build runner and linter loop: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models --build` cleanly generated all `.freezed.dart` and `.g.dart` files.
+  - Unskipped `test_display_scale_parity` and `test_target_block_type_parity` in `@[backend_v2/tests/unit/test_enum_parity.py]`.
+  - Executed `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test` with 13/13 tests passed and 0 skipped.
+  - Executed `uv run python scripts/flutter_audit_loop.py client_app_v2/test --test` with 95/95 tests passed.
+
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
 - **Fail-Fast Hydration Invariant:** The `OutputProfile` model currently contains legacy `include_diagnostic_scorecard: bool`, uses raw `Literal["original", "custom", "normalized_100"]` for `display_scale`, and `list[str]` for `target_block_order`. Flutter models utilize `unknownEnumValue` fallback annotations.
@@ -539,9 +554,12 @@
 - **Blueprint Dispatch Loop Block Order Contract:** In test fixtures instantiating `OutputProfile` or `OutputProfile.model_construct` for `BlueprintTransformer`, `target_block_order` must be populated with `_DEFAULT_TARGET_BLOCK_ORDER` to ensure downstream SDUI blocks (`GROUPED_EXTENSIONS_BLOCK`, `AUTHENTICITY_EVALUATION_BLOCK`, etc.) are dispatched during report synthesis.
 - **OpenAPI Schema Generation & Standalone Script Testing:** `backend_v2/scripts/generate_openapi.py` safely writes to `docs/swagger/openapi.json` without side effects. Standalone scripts that execute outside the `backend_v2` module structure should have their unit tests verified directly with `pytest` alongside the standard linting and typing quality gates.
 - **OpenAPI Schema Dynamic Enum Exposure:** Regenerating OpenAPI via `generate_openapi.py` captures newly added domain enums (`DisplayScale`, `TargetBlockType`) directly into `components/schemas` and updates collection items references (`#/components/schemas/TargetBlockType`), ensuring downstream Dart/TypeScript client generators remain strictly synchronized with Pydantic V2 backend models.
+- **Freezed Model Default Enum Value Parity:** When migrating a Freezed field from `List<String>` to `List<TargetBlockType>`, `@Default(...)` expressions must simultaneously be converted from string literals to native Dart enum values to avoid compile-time type assignment failures.
+- **Frontend Systemic Constants Centralization:** All UI boundary constraints (e.g. `maxExtensionItems` slider bounds 1-20, absolute max 100, default 3) MUST be centralized in `SystemUiConstraints` enum in `enums.dart` to prevent magic numbers across widget trees.
+- **Fail-Fast Client Firewall vs Fallbacks:** Eradicating `unknownEnumValue` fallback parameters from Freezed models forces unrecognized server payloads to throw `CheckedFromJsonException` caught by `AppErrorBoundary` instead of silently coercing to defaults.
 
 ## Remaining
-- **Phase 0-G: Frontend Enum & Freezed Synchronization (`@[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md]`):** Add `DisplayScale` enum, add 4 missing `TargetBlockType` enum members, add `SystemUiConstraints` enum, purge `includeDiagnosticScorecard`, eradicate `unknownEnumValue` fallback parameters, run Freezed code generator (`build_runner`).
+- **Phase 0-G Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]`.
 - **Phase 0-H: Frontend Test Fixtures & Negative Tests (`@[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md]`):** Update `output_profile_test.dart`, create `blueprint_config_test.dart`, update controller and widget tests with Freezed models.
 - **Phase 0-I: Integration Checkpoint (`@[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md]`):** Full cross-stack backend regression + frontend Studio build and test + cross-language enum parity verification.
 - **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
@@ -551,7 +569,5 @@
 
 ## Resume Command
 ```bash
-/tier0-research-plan @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]
+/tier8-audit-plan @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]
 ```
-
-

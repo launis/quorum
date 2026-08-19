@@ -34,11 +34,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
       presetView: $checkedConvert(
         'preset_view',
         (v) =>
-            $enumDecodeNullable(
-              _$PresetViewEnumMap,
-              v,
-              unknownValue: PresetView.defaultView,
-            ) ??
+            $enumDecodeNullable(_$PresetViewEnumMap, v) ??
             PresetView.defaultView,
       ),
       title: $checkedConvert(
@@ -62,11 +58,7 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
       textDeliveryMode: $checkedConvert(
         'text_delivery_mode',
         (v) =>
-            $enumDecodeNullable(
-              _$TextDeliveryModeEnumMap,
-              v,
-              unknownValue: TextDeliveryMode.full,
-            ) ??
+            $enumDecodeNullable(_$TextDeliveryModeEnumMap, v) ??
             TextDeliveryMode.full,
       ),
       isSynthesisEnabled: $checkedConvert(
@@ -203,11 +195,7 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
           historicalContextMode: $checkedConvert(
             'historical_context_mode',
             (v) =>
-                $enumDecodeNullable(
-                  _$HistoricalContextModeEnumMap,
-                  v,
-                  unknownValue: HistoricalContextMode.disabled,
-                ) ??
+                $enumDecodeNullable(_$HistoricalContextModeEnumMap, v) ??
                 HistoricalContextMode.disabled,
           ),
           enablePiiMasking: $checkedConvert(
@@ -307,7 +295,6 @@ _OutputProfile _$OutputProfileFromJson(
         'visible_workflow_extensions',
         'max_extension_items',
         'display_scale',
-        'include_diagnostic_scorecard',
         'strictness_level',
         'scoring_strategy',
         'tone_instruction',
@@ -373,15 +360,13 @@ _OutputProfile _$OutputProfileFromJson(
       ),
       maxExtensionItems: $checkedConvert(
         'max_extension_items',
-        (v) => (v as num?)?.toInt(),
+        (v) => (v as num?)?.toInt() ?? 3,
       ),
       displayScale: $checkedConvert(
         'display_scale',
-        (v) => v as String? ?? 'original',
-      ),
-      includeDiagnosticScorecard: $checkedConvert(
-        'include_diagnostic_scorecard',
-        (v) => v as bool? ?? false,
+        (v) =>
+            $enumDecodeNullable(_$DisplayScaleEnumMap, v) ??
+            DisplayScale.original,
       ),
       strictnessLevel: $checkedConvert(
         'strictness_level',
@@ -444,20 +429,22 @@ _OutputProfile _$OutputProfileFromJson(
       targetBlockOrder: $checkedConvert(
         'target_block_order',
         (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            (v as List<dynamic>?)
+                ?.map((e) => $enumDecode(_$TargetBlockTypeEnumMap, e))
+                .toList() ??
             const [
-              'metadata_block',
-              'executive_summary_block',
-              'synthesis_text_block',
-              'matrix_graphs_block',
-              'grouped_extensions_block',
-              'penalties_block',
-              'matrix_summary_table_block',
-              'variance_validation_block',
-              'authenticity_evaluation_block',
-              'printable_sources_block',
-              'global_score_block',
-              'audit_trail_block',
+              TargetBlockType.metadataBlock,
+              TargetBlockType.executiveSummaryBlock,
+              TargetBlockType.synthesisTextBlock,
+              TargetBlockType.matrixGraphsBlock,
+              TargetBlockType.groupedExtensionsBlock,
+              TargetBlockType.penaltiesBlock,
+              TargetBlockType.matrixSummaryTableBlock,
+              TargetBlockType.varianceValidationBlock,
+              TargetBlockType.authenticityEvaluationBlock,
+              TargetBlockType.printableSourcesBlock,
+              TargetBlockType.globalScoreBlock,
+              TargetBlockType.auditTrailBlock,
             ],
       ),
       synthesis: $checkedConvert(
@@ -483,7 +470,6 @@ _OutputProfile _$OutputProfileFromJson(
     'visibleWorkflowExtensions': 'visible_workflow_extensions',
     'maxExtensionItems': 'max_extension_items',
     'displayScale': 'display_scale',
-    'includeDiagnosticScorecard': 'include_diagnostic_scorecard',
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
@@ -515,8 +501,7 @@ Map<String, dynamic> _$OutputProfileToJson(
       .map((e) => _$XaiExtensionTypeEnumMap[e]!)
       .toList(),
   'max_extension_items': instance.maxExtensionItems,
-  'display_scale': instance.displayScale,
-  'include_diagnostic_scorecard': instance.includeDiagnosticScorecard,
+  'display_scale': _$DisplayScaleEnumMap[instance.displayScale]!,
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'tone_instruction': instance.toneInstruction?.toJson(),
@@ -532,7 +517,9 @@ Map<String, dynamic> _$OutputProfileToJson(
   ),
   'layouts': instance.layouts.map((e) => e.toJson()).toList(),
   'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
-  'target_block_order': instance.targetBlockOrder,
+  'target_block_order': instance.targetBlockOrder
+      .map((e) => _$TargetBlockTypeEnumMap[e]!)
+      .toList(),
   'synthesis': instance.synthesis?.toJson(),
   'performativity_detector_step_id': instance.performativityDetectorStepId,
 };
@@ -552,4 +539,26 @@ const _$XaiExtensionTypeEnumMap = {
   XaiExtensionType.contextualOverride: 'contextual_override',
   XaiExtensionType.varianceValidation: 'variance_validation',
   XaiExtensionType.authenticityEvaluation: 'authenticity_evaluation',
+};
+
+const _$DisplayScaleEnumMap = {
+  DisplayScale.original: 'original',
+  DisplayScale.custom: 'custom',
+  DisplayScale.normalized100: 'normalized_100',
+};
+
+const _$TargetBlockTypeEnumMap = {
+  TargetBlockType.globalScoreBlock: 'global_score_block',
+  TargetBlockType.penaltiesBlock: 'penalties_block',
+  TargetBlockType.auditTrailBlock: 'audit_trail_block',
+  TargetBlockType.jargonRatioBlock: 'jargon_ratio_block',
+  TargetBlockType.printableSourcesBlock: 'printable_sources_block',
+  TargetBlockType.groupedExtensionsBlock: 'grouped_extensions_block',
+  TargetBlockType.executiveSummaryBlock: 'executive_summary_block',
+  TargetBlockType.metadataBlock: 'metadata_block',
+  TargetBlockType.synthesisTextBlock: 'synthesis_text_block',
+  TargetBlockType.matrixGraphsBlock: 'matrix_graphs_block',
+  TargetBlockType.matrixSummaryTableBlock: 'matrix_summary_table_block',
+  TargetBlockType.varianceValidationBlock: 'variance_validation_block',
+  TargetBlockType.authenticityEvaluationBlock: 'authenticity_evaluation_block',
 };

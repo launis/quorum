@@ -10,7 +10,7 @@ part 'blueprint_config.g.dart';
 @freezed
 abstract class BlueprintConfig with _$BlueprintConfig {
   const factory BlueprintConfig({
-    @JsonKey(name: 'preset_view', unknownEnumValue: PresetView.metrics1d)
+    @JsonKey(name: 'preset_view')
     @Default(PresetView.metrics1d)
     PresetView presetView,
   }) = _BlueprintConfig;
