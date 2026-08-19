@@ -408,14 +408,22 @@
   - Executed global test suite (1444 tests passed, 0 failures).
   - Emitted formal artifact: `@[red_team_audit_01_p0_backend_config_enums.md]`.
   - Committed tracker sign-off: `5155ff2f docs(epic-144): sign off Phase 0-A audit in tracker`.
+- **Phase 0-B Red-Teaming & Falsification Passed (`[OK]`):**
+  - Completed System 2 Red-Teaming on `@[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md]`.
+  - Verified physical state of `@[backend_v2/seed/seed_data.json#L9185-L9925]` (`include_diagnostic_scorecard` already absent; 4 bilingual metadata keys missing from `metric_mappings`).
+  - Enforced strict compliance with `@[.agents/rules/03_seed_vault.md]` (replaced CRLF-breaking `grep_search` with deterministic Python scripts; added mandatory timestamped backup in `backend_v2/seed/backups/`).
+  - Added automated unit test requirement in `@[backend_v2/tests/unit/test_seed_architectural_guardrails.py]` covering positive & negative seed integrity assertions.
+  - Mutated Plan 02 and re-verified 100% boundary fidelity with `audit_planner_output.py`.
 - **Phase 0-B Implementation & Quality Gate Execution Completed (`[OK]`):**
   - Created timestamped backup `@[backend_v2/seed/backups/seed_data_backup_p0b.json]`.
   - Surgically injected 4 bilingual metadata label keys (`metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`) into `metric_mappings` of profile `prf_5d6e7f8091a2b3c4` in `@[backend_v2/seed/seed_data.json#L9260-L9290]`.
   - Verified zero occurrences of `include_diagnostic_scorecard` across `seed_data.json`.
   - Implemented automated guardrail tests in `@[backend_v2/tests/unit/test_seed_architectural_guardrails.py#L95-L215]` covering positive and negative assertions for legacy scorecard absence, complete bilingual metadata keys, and valid enum values.
-  - Executed local database reseed (`uv run python backend_v2/seed/run_seed.py local`) successfully.
+  - Resolved dynamic `SEED_FILE` path relative to `Path(__file__).resolve().parents[2]` per `absolute_path_context_amnesia_ban`.
+  - Executed local database reseed (`uv run python backend_v2/seed/run_seed.py local`) successfully with exit code 0.
   - Passed Universal Quality Gate (`backend_audit_loop.py`) with 100% test pass rate and 92% TDD coverage.
   - Committed atomically: `15607978 feat(seed): sanitize output profiles and inject bilingual metadata keys in metric_mappings`.
+  - Updated tracker and task plan status: `021ea172 docs(epic-144): update Phase 0-B execution completion status and handover context`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
@@ -423,6 +431,7 @@
 - **Atomic 6-Step Execution Protocol:** To prevent fatal `pydantic.ValidationError(extra_forbidden)` crashes under `ConfigDict(strict=True, extra="forbid")`, modifications MUST execute in strict order: Seed Sanitization & Local Reseed (02) → Models & DTO Purge (03) → OpenAPI Sync (06) → Frontend Enums & Freezed (07) → UI Decomposition (10-11) → Quality Gates.
 - **Seed Vault Protocol Invariants:** When auditing or modifying `seed_data.json`, CRLF encoding causes `grep_search` to silently fail; deterministic Python scripts using `json.load` and bounded reads are mandatory. Pre-mutation backups in `backend_v2/seed/backups/` are strictly required before any JSON modifications.
 - **Testing Architecture Consolidation:** Architectural tests in `tests/architecture/` must be transitioned to the standard test pyramid (`tests/unit/`) to maintain single test suite sovereignty without duplicate scanners.
+- **Dynamic File Path SSOT in Tests:** In test fixtures accessing seed files, hardcoded Windows absolute paths (e.g., `c:\src\quorum\...`) must be replaced with `Path(__file__).resolve().parents[N]` to prevent cross-machine amnesia.
 - **Settings Post-Init Credential Scanning:** Testing `Settings.model_post_init` credential checks requires mocking `Path.exists` because `Settings` automatically scans the filesystem root for `service-account.json`.
 - **Enum Parity Testing Paradigm:** Python `ast.parse` and regex extraction over Dart `@JsonValue` provide deterministic verification without importing heavy cross-stack runtimes.
 
@@ -436,6 +445,7 @@
 
 ## Resume Command
 `/tier5-resume --target="@[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]" --workflow=/tier8-audit-plan`
+
 
 
 
