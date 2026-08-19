@@ -88,8 +88,8 @@ description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase E
         When generating or updating the `### Post-Implementation Gates` section, you MUST construct deterministic file-level checklists under the hardening gates:
         1. Parse all `.md` sub-plans in the task directory `docs/epic/tasks_EPIC_XXX/`.
         2. For each `.md` file in the task directory, extract all lines matching the regex `#### \[(MODIFY|NEW)\]` and capture the file path from the markdown link.
-        3. Under `### Post-Implementation Gates`, for `Tier 2 Hardening (Backend)`, generate an explicitly indented `  - [ ] @[relative/path.py]` child checkbox for EVERY individual backend `.py` file target extracted from the sub-plans.
-        4. For `Tier 2 Hardening (Frontend)`, generate an explicitly indented `  - [ ] @[relative/path.dart]` child checkbox for EVERY individual frontend `.dart` file target extracted from the sub-plans.
+        3. Under `### Post-Implementation Gates`, for `Tier 2 Hardening (Backend)`, generate an explicitly indented `  - [ ] @[relative/path.py]` child checkbox for EVERY individual PRODUCTION backend `.py` file target extracted from the sub-plans. CRITICAL: You MUST EXCLUDE all test files (paths containing `/tests/` or starting with `test_`) from the Tier 2 Hardening checklist; unit/integration tests are executed as evidence during the audit loop, not audited as production domain targets.
+        4. For `Tier 2 Hardening (Frontend)`, generate an explicitly indented `  - [ ] @[relative/path.dart]` child checkbox for EVERY individual PRODUCTION frontend `.dart` file target extracted from the sub-plans. CRITICAL: You MUST EXCLUDE all test files (paths containing `/test/` or ending in `_test.dart`).
         5. The parent-level hardening command (`/tier2-hardening-backend` or `/tier2-hardening-frontend`) remains as the parent checkbox. The individual file checkboxes are children.
         6. When updating an existing tracker, you MUST preserve all existing `  - [x]` checkboxes on previously completed files.
       </constraint>

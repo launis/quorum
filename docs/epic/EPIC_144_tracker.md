@@ -35,10 +35,10 @@
 - **Current Epic:** EPIC 144 (`@[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md]`)
 - **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend)
 - **Execution Status:** **100% EXECUTED & AUDITED (PASSED)** across all 6 Phases (Phase 0-A through 0-H, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5).
-- **Hardening Status:** **Backend Hardening 18/30 (60%) Completed**. 12 files remaining in backend hardening queue.
+- **Hardening Status:** **Backend Hardening 0/15 (0%) Completed** (Test files removed from hardening queue; only core source targets tracked). 15 production targets in backend queue, 17 in frontend queue.
 - **Tier 8 Plan Audit:** `red_team_audit_15_placeholder_phase5_quality_gates.md` verified 100% pass across all requirements, DoD checklist items, Freezed/Pydantic deserialization firewalls, and SDUI adapter dual-logging contracts.
 - **Mandatory Final Gate:** `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` **PASSED 100%** (full PDF ingestion, DAG execution, SDUI synthesis, and report rendering verified against live FastAPI backend and Arq worker).
-- **Backend Quality Audit Loop:** `uv run python scripts/backend_audit_loop.py` passed with 100% Ruff linting, formatting, MyPy strict typing, Jinja dumb painter templates, Seed Data dry-run validation, and $\ge$90% test coverage across all 18 audited backend files.
+- **Backend Quality Audit Loop:** `uv run python scripts/backend_audit_loop.py` configured with 100% Ruff linting, formatting, MyPy strict typing, Jinja dumb painter templates, Seed Data dry-run validation, and $\ge$90% test coverage per target.
 
 ## 2. Key Accomplishments & State in Latest Session
 - **Tier 2 Backend Hardening Execution (18/30 Files Hardened):**
@@ -351,36 +351,21 @@ Followed by remaining Post-Implementation Gates (Frontend Hardening, Golden Mast
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains (specifically and exhaustively: `@[backend_v2/tests/unit/test_settings.py]`, `@[backend_v2/tests/unit/test_enum_parity.py]`, `@[backend_v2/tests/unit/test_v2_core_models.py]`, `@[backend_v2/tests/unit/models/dtos/test_output_profile.py]`, `@[backend_v2/tests/unit/models/test_output_profile_regression.py]`, `@[backend_v2/tests/unit/test_synthesis_distiller_hook.py]`, `@[backend_v2/tests/unit/services/test_blueprint.py]`, `@[backend_v2/tests/unit/hooks/test_scoring.py]`, `@[backend_v2/tests/unit/test_worker_synthesis.py]`, `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`, `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]`, `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`, `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]`, `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]`, `@[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]`, `@[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]`).
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths — verify zero references to `include_diagnostic_scorecard`, zero `unknownEnumValue` usage, zero `Literal["original", "custom", "normalized_100"]` string type definitions, zero raw `list[str]` `target_block_order` types.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: `/tier2-hardening-backend`
-  - [x] @[backend_v2/settings.py]
-  - [x] @[backend_v2/models/enums.py]
-  - [x] @[backend_v2/models/v2_core.py]
-  - [x] @[backend_v2/models/dtos/output_profile.py]
-  - [x] @[backend_v2/services/blueprint.py]
-  - [x] @[backend_v2/services/matrix_domain_parser.py]
-  - [x] @[backend_v2/services/sdui/adapters/authenticity_adapter.py]
-  - [x] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
-  - [x] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
-  - [x] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
-  - [x] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]
-  - [x] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
-  - [x] @[backend_v2/models/prompts/synthesis_directives.py]
-  - [x] @[backend_v2/models/prompts/__init__.py]
+  - [ ] @[backend_v2/settings.py]
+  - [ ] @[backend_v2/models/enums.py]
+  - [ ] @[backend_v2/models/v2_core.py]
+  - [ ] @[backend_v2/models/dtos/output_profile.py]
+  - [ ] @[backend_v2/services/blueprint.py]
+  - [ ] @[backend_v2/services/matrix_domain_parser.py]
+  - [ ] @[backend_v2/services/sdui/adapters/authenticity_adapter.py]
+  - [ ] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
+  - [ ] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
+  - [ ] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
+  - [ ] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]
+  - [ ] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
+  - [ ] @[backend_v2/models/prompts/synthesis_directives.py]
+  - [ ] @[backend_v2/models/prompts/__init__.py]
   - [ ] @[backend_v2/worker.py]
-  - [x] @[backend_v2/tests/unit/test_settings.py]
-  - [x] @[backend_v2/tests/unit/test_enum_parity.py]
-  - [x] @[backend_v2/tests/unit/test_v2_core_models.py]
-  - [ ] @[backend_v2/tests/unit/models/dtos/test_output_profile.py]
-  - [ ] @[backend_v2/tests/unit/models/test_output_profile_regression.py]
-  - [ ] @[backend_v2/tests/unit/test_synthesis_distiller_hook.py]
-  - [ ] @[backend_v2/tests/unit/services/test_blueprint.py]
-  - [ ] @[backend_v2/tests/unit/hooks/test_scoring.py]
-  - [x] @[backend_v2/tests/unit/test_worker_synthesis.py]
-  - [ ] @[backend_v2/tests/unit/services/test_matrix_domain_parser.py]
-  - [ ] @[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]
-  - [ ] @[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]
-  - [ ] @[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]
-  - [ ] @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]
-  - [ ] @[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: `/tier2-hardening-frontend`
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/output_profile.dart]
@@ -399,11 +384,6 @@ Followed by remaining Post-Implementation Gates (Frontend Hardening, Golden Mast
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
-  - [ ] @[client_app_v2/test/features/studio/models/output_profile_test.dart]
-  - [ ] @[client_app_v2/test/features/studio/models/blueprint_config_test.dart]
-  - [ ] @[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]
-  - [ ] @[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]
-  - [ ] @[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain — zero imports of deleted `include_diagnostic_scorecard` field, zero references to removed `AUTHENTICITY_THRESHOLDS` dict in adapters, zero raw XML tags in cleansed PromptBlocks.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic across `@[backend_v2/services/blueprint.py]`, `@[backend_v2/services/sdui/adapters/]`, and `@[backend_v2/models/v2_core.py]`.
 - [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
@@ -958,12 +938,12 @@ Followed by remaining Post-Implementation Gates (Frontend Hardening, Golden Mast
 
 ## Remaining
 ### Hardening State Snapshot
-- **Backend Targets (30 total, 18 done, 12 remaining):**
-  - `TARGETS`: 30 files in `@[tmp/hardening_state.json]`
-  - `DONE`: 18 files (`@[backend_v2/settings.py]`, `@[backend_v2/models/enums.py]`, `@[backend_v2/models/v2_core.py]`, `@[backend_v2/models/dtos/output_profile.py]`, `@[backend_v2/services/blueprint.py]`, `@[backend_v2/services/matrix_domain_parser.py]`, `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`, `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`, `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]`, `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`, `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`, `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`, `@[backend_v2/models/prompts/synthesis_directives.py]`, `@[backend_v2/models/prompts/__init__.py]`, `@[backend_v2/tests/unit/test_worker_synthesis.py]`, `@[backend_v2/tests/unit/test_settings.py]`, `@[backend_v2/tests/unit/test_enum_parity.py]`, `@[backend_v2/tests/unit/test_v2_core_models.py]`)
-  - `REMAINING`: 12 files (`@[backend_v2/worker.py]`, `@[backend_v2/tests/unit/models/dtos/test_output_profile.py]`, `@[backend_v2/tests/unit/models/test_output_profile_regression.py]`, `@[backend_v2/tests/unit/test_synthesis_distiller_hook.py]`, `@[backend_v2/tests/unit/services/test_blueprint.py]`, `@[backend_v2/tests/unit/hooks/test_scoring.py]`, `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`, `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]`)
-- **Frontend Targets (22 total, 22 remaining):**
-  - 22 files queued in tracker under `Tier 2 Hardening (Frontend)`.
+- **Backend Targets (15 production targets, 0 done, 15 remaining):**
+  - `TARGETS`: 15 production files (`@[backend_v2/settings.py]`, `@[backend_v2/models/enums.py]`, `@[backend_v2/models/v2_core.py]`, `@[backend_v2/models/dtos/output_profile.py]`, `@[backend_v2/services/blueprint.py]`, `@[backend_v2/services/matrix_domain_parser.py]`, `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`, `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`, `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]`, `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`, `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`, `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`, `@[backend_v2/models/prompts/synthesis_directives.py]`, `@[backend_v2/models/prompts/__init__.py]`, `@[backend_v2/worker.py]`)
+  - `DONE`: 0 files
+  - `REMAINING`: 15 production files (Test files removed from hardening queue; tests are executed as validation evidence via `backend_audit_loop.py`).
+- **Frontend Targets (17 production targets, 0 done, 17 remaining):**
+  - 17 production files queued in tracker under `Tier 2 Hardening (Frontend)`.
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%).
 - **Documentation & Knowledge Item Update:** Create KIs for new SSOTs (`synthesis_directives.py`, `SystemUiConstraints`, `DisplayScale`, `TargetBlockType`), As-Built Architectural Sync (`/tier7-describe-architecture`).
 - **Final Epic Audit:** Boundary audit (`audit_markdown_boundaries.py`), System 2 Reverse Epic Analysis (`/tier8-audit-epic`).
