@@ -11,6 +11,8 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.view.sdui import AnySduiBlock, SduiMetadataBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
+__all__ = ["METADATA_RULES", "MetadataAdapter"]
+
 logger = logging.getLogger(__name__)
 
 

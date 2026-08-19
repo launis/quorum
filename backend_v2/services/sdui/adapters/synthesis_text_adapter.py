@@ -10,6 +10,8 @@ import logging
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
+__all__ = ["SYNTHESIS_TEXT_RULES", "SynthesisTextAdapter"]
+
 logger = logging.getLogger(__name__)
 
 

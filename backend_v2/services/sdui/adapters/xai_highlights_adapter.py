@@ -14,6 +14,8 @@ from backend_v2.models.view.sdui import AccordionBlock, AlertBlock, AnySduiBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.utils.ranked_round_robin import ranked_round_robin_select
 
+__all__ = ["XAI_AESTHETICS_RULES", "XaiHighlightsAdapter"]
+
 logger = logging.getLogger(__name__)
 
 

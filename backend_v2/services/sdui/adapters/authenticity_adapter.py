@@ -21,6 +21,8 @@ from backend_v2.models.view.sdui import (
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.settings import get_settings
 
+__all__ = ["AUTHENTICITY_RULES", "AuthenticityAdapter"]
+
 logger = logging.getLogger(__name__)
 
 

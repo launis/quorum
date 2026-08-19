@@ -23,11 +23,13 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.models.view.sdui import AnySduiBlock
 
+__all__ = ["MatrixDomainParser"]
+
 logger = logging.getLogger(__name__)
 
 
 class MatrixDomainParser:
-    """Phase 3 Domain Orchestrator for parsing LLM trace results into MatrixScorecardRowDTOs."""
+    """Domain Orchestrator for parsing LLM trace results into MatrixScorecardRowDTOs."""
 
     @staticmethod
     def _clean_hallucinated_numbers(text: str) -> str:
