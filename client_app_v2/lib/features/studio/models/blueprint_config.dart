@@ -7,8 +7,11 @@ part 'blueprint_config.g.dart';
 
 /// Freezed domain model for Blueprint configurations.
 /// Enforces Fail-Fast typing and strict UI layout mapping.
-@freezed
+@Freezed(equal: false)
 abstract class BlueprintConfig with _$BlueprintConfig {
+  const BlueprintConfig._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory BlueprintConfig({
     @JsonKey(name: 'preset_view')
     @Default(PresetView.metrics1d)

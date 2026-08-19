@@ -53,7 +53,7 @@
         <key_domains>
           - Pillar 2 (Ontology): studio/, translation_service.py
           - Pillar 3 (Orchestration): execution.py, web_fetcher.py, llm_task_executor.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py)
-          - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/
+          - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/ (authenticity_adapter.py, metadata_adapter.py, synthesis_text_adapter.py, executive_summary_adapter.py, xai_highlights_adapter.py, printable_sources_adapter.py)
           - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py
           - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, source_verification_service.py, matrix_domain_parser.py, orchestrator/ (anchor_validation_service.py, two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py)
           - Orphan (Missing Capability): auth.py
@@ -67,7 +67,7 @@
     
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
-        <key_domains>domain/ (Pure Business/Domain Models, NO ORM shapes), dtos/ (API boundaries), view/ (SDUI Polymorphic Blocks), prompts/ (LLM templates), v2_core.py, state.py, enums.py</key_domains>
+        <key_domains>domain/ (Pure Business/Domain Models, NO ORM shapes), dtos/ (API boundaries like output_profile.py), view/ (SDUI Polymorphic Blocks), prompts/ (LLM directives SSOT: synthesis_directives.py, directives.py), v2_core.py, state.py, enums.py</key_domains>
     </module>
 
     <module path="backend_v2/core/">
@@ -102,7 +102,7 @@
 
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
-        <key_domains>studio/ (Pillar 2), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Global Presentation), auth/ (Orphan), settings/ (Orphan)</key_domains>
+        <key_domains>studio/ (Pillar 2/4 Output Profile Editors: views/output_profile_crud_view.dart, views/widgets/profile/tabs/ [profile_general_tab.dart, profile_scoring_tab.dart, profile_layouts_tab.dart], views/widgets/profile/blocks/ [base_block_card.dart, block_card_registry.dart, metadata_block_card.dart, synthesis_text_block_card.dart, matrix_graphs_block_card.dart, matrix_summary_table_card.dart, xai_extensions_block_card.dart, bibliography_block_card.dart, simple_toggle_block_card.dart]), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Global Presentation), auth/ (Orphan), settings/ (Orphan)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">

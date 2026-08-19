@@ -26,14 +26,7 @@ $BlueprintConfigCopyWith<BlueprintConfig> get copyWith => _$BlueprintConfigCopyW
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BlueprintConfig&&(identical(other.presetView, presetView) || other.presetView == presetView));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,presetView);
 
 @override
 String toString() {
@@ -206,10 +199,10 @@ return $default(_that.presetView);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
-class _BlueprintConfig implements BlueprintConfig {
-  const _BlueprintConfig({@JsonKey(name: 'preset_view') this.presetView = PresetView.metrics1d});
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _BlueprintConfig extends BlueprintConfig {
+  const _BlueprintConfig({@JsonKey(name: 'preset_view') this.presetView = PresetView.metrics1d}): super._();
   factory _BlueprintConfig.fromJson(Map<String, dynamic> json) => _$BlueprintConfigFromJson(json);
 
 @override@JsonKey(name: 'preset_view') final  PresetView presetView;
@@ -225,14 +218,7 @@ Map<String, dynamic> toJson() {
   return _$BlueprintConfigToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BlueprintConfig&&(identical(other.presetView, presetView) || other.presetView == presetView));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,presetView);
 
 @override
 String toString() {

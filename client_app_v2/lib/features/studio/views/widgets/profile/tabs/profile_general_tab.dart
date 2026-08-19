@@ -20,7 +20,11 @@ class ProfileGeneralTab extends ConsumerWidget {
     final workflowsState = ref.watch(workflowsControllerProvider);
 
     final payload = formState.value;
-    if (payload == null) return const SizedBox.shrink();
+    if (payload == null) {
+      throw StateError(
+        'Profile payload must not be null when rendering ProfileGeneralTab',
+      );
+    }
 
     void updatePayload(OutputProfile p) {
       ref.read(outputProfileFormProvider(id).notifier).updatePayload(p);

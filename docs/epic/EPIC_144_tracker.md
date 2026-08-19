@@ -33,10 +33,12 @@
 
 ## 1. Executive Summary & Progress Status
 - **Current Epic:** EPIC 144 (`@[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md]`)
-- **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend COMPLETED, Frontend COMPLETED -> Architecture Sync NEXT)
-- **Execution Status:** **100% EXECUTED & AUDITED (PASSED)** across all 6 Phases (Phase 0-A through 0-H, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5).
+- **Current Phase:** Post-Implementation Gates — Tier 2 Hardening, Post-Implementation Gates & Tier 7 Architecture Sync (100% COMPLETED -> Epic Completion Sign-Off NEXT)
+- **Execution Status:** **100% EXECUTED & AUDITED (PASSED)** across all 6 Phases (Phase 0-A through 0-H, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and all Post-Implementation Gates).
 - **Backend Hardening Status:** **15 / 15 (100%) COMPLETED** (All 15 production source targets hardened with target-locked audit matrices and $\ge 90\%$ test coverage).
 - **Frontend Hardening Status:** **17 / 17 (100%) COMPLETED** (All 17 production source targets hardened with target-locked audit matrices and zero regressions across 150 tests).
+- **Post-Implementation Gates:** **100% COMPLETED** (Golden Master audit passed with zero skips, Proxy Sunset verified zero legacy string/field references, Pre-Delete audit passed, Semantic line coverage $\ge 90\%$ verified).
+- **Tier 7 As-Built Architecture Sync:** **COMPLETED** (Scanned codebase, verified 6 timeless architecture pillars, verified zero rogue code patterns, updated `.agents/rules/04_directory_reference.md` with physical component clusters).
 - **Tier 8 Plan Audit:** `red_team_audit_15_placeholder_phase5_quality_gates.md` verified 100% pass across all requirements, DoD checklist items, Freezed/Pydantic deserialization firewalls, and SDUI adapter dual-logging contracts.
 - **Mandatory Final Gate:** `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` **PASSED 100%** (full PDF ingestion, DAG execution, SDUI synthesis, and report rendering verified against live FastAPI backend and Arq worker).
 - **Backend Quality Audit Loop:** `uv run python scripts/backend_audit_loop.py` configured with 100% Ruff linting, formatting, MyPy strict typing, Jinja dumb painter templates, Seed Data dry-run validation, and $\ge 90\%$ test coverage per target.
@@ -83,7 +85,7 @@
 | 16 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/simple_toggle_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 | 17 | `client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart` | `test/features/studio/views/widgets/profile/layout_editor_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 
-## 3. Key Accomplishments in Latest Session (Frontend Hardening Targets 11–17 COMPLETED)
+## 3. Key Accomplishments in Latest Session (Frontend Hardening Targets 11–17 COMPLETED & Tier 7 Architectural Sync)
 - **Target 11 (`synthesis_text_block_card.dart`):** Audited 131-line synthesis text block config card. Verified `DropdownButtonFormField<String?>` `isExpanded: true`, `TextOverflow.ellipsis` on menu item labels, and localized preamble/tone instruction fields. Created TDD test `synthesis_text_block_card_test.dart`.
 - **Target 12 (`matrix_graphs_block_card.dart`):** Audited 124-line Collection Builder card for matrix graph entries in `payload.layouts`. Verified `PresetView` graph layout filtering and `FilledButton.tonalIcon` addition of default `metrics1d` layouts. Created TDD test `matrix_graphs_block_card_test.dart`.
 - **Target 13 (`matrix_summary_table_card.dart`):** Audited 157-line matrix summary table configuration card. Verified FilterChip toggles for `availableColumns` and `I18nTextField` column label overrides for `matrixColumnLabels`. Created TDD test `matrix_summary_table_card_test.dart`.
@@ -91,7 +93,8 @@
 - **Target 15 (`bibliography_block_card.dart`):** Audited 57-line printable sources block card. Verified BaseBlockCard inclusion toggle and `AppLocalizations` hint text rendering. Created TDD test `bibliography_block_card_test.dart`.
 - **Target 16 (`simple_toggle_block_card.dart`):** Audited 53-line baseline toggle card. Verified immutable update of `payload.targetBlockOrder` via `BaseBlockCard` `onToggle`. Created TDD test `simple_toggle_block_card_test.dart`.
 - **Target 17 (`layout_editor_card.dart`):** Audited 166-line compact layout editor card. Verified `DropdownButtonFormField<PresetView>` `isExpanded: true`, `I18nTextField` title overrides, and ConsumerWidget state updates via `onChanged`. Updated widget test `layout_editor_card_test.dart`.
-- **Automated Verification:** All 17 frontend targets passed target-locked audit matrix verification (`audit_matrix_manager.py verify`) with 88/88 rules validated per file, and full Flutter quality audit loops (`flutter_audit_loop.py`) passed cleanly with 100% test pass (150 unit/widget tests).
+- **Tier 7 Architectural Sync:** Physical codebase audit performed across all 6 timeless architecture pillars. Verified zero rogue code patterns (`asyncio.gather` banished from production backend). Anchored all newly created Backend SDUI adapters and Frontend Studio Profile sub-tabs and visual block builder cards into `.agents/rules/04_directory_reference.md`.
+- **Post-Implementation Gates:** Passed Golden Master audit (zero skips), Proxy Sunset verification (zero legacy field/type refs), Pre-delete audit, and Semantic line coverage ($\ge 90\%$).
 
 ## 4. Key Architectural Invariants & Gotchas
 - **Core Module Encapsulation (`01-python-backend.md`):** All core modules (including `settings.py`, `enums.py`, `v2_core.py`, DTOs, and services) must declare explicit `__all__ = [...]` export lists to isolate internal helpers and establish clean public module boundaries.
@@ -106,9 +109,9 @@
 
 ## 5. Immediate Next Step & Resume Command
 ```bash
-/tier7-describe-architecture @[docs/epic/EPIC_144_tracker.md]
+/tier8-audit-epic @[docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md]
 ```
-Followed by remaining Post-Implementation Gates (Golden Master restoration, Proxy sunset, Pre-delete audit, Semantic coverage) and Epic Completion Sign-Off (`/tier8-audit-epic`).
+Followed by Epic Completion Sign-Off.
 
 ---
 
@@ -374,8 +377,8 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains (specifically and exhaustively: `@[backend_v2/tests/unit/test_settings.py]`, `@[backend_v2/tests/unit/test_enum_parity.py]`, `@[backend_v2/tests/unit/test_v2_core_models.py]`, `@[backend_v2/tests/unit/models/dtos/test_output_profile.py]`, `@[backend_v2/tests/unit/models/test_output_profile_regression.py]`, `@[backend_v2/tests/unit/test_synthesis_distiller_hook.py]`, `@[backend_v2/tests/unit/services/test_blueprint.py]`, `@[backend_v2/tests/unit/hooks/test_scoring.py]`, `@[backend_v2/tests/unit/test_worker_synthesis.py]`, `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`, `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]`, `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`, `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]`, `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]`, `@[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]`, `@[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]`).
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths — verify zero references to `include_diagnostic_scorecard`, zero `unknownEnumValue` usage, zero `Literal["original", "custom", "normalized_100"]` string type definitions, zero raw `list[str]` `target_block_order` types.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains (specifically and exhaustively: `@[backend_v2/tests/unit/test_settings.py]`, `@[backend_v2/tests/unit/test_enum_parity.py]`, `@[backend_v2/tests/unit/test_v2_core_models.py]`, `@[backend_v2/tests/unit/models/dtos/test_output_profile.py]`, `@[backend_v2/tests/unit/models/test_output_profile_regression.py]`, `@[backend_v2/tests/unit/test_synthesis_distiller_hook.py]`, `@[backend_v2/tests/unit/services/test_blueprint.py]`, `@[backend_v2/tests/unit/hooks/test_scoring.py]`, `@[backend_v2/tests/unit/test_worker_synthesis.py]`, `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`, `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]`, `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`, `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]`, `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]`, `@[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]`, `@[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]`).
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths — verify zero references to `include_diagnostic_scorecard`, zero `unknownEnumValue` usage, zero `Literal["original", "custom", "normalized_100"]` string type definitions, zero raw `list[str]` `target_block_order` types.
 - [x] **[OK] Tier 2 Hardening (Backend)**: `/tier2-hardening-backend`
   - [x] (ac2a9457) @[backend_v2/settings.py]
   - [x] (e025f612) @[backend_v2/models/enums.py]
@@ -410,8 +413,8 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain — zero imports of deleted `include_diagnostic_scorecard` field, zero references to removed `AUTHENTICITY_THRESHOLDS` dict in adapters, zero raw XML tags in cleansed PromptBlocks.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic across `@[backend_v2/services/blueprint.py]`, `@[backend_v2/services/sdui/adapters/]`, and `@[backend_v2/models/v2_core.py]`.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain — zero imports of deleted `include_diagnostic_scorecard` field, zero references to removed `AUTHENTICITY_THRESHOLDS` dict in adapters, zero raw XML tags in cleansed PromptBlocks.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic across `@[backend_v2/services/blueprint.py]`, `@[backend_v2/services/sdui/adapters/]`, and `@[backend_v2/models/v2_core.py]`.
 - [x] **[OK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
 
 ---
@@ -419,7 +422,7 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
 ### Documentation & Knowledge Item Update
 
 - [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/` (specifically and exhaustively: `synthesis_directives.py` SSOT, `SystemUiConstraints` enum, `DisplayScale` cross-language enum parity, `TargetBlockType` strict dispatch pattern).
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
 ---
 
