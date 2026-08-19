@@ -32,8 +32,6 @@ from backend_v2.models.v2_core import (
     ReportDataDTO,
     SystemConfigPerformativeLexicons,
 )
-
-__all__ = ["BlueprintTransformer"]
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     ParagraphBlock,
@@ -56,6 +54,8 @@ from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighligh
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["BlueprintTransformer"]
 
 
 class BlueprintTransformer:
