@@ -20,7 +20,11 @@ class ProfileLayoutsTab extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final formState = ref.watch(outputProfileFormProvider(id));
     final payload = formState.value;
-    if (payload == null) return const SizedBox.shrink();
+    if (payload == null) {
+      throw StateError(
+        'Profile payload must not be null when rendering ProfileLayoutsTab',
+      );
+    }
 
     final promptBlocksState = ref.watch(promptBlocksControllerProvider);
     final workflowsState = ref.watch(workflowsControllerProvider);
