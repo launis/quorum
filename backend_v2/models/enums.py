@@ -75,8 +75,13 @@ class DisplayScale(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Localization key for UI label resolution."""
-        return f"display_scale_{self.value}"
+        """Explicit mapping to Frontend ARB camelCase translation keys."""
+        mapping = {
+            DisplayScale.ORIGINAL: "displayScaleOriginal",
+            DisplayScale.CUSTOM: "displayScaleCustom",
+            DisplayScale.NORMALIZED_100: "displayScaleNormalized100",
+        }
+        return mapping.get(self, "")
 
 
 class BlockDataType(StrEnum):
@@ -606,6 +611,17 @@ class ScoringStrategy(StrEnum):
     AVERAGE = "AVERAGE"
     WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE"
     PURE_MATH = "PURE_MATH"
+
+    @property
+    def l10n_key(self) -> str:
+        """Explicit mapping to Frontend ARB camelCase translation keys."""
+        mapping = {
+            ScoringStrategy.WATERFALL: "strategyKoearvostelu",
+            ScoringStrategy.AVERAGE: "strategyLineaarinenKeskiarvo",
+            ScoringStrategy.WEIGHTED_AVERAGE: "strategyPainotettuKeskiarvo",
+            ScoringStrategy.PURE_MATH: "strategyPuhdasMatematiikka",
+        }
+        return mapping.get(self, "")
 
 
 # --- Lax Type Aliases (Pydantic V2) ---

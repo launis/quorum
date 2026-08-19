@@ -3832,7 +3832,219 @@ class AppLocalizationsFi extends AppLocalizations {
   String get excelSheetRawData => 'Raakadata';
 
   @override
-  String get profileTabGeneral => 'Perustiedot';
+  String get profileTabGeneral => 'Yleiset';
+
+  @override
+  String get profileTabScoring => 'Pisteytys & XAI';
+
+  @override
+  String get profileTabReportStructure => 'Raportin rakenne';
+
+  @override
+  String get blockMetadataTitle => 'Raportin metatiedot';
+
+  @override
+  String get blockExecutiveSummaryTitle => 'Johdon tiivistelmä';
+
+  @override
+  String get blockSynthesisTextTitle => 'Synteesi ja narratiiviteksti';
+
+  @override
+  String get blockMatrixGraphsTitle => 'Matriisivisualisoinnit ja kaaviot';
+
+  @override
+  String get blockAiExtensionsTitle => 'XAI-korostukset ja laajennukset';
+
+  @override
+  String get blockPenaltiesTitle => 'Rangaistukset ja vähennykset';
+
+  @override
+  String get blockMatrixSummaryTitle => 'Matriisiyhteenvetotaulukko';
+
+  @override
+  String get blockVarianceTitle => 'Varianssivalidointi';
+
+  @override
+  String get blockAuthenticityTitle => 'Autenttisuuden arviointi';
+
+  @override
+  String get blockBibliographyTitle => 'Lähdeluettelo ja viitteet';
+
+  @override
+  String get blockGlobalScoreTitle => 'Kokonaistulos';
+
+  @override
+  String get blockAuditTrailTitle => 'Auditointijälki';
+
+  @override
+  String get blockJargonRatioTitle => 'Ammattikieli- ja selkeyssuhde';
+
+  @override
+  String get blockMetadataSubtitle =>
+      'Suoritusleimat, organisaatiotiedot ja moottorin parametrit';
+
+  @override
+  String get blockExecutiveSummarySubtitle =>
+      'Koko työnkulun laajuinen synteesi ja johdon yhteenveto';
+
+  @override
+  String get blockSynthesisTextSubtitle =>
+      'Synteesikertomukset, tekoäly-yhteenvedot ja osiojohdannot';
+
+  @override
+  String get blockMatrixGraphsSubtitle =>
+      '1D-mittarit, 2D-vertailut, 3D-matriisit ja tekstiesitykset';
+
+  @override
+  String get blockAiExtensionsSubtitle =>
+      'Selitettävän tekoälyn nostot, perustelut, vinkit ja viitteet';
+
+  @override
+  String get blockPenaltiesSubtitle =>
+      'Automaattiset pistevähennykset ja sääntöjenmukaisuusrangaistukset';
+
+  @override
+  String get blockMatrixSummarySubtitle =>
+      'Taulukkomuotoinen katsaus matriisiarviointeihin, atomijakaumaan ja pisteisiin';
+
+  @override
+  String get blockVarianceSubtitle =>
+      'Arvioijien välinen varianssi ja tilastolliset luottamusvälit';
+
+  @override
+  String get blockAuthenticitySubtitle =>
+      'Lähdeaineiston aitous ja kognitiivisen manipulaation tarkistukset';
+
+  @override
+  String get blockBibliographySubtitle =>
+      'Tulostettavat viittaukset, lähteet ja todennetut viitteet';
+
+  @override
+  String get blockGlobalScoreSubtitle =>
+      'Yhdistetty loppupistekortti ja vertailulukuarvot';
+
+  @override
+  String get blockAuditTrailSubtitle =>
+      'Oikeudelliset tapahtumalokit ja aikajärjestyksessä oleva suoritusjälki';
+
+  @override
+  String get blockJargonRatioSubtitle =>
+      'Kielellisen selkeyden mittarit ja toimialajargonin tiheys';
+
+  @override
+  String get reportVisualBlocksHeader => 'Raportin visuaaliset lohkot';
+
+  @override
+  String activeBlocksCount(int count) {
+    return '$count aktiivisena';
+  }
+
+  @override
+  String get availableBlocksHeader =>
+      'Käytettävissä olevat lohkot (Klikkaa ottaaksesi käyttöön)';
+
+  @override
+  String get noGraphLayoutsDefined =>
+      'Kaaviolohkoja ei ole vielä määritetty. Klikkaa alta \"+ Lisää kaavio\" luodaksesi 1D-, 2D- tai 3D-visualisoinnin.';
+
+  @override
+  String get addGraphButton => 'Lisää kaavio';
+
+  @override
+  String graphTitleDefault(int index, String preset) {
+    return 'Kaavio #$index ($preset)';
+  }
+
+  @override
+  String get graphTitleLabel => 'Kaavion otsikko';
+
+  @override
+  String get axisXPrimary => 'X-akseli (Ensisijainen)';
+
+  @override
+  String get axisYComparison => 'Y-akseli (Vertailu)';
+
+  @override
+  String get axisZDepth => 'Z-akseli (Syvyys)';
+
+  @override
+  String get selectBlockHint => 'Valitse lohko...';
+
+  @override
+  String alreadySelectedOnOtherAxis(String label) {
+    return '$label (Valittu jo toiselle akselille)';
+  }
+
+  @override
+  String get presetView1d => '1D-taulukko';
+
+  @override
+  String get presetView2d => '2D-ruudukko';
+
+  @override
+  String get presetView3d => '3D-matriisi';
+
+  @override
+  String get presetViewTextOnly => 'Vain teksti';
+
+  @override
+  String get presetViewSummaryTable => 'Yhteenvetotaulukko';
+
+  @override
+  String get visibleMetadataFieldsLabel => 'Näkyvät metatietokentät';
+
+  @override
+  String get pipelineSynthesisBindingLabel =>
+      'Työnkulun synteesilohkon sidonta';
+
+  @override
+  String get synthesisPromptBlockLabel => 'Synteesin kehotelohko (Työnkulku)';
+
+  @override
+  String get synthesisPromptBlockHelper =>
+      'Valitse työnkulkuun määritetty olemassa oleva kehotelohko';
+
+  @override
+  String get synthesisNoneOption =>
+      'Ei mitään (Käytä alla olevaa suoraa määritystä)';
+
+  @override
+  String get toneInstructionLabel => 'Äänensävy ja kohdeyleisö';
+
+  @override
+  String get sectionPreambleTextLabel => 'Osion johdantoteksti';
+
+  @override
+  String get visibleTableColumnsLabel => 'Näkyvät taulukon sarakkeet';
+
+  @override
+  String get columnLabelOverridesLabel => 'Sarakkeiden otsikoiden mukautukset';
+
+  @override
+  String columnLabelField(String column) {
+    return 'Sarakkeen otsikko: $column';
+  }
+
+  @override
+  String maxExtensionItemsCount(int count) {
+    return 'Laajennusten enimmäismäärä: $count';
+  }
+
+  @override
+  String get maxFieldLabel => 'Enintään';
+
+  @override
+  String get bibliographyCardHint =>
+      'Muotoiltu lähdeluettelo ja tarkat lainaukset esitetään raportin lopussa.';
+
+  @override
+  String get displayScaleOriginal => 'Alkuperäinen asteikko (Muuttamaton)';
+
+  @override
+  String get displayScaleCustom => 'Mukautettu toimiala-asteikko';
+
+  @override
+  String get displayScaleNormalized100 => 'Normalisoitu 0-100 % asteikko';
 
   @override
   String get profileTabXai => 'XAI';

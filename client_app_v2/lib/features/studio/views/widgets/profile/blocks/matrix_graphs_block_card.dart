@@ -7,6 +7,8 @@ import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart';
 
+import 'package:client_app/l10n/gen/app_localizations.dart';
+
 /// Collection Builder card for matrix graph entries in payload.layouts.
 class MatrixGraphsBlockCard extends StatelessWidget {
   final OutputProfile payload;
@@ -26,6 +28,7 @@ class MatrixGraphsBlockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isIncluded = payload.targetBlockOrder.contains(
       TargetBlockType.matrixGraphsBlock,
     );
@@ -36,9 +39,8 @@ class MatrixGraphsBlockCard extends StatelessWidget {
 
     return BaseBlockCard(
       blockType: TargetBlockType.matrixGraphsBlock,
-      title: 'Matrix Visualizations & Graphs',
-      subtitle:
-          '1D Metrics, 2D Comparisons, 3D Matrices, and Text-Only matrix presentations',
+      title: l10n.blockMatrixGraphsTitle,
+      subtitle: l10n.blockMatrixGraphsSubtitle,
       icon: Icons.bar_chart_outlined,
       isIncluded: isIncluded,
       dragHandle: dragHandle,
@@ -60,7 +62,7 @@ class MatrixGraphsBlockCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.s12),
               child: Text(
-                'No graph layouts defined yet. Click "+ Add Graph" below to add a 1D, 2D, or 3D visualization.',
+                l10n.noGraphLayoutsDefined,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             )
@@ -111,7 +113,7 @@ class MatrixGraphsBlockCard extends StatelessWidget {
                 updatePayload(payload.copyWith(layouts: newLayouts));
               },
               icon: const Icon(Icons.add),
-              label: const Text('Add Graph'),
+              label: Text(l10n.addGraphButton),
             ),
           ),
         ],

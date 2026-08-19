@@ -7,6 +7,8 @@ import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 
+import 'package:client_app/l10n/gen/app_localizations.dart';
+
 /// Config card for synthesisTextBlock supporting pipeline block selection and on-the-fly synthesis.
 class SynthesisTextBlockCard extends StatelessWidget {
   final OutputProfile payload;
@@ -24,6 +26,7 @@ class SynthesisTextBlockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isIncluded = payload.targetBlockOrder.contains(
       TargetBlockType.synthesisTextBlock,
     );
@@ -32,9 +35,8 @@ class SynthesisTextBlockCard extends StatelessWidget {
 
     return BaseBlockCard(
       blockType: TargetBlockType.synthesisTextBlock,
-      title: 'Synthesis & Narrative Text',
-      subtitle:
-          'Executive synthesis narratives, LLM summaries, and section preambles',
+      title: l10n.blockSynthesisTextTitle,
+      subtitle: l10n.blockSynthesisTextSubtitle,
       icon: Icons.psychology_outlined,
       isIncluded: isIncluded,
       dragHandle: dragHandle,
@@ -53,7 +55,7 @@ class SynthesisTextBlockCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Pipeline Synthesis Block Binding',
+            l10n.pipelineSynthesisBindingLabel,
             style: Theme.of(
               context,
             ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -62,16 +64,15 @@ class SynthesisTextBlockCard extends StatelessWidget {
           DropdownButtonFormField<String?>(
             initialValue: currentSynthesis.synthesisBlockId,
             isExpanded: true,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Synthesis Prompt Block (Pipeline Way)',
-              helperText:
-                  'Select an existing prompt block configured in the workflow',
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: l10n.synthesisPromptBlockLabel,
+              helperText: l10n.synthesisPromptBlockHelper,
             ),
             items: [
-              const DropdownMenuItem<String?>(
+              DropdownMenuItem<String?>(
                 value: null,
-                child: Text('None (Use On-the-Fly configuration below)'),
+                child: Text(l10n.synthesisNoneOption),
               ),
               ...blocksList.map((block) {
                 final locale = Localizations.localeOf(context).languageCode;
@@ -98,7 +99,7 @@ class SynthesisTextBlockCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.s16),
           I18nTextField(
-            label: 'Tone Instruction (Voice & Audience)',
+            label: l10n.toneInstructionLabel,
             initialData: payload.toneInstruction,
             onChanged: (val) {
               updatePayload(
@@ -110,7 +111,7 @@ class SynthesisTextBlockCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.s12),
           I18nTextField(
-            label: 'Section Preamble Text',
+            label: l10n.sectionPreambleTextLabel,
             initialData: currentSynthesis.preambleText,
             onChanged: (val) {
               updatePayload(

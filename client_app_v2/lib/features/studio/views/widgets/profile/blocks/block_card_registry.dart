@@ -11,8 +11,46 @@ import 'package:client_app/features/studio/views/widgets/profile/blocks/simple_t
 import 'package:client_app/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart';
 
+import 'package:client_app/l10n/gen/app_localizations.dart';
+
 /// Exhaustive registry mapping each TargetBlockType to its dedicated builder widget.
 class BlockCardRegistry {
+  static String getBlockTitle(TargetBlockType type, AppLocalizations l10n) {
+    return switch (type) {
+      TargetBlockType.metadataBlock => l10n.blockMetadataTitle,
+      TargetBlockType.executiveSummaryBlock => l10n.blockExecutiveSummaryTitle,
+      TargetBlockType.synthesisTextBlock => l10n.blockSynthesisTextTitle,
+      TargetBlockType.matrixGraphsBlock => l10n.blockMatrixGraphsTitle,
+      TargetBlockType.groupedExtensionsBlock => l10n.blockAiExtensionsTitle,
+      TargetBlockType.penaltiesBlock => l10n.blockPenaltiesTitle,
+      TargetBlockType.matrixSummaryTableBlock => l10n.blockMatrixSummaryTitle,
+      TargetBlockType.varianceValidationBlock => l10n.blockVarianceTitle,
+      TargetBlockType.authenticityEvaluationBlock => l10n.blockAuthenticityTitle,
+      TargetBlockType.printableSourcesBlock => l10n.blockBibliographyTitle,
+      TargetBlockType.globalScoreBlock => l10n.blockGlobalScoreTitle,
+      TargetBlockType.auditTrailBlock => l10n.blockAuditTrailTitle,
+      TargetBlockType.jargonRatioBlock => l10n.blockJargonRatioTitle,
+    };
+  }
+
+  static String getBlockSubtitle(TargetBlockType type, AppLocalizations l10n) {
+    return switch (type) {
+      TargetBlockType.metadataBlock => l10n.blockMetadataSubtitle,
+      TargetBlockType.executiveSummaryBlock => l10n.blockExecutiveSummarySubtitle,
+      TargetBlockType.synthesisTextBlock => l10n.blockSynthesisTextSubtitle,
+      TargetBlockType.matrixGraphsBlock => l10n.blockMatrixGraphsSubtitle,
+      TargetBlockType.groupedExtensionsBlock => l10n.blockAiExtensionsSubtitle,
+      TargetBlockType.penaltiesBlock => l10n.blockPenaltiesSubtitle,
+      TargetBlockType.matrixSummaryTableBlock => l10n.blockMatrixSummarySubtitle,
+      TargetBlockType.varianceValidationBlock => l10n.blockVarianceSubtitle,
+      TargetBlockType.authenticityEvaluationBlock => l10n.blockAuthenticitySubtitle,
+      TargetBlockType.printableSourcesBlock => l10n.blockBibliographySubtitle,
+      TargetBlockType.globalScoreBlock => l10n.blockGlobalScoreSubtitle,
+      TargetBlockType.auditTrailBlock => l10n.blockAuditTrailSubtitle,
+      TargetBlockType.jargonRatioBlock => l10n.blockJargonRatioSubtitle,
+    };
+  }
+
   static Widget getBlockCard({
     Key? key,
     required TargetBlockType type,
@@ -24,6 +62,8 @@ class BlockCardRegistry {
     required AsyncValue<List<PromptBlock>> promptBlocksState,
     Widget? dragHandle,
   }) {
+    final l10n = AppLocalizations.of(context)!;
+
     return switch (type) {
       TargetBlockType.metadataBlock => MetadataBlockCard(
         key: key,
@@ -34,8 +74,8 @@ class BlockCardRegistry {
       TargetBlockType.executiveSummaryBlock => SimpleToggleBlockCard(
         key: key,
         blockType: TargetBlockType.executiveSummaryBlock,
-        title: 'Executive Summary',
-        subtitle: 'Global multi-step synthesis and management summary',
+        title: getBlockTitle(TargetBlockType.executiveSummaryBlock, l10n),
+        subtitle: getBlockSubtitle(TargetBlockType.executiveSummaryBlock, l10n),
         icon: Icons.summarize_outlined,
         payload: payload,
         updatePayload: updatePayload,
@@ -65,8 +105,8 @@ class BlockCardRegistry {
       TargetBlockType.penaltiesBlock => SimpleToggleBlockCard(
         key: key,
         blockType: TargetBlockType.penaltiesBlock,
-        title: 'Penalties & Deductions',
-        subtitle: 'Automated scoring deductions and compliance penalties',
+        title: getBlockTitle(TargetBlockType.penaltiesBlock, l10n),
+        subtitle: getBlockSubtitle(TargetBlockType.penaltiesBlock, l10n),
         icon: Icons.gavel_outlined,
         payload: payload,
         updatePayload: updatePayload,
@@ -81,8 +121,8 @@ class BlockCardRegistry {
       TargetBlockType.varianceValidationBlock => SimpleToggleBlockCard(
         key: key,
         blockType: TargetBlockType.varianceValidationBlock,
-        title: 'Variance Validation',
-        subtitle: 'Inter-rater variance and statistical confidence bounds',
+        title: getBlockTitle(TargetBlockType.varianceValidationBlock, l10n),
+        subtitle: getBlockSubtitle(TargetBlockType.varianceValidationBlock, l10n),
         icon: Icons.rule_outlined,
         payload: payload,
         updatePayload: updatePayload,
@@ -91,9 +131,8 @@ class BlockCardRegistry {
       TargetBlockType.authenticityEvaluationBlock => SimpleToggleBlockCard(
         key: key,
         blockType: TargetBlockType.authenticityEvaluationBlock,
-        title: 'Authenticity Evaluation',
-        subtitle:
-            'Source document authenticity and cognitive manipulation checks',
+        title: getBlockTitle(TargetBlockType.authenticityEvaluationBlock, l10n),
+        subtitle: getBlockSubtitle(TargetBlockType.authenticityEvaluationBlock, l10n),
         icon: Icons.verified_user_outlined,
         payload: payload,
         updatePayload: updatePayload,
@@ -108,8 +147,8 @@ class BlockCardRegistry {
       TargetBlockType.globalScoreBlock => SimpleToggleBlockCard(
         key: key,
         blockType: TargetBlockType.globalScoreBlock,
-        title: 'Global Score',
-        subtitle: 'Aggregated final scoring card and benchmark metrics',
+        title: getBlockTitle(TargetBlockType.globalScoreBlock, l10n),
+        subtitle: getBlockSubtitle(TargetBlockType.globalScoreBlock, l10n),
         icon: Icons.speed_outlined,
         payload: payload,
         updatePayload: updatePayload,
@@ -118,8 +157,8 @@ class BlockCardRegistry {
       TargetBlockType.auditTrailBlock => SimpleToggleBlockCard(
         key: key,
         blockType: TargetBlockType.auditTrailBlock,
-        title: 'Audit Trail',
-        subtitle: 'Forensic event logs and chronological execution trace',
+        title: getBlockTitle(TargetBlockType.auditTrailBlock, l10n),
+        subtitle: getBlockSubtitle(TargetBlockType.auditTrailBlock, l10n),
         icon: Icons.history_outlined,
         payload: payload,
         updatePayload: updatePayload,
@@ -128,8 +167,8 @@ class BlockCardRegistry {
       TargetBlockType.jargonRatioBlock => SimpleToggleBlockCard(
         key: key,
         blockType: TargetBlockType.jargonRatioBlock,
-        title: 'Jargon & Clarity Ratio',
-        subtitle: 'Linguistic clarity metrics and domain jargon density',
+        title: getBlockTitle(TargetBlockType.jargonRatioBlock, l10n),
+        subtitle: getBlockSubtitle(TargetBlockType.jargonRatioBlock, l10n),
         icon: Icons.spellcheck_outlined,
         payload: payload,
         updatePayload: updatePayload,

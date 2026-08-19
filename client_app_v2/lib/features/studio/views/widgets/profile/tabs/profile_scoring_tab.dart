@@ -48,21 +48,21 @@ class ProfileScoringTab extends ConsumerWidget {
                         DropdownMenuItem(
                           value: DisplayScale.original,
                           child: Text(
-                            l10n.scaleOriginal,
+                            l10n.displayScaleOriginal,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         DropdownMenuItem(
                           value: DisplayScale.custom,
                           child: Text(
-                            l10n.scaleCustom,
+                            l10n.displayScaleCustom,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         DropdownMenuItem(
                           value: DisplayScale.normalized100,
                           child: Text(
-                            l10n.scaleNormalized100,
+                            l10n.displayScaleNormalized100,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),

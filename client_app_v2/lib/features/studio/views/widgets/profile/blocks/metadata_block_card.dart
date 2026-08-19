@@ -4,6 +4,8 @@ import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 
+import 'package:client_app/l10n/gen/app_localizations.dart';
+
 /// Config card for metadataBlock allowing checklist toggling of visible metadata fields.
 class MetadataBlockCard extends StatelessWidget {
   final OutputProfile payload;
@@ -29,15 +31,15 @@ class MetadataBlockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isIncluded = payload.targetBlockOrder.contains(
       TargetBlockType.metadataBlock,
     );
 
     return BaseBlockCard(
       blockType: TargetBlockType.metadataBlock,
-      title: 'Report Metadata',
-      subtitle:
-          'Execution timestamps, organization info, and engine parameters',
+      title: l10n.blockMetadataTitle,
+      subtitle: l10n.blockMetadataSubtitle,
       icon: Icons.info_outline,
       isIncluded: isIncluded,
       dragHandle: dragHandle,
@@ -56,7 +58,7 @@ class MetadataBlockCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Visible Metadata Fields',
+            l10n.visibleMetadataFieldsLabel,
             style: Theme.of(
               context,
             ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),

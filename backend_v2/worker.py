@@ -791,7 +791,7 @@ async def generate_profile_synthesis_and_pdf_task(
             )
         matrices_to_explain = distilled_data.get("matrices_to_explain", [])
 
-        synthesis_model_strategy = synthesis_cfg.model_strategy if synthesis_cfg else "synthesis"
+        synthesis_model_strategy = "synthesis"
 
         synthesis_res = None
         row_expl_res = None
@@ -855,9 +855,6 @@ async def generate_profile_synthesis_and_pdf_task(
                     tone = compiler.resolve_i18n(synthesis_cfg.tone_instruction, accept_language)
                     if tone:
                         dynamic_ctx_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
-
-                if synthesis_cfg.omit_empty_sections:
-                    dynamic_ctx_parts.append("<omit_empty_sections>true</omit_empty_sections>")
 
                 # Section rules (per-profile layout-specific instructions)
                 has_section_rules = False

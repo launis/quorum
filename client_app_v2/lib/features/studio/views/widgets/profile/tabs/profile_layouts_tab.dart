@@ -94,13 +94,13 @@ class ProfileLayoutsTab extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Report Visual Blocks',
+              l10n.reportVisualBlocksHeader,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             Text(
-              '${payload.targetBlockOrder.length} active',
+              l10n.activeBlocksCount(payload.targetBlockOrder.length),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -139,7 +139,7 @@ class ProfileLayoutsTab extends ConsumerWidget {
               dragHandle: ReorderableDragStartListener(
                 index: idx,
                 child: const Padding(
-                  padding: EdgeInsets.all(4.0),
+                  padding: EdgeInsets.all(AppSpacing.s4),
                   child: Icon(Icons.drag_handle),
                 ),
               ),
@@ -162,7 +162,7 @@ class ProfileLayoutsTab extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Available Blocks (Click to enable)',
+                    l10n.availableBlocksHeader,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -174,7 +174,7 @@ class ProfileLayoutsTab extends ConsumerWidget {
                     children: inactiveBlocks.map((b) {
                       return ActionChip(
                         avatar: const Icon(Icons.add, size: 16),
-                        label: Text(b.name),
+                        label: Text(BlockCardRegistry.getBlockTitle(b, l10n)),
                         onPressed: () {
                           final newOrder = List<TargetBlockType>.from(
                             payload.targetBlockOrder,

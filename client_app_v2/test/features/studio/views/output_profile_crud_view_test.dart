@@ -350,8 +350,8 @@ void main() {
       expect(find.text('exec-summary'), findsOneWidget);
       expect(find.text('Executive Summary Profile'), findsOneWidget);
 
-      // Switch to Tab 2 (Extensions (XAI))
-      await tester.tap(find.text('Extensions (XAI)'));
+      // Switch to Tab 2 (Scoring & XAI)
+      await tester.tap(find.text('Scoring & XAI'));
       await tester.pumpAndSettle();
 
       // Expected on Tab 2: finds strictness and scoring strategy dropdowns
@@ -397,8 +397,8 @@ void main() {
       // Expected on Tab 1: finds DropdownButtonFormField with "Test Flow (wf_test)"
       expect(find.text('Test Flow (wf_test)'), findsOneWidget);
 
-      // Switch to Tab 2 (Extensions (XAI))
-      await tester.tap(find.text('Extensions (XAI)'));
+      // Switch to Tab 2 (Scoring & XAI)
+      await tester.tap(find.text('Scoring & XAI'));
       await tester.pumpAndSettle();
 
       // Expected on Tab 2: finds CheckboxListTile for citation and justification
@@ -447,8 +447,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Switch to Tab 3 (Layouts)
-      await tester.tap(find.text('Layouts'));
+      // Switch to Tab 3 (Report Structure)
+      await tester.tap(find.text('Report Structure'));
       await tester.pumpAndSettle();
 
       // Expected: finds workflowSelectWarning text inside Layout pane
@@ -484,8 +484,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Switch to Tab 2 (Extensions (XAI))
-      await tester.tap(find.text('Extensions (XAI)'));
+      // Switch to Tab 2 (Scoring & XAI)
+      await tester.tap(find.text('Scoring & XAI'));
       await tester.pumpAndSettle();
 
       // Find TextFormField with initial value '3'

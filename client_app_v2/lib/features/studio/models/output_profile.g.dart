@@ -168,21 +168,23 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
           json,
           allowedKeys: const [
             'system_prompt',
-            'length_constraint',
-            'preamble_text',
-            'historical_context_mode',
-            'enable_pii_masking',
-            'allowed_exports',
-            'omit_empty_sections',
-            'allowed_mcp_tools',
-            'model_strategy',
-            'tone_instruction',
             'synthesis_block_id',
             'row_explanations_block_id',
+            'length_constraint',
+            'preamble_text',
+            'tone_instruction',
           ],
         );
         final val = _SynthesisConfigDTO(
           systemPrompt: $checkedConvert('system_prompt', (v) => v as String?),
+          synthesisBlockId: $checkedConvert(
+            'synthesis_block_id',
+            (v) => v as String?,
+          ),
+          rowExplanationsBlockId: $checkedConvert(
+            'row_explanations_block_id',
+            (v) => v as String?,
+          ),
           lengthConstraint: $checkedConvert(
             'length_constraint',
             (v) => (v as num?)?.toInt(),
@@ -192,86 +194,33 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             (v) =>
                 v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
           ),
-          historicalContextMode: $checkedConvert(
-            'historical_context_mode',
-            (v) =>
-                $enumDecodeNullable(_$HistoricalContextModeEnumMap, v) ??
-                HistoricalContextMode.disabled,
-          ),
-          enablePiiMasking: $checkedConvert(
-            'enable_pii_masking',
-            (v) => v as bool? ?? false,
-          ),
-          allowedExports: $checkedConvert(
-            'allowed_exports',
-            (v) =>
-                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-                const ['pdf', 'raw_json'],
-          ),
-          omitEmptySections: $checkedConvert(
-            'omit_empty_sections',
-            (v) => v as bool? ?? true,
-          ),
-          allowedMcpTools: $checkedConvert(
-            'allowed_mcp_tools',
-            (v) =>
-                (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-                const [],
-          ),
-          modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
           toneInstruction: $checkedConvert(
             'tone_instruction',
             (v) =>
                 v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          synthesisBlockId: $checkedConvert(
-            'synthesis_block_id',
-            (v) => v as String?,
-          ),
-          rowExplanationsBlockId: $checkedConvert(
-            'row_explanations_block_id',
-            (v) => v as String?,
           ),
         );
         return val;
       },
       fieldKeyMap: const {
         'systemPrompt': 'system_prompt',
-        'lengthConstraint': 'length_constraint',
-        'preambleText': 'preamble_text',
-        'historicalContextMode': 'historical_context_mode',
-        'enablePiiMasking': 'enable_pii_masking',
-        'allowedExports': 'allowed_exports',
-        'omitEmptySections': 'omit_empty_sections',
-        'allowedMcpTools': 'allowed_mcp_tools',
-        'modelStrategy': 'model_strategy',
-        'toneInstruction': 'tone_instruction',
         'synthesisBlockId': 'synthesis_block_id',
         'rowExplanationsBlockId': 'row_explanations_block_id',
+        'lengthConstraint': 'length_constraint',
+        'preambleText': 'preamble_text',
+        'toneInstruction': 'tone_instruction',
       },
     );
 
 Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
     <String, dynamic>{
       'system_prompt': instance.systemPrompt,
-      'length_constraint': instance.lengthConstraint,
-      'preamble_text': instance.preambleText?.toJson(),
-      'historical_context_mode':
-          _$HistoricalContextModeEnumMap[instance.historicalContextMode]!,
-      'enable_pii_masking': instance.enablePiiMasking,
-      'allowed_exports': instance.allowedExports,
-      'omit_empty_sections': instance.omitEmptySections,
-      'allowed_mcp_tools': instance.allowedMcpTools,
-      'model_strategy': instance.modelStrategy,
-      'tone_instruction': instance.toneInstruction?.toJson(),
       'synthesis_block_id': instance.synthesisBlockId,
       'row_explanations_block_id': instance.rowExplanationsBlockId,
+      'length_constraint': instance.lengthConstraint,
+      'preamble_text': instance.preambleText?.toJson(),
+      'tone_instruction': instance.toneInstruction?.toJson(),
     };
-
-const _$HistoricalContextModeEnumMap = {
-  HistoricalContextMode.disabled: 'DISABLED',
-  HistoricalContextMode.slidingWindow3: 'SLIDING_WINDOW_3',
-};
 
 _OutputProfile _$OutputProfileFromJson(
   Map<String, dynamic> json,

@@ -75,38 +75,52 @@ void main() {
 
   group('SynthesisConfigDTO JSON Parsing', () {
     test(
-      'Should parse SynthesisConfigDTO with synthesis_block_id and valid enums',
+      'Should parse SynthesisConfigDTO with synthesis_block_id and row_explanations_block_id',
       () {
         final jsonPayload = {
-          'historical_context_mode': 'DISABLED',
-          'enable_pii_masking': false,
-          'allowed_exports': ['pdf'],
-          'omit_empty_sections': true,
-          'allowed_mcp_tools': [],
           'synthesis_block_id': 'blk_8f7e6d5c4b3a2019',
+          'row_explanations_block_id': 'blk_row_explanation_rules',
+          'length_constraint': 300,
         };
 
         final dto = SynthesisConfigDTO.fromJson(jsonPayload);
         expect(dto.synthesisBlockId, 'blk_8f7e6d5c4b3a2019');
-        expect(dto.historicalContextMode, HistoricalContextMode.disabled);
+        expect(dto.rowExplanationsBlockId, 'blk_row_explanation_rules');
+        expect(dto.lengthConstraint, 300);
       },
     );
 
-    // Contract: test_synthesis_config_dto_unknown_historical_context_mode_throws
-    test(
-      'test_synthesis_config_dto_unknown_historical_context_mode_throws',
-      () {
-        final jsonPayload = {
-          'historical_context_mode': 'invalid',
-          'enable_pii_masking': false,
-        };
+    // Contract: test_synthesis_config_dto_purged_enable_pii_masking_throws
+    test('test_synthesis_config_dto_purged_enable_pii_masking_throws', () {
+      final jsonPayload = {'enable_pii_masking': false};
 
-        expect(
-          () => SynthesisConfigDTO.fromJson(jsonPayload),
-          throwsA(isA<CheckedFromJsonException>()),
-        );
-      },
-    );
+      expect(
+        () => SynthesisConfigDTO.fromJson(jsonPayload),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    // Contract: test_synthesis_config_dto_purged_historical_context_mode_throws
+    test('test_synthesis_config_dto_purged_historical_context_mode_throws', () {
+      final jsonPayload = {'historical_context_mode': 'DISABLED'};
+
+      expect(
+        () => SynthesisConfigDTO.fromJson(jsonPayload),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    // Contract: test_synthesis_config_dto_purged_allowed_exports_throws
+    test('test_synthesis_config_dto_purged_allowed_exports_throws', () {
+      final jsonPayload = {
+        'allowed_exports': ['pdf'],
+      };
+
+      expect(
+        () => SynthesisConfigDTO.fromJson(jsonPayload),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
   });
 
   group('OutputProfile JSON Parsing', () {
@@ -140,13 +154,9 @@ void main() {
           'translations': {'en': 'Test Profile'},
         },
         'synthesis': {
-          'historical_context_mode': 'DISABLED',
-          'enable_pii_masking': false,
-          'allowed_exports': ['pdf', 'raw_json'],
-          'omit_empty_sections': true,
-          'allowed_mcp_tools': [],
           'synthesis_block_id': 'blk_1a2b3c4d5e6f7a8b',
           'row_explanations_block_id': 'blk_row_explanation_rules',
+          'length_constraint': 250,
         },
       };
 
@@ -157,6 +167,7 @@ void main() {
         profile.synthesis?.rowExplanationsBlockId,
         'blk_row_explanation_rules',
       );
+      expect(profile.synthesis?.lengthConstraint, 250);
     });
 
     // Contract: test_output_profile_valid_deserialization
@@ -241,12 +252,8 @@ void main() {
           'audit_trail_block',
         ],
         'synthesis': {
-          'historical_context_mode': 'SLIDING_WINDOW_3',
-          'enable_pii_masking': true,
-          'allowed_exports': ['pdf'],
-          'omit_empty_sections': false,
-          'allowed_mcp_tools': ['tool_a'],
           'synthesis_block_id': 'blk_syn_1',
+          'length_constraint': 300,
         },
         'performativity_detector_step_id': 'step_perf_1',
       };
@@ -264,10 +271,8 @@ void main() {
         profile.layouts.first.textDeliveryMode,
         TextDeliveryMode.titlesOnly,
       );
-      expect(
-        profile.synthesis?.historicalContextMode,
-        HistoricalContextMode.slidingWindow3,
-      );
+      expect(profile.synthesis?.synthesisBlockId, 'blk_syn_1');
+      expect(profile.synthesis?.lengthConstraint, 300);
       expect(profile.visibleBlockExtensions, [
         XaiExtensionType.citation,
         XaiExtensionType.coaching,
@@ -338,7 +343,7 @@ void main() {
           'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
         },
-        'synthesis': {'historical_context_mode': 'DISABLED', 'ghost_key': true},
+        'synthesis': {'synthesis_block_id': 'blk_syn_1', 'ghost_key': true},
       };
 
       expect(

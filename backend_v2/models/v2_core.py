@@ -27,7 +27,6 @@ from backend_v2.models.enums import (
     ComponentType,
     DisplayScale,
     ExecutionStatus,
-    HistoricalContextMode,
     LaxBlockDataType,
     LaxComponentType,
     LaxDisplayScale,
@@ -1081,29 +1080,9 @@ class SynthesisConfigDTO(V2CoreBase):
         default=None,
         description="Optional explicit reference to the extraction block UUID that generates row explanations.",
     )
-    model_strategy: str = Field(
-        default="synthesis",
-        description=(
-            "Pointer to Model Registry strategy key. "
-            "Determines which model/temperature is used for the main synthesis LLM call. "
-            "MUST exist as a key in system_config.model_registry.models."
-        ),
-    )
     length_constraint: int | None = Field(default=None, description="Length constraint for the synthesized text.")
     preamble_text: I18nText | None = Field(
         default=None, description="Multilingual preamble text added before synthesis."
-    )
-    historical_context_mode: LaxHistoricalContextMode = Field(
-        default=HistoricalContextMode.DISABLED, description="Mode for fetching historical context."
-    )
-    enable_pii_masking: bool = Field(default=False, description="Flag to enable algorithmic PII redaction.")
-    allowed_exports: list[Literal["pdf", "docx", "raw_json", "xlsx"]] = Field(
-        default_factory=lambda: cast(list[Literal["pdf", "docx", "raw_json", "xlsx"]], ["pdf", "raw_json"]),
-        description="Supported export file formats.",
-    )
-    omit_empty_sections: bool = Field(default=True, description="Flag to drop logically empty evaluation sections.")
-    allowed_mcp_tools: list[str] = Field(
-        default_factory=list, description="Enabled MCP tool identifiers for pre-fetch synthesis phase."
     )
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
 

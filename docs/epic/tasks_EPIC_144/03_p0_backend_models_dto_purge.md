@@ -7,7 +7,7 @@
 **Overview:** Remove `include_diagnostic_scorecard` from domain models and DTOs, migrate `display_scale` from `Literal[...]` to `DisplayScale` enum, migrate `target_block_order` from `list[str]` to `list[TargetBlockType]`, enforce non-nullable `max_extension_items` with `Field(ge=1, le=100)`, and enforce `ConfigDict(strict=True, extra="forbid")` on all models.
 
 **Target Files:**
-- `[MODIFY]` `@[backend_v2/models/v2_core.py#L1315-L1409]` — OutputProfile class
+- `[MODIFY]` `@[backend_v2/models/v2_core.py#L1317-L1410]` — OutputProfile class
 - `[MODIFY]` `@[backend_v2/models/dtos/output_profile.py]` — OutputProfileCreateDTO, OutputProfileUpdateDTO, OutputProfileResponseDTO
 
 **Context Files (Read-Only):**

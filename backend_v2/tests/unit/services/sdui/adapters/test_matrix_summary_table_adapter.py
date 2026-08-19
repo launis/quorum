@@ -273,7 +273,7 @@ def test_matrix_summary_table_adapter_layout_description_and_section_syntheses()
                 title=I18nText(default_locale="en", translations={"en": "Table Summary"}),
                 target_blocks=["m1"],
                 description=I18nText(default_locale="en", translations={"en": "Test description"}),
-                synthesis=SynthesisConfigDTO(enable_pii_masking=False),
+                synthesis=SynthesisConfigDTO(),
             )
         ],
     )

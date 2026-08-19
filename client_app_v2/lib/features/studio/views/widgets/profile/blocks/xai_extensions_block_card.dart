@@ -44,8 +44,8 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
 
     return BaseBlockCard(
       blockType: TargetBlockType.groupedExtensionsBlock,
-      title: 'XAI Highlights & Extensions',
-      subtitle: 'Explainable AI callouts, justifications, tips, and citations',
+      title: l10n.blockAiExtensionsTitle,
+      subtitle: l10n.blockAiExtensionsSubtitle,
       icon: Icons.extension_outlined,
       isIncluded: isIncluded,
       dragHandle: dragHandle,
@@ -114,7 +114,7 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Max Extension Items: ${payload.maxExtensionItems}',
+                      l10n.maxExtensionItemsCount(payload.maxExtensionItems),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     Slider(
@@ -139,9 +139,9 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
                   key: ValueKey('max_ext_${payload.maxExtensionItems}'),
                   initialValue: payload.maxExtensionItems.toString(),
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Max',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.maxFieldLabel,
+                    border: const OutlineInputBorder(),
                     isDense: true,
                   ),
                   onChanged: (val) {

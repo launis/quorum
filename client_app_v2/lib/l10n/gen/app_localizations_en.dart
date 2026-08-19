@@ -3808,6 +3808,217 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileTabGeneral => 'General';
 
   @override
+  String get profileTabScoring => 'Scoring & XAI';
+
+  @override
+  String get profileTabReportStructure => 'Report Structure';
+
+  @override
+  String get blockMetadataTitle => 'Report Metadata';
+
+  @override
+  String get blockExecutiveSummaryTitle => 'Executive Summary';
+
+  @override
+  String get blockSynthesisTextTitle => 'Synthesis & Narrative Text';
+
+  @override
+  String get blockMatrixGraphsTitle => 'Matrix Visualizations & Graphs';
+
+  @override
+  String get blockAiExtensionsTitle => 'XAI Highlights & Extensions';
+
+  @override
+  String get blockPenaltiesTitle => 'Penalties & Deductions';
+
+  @override
+  String get blockMatrixSummaryTitle => 'Matrix Summary Table';
+
+  @override
+  String get blockVarianceTitle => 'Variance Validation';
+
+  @override
+  String get blockAuthenticityTitle => 'Authenticity Evaluation';
+
+  @override
+  String get blockBibliographyTitle => 'Bibliography & Sources';
+
+  @override
+  String get blockGlobalScoreTitle => 'Global Score';
+
+  @override
+  String get blockAuditTrailTitle => 'Audit Trail';
+
+  @override
+  String get blockJargonRatioTitle => 'Jargon & Clarity Ratio';
+
+  @override
+  String get blockMetadataSubtitle =>
+      'Execution timestamps, organization info, and engine parameters';
+
+  @override
+  String get blockExecutiveSummarySubtitle =>
+      'Global multi-step synthesis and management summary';
+
+  @override
+  String get blockSynthesisTextSubtitle =>
+      'Executive synthesis narratives, LLM summaries, and section preambles';
+
+  @override
+  String get blockMatrixGraphsSubtitle =>
+      '1D Metrics, 2D Comparisons, 3D Matrices, and Text-Only matrix presentations';
+
+  @override
+  String get blockAiExtensionsSubtitle =>
+      'Explainable AI callouts, justifications, tips, and citations';
+
+  @override
+  String get blockPenaltiesSubtitle =>
+      'Automated scoring deductions and compliance penalties';
+
+  @override
+  String get blockMatrixSummarySubtitle =>
+      'Tabular overview of matrix evaluations, atomic breakdown, and scores';
+
+  @override
+  String get blockVarianceSubtitle =>
+      'Inter-rater variance and statistical confidence bounds';
+
+  @override
+  String get blockAuthenticitySubtitle =>
+      'Source document authenticity and cognitive manipulation checks';
+
+  @override
+  String get blockBibliographySubtitle =>
+      'Printable citations, sources, and verified references section';
+
+  @override
+  String get blockGlobalScoreSubtitle =>
+      'Aggregated final scoring card and benchmark metrics';
+
+  @override
+  String get blockAuditTrailSubtitle =>
+      'Forensic event logs and chronological execution trace';
+
+  @override
+  String get blockJargonRatioSubtitle =>
+      'Linguistic clarity metrics and domain jargon density';
+
+  @override
+  String get reportVisualBlocksHeader => 'Report Visual Blocks';
+
+  @override
+  String activeBlocksCount(int count) {
+    return '$count active';
+  }
+
+  @override
+  String get availableBlocksHeader => 'Available Blocks (Click to enable)';
+
+  @override
+  String get noGraphLayoutsDefined =>
+      'No graph layouts defined yet. Click \"+ Add Graph\" below to add a 1D, 2D, or 3D visualization.';
+
+  @override
+  String get addGraphButton => 'Add Graph';
+
+  @override
+  String graphTitleDefault(int index, String preset) {
+    return 'Graph #$index ($preset)';
+  }
+
+  @override
+  String get graphTitleLabel => 'Graph Title';
+
+  @override
+  String get axisXPrimary => 'X-Axis (Primary)';
+
+  @override
+  String get axisYComparison => 'Y-Axis (Comparison)';
+
+  @override
+  String get axisZDepth => 'Z-Axis (Depth)';
+
+  @override
+  String get selectBlockHint => 'Select block...';
+
+  @override
+  String alreadySelectedOnOtherAxis(String label) {
+    return '$label (Already selected on other axis)';
+  }
+
+  @override
+  String get presetView1d => '1D Table';
+
+  @override
+  String get presetView2d => '2D Grid';
+
+  @override
+  String get presetView3d => '3D Matrix';
+
+  @override
+  String get presetViewTextOnly => 'Text Only';
+
+  @override
+  String get presetViewSummaryTable => 'Summary Table';
+
+  @override
+  String get visibleMetadataFieldsLabel => 'Visible Metadata Fields';
+
+  @override
+  String get pipelineSynthesisBindingLabel =>
+      'Pipeline Synthesis Block Binding';
+
+  @override
+  String get synthesisPromptBlockLabel =>
+      'Synthesis Prompt Block (Pipeline Way)';
+
+  @override
+  String get synthesisPromptBlockHelper =>
+      'Select an existing prompt block configured in the workflow';
+
+  @override
+  String get synthesisNoneOption => 'None (Use On-the-Fly configuration below)';
+
+  @override
+  String get toneInstructionLabel => 'Tone Instruction (Voice & Audience)';
+
+  @override
+  String get sectionPreambleTextLabel => 'Section Preamble Text';
+
+  @override
+  String get visibleTableColumnsLabel => 'Visible Table Columns';
+
+  @override
+  String get columnLabelOverridesLabel => 'Column Label Overrides';
+
+  @override
+  String columnLabelField(String column) {
+    return 'Column Label: $column';
+  }
+
+  @override
+  String maxExtensionItemsCount(int count) {
+    return 'Max Extension Items: $count';
+  }
+
+  @override
+  String get maxFieldLabel => 'Max';
+
+  @override
+  String get bibliographyCardHint =>
+      'Formatted source document list and exact quote citations will be rendered at the end of the report.';
+
+  @override
+  String get displayScaleOriginal => 'Original Scale (Unmodified)';
+
+  @override
+  String get displayScaleCustom => 'Custom Domain Scale';
+
+  @override
+  String get displayScaleNormalized100 => 'Normalized 0-100% Scale';
+
+  @override
   String get profileTabXai => 'Extensions (XAI)';
 
   @override

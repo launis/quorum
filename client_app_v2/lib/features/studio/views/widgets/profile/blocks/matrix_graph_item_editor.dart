@@ -6,6 +6,8 @@ import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 
+import 'package:client_app/l10n/gen/app_localizations.dart';
+
 /// Single item editor within MatrixGraphsBlockCard for configuring a single graph layout.
 class MatrixGraphItemEditor extends StatelessWidget {
   final int index;
@@ -27,6 +29,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final blocks = promptBlocksState.value ?? [];
@@ -53,7 +56,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
         title: Text(
           layout.title?.translations['en'] ??
               layout.title?.translations.values.firstOrNull ??
-              'Graph #${index + 1} (${layout.presetView.name})',
+              l10n.graphTitleDefault(index + 1, layout.presetView.name),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         trailing: IconButton(
@@ -63,22 +66,25 @@ class MatrixGraphItemEditor extends StatelessWidget {
         childrenPadding: AppSpacing.p12,
         children: [
           SegmentedButton<PresetView>(
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: PresetView.metrics1d,
-                label: Text('1D Table', overflow: TextOverflow.ellipsis),
+                label: Text(l10n.presetView1d, overflow: TextOverflow.ellipsis),
               ),
               ButtonSegment(
                 value: PresetView.compare2d,
-                label: Text('2D Grid', overflow: TextOverflow.ellipsis),
+                label: Text(l10n.presetView2d, overflow: TextOverflow.ellipsis),
               ),
               ButtonSegment(
                 value: PresetView.matrix3d,
-                label: Text('3D Matrix', overflow: TextOverflow.ellipsis),
+                label: Text(l10n.presetView3d, overflow: TextOverflow.ellipsis),
               ),
               ButtonSegment(
                 value: PresetView.textOnly,
-                label: Text('Text Only', overflow: TextOverflow.ellipsis),
+                label: Text(
+                  l10n.presetViewTextOnly,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
             selected: {
@@ -97,7 +103,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.s12),
           I18nTextField(
-            label: 'Graph Title',
+            label: l10n.graphTitleLabel,
             initialData: layout.title,
             onChanged: (val) {
               onUpdate(
@@ -110,6 +116,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
             for (int axisIdx = 0; axisIdx < requiredAxes; axisIdx++) ...[
               _buildAxisDropdown(
                 context,
+                l10n: l10n,
                 axisIdx: axisIdx,
                 targetBlocks: targetBlocks,
                 selectableBlocks: selectableBlocks,
@@ -134,14 +141,15 @@ class MatrixGraphItemEditor extends StatelessWidget {
 
   Widget _buildAxisDropdown(
     BuildContext context, {
+    required AppLocalizations l10n,
     required int axisIdx,
     required List<String> targetBlocks,
     required List<PromptBlock> selectableBlocks,
   }) {
     final axisLabels = [
-      'X-Axis (Primary)',
-      'Y-Axis (Comparison)',
-      'Z-Axis (Depth)',
+      l10n.axisXPrimary,
+      l10n.axisYComparison,
+      l10n.axisZDepth,
     ];
     final currentVal = axisIdx < targetBlocks.length
         ? targetBlocks[axisIdx]
@@ -157,9 +165,9 @@ class MatrixGraphItemEditor extends StatelessWidget {
         isDense: true,
       ),
       items: [
-        const DropdownMenuItem<String?>(
+        DropdownMenuItem<String?>(
           value: null,
-          child: Text('Select block...'),
+          child: Text(l10n.selectBlockHint),
         ),
         ...selectableBlocks.map((block) {
           final isDuplicate = otherSelected.contains(block.id);
@@ -169,7 +177,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
             enabled: !isDuplicate,
             child: Text(
               isDuplicate
-                  ? '$label (Already selected on other axis)'
+                  ? l10n.alreadySelectedOnOtherAxis(label)
                   : '$label (${block.id})',
               style: TextStyle(
                 color: isDuplicate ? Theme.of(context).disabledColor : null,

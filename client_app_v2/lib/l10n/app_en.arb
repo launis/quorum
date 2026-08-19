@@ -1989,6 +1989,105 @@
   "excelSheetSummary": "Summary",
   "excelSheetRawData": "Raw Data",
   "profileTabGeneral": "General",
+  "profileTabScoring": "Scoring & XAI",
+  "profileTabReportStructure": "Report Structure",
+  "blockMetadataTitle": "Report Metadata",
+  "blockExecutiveSummaryTitle": "Executive Summary",
+  "blockSynthesisTextTitle": "Synthesis & Narrative Text",
+  "blockMatrixGraphsTitle": "Matrix Visualizations & Graphs",
+  "blockAiExtensionsTitle": "XAI Highlights & Extensions",
+  "blockPenaltiesTitle": "Penalties & Deductions",
+  "blockMatrixSummaryTitle": "Matrix Summary Table",
+  "blockVarianceTitle": "Variance Validation",
+  "blockAuthenticityTitle": "Authenticity Evaluation",
+  "blockBibliographyTitle": "Bibliography & Sources",
+  "blockGlobalScoreTitle": "Global Score",
+  "blockAuditTrailTitle": "Audit Trail",
+  "blockJargonRatioTitle": "Jargon & Clarity Ratio",
+  "blockMetadataSubtitle": "Execution timestamps, organization info, and engine parameters",
+  "blockExecutiveSummarySubtitle": "Global multi-step synthesis and management summary",
+  "blockSynthesisTextSubtitle": "Executive synthesis narratives, LLM summaries, and section preambles",
+  "blockMatrixGraphsSubtitle": "1D Metrics, 2D Comparisons, 3D Matrices, and Text-Only matrix presentations",
+  "blockAiExtensionsSubtitle": "Explainable AI callouts, justifications, tips, and citations",
+  "blockPenaltiesSubtitle": "Automated scoring deductions and compliance penalties",
+  "blockMatrixSummarySubtitle": "Tabular overview of matrix evaluations, atomic breakdown, and scores",
+  "blockVarianceSubtitle": "Inter-rater variance and statistical confidence bounds",
+  "blockAuthenticitySubtitle": "Source document authenticity and cognitive manipulation checks",
+  "blockBibliographySubtitle": "Printable citations, sources, and verified references section",
+  "blockGlobalScoreSubtitle": "Aggregated final scoring card and benchmark metrics",
+  "blockAuditTrailSubtitle": "Forensic event logs and chronological execution trace",
+  "blockJargonRatioSubtitle": "Linguistic clarity metrics and domain jargon density",
+  "reportVisualBlocksHeader": "Report Visual Blocks",
+  "activeBlocksCount": "{count} active",
+  "@activeBlocksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "availableBlocksHeader": "Available Blocks (Click to enable)",
+  "noGraphLayoutsDefined": "No graph layouts defined yet. Click \"+ Add Graph\" below to add a 1D, 2D, or 3D visualization.",
+  "addGraphButton": "Add Graph",
+  "graphTitleDefault": "Graph #{index} ({preset})",
+  "@graphTitleDefault": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "preset": {
+        "type": "String"
+      }
+    }
+  },
+  "graphTitleLabel": "Graph Title",
+  "axisXPrimary": "X-Axis (Primary)",
+  "axisYComparison": "Y-Axis (Comparison)",
+  "axisZDepth": "Z-Axis (Depth)",
+  "selectBlockHint": "Select block...",
+  "alreadySelectedOnOtherAxis": "{label} (Already selected on other axis)",
+  "@alreadySelectedOnOtherAxis": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "presetView1d": "1D Table",
+  "presetView2d": "2D Grid",
+  "presetView3d": "3D Matrix",
+  "presetViewTextOnly": "Text Only",
+  "presetViewSummaryTable": "Summary Table",
+  "visibleMetadataFieldsLabel": "Visible Metadata Fields",
+  "pipelineSynthesisBindingLabel": "Pipeline Synthesis Block Binding",
+  "synthesisPromptBlockLabel": "Synthesis Prompt Block (Pipeline Way)",
+  "synthesisPromptBlockHelper": "Select an existing prompt block configured in the workflow",
+  "synthesisNoneOption": "None (Use On-the-Fly configuration below)",
+  "toneInstructionLabel": "Tone Instruction (Voice & Audience)",
+  "sectionPreambleTextLabel": "Section Preamble Text",
+  "visibleTableColumnsLabel": "Visible Table Columns",
+  "columnLabelOverridesLabel": "Column Label Overrides",
+  "columnLabelField": "Column Label: {column}",
+  "@columnLabelField": {
+    "placeholders": {
+      "column": {
+        "type": "String"
+      }
+    }
+  },
+  "maxExtensionItemsCount": "Max Extension Items: {count}",
+  "@maxExtensionItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "maxFieldLabel": "Max",
+  "bibliographyCardHint": "Formatted source document list and exact quote citations will be rendered at the end of the report.",
+  "displayScaleOriginal": "Original Scale (Unmodified)",
+  "displayScaleCustom": "Custom Domain Scale",
+  "displayScaleNormalized100": "Normalized 0-100% Scale",
   "profileTabXai": "Extensions (XAI)",
   "profileTabLayouts": "Layouts",
   "layoutBlockDescriptionLabel": "Section Description (Optional)",

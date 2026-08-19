@@ -21,21 +21,19 @@ _SynthesisConfigDto _$SynthesisConfigDtoFromJson(Map<String, dynamic> json) =>
             'row_explanations_block_id',
             (v) => v as String?,
           ),
-          modelStrategy: $checkedConvert(
-            'model_strategy',
-            (v) => v as String? ?? 'synthesis',
-          ),
           lengthConstraint: $checkedConvert(
             'length_constraint',
             (v) => (v as num?)?.toInt(),
           ),
-          enablePiiMasking: $checkedConvert(
-            'enable_pii_masking',
-            (v) => v as bool? ?? false,
+          preambleText: $checkedConvert(
+            'preamble_text',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
           ),
-          omitEmptySections: $checkedConvert(
-            'omit_empty_sections',
-            (v) => v as bool? ?? true,
+          toneInstruction: $checkedConvert(
+            'tone_instruction',
+            (v) =>
+                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
           ),
         );
         return val;
@@ -44,10 +42,9 @@ _SynthesisConfigDto _$SynthesisConfigDtoFromJson(Map<String, dynamic> json) =>
         'systemPrompt': 'system_prompt',
         'synthesisBlockId': 'synthesis_block_id',
         'rowExplanationsBlockId': 'row_explanations_block_id',
-        'modelStrategy': 'model_strategy',
         'lengthConstraint': 'length_constraint',
-        'enablePiiMasking': 'enable_pii_masking',
-        'omitEmptySections': 'omit_empty_sections',
+        'preambleText': 'preamble_text',
+        'toneInstruction': 'tone_instruction',
       },
     );
 
@@ -56,8 +53,7 @@ Map<String, dynamic> _$SynthesisConfigDtoToJson(_SynthesisConfigDto instance) =>
       'system_prompt': instance.systemPrompt,
       'synthesis_block_id': instance.synthesisBlockId,
       'row_explanations_block_id': instance.rowExplanationsBlockId,
-      'model_strategy': instance.modelStrategy,
       'length_constraint': instance.lengthConstraint,
-      'enable_pii_masking': instance.enablePiiMasking,
-      'omit_empty_sections': instance.omitEmptySections,
+      'preamble_text': instance.preambleText?.toJson(),
+      'tone_instruction': instance.toneInstruction?.toJson(),
     };

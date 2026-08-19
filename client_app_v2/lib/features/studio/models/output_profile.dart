@@ -51,20 +51,12 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory SynthesisConfigDTO({
-    String? systemPrompt,
-    int? lengthConstraint,
-    I18nText? preambleText,
-    @Default(HistoricalContextMode.disabled)
-    @JsonKey(name: 'historical_context_mode')
-    HistoricalContextMode historicalContextMode,
-    @Default(false) bool enablePiiMasking,
-    @Default(['pdf', 'raw_json']) List<String> allowedExports,
-    @Default(true) bool omitEmptySections,
-    @Default([]) List<String> allowedMcpTools,
-    @JsonKey(name: 'model_strategy') String? modelStrategy,
-    @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
+    @JsonKey(name: 'system_prompt') String? systemPrompt,
     @JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,
     @JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,
+    @JsonKey(name: 'length_constraint') int? lengthConstraint,
+    @JsonKey(name: 'preamble_text') I18nText? preambleText,
+    @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
   }) = _SynthesisConfigDTO;
 
   factory SynthesisConfigDTO.fromJson(Map<String, dynamic> json) =>

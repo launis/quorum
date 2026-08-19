@@ -55,7 +55,6 @@ void main() {
               synthesis: SynthesisConfigDTO(
                 preambleText: emptyI18n,
                 toneInstruction: emptyI18n,
-                historicalContextMode: HistoricalContextMode.disabled,
               ),
             ),
           ],

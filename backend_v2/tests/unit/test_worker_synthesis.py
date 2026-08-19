@@ -119,10 +119,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
                 "title": {"default_locale": "en", "translations": {"en": "T"}},
                 "synthesis": {
                     "synthesis_block_id": "pb_2222222222222222",
-                    "model_strategy": "synthesis",
                     "length_constraint": 1000,
                     "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional"}},
-                    "omit_empty_sections": True,
                 },
             }
         ],

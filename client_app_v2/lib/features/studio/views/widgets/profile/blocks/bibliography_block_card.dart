@@ -4,6 +4,8 @@ import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 
+import 'package:client_app/l10n/gen/app_localizations.dart';
+
 /// Card for printableSourcesBlock (Bibliography & Sources).
 class BibliographyBlockCard extends StatelessWidget {
   final OutputProfile payload;
@@ -19,14 +21,15 @@ class BibliographyBlockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isIncluded = payload.targetBlockOrder.contains(
       TargetBlockType.printableSourcesBlock,
     );
 
     return BaseBlockCard(
       blockType: TargetBlockType.printableSourcesBlock,
-      title: 'Bibliography & Sources',
-      subtitle: 'Printable citations, sources, and verified references section',
+      title: l10n.blockBibliographyTitle,
+      subtitle: l10n.blockBibliographySubtitle,
       icon: Icons.menu_book_outlined,
       isIncluded: isIncluded,
       dragHandle: dragHandle,
@@ -44,7 +47,7 @@ class BibliographyBlockCard extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
         child: Text(
-          'Formatted source document list and exact quote citations will be rendered at the end of the report.',
+          l10n.bibliographyCardHint,
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ),

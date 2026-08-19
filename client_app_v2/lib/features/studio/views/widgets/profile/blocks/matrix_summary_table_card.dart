@@ -5,6 +5,8 @@ import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 
+import 'package:client_app/l10n/gen/app_localizations.dart';
+
 /// Dedicated configuration card for matrixSummaryTableBlock.
 class MatrixSummaryTableCard extends StatelessWidget {
   final OutputProfile payload;
@@ -53,6 +55,7 @@ class MatrixSummaryTableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isIncluded = payload.targetBlockOrder.contains(
       TargetBlockType.matrixSummaryTableBlock,
     );
@@ -60,9 +63,8 @@ class MatrixSummaryTableCard extends StatelessWidget {
 
     return BaseBlockCard(
       blockType: TargetBlockType.matrixSummaryTableBlock,
-      title: 'Matrix Summary Table',
-      subtitle:
-          'Tabular overview of matrix evaluations, atomic breakdown, and scores',
+      title: l10n.blockMatrixSummaryTitle,
+      subtitle: l10n.blockMatrixSummarySubtitle,
       icon: Icons.table_chart_outlined,
       isIncluded: isIncluded,
       dragHandle: dragHandle,
@@ -81,7 +83,7 @@ class MatrixSummaryTableCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Visible Table Columns',
+            l10n.visibleTableColumnsLabel,
             style: Theme.of(
               context,
             ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -116,7 +118,7 @@ class MatrixSummaryTableCard extends StatelessWidget {
           if (summaryBlock.matrixVisibleColumns.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.s16),
             Text(
-              'Column Label Overrides',
+              l10n.columnLabelOverridesLabel,
               style: Theme.of(
                 context,
               ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -126,7 +128,7 @@ class MatrixSummaryTableCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.s8),
                 child: I18nTextField(
-                  label: 'Column Label: $col',
+                  label: l10n.columnLabelField(col),
                   initialData: summaryBlock.matrixColumnLabels[col],
                   onChanged: (val) {
                     final newLabels = Map<String, dynamic>.from(

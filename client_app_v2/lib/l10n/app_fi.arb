@@ -1329,7 +1329,106 @@
   "excelNoteNoAtoms": "Ei atomeja löytynyt",
   "excelSheetSummary": "Yhteenveto",
   "excelSheetRawData": "Raakadata",
-  "profileTabGeneral": "Perustiedot",
+  "profileTabGeneral": "Yleiset",
+  "profileTabScoring": "Pisteytys & XAI",
+  "profileTabReportStructure": "Raportin rakenne",
+  "blockMetadataTitle": "Raportin metatiedot",
+  "blockExecutiveSummaryTitle": "Johdon tiivistelmä",
+  "blockSynthesisTextTitle": "Synteesi ja narratiiviteksti",
+  "blockMatrixGraphsTitle": "Matriisivisualisoinnit ja kaaviot",
+  "blockAiExtensionsTitle": "XAI-korostukset ja laajennukset",
+  "blockPenaltiesTitle": "Rangaistukset ja vähennykset",
+  "blockMatrixSummaryTitle": "Matriisiyhteenvetotaulukko",
+  "blockVarianceTitle": "Varianssivalidointi",
+  "blockAuthenticityTitle": "Autenttisuuden arviointi",
+  "blockBibliographyTitle": "Lähdeluettelo ja viitteet",
+  "blockGlobalScoreTitle": "Kokonaistulos",
+  "blockAuditTrailTitle": "Auditointijälki",
+  "blockJargonRatioTitle": "Ammattikieli- ja selkeyssuhde",
+  "blockMetadataSubtitle": "Suoritusleimat, organisaatiotiedot ja moottorin parametrit",
+  "blockExecutiveSummarySubtitle": "Koko työnkulun laajuinen synteesi ja johdon yhteenveto",
+  "blockSynthesisTextSubtitle": "Synteesikertomukset, tekoäly-yhteenvedot ja osiojohdannot",
+  "blockMatrixGraphsSubtitle": "1D-mittarit, 2D-vertailut, 3D-matriisit ja tekstiesitykset",
+  "blockAiExtensionsSubtitle": "Selitettävän tekoälyn nostot, perustelut, vinkit ja viitteet",
+  "blockPenaltiesSubtitle": "Automaattiset pistevähennykset ja sääntöjenmukaisuusrangaistukset",
+  "blockMatrixSummarySubtitle": "Taulukkomuotoinen katsaus matriisiarviointeihin, atomijakaumaan ja pisteisiin",
+  "blockVarianceSubtitle": "Arvioijien välinen varianssi ja tilastolliset luottamusvälit",
+  "blockAuthenticitySubtitle": "Lähdeaineiston aitous ja kognitiivisen manipulaation tarkistukset",
+  "blockBibliographySubtitle": "Tulostettavat viittaukset, lähteet ja todennetut viitteet",
+  "blockGlobalScoreSubtitle": "Yhdistetty loppupistekortti ja vertailulukuarvot",
+  "blockAuditTrailSubtitle": "Oikeudelliset tapahtumalokit ja aikajärjestyksessä oleva suoritusjälki",
+  "blockJargonRatioSubtitle": "Kielellisen selkeyden mittarit ja toimialajargonin tiheys",
+  "reportVisualBlocksHeader": "Raportin visuaaliset lohkot",
+  "activeBlocksCount": "{count} aktiivisena",
+  "@activeBlocksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "availableBlocksHeader": "Käytettävissä olevat lohkot (Klikkaa ottaaksesi käyttöön)",
+  "noGraphLayoutsDefined": "Kaaviolohkoja ei ole vielä määritetty. Klikkaa alta \"+ Lisää kaavio\" luodaksesi 1D-, 2D- tai 3D-visualisoinnin.",
+  "addGraphButton": "Lisää kaavio",
+  "graphTitleDefault": "Kaavio #{index} ({preset})",
+  "@graphTitleDefault": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "preset": {
+        "type": "String"
+      }
+    }
+  },
+  "graphTitleLabel": "Kaavion otsikko",
+  "axisXPrimary": "X-akseli (Ensisijainen)",
+  "axisYComparison": "Y-akseli (Vertailu)",
+  "axisZDepth": "Z-akseli (Syvyys)",
+  "selectBlockHint": "Valitse lohko...",
+  "alreadySelectedOnOtherAxis": "{label} (Valittu jo toiselle akselille)",
+  "@alreadySelectedOnOtherAxis": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "presetView1d": "1D-taulukko",
+  "presetView2d": "2D-ruudukko",
+  "presetView3d": "3D-matriisi",
+  "presetViewTextOnly": "Vain teksti",
+  "presetViewSummaryTable": "Yhteenvetotaulukko",
+  "visibleMetadataFieldsLabel": "Näkyvät metatietokentät",
+  "pipelineSynthesisBindingLabel": "Työnkulun synteesilohkon sidonta",
+  "synthesisPromptBlockLabel": "Synteesin kehotelohko (Työnkulku)",
+  "synthesisPromptBlockHelper": "Valitse työnkulkuun määritetty olemassa oleva kehotelohko",
+  "synthesisNoneOption": "Ei mitään (Käytä alla olevaa suoraa määritystä)",
+  "toneInstructionLabel": "Äänensävy ja kohdeyleisö",
+  "sectionPreambleTextLabel": "Osion johdantoteksti",
+  "visibleTableColumnsLabel": "Näkyvät taulukon sarakkeet",
+  "columnLabelOverridesLabel": "Sarakkeiden otsikoiden mukautukset",
+  "columnLabelField": "Sarakkeen otsikko: {column}",
+  "@columnLabelField": {
+    "placeholders": {
+      "column": {
+        "type": "String"
+      }
+    }
+  },
+  "maxExtensionItemsCount": "Laajennusten enimmäismäärä: {count}",
+  "@maxExtensionItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "maxFieldLabel": "Enintään",
+  "bibliographyCardHint": "Muotoiltu lähdeluettelo ja tarkat lainaukset esitetään raportin lopussa.",
+  "displayScaleOriginal": "Alkuperäinen asteikko (Muuttamaton)",
+  "displayScaleCustom": "Mukautettu toimiala-asteikko",
+  "displayScaleNormalized100": "Normalisoitu 0-100 % asteikko",
   "profileTabXai": "XAI",
   "profileTabLayouts": "Raporttipohjat",
   "layoutBlockDescriptionLabel": "Osion kuvaus (valinnainen väliotsikko)",

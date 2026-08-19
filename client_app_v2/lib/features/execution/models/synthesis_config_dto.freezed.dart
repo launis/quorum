@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SynthesisConfigDto {
 
-@JsonKey(name: 'system_prompt') String? get systemPrompt;@JsonKey(name: 'synthesis_block_id') String? get synthesisBlockId;@JsonKey(name: 'row_explanations_block_id') String? get rowExplanationsBlockId;@JsonKey(name: 'model_strategy') String get modelStrategy;@JsonKey(name: 'length_constraint') int? get lengthConstraint;@JsonKey(name: 'enable_pii_masking') bool get enablePiiMasking;@JsonKey(name: 'omit_empty_sections') bool get omitEmptySections;
+@JsonKey(name: 'system_prompt') String? get systemPrompt;@JsonKey(name: 'synthesis_block_id') String? get synthesisBlockId;@JsonKey(name: 'row_explanations_block_id') String? get rowExplanationsBlockId;@JsonKey(name: 'length_constraint') int? get lengthConstraint;@JsonKey(name: 'preamble_text') I18nText? get preambleText;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction;
 /// Create a copy of SynthesisConfigDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $SynthesisConfigDtoCopyWith<SynthesisConfigDto> get copyWith => _$SynthesisConfi
 
 @override
 String toString() {
-  return 'SynthesisConfigDto(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, modelStrategy: $modelStrategy, lengthConstraint: $lengthConstraint, enablePiiMasking: $enablePiiMasking, omitEmptySections: $omitEmptySections)';
+  return 'SynthesisConfigDto(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, lengthConstraint: $lengthConstraint, preambleText: $preambleText, toneInstruction: $toneInstruction)';
 }
 
 
@@ -41,11 +41,11 @@ abstract mixin class $SynthesisConfigDtoCopyWith<$Res>  {
   factory $SynthesisConfigDtoCopyWith(SynthesisConfigDto value, $Res Function(SynthesisConfigDto) _then) = _$SynthesisConfigDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'model_strategy') String modelStrategy,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'enable_pii_masking') bool enablePiiMasking,@JsonKey(name: 'omit_empty_sections') bool omitEmptySections
+@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
 });
 
 
-
+$I18nTextCopyWith<$Res>? get preambleText;$I18nTextCopyWith<$Res>? get toneInstruction;
 
 }
 /// @nodoc
@@ -58,19 +58,42 @@ class _$SynthesisConfigDtoCopyWithImpl<$Res>
 
 /// Create a copy of SynthesisConfigDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? modelStrategy = null,Object? lengthConstraint = freezed,Object? enablePiiMasking = null,Object? omitEmptySections = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? toneInstruction = freezed,}) {
   return _then(_self.copyWith(
 systemPrompt: freezed == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
 as String?,synthesisBlockId: freezed == synthesisBlockId ? _self.synthesisBlockId : synthesisBlockId // ignore: cast_nullable_to_non_nullable
 as String?,rowExplanationsBlockId: freezed == rowExplanationsBlockId ? _self.rowExplanationsBlockId : rowExplanationsBlockId // ignore: cast_nullable_to_non_nullable
-as String?,modelStrategy: null == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
-as String,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
-as int?,enablePiiMasking: null == enablePiiMasking ? _self.enablePiiMasking : enablePiiMasking // ignore: cast_nullable_to_non_nullable
-as bool,omitEmptySections: null == omitEmptySections ? _self.omitEmptySections : omitEmptySections // ignore: cast_nullable_to_non_nullable
-as bool,
+as String?,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
+as int?,preambleText: freezed == preambleText ? _self.preambleText : preambleText // ignore: cast_nullable_to_non_nullable
+as I18nText?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
+as I18nText?,
   ));
 }
+/// Create a copy of SynthesisConfigDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get preambleText {
+    if (_self.preambleText == null) {
+    return null;
+  }
 
+  return $I18nTextCopyWith<$Res>(_self.preambleText!, (value) {
+    return _then(_self.copyWith(preambleText: value));
+  });
+}/// Create a copy of SynthesisConfigDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get toneInstruction {
+    if (_self.toneInstruction == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.toneInstruction!, (value) {
+    return _then(_self.copyWith(toneInstruction: value));
+  });
+}
 }
 
 
@@ -152,10 +175,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'model_strategy')  String modelStrategy, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'enable_pii_masking')  bool enablePiiMasking, @JsonKey(name: 'omit_empty_sections')  bool omitEmptySections)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDto() when $default != null:
-return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.modelStrategy,_that.lengthConstraint,_that.enablePiiMasking,_that.omitEmptySections);case _:
+return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
   return orElse();
 
 }
@@ -173,10 +196,10 @@ return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsB
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'model_strategy')  String modelStrategy, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'enable_pii_masking')  bool enablePiiMasking, @JsonKey(name: 'omit_empty_sections')  bool omitEmptySections)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDto():
-return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.modelStrategy,_that.lengthConstraint,_that.enablePiiMasking,_that.omitEmptySections);case _:
+return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -193,10 +216,10 @@ return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsB
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'model_strategy')  String modelStrategy, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'enable_pii_masking')  bool enablePiiMasking, @JsonKey(name: 'omit_empty_sections')  bool omitEmptySections)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDto() when $default != null:
-return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.modelStrategy,_that.lengthConstraint,_that.enablePiiMasking,_that.omitEmptySections);case _:
+return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
   return null;
 
 }
@@ -207,17 +230,16 @@ return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsB
 /// @nodoc
 
 @JsonSerializable(disallowUnrecognizedKeys: false)
-class _SynthesisConfigDto implements SynthesisConfigDto {
-  const _SynthesisConfigDto({@JsonKey(name: 'system_prompt') this.systemPrompt, @JsonKey(name: 'synthesis_block_id') this.synthesisBlockId, @JsonKey(name: 'row_explanations_block_id') this.rowExplanationsBlockId, @JsonKey(name: 'model_strategy') this.modelStrategy = 'synthesis', @JsonKey(name: 'length_constraint') this.lengthConstraint, @JsonKey(name: 'enable_pii_masking') this.enablePiiMasking = false, @JsonKey(name: 'omit_empty_sections') this.omitEmptySections = true});
+class _SynthesisConfigDto extends SynthesisConfigDto {
+  const _SynthesisConfigDto({@JsonKey(name: 'system_prompt') this.systemPrompt, @JsonKey(name: 'synthesis_block_id') this.synthesisBlockId, @JsonKey(name: 'row_explanations_block_id') this.rowExplanationsBlockId, @JsonKey(name: 'length_constraint') this.lengthConstraint, @JsonKey(name: 'preamble_text') this.preambleText, @JsonKey(name: 'tone_instruction') this.toneInstruction}): super._();
   factory _SynthesisConfigDto.fromJson(Map<String, dynamic> json) => _$SynthesisConfigDtoFromJson(json);
 
 @override@JsonKey(name: 'system_prompt') final  String? systemPrompt;
 @override@JsonKey(name: 'synthesis_block_id') final  String? synthesisBlockId;
 @override@JsonKey(name: 'row_explanations_block_id') final  String? rowExplanationsBlockId;
-@override@JsonKey(name: 'model_strategy') final  String modelStrategy;
 @override@JsonKey(name: 'length_constraint') final  int? lengthConstraint;
-@override@JsonKey(name: 'enable_pii_masking') final  bool enablePiiMasking;
-@override@JsonKey(name: 'omit_empty_sections') final  bool omitEmptySections;
+@override@JsonKey(name: 'preamble_text') final  I18nText? preambleText;
+@override@JsonKey(name: 'tone_instruction') final  I18nText? toneInstruction;
 
 /// Create a copy of SynthesisConfigDto
 /// with the given fields replaced by the non-null parameter values.
@@ -234,7 +256,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'SynthesisConfigDto(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, modelStrategy: $modelStrategy, lengthConstraint: $lengthConstraint, enablePiiMasking: $enablePiiMasking, omitEmptySections: $omitEmptySections)';
+  return 'SynthesisConfigDto(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, lengthConstraint: $lengthConstraint, preambleText: $preambleText, toneInstruction: $toneInstruction)';
 }
 
 
@@ -245,11 +267,11 @@ abstract mixin class _$SynthesisConfigDtoCopyWith<$Res> implements $SynthesisCon
   factory _$SynthesisConfigDtoCopyWith(_SynthesisConfigDto value, $Res Function(_SynthesisConfigDto) _then) = __$SynthesisConfigDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'model_strategy') String modelStrategy,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'enable_pii_masking') bool enablePiiMasking,@JsonKey(name: 'omit_empty_sections') bool omitEmptySections
+@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
 });
 
 
-
+@override $I18nTextCopyWith<$Res>? get preambleText;@override $I18nTextCopyWith<$Res>? get toneInstruction;
 
 }
 /// @nodoc
@@ -262,20 +284,43 @@ class __$SynthesisConfigDtoCopyWithImpl<$Res>
 
 /// Create a copy of SynthesisConfigDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? modelStrategy = null,Object? lengthConstraint = freezed,Object? enablePiiMasking = null,Object? omitEmptySections = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? toneInstruction = freezed,}) {
   return _then(_SynthesisConfigDto(
 systemPrompt: freezed == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
 as String?,synthesisBlockId: freezed == synthesisBlockId ? _self.synthesisBlockId : synthesisBlockId // ignore: cast_nullable_to_non_nullable
 as String?,rowExplanationsBlockId: freezed == rowExplanationsBlockId ? _self.rowExplanationsBlockId : rowExplanationsBlockId // ignore: cast_nullable_to_non_nullable
-as String?,modelStrategy: null == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
-as String,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
-as int?,enablePiiMasking: null == enablePiiMasking ? _self.enablePiiMasking : enablePiiMasking // ignore: cast_nullable_to_non_nullable
-as bool,omitEmptySections: null == omitEmptySections ? _self.omitEmptySections : omitEmptySections // ignore: cast_nullable_to_non_nullable
-as bool,
+as String?,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
+as int?,preambleText: freezed == preambleText ? _self.preambleText : preambleText // ignore: cast_nullable_to_non_nullable
+as I18nText?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
+as I18nText?,
   ));
 }
 
+/// Create a copy of SynthesisConfigDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get preambleText {
+    if (_self.preambleText == null) {
+    return null;
+  }
 
+  return $I18nTextCopyWith<$Res>(_self.preambleText!, (value) {
+    return _then(_self.copyWith(preambleText: value));
+  });
+}/// Create a copy of SynthesisConfigDto
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get toneInstruction {
+    if (_self.toneInstruction == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.toneInstruction!, (value) {
+    return _then(_self.copyWith(toneInstruction: value));
+  });
+}
 }
 
 // dart format on

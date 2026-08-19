@@ -402,7 +402,7 @@ $SynthesisConfigDTOCopyWith<$Res>? get synthesis {
 /// @nodoc
 mixin _$SynthesisConfigDTO {
 
- String? get systemPrompt; int? get lengthConstraint; I18nText? get preambleText;@JsonKey(name: 'historical_context_mode') HistoricalContextMode get historicalContextMode; bool get enablePiiMasking; List<String> get allowedExports; bool get omitEmptySections; List<String> get allowedMcpTools;@JsonKey(name: 'model_strategy') String? get modelStrategy;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction;@JsonKey(name: 'synthesis_block_id') String? get synthesisBlockId;@JsonKey(name: 'row_explanations_block_id') String? get rowExplanationsBlockId;
+@JsonKey(name: 'system_prompt') String? get systemPrompt;@JsonKey(name: 'synthesis_block_id') String? get synthesisBlockId;@JsonKey(name: 'row_explanations_block_id') String? get rowExplanationsBlockId;@JsonKey(name: 'length_constraint') int? get lengthConstraint;@JsonKey(name: 'preamble_text') I18nText? get preambleText;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction;
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -417,7 +417,7 @@ $SynthesisConfigDTOCopyWith<SynthesisConfigDTO> get copyWith => _$SynthesisConfi
 
 @override
 String toString() {
-  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, lengthConstraint: $lengthConstraint, preambleText: $preambleText, historicalContextMode: $historicalContextMode, enablePiiMasking: $enablePiiMasking, allowedExports: $allowedExports, omitEmptySections: $omitEmptySections, allowedMcpTools: $allowedMcpTools, modelStrategy: $modelStrategy, toneInstruction: $toneInstruction, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId)';
+  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, lengthConstraint: $lengthConstraint, preambleText: $preambleText, toneInstruction: $toneInstruction)';
 }
 
 
@@ -428,7 +428,7 @@ abstract mixin class $SynthesisConfigDTOCopyWith<$Res>  {
   factory $SynthesisConfigDTOCopyWith(SynthesisConfigDTO value, $Res Function(SynthesisConfigDTO) _then) = _$SynthesisConfigDTOCopyWithImpl;
 @useResult
 $Res call({
- String? systemPrompt, int? lengthConstraint, I18nText? preambleText,@JsonKey(name: 'historical_context_mode') HistoricalContextMode historicalContextMode, bool enablePiiMasking, List<String> allowedExports, bool omitEmptySections, List<String> allowedMcpTools,@JsonKey(name: 'model_strategy') String? modelStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId
+@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
 });
 
 
@@ -445,21 +445,15 @@ class _$SynthesisConfigDTOCopyWithImpl<$Res>
 
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? systemPrompt = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? historicalContextMode = null,Object? enablePiiMasking = null,Object? allowedExports = null,Object? omitEmptySections = null,Object? allowedMcpTools = null,Object? modelStrategy = freezed,Object? toneInstruction = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? toneInstruction = freezed,}) {
   return _then(_self.copyWith(
 systemPrompt: freezed == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
+as String?,synthesisBlockId: freezed == synthesisBlockId ? _self.synthesisBlockId : synthesisBlockId // ignore: cast_nullable_to_non_nullable
+as String?,rowExplanationsBlockId: freezed == rowExplanationsBlockId ? _self.rowExplanationsBlockId : rowExplanationsBlockId // ignore: cast_nullable_to_non_nullable
 as String?,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
 as int?,preambleText: freezed == preambleText ? _self.preambleText : preambleText // ignore: cast_nullable_to_non_nullable
-as I18nText?,historicalContextMode: null == historicalContextMode ? _self.historicalContextMode : historicalContextMode // ignore: cast_nullable_to_non_nullable
-as HistoricalContextMode,enablePiiMasking: null == enablePiiMasking ? _self.enablePiiMasking : enablePiiMasking // ignore: cast_nullable_to_non_nullable
-as bool,allowedExports: null == allowedExports ? _self.allowedExports : allowedExports // ignore: cast_nullable_to_non_nullable
-as List<String>,omitEmptySections: null == omitEmptySections ? _self.omitEmptySections : omitEmptySections // ignore: cast_nullable_to_non_nullable
-as bool,allowedMcpTools: null == allowedMcpTools ? _self.allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
-as List<String>,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
-as String?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
-as I18nText?,synthesisBlockId: freezed == synthesisBlockId ? _self.synthesisBlockId : synthesisBlockId // ignore: cast_nullable_to_non_nullable
-as String?,rowExplanationsBlockId: freezed == rowExplanationsBlockId ? _self.rowExplanationsBlockId : rowExplanationsBlockId // ignore: cast_nullable_to_non_nullable
-as String?,
+as I18nText?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
+as I18nText?,
   ));
 }
 /// Create a copy of SynthesisConfigDTO
@@ -568,10 +562,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? systemPrompt,  int? lengthConstraint,  I18nText? preambleText, @JsonKey(name: 'historical_context_mode')  HistoricalContextMode historicalContextMode,  bool enablePiiMasking,  List<String> allowedExports,  bool omitEmptySections,  List<String> allowedMcpTools, @JsonKey(name: 'model_strategy')  String? modelStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDTO() when $default != null:
-return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_that.historicalContextMode,_that.enablePiiMasking,_that.allowedExports,_that.omitEmptySections,_that.allowedMcpTools,_that.modelStrategy,_that.toneInstruction,_that.synthesisBlockId,_that.rowExplanationsBlockId);case _:
+return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
   return orElse();
 
 }
@@ -589,10 +583,10 @@ return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? systemPrompt,  int? lengthConstraint,  I18nText? preambleText, @JsonKey(name: 'historical_context_mode')  HistoricalContextMode historicalContextMode,  bool enablePiiMasking,  List<String> allowedExports,  bool omitEmptySections,  List<String> allowedMcpTools, @JsonKey(name: 'model_strategy')  String? modelStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDTO():
-return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_that.historicalContextMode,_that.enablePiiMasking,_that.allowedExports,_that.omitEmptySections,_that.allowedMcpTools,_that.modelStrategy,_that.toneInstruction,_that.synthesisBlockId,_that.rowExplanationsBlockId);case _:
+return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -609,10 +603,10 @@ return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? systemPrompt,  int? lengthConstraint,  I18nText? preambleText, @JsonKey(name: 'historical_context_mode')  HistoricalContextMode historicalContextMode,  bool enablePiiMasking,  List<String> allowedExports,  bool omitEmptySections,  List<String> allowedMcpTools, @JsonKey(name: 'model_strategy')  String? modelStrategy, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDTO() when $default != null:
-return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_that.historicalContextMode,_that.enablePiiMasking,_that.allowedExports,_that.omitEmptySections,_that.allowedMcpTools,_that.modelStrategy,_that.toneInstruction,_that.synthesisBlockId,_that.rowExplanationsBlockId);case _:
+return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
   return null;
 
 }
@@ -624,33 +618,15 @@ return $default(_that.systemPrompt,_that.lengthConstraint,_that.preambleText,_th
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _SynthesisConfigDTO extends SynthesisConfigDTO {
-  const _SynthesisConfigDTO({this.systemPrompt, this.lengthConstraint, this.preambleText, @JsonKey(name: 'historical_context_mode') this.historicalContextMode = HistoricalContextMode.disabled, this.enablePiiMasking = false, final  List<String> allowedExports = const ['pdf', 'raw_json'], this.omitEmptySections = true, final  List<String> allowedMcpTools = const [], @JsonKey(name: 'model_strategy') this.modelStrategy, @JsonKey(name: 'tone_instruction') this.toneInstruction, @JsonKey(name: 'synthesis_block_id') this.synthesisBlockId, @JsonKey(name: 'row_explanations_block_id') this.rowExplanationsBlockId}): _allowedExports = allowedExports,_allowedMcpTools = allowedMcpTools,super._();
+  const _SynthesisConfigDTO({@JsonKey(name: 'system_prompt') this.systemPrompt, @JsonKey(name: 'synthesis_block_id') this.synthesisBlockId, @JsonKey(name: 'row_explanations_block_id') this.rowExplanationsBlockId, @JsonKey(name: 'length_constraint') this.lengthConstraint, @JsonKey(name: 'preamble_text') this.preambleText, @JsonKey(name: 'tone_instruction') this.toneInstruction}): super._();
   factory _SynthesisConfigDTO.fromJson(Map<String, dynamic> json) => _$SynthesisConfigDTOFromJson(json);
 
-@override final  String? systemPrompt;
-@override final  int? lengthConstraint;
-@override final  I18nText? preambleText;
-@override@JsonKey(name: 'historical_context_mode') final  HistoricalContextMode historicalContextMode;
-@override@JsonKey() final  bool enablePiiMasking;
- final  List<String> _allowedExports;
-@override@JsonKey() List<String> get allowedExports {
-  if (_allowedExports is EqualUnmodifiableListView) return _allowedExports;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_allowedExports);
-}
-
-@override@JsonKey() final  bool omitEmptySections;
- final  List<String> _allowedMcpTools;
-@override@JsonKey() List<String> get allowedMcpTools {
-  if (_allowedMcpTools is EqualUnmodifiableListView) return _allowedMcpTools;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_allowedMcpTools);
-}
-
-@override@JsonKey(name: 'model_strategy') final  String? modelStrategy;
-@override@JsonKey(name: 'tone_instruction') final  I18nText? toneInstruction;
+@override@JsonKey(name: 'system_prompt') final  String? systemPrompt;
 @override@JsonKey(name: 'synthesis_block_id') final  String? synthesisBlockId;
 @override@JsonKey(name: 'row_explanations_block_id') final  String? rowExplanationsBlockId;
+@override@JsonKey(name: 'length_constraint') final  int? lengthConstraint;
+@override@JsonKey(name: 'preamble_text') final  I18nText? preambleText;
+@override@JsonKey(name: 'tone_instruction') final  I18nText? toneInstruction;
 
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
@@ -667,7 +643,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, lengthConstraint: $lengthConstraint, preambleText: $preambleText, historicalContextMode: $historicalContextMode, enablePiiMasking: $enablePiiMasking, allowedExports: $allowedExports, omitEmptySections: $omitEmptySections, allowedMcpTools: $allowedMcpTools, modelStrategy: $modelStrategy, toneInstruction: $toneInstruction, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId)';
+  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, lengthConstraint: $lengthConstraint, preambleText: $preambleText, toneInstruction: $toneInstruction)';
 }
 
 
@@ -678,7 +654,7 @@ abstract mixin class _$SynthesisConfigDTOCopyWith<$Res> implements $SynthesisCon
   factory _$SynthesisConfigDTOCopyWith(_SynthesisConfigDTO value, $Res Function(_SynthesisConfigDTO) _then) = __$SynthesisConfigDTOCopyWithImpl;
 @override @useResult
 $Res call({
- String? systemPrompt, int? lengthConstraint, I18nText? preambleText,@JsonKey(name: 'historical_context_mode') HistoricalContextMode historicalContextMode, bool enablePiiMasking, List<String> allowedExports, bool omitEmptySections, List<String> allowedMcpTools,@JsonKey(name: 'model_strategy') String? modelStrategy,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId
+@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
 });
 
 
@@ -695,21 +671,15 @@ class __$SynthesisConfigDTOCopyWithImpl<$Res>
 
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? systemPrompt = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? historicalContextMode = null,Object? enablePiiMasking = null,Object? allowedExports = null,Object? omitEmptySections = null,Object? allowedMcpTools = null,Object? modelStrategy = freezed,Object? toneInstruction = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? toneInstruction = freezed,}) {
   return _then(_SynthesisConfigDTO(
 systemPrompt: freezed == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
+as String?,synthesisBlockId: freezed == synthesisBlockId ? _self.synthesisBlockId : synthesisBlockId // ignore: cast_nullable_to_non_nullable
+as String?,rowExplanationsBlockId: freezed == rowExplanationsBlockId ? _self.rowExplanationsBlockId : rowExplanationsBlockId // ignore: cast_nullable_to_non_nullable
 as String?,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
 as int?,preambleText: freezed == preambleText ? _self.preambleText : preambleText // ignore: cast_nullable_to_non_nullable
-as I18nText?,historicalContextMode: null == historicalContextMode ? _self.historicalContextMode : historicalContextMode // ignore: cast_nullable_to_non_nullable
-as HistoricalContextMode,enablePiiMasking: null == enablePiiMasking ? _self.enablePiiMasking : enablePiiMasking // ignore: cast_nullable_to_non_nullable
-as bool,allowedExports: null == allowedExports ? _self._allowedExports : allowedExports // ignore: cast_nullable_to_non_nullable
-as List<String>,omitEmptySections: null == omitEmptySections ? _self.omitEmptySections : omitEmptySections // ignore: cast_nullable_to_non_nullable
-as bool,allowedMcpTools: null == allowedMcpTools ? _self._allowedMcpTools : allowedMcpTools // ignore: cast_nullable_to_non_nullable
-as List<String>,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
-as String?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
-as I18nText?,synthesisBlockId: freezed == synthesisBlockId ? _self.synthesisBlockId : synthesisBlockId // ignore: cast_nullable_to_non_nullable
-as String?,rowExplanationsBlockId: freezed == rowExplanationsBlockId ? _self.rowExplanationsBlockId : rowExplanationsBlockId // ignore: cast_nullable_to_non_nullable
-as String?,
+as I18nText?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
+as I18nText?,
   ));
 }
 

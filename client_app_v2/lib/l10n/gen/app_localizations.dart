@@ -6948,6 +6948,372 @@ abstract class AppLocalizations {
   /// **'General'**
   String get profileTabGeneral;
 
+  /// No description provided for @profileTabScoring.
+  ///
+  /// In en, this message translates to:
+  /// **'Scoring & XAI'**
+  String get profileTabScoring;
+
+  /// No description provided for @profileTabReportStructure.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Structure'**
+  String get profileTabReportStructure;
+
+  /// No description provided for @blockMetadataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Metadata'**
+  String get blockMetadataTitle;
+
+  /// No description provided for @blockExecutiveSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Executive Summary'**
+  String get blockExecutiveSummaryTitle;
+
+  /// No description provided for @blockSynthesisTextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Synthesis & Narrative Text'**
+  String get blockSynthesisTextTitle;
+
+  /// No description provided for @blockMatrixGraphsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix Visualizations & Graphs'**
+  String get blockMatrixGraphsTitle;
+
+  /// No description provided for @blockAiExtensionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'XAI Highlights & Extensions'**
+  String get blockAiExtensionsTitle;
+
+  /// No description provided for @blockPenaltiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Penalties & Deductions'**
+  String get blockPenaltiesTitle;
+
+  /// No description provided for @blockMatrixSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix Summary Table'**
+  String get blockMatrixSummaryTitle;
+
+  /// No description provided for @blockVarianceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Variance Validation'**
+  String get blockVarianceTitle;
+
+  /// No description provided for @blockAuthenticityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticity Evaluation'**
+  String get blockAuthenticityTitle;
+
+  /// No description provided for @blockBibliographyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bibliography & Sources'**
+  String get blockBibliographyTitle;
+
+  /// No description provided for @blockGlobalScoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Global Score'**
+  String get blockGlobalScoreTitle;
+
+  /// No description provided for @blockAuditTrailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Audit Trail'**
+  String get blockAuditTrailTitle;
+
+  /// No description provided for @blockJargonRatioTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Jargon & Clarity Ratio'**
+  String get blockJargonRatioTitle;
+
+  /// No description provided for @blockMetadataSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution timestamps, organization info, and engine parameters'**
+  String get blockMetadataSubtitle;
+
+  /// No description provided for @blockExecutiveSummarySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Global multi-step synthesis and management summary'**
+  String get blockExecutiveSummarySubtitle;
+
+  /// No description provided for @blockSynthesisTextSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Executive synthesis narratives, LLM summaries, and section preambles'**
+  String get blockSynthesisTextSubtitle;
+
+  /// No description provided for @blockMatrixGraphsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'1D Metrics, 2D Comparisons, 3D Matrices, and Text-Only matrix presentations'**
+  String get blockMatrixGraphsSubtitle;
+
+  /// No description provided for @blockAiExtensionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Explainable AI callouts, justifications, tips, and citations'**
+  String get blockAiExtensionsSubtitle;
+
+  /// No description provided for @blockPenaltiesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automated scoring deductions and compliance penalties'**
+  String get blockPenaltiesSubtitle;
+
+  /// No description provided for @blockMatrixSummarySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tabular overview of matrix evaluations, atomic breakdown, and scores'**
+  String get blockMatrixSummarySubtitle;
+
+  /// No description provided for @blockVarianceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inter-rater variance and statistical confidence bounds'**
+  String get blockVarianceSubtitle;
+
+  /// No description provided for @blockAuthenticitySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Source document authenticity and cognitive manipulation checks'**
+  String get blockAuthenticitySubtitle;
+
+  /// No description provided for @blockBibliographySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Printable citations, sources, and verified references section'**
+  String get blockBibliographySubtitle;
+
+  /// No description provided for @blockGlobalScoreSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Aggregated final scoring card and benchmark metrics'**
+  String get blockGlobalScoreSubtitle;
+
+  /// No description provided for @blockAuditTrailSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forensic event logs and chronological execution trace'**
+  String get blockAuditTrailSubtitle;
+
+  /// No description provided for @blockJargonRatioSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Linguistic clarity metrics and domain jargon density'**
+  String get blockJargonRatioSubtitle;
+
+  /// No description provided for @reportVisualBlocksHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Visual Blocks'**
+  String get reportVisualBlocksHeader;
+
+  /// No description provided for @activeBlocksCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} active'**
+  String activeBlocksCount(int count);
+
+  /// No description provided for @availableBlocksHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Blocks (Click to enable)'**
+  String get availableBlocksHeader;
+
+  /// No description provided for @noGraphLayoutsDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'No graph layouts defined yet. Click \"+ Add Graph\" below to add a 1D, 2D, or 3D visualization.'**
+  String get noGraphLayoutsDefined;
+
+  /// No description provided for @addGraphButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Graph'**
+  String get addGraphButton;
+
+  /// No description provided for @graphTitleDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Graph #{index} ({preset})'**
+  String graphTitleDefault(int index, String preset);
+
+  /// No description provided for @graphTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Graph Title'**
+  String get graphTitleLabel;
+
+  /// No description provided for @axisXPrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'X-Axis (Primary)'**
+  String get axisXPrimary;
+
+  /// No description provided for @axisYComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Y-Axis (Comparison)'**
+  String get axisYComparison;
+
+  /// No description provided for @axisZDepth.
+  ///
+  /// In en, this message translates to:
+  /// **'Z-Axis (Depth)'**
+  String get axisZDepth;
+
+  /// No description provided for @selectBlockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select block...'**
+  String get selectBlockHint;
+
+  /// No description provided for @alreadySelectedOnOtherAxis.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} (Already selected on other axis)'**
+  String alreadySelectedOnOtherAxis(String label);
+
+  /// No description provided for @presetView1d.
+  ///
+  /// In en, this message translates to:
+  /// **'1D Table'**
+  String get presetView1d;
+
+  /// No description provided for @presetView2d.
+  ///
+  /// In en, this message translates to:
+  /// **'2D Grid'**
+  String get presetView2d;
+
+  /// No description provided for @presetView3d.
+  ///
+  /// In en, this message translates to:
+  /// **'3D Matrix'**
+  String get presetView3d;
+
+  /// No description provided for @presetViewTextOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Only'**
+  String get presetViewTextOnly;
+
+  /// No description provided for @presetViewSummaryTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary Table'**
+  String get presetViewSummaryTable;
+
+  /// No description provided for @visibleMetadataFieldsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Visible Metadata Fields'**
+  String get visibleMetadataFieldsLabel;
+
+  /// No description provided for @pipelineSynthesisBindingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pipeline Synthesis Block Binding'**
+  String get pipelineSynthesisBindingLabel;
+
+  /// No description provided for @synthesisPromptBlockLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Synthesis Prompt Block (Pipeline Way)'**
+  String get synthesisPromptBlockLabel;
+
+  /// No description provided for @synthesisPromptBlockHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an existing prompt block configured in the workflow'**
+  String get synthesisPromptBlockHelper;
+
+  /// No description provided for @synthesisNoneOption.
+  ///
+  /// In en, this message translates to:
+  /// **'None (Use On-the-Fly configuration below)'**
+  String get synthesisNoneOption;
+
+  /// No description provided for @toneInstructionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tone Instruction (Voice & Audience)'**
+  String get toneInstructionLabel;
+
+  /// No description provided for @sectionPreambleTextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Section Preamble Text'**
+  String get sectionPreambleTextLabel;
+
+  /// No description provided for @visibleTableColumnsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Visible Table Columns'**
+  String get visibleTableColumnsLabel;
+
+  /// No description provided for @columnLabelOverridesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Column Label Overrides'**
+  String get columnLabelOverridesLabel;
+
+  /// No description provided for @columnLabelField.
+  ///
+  /// In en, this message translates to:
+  /// **'Column Label: {column}'**
+  String columnLabelField(String column);
+
+  /// No description provided for @maxExtensionItemsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Extension Items: {count}'**
+  String maxExtensionItemsCount(int count);
+
+  /// No description provided for @maxFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get maxFieldLabel;
+
+  /// No description provided for @bibliographyCardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Formatted source document list and exact quote citations will be rendered at the end of the report.'**
+  String get bibliographyCardHint;
+
+  /// No description provided for @displayScaleOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original Scale (Unmodified)'**
+  String get displayScaleOriginal;
+
+  /// No description provided for @displayScaleCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Domain Scale'**
+  String get displayScaleCustom;
+
+  /// No description provided for @displayScaleNormalized100.
+  ///
+  /// In en, this message translates to:
+  /// **'Normalized 0-100% Scale'**
+  String get displayScaleNormalized100;
+
   /// No description provided for @profileTabXai.
   ///
   /// In en, this message translates to:

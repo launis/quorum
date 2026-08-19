@@ -171,3 +171,34 @@ def test_extract_python_literal_values_ast_single_constant() -> None:
     code = "class MyModel: single: Literal['only_one'] = 'only_one'"
     res = extract_python_literal_values_ast(code, "MyModel", "single")
     assert res == {"only_one"}
+
+
+def test_enum_l10n_keys() -> None:
+    """Verify that all members of UI-facing enums resolve to a valid non-empty l10n_key."""
+    from backend_v2.models.enums import DisplayScale, ScoringStrategy, XaiExtensionType
+
+    for scale_member in DisplayScale:
+        assert scale_member.l10n_key, f"Missing l10n_key for DisplayScale.{scale_member.name}"
+        assert isinstance(scale_member.l10n_key, str)
+        assert scale_member.l10n_key.startswith("displayScale")
+
+    for strategy_member in ScoringStrategy:
+        assert strategy_member.l10n_key, f"Missing l10n_key for ScoringStrategy.{strategy_member.name}"
+        assert isinstance(strategy_member.l10n_key, str)
+        assert strategy_member.l10n_key.startswith("strategy")
+
+    # XAI extensions that are exposed in UI
+    for xai_member in [
+        XaiExtensionType.COACHING,
+        XaiExtensionType.JUSTIFICATION,
+        XaiExtensionType.FALSIFICATION,
+        XaiExtensionType.MISSING_CONTEXT,
+        XaiExtensionType.THEORY_LINK,
+        XaiExtensionType.RISK_FLAG,
+        XaiExtensionType.REMEDIATION_STEPS,
+        XaiExtensionType.EMOTIONAL_SENTIMENT,
+        XaiExtensionType.VARIANCE_VALIDATION,
+        XaiExtensionType.AUTHENTICITY_EVALUATION,
+    ]:
+        assert xai_member.l10n_key, f"Missing l10n_key for XaiExtensionType.{xai_member.name}"
+        assert isinstance(xai_member.l10n_key, str)

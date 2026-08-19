@@ -48,8 +48,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
               bottom: TabBar(
                 tabs: [
                   Tab(text: l10n.profileTabGeneral),
-                  Tab(text: l10n.profileTabXai),
-                  Tab(text: l10n.profileTabLayouts),
+                  Tab(text: l10n.profileTabScoring),
+                  Tab(text: l10n.profileTabReportStructure),
                 ],
               ),
               actions: [
