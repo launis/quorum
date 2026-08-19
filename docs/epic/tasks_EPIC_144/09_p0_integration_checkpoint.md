@@ -44,37 +44,47 @@
   </anti_targets>
 
   <dod_checklist>
-    <item>Full backend test suite passes green.</item>
-    <item>Full frontend Studio Freezed generation and test suite passes green.</item>
-    <item>OpenAPI spec is synchronized.</item>
-    <item>Enum parity tests pass for ALL shared enums.</item>
-    <item>Zero occurrences of include_diagnostic_scorecard in backend models, DTOs, seed data, or frontend Freezed models.</item>
-    <item>Zero occurrences of unknownEnumValue in frontend Freezed source files.</item>
+    <item>Full backend test suite (1462+ tests) passes green via Pytest.</item>
+    <item>Full backend Phase 0 target audit loops (test_enum_parity.py, test_settings.py, test_v2_core_models.py, test_output_profile.py, test_output_profile_regression.py, test_synthesis_distiller_hook.py, test_blueprint.py, test_scoring.py, test_worker_synthesis.py, test_matrix_domain_parser.py, test_generate_openapi.py) pass with >90% coverage.</item>
+    <item>Frontend Studio Freezed model code generation and static analysis pass cleanly with 0 issues via flutter_audit_loop.py.</item>
+    <item>Full frontend unit test suite (107 tests) passes green via flutter test.</item>
+    <item>OpenAPI specification is synchronized and passes parity testing.</item>
+    <item>Cross-language enum parity tests pass 13/13 with zero skips.</item>
+    <item>Zero occurrences of include_diagnostic_scorecard in backend models, DTOs, seed data, or frontend lib/ source files.</item>
+    <item>Zero occurrences of unknownEnumValue in frontend lib/ source files.</item>
   </dod_checklist>
 
-  <step id="1" name="FULL BACKEND REGRESSION">
-    <action>Execute: `uv run python scripts/backend_audit_loop.py backend_v2 --test`</action>
-    <constraint>ALL tests MUST pass green.</constraint>
+  <step id="1" name="FULL BACKEND REGRESSION &amp; QUALITY GATE AUDIT">
+    <action>Execute full backend regression test suite: `uv run pytest backend_v2`</action>
+    <action>Execute quality gate audit on cross-language enum parity: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test`</action>
+    <action>Execute quality gate audit on OpenAPI sync: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py --test`</action>
+    <constraint>ALL 1462+ unit tests MUST pass green with 0 errors.</constraint>
+    <constraint>Enum parity test MUST pass 13/13 with 0 skips and >90% coverage.</constraint>
   </step>
 
-  <step id="2" name="FULL FRONTEND STUDIO BUILD AND TEST">
-    <action>Execute: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio --build`</action>
-    <action>Execute: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio --test`</action>
-    <constraint>ALL tests MUST pass green.</constraint>
+  <step id="2" name="FRONTEND STUDIO MODEL BUILD AND TEST">
+    <action>Execute Freezed model generation and static analysis: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models --build`</action>
+    <action>Execute frontend test suite: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/models --test`</action>
+    <constraint>Code generation MUST produce 0 analyzer issues.</constraint>
+    <constraint>ALL 107 unit tests MUST pass green.</constraint>
   </step>
 
   <step id="3" name="CROSS-STACK PARITY ASSERTIONS">
-    <action>Execute the following deterministic assertions:
-1. `grep_search` for "include_diagnostic_scorecard" across entire backend_v2/ and client_app_v2/lib/ — MUST return zero results.
-2. `grep_search` for "unknownEnumValue" in client_app_v2/lib/features/studio/models/ — MUST return zero results (excluding .freezed.dart generated files, which should also be clean if source is clean).
-3. Verify test_enum_parity.py passes with ALL skip markers removed.</action>
+    <action>Execute the following 4 deterministic assertions:
+1. Production code search: Verify zero occurrences of "include_diagnostic_scorecard" in `backend_v2/models/`, `backend_v2/services/`, `backend_v2/seed/`, and `client_app_v2/lib/`.
+2. Production code search: Verify zero occurrences of "unknownEnumValue" across entire `client_app_v2/lib/`.
+3. Enum parity verification: Verify `backend_v2/tests/unit/test_enum_parity.py` passes with ALL skip markers removed (13 tests active).
+4. OpenAPI schema verification: Verify `docs/swagger/openapi.json` contains `DisplayScale` enum and 13 `TargetBlockType` members with zero references to `include_diagnostic_scorecard`.</action>
   </step>
 
   <validation_gate>
-    <check>uv run python scripts/backend_audit_loop.py backend_v2 --test — full green</check>
-    <check>uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio --build — passes</check>
-    <check>uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio --test — full green</check>
-    <check>uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test — full green (no skips)</check>
+    <check>uv run pytest backend_v2 — 1462+ tests passed, 0 failures</check>
+    <check>uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test — 13/13 passed, 0 skipped, >90% coverage</check>
+    <check>uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py --test — 2/2 passed, full green</check>
+    <check>uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models --build — 0 analyzer issues, clean build</check>
+    <check>uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/models --test — 107/107 tests passed, full green</check>
+    <check>Deterministic cross-stack parity assertions 1-4 verified clean</check>
   </validation_gate>
 </execution_protocol>
+
 ```

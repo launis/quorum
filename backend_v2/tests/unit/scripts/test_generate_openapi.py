@@ -73,3 +73,71 @@ def test_generate_openapi_filesystem_error(monkeypatch: pytest.MonkeyPatch, tmp_
     assert "Failed to write OpenAPI schema file due to: Access denied" in str(exc_info.value)
 
     del sys.modules["backend_v2.main"]
+
+
+def test_generate_openapi_main_block(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Tests the __main__ execution block of generate_openapi."""
+    import runpy
+    import sys
+
+    mock_app = MagicMock()
+    mock_app.openapi.return_value = {"openapi": "3.1.0", "info": {"title": "Test API"}}
+
+    class MockMain:
+        app = mock_app
+
+    sys.modules["backend_v2.main"] = MockMain  # type: ignore
+
+    # Evict cached module so runpy re-executes top-level code under __name__ == '__main__'
+    sys.modules.pop("backend_v2.scripts.generate_openapi", None)
+
+    real_root_dir = Path(__file__).resolve().parents[4]
+    output_file = real_root_dir / "docs" / "swagger" / "openapi.json"
+    original_content = output_file.read_text(encoding="utf-8") if output_file.exists() else None
+
+    try:
+        runpy.run_module(
+            "backend_v2.scripts.generate_openapi",
+            run_name="__main__",
+        )
+
+        assert output_file.exists()
+    finally:
+        if original_content is not None:
+            output_file.write_text(original_content, encoding="utf-8")
+        del sys.modules["backend_v2.main"]
+
+
+
+def test_generate_openapi_main_block_exception(tmp_path: Path) -> None:
+    """Tests the exception handling path in the __main__ block."""
+    import runpy
+    import sys
+
+    mock_app = MagicMock()
+    mock_app.openapi.side_effect = RuntimeError("Fatal OpenAPI failure")
+
+    class MockMain:
+        app = mock_app
+
+    sys.modules["backend_v2.main"] = MockMain  # type: ignore
+
+    # Evict cached module so runpy re-executes top-level code under __name__ == '__main__'
+    sys.modules.pop("backend_v2.scripts.generate_openapi", None)
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_module(
+            "backend_v2.scripts.generate_openapi",
+            run_name="__main__",
+        )
+
+    assert exc_info.value.code == 1
+
+    del sys.modules["backend_v2.main"]
+
+
+
+
+
+
+
