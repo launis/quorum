@@ -398,6 +398,17 @@ def get_fallback_data(key: str) -> dict[str, Any]:
         ]
         return {"tda_assertions": assertions, "rubric_cot": "Mocked CoT for testing"}
 
+    if key == "row_explainer":
+        return {
+            "explanations": [
+                {
+                    "matrix_id": "m0",
+                    "row_explanation": "Mock row explanation for testing.",
+                    "curated_quotes": ["Evidence quote"],
+                }
+            ]
+        }
+
     if key == "variance_explainer":
         return {"row_explanation": "Mock explanation for variance."}
 

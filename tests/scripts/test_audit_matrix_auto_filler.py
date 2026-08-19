@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from scripts.audit_matrix_auto_filler import main
 
 

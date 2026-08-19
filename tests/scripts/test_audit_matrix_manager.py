@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from scripts.audit_matrix_manager import (
     check_anti_laziness,
     check_conflicting_file_references,
@@ -422,4 +423,3 @@ def test_main_cli_dispatch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     with pytest.raises(SystemExit) as exc_info:
         main()
     assert exc_info.value.code == 0
-

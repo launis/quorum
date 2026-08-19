@@ -11,9 +11,10 @@ from typing import Any, cast
 
 import logfire
 from arq.connections import RedisSettings
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 import backend_v2.hooks  # noqa: F401
+import backend_v2.utils.scoring.variance_engine as variance_engine
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.core.registry import TaskRegistry
 from backend_v2.database.factory import get_driver
@@ -21,17 +22,28 @@ from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
+    MatrixExplanationContextDTO,
     MatrixExplanationContextList,
     MatrixExplanationsResult,
     SynthesisOutputDTO,
 )
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
-from backend_v2.models.state import StateProjector
+from backend_v2.models.prompts import (
+    GLOBAL_MANDATES_XML,
+    SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
+    SYNTHESIS_SDUI_MANDATES,
+    SYNTHESIS_SECTION_RULES_PREFIX,
+    SYNTHESIS_XAI_CURATION,
+    build_linguistic_context,
+)
+from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExecutionStepState,
+    ExtensionMetricsDTO,
     OutputProfile,
     PromptBlock,
     RenderedSynthesisCache,
@@ -50,6 +62,26 @@ from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 from backend_v2.utils.math_utils import normalize_score_to_100
 from backend_v2.utils.scoring import get_scoring_engine
+
+__all__ = [
+    "VarianceExplanationResult",
+    "WorkerSettings",
+    "execute_workflow_job",
+    "generate_pdf_job",
+    "generate_pdf_task",
+    "generate_profile_synthesis_and_pdf_task",
+    "health_check",
+    "render_profile_job",
+    "shutdown",
+    "startup",
+]
+
+
+class VarianceExplanationResult(BaseModel):
+    """Result model for cognitive-mechanical variance explanation."""
+
+    row_explanation: str
+
 
 # Initialize settings
 settings = get_settings()
@@ -574,14 +606,6 @@ async def generate_profile_synthesis_and_pdf_task(
     profile_id: str | None = None,
     redis: Any | None = None,  # noqa: E501
 ) -> None:
-    if not accept_language:
-        msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be None."
-        logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(
-            message=msg,
-            status_code=400,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-        )
     """Background Task. Synthesizes Markdown and enqueues PDF generation.
 
     Args:
@@ -591,8 +615,17 @@ async def generate_profile_synthesis_and_pdf_task(
         redis: Optional Redis context.
 
     Raises:
-        AppException: If synthesis or execution update fails.
+        AppException: If synthesis or execution update fails with VALIDATION_FAILED,
+            CONFIGURATION_ERROR, or INTERNAL_SERVER_ERROR.
     """
+    if not accept_language:
+        msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be None."
+        logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
     logger.info(f"[Task] Starting Async Text Synthesis for execution {execution_id} (Profile: {profile_id})")  # noqa: E501
     try:
         driver = await get_driver(get_settings())
@@ -691,7 +724,12 @@ async def generate_profile_synthesis_and_pdf_task(
             data = step_dto.payload
             if pb_id in blocks_meta:
                 try:
-                    lw_matrix = LightweightMatrixOutput.model_validate(data, strict=False)
+                    clean_data = (
+                        {k: v for k, v in data.items() if k in LightweightMatrixOutput.model_fields}
+                        if isinstance(data, dict)
+                        else data
+                    )
+                    lw_matrix = LightweightMatrixOutput.model_validate(clean_data, strict=False)
                     if lw_matrix.level_breakdown:
                         stats = {
                             float(k): LevelStatsDTO(hits=v["hits"], total=v["total"], dlqs=v.get("dlqs"))
@@ -789,7 +827,11 @@ async def generate_profile_synthesis_and_pdf_task(
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
-        matrices_to_explain = distilled_data.get("matrices_to_explain", [])
+        raw_matrices = distilled_data.get("matrices_to_explain", [])
+        matrices_to_explain: list[MatrixExplanationContextDTO] = [
+            m if isinstance(m, MatrixExplanationContextDTO) else MatrixExplanationContextDTO.model_validate(m)
+            for m in raw_matrices
+        ]
 
         synthesis_model_strategy = "synthesis"
 
@@ -820,18 +862,9 @@ async def generate_profile_synthesis_and_pdf_task(
                 # Session 1, Task 1-5: sys_prompt MUST remain 100% static for cache prefix survival
                 sys_prompt = pb.ai_description or ""
 
-                from backend_v2.models.prompts.hook_prompts import (
-                    SYNTHESIS_SDUI_MANDATES,
-                    SYNTHESIS_SECTION_RULES_PREFIX,
-                    SYNTHESIS_XAI_CURATION,
-                )
-
                 sys_prompt += f"\n\n{SYNTHESIS_SDUI_MANDATES}"
 
                 # Session 1, Task 1-5: ALL dynamic instructions injected into user message <dynamic_context>
-                from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
-                from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
-
                 dynamic_ctx_parts: list[str] = []
 
                 # Inject GLOBAL_MANDATES_XML for anti-ID and anti-score mandates
@@ -881,8 +914,6 @@ async def generate_profile_synthesis_and_pdf_task(
 
                                 section_rules_str += f'\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n{lpb.ai_description}\n</section_instruction>\n'
                                 has_section_rules = True
-
-                from backend_v2.models.prompts.synthesis_directives import SECTION_SYNTHESIS_DIRECTIVE_BLOCK
 
                 if has_section_rules:
                     dynamic_ctx_parts.append(
@@ -946,9 +977,6 @@ async def generate_profile_synthesis_and_pdf_task(
                     # Session 1, Task 1-5: sys_prompt static, dynamic context in user message
                     row_sys_prompt = r_pb.ai_description or ""
 
-                    from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
-                    from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
-
                     row_lang_ctx = build_linguistic_context(
                         source_language="Unknown", target_locale=accept_language, include_mandate=True
                     )
@@ -990,8 +1018,6 @@ async def generate_profile_synthesis_and_pdf_task(
                 if cv is not None:
                     step_ling = cv.get("step_linguistics")
                     if step_ling is not None:
-                        from backend_v2.models.domain.linguistics import LinguisticsResultDTO
-
                         ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
                         patterns = ling_out.performative_patterns
                         if isinstance(patterns, list):
@@ -1002,8 +1028,6 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 # Dynamically resolve missing values from execution trace
                 if authenticity_score is None or performative_phrases_count is None:
-                    from backend_v2.models.state import TraceEvent
-
                     for event in reversed(execution.execution_trace):
                         if not isinstance(event, TraceEvent):
                             continue
@@ -1015,8 +1039,6 @@ async def generate_profile_synthesis_and_pdf_task(
                             and "step_linguistics" in event.content
                         ):
                             trace_ling = event.content.get("step_linguistics")
-                            from backend_v2.models.domain.linguistics import LinguisticsResultDTO
-
                             ling_out = LinguisticsResultDTO.model_validate(trace_ling, strict=False)
                             patterns = ling_out.performative_patterns
                             if isinstance(patterns, list):
@@ -1042,9 +1064,6 @@ async def generate_profile_synthesis_and_pdf_task(
                     # If it's missing, blueprint.py will Fail-Fast anyway, so we just skip the explanation here.
 
                 if authenticity_score is not None and performative_phrases_count is not None:
-                    import backend_v2.utils.scoring.variance_engine as variance_engine
-                    from backend_v2.models.v2_core import ExtensionMetricsDTO
-
                     variance_res = variance_engine.calculate_mechanical_cognitive_variance(
                         llm_authenticity_score=authenticity_score,
                         performative_phrases_count=performative_phrases_count,
@@ -1063,9 +1082,6 @@ async def generate_profile_synthesis_and_pdf_task(
                         client_var = await LLMClient.from_strategy("strict", repository=repo)
                         var_sys_prompt = r_pb_var.ai_description or ""
 
-                        from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
-                        from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
-
                         var_lang_ctx = build_linguistic_context(
                             source_language="Unknown", target_locale=accept_language, include_mandate=True
                         )
@@ -1081,11 +1097,6 @@ async def generate_profile_synthesis_and_pdf_task(
                                 ),
                             },
                         ]
-
-                        from pydantic import BaseModel
-
-                        class VarianceExplanationResult(BaseModel):
-                            row_explanation: str
 
                         t_variance = tg.create_task(
                             client_var.run_structured_task(
