@@ -185,3 +185,28 @@ def test_build_bva_duplicate_prevention(valid_output_profile_fixture: OutputProf
     # The duplicated URL should only appear once
     assert blocks[0].text.count("https://shared.example.com/doc") == 1
     assert "- https://unique.example.com/doc" in blocks[0].text
+
+
+def test_build_whitespace_and_empty_strings_in_sources_filtered(
+    valid_output_profile_fixture: OutputProfile,
+) -> None:
+    """Boundary: empty strings and whitespace-only items in cited_sources are ignored."""
+    cache = RenderedSynthesisCache(
+        cited_sources=["   ", "", "Valid Source"],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+    )
+    blocks = PrintableSourcesAdapter.build(context)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert blocks[0].text == "- Valid Source"
+
