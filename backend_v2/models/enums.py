@@ -66,6 +66,19 @@ class SystemConfigID(StrEnum):
     PERFORMATIVE_LEXICONS = "sys_e0b2a3c4d5e6f7a8"
 
 
+class DisplayScale(StrEnum):
+    """Display scale configuration for matrix score rendering."""
+
+    ORIGINAL = "original"
+    CUSTOM = "custom"
+    NORMALIZED_100 = "normalized_100"
+
+    @property
+    def l10n_key(self) -> str:
+        """Localization key for UI label resolution."""
+        return f"display_scale_{self.value}"
+
+
 class BlockDataType(StrEnum):
     """Data types allowed for PromptBlock extracted values.
     Accepts core extraction types, plus valid legacy structural types.
@@ -624,6 +637,7 @@ LaxSimulationType = Annotated[SimulationType, Field(strict=False)]
 LaxRoleClassification = Annotated[RoleClassification, Field(strict=False)]
 LaxInteractionStrategy = Annotated[InteractionStrategy, Field(strict=False)]
 LaxTargetBlockType = Annotated[TargetBlockType, Field(strict=False)]
+LaxDisplayScale = Annotated[DisplayScale, Field(strict=False)]
 
 
 class SpecialAliasChoices(StrEnum):

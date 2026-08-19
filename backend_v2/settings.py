@@ -209,6 +209,26 @@ class Settings(BaseSettings):
     pre_flight_fuzz_isolating: Annotated[float, Field(description="Fuzzy threshold for Chinese/Japanese")] = 98.0
     pre_flight_fuzz_default: Annotated[float, Field(description="Fallback threshold")] = 90.0
 
+    authenticity_threshold_high: Annotated[
+        float,
+        Field(
+            default=80.0,
+            ge=0.0,
+            le=100.0,
+            description="Minimum score required for HIGH authenticity level classification",
+        ),
+    ] = 80.0
+
+    authenticity_threshold_low: Annotated[
+        float,
+        Field(
+            default=50.0,
+            ge=0.0,
+            le=100.0,
+            description="Minimum score required for MEDIUM authenticity level classification",
+        ),
+    ] = 50.0
+
     # --- Epic 91.5 Global DTO Policies ---
     auto_resolve_policy: Annotated[str, Field(description="Policy for automatic resolution of execution nodes")] = (
         "strict"
@@ -540,6 +560,17 @@ class Settings(BaseSettings):
                 "reasoning": "fast",
             }
 
+        return self
+
+    @model_validator(mode="after")
+    def validate_authenticity_thresholds(self) -> Self:
+        """Enforce cross-field consistency: high threshold must be >= low threshold."""
+        if self.authenticity_threshold_high < self.authenticity_threshold_low:
+            msg = (
+                f"authenticity_threshold_high ({self.authenticity_threshold_high}) "
+                f"must be >= authenticity_threshold_low ({self.authenticity_threshold_low})"
+            )
+            raise ValueError(msg)
         return self
 
     @computed_field  # type: ignore[prop-decorator]
