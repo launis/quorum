@@ -33,10 +33,10 @@
 
 ## 1. Executive Summary & Progress Status
 - **Current Epic:** EPIC 144 (`@[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md]`)
-- **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend COMPLETED -> Frontend IN PROGRESS)
+- **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend COMPLETED, Frontend COMPLETED -> Architecture Sync NEXT)
 - **Execution Status:** **100% EXECUTED & AUDITED (PASSED)** across all 6 Phases (Phase 0-A through 0-H, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5).
 - **Backend Hardening Status:** **15 / 15 (100%) COMPLETED** (All 15 production source targets hardened with target-locked audit matrices and $\ge 90\%$ test coverage).
-- **Frontend Hardening Status:** **17 / 17 (100%) COMPLETED** (All 17 production source targets hardened with target-locked audit matrices and zero regressions).
+- **Frontend Hardening Status:** **17 / 17 (100%) COMPLETED** (All 17 production source targets hardened with target-locked audit matrices and zero regressions across 150 tests).
 - **Tier 8 Plan Audit:** `red_team_audit_15_placeholder_phase5_quality_gates.md` verified 100% pass across all requirements, DoD checklist items, Freezed/Pydantic deserialization firewalls, and SDUI adapter dual-logging contracts.
 - **Mandatory Final Gate:** `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` **PASSED 100%** (full PDF ingestion, DAG execution, SDUI synthesis, and report rendering verified against live FastAPI backend and Arq worker).
 - **Backend Quality Audit Loop:** `uv run python scripts/backend_audit_loop.py` configured with 100% Ruff linting, formatting, MyPy strict typing, Jinja dumb painter templates, Seed Data dry-run validation, and $\ge 90\%$ test coverage per target.
@@ -62,7 +62,7 @@
 | 14 | `backend_v2/models/prompts/__init__.py` | `models/prompts/test_prompts_init.py` | 6 | 12 | 0 | 100% | 152 / 152 `[PASS]` | `757b9478` |
 | 15 | `backend_v2/worker.py` | `tests/unit/test_worker.py` | 37 | 638 | 51 | 92% | 152 / 152 `[PASS]` | `d60868cd` |
 
-### 2.2 Frontend Targets (15 / 17 COMPLETED, 2 REMAINING)
+### 2.2 Frontend Targets (17 / 17 COMPLETED)
 | # | Target File | Test File | Audit Matrix | Quality Gate | Status |
 |:---|:---|:---|:---|:---|:---|
 | 1 | `client_app_v2/lib/core/models/enums.dart` | Integrated test suite | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
@@ -83,13 +83,15 @@
 | 16 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/simple_toggle_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 | 17 | `client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart` | `test/features/studio/views/widgets/profile/layout_editor_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 
-## 3. Key Accomplishments in Latest Session (Frontend Hardening Targets 11–15)
+## 3. Key Accomplishments in Latest Session (Frontend Hardening Targets 11–17 COMPLETED)
 - **Target 11 (`synthesis_text_block_card.dart`):** Audited 131-line synthesis text block config card. Verified `DropdownButtonFormField<String?>` `isExpanded: true`, `TextOverflow.ellipsis` on menu item labels, and localized preamble/tone instruction fields. Created TDD test `synthesis_text_block_card_test.dart`.
 - **Target 12 (`matrix_graphs_block_card.dart`):** Audited 124-line Collection Builder card for matrix graph entries in `payload.layouts`. Verified `PresetView` graph layout filtering and `FilledButton.tonalIcon` addition of default `metrics1d` layouts. Created TDD test `matrix_graphs_block_card_test.dart`.
 - **Target 13 (`matrix_summary_table_card.dart`):** Audited 157-line matrix summary table configuration card. Verified FilterChip toggles for `availableColumns` and `I18nTextField` column label overrides for `matrixColumnLabels`. Created TDD test `matrix_summary_table_card_test.dart`.
 - **Target 14 (`xai_extensions_block_card.dart`):** Audited 192-line XAI output extensions card. Verified `workflowAvailableExtensionsProvider` Riverpod integration, Dart 3 `switch` expression handling of AsyncValue state, FilterChips for `visibleBlockExtensions`, and clamped Slider + TextFormField for `maxExtensionItems`. Created TDD test `xai_extensions_block_card_test.dart`.
 - **Target 15 (`bibliography_block_card.dart`):** Audited 57-line printable sources block card. Verified BaseBlockCard inclusion toggle and `AppLocalizations` hint text rendering. Created TDD test `bibliography_block_card_test.dart`.
-- **Automated Verification:** All 5 targets passed target-locked audit matrix verification (`audit_matrix_manager.py verify`) with 88/88 rules validated per file, and full Flutter quality audit loops (`flutter_audit_loop.py`) passed cleanly with 100% test pass (147 unit/widget tests).
+- **Target 16 (`simple_toggle_block_card.dart`):** Audited 53-line baseline toggle card. Verified immutable update of `payload.targetBlockOrder` via `BaseBlockCard` `onToggle`. Created TDD test `simple_toggle_block_card_test.dart`.
+- **Target 17 (`layout_editor_card.dart`):** Audited 166-line compact layout editor card. Verified `DropdownButtonFormField<PresetView>` `isExpanded: true`, `I18nTextField` title overrides, and ConsumerWidget state updates via `onChanged`. Updated widget test `layout_editor_card_test.dart`.
+- **Automated Verification:** All 17 frontend targets passed target-locked audit matrix verification (`audit_matrix_manager.py verify`) with 88/88 rules validated per file, and full Flutter quality audit loops (`flutter_audit_loop.py`) passed cleanly with 100% test pass (150 unit/widget tests).
 
 ## 4. Key Architectural Invariants & Gotchas
 - **Core Module Encapsulation (`01-python-backend.md`):** All core modules (including `settings.py`, `enums.py`, `v2_core.py`, DTOs, and services) must declare explicit `__all__ = [...]` export lists to isolate internal helpers and establish clean public module boundaries.
@@ -104,9 +106,9 @@
 
 ## 5. Immediate Next Step & Resume Command
 ```bash
-/tier2-hardening-frontend @[docs/epic/EPIC_144_tracker.md]
+/tier7-describe-architecture @[docs/epic/EPIC_144_tracker.md]
 ```
-Followed by remaining Post-Implementation Gates (Golden Master restoration, Proxy sunset, Pre-delete audit, Semantic coverage), Architecture Sync (`/tier7-describe-architecture`), and Epic Completion Sign-Off (`/tier8-audit-epic`).
+Followed by remaining Post-Implementation Gates (Golden Master restoration, Proxy sunset, Pre-delete audit, Semantic coverage) and Epic Completion Sign-Off (`/tier8-audit-epic`).
 
 ---
 
