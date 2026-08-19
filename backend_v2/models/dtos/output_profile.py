@@ -9,7 +9,7 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.base import BaseResponseDTO
-from backend_v2.models.enums import LaxScoringStrategy, LaxXaiExtensionType
+from backend_v2.models.enums import DisplayScale, LaxScoringStrategy, LaxXaiExtensionType, TargetBlockType
 from backend_v2.models.v2_core import (
     I18nText,
     OutputLayoutBlock,
@@ -35,7 +35,6 @@ class OutputProfileCreateDTO(V2CoreBase):
         max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.
         display_scale: UI rendering scale instruction (e.g., 'normalized_100').
         synthesis: Nested definition for synthesis configurations.
-        include_diagnostic_scorecard: Feature indicating whether to append independent scorecards.
         strictness_level: Profile-level strictness override setting.
         scoring_strategy: Profile-level strategy calculation override.
         layouts: Sequence of layout rendering blocks.
@@ -91,17 +90,18 @@ class OutputProfileCreateDTO(V2CoreBase):
         ),
     ]
     max_extension_items: Annotated[
-        int | None,
+        int,
         Field(
-            default=None,
+            default=3,
             ge=1,
+            le=100,
             description="Max number of items to show per grouped XAI extension. Sorted by severity.",
         ),
-    ]
+    ] = 3
     display_scale: Annotated[
-        Literal["original", "custom", "normalized_100"],
-        Field(default="original", description="UI rendering scale instruction."),
-    ]
+        DisplayScale,
+        Field(default=DisplayScale.ORIGINAL, description="UI rendering scale instruction."),
+    ] = DisplayScale.ORIGINAL
     user_role_mappings: Annotated[
         dict[str, I18nText],
         Field(
@@ -123,9 +123,6 @@ class OutputProfileCreateDTO(V2CoreBase):
             description="Localized labels for internal metric variables (e.g. 'variance_mechanical').",
         ),
     ]
-    include_diagnostic_scorecard: Annotated[
-        bool, Field(default=False, description="Enable appending the independent diagnostic scorecard.")
-    ]
     strictness_level: Annotated[
         Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
     ]
@@ -141,13 +138,13 @@ class OutputProfileCreateDTO(V2CoreBase):
         Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
     ]
     target_block_order: Annotated[
-        list[str] | None,
+        list[TargetBlockType] | None,
         Field(default=None, description="Optional block order override."),
-    ]
+    ] = None
     performativity_detector_step_id: Annotated[
         str | None,
         Field(default=None, description="Optional step ID for the performativity detector"),
-    ]
+    ] = None
 
 
 class OutputProfileUpdateDTO(V2CoreBase):
@@ -166,7 +163,6 @@ class OutputProfileUpdateDTO(V2CoreBase):
         max_extension_items: Optional max limits per grouped extension payload.
         display_scale: Optional UI rendering instructions flag.
         synthesis: Optional nested definition mapping synthesis configuration rules.
-        include_diagnostic_scorecard: Optional flag to render diagnostics data.
         strictness_level: Optional override strictness bounds.
         scoring_strategy: Optional strategy engine overriding defaults.
         layouts: Optional mapped layout instructions.
@@ -221,16 +217,14 @@ class OutputProfileUpdateDTO(V2CoreBase):
         Field(
             default=None,
             ge=1,
+            le=100,
             description="Max number of items to show per grouped XAI extension. Sorted by severity.",
         ),
-    ]
+    ] = None
     display_scale: Annotated[
-        Literal["original", "custom", "normalized_100"] | None,
+        DisplayScale | None,
         Field(default=None, description="UI rendering scale instruction."),
-    ]
-    include_diagnostic_scorecard: Annotated[
-        bool | None, Field(default=None, description="Enable appending the independent diagnostic scorecard.")
-    ]
+    ] = None
     strictness_level: Annotated[
         Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
     ]
@@ -246,13 +240,13 @@ class OutputProfileUpdateDTO(V2CoreBase):
         Field(default=None, description="Base SDUI content blocks predefined by the profile."),
     ]
     target_block_order: Annotated[
-        list[str] | None,
+        list[TargetBlockType] | None,
         Field(default=None, description="Optional block order override."),
-    ]
+    ] = None
     performativity_detector_step_id: Annotated[
         str | None,
         Field(default=None, description="Optional step ID for the performativity detector"),
-    ]
+    ] = None
 
 
 class OutputProfileResponseDTO(BaseResponseDTO):
@@ -271,7 +265,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
         max_extension_items: Top limit cap applying constraints to presentation loops.
         display_scale: Exact enumeration of UI rendering modes ('normalized_100').
         synthesis: Specific payload mapped configuring report output logic.
-        include_diagnostic_scorecard: Status flag defining scorecard rendering operations.
         strictness_level: Validated override value configuring verification rigor.
         scoring_strategy: Mapped logic algorithm enum mapping engine implementation.
         layouts: Ordered array of discrete layout definitions governing presentation.
@@ -292,21 +285,21 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
     metric_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict, exclude=True)]
     target_block_order: Annotated[
-        list[str],
+        list[TargetBlockType],
         Field(
             default_factory=lambda: [
-                "metadata_block",
-                "executive_summary_block",
-                "synthesis_text_block",
-                "matrix_graphs_block",
-                "grouped_extensions_block",
-                "penalties_block",
-                "matrix_summary_table_block",
-                "variance_validation_block",
-                "authenticity_evaluation_block",
-                "printable_sources_block",
-                "global_score_block",
-                "audit_trail_block",
+                TargetBlockType.METADATA_BLOCK,
+                TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+                TargetBlockType.SYNTHESIS_TEXT_BLOCK,
+                TargetBlockType.MATRIX_GRAPHS_BLOCK,
+                TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
+                TargetBlockType.PENALTIES_BLOCK,
+                TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
+                TargetBlockType.VARIANCE_VALIDATION_BLOCK,
+                TargetBlockType.AUTHENTICITY_EVALUATION_BLOCK,
+                TargetBlockType.PRINTABLE_SOURCES_BLOCK,
+                TargetBlockType.GLOBAL_SCORE_BLOCK,
+                TargetBlockType.AUDIT_TRAIL_BLOCK,
             ]
         ),
     ]
@@ -316,11 +309,17 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     ]
     visible_block_extensions: Annotated[list[LaxXaiExtensionType], Field(default_factory=list)]
     visible_workflow_extensions: Annotated[list[LaxXaiExtensionType], Field(default_factory=list)]
-    max_extension_items: int | None = None
-    display_scale: Literal["original", "custom", "normalized_100"] = "original"
-    include_diagnostic_scorecard: Annotated[
-        bool, Field(default=False, description="Enable appending the independent diagnostic scorecard.")
-    ]
+    max_extension_items: Annotated[
+        int,
+        Field(default=3, ge=1, le=100, description="Top limit cap applying constraints to presentation loops."),
+    ] = 3
+    display_scale: Annotated[
+        DisplayScale,
+        Field(
+            default=DisplayScale.ORIGINAL,
+            description="Exact enumeration of UI rendering modes ('normalized_100').",
+        ),
+    ] = DisplayScale.ORIGINAL
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
     synthesis: SynthesisConfigDTO | None = None
@@ -329,4 +328,4 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     performativity_detector_step_id: Annotated[
         str | None,
         Field(default=None, description="Optional step ID for the performativity detector"),
-    ]
+    ] = None

@@ -24,10 +24,12 @@ from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, QuoteEviden
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
+    DisplayScale,
     ExecutionStatus,
     HistoricalContextMode,
     LaxBlockDataType,
     LaxComponentType,
+    LaxDisplayScale,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
     LaxPromptBlockCategory,
@@ -1341,20 +1343,23 @@ class OutputProfile(V2CoreBase):
         default_factory=list,
         description="Workflow-level global extensions (mathematical engines).",
     )
-    max_extension_items: int = Field(
-        default=3,
-        ge=1,
-        le=100,
-        description="Max number of items to show per grouped XAI extension.",
-    )
+    max_extension_items: Annotated[
+        int,
+        Field(
+            default=3,
+            ge=1,
+            le=100,
+            description="Max number of items to show per grouped XAI extension.",
+        ),
+    ] = 3
 
-    display_scale: Literal["original", "custom", "normalized_100"] = Field(
-        default="original",
-        description="Selects the source scaling for the scores printed by Blueprint.",
-    )
-    include_diagnostic_scorecard: bool = Field(
-        default=False, description="Enable appending the independent diagnostic scorecard."
-    )
+    display_scale: Annotated[
+        LaxDisplayScale,
+        Field(
+            default=DisplayScale.ORIGINAL,
+            description="Selects the source scaling for the scores printed by Blueprint.",
+        ),
+    ] = DisplayScale.ORIGINAL
     strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     user_role_mappings: dict[str, I18nText] = Field(
@@ -1372,23 +1377,28 @@ class OutputProfile(V2CoreBase):
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Global synthesis configuration for the executive summary."
     )
-    target_block_order: list[str] = Field(
-        default_factory=lambda: [
-            "metadata_block",
-            "executive_summary_block",
-            "synthesis_text_block",
-            "matrix_graphs_block",
-            "grouped_extensions_block",
-            "penalties_block",
-            "matrix_summary_table_block",
-            "variance_validation_block",
-            "authenticity_evaluation_block",
-            "printable_sources_block",
-            "global_score_block",
-            "audit_trail_block",
-        ],
-        description="The exact dynamic block sequence for the SDUI output. Drives the dispatch loop in blueprint.py.",
-    )
+    target_block_order: Annotated[
+        list[LaxTargetBlockType],
+        Field(
+            default_factory=lambda: [
+                TargetBlockType.METADATA_BLOCK,
+                TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+                TargetBlockType.SYNTHESIS_TEXT_BLOCK,
+                TargetBlockType.MATRIX_GRAPHS_BLOCK,
+                TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
+                TargetBlockType.PENALTIES_BLOCK,
+                TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
+                TargetBlockType.VARIANCE_VALIDATION_BLOCK,
+                TargetBlockType.AUTHENTICITY_EVALUATION_BLOCK,
+                TargetBlockType.PRINTABLE_SOURCES_BLOCK,
+                TargetBlockType.GLOBAL_SCORE_BLOCK,
+                TargetBlockType.AUDIT_TRAIL_BLOCK,
+            ],
+            description=(
+                "The exact dynamic block sequence for the SDUI output. Drives the dispatch loop in blueprint.py."
+            ),
+        ),
+    ]
     layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
     content_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."

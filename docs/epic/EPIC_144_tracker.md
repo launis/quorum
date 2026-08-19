@@ -66,13 +66,13 @@
 
 #### Phase 0-C: Backend Models & DTO Strict Purge
 **Plan:** `@[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Modify OutputProfile in v2_core.py
-  - [ ] Step 2: Modify OutputProfileCreateDTO
-  - [ ] Step 3: Modify OutputProfileUpdateDTO
-  - [ ] Step 4: Modify OutputProfileResponseDTO
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Modify OutputProfile in v2_core.py
+  - [x] Step 2: Modify OutputProfileCreateDTO
+  - [x] Step 3: Modify OutputProfileUpdateDTO
+  - [x] Step 4: Modify OutputProfileResponseDTO
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]`
 
@@ -429,6 +429,15 @@
   - Confirmed zero supply-chain violations (banned AI bloatware packages).
   - Executed global test suite (1447 passed, 29 skipped, 4 xpassed, 0 failures).
   - Emitted formal artifact: `@[red_team_audit_02_p0_seed_sanitization.md]`.
+- **Phase 0-C Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - Completely purged legacy `include_diagnostic_scorecard` from `OutputProfile` in `@[backend_v2/models/v2_core.py#L1355]` and from `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO` in `@[backend_v2/models/dtos/output_profile.py]`, including cleaning all class docstrings.
+  - Migrated `display_scale` from raw string literals (`Literal["original", "custom", "normalized_100"]`) to PEP 593 `Annotated[LaxDisplayScale, Field(default=DisplayScale.ORIGINAL, ...)] = DisplayScale.ORIGINAL` on `OutputProfile` (using `LaxDisplayScale` for database string coercion) and `Annotated[DisplayScale, ...]` across all DTOs (`DisplayScale | None` for update).
+  - Migrated `target_block_order` to `Annotated[list[LaxTargetBlockType], Field(default_factory=lambda: [...])]` on `OutputProfile` and `Annotated[list[TargetBlockType], ...]` on `OutputProfileResponseDTO`, while preserving client flexibility with optional `Annotated[list[TargetBlockType] | None, ...] = None` on `CreateDTO` and `UpdateDTO`.
+  - Enforced strict integer range bounds on `max_extension_items`: non-nullable `Annotated[int, Field(default=3, ge=1, le=100)] = 3` on `OutputProfile`, `CreateDTO`, and `ResponseDTO`, and `Annotated[int | None, Field(default=None, ge=1, le=100)] = None` on `UpdateDTO`.
+  - Confirmed strict Pydantic V2 metadata enforcement (`model_config = ConfigDict(strict=True, extra="forbid")`) across `OutputProfile`, `OutputLayoutBlock`, `SynthesisConfigDTO`, and all output profile DTOs.
+  - Executed database re-seeding (`uv run python backend_v2/seed/run_seed.py local`) successfully with clean TinyDB table recreation and zero validation errors.
+  - Executed quality audit loops: Ruff linting & formatting 100% clean, MyPy strict typing 100% clean, and unit tests passing with 100% statement coverage on `backend_v2/models/dtos/output_profile.py`.
+  - Verified zero occurrences of `include_diagnostic_scorecard` and raw `Literal["original"` in both `v2_core.py` and `output_profile.py`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
@@ -439,9 +448,11 @@
 - **Dynamic File Path SSOT in Tests:** In test fixtures accessing seed files, hardcoded Windows absolute paths (e.g., `c:\src\quorum\...`) must be replaced with `Path(__file__).resolve().parents[N]` to prevent cross-machine amnesia.
 - **Settings Post-Init Credential Scanning:** Testing `Settings.model_post_init` credential checks requires mocking `Path.exists` because `Settings` automatically scans the filesystem root for `service-account.json`.
 - **Enum Parity Testing Paradigm:** Python `ast.parse` and regex extraction over Dart `@JsonValue` provide deterministic verification without importing heavy cross-stack runtimes.
+- **DTO Optionality vs Domain Strictness:** When creating DTOs for REST APIs, fields that have sensible defaults in the domain model (e.g. `target_block_order`) should remain optional (`| None = None`) in `CreateDTO`/`UpdateDTO` to prevent forced over-specification by API clients, while remaining strictly typed non-nullable enums in `ResponseDTO` and the domain model.
+- **Test Fixture Ripple Effects on Enum Migration:** Migrating `target_block_order` from `list[str]` to `list[TargetBlockType]` causes legacy test fixtures passing raw strings like `["metadata_block", ...]` to fail under strict Pydantic V2 validation; these fixtures are scheduled for comprehensive alignment in Phase 0-D (Plan 04).
 
 ## Remaining
-- **Phase 0-C (Plan 03):** Backend Models & DTO Strict Purge (`@[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md]`) — Red-Teaming (`/tier0-research-plan`).
+- **Phase 0-C (Plan 03):** Backend Models & DTO Strict Purge (`@[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md]`) — Audit (`/tier8-audit-plan`).
 - **Phase 0-D through Phase 0-I (Plans 04-09):** Test fixtures alignment batches 1 & 2, OpenAPI generation, frontend enum sync, frontend test fixtures, integration checkpoint.
 - **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
@@ -449,7 +460,8 @@
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
-`/tier5-resume --target="@[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]" --workflow=/tier0-research-plan`
+`/tier5-resume --target="@[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]" --workflow=/tier8-audit-plan`
+
 
 
 
