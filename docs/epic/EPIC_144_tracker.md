@@ -108,13 +108,14 @@
 
 #### Phase 0-F: OpenAPI Synchronization Gate
 **Plan:** `@[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Generate OpenAPI Specification
-  - [ ] Step 2: Verify OpenAPI Parity
-  - [ ] Step 3: Full Backend Regression Gate
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Generate OpenAPI Specification
+  - [x] Step 2: Verify OpenAPI Unit Test Parity
+  - [x] Step 3: Verify Generated OpenAPI Schema Assertions
+  - [x] Step 4: Full Backend Regression Gate
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
@@ -493,6 +494,17 @@
   - Executed target quality gates (>97% coverage on each target file) and full backend test suite (1460 passed, 29 skipped, 4 xpassed, 0 failures).
   - Emitted formal artifact: `@[red_team_audit_05_p0_backend_test_fixtures_batch2.md]`.
 
+- **Phase 0-F Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - Executed `@[backend_v2/scripts/generate_openapi.py]` generating the static OpenAPI schema at `@[docs/swagger/openapi.json]`.
+  - Executed OpenAPI unit tests (`test_generate_openapi.py`) passing 2/2 tests green and passing all 5 backend audit loop quality steps.
+  - Verified all 5 deterministic OpenAPI schema assertions in `docs/swagger/openapi.json` with 100% compliance:
+    1. `DisplayScale` enum in `components/schemas` with values `["original", "custom", "normalized_100"]`.
+    2. `TargetBlockType` enum in `components/schemas` with 13 members.
+    3. Complete eradication of `include_diagnostic_scorecard` from `OutputProfileCreateDTO` and `OutputProfileResponseDTO`.
+    4. `OutputProfileCreateDTO.properties.max_extension_items` enforces `minimum: 1` and `maximum: 100`.
+    5. `OutputProfileResponseDTO.properties.target_block_order.items` correctly references `#/components/schemas/TargetBlockType`.
+  - Executed full backend regression test suite: 1460 passed, 29 skipped, 4 xpassed, 0 failures.
+
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
 - **Fail-Fast Hydration Invariant:** The `OutputProfile` model currently contains legacy `include_diagnostic_scorecard: bool`, uses raw `Literal["original", "custom", "normalized_100"]` for `display_scale`, and `list[str]` for `target_block_order`. Flutter models utilize `unknownEnumValue` fallback annotations.
@@ -509,9 +521,10 @@
 - **Async Hook Testing & Awaitable Typing:** In pytest-asyncio test suites, calling async hook functions returning `HookResult | Awaitable[HookResult]` requires wrapping calls in `cast(Awaitable[HookResult], ...)` when awaiting under MyPy `--strict` mode to prevent type union awaitability errors.
 - **DisplayScale Enum Isolation in Domain Parsers:** `MatrixDomainParser` tests must explicitly test all 3 `DisplayScale` enum options (`ORIGINAL`, `NORMALIZED_100`, `CUSTOM`) to verify mathematical score scaling and bound definitions (`display_scale_min`/`display_scale_max`), as well as Fail-Fast validation on missing custom bounds.
 - **Blueprint Dispatch Loop Block Order Contract:** In test fixtures instantiating `OutputProfile` or `OutputProfile.model_construct` for `BlueprintTransformer`, `target_block_order` must be populated with `_DEFAULT_TARGET_BLOCK_ORDER` to ensure downstream SDUI blocks (`GROUPED_EXTENSIONS_BLOCK`, `AUTHENTICITY_EVALUATION_BLOCK`, etc.) are dispatched during report synthesis.
+- **OpenAPI Schema Generation & Standalone Script Testing:** `backend_v2/scripts/generate_openapi.py` safely writes to `docs/swagger/openapi.json` without side effects. Standalone scripts that execute outside the `backend_v2` module structure should have their unit tests verified directly with `pytest` alongside the standard linting and typing quality gates.
 
 ## Remaining
-- **Phase 0-F (Plan 06):** OpenAPI generation, OpenAPI parity verification, full backend regression gate.
+- **Phase 0-F Audit:** Execute `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`.
 - **Phase 0-G through Phase 0-I (Plans 07-09):** Frontend enum & Freezed sync, frontend test fixtures, integration checkpoint.
 - **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
@@ -520,5 +533,5 @@
 
 ## Resume Command
 ```bash
-/tier0-research-plan @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]
+/tier8-audit-plan @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]
 ```

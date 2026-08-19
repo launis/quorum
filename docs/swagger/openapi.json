@@ -3386,7 +3386,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutputProfile"
+                  "$ref": "#/components/schemas/OutputProfileResponseDTO"
                 }
               }
             }
@@ -3430,7 +3430,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutputProfile"
+                  "$ref": "#/components/schemas/OutputProfileResponseDTO"
                 }
               }
             }
@@ -3487,7 +3487,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutputProfile"
+                  "$ref": "#/components/schemas/OutputProfileResponseDTO"
                 }
               }
             }
@@ -3576,7 +3576,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutputProfile"
+                  "$ref": "#/components/schemas/OutputProfileResponseDTO"
                 }
               }
             }
@@ -3862,8 +3862,342 @@
         "required": [
           "instruction"
         ],
-        "title": "AcceptanceCriterion",
-        "description": "Structured acceptance criterion with bilingual instruction."
+        "title": "AcceptanceCriterion"
+      },
+      "AccordionBlock-Input": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "accordion",
+            "title": "Block Type",
+            "default": "accordion"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "The title displayed on the accordion header."
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "critical_override",
+              "success",
+              "error",
+              "default"
+            ],
+            "title": "Severity",
+            "description": "Color intent for the accordion header.",
+            "default": "default"
+          },
+          "icon_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Name",
+            "description": "Optional icon name for the header."
+          },
+          "children": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Input",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Input",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Input",
+                  "accordion": "#/components/schemas/AccordionBlock-Input",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Input",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Input",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Children",
+            "description": "Nested SDUI blocks inside the accordion."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "accordion",
+        "description": "An accordion block for grouping nested SDUI blocks under a collapsible header."
+      },
+      "AccordionBlock-Output": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "accordion",
+            "title": "Block Type",
+            "default": "accordion"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "The title displayed on the accordion header."
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "warning",
+              "critical_override",
+              "success",
+              "error",
+              "default"
+            ],
+            "title": "Severity",
+            "description": "Color intent for the accordion header.",
+            "default": "default"
+          },
+          "icon_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Name",
+            "description": "Optional icon name for the header."
+          },
+          "children": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Output",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Output",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Output",
+                  "accordion": "#/components/schemas/AccordionBlock-Output",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Output",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Output",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Children",
+            "description": "Nested SDUI blocks inside the accordion."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "accordion",
+        "description": "An accordion block for grouping nested SDUI blocks under a collapsible header."
+      },
+      "AlertBlock": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "alert_box",
+            "title": "Block Type",
+            "default": "alert_box"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/VisualIntent",
+            "default": "info"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "exact_quotes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Exact Quotes"
+          },
+          "citations": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Citations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "alert_box",
+        "description": "An alert box for highlighting important information."
       },
       "AllowedMCPTool": {
         "properties": {
@@ -3895,8 +4229,7 @@
           "name",
           "description"
         ],
-        "title": "AllowedMCPTool",
-        "description": "Declares a single MCP tool available for LLM function calling."
+        "title": "AllowedMCPTool"
       },
       "AntiPattern": {
         "properties": {
@@ -3916,8 +4249,7 @@
         "required": [
           "pattern"
         ],
-        "title": "AntiPattern",
-        "description": "Known anti-pattern with bilingual description."
+        "title": "AntiPattern"
       },
       "AtomResultDTO": {
         "properties": {
@@ -3925,6 +4257,18 @@
             "type": "string",
             "title": "Tda Id",
             "description": "Opaque ID pointing to the hydrated_references dictionary key"
+          },
+          "matrix_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matrix Id",
+            "description": "Opaque ID of the matrix block that requested this evaluation"
           },
           "status": {
             "$ref": "#/components/schemas/ExecutionStatus"
@@ -4028,6 +4372,70 @@
         ],
         "title": "BlockDataType",
         "description": "Data types allowed for PromptBlock extracted values.\nAccepts core extraction types, plus valid legacy structural types."
+      },
+      "BulletListBlock": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "bullet_list",
+            "title": "Block Type",
+            "default": "bullet_list"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BulletListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "bullet_list",
+        "description": "A bullet list containing multiple items."
+      },
+      "BulletListItem": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "exact_quotes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Exact Quotes"
+          },
+          "citations": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Citations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "BulletListItem"
       },
       "ClientErrorPayload": {
         "properties": {
@@ -4173,173 +4581,17 @@
           "field_id",
           "component_type"
         ],
-        "title": "DataDictionaryField",
-        "description": "UI Hints mapping for dynamic form generation (SDUI)."
+        "title": "DataDictionaryField"
       },
-      "EmbeddedOutputProfile": {
-        "properties": {
-          "name": {
-            "$ref": "#/components/schemas/I18nText",
-            "description": "Localized name of the profile."
-          },
-          "description": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Detailed profile context"
-          },
-          "custom_preface": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Rich text preface shown at the very beginning of the report."
-          },
-          "language": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Language",
-            "description": "Target output language."
-          },
-          "tone_instruction": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Dynamic tone instruction for synthesis."
-          },
-          "visible_metadata": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Visible Metadata",
-            "description": "List of metadata fields visible on the UI and PDF cover header."
-          },
-          "visible_block_extensions": {
-            "items": {
-              "$ref": "#/components/schemas/XaiExtensionType"
-            },
-            "type": "array",
-            "title": "Visible Block Extensions",
-            "description": "Block-level XAI extensions (per-matrix, LLM-produced)."
-          },
-          "visible_workflow_extensions": {
-            "items": {
-              "$ref": "#/components/schemas/XaiExtensionType"
-            },
-            "type": "array",
-            "title": "Visible Workflow Extensions",
-            "description": "Workflow-level global extensions (mathematical engines)."
-          },
-          "max_extension_items": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 1.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Extension Items",
-            "description": "Max number of items to show per grouped XAI extension. Sorted by severity."
-          },
-          "display_scale": {
-            "type": "string",
-            "enum": [
-              "original",
-              "custom",
-              "normalized_100"
-            ],
-            "title": "Display Scale",
-            "description": "Selects the source scaling for the scores printed by Blueprint.",
-            "default": "original"
-          },
-          "include_diagnostic_scorecard": {
-            "type": "boolean",
-            "title": "Include Diagnostic Scorecard",
-            "description": "Enable appending the independent diagnostic scorecard.",
-            "default": false
-          },
-          "strictness_level": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 100.0,
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strictness Level",
-            "description": "Profile-level strictness override."
-          },
-          "scoring_strategy": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ScoringStrategy"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Profile-level strategy override."
-          },
-          "layouts": {
-            "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
-            },
-            "type": "array",
-            "title": "Layouts",
-            "description": "Ordered sequence of layout blocks."
-          },
-          "content_blocks": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Content Blocks",
-            "description": "Base SDUI content blocks predefined by the profile."
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "EmbeddedOutputProfile",
-        "description": "Embedded configuration mapping for workflow output profiles."
-      },
-      "EngineOverrideStrategy": {
+      "DisplayScale": {
         "type": "string",
         "enum": [
-          "SYNTHESIS",
-          "DYNAMIC_TOOL_AGENT"
+          "original",
+          "custom",
+          "normalized_100"
         ],
-        "title": "EngineOverrideStrategy",
-        "description": "Execution strategy overrides for the engine."
+        "title": "DisplayScale",
+        "description": "Display scale configuration for matrix score rendering."
       },
       "ErrorDetailsDTO": {
         "properties": {
@@ -4437,8 +4689,7 @@
           "error_code",
           "error_message"
         ],
-        "title": "ErrorTraceEvent",
-        "description": "Specific event representing a fail-fast error katkos."
+        "title": "ErrorTraceEvent"
       },
       "EvidenceRejectionRequest": {
         "properties": {
@@ -4453,8 +4704,7 @@
         "required": [
           "rejection_reason"
         ],
-        "title": "EvidenceRejectionRequest",
-        "description": "Request DTO for rejecting a specific evidence quote."
+        "title": "EvidenceRejectionRequest"
       },
       "ExecutionCreate": {
         "properties": {
@@ -4496,8 +4746,7 @@
           "workflow_id",
           "target_locale"
         ],
-        "title": "ExecutionCreate",
-        "description": "Schema for initiating a new workflow execution."
+        "title": "ExecutionCreate"
       },
       "ExecutionMetricsDTO": {
         "properties": {
@@ -4681,6 +4930,18 @@
             "description": "Dynamic flag indicating if a failed/pending execution can be safely resumed.",
             "default": false
           },
+          "cumulative_synthesis_tokens": {
+            "type": "integer",
+            "title": "Cumulative Synthesis Tokens",
+            "description": "Cumulative tokens used across all synthesis runs.",
+            "default": 0
+          },
+          "cumulative_synthesis_cost": {
+            "type": "number",
+            "title": "Cumulative Synthesis Cost",
+            "description": "Cumulative cost in USD across all synthesis runs.",
+            "default": 0.0
+          },
           "duration_ms": {
             "type": "integer",
             "title": "Duration Ms",
@@ -4775,8 +5036,7 @@
           "id",
           "workflow_id"
         ],
-        "title": "ExecutionRecord",
-        "description": "Record of a workflow execution, including the frozen context and results."
+        "title": "ExecutionRecord"
       },
       "ExecutionStatus": {
         "type": "string",
@@ -4837,7 +5097,7 @@
           },
           "scorecard_atoms": {
             "additionalProperties": {
-              "$ref": "#/components/schemas/ScorecardAtomDTO"
+              "$ref": "#/components/schemas/ScorecardAtomDTO-Output"
             },
             "type": "object",
             "title": "Scorecard Atoms",
@@ -4850,15 +5110,15 @@
           "id",
           "label"
         ],
-        "title": "ExecutionStepState",
-        "description": "Real-time status tracking for a single DAG node."
+        "title": "ExecutionStepState"
       },
       "ExpectedInput": {
         "properties": {
           "input_key": {
             "type": "string",
+            "pattern": "^[A-Za-z0-9_]{1,32}$",
             "title": "Input Key",
-            "description": "The internal key for routing this input (e.g., 'history_text')."
+            "description": "System identifier for the input."
           },
           "label": {
             "$ref": "#/components/schemas/I18nText",
@@ -4922,8 +5182,58 @@
           "required",
           "description"
         ],
-        "title": "ExpectedInput",
-        "description": "Dynamic input definition for a workflow (0-N inputs)."
+        "title": "ExpectedInput"
+      },
+      "ExtensionMetricsDTO": {
+        "properties": {
+          "authenticity_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authenticity Score"
+          },
+          "performative_phrases_count": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performative Phrases Count"
+          },
+          "variance_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variance Score"
+          },
+          "alignment_verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alignment Verdict"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ExtensionMetricsDTO"
       },
       "ExtractedValueDTO": {
         "properties": {
@@ -5008,39 +5318,7 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "FrozenContext",
-        "description": "Deep copy of context state at execution time for auditability."
-      },
-      "GlobalSynthesisDTO": {
-        "properties": {
-          "executive_summary": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Executive Summary",
-            "description": "High-level synthesized summary"
-          },
-          "urgency_level": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Urgency Level"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "GlobalSynthesisDTO",
-        "description": "Data structure for high-level synthesized reports."
+        "title": "FrozenContext"
       },
       "HTTPValidationError": {
         "properties": {
@@ -5054,6 +5332,51 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HeroInsightBlock": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "hero_insight",
+            "title": "Block Type",
+            "default": "hero_insight"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "default": ""
+          },
+          "exact_quotes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Exact Quotes"
+          },
+          "citations": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Citations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "hero_insight",
+        "description": "Specific block for Hero Insights."
       },
       "HistoricalContextMode": {
         "type": "string",
@@ -5083,11 +5406,53 @@
         "title": "HookListResponse",
         "description": "Schema for returning available configured hooks.\n\nAttributes:\n    hooks: A list of registered system hooks or callback identifiers."
       },
-      "HumanOverrideDTO": {
+      "HumanOverrideDTO-Input": {
         "properties": {
           "new_status": {
             "$ref": "#/components/schemas/ExecutionStatus",
-            "description": "The overridden status (e.g., TRUE, FALSE, DLQ)."
+            "description": "The overridden status (PASSED, FAILED, SYSTEM_ERROR)."
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "The reason for the override."
+          },
+          "evidence_quotes": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteEvidenceDTO-Input"
+            },
+            "type": "array",
+            "title": "Evidence Quotes",
+            "description": "Selected quotes to support the override."
+          },
+          "overridden_by": {
+            "type": "string",
+            "title": "Overridden By",
+            "description": "User ID who performed the override."
+          },
+          "overridden_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Overridden At",
+            "description": "Timestamp of the override."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "new_status",
+          "reason",
+          "evidence_quotes",
+          "overridden_by",
+          "overridden_at"
+        ],
+        "title": "HumanOverrideDTO"
+      },
+      "HumanOverrideDTO-Output": {
+        "properties": {
+          "new_status": {
+            "$ref": "#/components/schemas/ExecutionStatus",
+            "description": "The overridden status (PASSED, FAILED, SYSTEM_ERROR)."
           },
           "reason": {
             "type": "string",
@@ -5123,14 +5488,13 @@
           "overridden_by",
           "overridden_at"
         ],
-        "title": "HumanOverrideDTO",
-        "description": "Schema for human-initiated state override."
+        "title": "HumanOverrideDTO"
       },
       "HumanOverrideRequest": {
         "properties": {
           "new_status": {
             "$ref": "#/components/schemas/ExecutionStatus",
-            "description": "The overridden status (e.g., TRUE, FALSE, DLQ)."
+            "description": "The overridden status (PASSED, FAILED, SYSTEM_ERROR)."
           },
           "reason": {
             "type": "string",
@@ -5152,8 +5516,7 @@
           "new_status",
           "reason"
         ],
-        "title": "HumanOverrideRequest",
-        "description": "Payload for human override requests."
+        "title": "HumanOverrideRequest"
       },
       "HydratedAtomDTO": {
         "properties": {
@@ -5269,8 +5632,7 @@
           "message",
           "execution_id"
         ],
-        "title": "JobAcceptedDTO",
-        "description": "Omni-channel render endpoint accepted response."
+        "title": "JobAcceptedDTO"
       },
       "LexiconConfigPayload": {
         "properties": {
@@ -5305,8 +5667,7 @@
           "language_code",
           "language_name"
         ],
-        "title": "LexiconConfigPayload",
-        "description": "Configuration for a single language lexicon."
+        "title": "LexiconConfigPayload"
       },
       "LexiconSuggestionListDTO": {
         "properties": {
@@ -5321,8 +5682,7 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "LexiconSuggestionListDTO",
-        "description": "Structured DTO for LLM returned performative phrases."
+        "title": "LexiconSuggestionListDTO"
       },
       "LoginResponse": {
         "properties": {
@@ -5455,8 +5815,7 @@
           "step_name",
           "query"
         ],
-        "title": "MCPAuditTrace",
-        "description": "Immutable audit log entry for a single MCP tool invocation."
+        "title": "MCPAuditTrace"
       },
       "MCPGatewayDeleteResponse": {
         "properties": {
@@ -5477,6 +5836,41 @@
         ],
         "title": "MCPGatewayDeleteResponse",
         "description": "API Response schema for deleting an MCP gateway.\n\nAttributes:\n    status: Action outcome status message.\n    deleted_id: Opaque ID of the deleted gateway."
+      },
+      "MarkdownBlock": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "markdown",
+            "title": "Block Type",
+            "default": "markdown"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Text",
+            "description": "The exact markdown string to be rendered."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "markdown",
+        "description": "Direct Markdown rendering block, bypassing structural SDUI templates.\n\nUsed strictly for static Admin texts (like preambles) and legacy V1 data,\nNOT for dynamic LLM content generation to preserve the UI structural mandate."
       },
       "MatrixClaim": {
         "properties": {
@@ -5571,7 +5965,7 @@
         "title": "MatrixScale",
         "description": "Represents a single score point in a BARS matrix scale.\n\nAttributes:\n    score: Numerical value of the scale point.\n    name: Optional name for the scale point (e.g., 'Excellent').\n    ai_label: Short uppercase AI mnemonic replacing English target label, e.g. CATASTROPHIC FAILURE.\n    claims: List of behavioral claims/criteria for this score."
       },
-      "MatrixScorecardRowDTO": {
+      "MatrixScorecardRowDTO-Input": {
         "properties": {
           "block_id": {
             "type": "string",
@@ -5610,6 +6004,17 @@
             ],
             "title": "Score",
             "description": "Raw scaled score."
+          },
+          "score_display_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Display Label"
           },
           "scale_min": {
             "anyOf": [
@@ -5679,7 +6084,12 @@
           "evidence_type": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "EXPLICIT_QUOTE",
+                  "IMPLIED_INTENT",
+                  "NO_EVIDENCE"
+                ]
               },
               {
                 "type": "null"
@@ -5721,17 +6131,6 @@
             ],
             "title": "Cited Web Citation"
           },
-          "coaching": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Coaching"
-          },
           "confidence": {
             "anyOf": [
               {
@@ -5743,71 +6142,87 @@
             ],
             "title": "Confidence"
           },
-          "falsification": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
+          "inner_sdui_blocks": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Input",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Input",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Input",
+                  "accordion": "#/components/schemas/AccordionBlock-Input",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Input",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Input",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
               }
-            ],
-            "title": "Falsification"
-          },
-          "missing_context": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Missing Context"
-          },
-          "risk_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Risk Flag"
-          },
-          "remediation_steps": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Remediation Steps"
-          },
-          "emotional_sentiment": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Emotional Sentiment"
-          },
-          "theory_link": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Theory Link"
+            },
+            "type": "array",
+            "title": "Inner Sdui Blocks",
+            "description": "Strict SDUI components rendered for this row."
           },
           "contextual_override": {
             "anyOf": [
@@ -5888,6 +6303,12 @@
             "title": "Is Evaluative",
             "description": "Whether this block contributes to global average."
           },
+          "allow_contextual_override": {
+            "type": "boolean",
+            "title": "Allow Contextual Override",
+            "description": "Whether contextual override is allowed on this PromptBlock matrix.",
+            "default": false
+          },
           "used_evidence_ids": {
             "items": {
               "type": "string"
@@ -5898,7 +6319,7 @@
           },
           "evaluated_atoms": {
             "items": {
-              "$ref": "#/components/schemas/ScorecardAtomDTO"
+              "$ref": "#/components/schemas/ScorecardAtomDTO-Input"
             },
             "type": "array",
             "title": "Evaluated Atoms",
@@ -5915,8 +6336,25 @@
           "tda_state": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/TDAPending"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TDAEvaluated"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TDADlq"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "runtimeType",
+                  "mapping": {
+                    "dlq": "#/components/schemas/TDADlq",
+                    "evaluated": "#/components/schemas/TDAEvaluated",
+                    "pending": "#/components/schemas/TDAPending"
+                  }
+                }
               },
               {
                 "type": "null"
@@ -5935,8 +6373,417 @@
           "row_explanation",
           "is_evaluative"
         ],
-        "title": "MatrixScorecardRowDTO",
-        "description": "Represents a single evaluated matrix row in the scorecard and plot axes."
+        "title": "MatrixScorecardRowDTO"
+      },
+      "MatrixScorecardRowDTO-Output": {
+        "properties": {
+          "block_id": {
+            "type": "string",
+            "title": "Block Id",
+            "description": "The opaque Stripe ID of the prompt block."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Pre-localized name for PDF layouts and static charts."
+          },
+          "label_i18n": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Full I18n translations dictionary for the UI."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Detailed instructions or prompt context behind this axis."
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "Raw scaled score."
+          },
+          "score_display_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Display Label"
+          },
+          "scale_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale Min",
+            "description": "Minimum possible score."
+          },
+          "scale_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale Max",
+            "description": "Maximum possible score."
+          },
+          "normalized_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Score",
+            "description": "Normalized score (0-100) if evaluative."
+          },
+          "true_atoms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "True Atoms",
+            "description": "Global hits found."
+          },
+          "total_atoms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Atoms",
+            "description": "Total atoms available to evaluate."
+          },
+          "row_explanation": {
+            "type": "string",
+            "title": "Row Explanation",
+            "description": "The one-sentence justification."
+          },
+          "evidence_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "EXPLICIT_QUOTE",
+                  "IMPLIED_INTENT",
+                  "NO_EVIDENCE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Type",
+            "description": "The EvidenceType extracted from AtomResponse"
+          },
+          "cited_source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Source Id"
+          },
+          "cited_text_quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Text Quote"
+          },
+          "cited_web_citation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cited Web Citation"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "inner_sdui_blocks": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Output",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Output",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Output",
+                  "accordion": "#/components/schemas/AccordionBlock-Output",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Output",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Output",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Inner Sdui Blocks",
+            "description": "Strict SDUI components rendered for this row."
+          },
+          "contextual_override": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contextual Override",
+            "description": "Whether contextual override was applied."
+          },
+          "semantic_reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semantic Reasoning",
+            "description": "Detailed semantic justification for the override."
+          },
+          "level_breakdown": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level Breakdown",
+            "description": "Breakdowns: DINA hits vs total per scale floor e.g. {'1.0': '5/5'}"
+          },
+          "level_names": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level Names",
+            "description": "Map of level keys to their human readable names e.g. {'1': 'Heikko'}"
+          },
+          "ui_plot_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ui Plot Ratio",
+            "description": "Absolute normalized plot plot ratio [0.0 - 1.0] for mathless Flutter plotting"
+          },
+          "ui_boundary_labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Ui Boundary Labels",
+            "description": "Pre-computed labels for extremes, e.g. {'0.0': 'Low', '1.0': 'High'}"
+          },
+          "is_evaluative": {
+            "type": "boolean",
+            "title": "Is Evaluative",
+            "description": "Whether this block contributes to global average."
+          },
+          "allow_contextual_override": {
+            "type": "boolean",
+            "title": "Allow Contextual Override",
+            "description": "Whether contextual override is allowed on this PromptBlock matrix.",
+            "default": false
+          },
+          "used_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Used Evidence Ids",
+            "description": "Trace IDs used for this row."
+          },
+          "evaluated_atoms": {
+            "items": {
+              "$ref": "#/components/schemas/ScorecardAtomDTO-Output"
+            },
+            "type": "array",
+            "title": "Evaluated Atoms",
+            "description": "Flat presentation-only atoms evaluated for this row."
+          },
+          "clustered_row_sources": {
+            "items": {
+              "$ref": "#/components/schemas/MCPAuditTrace"
+            },
+            "type": "array",
+            "title": "Clustered Row Sources",
+            "description": "Purity Paradox resolution, cluster arrays at row level."
+          },
+          "tda_state": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/TDAPending"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TDAEvaluated"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TDADlq"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "runtimeType",
+                  "mapping": {
+                    "dlq": "#/components/schemas/TDADlq",
+                    "evaluated": "#/components/schemas/TDAEvaluated",
+                    "pending": "#/components/schemas/TDAPending"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tda State",
+            "description": "TDAState union representation."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "block_id",
+          "name",
+          "label_i18n",
+          "row_explanation",
+          "is_evaluative"
+        ],
+        "title": "MatrixScorecardRowDTO"
       },
       "ModelProfile": {
         "properties": {
@@ -6115,8 +6962,7 @@
           "provider",
           "model_name"
         ],
-        "title": "ModelProfile",
-        "description": "A flattened physical AI model representation."
+        "title": "ModelProfile"
       },
       "ModelRegistryDeleteResponse": {
         "properties": {
@@ -6307,20 +7153,26 @@
         "title": "OrganizationDeleteResponse",
         "description": "Payload response for deleting an organization.\n\nAttributes:\n    status (str): Deletion status message.\n    deleted_id (str): ID of the deleted organization."
       },
-      "OutputLayoutBlock": {
+      "OutputLayoutBlock-Input": {
         "properties": {
           "preset_view": {
             "type": "string",
             "enum": [
               "1d_metrics",
               "2d_compare",
-              "3d_complex",
               "3d_matrix",
               "default",
-              "text_only"
+              "text_only",
+              "matrix_summary"
             ],
             "title": "Preset View",
-            "description": "The static UI renderer preset (e.g. 1d_metrics, 3d_complex)."
+            "description": "The static UI renderer preset (e.g. 1d_metrics, 3d_matrix)."
+          },
+          "is_synthesis_enabled": {
+            "type": "boolean",
+            "title": "Is Synthesis Enabled",
+            "description": "Toggle for UI section-level synthesis.",
+            "default": true
           },
           "title": {
             "anyOf": [
@@ -6354,7 +7206,14 @@
           },
           "target_blocks": {
             "items": {
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/TargetBlockType"
+                }
+              ]
             },
             "type": "array",
             "title": "Target Blocks",
@@ -6386,8 +7245,81 @@
             "anyOf": [
               {
                 "items": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/HeroInsightBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ParagraphBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BulletListBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AlertBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AccordionBlock-Input"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MarkdownBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiQuoteCard"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiWarningCard"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiNACard"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiGridBlock-Input"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiMetadataBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiRadarChartBlock-Input"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiScatterPlotBlock-Input"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiMatrixTableBlock-Input"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiMetrics1DBlock-Input"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiScoreCardBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "block_type",
+                    "mapping": {
+                      "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Input",
+                      "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Input",
+                      "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Input",
+                      "accordion": "#/components/schemas/AccordionBlock-Input",
+                      "alert_box": "#/components/schemas/AlertBlock",
+                      "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                      "bullet_list": "#/components/schemas/BulletListBlock",
+                      "grid": "#/components/schemas/SduiGridBlock-Input",
+                      "hero_insight": "#/components/schemas/HeroInsightBlock",
+                      "markdown": "#/components/schemas/MarkdownBlock",
+                      "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Input",
+                      "metadata": "#/components/schemas/SduiMetadataBlock",
+                      "n_a_card": "#/components/schemas/SduiNACard",
+                      "paragraph": "#/components/schemas/ParagraphBlock",
+                      "quote_card": "#/components/schemas/SduiQuoteCard",
+                      "score_card": "#/components/schemas/SduiScoreCardBlock",
+                      "warning_card": "#/components/schemas/SduiWarningCard"
+                    }
+                  }
                 },
                 "type": "array"
               },
@@ -6422,6 +7354,22 @@
               }
             ],
             "description": "Override for scoring_strategy in this layout."
+          },
+          "matrix_column_labels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "Matrix Column Labels",
+            "description": "Optional mapping of UI column identifiers to localized labels."
+          },
+          "matrix_visible_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matrix Visible Columns",
+            "description": "Visible columns for this matrix UI."
           }
         },
         "additionalProperties": false,
@@ -6429,8 +7377,233 @@
         "required": [
           "preset_view"
         ],
-        "title": "OutputLayoutBlock",
-        "description": "A single sequential rendering block for a report profile."
+        "title": "OutputLayoutBlock"
+      },
+      "OutputLayoutBlock-Output": {
+        "properties": {
+          "preset_view": {
+            "type": "string",
+            "enum": [
+              "1d_metrics",
+              "2d_compare",
+              "3d_matrix",
+              "default",
+              "text_only",
+              "matrix_summary"
+            ],
+            "title": "Preset View",
+            "description": "The static UI renderer preset (e.g. 1d_metrics, 3d_matrix)."
+          },
+          "is_synthesis_enabled": {
+            "type": "boolean",
+            "title": "Is Synthesis Enabled",
+            "description": "Toggle for UI section-level synthesis.",
+            "default": true
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional localized layout title."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional localized layout description."
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Steps",
+            "description": "List of step IDs providing the axes."
+          },
+          "target_blocks": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/TargetBlockType"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Target Blocks",
+            "description": "Optional explicit block IDs to plot, filtering and ordering the axes."
+          },
+          "text_delivery_mode": {
+            "type": "string",
+            "enum": [
+              "full",
+              "titles_only",
+              "none"
+            ],
+            "title": "Text Delivery Mode",
+            "description": "Granularity of text output in PDF and UI grids.",
+            "default": "full"
+          },
+          "synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Section-Level Synthesis configuration for this block."
+          },
+          "synthesis_blocks": {
+            "anyOf": [
+              {
+                "items": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/HeroInsightBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ParagraphBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BulletListBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AlertBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AccordionBlock-Output"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MarkdownBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiQuoteCard"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiWarningCard"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiNACard"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiGridBlock-Output"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiMetadataBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiRadarChartBlock-Output"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiScatterPlotBlock-Output"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiMatrixTableBlock-Output"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiMetrics1DBlock-Output"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiScoreCardBlock"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "block_type",
+                    "mapping": {
+                      "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Output",
+                      "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Output",
+                      "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Output",
+                      "accordion": "#/components/schemas/AccordionBlock-Output",
+                      "alert_box": "#/components/schemas/AlertBlock",
+                      "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                      "bullet_list": "#/components/schemas/BulletListBlock",
+                      "grid": "#/components/schemas/SduiGridBlock-Output",
+                      "hero_insight": "#/components/schemas/HeroInsightBlock",
+                      "markdown": "#/components/schemas/MarkdownBlock",
+                      "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Output",
+                      "metadata": "#/components/schemas/SduiMetadataBlock",
+                      "n_a_card": "#/components/schemas/SduiNACard",
+                      "paragraph": "#/components/schemas/ParagraphBlock",
+                      "quote_card": "#/components/schemas/SduiQuoteCard",
+                      "score_card": "#/components/schemas/SduiScoreCardBlock",
+                      "warning_card": "#/components/schemas/SduiWarningCard"
+                    }
+                  }
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synthesis Blocks",
+            "description": "Optional Section-Level Synthesis content blocks."
+          },
+          "strictness_level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strictness Level",
+            "description": "Override for strictness_level in this layout."
+          },
+          "scoring_strategy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoringStrategy"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Override for scoring_strategy in this layout."
+          },
+          "matrix_column_labels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "Matrix Column Labels",
+            "description": "Optional mapping of UI column identifiers to localized labels."
+          },
+          "matrix_visible_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matrix Visible Columns",
+            "description": "Visible columns for this matrix UI."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "preset_view"
+        ],
+        "title": "OutputLayoutBlock"
       },
       "OutputProfile": {
         "properties": {
@@ -6478,6 +7651,17 @@
               }
             ],
             "description": "Detailed profile context"
+          },
+          "user_role_label": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional localized label prefixing the user role context (e.g., 'Target audience:')."
           },
           "custom_preface": {
             "anyOf": [
@@ -6546,21 +7730,9 @@
             "default": 3
           },
           "display_scale": {
-            "type": "string",
-            "enum": [
-              "original",
-              "custom",
-              "normalized_100"
-            ],
-            "title": "Display Scale",
+            "$ref": "#/components/schemas/DisplayScale",
             "description": "Selects the source scaling for the scores printed by Blueprint.",
             "default": "original"
-          },
-          "include_diagnostic_scorecard": {
-            "type": "boolean",
-            "title": "Include Diagnostic Scorecard",
-            "description": "Enable appending the independent diagnostic scorecard.",
-            "default": false
           },
           "strictness_level": {
             "anyOf": [
@@ -6589,9 +7761,55 @@
             ],
             "description": "Profile-level strategy override."
           },
+          "user_role_mappings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "User Role Mappings",
+            "description": "Localized values for RoleClassification enum values (e.g. ROLE_ARCHITECT)."
+          },
+          "extension_labels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "object",
+            "title": "Extension Labels",
+            "description": "Localized labels for global XAI highlights at the profile level."
+          },
+          "metric_mappings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "Metric Mappings",
+            "description": "Localized labels for internal metric variables (e.g. 'variance_mechanical')."
+          },
+          "synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Global synthesis configuration for the executive summary."
+          },
+          "target_block_order": {
+            "items": {
+              "$ref": "#/components/schemas/TargetBlockType"
+            },
+            "type": "array",
+            "title": "Target Block Order",
+            "description": "The exact dynamic block sequence for the SDUI output. Drives the dispatch loop in blueprint.py."
+          },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
+              "$ref": "#/components/schemas/OutputLayoutBlock-Input"
             },
             "type": "array",
             "title": "Layouts",
@@ -6599,12 +7817,97 @@
           },
           "content_blocks": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Input",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Input",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Input",
+                  "accordion": "#/components/schemas/AccordionBlock-Input",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Input",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Input",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
+              }
             },
             "type": "array",
             "title": "Content Blocks",
             "description": "Base SDUI content blocks predefined by the profile."
+          },
+          "performativity_detector_step_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performativity Detector Step Id",
+            "description": "Optional step ID for the performativity detector"
           }
         },
         "additionalProperties": false,
@@ -6615,8 +7918,7 @@
           "workflow_id",
           "name"
         ],
-        "title": "OutputProfile",
-        "description": "A distinct report variant containing a sequence of layout blocks."
+        "title": "OutputProfile"
       },
       "OutputProfileCreateDTO": {
         "properties": {
@@ -6674,6 +7976,17 @@
             ],
             "description": "Rich text preface."
           },
+          "user_role_label": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional localized label prefixing the user role context (e.g., 'Target audience:')."
+          },
           "tone_instruction": {
             "anyOf": [
               {
@@ -6722,34 +8035,44 @@
             "description": "Workflow-level global extensions (mathematical engines)."
           },
           "max_extension_items": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 1.0
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
             "title": "Max Extension Items",
-            "description": "Max number of items to show per grouped XAI extension. Sorted by severity."
+            "description": "Max number of items to show per grouped XAI extension. Sorted by severity.",
+            "default": 3
           },
           "display_scale": {
-            "type": "string",
-            "enum": [
-              "original",
-              "custom",
-              "normalized_100"
-            ],
-            "title": "Display Scale",
+            "$ref": "#/components/schemas/DisplayScale",
             "description": "UI rendering scale instruction.",
             "default": "original"
           },
-          "include_diagnostic_scorecard": {
-            "type": "boolean",
-            "title": "Include Diagnostic Scorecard",
-            "description": "Enable appending the independent diagnostic scorecard.",
-            "default": false
+          "user_role_mappings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "User Role Mappings",
+            "description": "Localized values for RoleClassification enum values."
+          },
+          "extension_labels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "object",
+            "title": "Extension Labels",
+            "description": "Localized labels for global XAI highlights at the profile level."
+          },
+          "metric_mappings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "Metric Mappings",
+            "description": "Localized labels for internal metric variables (e.g. 'variance_mechanical')."
           },
           "strictness_level": {
             "anyOf": [
@@ -6778,9 +8101,20 @@
             ],
             "description": "Profile-level strategy override."
           },
+          "synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nested definition for synthesis configurations."
+          },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
+              "$ref": "#/components/schemas/OutputLayoutBlock-Input"
             },
             "type": "array",
             "title": "Layouts",
@@ -6788,12 +8122,112 @@
           },
           "content_blocks": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Input",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Input",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Input",
+                  "accordion": "#/components/schemas/AccordionBlock-Input",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Input",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Input",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
+              }
             },
             "type": "array",
             "title": "Content Blocks",
             "description": "Base SDUI content blocks predefined by the profile."
+          },
+          "target_block_order": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TargetBlockType"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Block Order",
+            "description": "Optional block order override."
+          },
+          "performativity_detector_step_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performativity Detector Step Id",
+            "description": "Optional step ID for the performativity detector"
           }
         },
         "additionalProperties": false,
@@ -6805,13 +8239,13 @@
           "name"
         ],
         "title": "OutputProfileCreateDTO",
-        "description": "DTO for creating a new Output Profile.\n\nAttributes:\n    id: Unique string ID for the profile. Must follow Stripe Pattern.\n    slug: Human-readable routing identifier.\n    workflow_id: References the execution DAG to scope Target Matrices.\n    organization_id: Tenant organization scope.\n    name: Localized name of the profile.\n    description: Localized description of the profile.\n    custom_preface: Rich text preface shown on outputs.\n    visible_metadata: List of metadata fields visible on the UI and PDF cover header.\n    visible_block_extensions: Block-level XAI extensions (per-matrix, LLM-produced).\n    visible_workflow_extensions: Workflow-level global extensions (mathematical engines).\n    max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.\n    display_scale: UI rendering scale instruction (e.g., 'normalized_100').\n    synthesis: Nested definition for synthesis configurations.\n    include_diagnostic_scorecard: Feature indicating whether to append independent scorecards.\n    strictness_level: Profile-level strictness override setting.\n    scoring_strategy: Profile-level strategy calculation override.\n    layouts: Sequence of layout rendering blocks."
+        "description": "DTO for creating a new Output Profile.\n\nAttributes:\n    id: Unique string ID for the profile. Must follow Stripe Pattern.\n    slug: Human-readable routing identifier.\n    workflow_id: References the execution DAG to scope Target Matrices.\n    organization_id: Tenant organization scope.\n    name: Localized name of the profile.\n    description: Localized description of the profile.\n    custom_preface: Rich text preface shown on outputs.\n    visible_metadata: List of metadata fields visible on the UI and PDF cover header.\n    visible_block_extensions: Block-level XAI extensions (per-matrix, LLM-produced).\n    visible_workflow_extensions: Workflow-level global extensions (mathematical engines).\n    max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.\n    display_scale: UI rendering scale instruction (e.g., 'normalized_100').\n    synthesis: Nested definition for synthesis configurations.\n    strictness_level: Profile-level strictness override setting.\n    scoring_strategy: Profile-level strategy calculation override.\n    layouts: Sequence of layout rendering blocks."
       },
       "OutputProfileListResponse": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/OutputProfile"
+              "$ref": "#/components/schemas/OutputProfileResponseDTO"
             },
             "type": "array",
             "title": "Items"
@@ -6862,6 +8296,16 @@
               }
             ]
           },
+          "user_role_label": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "tone_instruction": {
             "anyOf": [
               {
@@ -6882,6 +8326,30 @@
               }
             ],
             "title": "Language"
+          },
+          "user_role_mappings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "User Role Mappings"
+          },
+          "extension_labels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "object",
+            "title": "Extension Labels"
+          },
+          "target_block_order": {
+            "items": {
+              "$ref": "#/components/schemas/TargetBlockType"
+            },
+            "type": "array",
+            "title": "Target Block Order"
           },
           "visible_metadata": {
             "items": {
@@ -6905,31 +8373,17 @@
             "title": "Visible Workflow Extensions"
           },
           "max_extension_items": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Extension Items"
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Max Extension Items",
+            "description": "Top limit cap applying constraints to presentation loops.",
+            "default": 3
           },
           "display_scale": {
-            "type": "string",
-            "enum": [
-              "original",
-              "custom",
-              "normalized_100"
-            ],
-            "title": "Display Scale",
+            "$ref": "#/components/schemas/DisplayScale",
+            "description": "Exact enumeration of UI rendering modes ('normalized_100').",
             "default": "original"
-          },
-          "include_diagnostic_scorecard": {
-            "type": "boolean",
-            "title": "Include Diagnostic Scorecard",
-            "description": "Enable appending the independent diagnostic scorecard.",
-            "default": false
           },
           "strictness_level": {
             "anyOf": [
@@ -6956,20 +8410,115 @@
               }
             ]
           },
+          "synthesis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisConfigDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "layouts": {
             "items": {
-              "$ref": "#/components/schemas/OutputLayoutBlock"
+              "$ref": "#/components/schemas/OutputLayoutBlock-Output"
             },
             "type": "array",
             "title": "Layouts"
           },
           "content_blocks": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Output",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Output",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Output",
+                  "accordion": "#/components/schemas/AccordionBlock-Output",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Output",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Output",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
+              }
             },
             "type": "array",
             "title": "Content Blocks"
+          },
+          "performativity_detector_step_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Performativity Detector Step Id",
+            "description": "Optional step ID for the performativity detector"
           }
         },
         "additionalProperties": false,
@@ -6982,7 +8531,54 @@
           "layouts"
         ],
         "title": "OutputProfileResponseDTO",
-        "description": "DTO for returning an Output Profile.\n\nAttributes:\n    id: Unique Stripe-pattern string ID of the output profile.\n    slug: Safe HTTP routing identifier.\n    workflow_id: Connected DAG workflow boundary UUID.\n    name: Complex localizable dictionary string name mapping.\n    description: Complex localizable mapping for structural profile descriptions.\n    custom_preface: Presentation front-matter mapping instructions.\n    visible_metadata: Output keys exposed cleanly to presentation layer UI.\n    visible_block_extensions: Block-bound extra payload outputs mappings.\n    visible_workflow_extensions: Workflow-bound logic output payload arrays.\n    max_extension_items: Top limit cap applying constraints to presentation loops.\n    display_scale: Exact enumeration of UI rendering modes ('normalized_100').\n    synthesis: Specific payload mapped configuring report output logic.\n    include_diagnostic_scorecard: Status flag defining scorecard rendering operations.\n    strictness_level: Validated override value configuring verification rigor.\n    scoring_strategy: Mapped logic algorithm enum mapping engine implementation.\n    layouts: Ordered array of discrete layout definitions governing presentation."
+        "description": "DTO for returning an Output Profile.\n\nAttributes:\n    id: Unique Stripe-pattern string ID of the output profile.\n    slug: Safe HTTP routing identifier.\n    workflow_id: Connected DAG workflow boundary UUID.\n    name: Complex localizable dictionary string name mapping.\n    description: Complex localizable mapping for structural profile descriptions.\n    custom_preface: Presentation front-matter mapping instructions.\n    visible_metadata: Output keys exposed cleanly to presentation layer UI.\n    visible_block_extensions: Block-bound extra payload outputs mappings.\n    visible_workflow_extensions: Workflow-bound logic output payload arrays.\n    max_extension_items: Top limit cap applying constraints to presentation loops.\n    display_scale: Exact enumeration of UI rendering modes ('normalized_100').\n    synthesis: Specific payload mapped configuring report output logic.\n    strictness_level: Validated override value configuring verification rigor.\n    scoring_strategy: Mapped logic algorithm enum mapping engine implementation.\n    layouts: Ordered array of discrete layout definitions governing presentation."
+      },
+      "ParagraphBlock": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "paragraph",
+            "title": "Block Type",
+            "default": "paragraph"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "exact_quotes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Exact Quotes"
+          },
+          "citations": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Citations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "paragraph",
+        "description": "A standard text paragraph with optional citations."
       },
       "PromptBlock": {
         "properties": {
@@ -7072,6 +8668,12 @@
             "type": "boolean",
             "title": "Is Lightweight Protocol",
             "description": "If True, enables Best-of-Three ensemble evaluation routing.",
+            "default": false
+          },
+          "allow_contextual_override": {
+            "type": "boolean",
+            "title": "Allow Contextual Override",
+            "description": "If True, enables contextual override for ALL assertions in this matrix.",
             "default": false
           },
           "scale_min": {
@@ -7305,6 +8907,12 @@
             "description": "If True, enables Best-of-Three ensemble evaluation routing.",
             "default": false
           },
+          "allow_contextual_override": {
+            "type": "boolean",
+            "title": "Allow Contextual Override",
+            "description": "If True, enables contextual override for ALL assertions in this matrix.",
+            "default": false
+          },
           "scale_min": {
             "anyOf": [
               {
@@ -7532,8 +9140,7 @@
           "question",
           "type"
         ],
-        "title": "QuestionnaireItem",
-        "description": "A single question definition within a dynamic questionnaire."
+        "title": "QuestionnaireItem"
       },
       "QuoteEvidenceDTO-Input": {
         "properties": {
@@ -7663,8 +9270,7 @@
           "step_3_evaluate_anti_patterns",
           "step_4_final_conclusion"
         ],
-        "title": "ReasoningStepDTO",
-        "description": "Structured micro-CoT reasoning step schema to prevent JSON escaping issues."
+        "title": "ReasoningStepDTO"
       },
       "ReasoningTrace": {
         "properties": {
@@ -7711,8 +9317,7 @@
           "conclusion",
           "confidence_score"
         ],
-        "title": "ReasoningTrace",
-        "description": "Stores hidden Chain-of-Thought (preserves \"Thinking Tokens\")."
+        "title": "ReasoningTrace"
       },
       "ReferenceIntent": {
         "type": "string",
@@ -7779,26 +9384,84 @@
       },
       "RenderedSynthesisCache": {
         "properties": {
-          "synthesized_markdown": {
-            "type": "string",
-            "title": "Synthesized Markdown",
-            "description": "Compiled Markdown content for the report",
-            "default": ""
-          },
-          "content_blocks": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Content Blocks",
-            "description": "Global synthesis SDUI content blocks"
-          },
           "section_syntheses": {
             "additionalProperties": {
               "items": {
-                "additionalProperties": true,
-                "type": "object"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/HeroInsightBlock"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ParagraphBlock"
+                  },
+                  {
+                    "$ref": "#/components/schemas/BulletListBlock"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AlertBlock"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AccordionBlock-Output"
+                  },
+                  {
+                    "$ref": "#/components/schemas/MarkdownBlock"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiQuoteCard"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiWarningCard"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiNACard"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiGridBlock-Output"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiMetadataBlock"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiRadarChartBlock-Output"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiScatterPlotBlock-Output"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiMatrixTableBlock-Output"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiMetrics1DBlock-Output"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiScoreCardBlock"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "block_type",
+                  "mapping": {
+                    "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Output",
+                    "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Output",
+                    "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Output",
+                    "accordion": "#/components/schemas/AccordionBlock-Output",
+                    "alert_box": "#/components/schemas/AlertBlock",
+                    "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                    "bullet_list": "#/components/schemas/BulletListBlock",
+                    "grid": "#/components/schemas/SduiGridBlock-Output",
+                    "hero_insight": "#/components/schemas/HeroInsightBlock",
+                    "markdown": "#/components/schemas/MarkdownBlock",
+                    "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Output",
+                    "metadata": "#/components/schemas/SduiMetadataBlock",
+                    "n_a_card": "#/components/schemas/SduiNACard",
+                    "paragraph": "#/components/schemas/ParagraphBlock",
+                    "quote_card": "#/components/schemas/SduiQuoteCard",
+                    "score_card": "#/components/schemas/SduiScoreCardBlock",
+                    "warning_card": "#/components/schemas/SduiWarningCard"
+                  }
+                }
               },
               "type": "array"
             },
@@ -7834,12 +9497,45 @@
             "description": "Citations used in this profile's synthesis"
           },
           "xai_highlights": {
-            "items": {
-              "$ref": "#/components/schemas/XaiHighlightItem"
-            },
+            "items": {},
             "type": "array",
             "title": "Xai Highlights",
-            "description": "Generated XAI highlight boxes"
+            "description": "Synthesized XAI highlights and tips"
+          },
+          "user_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Role",
+            "description": "User role"
+          },
+          "user_role_justification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Role Justification",
+            "description": "User role justification"
+          },
+          "extension_metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtensionMetricsDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pre-calculated numeric or boolean metrics for UI adapters"
           },
           "created_at": {
             "type": "string",
@@ -7849,8 +9545,7 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "RenderedSynthesisCache",
-        "description": "Cached synthesis results tied to a specific OutputProfile ID."
+        "title": "RenderedSynthesisCache"
       },
       "ReportDataDTO": {
         "properties": {
@@ -7949,6 +9644,17 @@
               }
             ]
           },
+          "profile_description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Detailed profile context mapped from OutputProfile"
+          },
           "available_profiles": {
             "additionalProperties": {
               "$ref": "#/components/schemas/I18nText"
@@ -7984,16 +9690,87 @@
               }
             ]
           },
-          "global_synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/GlobalSynthesisDTO"
-              },
-              {
-                "type": "null"
+          "inner_sdui_blocks": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Output",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Output",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Output",
+                  "accordion": "#/components/schemas/AccordionBlock-Output",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Output",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Output",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
               }
-            ],
-            "description": "Stores the final synthesized output of the document."
+            },
+            "type": "array",
+            "title": "Inner Sdui Blocks",
+            "description": "Stores the final structured SDUI blocks."
           },
           "results": {
             "items": {
@@ -8011,52 +9788,6 @@
             "title": "Hydrated References",
             "description": "O(1) Dictionary: tda_id -> Static text."
           },
-          "evaluative_matrices": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/MatrixScorecardRowDTO"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Evaluative Matrices",
-            "description": "Matrices that impact the final grade."
-          },
-          "informational_matrices": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/MatrixScorecardRowDTO"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Informational Matrices",
-            "description": "Matrices strictly for informational/tracking purposes."
-          },
-          "content_blocks": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Content Blocks",
-            "description": "Global synthesis SDUI content blocks"
-          },
           "visible_metadata": {
             "items": {
               "type": "string"
@@ -8064,20 +9795,6 @@
             "type": "array",
             "title": "Visible Metadata",
             "description": "Fields visible on the UI and PDF cover header."
-          },
-          "layouts": {
-            "items": {
-              "$ref": "#/components/schemas/ReportLayoutDTO"
-            },
-            "type": "array",
-            "title": "Layouts"
-          },
-          "matrix_visible_columns": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Matrix Visible Columns"
           },
           "created_at": {
             "anyOf": [
@@ -8164,30 +9881,6 @@
             "type": "array",
             "title": "Mcp Tool Audit",
             "description": "Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
-          },
-          "grouped_extensions": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "items": {},
-                  "type": "array"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouped Extensions",
-            "description": "Centrally grouped XAI extensions (e.g. 'citation': [...])"
-          },
-          "penalties_applied": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Penalties Applied",
-            "description": "List of penalty warnings formatted for print."
           }
         },
         "additionalProperties": false,
@@ -8198,92 +9891,6 @@
           "profile_id"
         ],
         "title": "ReportDataDTO"
-      },
-      "ReportLayoutDTO": {
-        "properties": {
-          "preset_view": {
-            "type": "string",
-            "enum": [
-              "1d_metrics",
-              "2d_compare",
-              "3d_complex",
-              "3d_matrix",
-              "default",
-              "text_only"
-            ],
-            "title": "Preset View"
-          },
-          "title": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "description": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/I18nText"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "axes": {
-            "items": {
-              "$ref": "#/components/schemas/MatrixScorecardRowDTO"
-            },
-            "type": "array",
-            "title": "Axes"
-          },
-          "text_delivery_mode": {
-            "type": "string",
-            "enum": [
-              "full",
-              "titles_only",
-              "none"
-            ],
-            "title": "Text Delivery Mode",
-            "description": "Granularity of text output for this layout.",
-            "default": "full"
-          },
-          "synthesis": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SynthesisConfigDTO"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "synthesis_blocks": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Synthesis Blocks",
-            "description": "The rendered SDUI blocks for this layout"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "preset_view"
-        ],
-        "title": "ReportLayoutDTO"
       },
       "ReportView": {
         "properties": {
@@ -8301,9 +9908,7 @@
             "default": "Auditintiraportti"
           },
           "status_theme": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Status Theme",
+            "$ref": "#/components/schemas/VisualIntent",
             "description": "Visual theme: 'success' | 'warning' | 'danger'",
             "default": "success"
           },
@@ -8313,7 +9918,89 @@
             },
             "type": "array",
             "title": "Sections",
-            "description": "Ordered list of UI sections"
+            "description": "Legacy sections array for backward compatibility"
+          },
+          "inner_sdui_blocks": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Output",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Output",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Output",
+                  "accordion": "#/components/schemas/AccordionBlock-Output",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Output",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Output",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Inner Sdui Blocks",
+            "description": "Ordered list of SDUI components"
           },
           "metrics": {
             "anyOf": [
@@ -8367,7 +10054,116 @@
         "title": "SDUIComponentType",
         "description": "no_raw_string_enum_mappings: Prevents Magic String crashes in Flutter."
       },
-      "ScorecardAtomDTO": {
+      "ScorecardAtomDTO-Input": {
+        "properties": {
+          "atom_id": {
+            "type": "string",
+            "title": "Atom Id"
+          },
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "level_name": {
+            "type": "string",
+            "title": "Level Name"
+          },
+          "claim_label": {
+            "type": "string",
+            "title": "Claim Label"
+          },
+          "extracted_facts": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Extracted Facts"
+          },
+          "exact_quotes": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteEvidenceDTO-Input"
+            },
+            "type": "array",
+            "title": "Exact Quotes"
+          },
+          "internal_logic_en": {
+            "$ref": "#/components/schemas/ReasoningStepDTO"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "semantic_reasoning": {
+            "type": "string",
+            "title": "Semantic Reasoning"
+          },
+          "contextual_override": {
+            "type": "boolean",
+            "title": "Contextual Override"
+          },
+          "structural_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structural Location"
+          },
+          "chart_display_label": {
+            "type": "string",
+            "title": "Chart Display Label"
+          },
+          "visual_intent": {
+            "$ref": "#/components/schemas/VisualIntent"
+          },
+          "human_override": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HumanOverrideDTO-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "atom_id",
+          "level",
+          "level_name",
+          "claim_label",
+          "extracted_facts",
+          "exact_quotes",
+          "internal_logic_en",
+          "status",
+          "semantic_reasoning",
+          "contextual_override",
+          "structural_location",
+          "chart_display_label",
+          "visual_intent"
+        ],
+        "title": "ScorecardAtomDTO",
+        "description": "Explicit DTO firewall for presentation logic of individual atom evaluations."
+      },
+      "ScorecardAtomDTO-Output": {
         "properties": {
           "atom_id": {
             "type": "string",
@@ -8428,7 +10224,14 @@
             "title": "Contextual Override"
           },
           "structural_location": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Structural Location"
           },
           "chart_display_label": {
@@ -8441,7 +10244,7 @@
           "human_override": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/HumanOverrideDTO"
+                "$ref": "#/components/schemas/HumanOverrideDTO-Output"
               },
               {
                 "type": "null"
@@ -8449,6 +10252,7 @@
             ]
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "atom_id",
@@ -8479,32 +10283,914 @@
         "title": "ScoringStrategy",
         "description": "Selects the mathematical engine used to calculate final matrix scores."
       },
+      "SduiAuditTrailBlock": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "audit_trail",
+            "title": "Block Type",
+            "default": "audit_trail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "audit_trail",
+        "description": "SDUI component representing the execution audit trail."
+      },
+      "SduiGridBlock-Input": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "grid",
+            "title": "Block Type",
+            "default": "grid"
+          },
+          "items": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Input"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Input",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Input",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Input",
+                  "accordion": "#/components/schemas/AccordionBlock-Input",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Input",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Input",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Items in the grid."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "grid",
+        "description": "SDUI component representing a data grid."
+      },
+      "SduiGridBlock-Output": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "grid",
+            "title": "Block Type",
+            "default": "grid"
+          },
+          "items": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/HeroInsightBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ParagraphBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/BulletListBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AlertBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/AccordionBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/MarkdownBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiQuoteCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiWarningCard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiNACard"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiGridBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetadataBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiRadarChartBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScatterPlotBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMatrixTableBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiMetrics1DBlock-Output"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiScoreCardBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "block_type",
+                "mapping": {
+                  "1d_metrics": "#/components/schemas/SduiMetrics1DBlock-Output",
+                  "2d_compare": "#/components/schemas/SduiScatterPlotBlock-Output",
+                  "3d_matrix": "#/components/schemas/SduiRadarChartBlock-Output",
+                  "accordion": "#/components/schemas/AccordionBlock-Output",
+                  "alert_box": "#/components/schemas/AlertBlock",
+                  "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
+                  "bullet_list": "#/components/schemas/BulletListBlock",
+                  "grid": "#/components/schemas/SduiGridBlock-Output",
+                  "hero_insight": "#/components/schemas/HeroInsightBlock",
+                  "markdown": "#/components/schemas/MarkdownBlock",
+                  "matrix_summary": "#/components/schemas/SduiMatrixTableBlock-Output",
+                  "metadata": "#/components/schemas/SduiMetadataBlock",
+                  "n_a_card": "#/components/schemas/SduiNACard",
+                  "paragraph": "#/components/schemas/ParagraphBlock",
+                  "quote_card": "#/components/schemas/SduiQuoteCard",
+                  "score_card": "#/components/schemas/SduiScoreCardBlock",
+                  "warning_card": "#/components/schemas/SduiWarningCard"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Items in the grid."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "grid",
+        "description": "SDUI component representing a data grid."
+      },
+      "SduiMatrixTableBlock-Input": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "matrix_summary",
+            "title": "Block Type",
+            "default": "matrix_summary"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "axes": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO-Input"
+            },
+            "type": "array",
+            "title": "Axes"
+          },
+          "matrix_column_labels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "Matrix Column Labels"
+          },
+          "extension_labels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "object",
+            "title": "Extension Labels"
+          },
+          "matrix_visible_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matrix Visible Columns"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "matrix_summary",
+        "description": "Specific block for Matrix Summary Table visualization."
+      },
+      "SduiMatrixTableBlock-Output": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "matrix_summary",
+            "title": "Block Type",
+            "default": "matrix_summary"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "axes": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO-Output"
+            },
+            "type": "array",
+            "title": "Axes"
+          },
+          "matrix_column_labels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "type": "object",
+            "title": "Matrix Column Labels"
+          },
+          "extension_labels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/I18nText"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/XaiExtensionType"
+            },
+            "type": "object",
+            "title": "Extension Labels"
+          },
+          "matrix_visible_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matrix Visible Columns"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "matrix_summary",
+        "description": "Specific block for Matrix Summary Table visualization."
+      },
+      "SduiMetadataBlock": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "metadata",
+            "title": "Block Type",
+            "default": "metadata"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Main title of the report"
+          },
+          "badges": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Badges",
+            "description": "Highlighted badges"
+          },
+          "metadata_lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Metadata Lines",
+            "description": "Metadata strings"
+          },
+          "costs": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Costs",
+            "description": "Formatted cost string"
+          },
+          "tokens": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tokens",
+            "description": "Token usage details"
+          },
+          "custom_preface_md": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Preface Md",
+            "description": "Optional preface markdown"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "metadata",
+        "description": "A visually distinct report header summarizing metadata.\n\nAttributes:\n    title: Main title of the report profile.\n    badges: Array of small highlighted pills (e.g., scoring engine, strictness).\n    metadata_lines: Array of strings for execution metadata (time, id, user, org).\n    costs: Optional formatted cost string.\n    tokens: Optional dictionary of token usage strings.\n    custom_preface_md: Optional preface markdown text."
+      },
+      "SduiMetrics1DBlock-Input": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "1d_metrics",
+            "title": "Block Type",
+            "default": "1d_metrics"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "axes": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO-Input"
+            },
+            "type": "array",
+            "title": "Axes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "1d_metrics",
+        "description": "Specific block for 1D Metrics visualization."
+      },
+      "SduiMetrics1DBlock-Output": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "1d_metrics",
+            "title": "Block Type",
+            "default": "1d_metrics"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "axes": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO-Output"
+            },
+            "type": "array",
+            "title": "Axes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "1d_metrics",
+        "description": "Specific block for 1D Metrics visualization."
+      },
+      "SduiNACard": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "n_a_card",
+            "title": "Block Type",
+            "default": "n_a_card"
+          },
+          "short_circuit_reason_tda_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Short Circuit Reason Tda Ids",
+            "description": "IDs of the TDAs that triggered N/A."
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Contextual message for the N/A outcome."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "n_a_card",
+        "description": "SDUI component representing a Short-Circuit N/A outcome."
+      },
+      "SduiQuoteCard": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "quote_card",
+            "title": "Block Type",
+            "default": "quote_card"
+          },
+          "quote": {
+            "type": "string",
+            "title": "Quote",
+            "description": "The exact text of the quote."
+          },
+          "source_aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Aliases",
+            "description": "Resolved source aliases."
+          },
+          "citations": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Citations",
+            "description": "Fallback for LLM hallucinated citations field."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "quote"
+        ],
+        "title": "quote_card",
+        "description": "SDUI component representing a valid quote evidence."
+      },
+      "SduiRadarChartBlock-Input": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "3d_matrix",
+            "title": "Block Type",
+            "default": "3d_matrix"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "axes": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO-Input"
+            },
+            "type": "array",
+            "title": "Axes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "3d_matrix",
+        "description": "Specific block for 3D Matrix / Radar Chart visualization."
+      },
+      "SduiRadarChartBlock-Output": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "3d_matrix",
+            "title": "Block Type",
+            "default": "3d_matrix"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "axes": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO-Output"
+            },
+            "type": "array",
+            "title": "Axes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "3d_matrix",
+        "description": "Specific block for 3D Matrix / Radar Chart visualization."
+      },
+      "SduiScatterPlotBlock-Input": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "2d_compare",
+            "title": "Block Type",
+            "default": "2d_compare"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "axes": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO-Input"
+            },
+            "type": "array",
+            "title": "Axes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "2d_compare",
+        "description": "Specific block for 2D Compare / Scatter Plot visualization."
+      },
+      "SduiScatterPlotBlock-Output": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "2d_compare",
+            "title": "Block Type",
+            "default": "2d_compare"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/I18nText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "axes": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixScorecardRowDTO-Output"
+            },
+            "type": "array",
+            "title": "Axes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "2d_compare",
+        "description": "Specific block for 2D Compare / Scatter Plot visualization."
+      },
+      "SduiScoreCardBlock": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "score_card",
+            "title": "Block Type",
+            "default": "score_card"
+          },
+          "global_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Global Score",
+            "description": "The mathematical average extracted."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "score_card",
+        "description": "SDUI component representing the global score card."
+      },
+      "SduiWarningCard": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "warning_card",
+            "title": "Block Type",
+            "default": "warning_card"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Warning message for the user."
+          },
+          "quote_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Text",
+            "description": "The original quote text that triggered the warning."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "warning_card",
+        "description": "SDUI component representing a warning message (e.g. hallucinated alias)."
+      },
       "SectionType": {
         "type": "string",
         "enum": [
           "SCORE_CARD",
           "MARKDOWN_BLOCK",
-          "TIMELINE_FEED",
-          "HEADER",
-          "KEY_METRICS",
-          "EVIDENCE_LIST",
-          "KEY_VALUE_GRID",
-          "DATA_TABLE",
-          "ACCORDION",
           "USAGE_STATS",
-          "HIGHLIGHT_BOXES",
-          "LOGIC_ANALYSIS",
-          "STRESS_TEST",
-          "CAUSAL_ANALYSIS",
-          "PERFORMATIVITY_CHECK",
-          "FACT_CHECK",
-          "PROFILER_ANALYSIS",
-          "ARCHIVIST_CHECK",
-          "DRIVER_PROFILE",
-          "SECURITY_CHECK"
+          "MATRIX_BLOCK"
         ],
-        "title": "SectionType",
-        "description": "Enum representing the Server-Driven UI section layout types."
+        "title": "SectionType"
       },
       "Step": {
         "properties": {
@@ -8930,17 +11616,6 @@
             "title": "Input Mappings",
             "description": "Maps upstream results to LLM inputs. e.g. {\"context\": \"$inputs.document\"}"
           },
-          "engine_override": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EngineOverrideStrategy"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Optional override to route this step to a non-default execution strategy."
-          },
           "expected_sdui_type": {
             "anyOf": [
               {
@@ -9180,7 +11855,8 @@
               "enum": [
                 "pdf",
                 "docx",
-                "raw_json"
+                "raw_json",
+                "xlsx"
               ]
             },
             "type": "array",
@@ -9201,14 +11877,6 @@
             "title": "Allowed Mcp Tools",
             "description": "Enabled MCP tool identifiers for pre-fetch synthesis phase."
           },
-          "matrix_visible_columns": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Matrix Visible Columns",
-            "description": "Visible columns for the global matrix summary table."
-          },
           "tone_instruction": {
             "anyOf": [
               {
@@ -9223,8 +11891,7 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "SynthesisConfigDTO",
-        "description": "Configuration for LLM output synthesis length, masking, and formatting."
+        "title": "SynthesisConfigDTO"
       },
       "SystemConfigMCPGateways": {
         "properties": {
@@ -9266,8 +11933,7 @@
           "id",
           "type"
         ],
-        "title": "SystemConfigMCPGateways",
-        "description": "System-level registry of available MCP tool gateways."
+        "title": "SystemConfigMCPGateways"
       },
       "SystemConfigModelRegistry": {
         "properties": {
@@ -9310,8 +11976,7 @@
           "type",
           "models"
         ],
-        "title": "SystemConfigModelRegistry",
-        "description": "V2 Flattened Model Registry System Config."
+        "title": "SystemConfigModelRegistry"
       },
       "SystemConfigPerformativeLexicons": {
         "properties": {
@@ -9340,32 +12005,6 @@
             "title": "Slug",
             "description": "System Config identifier slug"
           },
-          "lexicons": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lexicons",
-            "description": "Legacy payload mapping"
-          },
-          "lexicon": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lexicon",
-            "description": "Legacy payload mapping"
-          },
           "lexicon_configs": {
             "additionalProperties": {
               "$ref": "#/components/schemas/LexiconConfigPayload"
@@ -9380,8 +12019,7 @@
         "required": [
           "id"
         ],
-        "title": "SystemConfigPerformativeLexicons",
-        "description": "System configuration for multi-language performative lexicons."
+        "title": "SystemConfigPerformativeLexicons"
       },
       "SystemNotification": {
         "properties": {
@@ -9462,12 +12100,6 @@
             ],
             "title": "Logical Expression",
             "description": "Whitelisted Boolean logical expression using extracted facts."
-          },
-          "allow_contextual_override": {
-            "type": "boolean",
-            "title": "Allow Contextual Override",
-            "description": "If True, allows overriding this assertion with a contextual excuse.",
-            "default": false
           },
           "high_entropy": {
             "type": "boolean",
@@ -9568,6 +12200,94 @@
         "title": "TDAAssertion",
         "description": "Deterministic rule evaluated by the backend.\n\nAttributes:\n    tda_id: Opaque Stripe ID for this assertion.\n    inverse_evidence: If True, acts as a poison/penalty detector.\n    aggregation_mode: Aggregation constraint.\n    evaluation_track: Decoupled evaluation track.\n    facts_to_find: The list of facts to extract for this assertion.\n    logical_expression: Whitelisted Boolean logical expression using extracted facts.\n    allow_contextual_override: If True, allows overriding this assertion with a contextual excuse.\n    high_entropy: If True, enables multi-agent ensemble majority voting for this assertion."
       },
+      "TDADlq": {
+        "properties": {
+          "runtimeType": {
+            "type": "string",
+            "const": "dlq",
+            "title": "Runtimetype",
+            "default": "dlq"
+          },
+          "user_reason": {
+            "type": "string",
+            "title": "User Reason"
+          },
+          "backend_trace": {
+            "type": "string",
+            "title": "Backend Trace"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_reason",
+          "backend_trace"
+        ],
+        "title": "TDADlq"
+      },
+      "TDAEvaluated": {
+        "properties": {
+          "runtimeType": {
+            "type": "string",
+            "const": "evaluated",
+            "title": "Runtimetype",
+            "default": "evaluated"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "display_quote": {
+            "type": "string",
+            "title": "Display Quote"
+          },
+          "raw_anchor": {
+            "type": "string",
+            "title": "Raw Anchor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "passed",
+          "display_quote",
+          "raw_anchor"
+        ],
+        "title": "TDAEvaluated"
+      },
+      "TDAPending": {
+        "properties": {
+          "runtimeType": {
+            "type": "string",
+            "const": "pending",
+            "title": "Runtimetype",
+            "default": "pending"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TDAPending"
+      },
+      "TargetBlockType": {
+        "type": "string",
+        "enum": [
+          "global_score_block",
+          "penalties_block",
+          "audit_trail_block",
+          "jargon_ratio_block",
+          "printable_sources_block",
+          "grouped_extensions_block",
+          "executive_summary_block",
+          "metadata_block",
+          "synthesis_text_block",
+          "matrix_graphs_block",
+          "matrix_summary_table_block",
+          "variance_validation_block",
+          "authenticity_evaluation_block"
+        ],
+        "title": "TargetBlockType",
+        "description": "Explicit layout hydration target blocks for SDUI."
+      },
       "TheoryGrounding": {
         "properties": {
           "source_url": {
@@ -9576,7 +12296,14 @@
             "description": "URL or reference to the source material."
           },
           "citation_reference": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Citation Reference",
             "description": "Specific section or phrase to cite from the source."
           }
@@ -9584,8 +12311,7 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "source_url",
-          "citation_reference"
+          "source_url"
         ],
         "title": "TheoryGrounding",
         "description": "Used in PromptBlock to bind criteria to organizational truth.\n\nAttributes:\n    source_url: URL or reference to the source material.\n    citation_reference: Specific section or phrase to cite from the source."
@@ -9744,8 +12470,7 @@
           "step_name",
           "redacted_hash"
         ],
-        "title": "TombstoneEvent",
-        "description": "Specific event representing GDPR-redacted or deleted data."
+        "title": "TombstoneEvent"
       },
       "TraceEvent": {
         "properties": {
@@ -9821,30 +12546,23 @@
           "step_name",
           "event_type"
         ],
-        "title": "TraceEvent",
-        "description": "Immutable event log item representing a distinct step or state change."
+        "title": "TraceEvent"
       },
       "UiSection": {
         "properties": {
           "id": {
             "type": "string",
-            "minLength": 1,
-            "title": "Id",
-            "description": "Unique identifier for the section (e.g. 'verdict-card')"
+            "title": "Id"
           },
           "type": {
-            "$ref": "#/components/schemas/SectionType",
-            "description": "Determines which UI component to render"
+            "$ref": "#/components/schemas/SectionType"
           },
           "title": {
             "type": "string",
-            "minLength": 1,
-            "title": "Title",
-            "description": "User-facing title of the section"
+            "title": "Title"
           },
           "data": {
-            "title": "Data",
-            "description": "Flexible payload specific to the section type (dict or Pydantic Model)"
+            "title": "Data"
           }
         },
         "additionalProperties": false,
@@ -9852,10 +12570,10 @@
         "required": [
           "id",
           "type",
-          "title"
+          "title",
+          "data"
         ],
-        "title": "UiSection",
-        "description": "Abstract UI Section mapped via Server-Driven UI schemas.\n\nAttributes:\n    id: Section unique logical string.\n    type: Presentational render type of component.\n    title: Globalized human visible header key.\n    data: Highly flexible context payloads."
+        "title": "UiSection"
       },
       "User": {
         "properties": {
@@ -10230,7 +12948,8 @@
           "warning",
           "critical_override",
           "info",
-          "NEUTRAL"
+          "NEUTRAL",
+          "error"
         ],
         "title": "VisualIntent",
         "description": "UI intent mapping for SDUI visual rendering."
@@ -10298,14 +13017,6 @@
             "type": "object",
             "title": "Ui Schema"
           },
-          "output_profiles": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/EmbeddedOutputProfile"
-            },
-            "type": "object",
-            "title": "Output Profiles",
-            "description": "Dictionary of named output profiles for reporting."
-          },
           "default_profile_id": {
             "type": "string",
             "title": "Default Profile Id",
@@ -10369,7 +13080,8 @@
               "enum": [
                 "pdf",
                 "docx",
-                "raw_json"
+                "raw_json",
+                "xlsx"
               ]
             },
             "type": "array",
@@ -10394,8 +13106,7 @@
           "allowed_exports",
           "historical_context_mode"
         ],
-        "title": "Workflow",
-        "description": "Dynamic Directed Acyclic Graph orchestrator model."
+        "title": "Workflow"
       },
       "WorkflowAvailableExtensionsResponse": {
         "properties": {
@@ -10602,14 +13313,6 @@
             "type": "object",
             "title": "Ui Schema"
           },
-          "output_profiles": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/EmbeddedOutputProfile"
-            },
-            "type": "object",
-            "title": "Output Profiles",
-            "description": "Dictionary of named output profiles for reporting."
-          },
           "default_profile_id": {
             "type": "string",
             "title": "Default Profile Id",
@@ -10673,7 +13376,8 @@
               "enum": [
                 "pdf",
                 "docx",
-                "raw_json"
+                "raw_json",
+                "xlsx"
               ]
             },
             "type": "array",
@@ -10683,6 +13387,14 @@
           "historical_context_mode": {
             "$ref": "#/components/schemas/HistoricalContextMode",
             "description": "Mode for fetching historical context at workflow level."
+          },
+          "output_profiles": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/OutputProfileResponseDTO"
+            },
+            "type": "object",
+            "title": "Output Profiles",
+            "description": "Dictionary of fully hydrated OutputProfiles attached to this workflow."
           }
         },
         "additionalProperties": false,
@@ -10765,28 +13477,6 @@
         ],
         "title": "XaiExtensionType",
         "description": "Supported XAI Output Extensions for global visibility."
-      },
-      "XaiHighlightItem": {
-        "properties": {
-          "extension_type": {
-            "type": "string",
-            "title": "Extension Type",
-            "description": "Category of the insight matching explicit system XaiExtensionType options."
-          },
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "The synthesized, deduplicated insight or tip. Max 2 sentences. MUST BE TRANSLATED TO <required_output_language>!"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "extension_type",
-          "content"
-        ],
-        "title": "XaiHighlightItem",
-        "description": "DTO representing a highly contextual, structured XAI highlight or tip.\n\nAttributes:\n    extension_type: Category of the insight matching explicit system XaiExtensionType options.\n    content: The synthesized, deduplicated insight or tip. Max 2 sentences."
       }
     },
     "securitySchemes": {

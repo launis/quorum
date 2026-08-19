@@ -49,30 +49,44 @@
   </anti_targets>
 
   <dod_checklist>
-    <item>OpenAPI spec generated successfully via generate_openapi.py.</item>
-    <item>OpenAPI parity test passes green.</item>
-    <item>Generated OpenAPI spec reflects DisplayScale enum, removed include_diagnostic_scorecard, typed target_block_order, and max_extension_items constraints.</item>
+    <item>OpenAPI spec generated successfully via `backend_v2/scripts/generate_openapi.py` with zero errors.</item>
+    <item>OpenAPI parity test passes green (`uv run pytest backend_v2/tests/unit/scripts/test_generate_openapi.py -v`).</item>
+    <item>OpenAPI test file passes strict quality gate (`uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py`).</item>
+    <item>Generated OpenAPI schema at `docs/swagger/openapi.json` physically reflects `DisplayScale` enum (`original`, `custom`, `normalized_100`), eradication of `include_diagnostic_scorecard`, typed `TargetBlockType` array for `target_block_order`, and `max_extension_items` integer constraints (`ge: 1, le: 100`).</item>
+    <item>Full backend test suite regression gate passes 100% green with zero errors.</item>
   </dod_checklist>
 
   <step id="1" name="GENERATE OPENAPI SPECIFICATION">
     <action>Execute: `uv run python backend_v2/scripts/generate_openapi.py`</action>
-    <constraint>The command MUST complete without errors.</constraint>
+    <constraint>The command MUST complete without errors and output the updated spec to `docs/swagger/openapi.json`.</constraint>
   </step>
 
-  <step id="2" name="VERIFY OPENAPI PARITY">
-    <action>Execute: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py --test`</action>
-    <constraint>The test MUST pass green, proving the generated OpenAPI spec matches the live FastAPI schema.</constraint>
+  <step id="2" name="VERIFY OPENAPI UNIT TEST PARITY">
+    <action>Execute: `uv run pytest backend_v2/tests/unit/scripts/test_generate_openapi.py -v`</action>
+    <action>Execute Quality Gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py`</action>
+    <constraint>All tests in `test_generate_openapi.py` MUST pass green, and ruff/mypy/seed quality checks MUST pass cleanly.</constraint>
   </step>
 
-  <step id="3" name="FULL BACKEND REGRESSION GATE">
+  <step id="3" name="VERIFY GENERATED OPENAPI SCHEMA ASSERTIONS">
+    <action>Verify schema contents in `docs/swagger/openapi.json`:
+1. Check `DisplayScale` enum exists in components/schemas with values `["original", "custom", "normalized_100"]`.
+2. Check `TargetBlockType` enum exists in components/schemas with 13 members.
+3. Check `OutputProfileCreateDTO` and `OutputProfileResponseDTO` do NOT contain `include_diagnostic_scorecard`.
+4. Check `OutputProfileCreateDTO.properties.max_extension_items` has `minimum: 1` and `maximum: 100`.
+5. Check `OutputProfileResponseDTO.properties.target_block_order.items` references `#/components/schemas/TargetBlockType`.</action>
+    <constraint>Generated schema MUST strictly match the Pydantic V2 models defined in Plans 01-03.</constraint>
+  </step>
+
+  <step id="4" name="FULL BACKEND REGRESSION GATE">
     <action>Execute: `uv run python scripts/backend_audit_loop.py backend_v2 --test`</action>
     <constraint>ALL backend tests MUST pass green before proceeding to frontend plans (Plans 07-08). If any test fails, diagnose and fix in the relevant plan's scope.</constraint>
   </step>
 
   <validation_gate>
-    <check>uv run python backend_v2/scripts/generate_openapi.py — exits 0</check>
-    <check>uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py --test — passes green</check>
-    <check>uv run python scripts/backend_audit_loop.py backend_v2 --test — full backend suite passes green</check>
+    <check>uv run python backend_v2/scripts/generate_openapi.py — exits 0 and writes docs/swagger/openapi.json</check>
+    <check>uv run pytest backend_v2/tests/unit/scripts/test_generate_openapi.py -v — passes 2/2 tests green</check>
+    <check>uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py — passes all 5 quality steps</check>
+    <check>uv run python scripts/backend_audit_loop.py backend_v2 --test — full backend suite passes green (0 failures)</check>
   </validation_gate>
 </execution_protocol>
 ```
