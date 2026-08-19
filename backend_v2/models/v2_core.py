@@ -1200,7 +1200,7 @@ class ReportDataDTO(V2CoreBase):
         default=False, description="Flag indicating if the report generation had non-fatal warnings."
     )
 
-    # NEW FIELDS FROM EPIC 91.5 (Strict Topological DAG Execution Model)
+    # Strict Topological DAG Execution Model fields
     global_metrics: ExecutionMetricsDTO | None = Field(default=None)
     inner_sdui_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Stores the final structured SDUI blocks."

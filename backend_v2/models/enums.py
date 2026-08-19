@@ -34,15 +34,15 @@ class ExecutionProfile(StrEnum):
 
 
 class EvaluationRunCount(int, Enum):
-    """Määrittää suorituskertojen määrän TDA-matriisiarvioinneille."""
+    """Defines the number of evaluation runs for TDA matrix evaluations."""
 
     STANDARD = 1
     ENSEMBLE = 3
 
 
 class EnsembleJitter(float, Enum):
-    """Määrittelee viivekertoimen (sekunneissa) ensemble-ajoille,
-    jolla pakotetaan Vertex AI -välimuistin divergenssi.
+    """Defines the delay multiplier (in seconds) for ensemble runs,
+    used to force Vertex AI cache divergence.
     """
 
     BASE_DELAY = 0.200
@@ -241,9 +241,9 @@ class WaterfallThreshold(float, Enum):
     Defines the hit rate percentage required to pass a scale level.
     """
 
-    STRICT = 0.70  # Requires ~70% consensus (Tiukka 85)
-    STANDARD = 0.40  # Requires ~40% consensus (Tasapainoinen 50)
-    LENIENT = 0.15  # Requires ~15% consensus (Salliva 15)
+    STRICT = 0.70  # Requires ~70% consensus (Strict 85)
+    STANDARD = 0.40  # Requires ~40% consensus (Balanced 50)
+    LENIENT = 0.15  # Requires ~15% consensus (Lenient 15)
 
 
 class ScoringCalibrationThresholds(float, Enum):
@@ -371,7 +371,7 @@ class ValidationThresholdRatio(float, Enum):
 
 
 class StrictnessAnchor(IntEnum):
-    """UI:n kiinteät Strictness-tasot. Määrittää pehmeyden (forgiveness) ankkuripisteet."""
+    """Fixed UI strictness levels defining forgiveness anchor points."""
 
     NONE = 0
     RELAXED = 30
@@ -657,7 +657,7 @@ LaxDisplayScale = Annotated[DisplayScale, Field(strict=False)]
 
 
 class SpecialAliasChoices(StrEnum):
-    """Globaalit sallitut poikkeusarvot AliasEnginelle ja Pydantic-validaatiolle."""
+    """Global allowed exception values for AliasEngine and Pydantic validation."""
 
     NA = "N/A"
 

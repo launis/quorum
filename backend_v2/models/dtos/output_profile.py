@@ -17,6 +17,12 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.models.view.sdui import AnySduiBlock
 
+__all__ = [
+    "OutputProfileCreateDTO",
+    "OutputProfileUpdateDTO",
+    "OutputProfileResponseDTO",
+]
+
 
 class OutputProfileCreateDTO(V2CoreBase):
     """DTO for creating a new Output Profile.
@@ -323,8 +329,8 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
     synthesis: SynthesisConfigDTO | None = None
-    layouts: list[OutputLayoutBlock]
-    content_blocks: list[AnySduiBlock] = Field(default_factory=list)
+    layouts: Annotated[list[OutputLayoutBlock], Field(default_factory=list, description="Sequence of layouts.")]
+    content_blocks: Annotated[list[AnySduiBlock], Field(default_factory=list, description="Base SDUI content blocks.")]
     performativity_detector_step_id: Annotated[
         str | None,
         Field(default=None, description="Optional step ID for the performativity detector"),

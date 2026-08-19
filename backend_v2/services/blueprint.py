@@ -24,12 +24,16 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
+    AtomResultDTO,
+    HydratedAtomDTO,
     MCPAuditTrace,
     OutputProfile,
     PromptBlock,
     ReportDataDTO,
     SystemConfigPerformativeLexicons,
 )
+
+__all__ = ["BlueprintTransformer"]
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     ParagraphBlock,
@@ -270,7 +274,7 @@ class BlueprintTransformer:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
-        # Epic 88 Phase 6: Pass rejected_evq_ids to the matrix extractor
+        # Pass rejected_evq_ids to the matrix extractor
         rejected_evq_ids: set[str] = set()
         if execution.execution_trace:
             for ev in execution.execution_trace:
@@ -288,8 +292,6 @@ class BlueprintTransformer:
 
         v2_results: list[Any] = []
         v2_hydrated_refs: dict[str, Any] = {}
-
-        from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO
 
         for dto in results:
             if isinstance(dto.payload, dict):
@@ -397,7 +399,7 @@ class BlueprintTransformer:
             # Phase 1: Build temp visualization blocks for slop scanner
             temp_visualization_blocks = []
 
-            # Map graph and table blocks via Adapters (Epic 130 Phase 6B)
+            # Map graph and table blocks via Adapters
             temp_visualization_blocks.extend(MatrixGraphsAdapter.build(adapter_ctx))
             temp_visualization_blocks.extend(MatrixSummaryTableAdapter.build(adapter_ctx))
 

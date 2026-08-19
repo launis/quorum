@@ -229,7 +229,7 @@ class Settings(BaseSettings):
         ),
     ] = 50.0
 
-    # --- Epic 91.5 Global DTO Policies ---
+    # --- Global DTO Policies ---
     auto_resolve_policy: Annotated[str, Field(description="Policy for automatic resolution of execution nodes")] = (
         "strict"
     )
@@ -527,7 +527,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _enforce_fast_mode_limits(self) -> Self:
-        """Aggressively clamp heavy configurations during 'fast' development mode."""
+        """Aggressively clamp heavy configurations during 'fast' development mode.
+
+        Returns:
+            The mutated settings instance with clamped development limits.
+        """
         if self.environment.lower() == "development" and self.dev_execution_mode == "fast":
             logger.info("⚡ Fast execution mode active: Clamping LLM bounds and limits to save API tokens.")
 
@@ -564,7 +568,14 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_authenticity_thresholds(self) -> Self:
-        """Enforce cross-field consistency: high threshold must be >= low threshold."""
+        """Enforce cross-field consistency: high threshold must be >= low threshold.
+
+        Returns:
+            The validated settings instance.
+
+        Raises:
+            ValueError: If authenticity_threshold_high is lower than authenticity_threshold_low.
+        """
         if self.authenticity_threshold_high < self.authenticity_threshold_low:
             msg = (
                 f"authenticity_threshold_high ({self.authenticity_threshold_high}) "
@@ -605,7 +616,11 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def log_format(self) -> str:
-        """Determines if logs should be JSON (production) or readable (development)."""
+        """Determines if logs should be JSON (production) or readable (development).
+
+        Returns:
+            String indicating log format ('json' or 'readable').
+        """
         if self.use_json_logging:
             return "json"
         return "readable" if self.environment.lower() == "development" else "json"
@@ -613,31 +628,58 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allow_mock_tokens(self) -> bool:
-        """Strictly disallow mock tokens in production."""
+        """Strictly disallow mock tokens in production.
+
+        Returns:
+            True if mock tokens are permitted (development only), False otherwise.
+        """
         return self.environment.lower() == "development"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def schema_max_chunk_records(self) -> int:
-        """Maximum number of records (main + context) the LLM is expected to parse in a single chunk."""
+        """Maximum number of records (main + context) the LLM is expected to parse in a single chunk.
+
+        Returns:
+            Calculated integer limit for chunk records.
+        """
         return self.llm_max_chunk_size + 5
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def schema_max_source_aliases(self) -> int:
-        """Target limits for source document array (logically bound to quote limit, capped by chunk size)."""
+        """Target limits for source document array (logically bound to quote limit, capped by chunk size).
+
+        Returns:
+            Calculated integer limit for source aliases.
+        """
         return min(self.schema_max_quotes_target, self.schema_max_chunk_records)
 
-    # Epic 13 M3: Centralized Mock Token IDs for testing
-    mock_admin_user_id: str = Field(
-        default="usr_18a0d5f6151349a5", validation_alias=AliasChoices("mock_admin_user_id", "MOCK_ADMIN_USER_ID")
-    )
-    mock_root_user_id: str = Field(
-        default="usr_a3fd6b3d77c748f4", validation_alias=AliasChoices("mock_root_user_id", "MOCK_ROOT_USER_ID")
-    )
-    mock_analyst_user_id: str = Field(
-        default="usr_8a9234f9a0c242a1", validation_alias=AliasChoices("mock_analyst_user_id", "MOCK_ANALYST_USER_ID")
-    )
+    # Centralized Mock Token IDs for testing
+    mock_admin_user_id: Annotated[
+        str,
+        Field(
+            default="usr_18a0d5f6151349a5",
+            validation_alias=AliasChoices("mock_admin_user_id", "MOCK_ADMIN_USER_ID"),
+            description="Mock Admin User ID",
+        ),
+    ] = "usr_18a0d5f6151349a5"
+    mock_root_user_id: Annotated[
+        str,
+        Field(
+            default="usr_a3fd6b3d77c748f4",
+            validation_alias=AliasChoices("mock_root_user_id", "MOCK_ROOT_USER_ID"),
+            description="Mock Root User ID",
+        ),
+    ] = "usr_a3fd6b3d77c748f4"
+    mock_analyst_user_id: Annotated[
+        str,
+        Field(
+            default="usr_8a9234f9a0c242a1",
+            validation_alias=AliasChoices("mock_analyst_user_id", "MOCK_ANALYST_USER_ID"),
+            description="Mock Analyst User ID",
+        ),
+    ] = "usr_8a9234f9a0c242a1"
 
 
 @lru_cache
