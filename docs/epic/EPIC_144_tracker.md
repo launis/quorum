@@ -984,5 +984,5 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
 
 ## Resume Command
 ```bash
-/tier2-hardening-backend @[docs/epic/EPIC_144_tracker.md]
+/tier5-resume --target="@[docs/epic/EPIC_144_tracker.md], backend_v2" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
 ```
