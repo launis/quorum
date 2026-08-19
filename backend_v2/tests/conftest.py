@@ -21,15 +21,6 @@ def patch_pydantic_base_model_cache() -> None:
         pass
 
     def custom_import_cached_base_model() -> Any:
-        frame: Any = sys._getframe(1)
-        while frame:
-            if "cls" in frame.f_locals:
-                cls = frame.f_locals["cls"]
-                if hasattr(cls, "__mro__"):
-                    for base in cls.__mro__:
-                        if base.__name__ == "BaseModel":
-                            return base
-            frame = frame.f_back
         from pydantic import BaseModel
 
         return BaseModel

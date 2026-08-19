@@ -64,11 +64,10 @@ def test_lax_historical_context_mode() -> None:
     assert obj.mode == HistoricalContextMode.DISABLED
 
 
-@pytest.mark.skip(reason="Awaiting Phase 3 Flutter implementation of UiVariant")
 def test_parity_ui_variant() -> None:
-    """Tier 2 / Phase 2: Contract Parity Gate
+    """Tier 2 / Phase 2: Contract Parity Gate.
+
     Asserts exact parity between Python UiVariant and Dart UiVariant.
-    Skipped until Phase 3 implements the Dart enum.
     """
     from backend_v2.models.enums import UiVariant
 

@@ -4,6 +4,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from backend_v2.models.v2_core import XaiHighlightItem
+from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: F403, F401
+
 
 def fix_mock_dict(d: Any) -> Any:
     from backend_v2.models.v2_core import I18nText, OutputProfile
@@ -1346,8 +1349,8 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
                 cited_sources=[],
                 section_syntheses={},
                 xai_highlights=[
-                    {"extension_type": "remediation_steps", "content": "Do this to fix."},
-                    {"extension_type": "falsification", "content": "This is false."},
+                    XaiHighlightItem(extension_type="remediation_steps", content="Do this to fix."),
+                    XaiHighlightItem(extension_type="falsification", content="This is false."),
                 ],
             )
         },
@@ -1437,7 +1440,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 cited_sources=[],
                 section_syntheses={},
-                xai_highlights=[{"extension_type": "coaching", "content": "Good job."}],
+                xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Good job.")],
             )
         },
     )
@@ -2411,9 +2414,9 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
             custom_profile.id: RenderedSynthesisCache(
                 user_role="ROLE_ARCHITECT",
                 xai_highlights=[
-                    {"extension_type": "coaching", "content": "Focus on modular architecture."},
-                    {"extension_type": "coaching", "content": "Avoid monolithic God classes."},
-                    {"extension_type": "falsification", "content": "Validate performance assumptions."},
+                    XaiHighlightItem(extension_type="coaching", content="Focus on modular architecture."),
+                    XaiHighlightItem(extension_type="coaching", content="Avoid monolithic God classes."),
+                    XaiHighlightItem(extension_type="falsification", content="Validate performance assumptions."),
                 ],
                 section_syntheses={},
             )
@@ -2504,3 +2507,546 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_fail_fast_branches(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Test Fail-Fast branches: missing execution, missing workflow, missing locale, missing profile."""
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    # 1. Missing execution -> 404
+    mock_repo_transformer.get_execution.return_value = None
+    with pytest.raises(AppException) as exc1:
+        await transformer.build_report_dto("exe_nonexistent", accept_language="en")
+    assert exc1.value.status_code == 404
+    assert exc1.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+    # 2. Missing workflow -> 500
+    mock_exec = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_nonexistent",
+        created_at=datetime.now(timezone.utc),
+        metadata={"target_locale": "en"},
+        execution_trace=[],
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec
+    mock_repo_transformer.get_workflow.return_value = None
+    with pytest.raises(AppException) as exc2:
+        await transformer.build_report_dto("exe_1111222233334444", accept_language="en")
+    assert exc2.value.status_code == 500
+    assert exc2.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    # 3. Missing locale -> 400
+    mock_wf = SimpleNamespace(
+        id="wf_1234abcd1234abcd",
+        default_profile_id="prf_dddd1111dddd1111",
+        steps=[],
+    )
+    mock_repo_transformer.get_workflow.return_value = mock_wf
+    mock_exec_no_locale = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        created_at=datetime.now(timezone.utc),
+        metadata={},
+        execution_trace=[],
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec_no_locale
+    with pytest.raises(AppException) as exc3:
+        await transformer.build_report_dto("exe_1111222233334444", accept_language=None)
+    assert exc3.value.status_code == 400
+    assert exc3.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    # 4. Missing profile in repo -> 404
+    mock_repo_transformer.get_execution.return_value = mock_exec
+    mock_repo_transformer.get_all_output_profiles.return_value = []
+    with pytest.raises(AppException) as exc4:
+        await transformer.build_report_dto("exe_1111222233334444", profile_id="prf_nonexistent", accept_language="en")
+    assert exc4.value.status_code == 404
+    assert exc4.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_additional_hydrators_and_slop_missing_config(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Test placeholder hydrators and fail-fast slop scanning when config is missing."""
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    # Test individual placeholder hydrators directly
+    assert transformer._hydrate_global_score_block() == []
+    assert transformer._hydrate_audit_trail_block() == []
+    jargon_res = transformer._hydrate_jargon_ratio_block()
+    assert len(jargon_res) == 1
+
+    # Test slop scanning fail-fast when system config missing
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test-profile",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+        layouts=[],
+        user_role_mappings={},
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+
+    mock_exec = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=profile.id,
+        created_at=datetime.now(timezone.utc),
+        created_by="usr_admin",
+        metadata={"target_locale": "fi"},
+        execution_trace=[],
+        profile_syntheses={},
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec
+    mock_repo_transformer.get_user.return_value = {"display_name": "Test User"}
+
+    mock_wf_slop = SimpleNamespace(
+        id="wf_1234abcd1234abcd",
+        default_profile_id=profile.id,
+        default_strictness_level=85,
+        default_scoring_strategy=ScoringStrategy.AVERAGE,
+        expected_inputs=[SimpleNamespace(scan_for_performative_patterns=True)],
+        steps=[],
+    )
+    mock_repo_transformer.get_workflow.return_value = mock_wf_slop
+    mock_repo_transformer.get_system_config.return_value = None
+
+    with pytest.raises(AppException) as exc_slop:
+        await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
+    assert exc_slop.value.status_code == 500
+    assert exc_slop.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_identity_errors_and_penalties(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Test identity repository resolution errors and invalid penalty handling."""
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test-profile",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],  # Empty target_block_order to test fallback radar block
+        layouts=[],
+        user_role_mappings={},
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+
+    # 1. Organization resolution error -> 404
+    mock_exec_org_err = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=profile.id,
+        organization_id="org_err",
+        created_at=datetime.now(timezone.utc),
+        metadata={"target_locale": "fi"},
+        execution_trace=[],
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec_org_err
+    mock_repo_transformer.get_organization_model.side_effect = Exception("Org lookup failed")
+
+    with pytest.raises(AppException) as exc_org:
+        await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
+    assert exc_org.value.status_code == 404
+    assert exc_org.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+    # Reset side effect
+    mock_repo_transformer.get_organization_model.side_effect = None
+
+    # 2. User resolution error -> 404
+    mock_exec_user_err = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=profile.id,
+        created_by="usr_err",
+        created_at=datetime.now(timezone.utc),
+        metadata={"target_locale": "fi"},
+        execution_trace=[],
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec_user_err
+    mock_repo_transformer.get_user.side_effect = Exception("User lookup failed")
+
+    with pytest.raises(AppException) as exc_u:
+        await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
+    assert exc_u.value.status_code == 404
+    assert exc_u.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+    # Reset side effect
+    mock_repo_transformer.get_user.side_effect = None
+    mock_repo_transformer.get_user.return_value = {"name": "Test User"}
+
+    # 3. Empty target block order fallback test (lines 709-710)
+    mock_exec_valid = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=profile.id,
+        created_at=datetime.now(timezone.utc),
+        metadata={"target_locale": "fi"},
+        execution_trace=[],
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec_valid
+    report = await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
+    assert report is not None
+    assert len(report.inner_sdui_blocks) == 1
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Test unsupported penalty format and section_syntheses None fail-fast."""
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test-profile",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+        layouts=[],
+        user_role_mappings={},
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+
+    # 1. Unsupported penalty format fail-fast (lines 652-656)
+    mock_exec_penalty = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=profile.id,
+        created_at=datetime.now(timezone.utc),
+        metadata={"target_locale": "fi"},
+        execution_trace=[
+            TraceEvent(
+                step_name="step_system_scoring",
+                event_type="output",
+                content={"total_score": 80.0, "penalties_applied": ["UNSUPPORTED_PENALTY_FORMAT:50"]},
+            )
+        ],
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec_penalty
+
+    with pytest.raises(AppException) as exc_pen:
+        await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
+    assert exc_pen.value.status_code == 500
+    assert exc_pen.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    # 2. Section syntheses is None fail-fast (lines 228-232)
+    mock_cache = RenderedSynthesisCache()
+    object.__setattr__(mock_cache, "section_syntheses", None)
+    mock_exec_cache = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=profile.id,
+        created_at=datetime.now(timezone.utc),
+        metadata={"target_locale": "fi"},
+        execution_trace=[],
+        profile_syntheses={profile.id: mock_cache},
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec_cache
+
+    with pytest.raises(AppException) as exc_cache:
+        await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
+    assert exc_cache.value.status_code == 500
+    assert exc_cache.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Test step_states updating and reverse lookup for MCP audit data."""
+    from backend_v2.models.v2_core import (
+        ExecutionStepState,
+        FrozenContext,
+        HumanOverrideDTO,
+        MCPAuditTrace,
+        ScorecardAtomDTO,
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test-profile",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+        layouts=[],
+        user_role_mappings={},
+        metric_mappings={
+            "metadata_user": I18nText(default_locale="en", translations={"en": "User", "fi": "Käyttäjä"}),
+            "metadata_organization": I18nText(
+                default_locale="en", translations={"en": "Organization", "fi": "Organisaatio"}
+            ),
+            "metadata_scoring_engine": I18nText(
+                default_locale="en", translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}
+            ),
+            "metadata_strictness": I18nText(
+                default_locale="en", translations={"en": "Strictness", "fi": "Ankaruustaso"}
+            ),
+        },
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+
+    audit_trace = MCPAuditTrace(
+        id="mcp_00000000000000000000000000000001",
+        tool_id="tavily_search",
+        step_name="step_evidence",
+        query="search query",
+        knowledge_gap="gap",
+        search_rationale="rationale",
+        reasoning="reason",
+    )
+
+    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.enums import VisualIntent
+
+    existing_atom = ScorecardAtomDTO(
+        atom_id="atom_1",
+        level=1,
+        level_name="Level 1",
+        claim_label="Claim 1",
+        status=ExecutionStatus.PASSED,
+        semantic_reasoning="Reason",
+        extracted_facts={},
+        exact_quotes=[],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="1",
+            step_2_scan_source="2",
+            step_3_evaluate_anti_patterns="3",
+            step_4_final_conclusion="4",
+        ),
+        contextual_override=True,
+        structural_location=None,
+        chart_display_label="Claim 1",
+        visual_intent=VisualIntent.NEUTRAL,
+        human_override=HumanOverrideDTO(
+            new_status=ExecutionStatus.FAILED,
+            reason="Manual fix",
+            evidence_quotes=[],
+            overridden_by="usr_admin",
+            overridden_at=datetime.now(timezone.utc),
+        ),
+    )
+
+    step_state = ExecutionStepState(
+        id="step_1",
+        label="Step 1",
+        status=ExecutionStatus.PASSED,
+        scorecard_atoms={"atom_1": existing_atom},
+    )
+
+    mock_exec = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=profile.id,
+        created_at=datetime.now(timezone.utc),
+        metadata={"target_locale": "fi"},
+        frozen_context=FrozenContext(mcp_tool_audit=[audit_trace]),
+        step_states={"step_1": step_state},
+        execution_trace=[
+            TraceEvent(
+                step_name="step_1",
+                event_type="output",
+                content={
+                    "source_id": "mcp_00000000000000000000000000000001",
+                    "used_evidence_ids": ["mcp_00000000000000000000000000000001"],
+                    "used_mcp_ids": ["mcp_00000000000000000000000000000001"],
+                },
+            ),
+        ],
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec
+
+    report = await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
+    assert report is not None
+    assert report.total_tokens == 0
+    assert report.prompt_tokens == 0
+    assert report.completion_tokens == 0
+    assert report.reasoning_tokens == 0
+    assert report.cost_estimate == 0.0
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Test evidence override user rejection, AtomResultDTO parsing, and MCP audit impacted axis mapping."""
+    from backend_v2.models.enums import SDUIComponentType
+    from backend_v2.models.v2_core import (
+        FrozenContext,
+        MCPAuditTrace,
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test-profile",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Test", "fi": "Testi"}),
+        content_blocks=[],
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+        layouts=[],
+        user_role_mappings={},
+        metric_mappings={
+            "metadata_user": I18nText(default_locale="en", translations={"en": "User", "fi": "Käyttäjä"}),
+            "metadata_organization": I18nText(
+                default_locale="en", translations={"en": "Organization", "fi": "Organisaatio"}
+            ),
+            "metadata_scoring_engine": I18nText(
+                default_locale="en", translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}
+            ),
+            "metadata_strictness": I18nText(
+                default_locale="en", translations={"en": "Strictness", "fi": "Ankaruustaso"}
+            ),
+        },
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+
+    audit_trace = MCPAuditTrace(
+        id="mcp_00000000000000000000000000000001",
+        tool_id="tavily_search",
+        step_name="step_evidence",
+        query="search query",
+        knowledge_gap="gap",
+        search_rationale="rationale",
+        reasoning="reason",
+    )
+
+    mock_exec = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=profile.id,
+        created_at=datetime.now(timezone.utc),
+        metadata={"target_locale": "fi"},
+        frozen_context=FrozenContext(
+            mcp_tool_audit=[
+                audit_trace,
+                MCPAuditTrace(
+                    id="mcp_internal",
+                    tool_id="internal_source",
+                    step_name="internal",
+                    query="internal",
+                    knowledge_gap="gap",
+                    search_rationale="rationale",
+                    reasoning="reason",
+                ),
+            ]
+        ),
+        execution_trace=[
+            TraceEvent(
+                step_name="step_evidence_override",
+                event_type="evidence_override",
+                content={
+                    "user_rejected": True,
+                    "evq_id": "evq_00000000000000000000000000000001",
+                },
+            ),
+            TraceEvent(
+                step_name="step_evidence_override_2",
+                event_type="evidence_override",
+                content={
+                    "user_rejected": False,
+                    "evq_id": "evq_00000000000000000000000000000002",
+                },
+            ),
+            TraceEvent(
+                step_name="step_dag_exec",
+                event_type="output",
+                content={
+                    "blk_dag_exec": {
+                        "results": [
+                            {
+                                "tda_id": "tda_00000000000000000000000000000000",
+                                "status": ExecutionStatus.PASSED,
+                                "evaluation_reasoning": "Well done",
+                                "contextual_override": False,
+                                "source_quote": "Found quote",
+                                "depends_on_tda_ids": [],
+                                "short_circuit_reason_tda_ids": [],
+                            }
+                        ],
+                        "hydrated_references": {
+                            "tda_00000000000000000000000000000000": {
+                                "sdui_component": SDUIComponentType.BOOLEAN_CARD,
+                                "resolved_claim": "Atom 1",
+                                "source_quote": "Found quote",
+                            }
+                        },
+                        "source_id": "mcp_00000000000000000000000000000001",
+                        "used_evidence_ids": ["mcp_00000000000000000000000000000001"],
+                        "used_mcp_ids": ["mcp_00000000000000000000000000000001"],
+                    }
+                },
+            ),
+        ],
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec
+
+    report = await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
+    assert report is not None
+    assert len(report.results) >= 1
+    assert "tda_00000000000000000000000000000000" in report.hydrated_references
+    assert len(report.mcp_tool_audit) == 1
+    assert report.mcp_tool_audit[0].id == "mcp_00000000000000000000000000000001"

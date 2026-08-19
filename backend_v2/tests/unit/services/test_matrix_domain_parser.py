@@ -91,7 +91,7 @@ def test_clean_hallucinated_numbers_no_match() -> None:
 class MockDTO(BaseModel):
     step_id: str
     block_id: str
-    payload: dict[str, Any]
+    payload: Any
 
 
 def test_parse_matrices_empty_results() -> None:
@@ -391,3 +391,191 @@ def test_parse_matrix_custom_display_scale_missing_bounds_fail_fast() -> None:
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
     assert "UI bounds missing for PromptBlock" in str(exc_info.value)
+
+
+def test_parse_matrices_missing_label_and_scales_fail_fast() -> None:
+    """Negative tests: missing label, missing min/max, missing scales, and scale missing name."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+
+    profile = get_dummy_profile()
+    dto = MockDTO(
+        step_id="step1",
+        block_id="blk_1234567890abcdef1234567890abcdef",
+        payload={"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}},
+    )
+
+    # 1. Missing label
+    pb_no_label = get_dummy_pb()
+    object.__setattr__(pb_no_label, "label", None)
+    with pytest.raises(AppException) as exc1:
+        MatrixDomainParser.parse_matrices(
+            results=[dto],
+            locale="en",
+            blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb_no_label},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc1.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+    # 2. Missing computed_min
+    pb_no_min = get_dummy_pb()
+    object.__setattr__(pb_no_min, "computed_min", None)
+    with pytest.raises(AppException) as exc2:
+        MatrixDomainParser.parse_matrices(
+            results=[dto],
+            locale="en",
+            blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb_no_min},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc2.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+    # 3. Missing scales
+    pb_no_scales = get_dummy_pb()
+    object.__setattr__(pb_no_scales, "scales", [])
+    with pytest.raises(AppException) as exc3:
+        MatrixDomainParser.parse_matrices(
+            results=[dto],
+            locale="en",
+            blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb_no_scales},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc3.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+    # 4. Scale missing name
+    pb_scale_no_name = get_dummy_pb()
+    assert pb_scale_no_name.scales is not None
+    object.__setattr__(pb_scale_no_name.scales[0], "name", None)
+    with pytest.raises(AppException) as exc4:
+        MatrixDomainParser.parse_matrices(
+            results=[dto],
+            locale="en",
+            blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb_scale_no_name},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc4.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
+    """Test level breakdown parsing, invalid level breakdown, and synthesis cache requirements."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+    from backend_v2.models.v2_core import OutputLayoutBlock, SynthesisConfigDTO
+
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    # 1. Valid level breakdown with 3D matrix visible columns
+    profile_3d = profile.model_copy(
+        update={
+            "layouts": [
+                OutputLayoutBlock(
+                    preset_view="3d_matrix",
+                    matrix_visible_columns=["label", "score", "distribution", "row_explanation", "quotes"],
+                    title=I18nText(default_locale="en", translations={"en": "Matrix"}),
+                )
+            ]
+        }
+    )
+
+    payload_valid = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+        "level_breakdown": {
+            "0": {"hits": 1, "total": 2},
+            "1.0": {"hits": 2, "total": 2},
+        },
+    }
+    dto_valid = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload_valid)
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto_valid],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile_3d,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert matrix.level_breakdown == {"0": "1/2", "1": "2/2"}
+
+    # 2. Synthesis expected but missing in row_explanations_cache -> fail-fast
+    profile_synth = profile.model_copy(
+        update={"synthesis": SynthesisConfigDTO(row_explanations_block_id="blk_row_exp")}
+    )
+    with pytest.raises(AppException) as exc_synth:
+        MatrixDomainParser.parse_matrices(
+            results=[dto_valid],
+            locale="en",
+            blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+            workflow_steps={},
+            profile=profile_synth,
+            row_explanations_cache={},  # Missing entry for pb.id
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc_synth.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
+    """Test parsing of evaluations trace DTOs into ScorecardAtomDTOs."""
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+    assert pb.scales is not None
+    atom_id = pb.scales[0].claims[0].tda_assertions[0].tda_id
+
+    dto_matrix = MockDTO(
+        step_id="step1",
+        block_id="blk_1234567890abcdef1234567890abcdef",
+        payload={"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}},
+    )
+
+    eval_record: dict[str, Any] = {
+        "tda_id": atom_id,
+        "status": ExecutionStatus.PASSED,
+        "evaluation_reasoning": "Strong evidence found.",
+        "contextual_override": False,
+        "source_quote": "Exact verbatim quote.",
+        "depends_on_tda_ids": [],
+        "short_circuit_reason_tda_ids": [],
+    }
+
+    dto_evals = MockDTO(
+        step_id="step1",
+        block_id="evaluations",
+        payload=[eval_record],
+    )
+
+    _eval_m, _info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto_matrix, dto_evals],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert len(matrix.evaluated_atoms) == 2
+    assert "step1" in step_atoms
+    assert atom_id in step_atoms["step1"]
+    atom_dto = step_atoms["step1"][atom_id]
+    assert atom_dto.status == ExecutionStatus.PASSED
+    assert atom_dto.semantic_reasoning == "Strong evidence found."

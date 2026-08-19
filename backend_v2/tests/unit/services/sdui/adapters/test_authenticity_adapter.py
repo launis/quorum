@@ -16,6 +16,19 @@ from backend_v2.services.sdui.adapters.authenticity_adapter import AuthenticityA
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 
+@pytest.fixture(autouse=True)
+def mock_authenticity_settings(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Mock Settings for AuthenticityAdapter tests to decouple from environment."""
+    mock_settings = MagicMock()
+    mock_settings.authenticity_threshold_high = 80.0
+    mock_settings.authenticity_threshold_low = 50.0
+    monkeypatch.setattr(
+        "backend_v2.services.sdui.adapters.authenticity_adapter.get_settings",
+        lambda: mock_settings,
+    )
+    return mock_settings
+
+
 def _create_base_profile(
     metric_mappings: dict[str, I18nText] | None = None,
     extension_labels: dict[XaiExtensionType, I18nText] | None = None,
