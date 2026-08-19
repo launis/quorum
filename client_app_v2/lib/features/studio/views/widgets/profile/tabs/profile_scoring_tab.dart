@@ -18,7 +18,11 @@ class ProfileScoringTab extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final formState = ref.watch(outputProfileFormProvider(id));
     final payload = formState.value;
-    if (payload == null) return const SizedBox.shrink();
+    if (payload == null) {
+      throw StateError(
+        'Profile payload must not be null when rendering ProfileScoringTab',
+      );
+    }
 
     void updatePayload(OutputProfile p) {
       ref.read(outputProfileFormProvider(id).notifier).updatePayload(p);
