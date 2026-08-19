@@ -391,16 +391,25 @@
   - Added `LaxDisplayScale = Annotated[DisplayScale, Field(strict=False)]` alias to `@[backend_v2/models/enums.py]` for database hydration resilience per `annotated_hydration_mandate`.
   - Enforced PEP 673 `Self` return type on `@model_validator(mode="after")` in `@[backend_v2/settings.py]`.
   - Consolidated cross-language enum parity testing into `@[backend_v2/tests/unit/test_enum_parity.py]` (AST-based) and scheduled legacy `@[backend_v2/tests/architecture/test_enum_parity.py]` for clean demolition per `test_directory_isolation`.
-  - Clarified `pydantic.ValidationError` exception wrapping expectations for `@[backend_v2/tests/unit/test_settings.py]`.
+- **Phase 0-A Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - Implemented `DisplayScale(StrEnum)` and `LaxDisplayScale` in `@[backend_v2/models/enums.py]`.
+  - Centralized `authenticity_threshold_high` (80.0) and `authenticity_threshold_low` (50.0) in `@[backend_v2/settings.py]` with `@model_validator(mode="after") validate_authenticity_thresholds(self) -> Self:`.
+  - Implemented boundary, negative, and environment override tests in `@[backend_v2/tests/unit/test_settings.py]`.
+  - Implemented cross-language enum parity verification in `@[backend_v2/tests/unit/test_enum_parity.py]` via AST and regex parsers, covering 7 shared enums immediately with skipped placeholders for `DisplayScale` and `TargetBlockType` awaiting Plan 07.
+  - Demolished legacy `@[backend_v2/tests/architecture/test_enum_parity.py]`.
+  - Passed Universal Quality Gate (`backend_audit_loop.py`) with 100% test pass rate and >95% TDD coverage across target files.
+  - Committed atomically: `798b296c feat(config): implement DisplayScale enum, authenticity thresholds, and cross-language enum parity test`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
 - **Fail-Fast Hydration Invariant:** The `OutputProfile` model currently contains legacy `include_diagnostic_scorecard: bool`, uses raw `Literal["original", "custom", "normalized_100"]` for `display_scale`, and `list[str]` for `target_block_order`. Flutter models utilize `unknownEnumValue` fallback annotations.
 - **Atomic 6-Step Execution Protocol:** To prevent fatal `pydantic.ValidationError(extra_forbidden)` crashes under `ConfigDict(strict=True, extra="forbid")`, modifications MUST execute in strict order: Seed Sanitization & Local Reseed (02) → Models & DTO Purge (03) → OpenAPI Sync (06) → Frontend Enums & Freezed (07) → UI Decomposition (10-11) → Quality Gates.
 - **Testing Architecture Consolidation:** Architectural tests in `tests/architecture/` must be transitioned to the standard test pyramid (`tests/unit/`) to maintain single test suite sovereignty without duplicate scanners.
+- **Settings Post-Init Credential Scanning:** Testing `Settings.model_post_init` credential checks requires mocking `Path.exists` because `Settings` automatically scans the filesystem root for `service-account.json`.
+- **Enum Parity Testing Paradigm:** Python `ast.parse` and regex extraction over Dart `@JsonValue` provide deterministic verification without importing heavy cross-stack runtimes.
 
 ## Remaining
-- **Phase 0-A Execution:** Execute `@[docs\epic\tasks_EPIC_144\01_p0_backend_config_enums.md]` via `/tier2-execute`.
+- **Phase 0-A Audit:** Execute `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\01_p0_backend_config_enums.md] @[docs\epic\EPIC_144_tracker.md]`.
 - **Phase 0-B through Phase 0-I (Plans 02-09):** Seed sanitization, model & DTO purge, test fixtures alignment batches 1 & 2, OpenAPI generation, frontend enum sync, frontend test fixtures, integration checkpoint.
 - **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
@@ -408,4 +417,5 @@
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
-`/tier2-execute @[docs\epic\tasks_EPIC_144\01_p0_backend_config_enums.md] @[docs\epic\EPIC_144_tracker.md]`
+`/tier5-resume --target="@[docs\epic\tasks_EPIC_144\01_p0_backend_config_enums.md] @[docs\epic\EPIC_144_tracker.md]" --workflow=/tier8-audit-plan`
+
