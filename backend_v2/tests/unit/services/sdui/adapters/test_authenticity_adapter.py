@@ -312,3 +312,32 @@ def test_build_dynamic_settings_thresholds(monkeypatch: pytest.MonkeyPatch) -> N
     assert isinstance(alert_block, AlertBlock)
     assert alert_block.severity == VisualIntent.WARNING
     assert "Authenticity Level: Medium" in alert_block.text
+
+
+def test_authenticity_adapter_dual_logging_on_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Negative test: verify dual-logging pattern (logger.error with exc_info=True) before AppException."""
+    from unittest.mock import MagicMock
+
+    mock_logger_error = MagicMock()
+    monkeypatch.setattr("backend_v2.services.sdui.adapters.authenticity_adapter.logger.error", mock_logger_error)
+
+    profile = _create_base_profile()
+    context = AdapterContext(
+        execution=None,  # triggers exception
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+
+    with pytest.raises(AppException):
+        AuthenticityAdapter.build(context)
+
+    assert mock_logger_error.called
+    _args, kwargs = mock_logger_error.call_args
+    assert kwargs.get("exc_info") is True

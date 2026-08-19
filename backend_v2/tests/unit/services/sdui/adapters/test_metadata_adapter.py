@@ -191,3 +191,41 @@ def test_metadata_adapter_missing_metric_mapping_raises_app_exception() -> None:
 
     assert exc_info.value.status_code == 500
     assert "Missing metric_mappings translation for 'metadata_user'" in exc_info.value.message
+
+
+def test_metadata_adapter_dual_logging_on_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Negative test: verify dual-logging pattern (logger.error with exc_info=True) before AppException."""
+    from unittest.mock import MagicMock
+
+    mock_logger_error = MagicMock()
+    monkeypatch.setattr("backend_v2.services.sdui.adapters.metadata_adapter.logger.error", mock_logger_error)
+
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],
+        visible_metadata=["user"],
+        metric_mappings={},
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=None,
+        user_name="John Doe",
+        org_name=None,
+        parsed_matrices={},
+    )
+
+    with pytest.raises(AppException):
+        MetadataAdapter.build(context)
+
+    assert mock_logger_error.called
+    _args, kwargs = mock_logger_error.call_args
+    assert kwargs.get("exc_info") is True
