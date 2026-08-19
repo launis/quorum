@@ -537,21 +537,21 @@
   - Executed Frontend Unit Test suite: `uv run python scripts/flutter_audit_loop.py client_app_v2/test --test` passing 95/95 tests green with 0 errors.
   - Verified all 8 Validation Gate assertions in Plan 07 with 100% compliance (zero `unknownEnumValue`, zero `includeDiagnosticScorecard`, 13 `TargetBlockType` members, clean builds).
 - **Phase 0-H Implementation & Quality Gate Execution Completed (`[OK]`):**
-  - Updated `@[client_app_v2/test/features/studio/models/output_profile_test.dart]` positive test fixtures with typed `DisplayScale` and `TargetBlockType` enums, and non-nullable `maxExtensionItems: 3`.
+  - Updated `@[client_app_v2/test/features/studio/models/output_profile_test.dart]` positive test fixtures with typed `DisplayScale` (`DisplayScale.original`, `DisplayScale.custom`) and `TargetBlockType` enums, with non-nullable `maxExtensionItems: 3`.
   - Implemented all 9 negative and positive test contracts in `output_profile_test.dart`:
     1. `test_output_layout_block_unknown_preset_view_throws`: unmapped `preset_view` string throws `CheckedFromJsonException`.
     2. `test_output_layout_block_unknown_text_delivery_mode_throws`: unmapped `text_delivery_mode` string throws `CheckedFromJsonException`.
     3. `test_synthesis_config_dto_unknown_historical_context_mode_throws`: unmapped `historical_context_mode` string throws `CheckedFromJsonException`.
     4. `test_output_profile_unknown_display_scale_throws`: unmapped `display_scale` string throws `CheckedFromJsonException`.
     5. `test_output_profile_unknown_target_block_type_throws`: unmapped `target_block_order` string throws `CheckedFromJsonException`.
-    6. `test_output_profile_extra_root_key_throws`: unrecognized root key (`include_diagnostic_scorecard`) throws `CheckedFromJsonException` under `disallowUnrecognizedKeys`.
+    6. `test_output_profile_extra_root_key_throws`: unrecognized root key (`include_diagnostic_scorecard`) throws `CheckedFromJsonException` under `disallowUnrecognizedKeys: true`.
     7. `test_output_profile_extra_key_in_synthesis_config_throws`: extra key in nested `synthesis` object throws `CheckedFromJsonException`.
     8. `test_output_profile_extra_key_in_layout_throws`: extra key in nested `layouts[]` entry throws `CheckedFromJsonException`.
     9. `test_output_profile_valid_deserialization`: complete valid JSON with all required fields deserializes successfully into strongly typed Freezed models.
   - Created `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]` with all 3 specified test contracts:
     1. `test_blueprint_config_valid_preset_view`: valid preset view deserializes to `PresetView.metrics1d`.
     2. `test_blueprint_config_unknown_preset_view_throws`: unmapped `preset_view` string throws `CheckedFromJsonException`.
-    3. `test_blueprint_config_extra_key_throws`: unrecognized key in `BlueprintConfig` throws `CheckedFromJsonException` under `disallowUnrecognizedKeys`.
+    3. `test_blueprint_config_extra_key_throws`: unrecognized key in `BlueprintConfig` throws `CheckedFromJsonException` under `disallowUnrecognizedKeys: true`.
   - Updated `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]` mock fixtures with `DisplayScale.original`, `maxExtensionItems: 3`, and `HistoricalContextMode.disabled`, eliminating all legacy defaults.
   - Verified `@[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]` passes cleanly with typed `PresetView.matrixSummary` and `TextDeliveryMode.full`.
   - Executed Universal Quality Gate audits across all 4 target test suites via `flutter_audit_loop.py`:
@@ -559,6 +559,7 @@
     - `blueprint_config_test.dart`: format passed, analyze passed (0 issues), all tests passed.
     - `output_profile_controller_test.dart`: format passed, analyze passed (0 issues), all tests passed.
     - `layout_editor_card_test.dart`: format passed, analyze passed (0 issues), all tests passed.
+  - Committed atomically: `d0944db3 test(studio): update frontend test fixtures and add negative deserialization tests and update tracker`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
