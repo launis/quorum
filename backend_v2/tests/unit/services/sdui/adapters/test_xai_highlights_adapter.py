@@ -354,3 +354,38 @@ def test_build_missing_extension_label_raises_configuration_error(
         XaiHighlightsAdapter.build(context)
 
     assert "Missing extension label configuration for coaching in profile SSOT" in str(exc_info.value)
+
+
+def test_build_missing_aesthetics_rule_raises_app_exception(
+    valid_output_profile_fixture: OutputProfile, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Error path: missing aesthetics rule mapping raises AppException with CONFIGURATION_ERROR."""
+    from backend_v2.exceptions import AppException
+    from backend_v2.models.dtos.synthesis import XaiHighlightItem
+    from backend_v2.services.sdui.adapters import xai_highlights_adapter
+
+    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    monkeypatch.setattr(xai_highlights_adapter, "XAI_AESTHETICS_RULES", {})
+
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Valid insight.")],
+        ),
+        user_name=None,
+        org_name=None,
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        XaiHighlightsAdapter.build(context)
+
+    assert "Missing rule mapping for extension key: coaching" in str(exc_info.value)
+    assert exc_info.value.details == {"error_code": "CONFIGURATION_ERROR"}
+

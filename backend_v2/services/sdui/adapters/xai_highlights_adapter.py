@@ -53,6 +53,10 @@ class XaiHighlightsAdapter:
 
         Returns:
             Ordered list of polymorphic SDUI blocks ready for rendering.
+
+        Raises:
+            AppException: If missing rule mapping in XAI_AESTHETICS_RULES.
+            ConfigurationError: If missing extension label configuration in profile SSOT.
         """
         blocks: list[AnySduiBlock] = []
 
@@ -109,8 +113,10 @@ class XaiHighlightsAdapter:
 
             label_obj = profile.extension_labels.get(ext_enum) if profile.extension_labels else None
             if not label_obj:
+                msg = f"Missing extension label configuration for {ext_type_str} in profile SSOT"
+                logger.error("[XaiHighlightsAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
                 raise ConfigurationError(
-                    f"Missing extension label configuration for {ext_type_str} in profile SSOT",
+                    msg,
                     details={"extension_key": ext_type_str},
                 )
 
