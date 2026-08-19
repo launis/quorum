@@ -482,6 +482,7 @@
   - Updated `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]` with `DisplayScale` import and default parameter on `get_dummy_profile(display_scale=DisplayScale.ORIGINAL)`. Added 4 test contracts covering all 3 `DisplayScale` enum modes (`ORIGINAL`, `NORMALIZED_100`, `CUSTOM`) and negative Fail-Fast test on missing custom scale bounds (`CONFIGURATION_ERROR`).
   - Passed Universal Quality Gate (`backend_audit_loop.py`) across all 4 target files with 100% test pass rate and >95% statement coverage (100% on `test_matrix_domain_parser.py`).
   - Executed full backend unit test suite: 1460 passed, 29 skipped, 4 xpassed, 0 failures.
+  - Committed atomically: `ecaca1cf test(output-profile): align backend test fixtures batch 2 with DisplayScale, TargetBlockType enums and update tracker`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
