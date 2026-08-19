@@ -522,19 +522,21 @@
   - Emitted formal artifact: `@[red_team_audit_06_p0_openapi_sync_gate.md]`.
   - Committed tracker sign-off: `4b3add75 docs(epic-144): sign off Phase 0-F audit in tracker and advance resume command`.
 
-- **Phase 0-G Execution Completed (`[OK]`):**
-  - Added `DisplayScale` enum to `@[client_app_v2/lib/core/models/enums.dart]` with `@JsonEnum()` and `@JsonValue` annotations matching Python (`original`, `custom`, `normalized_100`).
-  - Added 4 missing `TargetBlockType` enum members (`matrix_graphs_block`, `matrix_summary_table_block`, `variance_validation_block`, `authenticity_evaluation_block`) bringing total member count to 13 matching Python SSOT.
-  - Added `SystemUiConstraints` enum to `enums.dart` centralizing `maxExtensionItems` bounds (`min=1`, `max=20`, `absoluteMax=100`, `default=3`).
-  - Eradicated all `unknownEnumValue` fallback parameters from `@[client_app_v2/lib/features/studio/models/output_profile.dart]` and `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]`.
-  - Purged `includeDiagnosticScorecard` field from `OutputProfile` Freezed model.
-  - Converted `displayScale` to `@Default(DisplayScale.original) @JsonKey(name: 'display_scale') DisplayScale displayScale`.
-  - Converted `targetBlockOrder` to `@JsonKey(name: 'target_block_order') @Default([...12 enum items...]) List<TargetBlockType> targetBlockOrder`.
-  - Converted `maxExtensionItems` to non-nullable `@Default(3) @JsonKey(name: 'max_extension_items') int maxExtensionItems`.
-  - Executed Freezed build runner and linter loop: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models --build` cleanly generated all `.freezed.dart` and `.g.dart` files.
+- **Phase 0-G Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - Added `DisplayScale` enum to `@[client_app_v2/lib/core/models/enums.dart]` with `@JsonEnum()` and `@JsonValue` annotations matching Python `DisplayScale` SSOT character-for-character (`original`, `custom`, `normalized_100`).
+  - Added 4 missing `TargetBlockType` enum members to `@[client_app_v2/lib/core/models/enums.dart]` (`matrix_graphs_block`, `matrix_summary_table_block`, `variance_validation_block`, `authenticity_evaluation_block`) bringing total member count to 13 matching Python SSOT.
+  - Added `SystemUiConstraints` enum to `@[client_app_v2/lib/core/models/enums.dart]` centralizing systemic UI constraints (`maxExtensionItemsSliderMin(1)`, `maxExtensionItemsSliderMax(20)`, `maxExtensionItemsAbsoluteMax(100)`, `maxExtensionItemsDefault(3)`), eliminating magic numbers across widget trees.
+  - Eradicated all `unknownEnumValue` fallback parameters from `@[client_app_v2/lib/features/studio/models/output_profile.dart]` (`OutputLayoutBlock.preset_view`, `OutputLayoutBlock.text_delivery_mode`, `SynthesisConfigDTO.historical_context_mode`) and `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]` (`BlueprintConfig.preset_view`), restoring the Fail-Fast Client Firewall.
+  - Purged legacy `includeDiagnosticScorecard` field and `@JsonKey(name: 'include_diagnostic_scorecard')` from `OutputProfile` Freezed model.
+  - Strictly typed `displayScale` as `@Default(DisplayScale.original) @JsonKey(name: 'display_scale') DisplayScale displayScale`.
+  - Strictly typed `targetBlockOrder` as `@JsonKey(name: 'target_block_order') @Default([...]) List<TargetBlockType> targetBlockOrder` with full 12-member Dart enum defaults.
+  - Strictly typed `maxExtensionItems` as non-nullable `@Default(3) @JsonKey(name: 'max_extension_items') int maxExtensionItems`.
+  - Executed Freezed code generator: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models --build` cleanly generated all `.freezed.dart` and `.g.dart` files (wrote 55 outputs, 0 analyzer issues).
   - Unskipped `test_display_scale_parity` and `test_target_block_type_parity` in `@[backend_v2/tests/unit/test_enum_parity.py]`.
-  - Executed `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test` with 13/13 tests passed and 0 skipped.
-  - Executed `uv run python scripts/flutter_audit_loop.py client_app_v2/test --test` with 95/95 tests passed.
+  - Executed Universal Quality Gate on parity tests: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test` passing 13/13 tests green with 0 skipped and 98% coverage.
+  - Executed Frontend Unit Test suite: `uv run python scripts/flutter_audit_loop.py client_app_v2/test --test` passing 95/95 tests green with 0 errors.
+  - Verified all 8 Validation Gate assertions in Plan 07 with 100% compliance (zero `unknownEnumValue`, zero `includeDiagnosticScorecard`, 13 `TargetBlockType` members, clean builds).
+  - Committed atomically: `be0fcd41 feat(studio): synchronize frontend enums and Freezed models with backend and update tracker`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
