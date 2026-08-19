@@ -50,11 +50,14 @@ if hasattr(sys.stdout, "reconfigure"):
 
 
 def run_tests_with_strict_coverage(target: str) -> None:
-    print("🚀 Verifying Strict 30% TDD Coverage...")
+    print("🚀 Verifying Strict 90% TDD Coverage...")
 
     # Convert file path to dotted module path for accurate coverage (e.g. backend_v2/services/execution.py -> backend_v2.services.execution)
     if target.endswith(".py"):
-        cov_target = target.replace("\\", "/").replace(".py", "").replace("/", ".")
+        if target.replace("\\", "/").startswith("scripts/"):
+            cov_target = target.replace("\\", "/").split("/")[-1].replace(".py", "")
+        else:
+            cov_target = target.replace("\\", "/").replace(".py", "").replace("/", ".")
     else:
         cov_target = target
 
@@ -71,11 +74,15 @@ def run_tests_with_strict_coverage(target: str) -> None:
                     if os.path.exists(flat_path):
                         test_path = flat_path
             else:
-                test_path = "tests/" + "/".join(parts)
+                test_path = "backend_v2/tests/unit/" + "/".join(parts)
+                if not os.path.exists(test_path):
+                    test_path = "tests/" + "/".join(parts)
                 if not os.path.exists(test_path):
                     flat_path = "tests/" + parts[-1]
                     if os.path.exists(flat_path):
                         test_path = flat_path
+                    elif os.path.exists("backend_v2/tests/unit/scripts/test_audit_verification_scripts.py"):
+                        test_path = "backend_v2/tests/unit/scripts/test_audit_verification_scripts.py"
 
         # 1. Ajetaan Pytest ja kerätään kattavuusdata (ei kaatumista fail-underiin vielä)
         cmd = [
@@ -91,7 +98,7 @@ def run_tests_with_strict_coverage(target: str) -> None:
         # 2. Ajetaan Coverage Report, joka filtteröi laatuportin vaatimuksen KOSKEMAAN VAIN tätä kyseistä tiedostoa
         if result.returncode == 0:
             target_name = os.path.basename(target)  # esim. synthesis.py
-            coverage_cmd = ["uv", "run", "coverage", "report", f"--include=*{target_name}", "--fail-under=30", "-m"]
+            coverage_cmd = ["uv", "run", "coverage", "report", f"--include=*{target_name}", "--fail-under=90", "-m"]
             result = subprocess.run(coverage_cmd)
     else:
         parts = target.replace("\\", "/").strip("/").split("/")
@@ -111,7 +118,7 @@ def run_tests_with_strict_coverage(target: str) -> None:
             "-v",
             "--tb=short",
             f"--cov={cov_target}",
-            "--cov-fail-under=30",
+            "--cov-fail-under=90",
             "--cov-report=term-missing",
         ]
 
@@ -125,7 +132,7 @@ def run_tests_with_strict_coverage(target: str) -> None:
         result = subprocess.run(cmd)
 
     if result.returncode != 0:
-        print("\n❌ AUDIT FAILED: Testeissä oli virheitä TAI testikattavuus ei ole 30%.")
+        print("\n❌ AUDIT FAILED: Testeissä oli virheitä TAI testikattavuus ei ole 90%.")
         print(
             "🤖 AI INSTRUCTION: Lue yllä oleva raportti ja korjaa joko kaatuvat testit (-v tai --tb=short kertoo syyn) TAI lisää testejä puuttuville riveille (Miss-sarake)."
         )
@@ -134,7 +141,7 @@ def run_tests_with_strict_coverage(target: str) -> None:
         )
         sys.exit(result.returncode)
     else:
-        print("\n✅ Strict 30% Coverage Target Met.")
+        print("\n✅ Strict 90% Coverage Target Met.")
 
 
 def main() -> None:
