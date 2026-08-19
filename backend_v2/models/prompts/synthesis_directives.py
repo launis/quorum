@@ -31,9 +31,9 @@ SECTION_SYNTHESIS_DIRECTIVE_BLOCK: str = (
 
 STATE_ISOLATION_BLOCK: str = (
     "<state_isolation_mandate>\n"
-    "STATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand "
+    "STATE ISOLATION MANDATE: If &lt;HistoricalContext&gt; is provided, use it ONLY to understand "
     "the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, "
     "summarize, or report on the substantive topics, subjects, or domains discussed in the "
-    "historical context. Your output must be STRICTLY based on the current <source_data>.\n"
+    "historical context. Your output must be STRICTLY based on the current &lt;source_data&gt;.\n"
     "</state_isolation_mandate>"
 )
