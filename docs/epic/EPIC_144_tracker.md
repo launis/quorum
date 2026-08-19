@@ -496,14 +496,15 @@
 
 - **Phase 0-F Implementation & Quality Gate Execution Completed (`[OK]`):**
   - Executed `@[backend_v2/scripts/generate_openapi.py]` generating the static OpenAPI schema at `@[docs/swagger/openapi.json]`.
-  - Executed OpenAPI unit tests (`test_generate_openapi.py`) passing 2/2 tests green and passing all 5 backend audit loop quality steps.
+  - Executed OpenAPI unit tests (`test_generate_openapi.py`) passing 2/2 tests green and passing all 5 backend audit loop quality steps (ruff check, ruff format, mypy --strict, Jinja validation, Seed Data dry-run).
   - Verified all 5 deterministic OpenAPI schema assertions in `docs/swagger/openapi.json` with 100% compliance:
     1. `DisplayScale` enum in `components/schemas` with values `["original", "custom", "normalized_100"]`.
-    2. `TargetBlockType` enum in `components/schemas` with 13 members.
+    2. `TargetBlockType` enum in `components/schemas` with 13 members (`global_score_block`, `penalties_block`, `audit_trail_block`, `jargon_ratio_block`, `printable_sources_block`, `grouped_extensions_block`, `executive_summary_block`, `metadata_block`, `synthesis_text_block`, `matrix_graphs_block`, `matrix_summary_table_block`, `variance_validation_block`, `authenticity_evaluation_block`).
     3. Complete eradication of `include_diagnostic_scorecard` from `OutputProfileCreateDTO` and `OutputProfileResponseDTO`.
     4. `OutputProfileCreateDTO.properties.max_extension_items` enforces `minimum: 1` and `maximum: 100`.
     5. `OutputProfileResponseDTO.properties.target_block_order.items` correctly references `#/components/schemas/TargetBlockType`.
   - Executed full backend regression test suite: 1460 passed, 29 skipped, 4 xpassed, 0 failures.
+  - Committed atomically: `a1803fa5 feat(openapi): regenerate openapi spec reflecting DisplayScale and TargetBlockType enums and update tracker`.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
@@ -522,6 +523,7 @@
 - **DisplayScale Enum Isolation in Domain Parsers:** `MatrixDomainParser` tests must explicitly test all 3 `DisplayScale` enum options (`ORIGINAL`, `NORMALIZED_100`, `CUSTOM`) to verify mathematical score scaling and bound definitions (`display_scale_min`/`display_scale_max`), as well as Fail-Fast validation on missing custom bounds.
 - **Blueprint Dispatch Loop Block Order Contract:** In test fixtures instantiating `OutputProfile` or `OutputProfile.model_construct` for `BlueprintTransformer`, `target_block_order` must be populated with `_DEFAULT_TARGET_BLOCK_ORDER` to ensure downstream SDUI blocks (`GROUPED_EXTENSIONS_BLOCK`, `AUTHENTICITY_EVALUATION_BLOCK`, etc.) are dispatched during report synthesis.
 - **OpenAPI Schema Generation & Standalone Script Testing:** `backend_v2/scripts/generate_openapi.py` safely writes to `docs/swagger/openapi.json` without side effects. Standalone scripts that execute outside the `backend_v2` module structure should have their unit tests verified directly with `pytest` alongside the standard linting and typing quality gates.
+- **OpenAPI Schema Dynamic Enum Exposure:** Regenerating OpenAPI via `generate_openapi.py` captures newly added domain enums (`DisplayScale`, `TargetBlockType`) directly into `components/schemas` and updates collection items references (`#/components/schemas/TargetBlockType`), ensuring downstream Dart/TypeScript client generators remain strictly synchronized with Pydantic V2 backend models.
 
 ## Remaining
 - **Phase 0-F Audit:** Execute `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`.
