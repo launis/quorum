@@ -902,31 +902,45 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
     - **Cross-Stack Compilation & Freezed Codegen:**
       - Executed `flutter_audit_loop.py` on `client_app_v2/lib/features/studio/models/output_profile.dart` with `--build`: **0 analyzer errors, 0 warnings**.
       - Executed Flutter test suite: **136/136 tests passing green**.
-    - **Full Backend Regression Gate:**
+- **Full Backend Regression Gate:**
       - Executed full backend test suite: **1,483 tests passed, 27 skipped, 4 xpassed, 0 failures**.
   - **Phase 3 Post-Implementation Audit Signed Off (`[OK]`):**
     - Executed `/tier8-audit-plan` against `@[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md]`.
     - Verified 100% physical traceability for requirements `R63`–`R72` (Config sovereignty, Localization, Dumb Painter synthesis, Prompt SSOT, Seed sanitization, Freezed codegen, and Quality Gates).
-    - Emitted formal artifact: `@[red_team_audit_13_placeholder_phase3_backend_alignment.md]`.
-
-
-
 - **Phase 4 Planning & Boundary Verification Completed (`[OK]`):**
   - Generated comprehensive hybrid implementation plan `@[docs\epic\tasks_EPIC_144\14_placeholder_phase4_localization.md]` and system artifacts (`implementation_plan.md`, `task.md`).
   - Addressed Requirements `R73` (Bilingual `.arb` keys for tabs, block cards, presets, and fields), `R74` (Backend Enum `@property l10n_key` adapter mapping in Python), `R75` (`SynthesisConfigDTO` dead-weight purge in Dart Freezed models), and Modernity Violations `V1` & `V15`.
   - Executed automated boundary audits:
     - `audit_markdown_boundaries.py`: **0 errors, Passed**.
-    - `audit_planner_output.py`: **100% AST bounds, 15/15 KIs, 72/72 files verified, Passed**.
-
-- **Phase 4 Implementation & Quality Gate Execution Completed (`[OK]`):**
-  - **Backend Enum l10n_key Mapping:** Refactored `DisplayScale.l10n_key` and added `ScoringStrategy.l10n_key` using static dictionary mapping in `@[backend_v2/models/enums.py]` (`strict_enum_l10n_mapping`).
-  - **Enum Parity Unit Tests:** Verified `test_enum_l10n_keys()` in `@[backend_v2/tests/unit/test_enum_parity.py]` asserting valid camelCase `l10n_key` resolution across all shared domain enums (14/14 tests passed, 98% coverage).
-  - **Dead-Weight Field Purge:** Purged 6 dead fields (`model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) from `SynthesisConfigDTO` across Python Pydantic (`@[backend_v2/models/v2_core.py]`) and Dart Freezed (`@[client_app_v2/lib/features/execution/models/synthesis_config_dto.dart]`, `@[client_app_v2/lib/features/studio/models/output_profile.dart]`), cleaned `seed_data.json` synthesis blocks, and updated worker/test fixtures.
-  - **Bilingual ARB Expansion:** Added complete key catalogue for tab titles, block card titles/subtitles, builder headers, preset views, field labels, metadata blocks, and display scales to `@[client_app_v2/lib/l10n/app_en.arb]` and `@[client_app_v2/lib/l10n/app_fi.arb]`, compiled via `flutter gen-l10n`.
   - **UI Chrome & Block Card Localization:** Eradicated all magic strings across `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`, all 3 tab views, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]`, and all 8 block cards.
   - **Freezed Code Generation:** Re-generated Dart serialization models via `flutter_audit_loop.py ... --build` with zero analyzer errors.
   - **Negative Deserialization Tests:** Added negative tests asserting `CheckedFromJsonException` on purged keys in `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`.
   - **Quality Gates:** Both `backend_audit_loop.py` (1,484 tests passed, 0 failures, MyPy strict verified clean) and `flutter_audit_loop.py` (138/138 tests passed, 0 analyzer errors) verified 100% clean.
+
+- **Phase 5 Planning, Quality Gates & Red-Teaming Completed (`[OK]`):**
+  - Generated hybrid implementation plan `@[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md]` and passed boundary verification via `audit_markdown_boundaries.py` (0 errors).
+  - Executed System 2 Red-Teaming and aligned prompt directives testing with physical SSOT constants in `@[backend_v2/models/prompts/synthesis_directives.py]`.
+  - Verified SDUI presentation adapter dual-logging (`logger.error("[Adapter] ...", exc_info=True)` before `AppException`) and RFC 7807 structured error codes.
+  - Added strict Pydantic/Freezed negative and boundary tests (99 backend tests, 138 frontend Studio tests passing green).
+  - Executed Mandatory Final Live E2E REST API Verification Gate (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` passed 100% green).
+  - Signed off Phase 5 audit gate in tracker (`[OK]`).
+
+# Session Handover Context
+
+## Achieved
+- **Phase 5 Implementation & Deterministic Hardening Format Migration (`[OK]`):**
+  - Refactored `### Post-Implementation Gates` in `@[docs\epic\EPIC_144_tracker.md]` to unfold `Tier 2 Hardening (Backend)` (30 files) and `Tier 2 Hardening (Frontend)` (22 files) into indented child checklists (`  - [ ] @[...]`) conforming to `@[ki_deterministic_hardening_state.md]`.
+  - Initialized `@[tmp/hardening_state.json]` with 30 backend target files.
+- **Tier 2 Backend Hardening Session 1 Completed (`[OK]`):**
+  - Audited and hardened 5 core backend files against Quorum V2 (Phase 9) architecture, PEP 593 Annotated typing, PEP 257 docstring standards, and English-only mandates:
+    1. `@[backend_v2/settings.py]`: Converted mock user IDs to PEP 593 `Annotated`, added PEP 257 docstrings for validators and computed properties, eradicated historical tracking references in comments. Passed quality audit loop with **96% line coverage**.
+    2. `@[backend_v2/models/enums.py]`: Translated all non-English docstrings and comments (`EvaluationRunCount`, `EnsembleJitter`, `StrictnessAnchor`, `SpecialAliasChoices`, Waterfall thresholds) to English. Verified all enum parity tests (14/14 passed) and passed quality audit loop with **97% line coverage**.
+    3. `@[backend_v2/models/v2_core.py]`: Eradicated historical tracking references in comments. Passed quality audit loop with **96% line coverage** across 56 tests.
+    4. `@[backend_v2/models/dtos/output_profile.py]`: Added strict public symbol export `__all__`, fixed PEP 593 `Annotated` field definitions for `layouts` and `content_blocks`. Passed quality audit loop with **100% line coverage** across 13 tests.
+    5. `@[backend_v2/services/blueprint.py]`: Added strict public export `__all__`, eliminated inline imports of `AtomResultDTO` and `HydratedAtomDTO` in favor of top-level imports (`inline_imports_ban`), eradicated historical tracking references in comments. Passed quality audit loop with **90% line coverage** across 27 unit tests.
+  - Neuro-Symbolic Audit Matrix verified via `scripts/audit_matrix_manager.py verify` for all 5 audited targets.
+  - Hardening state persisted in `@[tmp/hardening_state.json]` with 5 completed targets recorded in `DONE`.
+  - Atomic Git commit completed: `4540875b chore(hardening): audit and harden core backend models, settings, and blueprint service`.
 
 ## Learned & Key Architectural Invariants
 - **Dual-Axis Localization Paradigm (`ki_dual_axis_localization_architecture.md`):**
@@ -950,21 +964,7 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
 - **Riverpod Family Provider Overrides in Widget Tests:** When overriding Riverpod family providers in widget tests, explicit parameter bindings (specifically: `workflowAvailableExtensionsProvider('wf_test')`) are required instead of argument matchers.
 - **LayoutBuilder Constraints in Widget Testing:** In Flutter widget testing of responsive layouts with `LayoutBuilder`, setting `tester.view.physicalSize = const Size(1920, 1080)` and `tester.view.devicePixelRatio = 1.0` with `addTearDown` cleanup is required to properly trigger wide-screen branches.
 - **CheckedFromJsonException Assertion on Freezed Models:** In Flutter unit tests testing Fail-Fast deserialization on Freezed models with `disallowUnrecognizedKeys: true` and strict enums, invalid or unmapped values throw `CheckedFromJsonException` rather than `FormatException` or silent nulls.
-
-# Session Handover Context
-
-## Achieved
-- **Tier 2 Backend Hardening Session 1 Completed (`[OK]`):**
-  - Audited and hardened 5 core backend files against Quorum V2 (Phase 9) architecture, PEP 593 Annotated typing, PEP 257 docstring standards, and English-only mandates:
-    1. `@[backend_v2/settings.py]`: Converted mock user IDs to PEP 593 `Annotated`, added PEP 257 docstrings for validators and computed properties, eradicated historical tracking references in comments. Passed quality audit loop with **96% line coverage**.
-    2. `@[backend_v2/models/enums.py]`: Translated all non-English docstrings and comments (`EvaluationRunCount`, `EnsembleJitter`, `StrictnessAnchor`, `SpecialAliasChoices`, Waterfall thresholds) to English. Verified all enum parity tests (14/14 passed) and passed quality audit loop with **97% line coverage**.
-    3. `@[backend_v2/models/v2_core.py]`: Eradicated historical tracking references in comments. Passed quality audit loop with **96% line coverage** across 56 tests.
-    4. `@[backend_v2/models/dtos/output_profile.py]`: Added strict public symbol export `__all__`, fixed PEP 593 `Annotated` field definitions for `layouts` and `content_blocks`. Passed quality audit loop with **100% line coverage** across 13 tests.
-    5. `@[backend_v2/services/blueprint.py]`: Added strict public export `__all__`, eliminated inline imports of `AtomResultDTO` and `HydratedAtomDTO` in favor of top-level imports (`inline_imports_ban`), eradicated historical tracking references in comments. Passed quality audit loop with **90% line coverage** across 27 unit tests.
-  - Neuro-Symbolic Audit Matrix verified via `scripts/audit_matrix_manager.py verify` for all 5 audited targets.
-  - Hardening state persisted in `@[tmp/hardening_state.json]` with 5 completed targets recorded in `DONE`.
-
-## Learned & Key Architectural Invariants
+- **Deterministic File-Level Hardening State (`ki_deterministic_hardening_state.md`):** Post-implementation hardening gates must track targets as indented file-level child checkboxes under `Tier 2 Hardening (Backend/Frontend)`. State is persisted in `tmp/hardening_state.json` (`{"TARGETS": [...], "DONE": [...]}`) with dynamic computation `REMAINING = TARGETS - DONE`, auditing maximum 10 files per session.
 - **PEP 593 Annotated in Settings & DTOs (`pydantic_annotated_fields_mandate`):** Bare type hints with `Field(...)` assignments in Settings and DTOs violate type checkers. Using `Annotated[Type, Field(...)]` ensures type purity and prevents `FieldInfo` assignment errors.
 - **English-Language Codebase Mandate (`english_language_mandate`, `internal_language_and_epic_ban`):** All docstrings, inline comments, variable names, and error logs must be strictly in English. Ephemeral agile terms like "Epic" are banned from codebase comments and docstrings.
 - **Top-Level Domain Model Imports (`inline_imports_ban`):** Non-heavy domain models (`AtomResultDTO`, `HydratedAtomDTO`) must always be imported globally at module level; lazy local imports are reserved exclusively for heavy PyO3/Rust AI/ML libraries (e.g. `litellm`, `vertexai`, `spacy`).
