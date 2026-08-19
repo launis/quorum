@@ -6,6 +6,28 @@ import pytest
 
 
 def fix_mock_dict(d: Any) -> Any:
+    from backend_v2.models.v2_core import I18nText, OutputProfile
+
+    if isinstance(d, OutputProfile):
+        if not hasattr(d, "metric_mappings") or d.metric_mappings is None:
+            object.__setattr__(d, "metric_mappings", {})
+        d.metric_mappings.setdefault(
+            "metadata_user",
+            I18nText(default_locale="en", translations={"en": "User", "fi": "Käyttäjä"}),
+        )
+        d.metric_mappings.setdefault(
+            "metadata_organization",
+            I18nText(default_locale="en", translations={"en": "Organization", "fi": "Organisaatio"}),
+        )
+        d.metric_mappings.setdefault(
+            "metadata_scoring_engine",
+            I18nText(default_locale="en", translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
+        )
+        d.metric_mappings.setdefault(
+            "metadata_strictness",
+            I18nText(default_locale="en", translations={"en": "Strictness Level", "fi": "Ankaruustaso"}),
+        )
+        return d
     if isinstance(d, dict):
         import re
 
@@ -31,6 +53,23 @@ def fix_mock_dict(d: Any) -> Any:
                 d["chart_display_label"] = "Test"
         if "tda_id" in d and not re.match(r"^tda_[a-f0-9]{32}$", str(d["tda_id"])):
             d["tda_id"] = "tda_00000000000000000000000000000000"
+        if "metric_mappings" in d and isinstance(d["metric_mappings"], dict):
+            d["metric_mappings"].setdefault(
+                "metadata_user",
+                {"default_locale": "en", "translations": {"en": "User", "fi": "Käyttäjä"}},
+            )
+            d["metric_mappings"].setdefault(
+                "metadata_organization",
+                {"default_locale": "en", "translations": {"en": "Organization", "fi": "Organisaatio"}},
+            )
+            d["metric_mappings"].setdefault(
+                "metadata_scoring_engine",
+                {"default_locale": "en", "translations": {"en": "Scoring Engine", "fi": "Arviointimoottori"}},
+            )
+            d["metric_mappings"].setdefault(
+                "metadata_strictness",
+                {"default_locale": "en", "translations": {"en": "Strictness Level", "fi": "Ankaruustaso"}},
+            )
         for _k, v in d.items():
             fix_mock_dict(v)
         return d
@@ -39,7 +78,9 @@ def fix_mock_dict(d: Any) -> Any:
     return d
 
 
-from backend_v2.exceptions import AppException, ConfigurationError
+from datetime import datetime, timezone
+
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.enums import DisplayScale, ExecutionStatus, ScoringStrategy, TargetBlockType, XaiExtensionType
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
@@ -226,58 +267,66 @@ def mock_repo_transformer() -> Any:
         ]
     )
 
-    repo.get_all_output_profiles.return_value = [
-        OutputProfile(
-            id="prf_dddd1111dddd1111",
-            slug="default",
-            workflow_id="wf_1234abcd1234abcd",
-            name=I18nText(default_locale="en", translations={"en": "Default", "fi": "Default"}),
-            display_scale=DisplayScale.ORIGINAL,
-            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-            metric_mappings={
-                "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
-                "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
-                "variance_total": I18nText(default_locale="en", translations={"en": "Variance"}),
-                "alignment_verdict": I18nText(default_locale="en", translations={"en": "Alignment Verdict"}),
-                "alignment_aligned": I18nText(default_locale="en", translations={"en": "ALIGNED"}),
-                "alignment_misaligned": I18nText(default_locale="en", translations={"en": "MISALIGNED"}),
-                "jargon_score": I18nText(default_locale="en", translations={"en": "AI-Jargon Score"}),
-                "authenticity_level": I18nText(default_locale="en", translations={"en": "Authenticity Level"}),
-                "level_high": I18nText(default_locale="en", translations={"en": "High"}),
-                "level_medium": I18nText(default_locale="en", translations={"en": "Medium"}),
-                "level_low": I18nText(default_locale="en", translations={"en": "Low"}),
-                "authenticity_fallback_explanation": I18nText(default_locale="en", translations={"en": "Fallback {0}"}),
-                "variance_fallback_explanation": I18nText(default_locale="en", translations={"en": "Fallback {0} {1}"}),
-            },
-            layouts=[
-                OutputLayoutBlock(
-                    preset_view="text_only",
-                    target_blocks=["blk_1234abcd1234abcd", "grouped_extensions_block"],
-                )
-            ],
-            extension_labels={
-                XaiExtensionType.REMEDIATION_STEPS: I18nText(
-                    default_locale="en", translations={"en": "Remediation", "fi": "Korjaus"}
-                ),
-                XaiExtensionType.COACHING: I18nText(
-                    default_locale="en", translations={"en": "Coaching", "fi": "Vinkki"}
-                ),
-                XaiExtensionType.RISK_FLAG: I18nText(default_locale="en", translations={"en": "Risk", "fi": "Riski"}),
-            },
-            visible_block_extensions=[
-                XaiExtensionType.REMEDIATION_STEPS,
-                XaiExtensionType.COACHING,
-                XaiExtensionType.RISK_FLAG,
-            ],
-            visible_workflow_extensions=[
-                XaiExtensionType.REMEDIATION_STEPS,
-                XaiExtensionType.COACHING,
-                XaiExtensionType.RISK_FLAG,
-            ],
-            max_extension_items=2,
-            strictness_level=85,
-        )
-    ]
+    repo.get_all_output_profiles.return_value = fix_mock_dict(
+        [
+            OutputProfile(
+                id="prf_dddd1111dddd1111",
+                slug="default",
+                workflow_id="wf_1234abcd1234abcd",
+                name=I18nText(default_locale="en", translations={"en": "Default", "fi": "Default"}),
+                display_scale=DisplayScale.ORIGINAL,
+                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
+                metric_mappings={
+                    "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
+                    "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
+                    "variance_total": I18nText(default_locale="en", translations={"en": "Variance"}),
+                    "alignment_verdict": I18nText(default_locale="en", translations={"en": "Alignment Verdict"}),
+                    "alignment_aligned": I18nText(default_locale="en", translations={"en": "ALIGNED"}),
+                    "alignment_misaligned": I18nText(default_locale="en", translations={"en": "MISALIGNED"}),
+                    "jargon_score": I18nText(default_locale="en", translations={"en": "AI-Jargon Score"}),
+                    "authenticity_level": I18nText(default_locale="en", translations={"en": "Authenticity Level"}),
+                    "level_high": I18nText(default_locale="en", translations={"en": "High"}),
+                    "level_medium": I18nText(default_locale="en", translations={"en": "Medium"}),
+                    "level_low": I18nText(default_locale="en", translations={"en": "Low"}),
+                    "authenticity_fallback_explanation": I18nText(
+                        default_locale="en", translations={"en": "Fallback {0}"}
+                    ),
+                    "variance_fallback_explanation": I18nText(
+                        default_locale="en", translations={"en": "Fallback {0} {1}"}
+                    ),
+                },
+                layouts=[
+                    OutputLayoutBlock(
+                        preset_view="text_only",
+                        target_blocks=["blk_1234abcd1234abcd", "grouped_extensions_block"],
+                    )
+                ],
+                extension_labels={
+                    XaiExtensionType.REMEDIATION_STEPS: I18nText(
+                        default_locale="en", translations={"en": "Remediation", "fi": "Korjaus"}
+                    ),
+                    XaiExtensionType.COACHING: I18nText(
+                        default_locale="en", translations={"en": "Coaching", "fi": "Vinkki"}
+                    ),
+                    XaiExtensionType.RISK_FLAG: I18nText(
+                        default_locale="en", translations={"en": "Risk", "fi": "Riski"}
+                    ),
+                },
+                visible_block_extensions=[
+                    XaiExtensionType.REMEDIATION_STEPS,
+                    XaiExtensionType.COACHING,
+                    XaiExtensionType.RISK_FLAG,
+                ],
+                visible_workflow_extensions=[
+                    XaiExtensionType.REMEDIATION_STEPS,
+                    XaiExtensionType.COACHING,
+                    XaiExtensionType.RISK_FLAG,
+                ],
+                max_extension_items=2,
+                strictness_level=85,
+            )
+        ]
+    )
 
     pb_dict = {
         "id": "blk_1234abcd1234abcd",
@@ -1268,7 +1317,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         },
         visible_block_extensions=[XaiExtensionType.REMEDIATION_STEPS, XaiExtensionType.FALSIFICATION],
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile_mock]
+    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict([profile_mock])
     mock_repo_transformer.get_by_id.return_value = profile_mock
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
@@ -1361,7 +1410,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         },
         visible_block_extensions=[XaiExtensionType.COACHING],
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile_mock]
+    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict([profile_mock])
     mock_repo_transformer.get_by_id.return_value = profile_mock
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
@@ -1675,51 +1724,57 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
         steps=[StepRule(id="stp_1234abcd1234abcd", task_blueprint="sp_7f9649114d2344dc")],
     )
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [
-        OutputProfile(
-            id="prf_dddd1111dddd1111",
-            slug="default",
-            workflow_id="wf_1234abcd1234abcd",
-            name=I18nText(default_locale="en", translations={"en": "Default"}),
-            display_scale=DisplayScale.ORIGINAL,
-            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-            metric_mappings={
-                "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
-                "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
-                "variance_total": I18nText(default_locale="en", translations={"en": "Variance"}),
-                "alignment_verdict": I18nText(default_locale="en", translations={"en": "Alignment Verdict"}),
-                "alignment_aligned": I18nText(default_locale="en", translations={"en": "ALIGNED"}),
-                "alignment_misaligned": I18nText(default_locale="en", translations={"en": "MISALIGNED"}),
-                "jargon_score": I18nText(default_locale="en", translations={"en": "AI-Jargon Score"}),
-                "authenticity_level": I18nText(default_locale="en", translations={"en": "Authenticity Level"}),
-                "level_high": I18nText(default_locale="en", translations={"en": "High"}),
-                "level_medium": I18nText(default_locale="en", translations={"en": "Medium"}),
-                "level_low": I18nText(default_locale="en", translations={"en": "Low"}),
-                "authenticity_fallback_explanation": I18nText(default_locale="en", translations={"en": "Fallback {0}"}),
-                "variance_fallback_explanation": I18nText(default_locale="en", translations={"en": "Fallback {0} {1}"}),
-            },
-            layouts=[
-                OutputLayoutBlock(
-                    preset_view="text_only",
-                    target_blocks=["*"],
-                ),
-                OutputLayoutBlock(
-                    preset_view="text_only",
-                    target_blocks=["grouped_extensions_block"],
-                ),
-            ],
-            visible_block_extensions=[],
-            visible_workflow_extensions=[XaiExtensionType.AUTHENTICITY_EVALUATION],
-            extension_labels={
-                XaiExtensionType.AUTHENTICITY_EVALUATION: I18nText(
-                    default_locale="en", translations={"en": "Authenticity"}
-                ),
-            },
-            max_extension_items=2,
-            strictness_level=85,
-            performativity_detector_step_id="stp_1234abcd1234abcd",
-        )
-    ]
+    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+        [
+            OutputProfile(
+                id="prf_dddd1111dddd1111",
+                slug="default",
+                workflow_id="wf_1234abcd1234abcd",
+                name=I18nText(default_locale="en", translations={"en": "Default"}),
+                display_scale=DisplayScale.ORIGINAL,
+                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
+                metric_mappings={
+                    "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
+                    "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
+                    "variance_total": I18nText(default_locale="en", translations={"en": "Variance"}),
+                    "alignment_verdict": I18nText(default_locale="en", translations={"en": "Alignment Verdict"}),
+                    "alignment_aligned": I18nText(default_locale="en", translations={"en": "ALIGNED"}),
+                    "alignment_misaligned": I18nText(default_locale="en", translations={"en": "MISALIGNED"}),
+                    "jargon_score": I18nText(default_locale="en", translations={"en": "AI-Jargon Score"}),
+                    "authenticity_level": I18nText(default_locale="en", translations={"en": "Authenticity Level"}),
+                    "level_high": I18nText(default_locale="en", translations={"en": "High"}),
+                    "level_medium": I18nText(default_locale="en", translations={"en": "Medium"}),
+                    "level_low": I18nText(default_locale="en", translations={"en": "Low"}),
+                    "authenticity_fallback_explanation": I18nText(
+                        default_locale="en", translations={"en": "Fallback {0}"}
+                    ),
+                    "variance_fallback_explanation": I18nText(
+                        default_locale="en", translations={"en": "Fallback {0} {1}"}
+                    ),
+                },
+                layouts=[
+                    OutputLayoutBlock(
+                        preset_view="text_only",
+                        target_blocks=["*"],
+                    ),
+                    OutputLayoutBlock(
+                        preset_view="text_only",
+                        target_blocks=["grouped_extensions_block"],
+                    ),
+                ],
+                visible_block_extensions=[],
+                visible_workflow_extensions=[XaiExtensionType.AUTHENTICITY_EVALUATION],
+                extension_labels={
+                    XaiExtensionType.AUTHENTICITY_EVALUATION: I18nText(
+                        default_locale="en", translations={"en": "Authenticity"}
+                    ),
+                },
+                max_extension_items=2,
+                strictness_level=85,
+                performativity_detector_step_id="stp_1234abcd1234abcd",
+            )
+        ]
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1802,27 +1857,29 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
         ]
     )
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [
-        OutputProfile(
-            id="prf_dddd1111dddd1111",
-            slug="default",
-            workflow_id="wf_1234abcd1234abcd",
-            name=I18nText(default_locale="en", translations={"en": "Default"}),
-            display_scale=DisplayScale.CUSTOM,
-            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-            metric_mappings={},
-            layouts=[
-                OutputLayoutBlock(
-                    preset_view="text_only",
-                    target_blocks=["*"],
-                ),
-            ],
-            visible_block_extensions=[],
-            visible_workflow_extensions=[],
-            max_extension_items=2,
-            strictness_level=85,
-        )
-    ]
+    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+        [
+            OutputProfile(
+                id="prf_dddd1111dddd1111",
+                slug="default",
+                workflow_id="wf_1234abcd1234abcd",
+                name=I18nText(default_locale="en", translations={"en": "Default"}),
+                display_scale=DisplayScale.CUSTOM,
+                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
+                metric_mappings={},
+                layouts=[
+                    OutputLayoutBlock(
+                        preset_view="text_only",
+                        target_blocks=["*"],
+                    ),
+                ],
+                visible_block_extensions=[],
+                visible_workflow_extensions=[],
+                max_extension_items=2,
+                strictness_level=85,
+            )
+        ]
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1853,29 +1910,31 @@ async def test_blueprint_transformer_unrecognized_text_delivery_mode(mock_repo_t
         metadata={"target_locale": "en"},
     )
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [
-        OutputProfile(
-            id="prf_dddd1111dddd1111",
-            slug="default",
-            workflow_id="wf_1234abcd1234abcd",
-            name=I18nText(default_locale="en", translations={"en": "Default"}),
-            display_scale=DisplayScale.ORIGINAL,
-            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-            metric_mappings={},
-            layouts=[
-                OutputLayoutBlock.model_construct(
-                    preset_view="text_only",
-                    target_blocks=["*"],
-                    text_delivery_mode="invalid_mode",  # type: ignore[arg-type]
-                )
-            ],
-            visible_block_extensions=[],
-            visible_workflow_extensions=[],
-            extension_labels={},
-            max_extension_items=2,
-            strictness_level=85,
-        )
-    ]
+    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+        [
+            OutputProfile(
+                id="prf_dddd1111dddd1111",
+                slug="default",
+                workflow_id="wf_1234abcd1234abcd",
+                name=I18nText(default_locale="en", translations={"en": "Default"}),
+                display_scale=DisplayScale.ORIGINAL,
+                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
+                metric_mappings={},
+                layouts=[
+                    OutputLayoutBlock.model_construct(
+                        preset_view="text_only",
+                        target_blocks=["*"],
+                        text_delivery_mode="invalid_mode",  # type: ignore[arg-type]
+                    )
+                ],
+                visible_block_extensions=[],
+                visible_workflow_extensions=[],
+                extension_labels={},
+                max_extension_items=2,
+                strictness_level=85,
+            )
+        ]
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2218,27 +2277,29 @@ async def test_blueprint_slop_and_penalty_coverage(mock_scan: Any, mock_repo_tra
 
     from backend_v2.models.v2_core import OutputLayoutBlock, OutputProfile
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [
-        OutputProfile.model_construct(
-            id="prf_dddd1111dddd1111",
-            slug="default",
-            workflow_id="wf_1234abcd1234abcd",
-            name=I18nText(default_locale="en", translations={"en": "Default"}),
-            display_scale=DisplayScale.NORMALIZED_100,
-            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-            metric_mappings={},
-            layouts=[
-                OutputLayoutBlock.model_construct(
-                    preset_view="text_only",
-                    target_blocks=["*"],
-                ),
-            ],
-            visible_block_extensions=[],
-            visible_workflow_extensions=[],
-            max_extension_items=2,
-            strictness_level=85,
-        )
-    ]
+    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+        [
+            OutputProfile.model_construct(
+                id="prf_dddd1111dddd1111",
+                slug="default",
+                workflow_id="wf_1234abcd1234abcd",
+                name=I18nText(default_locale="en", translations={"en": "Default"}),
+                display_scale=DisplayScale.NORMALIZED_100,
+                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
+                metric_mappings={},
+                layouts=[
+                    OutputLayoutBlock.model_construct(
+                        preset_view="text_only",
+                        target_blocks=["*"],
+                    ),
+                ],
+                visible_block_extensions=[],
+                visible_workflow_extensions=[],
+                max_extension_items=2,
+                strictness_level=85,
+            )
+        ]
+    )
 
     mock_repo_transformer.get_system_config.return_value = {
         "id": "sys_1234abcd1234abcd",
@@ -2314,6 +2375,18 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
                 title=I18nText(default_locale="fi", translations={"fi": "Mittarit", "en": "Metrics"}),
             )
         ],
+        metric_mappings={
+            "metadata_user": I18nText(default_locale="fi", translations={"fi": "Käyttäjä", "en": "User"}),
+            "metadata_organization": I18nText(
+                default_locale="fi", translations={"fi": "Organisaatio", "en": "Organization"}
+            ),
+            "metadata_scoring_engine": I18nText(
+                default_locale="fi", translations={"fi": "Arviointimoottori", "en": "Scoring Engine"}
+            ),
+            "metadata_strictness": I18nText(
+                default_locale="fi", translations={"fi": "Ankaruustaso", "en": "Strictness Level"}
+            ),
+        },
         extension_labels={
             XaiExtensionType.COACHING: I18nText(
                 default_locale="fi", translations={"fi": "Valmennusvinkit", "en": "Coaching Tips"}
@@ -2376,3 +2449,58 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         b for b in report_dto.inner_sdui_blocks if isinstance(b, AccordionBlock) and b.title == "Valmennusvinkit"
     )
     assert len(coaching.children) == 2
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_invalid_target_block_type_raises_app_exception(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Negative: unmapped target block type in hydrators raises AppException."""
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test-profile",
+        workflow_id="wf_1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+        layouts=[],
+        user_role_mappings={},
+    )
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+
+    mock_exec = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        active_profile_id=profile.id,
+        created_at=datetime.now(timezone.utc),
+        created_by="usr_admin",
+        metadata={"target_locale": "fi"},
+        execution_trace=[],
+        profile_syntheses={},
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec
+    mock_repo_transformer.get_user.return_value = {"display_name": "Test User"}
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    # Intentionally remove TargetBlockType.METADATA_BLOCK from hydrators to trigger Fail-Fast KeyError handling
+    transformer._target_block_hydrators.pop(TargetBlockType.METADATA_BLOCK, None)
+
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto(
+            execution_id="exe_1111222233334444",
+            profile_id=profile.id,
+            accept_language="fi",
+        )
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

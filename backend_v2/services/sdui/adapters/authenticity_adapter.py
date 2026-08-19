@@ -19,6 +19,7 @@ from backend_v2.models.view.sdui import (
     SduiMetrics1DBlock,
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +46,6 @@ AUTHENTICITY_RULES: dict[str, dict[str, VisualIntent]] = {
     "level_low": {
         "severity": VisualIntent.ERROR,
     },
-}
-
-# Thresholds for logic mapping (not aesthetics)
-AUTHENTICITY_THRESHOLDS = {
-    "high": 80.0,
-    "low": 50.0,
 }
 
 
@@ -156,8 +151,9 @@ class AuthenticityAdapter:
             ]
         )
 
-        high_thresh = AUTHENTICITY_THRESHOLDS["high"]
-        low_thresh = AUTHENTICITY_THRESHOLDS["low"]
+        settings = get_settings()
+        high_thresh = settings.authenticity_threshold_high
+        low_thresh = settings.authenticity_threshold_low
 
         lvl_key = (
             "level_high"
@@ -190,7 +186,7 @@ class AuthenticityAdapter:
         )
 
         llm_explanation = ""
-        if context.profile_cache and hasattr(context.profile_cache, "row_explanations"):
+        if context.profile_cache and context.profile_cache.row_explanations:
             llm_explanation = context.profile_cache.row_explanations.get("authenticity_evaluation", "")
 
         if not llm_explanation:

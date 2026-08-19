@@ -80,63 +80,81 @@ class ExecutiveSummaryAdapter:
         profile = context.profile
         locale = context.locale
 
-        if not profile_cache or not profile_cache.user_role:
+        if not profile_cache:
             return blocks
 
-        # 2. TRANSFORM: Strict validation and lookup
-        try:
-            parsed_role = RoleClassification(profile_cache.user_role)
-        except ValueError as e:
-            msg = f"Invalid user_role '{profile_cache.user_role}'"
-            logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": "VALIDATION_FAILED"},
-            ) from e
+        # 2. TRANSFORM: Strict validation and lookup of user role badge if present
+        if profile_cache.user_role:
+            try:
+                parsed_role = RoleClassification(profile_cache.user_role)
+            except ValueError as e:
+                msg = f"Invalid user_role '{profile_cache.user_role}'"
+                logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": "VALIDATION_FAILED"},
+                ) from e
 
-        # Fail-Fast: strict key access, NO .get() fallback
-        try:
-            _ = EXECUTIVE_SUMMARY_RULES[parsed_role]
-        except KeyError as e:
-            msg = f"Missing role mapping for {parsed_role}"
-            logger.error("[ExecutiveSummaryAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": "CONFIGURATION_ERROR"},
-            ) from e
+            # Fail-Fast: strict key access, NO .get() fallback
+            try:
+                _ = EXECUTIVE_SUMMARY_RULES[parsed_role]
+            except KeyError as e:
+                msg = f"Missing role mapping for {parsed_role}"
+                logger.error("[ExecutiveSummaryAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": "CONFIGURATION_ERROR"},
+                ) from e
 
-        # 3. ASSEMBLE: Resolve translation and construct blocks
-        try:
-            role_val_i18n = profile.user_role_mappings[parsed_role.value]
-            role_val = role_val_i18n.resolve(locale)
-        except KeyError as e:
-            msg = f"Missing user_role_mappings for role '{parsed_role.value}'"
-            logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": "VALIDATION_FAILED"},
-            ) from e
+            # 3. ASSEMBLE: Resolve translation and construct role badge block
+            try:
+                role_val_i18n = profile.user_role_mappings[parsed_role.value]
+                role_val = role_val_i18n.resolve(locale)
+            except KeyError as e:
+                msg = f"Missing user_role_mappings for role '{parsed_role.value}'"
+                logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": "VALIDATION_FAILED"},
+                ) from e
 
-        if not profile.user_role_label:
-            msg = "Missing user_role_label in profile"
-            logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": "VALIDATION_FAILED"},
+            if not profile.user_role_label:
+                msg = "Missing user_role_label in profile"
+                logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": "VALIDATION_FAILED"},
+                )
+
+            prefix = profile.user_role_label.resolve(locale)
+
+            blocks.append(
+                ParagraphBlock(
+                    text=f"**{prefix}:** {role_val}",
+                    exact_quotes=[],
+                    citations=[],
+                )
             )
 
-        prefix = profile.user_role_label.resolve(locale)
-
-        blocks.append(
-            ParagraphBlock(
-                text=f"**{prefix}:** {role_val}",
-                exact_quotes=[],
-                citations=[],
+        # 4. NARRATIVE PARAGRAPHS: Append user_role_justification if present
+        if profile_cache.user_role_justification:
+            blocks.append(
+                ParagraphBlock(
+                    text=profile_cache.user_role_justification,
+                    exact_quotes=[],
+                    citations=[],
+                )
             )
-        )
+
+        # 5. DYNAMIC SYNTHESES: Append executive summary section syntheses if present
+        if profile_cache.section_syntheses:
+            for key in ("executive_summary", "executive_summary_block"):
+                if key in profile_cache.section_syntheses:
+                    for sb in profile_cache.section_syntheses[key]:
+                        blocks.append(sb.model_copy(deep=True))
 
         return blocks

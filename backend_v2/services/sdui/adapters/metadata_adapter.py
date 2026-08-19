@@ -6,8 +6,8 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 """
 
 import logging
-from datetime import datetime
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.view.sdui import AnySduiBlock, SduiMetadataBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
@@ -43,43 +43,58 @@ class MetadataAdapter:
 
         Returns:
             Ordered list of polymorphic SDUI blocks ready for rendering.
+
+        Raises:
+            AppException: If profile, profile name, or metric mapping is missing.
         """
         blocks: list[AnySduiBlock] = []
 
-        title = context.profile.name.resolve(context.locale) if context.profile and context.profile.name else "Raportti"
+        title = context.profile.name.resolve(context.locale)
 
-        metadata_lines = []
-        costs_val = None
-        tokens_val = None
+        def get_metadata_label(key: str) -> str:
+            lbl = context.profile.metric_mappings.get(key)
+            if not lbl:
+                msg = f"Strict Fail-Fast: Missing metric_mappings translation for '{key}'."
+                logger.error("[MetadataAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+            return lbl.resolve(context.locale)
 
-        visible_fields = (
-            context.profile.visible_metadata if context.profile and context.profile.visible_metadata else []
-        )
+        metadata_lines: list[str] = []
+        costs_val: str | None = None
+        tokens_val: dict[str, str] | None = None
+
+        visible_fields = context.profile.visible_metadata or []
 
         for field in visible_fields:
             if field == "user" and context.user_name:
-                metadata_lines.append(f"Käyttäjä: {context.user_name}")
+                lbl = get_metadata_label("metadata_user")
+                metadata_lines.append(f"{lbl}: {context.user_name}")
             elif field == "organization" and context.org_name:
-                metadata_lines.append(f"Organisaatio: {context.org_name}")
+                lbl = get_metadata_label("metadata_organization")
+                metadata_lines.append(f"{lbl}: {context.org_name}")
             elif field == "date" and context.execution:
                 if context.local_time_str:
                     metadata_lines.append(context.local_time_str)
                 elif context.execution.created_at:
-                    dt = context.execution.created_at
-                    if isinstance(dt, datetime):
-                        metadata_lines.append(dt.strftime("%d.%m.%Y %H:%M"))
-                    else:
-                        metadata_lines.append(str(dt))
+                    metadata_lines.append(context.execution.created_at.strftime("%d.%m.%Y %H:%M"))
             elif field == "scoring_engine" and context.scoring_engine:
-                metadata_lines.append(f"Arviointimoottori: {context.scoring_engine}")
+                lbl = get_metadata_label("metadata_scoring_engine")
+                metadata_lines.append(f"{lbl}: {context.scoring_engine}")
             elif field == "strictness" and context.profile.strictness_level is not None:
-                metadata_lines.append(f"Ankaruustaso: {context.profile.strictness_level}")
+                lbl = get_metadata_label("metadata_strictness")
+                metadata_lines.append(f"{lbl}: {context.profile.strictness_level}")
             elif field == "cost" and context.cost is not None:
                 costs_val = f"${context.cost:.2f}"
             elif field == "tokens" and context.tokens is not None:
                 tokens_val = {"total": str(context.tokens)}
 
-        custom_preface = getattr(context.profile, "custom_preamble", None)
+        custom_preface = (
+            context.profile.custom_preface.resolve(context.locale) if context.profile.custom_preface else None
+        )
 
         blocks.append(
             SduiMetadataBlock(

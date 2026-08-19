@@ -10,7 +10,7 @@ from backend_v2.models.dtos.atom_evaluation import (
 )
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
-from backend_v2.models.enums import ExecutionStatus, VisualIntent
+from backend_v2.models.enums import DisplayScale, ExecutionStatus, VisualIntent
 from backend_v2.models.v2_core import (
     AtomResultDTO,
     I18nText,
@@ -235,11 +235,11 @@ class MatrixDomainParser:
             display_scale_max = math_max
 
             active_score_key = "raw_score"
-            if display_scale == "normalized_100":
+            if display_scale == DisplayScale.NORMALIZED_100:
                 active_score_key = "normalized_score"
                 display_scale_min = 0.0
                 display_scale_max = 100.0
-            elif display_scale == "custom":
+            elif display_scale == DisplayScale.CUSTOM:
                 scale_min_val = pb_meta.scale_min
                 scale_max_val = pb_meta.scale_max
                 if scale_min_val is None or scale_max_val is None:
@@ -265,7 +265,7 @@ class MatrixDomainParser:
                 target_val = raw_score
 
             score_float = float(round(float(target_val), 1)) if target_val is not None else None
-            if display_scale == "normalized_100" and score_float is not None:
+            if display_scale == DisplayScale.NORMALIZED_100 and score_float is not None:
                 score_float = float(round(score_float))
 
             ui_plot_ratio = None

@@ -14,11 +14,12 @@ from backend_v2.services.sdui.adapters.printable_sources_adapter import (
 def valid_output_profile_fixture() -> OutputProfile:
     """Fixture for a valid output profile to use in tests."""
     return OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
-        workflow_id="wfw_test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
         name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
-        layouts=[],
+        content_blocks=[],
+        target_block_order=[],
     )
 
 

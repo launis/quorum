@@ -7594,7 +7594,7 @@
           "fi": "Synteesi - Osiokohtaiset Säännöt"
         }
       },
-      "ai_description": "<section_rules>\n<objective>Section-Level Synthesis</objective>\n<rules>\n<rule>CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 short sentences.</rule>\n<rule>CRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the <required_output_language>.</rule>\n<rule>You MUST ALSO provide targeted synthesized summaries for the following distinct sections as an array in `section_syntheses`.</rule>\n</rules>\n</section_rules>",
+      "ai_description": "## Section-Level Synthesis\n- CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 short sentences.\n- CRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the <required_output_language>.\n- You MUST ALSO provide targeted synthesized summaries for the following distinct sections as an array in `section_syntheses`.\n",
       "output_extensions": [],
       "description": {
         "default_locale": "en",
@@ -7616,7 +7616,7 @@
           "fi": "Rivisivun Selityssäännöt"
         }
       },
-      "ai_description": "<row_explanation_rules>\n<objective>Explain where the matrix score came from and why it was assigned. Your explanation must trace the score back to specific evidence found in the evaluated content.</objective>\n<rules>\n<rule>Output EXACTLY ONE sentence of maximum 30 words.</rule>\n<rule>Do NOT use markdown. Output plain text only.</rule>\n<rule>Focus on the causal reasoning: what specific content or pattern in the source data drove the score up or down.</rule>\n<rule>Ensure the tone aligns with the tone instruction.</rule>\n</rules>\n</row_explanation_rules>",
+      "ai_description": "## Objective\nExplain where the matrix score came from and why it was assigned. Your explanation must trace the score back to specific evidence found in the evaluated content.\n\n## Rules\n- Output EXACTLY ONE sentence of maximum 30 words.\n- Do NOT use markdown. Output plain text only.\n- Focus on the causal reasoning: what specific content or pattern in the source data drove the score up or down.\n- Ensure the tone aligns with the tone instruction.",
       "output_extensions": [],
       "description": {
         "default_locale": "en",

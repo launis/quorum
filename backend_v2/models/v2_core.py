@@ -21,6 +21,7 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, QuoteEvidenceDTO
+from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
@@ -90,6 +91,7 @@ __all__ = [
     "ExecutionMetricsDTO",
     "ExtensionMetricsDTO",
     "ReportDataDTO",
+    "XaiHighlightItem",
 ]
 
 
@@ -1616,7 +1618,9 @@ class RenderedSynthesisCache(V2CoreBase):
     )
     row_curated_quotes: dict[str, list[str]] = Field(default_factory=dict, description="Curated quotes by matrix ID")
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
-    xai_highlights: list[Any] = Field(default_factory=list, description="Synthesized XAI highlights and tips")
+    xai_highlights: list[XaiHighlightItem] = Field(
+        default_factory=list, description="Synthesized XAI highlights and tips"
+    )
     user_role: str | None = Field(default=None, description="User role")
     user_role_justification: str | None = Field(default=None, description="User role justification")
     extension_metrics: ExtensionMetricsDTO | None = Field(

@@ -5,6 +5,7 @@ import logging
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile, RenderedSynthesisCache
@@ -22,6 +23,7 @@ def valid_output_profile_fixture() -> OutputProfile:
         workflow_id="wfw_test",
         name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
         layouts=[],
+        target_block_order=[],
         extension_labels={
             XaiExtensionType.COACHING: I18nText(default_locale="en", translations={"en": "Coaching"}),
             XaiExtensionType.FALSIFICATION: I18nText(default_locale="en", translations={"en": "Falsification"}),
@@ -69,7 +71,7 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
                 content={
                     "step_id": "step_1",
                     "block_id": "block_1",
-                    "payload": {"extensions": {"coaching": "Good job!\\nKeep it up!"}},
+                    "payload": {"extensions": {"coaching": "Good job!\nKeep it up!"}},
                 },
             )
         ],
@@ -85,7 +87,7 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
         profile_cache=RenderedSynthesisCache(
             section_syntheses={},
             cited_sources=[],
-            xai_highlights=[{"extension_type": "coaching", "content": "Good job!\\nKeep it up!"}],
+            xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Good job!\nKeep it up!")],
         ),
         user_name=None,
         org_name=None,
@@ -126,8 +128,8 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
             section_syntheses={},
             cited_sources=[],
             xai_highlights=[
-                {"extension_type": "coaching", "content": "Good job!"},
-                {"extension_type": "falsification", "content": "Bad logic!"},
+                XaiHighlightItem(extension_type="coaching", content="Good job!"),
+                XaiHighlightItem(extension_type="falsification", content="Bad logic!"),
             ],
         ),
         user_name=None,
@@ -176,7 +178,7 @@ def test_build_graceful_degradation_disabled_extensions(valid_output_profile_fix
         profile_cache=RenderedSynthesisCache(
             section_syntheses={},
             cited_sources=[],
-            xai_highlights=[{"extension_type": "coaching", "content": "Good job!"}],
+            xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Good job!")],
         ),
         user_name=None,
         org_name=None,
@@ -199,7 +201,7 @@ def test_build_graceful_degradation_zero_max_items(valid_output_profile_fixture:
         profile_cache=RenderedSynthesisCache(
             section_syntheses={},
             cited_sources=[],
-            xai_highlights=[{"extension_type": "coaching", "content": "Good job!"}],
+            xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Good job!")],
         ),
         user_name=None,
         org_name=None,
@@ -215,20 +217,24 @@ def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: Out
 
     highlights = [
         # Coaching items of varying lengths
-        {"extension_type": "coaching", "content": "C1 short"},
-        {"extension_type": "coaching", "content": "C2 medium length insight"},
-        {"extension_type": "coaching", "content": "C3 longer coaching recommendation item"},
-        {"extension_type": "coaching", "content": "C4 the absolute longest coaching guidance sentence"},
+        XaiHighlightItem(extension_type="coaching", content="C1 short"),
+        XaiHighlightItem(extension_type="coaching", content="C2 medium length insight"),
+        XaiHighlightItem(extension_type="coaching", content="C3 longer coaching recommendation item"),
+        XaiHighlightItem(extension_type="coaching", content="C4 the absolute longest coaching guidance sentence"),
         # Falsification items of varying lengths
-        {"extension_type": "falsification", "content": "F1 short"},
-        {"extension_type": "falsification", "content": "F2 medium length critique"},
-        {"extension_type": "falsification", "content": "F3 longer falsification analysis item"},
-        {"extension_type": "falsification", "content": "F4 the absolute longest falsification argument sentence"},
+        XaiHighlightItem(extension_type="falsification", content="F1 short"),
+        XaiHighlightItem(extension_type="falsification", content="F2 medium length critique"),
+        XaiHighlightItem(extension_type="falsification", content="F3 longer falsification analysis item"),
+        XaiHighlightItem(
+            extension_type="falsification", content="F4 the absolute longest falsification argument sentence"
+        ),
         # Remediation items of varying lengths
-        {"extension_type": "remediation_steps", "content": "R1 short"},
-        {"extension_type": "remediation_steps", "content": "R2 medium length remediation"},
-        {"extension_type": "remediation_steps", "content": "R3 longer remediation action item"},
-        {"extension_type": "remediation_steps", "content": "R4 the absolute longest remediation action sentence"},
+        XaiHighlightItem(extension_type="remediation_steps", content="R1 short"),
+        XaiHighlightItem(extension_type="remediation_steps", content="R2 medium length remediation"),
+        XaiHighlightItem(extension_type="remediation_steps", content="R3 longer remediation action item"),
+        XaiHighlightItem(
+            extension_type="remediation_steps", content="R4 the absolute longest remediation action sentence"
+        ),
     ]
 
     context = AdapterContext(
@@ -279,7 +285,9 @@ def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: Out
 def test_build_malformed_highlight_item_skipped(
     valid_output_profile_fixture: OutputProfile, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Error path: malformed highlight item missing required fields is skipped with warning log."""
+    """Error path: hallucinated or empty extension type is skipped with warning log."""
+    from backend_v2.models.dtos.synthesis import XaiHighlightItem
+
     execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
     context = AdapterContext(
         execution=execution,
@@ -292,8 +300,8 @@ def test_build_malformed_highlight_item_skipped(
             section_syntheses={},
             cited_sources=[],
             xai_highlights=[
-                {"corrupt_field": "no extension type or content"},
-                {"extension_type": "coaching", "content": "Valid coaching insight."},
+                XaiHighlightItem(extension_type="hallucinated_extension_not_in_enum", content="Some insight."),
+                XaiHighlightItem(extension_type="coaching", content="Valid coaching insight."),
             ],
         ),
         user_name=None,
@@ -311,5 +319,38 @@ def test_build_malformed_highlight_item_skipped(
     assert blocks[0].children[0].text == "Valid coaching insight."
 
     assert any(
-        "INVALID_OUTPUT_SCHEMA: Malformed XAI highlight item skipped" in record.message for record in caplog.records
+        "LLM hallucinated extension type: hallucinated_extension_not_in_enum" in record.message
+        for record in caplog.records
     )
+
+
+def test_build_missing_extension_label_raises_configuration_error(
+    valid_output_profile_fixture: OutputProfile,
+) -> None:
+    """Error path: missing extension label in profile SSOT raises ConfigurationError."""
+    from backend_v2.exceptions import ConfigurationError
+    from backend_v2.models.dtos.synthesis import XaiHighlightItem
+
+    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    profile_without_labels = valid_output_profile_fixture.model_copy(update={"extension_labels": {}})
+
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile_without_labels,
+        profile_cache=RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Valid insight.")],
+        ),
+        user_name=None,
+        org_name=None,
+    )
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        XaiHighlightsAdapter.build(context)
+
+    assert "Missing extension label configuration for coaching in profile SSOT" in str(exc_info.value)

@@ -63,13 +63,14 @@ class PrintableSourcesAdapter:
 
         if profile_cache and profile_cache.cited_sources:
             for src in profile_cache.cited_sources:
-                if not src.strip().startswith("-"):
-                    md_lines.append(f"- {src}")
-                else:
-                    md_lines.append(src)
-                # Keep track of urls to avoid duplicating them if mcp_audit_map also has them
-                if "http" in src:
-                    clean_url = src.replace("- ", "").strip()
+                clean_src = src.strip()
+                if not clean_src:
+                    continue
+                formatted = clean_src if clean_src.startswith("- ") else f"- {clean_src}"
+                if formatted not in md_lines:
+                    md_lines.append(formatted)
+                if "http" in clean_src:
+                    clean_url = clean_src.removeprefix("- ").strip()
                     cited_urls.add(clean_url)
 
         # Extract source URLs from Tavily search / MCP Audit tools
@@ -77,9 +78,12 @@ class PrintableSourcesAdapter:
             for trace in context.mcp_audit_map.values():
                 if trace.source_urls:
                     for url in trace.source_urls:
-                        if url not in cited_urls:
-                            md_lines.append(f"- {url}")
-                            cited_urls.add(url)
+                        clean_u = url.strip()
+                        if clean_u and clean_u not in cited_urls:
+                            formatted = f"- {clean_u}"
+                            if formatted not in md_lines:
+                                md_lines.append(formatted)
+                            cited_urls.add(clean_u)
 
         if not md_lines:
             return blocks

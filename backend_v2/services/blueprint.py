@@ -86,7 +86,7 @@ class BlueprintTransformer:
         self.identity_repo = identity_repo
         self.system_repo = system_repo
 
-        self._target_block_hydrators: dict[str, Callable[[AdapterContext], list[AnySduiBlock]]] = {
+        self._target_block_hydrators: dict[TargetBlockType, Callable[[AdapterContext], list[AnySduiBlock]]] = {
             TargetBlockType.PENALTIES_BLOCK: lambda ctx: PenaltiesAdapter.build(ctx),
             TargetBlockType.GLOBAL_SCORE_BLOCK: lambda ctx: GlobalScoreAdapter.build(ctx),
             TargetBlockType.AUDIT_TRAIL_BLOCK: lambda ctx: McpAuditAdapter.build(ctx),
@@ -685,10 +685,26 @@ class BlueprintTransformer:
             dispatch_order = profile.target_block_order
 
             for target_k in dispatch_order:
-                if str(target_k) in self._target_block_hydrators:
-                    hydrated_blocks = self._target_block_hydrators[str(target_k)](adapter_context)
-                    if hydrated_blocks:
-                        inner_sdui_blocks.extend(hydrated_blocks)
+                try:
+                    target_enum = TargetBlockType(target_k)
+                    hydrator = self._target_block_hydrators[target_enum]
+                except (KeyError, ValueError) as e:
+                    msg = f"Strict Fail-Fast: Unknown or unmapped target block type '{target_k}' in target_block_order."
+                    logger.error(
+                        "[BlueprintTransformer] %s: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg,
+                        exc_info=True,
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
+
+                hydrated_blocks = hydrator(adapter_context)
+                if hydrated_blocks:
+                    inner_sdui_blocks.extend(hydrated_blocks)
 
             if not inner_sdui_blocks:
                 inner_sdui_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]

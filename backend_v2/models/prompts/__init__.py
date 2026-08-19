@@ -40,6 +40,11 @@ from .hook_prompts import (
 )
 from .linguistic_directives import build_linguistic_context
 from .matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
+from .synthesis_directives import (
+    SDUI_SYNTHESIS_MANDATE_BLOCK,
+    SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
+    STATE_ISOLATION_BLOCK,
+)
 
 __all__ = [
     "ANTI_ID_MANDATE",
@@ -57,7 +62,10 @@ __all__ = [
     "MATRIX_SENSOR_SYSTEM_PROMPT",
     "NULL_HYPOTHESIS_MANDATE",
     "SCHEMA_PURITY_MANDATE",
+    "SDUI_SYNTHESIS_MANDATE_BLOCK",
+    "SECTION_SYNTHESIS_DIRECTIVE_BLOCK",
     "SEMANTIC_BLEED_MANDATE",
+    "STATE_ISOLATION_BLOCK",
     "STRICT_JSON_STRUCTURE_MANDATE",
     "SYNTHESIS_CITATION_RULES",
     "SYNTHESIS_LENGTH_CONSTRAINT",

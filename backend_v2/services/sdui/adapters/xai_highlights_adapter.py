@@ -8,10 +8,7 @@ XAI_AESTHETICS_RULES dictionary to enforce separation of presentation from logic
 import logging
 from typing import Any, Literal, cast
 
-from pydantic import ValidationError
-
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
-from backend_v2.models.dtos.synthesis import XaiHighlightItem
+from backend_v2.exceptions import AppException, ConfigurationError
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.view.sdui import AccordionBlock, AlertBlock, AnySduiBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -67,18 +64,7 @@ class XaiHighlightsAdapter:
         if not profile.visible_block_extensions or not profile.max_extension_items:
             return blocks
 
-        raw_highlights = context.profile_cache.xai_highlights
-
-        valid_highlights: list[XaiHighlightItem] = []
-        for raw_item in raw_highlights:
-            try:
-                valid_highlights.append(XaiHighlightItem.model_validate(raw_item, strict=False))
-            except (ValidationError, ValueError) as e:
-                logger.warning(
-                    "[XaiHighlightsAdapter] %s: Malformed XAI highlight item skipped: %s",
-                    ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
-                    str(e),
-                )
+        valid_highlights = [h for h in context.profile_cache.xai_highlights if h.extension_type and h.content]
 
         if not valid_highlights:
             return blocks

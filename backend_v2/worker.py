@@ -885,12 +885,11 @@ async def generate_profile_synthesis_and_pdf_task(
                                 section_rules_str += f'\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n{lpb.ai_description}\n</section_instruction>\n'
                                 has_section_rules = True
 
+                from backend_v2.models.prompts.synthesis_directives import SECTION_SYNTHESIS_DIRECTIVE_BLOCK
+
                 if has_section_rules:
                     dynamic_ctx_parts.append(
-                        f"{SYNTHESIS_SECTION_RULES_PREFIX}{section_rules_str}"
-                        "\nCRITICAL: You MUST place the output for each section_instruction strictly inside the "
-                        "`section_syntheses` array using its exact `layout_id`. Do NOT put section analysis in "
-                        "the global executive_summary."
+                        f"{SYNTHESIS_SECTION_RULES_PREFIX}{section_rules_str}\n{SECTION_SYNTHESIS_DIRECTIVE_BLOCK}"
                     )
 
                 # XAI extension curation
