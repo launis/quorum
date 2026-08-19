@@ -152,3 +152,27 @@ def test_strict_schema_parity_for_core_execution_fields() -> None:
         child_all_fields = set(child_cls.model_fields.keys())
         missing = core_field_names - child_all_fields
         assert not missing, f"{child_cls.__name__} is missing inherited core fields: {missing}"
+
+
+@pytest.mark.parametrize(
+    "dead_weight_field",
+    [
+        "model_strategy",
+        "historical_context_mode",
+        "enable_pii_masking",
+        "allowed_exports",
+        "omit_empty_sections",
+        "allowed_mcp_tools",
+    ],
+)
+def test_synthesis_config_dto_rejects_purged_dead_weight_fields(dead_weight_field: str) -> None:
+    """Negative test: SynthesisConfigDTO rejects purged fields with ValidationError under extra='forbid'."""
+    from backend_v2.models.v2_core import SynthesisConfigDTO
+
+    payload = {
+        "synthesis_block_id": "blk_synthesis123",
+        dead_weight_field: "unexpected_value",
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        SynthesisConfigDTO.model_validate(payload)
+    assert "Extra inputs are not permitted" in str(exc_info.value)

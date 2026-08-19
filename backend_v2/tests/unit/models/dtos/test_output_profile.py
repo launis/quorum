@@ -133,6 +133,24 @@ def test_output_profile_update_dto_strictness() -> None:
         OutputProfileUpdateDTO.model_validate({"invalid_field": "boom"})
 
 
+def test_update_dto_max_extension_items_boundary_negative() -> None:
+    """Boundary test: OutputProfileUpdateDTO rejects out of bounds max_extension_items."""
+    with pytest.raises(ValidationError, match="greater than or equal to 1"):
+        OutputProfileUpdateDTO.model_validate({"max_extension_items": 0})
+
+    with pytest.raises(ValidationError, match="greater than or equal to 1"):
+        OutputProfileUpdateDTO.model_validate({"max_extension_items": -1})
+
+    with pytest.raises(ValidationError, match="less than or equal to 100"):
+        OutputProfileUpdateDTO.model_validate({"max_extension_items": 101})
+
+    # Valid edges
+    dto1 = OutputProfileUpdateDTO.model_validate({"max_extension_items": 1})
+    assert dto1.max_extension_items == 1
+    dto100 = OutputProfileUpdateDTO.model_validate({"max_extension_items": 100})
+    assert dto100.max_extension_items == 100
+
+
 def test_output_profile_response_dto_strictness() -> None:
     """Test Response DTO strictness and base class inheritance."""
     dto = OutputProfileResponseDTO.model_validate(
