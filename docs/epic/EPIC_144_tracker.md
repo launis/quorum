@@ -62,7 +62,7 @@
 | 14 | `backend_v2/models/prompts/__init__.py` | `models/prompts/test_prompts_init.py` | 6 | 12 | 0 | 100% | 152 / 152 `[PASS]` | `757b9478` |
 | 15 | `backend_v2/worker.py` | `tests/unit/test_worker.py` | 37 | 638 | 51 | 92% | 152 / 152 `[PASS]` | `d60868cd` |
 
-### 2.2 Frontend Targets (10 / 17 COMPLETED, 7 REMAINING)
+### 2.2 Frontend Targets (15 / 17 COMPLETED, 2 REMAINING)
 | # | Target File | Test File | Audit Matrix | Quality Gate | Status |
 |:---|:---|:---|:---|:---|:---|
 | 1 | `client_app_v2/lib/core/models/enums.dart` | Integrated test suite | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
@@ -75,14 +75,21 @@
 | 8 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/base_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 | 9 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart` | `test/features/studio/views/widgets/profile/blocks/block_card_registry_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
 | 10 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart` | Integrated test suite | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 11 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/synthesis_text_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 12 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 13 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart` | `test/features/studio/views/widgets/profile/blocks/matrix_summary_table_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 14 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/xai_extensions_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 15 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart` | `test/features/studio/views/widgets/profile/blocks/bibliography_block_card_test.dart` | 88 / 88 `[PASS]` | `[OK]` | `COMPLETED` |
+| 16 | `client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart` | Integrated test suite | PENDING | PENDING | `REMAINING` |
+| 17 | `client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart` | Integrated test suite | PENDING | PENDING | `REMAINING` |
 
-## 3. Key Accomplishments in Latest Session (Frontend Hardening Targets 6–10)
-- **Target 6 (`profile_scoring_tab.dart`):** Replaced `if (payload == null) return const SizedBox.shrink();` with Fail-Fast `throw StateError('Profile payload must not be null when rendering ProfileScoringTab');` to satisfy `sized_box_shrink_ban`. Created TDD test `profile_scoring_tab_test.dart`.
-- **Target 7 (`profile_layouts_tab.dart`):** Eradicated `SizedBox.shrink()` on missing payload state and enforced Fail-Fast `StateError`. Verified reorderable drag-and-drop list updates. Created TDD test `profile_layouts_tab_test.dart`.
-- **Target 8 (`base_block_card.dart`):** Audited 114-line canonical block card container. Verified `overflow: TextOverflow.ellipsis` on title/subtitle and design token usage. Created dedicated test `base_block_card_test.dart`.
-- **Target 9 (`block_card_registry.dart`):** Audited 194-line exhaustive block card registry. Verified 100% Dart 3 native `switch` pattern matching across all 13 `TargetBlockType` members.
-- **Target 10 (`metadata_block_card.dart`):** Audited 94-line metadata config card. Verified FilterChip toggles update `payload.visibleMetadata` without hardcoded indices or magical defaults.
-- **Automated Verification:** All 5 targets passed target-locked audit matrix verification (`audit_matrix_manager.py verify`) with 88/88 rules validated per file, and full Flutter quality audit loops (`flutter_audit_loop.py`) passed cleanly with 100% test pass.
+## 3. Key Accomplishments in Latest Session (Frontend Hardening Targets 11–15)
+- **Target 11 (`synthesis_text_block_card.dart`):** Audited 131-line synthesis text block config card. Verified `DropdownButtonFormField<String?>` `isExpanded: true`, `TextOverflow.ellipsis` on menu item labels, and localized preamble/tone instruction fields. Created TDD test `synthesis_text_block_card_test.dart`.
+- **Target 12 (`matrix_graphs_block_card.dart`):** Audited 124-line Collection Builder card for matrix graph entries in `payload.layouts`. Verified `PresetView` graph layout filtering and `FilledButton.tonalIcon` addition of default `metrics1d` layouts. Created TDD test `matrix_graphs_block_card_test.dart`.
+- **Target 13 (`matrix_summary_table_card.dart`):** Audited 157-line matrix summary table configuration card. Verified FilterChip toggles for `availableColumns` and `I18nTextField` column label overrides for `matrixColumnLabels`. Created TDD test `matrix_summary_table_card_test.dart`.
+- **Target 14 (`xai_extensions_block_card.dart`):** Audited 192-line XAI output extensions card. Verified `workflowAvailableExtensionsProvider` Riverpod integration, Dart 3 `switch` expression handling of AsyncValue state, FilterChips for `visibleBlockExtensions`, and clamped Slider + TextFormField for `maxExtensionItems`. Created TDD test `xai_extensions_block_card_test.dart`.
+- **Target 15 (`bibliography_block_card.dart`):** Audited 57-line printable sources block card. Verified BaseBlockCard inclusion toggle and `AppLocalizations` hint text rendering. Created TDD test `bibliography_block_card_test.dart`.
+- **Automated Verification:** All 5 targets passed target-locked audit matrix verification (`audit_matrix_manager.py verify`) with 88/88 rules validated per file, and full Flutter quality audit loops (`flutter_audit_loop.py`) passed cleanly with 100% test pass (147 unit/widget tests).
 
 ## 4. Key Architectural Invariants & Gotchas
 - **Core Module Encapsulation (`01-python-backend.md`):** All core modules (including `settings.py`, `enums.py`, `v2_core.py`, DTOs, and services) must declare explicit `__all__ = [...]` export lists to isolate internal helpers and establish clean public module boundaries.
