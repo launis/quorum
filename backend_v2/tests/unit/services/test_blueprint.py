@@ -40,7 +40,7 @@ def fix_mock_dict(d: Any) -> Any:
 
 
 from backend_v2.exceptions import AppException, ConfigurationError
-from backend_v2.models.enums import ExecutionStatus, ScoringStrategy, XaiExtensionType
+from backend_v2.models.enums import DisplayScale, ExecutionStatus, ScoringStrategy, TargetBlockType, XaiExtensionType
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -53,6 +53,21 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
+
+_DEFAULT_TARGET_BLOCK_ORDER = [
+    TargetBlockType.METADATA_BLOCK,
+    TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+    TargetBlockType.SYNTHESIS_TEXT_BLOCK,
+    TargetBlockType.MATRIX_GRAPHS_BLOCK,
+    TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
+    TargetBlockType.PENALTIES_BLOCK,
+    TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
+    TargetBlockType.VARIANCE_VALIDATION_BLOCK,
+    TargetBlockType.AUTHENTICITY_EVALUATION_BLOCK,
+    TargetBlockType.PRINTABLE_SOURCES_BLOCK,
+    TargetBlockType.GLOBAL_SCORE_BLOCK,
+    TargetBlockType.AUDIT_TRAIL_BLOCK,
+]
 
 
 def dict_to_obj(d: Any) -> Any:
@@ -121,7 +136,7 @@ def mock_repo_transformer() -> Any:
                         "description": None,
                     }
                 ],
-                "display_scale": "original",
+                "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
                     "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
                     "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
@@ -217,7 +232,8 @@ def mock_repo_transformer() -> Any:
             slug="default",
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default", "fi": "Default"}),
-            display_scale="original",
+            display_scale=DisplayScale.ORIGINAL,
+            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
             metric_mappings={
                 "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
                 "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
@@ -388,7 +404,7 @@ def mock_repo_microcot() -> Any:
                         "description": None,
                     }
                 ],
-                "display_scale": "original",
+                "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
                     "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
                     "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
@@ -538,7 +554,7 @@ def mock_repo_sdui() -> AsyncMock:
                         "synthesis": {},
                     }
                 ],
-                "display_scale": "original",
+                "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
                     "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
                     "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
@@ -859,7 +875,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                         "title": {"default_locale": "en", "translations": {"en": "Title"}},
                     }
                 ],
-                "display_scale": "original",
+                "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
                     "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
                     "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
@@ -959,7 +975,7 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                 "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
                 "layouts": [],
-                "display_scale": "original",
+                "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
                     "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
                     "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
@@ -1146,7 +1162,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                         "title": {"default_locale": "en", "translations": {"en": "Title"}},
                     }
                 ],
-                "display_scale": "original",
+                "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
                     "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
                     "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
@@ -1234,6 +1250,8 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         slug="default",
         workflow_id="wf_1234abcd1234abcd",
         name=I18nText(default_locale="en", translations={"en": "Default"}),
+        display_scale=DisplayScale.ORIGINAL,
+        target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         layouts=[
             OutputLayoutBlock(
                 preset_view="text_only",
@@ -1326,6 +1344,8 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         slug="default",
         workflow_id="wf_1234abcd1234abcd",
         name=I18nText(default_locale="en", translations={"en": "Default"}),
+        display_scale=DisplayScale.ORIGINAL,
+        target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         layouts=[
             OutputLayoutBlock(
                 preset_view="text_only",
@@ -1467,7 +1487,7 @@ async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
             "slug": "default",
             "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
             "workflow_id": "wf_1234abcd1234abcd",
-            "display_scale": "original",
+            "display_scale": DisplayScale.ORIGINAL,
             "metric_mappings": {
                 "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
                 "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
@@ -1661,7 +1681,8 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
             slug="default",
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default"}),
-            display_scale="original",
+            display_scale=DisplayScale.ORIGINAL,
+            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
             metric_mappings={
                 "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
                 "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
@@ -1787,7 +1808,8 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
             slug="default",
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default"}),
-            display_scale="custom",
+            display_scale=DisplayScale.CUSTOM,
+            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
             metric_mappings={},
             layouts=[
                 OutputLayoutBlock(
@@ -1837,7 +1859,8 @@ async def test_blueprint_transformer_unrecognized_text_delivery_mode(mock_repo_t
             slug="default",
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default"}),
-            display_scale="original",
+            display_scale=DisplayScale.ORIGINAL,
+            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
             metric_mappings={},
             layouts=[
                 OutputLayoutBlock.model_construct(
@@ -1912,7 +1935,8 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         slug="test",
         workflow_id="wf_1111111111111111",
         name=I18nText(default_locale="en", translations={"en": "test"}),
-        display_scale="custom",
+        display_scale=DisplayScale.CUSTOM,
+        target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         layouts=[
             OutputLayoutBlock(
                 preset_view="3d_matrix",
@@ -2037,6 +2061,8 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         slug="test",
         workflow_id="wf_1111111111111111",
         name=I18nText(default_locale="en", translations={"en": "test"}),
+        display_scale=DisplayScale.ORIGINAL,
+        target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         layouts=[],
     )
 
@@ -2198,7 +2224,8 @@ async def test_blueprint_slop_and_penalty_coverage(mock_scan: Any, mock_repo_tra
             slug="default",
             workflow_id="wf_1234abcd1234abcd",
             name=I18nText(default_locale="en", translations={"en": "Default"}),
-            display_scale="normalized_100",
+            display_scale=DisplayScale.NORMALIZED_100,
+            target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
             metric_mappings={},
             layouts=[
                 OutputLayoutBlock.model_construct(
@@ -2273,12 +2300,12 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         max_extension_items=2,
         strictness_level=85,
         scoring_strategy=ScoringStrategy.WATERFALL,
-        display_scale="normalized_100",
+        display_scale=DisplayScale.NORMALIZED_100,
         target_block_order=[
-            "metadata_block",
-            "executive_summary_block",
-            "grouped_extensions_block",
-            "matrix_graphs_block",
+            TargetBlockType.METADATA_BLOCK,
+            TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+            TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
+            TargetBlockType.MATRIX_GRAPHS_BLOCK,
         ],
         layouts=[
             OutputLayoutBlock(

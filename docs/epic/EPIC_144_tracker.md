@@ -88,20 +88,20 @@
   - [x] Step 3: Update test_output_profile_regression.py
   - [x] Step 4: Update test_synthesis_distiller_hook.py
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
 
 #### Phase 0-E: Backend Test Fixtures Alignment Batch 2
 **Plan:** `@[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Update test_blueprint.py Fixtures
-  - [ ] Step 2: Update test_scoring.py Fixtures
-  - [ ] Step 3: Update test_worker_synthesis.py Fixtures
-  - [ ] Step 4: Update test_matrix_domain_parser.py Fixtures
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Update test_blueprint.py Fixtures
+  - [x] Step 2: Update test_scoring.py Fixtures
+  - [x] Step 3: Update test_worker_synthesis.py Fixtures
+  - [x] Step 4: Update test_matrix_domain_parser.py Fixtures
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]`
 
 ---
@@ -460,6 +460,28 @@
   - Updated `@[backend_v2/tests/unit/models/test_output_profile_regression.py#L1-L45]` to import `TargetBlockType` and pass `[TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK]` in `target_block_order` fixture and assertions.
   - Updated `@[backend_v2/tests/unit/test_synthesis_distiller_hook.py#L1-L150]` to import `HookResult` at top level per `inline_imports_ban`, verified zero occurrences of `include_diagnostic_scorecard`, and added explicit `cast(Awaitable[HookResult], ...)` for full MyPy strict compliance.
   - Passed Universal Quality Gate (`backend_audit_loop.py`) with 100% test pass rate and 100% TDD coverage across all 4 target files.
+  - Committed atomically: `fb5d93db test(output-profile): align backend test fixtures batch 1 with DisplayScale, TargetBlockType enums and update tracker handover`.
+
+- **Phase 0-D Post-Implementation Audit Signed Off (`[OK]`):**
+  - Executed `/tier8-audit-plan` against `@[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md]`.
+  - Verified 100% physical traceability for requirements R23–R26 across all 4 test files.
+  - Confirmed complete eradication of legacy `include_diagnostic_scorecard` and raw literal strings.
+  - Verified 9 ISTQB-aligned boundary and negative test cases for `OutputProfileCreateDTO` and `SynthesisConfigDTO`.
+  - Confirmed zero supply-chain violations (banned AI bloatware packages).
+  - Executed target quality gates (100% pass, 100% coverage) and full unit test suite (1456 passed, 29 skipped, 4 xpassed, 0 failures).
+  - Emitted formal artifact: `@[red_team_audit_04_p0_backend_test_fixtures_batch1.md]`.
+
+- **Phase 0-E Red-Teaming & Falsification Passed (`[OK]`):**
+  - Completed System 2 Red-Teaming on `@[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md]`.
+  - Verified physical state of the 4 target test files (`@[backend_v2/tests/unit/services/test_blueprint.py]`, `@[backend_v2/tests/unit/hooks/test_scoring.py]`, `@[backend_v2/tests/unit/test_worker_synthesis.py]`, `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`): zero occurrences of legacy `include_diagnostic_scorecard` found across all 4 files.
+  - Refined Step 1 in Plan 05 to reference exact line ranges (L124–L2276) and mandate `TargetBlockType` enum instances at L2277 for `target_block_order`.
+  - Refined Step 4 in Plan 05 to mandate ISTQB-aligned test additions in `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]` covering all 3 `DisplayScale` enum options (`DisplayScale.ORIGINAL`, `DisplayScale.NORMALIZED_100`, `DisplayScale.CUSTOM`) and a negative test for `DisplayScale.CUSTOM` with missing `scale_min`/`scale_max` triggering Fail-Fast `AppException(CONFIGURATION_ERROR)`.
+- **Phase 0-E Implementation & Quality Gate Execution Completed (`[OK]`):**
+  - Updated `@[backend_v2/tests/unit/services/test_blueprint.py]` to import `DisplayScale` and `TargetBlockType`, defined `_DEFAULT_TARGET_BLOCK_ORDER`, migrated all `OutputProfile` fixtures to use `DisplayScale.ORIGINAL`, `DisplayScale.CUSTOM`, `DisplayScale.NORMALIZED_100` and `TargetBlockType` enum members for `target_block_order`.
+  - Verified `@[backend_v2/tests/unit/hooks/test_scoring.py]` and `@[backend_v2/tests/unit/test_worker_synthesis.py]` fixtures contain valid `DisplayScale` enum strings and zero references to legacy `include_diagnostic_scorecard`.
+  - Updated `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]` with `DisplayScale` import and default parameter on `get_dummy_profile(display_scale=DisplayScale.ORIGINAL)`. Added 4 test contracts covering all 3 `DisplayScale` enum modes (`ORIGINAL`, `NORMALIZED_100`, `CUSTOM`) and negative Fail-Fast test on missing custom scale bounds (`CONFIGURATION_ERROR`).
+  - Passed Universal Quality Gate (`backend_audit_loop.py`) across all 4 target files with 100% test pass rate and >95% statement coverage (100% on `test_matrix_domain_parser.py`).
+  - Executed full backend unit test suite: 1460 passed, 29 skipped, 4 xpassed, 0 failures.
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
@@ -475,17 +497,22 @@
 - **Strict DTO Validation on Enum Collections:** In Pydantic V2 models configured with `strict=True` (e.g., `OutputProfileResponseDTO`), lists of StrEnums (`list[TargetBlockType]`) strictly reject raw string inputs (`str`) during `.model_validate(payload)`. Test fixtures for strict DTOs MUST construct payloads using native Enum instances (`TargetBlockType.METADATA_BLOCK`), whereas domain models utilizing lax aliases (`LaxTargetBlockType` with `Field(strict=False)`) permit string coercion during database hydration.
 - **Pydantic V2 Instantiation vs Field Defaults in Mypy:** In strict Mypy environments, instantiating Pydantic DTOs via constructor kwargs (`OutputProfileUpdateDTO(slug="...")`) flags missing arguments if fields declare `Field(default=None)` without `= None` at the Python class attribute syntax level. Instantiating via `.model_validate({"slug": "..."})` guarantees full runtime validation and static type checking compatibility without mutating domain class definitions.
 - **Async Hook Testing & Awaitable Typing:** In pytest-asyncio test suites, calling async hook functions returning `HookResult | Awaitable[HookResult]` requires wrapping calls in `cast(Awaitable[HookResult], ...)` when awaiting under MyPy `--strict` mode to prevent type union awaitability errors.
+- **DisplayScale Enum Isolation in Domain Parsers:** `MatrixDomainParser` tests must explicitly test all 3 `DisplayScale` enum options (`ORIGINAL`, `NORMALIZED_100`, `CUSTOM`) to verify mathematical score scaling and bound definitions (`display_scale_min`/`display_scale_max`), as well as Fail-Fast validation on missing custom bounds.
+- **Blueprint Dispatch Loop Block Order Contract:** In test fixtures instantiating `OutputProfile` or `OutputProfile.model_construct` for `BlueprintTransformer`, `target_block_order` must be populated with `_DEFAULT_TARGET_BLOCK_ORDER` to ensure downstream SDUI blocks (`GROUPED_EXTENSIONS_BLOCK`, `AUTHENTICITY_EVALUATION_BLOCK`, etc.) are dispatched during report synthesis.
 
 ## Remaining
-- **Phase 0-D Post-Implementation Audit (Plan 04):** Execute `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`.
-- **Phase 0-E through Phase 0-I (Plans 05-09):** Test fixtures alignment batch 2, OpenAPI generation, frontend enum sync, frontend test fixtures, integration checkpoint.
+- **Phase 0-E (Plan 05) Audit:** Run `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]`.
+- **Phase 0-F through Phase 0-I (Plans 06-09):** OpenAPI generation, frontend enum sync, frontend test fixtures, integration checkpoint.
 - **Phase 1-A & Phase 1-B (Plans 10-11):** Golden Master baseline characterization and 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs).
 - **Phases 2-5 Detailed Planning (Plans 12-15):** Generate executable plans via `/tier0-create-plan` and execute Phases 2-5.
 - **Post-Implementation Gates:** Golden Master restoration audit, Proxy sunset, Tier 2 Hardening Backend & Frontend, Pre-delete audit, Semantic coverage (>90%), and Live E2E verification (`test_integration_real_llm.py`).
 - **Knowledge Item & Architecture Sync:** Create KIs for new SSOTs and execute `/tier7-describe-architecture` and `/tier8-audit-epic`.
 
 ## Resume Command
-`/tier8-audit-plan --target="@[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]"`
+```bash
+/tier8-audit-plan @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]
+```
+
 
 
 

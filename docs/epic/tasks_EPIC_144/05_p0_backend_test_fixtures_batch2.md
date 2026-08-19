@@ -63,12 +63,11 @@
 
   <step id="1" name="UPDATE test_blueprint.py FIXTURES">
     <action>In @[backend_v2/tests/unit/services/test_blueprint.py]:
-1. Locate ALL OutputProfile/OutputLayoutBlock fixture dictionaries and object constructions via grep_search for "display_scale" (found at L124, L220, L391, L541, L862, L962, L1149, L1470, L1664, L1790, L1840, L1915, L2201, L2276).
-2. Ensure all `display_scale` values are valid DisplayScale enum strings ("original", "custom", "normalized_100"). Current values ARE already valid strings — verify no changes needed for the string literals themselves (Pydantic coerces in lax mode).
-3. Remove any `include_diagnostic_scorecard` from fixture dicts.
-4. Update `target_block_order` fixtures (L2277) to use valid TargetBlockType string values.
-5. Add seed `metric_mappings` metadata keys to blueprint test fixtures where OutputProfile objects are constructed with full context (specifically test fixtures that feed into MetadataAdapter calls).</action>
-    <demolish>REMOVE: any "include_diagnostic_scorecard" entries in test_blueprint.py fixtures.</demolish>
+1. Verify OutputProfile/OutputLayoutBlock fixtures and dicts at lines L124, L220, L391, L541, L862, L962, L1149, L1470, L1664, L1790, L1840, L1915, L2201, L2276.
+2. Ensure all `display_scale` values use valid DisplayScale enum representations or enum values (e.g. `DisplayScale.ORIGINAL`, `DisplayScale.CUSTOM`, `DisplayScale.NORMALIZED_100` or valid strings).
+3. At L2277-L2282, ensure `target_block_order` uses valid `TargetBlockType` enum instances (or valid enum strings) matching `[TargetBlockType.METADATA_BLOCK, TargetBlockType.EXECUTIVE_SUMMARY_BLOCK, TargetBlockType.GROUPED_EXTENSIONS_BLOCK, TargetBlockType.MATRIX_GRAPHS_BLOCK]`.
+4. Ensure all OutputProfile test fixtures have complete `metric_mappings` keys where evaluated against metadata / variance adapters.</action>
+    <demolish>REMOVE: any residual legacy keys or invalid enum strings if present.</demolish>
   </step>
 
   <step id="2" name="UPDATE test_scoring.py FIXTURES">
@@ -90,20 +89,29 @@
 
   <step id="4" name="UPDATE test_matrix_domain_parser.py FIXTURES">
     <action>In @[backend_v2/tests/unit/services/test_matrix_domain_parser.py]:
-1. Verify the `display_scale="original"` at L17 is compatible with the new enum type.
-2. Ensure tests cover all 3 DisplayScale enum options. If tests only cover "original", add test cases for "custom" and "normalized_100" to satisfy the DoD item: "evaluate correctly under all DisplayScale enum options".</action>
+1. Import `DisplayScale` from `backend_v2.models.enums`.
+2. Update `get_dummy_profile()` at L11-L18 to use `DisplayScale.ORIGINAL` (or accept a parameter `display_scale: DisplayScale = DisplayScale.ORIGINAL`).
+3. Add ISTQB parameterized / dedicated unit tests covering all 3 `DisplayScale` options in `MatrixDomainParser.parse_matrices`:
+   - `DisplayScale.ORIGINAL`: raw score bounds and display labels (e.g., "1.0 / 1.0" or "0.8 / 1.0").
+   - `DisplayScale.NORMALIZED_100`: score normalized to 0-100 and display label "/ 100.0".
+   - `DisplayScale.CUSTOM`: custom scale min/max from prompt block (`scale_min=1.0`, `scale_max=5.0`) with score display label "/ 5.0".
+   - Negative test: `DisplayScale.CUSTOM` with missing `scale_min`/`scale_max` on PromptBlock raising `AppException` (`CONFIGURATION_ERROR`).</action>
     <test_contracts>
       <test name="test_parse_matrix_normalized_100_display_scale" category="positive">
-        <input>OutputProfile fixture with display_scale="normalized_100"</input>
-        <expected>Parser normalizes scores to 0-100 range</expected>
+        <input>OutputProfile fixture with display_scale=DisplayScale.NORMALIZED_100</input>
+        <expected>Parser normalizes scores to 0-100 range and uses display bounds 0.0 to 100.0</expected>
       </test>
       <test name="test_parse_matrix_custom_display_scale" category="positive">
-        <input>OutputProfile fixture with display_scale="custom" and custom scale bounds</input>
-        <expected>Parser uses custom scale_min/scale_max from layout</expected>
+        <input>OutputProfile fixture with display_scale=DisplayScale.CUSTOM and prompt block scale_min=1.0, scale_max=5.0</input>
+        <expected>Parser uses custom scale_min/scale_max from prompt block</expected>
       </test>
       <test name="test_parse_matrix_original_display_scale" category="positive">
-        <input>OutputProfile fixture with display_scale="original"</input>
-        <expected>Parser uses raw math_min/math_max from data</expected>
+        <input>OutputProfile fixture with display_scale=DisplayScale.ORIGINAL</input>
+        <expected>Parser uses raw math_min/math_max from computed_min/computed_max</expected>
+      </test>
+      <test name="test_parse_matrix_custom_display_scale_missing_bounds_fail_fast" category="negative">
+        <input>OutputProfile fixture with display_scale=DisplayScale.CUSTOM and prompt block with scale_min=None</input>
+        <expected>Raises AppException with CONFIGURATION_ERROR</expected>
       </test>
     </test_contracts>
   </step>

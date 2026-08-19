@@ -3,18 +3,25 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from backend_v2.models.enums import BlockDataType, ExecutionStatus, LaxPromptBlockCategory, PromptBlockCategory
+from backend_v2.models.enums import (
+    BlockDataType,
+    DisplayScale,
+    ExecutionStatus,
+    LaxPromptBlockCategory,
+    PromptBlockCategory,
+)
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, OutputProfile, PromptBlock, TDAAssertion
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
 
-def get_dummy_profile() -> OutputProfile:
+def get_dummy_profile(display_scale: DisplayScale = DisplayScale.ORIGINAL) -> OutputProfile:
     return OutputProfile(
         id="prof_1234567890abcdef1234567890abcdef",
         slug="test",
         workflow_id="wf1",
         name=I18nText(default_locale="en", translations={"en": "test"}),
-        display_scale="original",
+        display_scale=display_scale,
+        target_block_order=[],
     )
 
 
@@ -282,3 +289,105 @@ def test_parse_matrices_indicator_partitions(
     assert not matrix.name.endswith("*")
     assert matrix.is_evaluative is is_evaluative
     assert matrix.allow_contextual_override is allow_override
+
+
+def test_parse_matrix_normalized_100_display_scale() -> None:
+    """Positive test: display_scale=NORMALIZED_100 normalizes score to 0-100 and uses display bounds 0.0 to 100.0."""
+    profile = get_dummy_profile(display_scale=DisplayScale.NORMALIZED_100)
+    pb = get_dummy_pb()
+
+    payload = {"raw_score": 0.8, "normalized_score": 80.0, "evaluated_atoms": {}}
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert matrix.scale_min == 0.0
+    assert matrix.scale_max == 100.0
+    assert matrix.score == 80.0
+    assert matrix.score_display_label == "80.0 / 100.0"
+
+
+def test_parse_matrix_custom_display_scale() -> None:
+    """Positive test: display_scale=CUSTOM uses scale_min/scale_max from prompt block."""
+    profile = get_dummy_profile(display_scale=DisplayScale.CUSTOM)
+    pb = get_dummy_pb()
+    pb = pb.model_copy(update={"scale_min": 1.0, "scale_max": 5.0})
+
+    payload = {"raw_score": 3.5, "normalized_score": 70.0, "evaluated_atoms": {}}
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert matrix.scale_min == 1.0
+    assert matrix.scale_max == 5.0
+    assert matrix.score == 3.5
+    assert matrix.score_display_label == "3.5 / 5.0"
+
+
+def test_parse_matrix_original_display_scale() -> None:
+    """Positive test: display_scale=ORIGINAL uses computed_min/computed_max bounds."""
+    profile = get_dummy_profile(display_scale=DisplayScale.ORIGINAL)
+    pb = get_dummy_pb()
+
+    payload = {"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}}
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert matrix.scale_min == 0.0
+    assert matrix.scale_max == 1.0
+    assert matrix.score == 1.0
+    assert matrix.score_display_label == "1.0 / 1.0"
+
+
+def test_parse_matrix_custom_display_scale_missing_bounds_fail_fast() -> None:
+    """Negative test: display_scale=CUSTOM with scale_min=None on PromptBlock raises AppException(CONFIGURATION_ERROR)."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+
+    profile = get_dummy_profile(display_scale=DisplayScale.CUSTOM)
+    pb = get_dummy_pb()
+    pb = pb.model_copy(update={"scale_min": None, "scale_max": 5.0})
+
+    payload = {"raw_score": 3.0, "normalized_score": 60.0, "evaluated_atoms": {}}
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    with pytest.raises(AppException) as exc_info:
+        MatrixDomainParser.parse_matrices(
+            results=[dto],
+            locale="en",
+            blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+    assert "UI bounds missing for PromptBlock" in str(exc_info.value)
