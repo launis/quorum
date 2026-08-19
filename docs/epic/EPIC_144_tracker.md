@@ -1,193 +1,402 @@
-# EPIC 144 Tracker: Output Profile Studio UI Modernization & Visual Block Builder
+# EPIC 144: Output Profile Studio UI Modernization — Tracker
 
-**Epic Document:** @[docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md]
-**Task Directory:** @[docs/epic/tasks_EPIC_144/]
+**Epic:** `@[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md]`
+**Task Directory:** `@[docs\epic\tasks_EPIC_144]`
 
 <required_context_rules>
-- @[.agents/rules/00-antigravity-core.md]
-- @[.agents/rules/01-python-backend.md]
-- @[.agents/rules/02_flutter_desktop.md]
-- @[.agents/rules/03_seed_vault.md]
-- @[.agents/rules/04_directory_reference.md]
-- @[.agents/rules/05_llm_architecture.md]
-- @[ki_god_code_prevention.md]
-- @[ki_sdui_adapter_pattern.md]
-- @[ki_tripartite_pipeline_architecture.md]
-- @[ki_dual_axis_localization_architecture.md]
-- @[ki_strict_sdui_serialization.md]
-- @[ki_flat_polymorphic_pipeline.md]
-- @[ki_sdui_matrix_synthesis.md]
-- @[ki_global_config_sovereignty.md]
-- @[ki_ai_testing_standards.md]
-- @[ki_ast_guardrail_testing.md]
-- @[ki_python_314_concurrency_strictness.md]
-- @[ki_epic_lifecycle_workflow.md]
-- @[ki_synthesis_payload_compression.md]
-- @[ki_dag_engine_dto_projection_rules.md]
-- @[ki_matrix_boolean_evaluation_strictness.md]
+  <rule>@[.agents\rules\00-antigravity-core.md]</rule>
+  <rule>@[.agents\rules\01-python-backend.md]</rule>
+  <rule>@[.agents\rules\02_flutter_desktop.md]</rule>
+  <rule>@[.agents\rules\03_seed_vault.md]</rule>
+  <rule>@[.agents\rules\04_directory_reference.md]</rule>
+  <rule>@[.agents\rules\05_llm_architecture.md]</rule>
+  <ki>@[ki_god_code_prevention.md]</ki>
+  <ki>@[ki_sdui_adapter_pattern.md]</ki>
+  <ki>@[ki_tripartite_pipeline_architecture.md]</ki>
+  <ki>@[ki_dual_axis_localization_architecture.md]</ki>
+  <ki>@[ki_strict_sdui_serialization.md]</ki>
+  <ki>@[ki_flat_polymorphic_pipeline.md]</ki>
+  <ki>@[ki_sdui_matrix_synthesis.md]</ki>
+  <ki>@[ki_global_config_sovereignty.md]</ki>
+  <ki>@[ki_ai_testing_standards.md]</ki>
+  <ki>@[ki_ast_guardrail_testing.md]</ki>
+  <ki>@[ki_python_314_concurrency_strictness.md]</ki>
+  <ki>@[ki_synthesis_payload_compression.md]</ki>
+  <ki>@[ki_dag_engine_dto_projection_rules.md]</ki>
+  <ki>@[ki_matrix_boolean_evaluation_strictness.md]</ki>
+  <ki>@[ki_epic_lifecycle_workflow.md]</ki>
 </required_context_rules>
+
+---
 
 ## Phase Execution Status
 
 ### Phase 0: Atomic Data, Mock Fixture & Code Generation Gate (Pre-requisite)
-**Plan:** @[docs/epic/tasks_EPIC_144/00_phase0_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_144/00_phase0_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_144/00_phase0_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-  - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
-  - [ ] Step 1: Master Seed Sanitization & Local Database Reseed
-  - [ ] Step 2: Backend Config & Settings Centralization
-  - [ ] Step 3: Backend Enums & Parity Test
-  - [ ] Step 4: Frontend Enums Synchronization
-  - [ ] Step 5: Backend Domain Model & DTO Purge
-  - [ ] Step 6: OpenAPI Specification Synchronization Gate
-  - [ ] Step 7: Frontend Freezed Model Synchronization & Code Generation
-  - [ ] Step 8: Mock & Unit Test Fixtures Update Across Blast Radius
+
+#### Phase 0-A: Backend Config, Enums & Settings
+**Plan:** `@[docs\epic\tasks_EPIC_144\01_p0_backend_config_enums.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\01_p0_backend_config_enums.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\01_p0_backend_config_enums.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Add DisplayScale Enum to enums.py
+  - [ ] Step 2: Add Authenticity Thresholds to settings.py
+  - [ ] Step 3: Add Boundary Tests to test_settings.py
+  - [ ] Step 4: Create Cross-Language Enum Parity Test
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_144/00_phase0_plan.md] @[docs/epic/EPIC_144_tracker.md]`
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\01_p0_backend_config_enums.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+#### Phase 0-B: Master Seed Sanitization & Local Reseed
+**Plan:** `@[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Audit Current Seed Data State
+  - [ ] Step 2: Remove include_diagnostic_scorecard from All Output Profiles
+  - [ ] Step 3: Verify and Complete metric_mappings Metadata Keys
+  - [ ] Step 4: Verify Enum-Compatible Values
+  - [ ] Step 5: Execute Local Database Reseed
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\02_p0_seed_sanitization.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+#### Phase 0-C: Backend Models & DTO Strict Purge
+**Plan:** `@[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Modify OutputProfile in v2_core.py
+  - [ ] Step 2: Modify OutputProfileCreateDTO
+  - [ ] Step 3: Modify OutputProfileUpdateDTO
+  - [ ] Step 4: Modify OutputProfileResponseDTO
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\03_p0_backend_models_dto_purge.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+#### Phase 0-D: Backend Test Fixtures Alignment Batch 1
+**Plan:** `@[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Update test_v2_core_models.py Fixtures
+  - [ ] Step 2: Update and Add Negative Tests to test_output_profile.py
+  - [ ] Step 3: Update test_output_profile_regression.py
+  - [ ] Step 4: Update test_synthesis_distiller_hook.py
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\04_p0_backend_test_fixtures_batch1.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+#### Phase 0-E: Backend Test Fixtures Alignment Batch 2
+**Plan:** `@[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Update test_blueprint.py Fixtures
+  - [ ] Step 2: Update test_scoring.py Fixtures
+  - [ ] Step 3: Update test_worker_synthesis.py Fixtures
+  - [ ] Step 4: Update test_matrix_domain_parser.py Fixtures
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\05_p0_backend_test_fixtures_batch2.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+#### Phase 0-F: OpenAPI Synchronization Gate
+**Plan:** `@[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Generate OpenAPI Specification
+  - [ ] Step 2: Verify OpenAPI Parity
+  - [ ] Step 3: Full Backend Regression Gate
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\06_p0_openapi_sync_gate.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+#### Phase 0-G: Frontend Enum & Freezed Synchronization
+**Plan:** `@[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Add DisplayScale Enum to enums.dart
+  - [ ] Step 2: Add Missing TargetBlockType Members
+  - [ ] Step 3: Add SystemUiConstraints Enum
+  - [ ] Step 4: Modify output_profile.dart Freezed Model
+  - [ ] Step 5: Modify blueprint_config.dart Freezed Model
+  - [ ] Step 6: Run Freezed Code Generation
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\07_p0_frontend_enums_freezed.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+#### Phase 0-H: Frontend Test Fixtures & Negative Tests
+**Plan:** `@[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Update output_profile_test.dart
+  - [ ] Step 2: Create blueprint_config_test.dart
+  - [ ] Step 3: Update output_profile_controller_test.dart
+  - [ ] Step 4: Update layout_editor_card_test.dart
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\08_p0_frontend_test_fixtures.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+#### Phase 0-I: Integration Checkpoint
+**Plan:** `@[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Full Backend Regression
+  - [ ] Step 2: Full Frontend Studio Build and Test
+  - [ ] Step 3: Cross-Stack Parity Assertions
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\09_p0_integration_checkpoint.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
 
 ### Phase 1: Sub-Tab Information Architecture & Scaffold Decomposition
-**Plan:** @[docs/epic/tasks_EPIC_144/01_phase1_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_144/01_phase1_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_144/01_phase1_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-  - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
-  - [ ] Step 1: Pre-Refactoring Golden Master Widget Test Baseline
-  - [ ] Step 2: Tab 1: ProfileGeneralTab Implementation
-  - [ ] Step 3: Tab 2: ProfileScoringTab Implementation
-  - [ ] Step 4: Tab 3: ProfileLayoutsTab Scaffold Container Implementation
-  - [ ] Step 5: Modernize OutputProfileCrudView Scaffold
+
+#### Phase 1-A: Golden Master Test Baseline
+**Plan:** `@[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Analyze Current View Structure
+  - [ ] Step 2: Create Golden Master Widget Tests
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_144/01_phase1_plan.md] @[docs/epic/EPIC_144_tracker.md]`
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\10_p1_golden_master_baseline.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+#### Phase 1-B: 3-Tab Scaffold Decomposition
+**Plan:** `@[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check
+  - [ ] Step 1: Analyze Monolithic View Structure
+  - [ ] Step 2: Extract General Tab
+  - [ ] Step 3: Extract Scoring Tab
+  - [ ] Step 4: Extract Layouts Tab
+  - [ ] Step 5: Refactor CRUD View to Tab Shell
+  - [ ] Step 6: Verify Golden Master Parity
+  - [ ] Step 7: Line Count Verification
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
 
 ### Phase 2: Adaptive Visual Block Builder & UI Patterns
-**Plan:** @[docs/epic/tasks_EPIC_144/02_phase2_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_144/02_phase2_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_144/02_phase2_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-  - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
-  - [ ] Step 1: Block Card Registry & Base Block Card
-  - [ ] Step 2: Matrix Graphs Block Card (Collection Builder)
-  - [ ] Step 3: Matrix Summary Table Block Card
-  - [ ] Step 4: Synthesis Text Block Card
-  - [ ] Step 5: XAI Extensions Block Card (Dual-Input Hybrid & Clamping)
-  - [ ] Step 6: Metadata, Bibliography & Simple Toggle Block Cards
+
+#### Phase 2: Visual Block Builder
+**Plan:** `@[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md]`
+- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md] --phase=2`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md]`
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_144/02_phase2_plan.md] @[docs/epic/EPIC_144_tracker.md]`
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\12_placeholder_phase2_block_builder.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
 
 ### Phase 3: Backend Execution, Synthesis Alignment & Prompt DRY Simplification
-**Plan:** @[docs/epic/tasks_EPIC_144/03_phase3_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs/epic/tasks_EPIC_144/03_phase3_plan.md] @[docs/epic/EPIC_144_tracker.md] --phase=3`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_144/03_phase3_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_144/03_phase3_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-  - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
-  - [ ] Step 1: Deferred Phase 3 Execution
+
+#### Phase 3: Backend Execution Alignment
+**Plan:** `@[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md]`
+- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md] --phase=3`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md]`
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_144/03_phase3_plan.md] @[docs/epic/EPIC_144_tracker.md]`
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\13_placeholder_phase3_backend_alignment.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
 
 ### Phase 4: Localization Synchronization & Freezed Validation
-**Plan:** @[docs/epic/tasks_EPIC_144/04_phase4_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs/epic/tasks_EPIC_144/04_phase4_plan.md] @[docs/epic/EPIC_144_tracker.md] --phase=4`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_144/04_phase4_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_144/04_phase4_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-  - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
-  - [ ] Step 1: Deferred Phase 4 Execution
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_144/04_phase4_plan.md] @[docs/epic/EPIC_144_tracker.md]`
 
-### Phase 5: Automated Verification & Quality Gates (Anti-Happy-Path Mandate)
-**Plan:** @[docs/epic/tasks_EPIC_144/05_phase5_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs/epic/tasks_EPIC_144/05_phase5_plan.md] @[docs/epic/EPIC_144_tracker.md] --phase=5`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_144/05_phase5_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_144/05_phase5_plan.md] @[docs/epic/EPIC_144_tracker.md]`
-  - [ ] Step 0: STRATEGIC ALIGNMENT CHECK
-  - [ ] Step 1: Deferred Phase 5 Execution
+#### Phase 4: Localization & Accessibility
+**Plan:** `@[docs\epic\tasks_EPIC_144\14_placeholder_phase4_localization.md]`
+- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\14_placeholder_phase4_localization.md] @[docs\epic\EPIC_144_tracker.md] --phase=4`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\14_placeholder_phase4_localization.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\14_placeholder_phase4_localization.md] @[docs\epic\EPIC_144_tracker.md]`
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_144/05_phase5_plan.md] @[docs/epic/EPIC_144_tracker.md]`
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\14_placeholder_phase4_localization.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
+
+### Phase 5: Automated Verification & Quality Gates
+
+#### Phase 5: Quality Gates & Anti-Happy-Path Falsification
+**Plan:** `@[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md]`
+- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md] --phase=5`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]`
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\15_placeholder_phase5_quality_gates.md] @[docs\epic\EPIC_144_tracker.md]`
+
+---
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] Backend and Frontend full-stack integration test gates.
+
+- [ ] **[NOK]** Full backend test suite: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+- [ ] **[NOK]** Full frontend Studio build: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio --build`
+- [ ] **[NOK]** Full frontend Studio tests: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio --test`
+- [ ] **[NOK]** OpenAPI parity: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_generate_openapi.py --test`
+- [ ] **[NOK]** Enum parity (all skips removed): `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_enum_parity.py --test`
+
+---
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend @[backend_v2/settings.py] @[backend_v2/models/enums.py] @[backend_v2/models/v2_core.py] @[backend_v2/models/dtos/output_profile.py] @[backend_v2/models/prompts/synthesis_directives.py] @[backend_v2/models/prompts/__init__.py] @[backend_v2/services/matrix_domain_parser.py] @[backend_v2/services/blueprint.py] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py] @[backend_v2/services/sdui/adapters/metadata_adapter.py] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] @[backend_v2/services/sdui/adapters/authenticity_adapter.py] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py] @[backend_v2/worker.py]`.
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend @[client_app_v2/lib/core/models/enums.dart] @[client_app_v2/lib/features/studio/models/output_profile.dart] @[client_app_v2/lib/features/studio/models/blueprint_config.dart] @[client_app_v2/lib/features/execution/models/synthesis_config_dto.dart] @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/profile_general_tab.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/profile_scoring_tab.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/profile_layouts_tab.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]`.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
-- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
+
+- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains (specifically and exhaustively: `@[backend_v2/tests/unit/test_settings.py]`, `@[backend_v2/tests/unit/test_enum_parity.py]`, `@[backend_v2/tests/unit/test_v2_core_models.py]`, `@[backend_v2/tests/unit/models/dtos/test_output_profile.py]`, `@[backend_v2/tests/unit/models/test_output_profile_regression.py]`, `@[backend_v2/tests/unit/test_synthesis_distiller_hook.py]`, `@[backend_v2/tests/unit/services/test_blueprint.py]`, `@[backend_v2/tests/unit/hooks/test_scoring.py]`, `@[backend_v2/tests/unit/test_worker_synthesis.py]`, `@[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]`, `@[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py]`, `@[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]`, `@[client_app_v2/test/features/studio/models/output_profile_test.dart]`, `@[client_app_v2/test/features/studio/models/blueprint_config_test.dart]`, `@[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart]`, `@[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart]`, `@[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]`).
+- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths — verify zero references to `include_diagnostic_scorecard`, zero `unknownEnumValue` usage, zero `Literal["original", "custom", "normalized_100"]` string type definitions, zero raw `list[str]` `target_block_order` types.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: `/tier2-hardening-backend @[backend_v2/settings.py] @[backend_v2/models/enums.py] @[backend_v2/models/v2_core.py] @[backend_v2/models/dtos/output_profile.py] @[backend_v2/services/blueprint.py] @[backend_v2/services/matrix_domain_parser.py] @[backend_v2/services/sdui/adapters/authenticity_adapter.py] @[backend_v2/services/sdui/adapters/metadata_adapter.py] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py] @[backend_v2/models/prompts/synthesis_directives.py] @[backend_v2/models/prompts/__init__.py] @[backend_v2/worker.py] @[backend_v2/tests/unit/test_settings.py] @[backend_v2/tests/unit/test_enum_parity.py] @[backend_v2/tests/unit/test_v2_core_models.py] @[backend_v2/tests/unit/models/dtos/test_output_profile.py] @[backend_v2/tests/unit/models/test_output_profile_regression.py] @[backend_v2/tests/unit/test_synthesis_distiller_hook.py] @[backend_v2/tests/unit/services/test_blueprint.py] @[backend_v2/tests/unit/hooks/test_scoring.py] @[backend_v2/tests/unit/test_worker_synthesis.py] @[backend_v2/tests/unit/services/test_matrix_domain_parser.py] @[backend_v2/tests/unit/services/sdui/adapters/test_metadata_adapter.py] @[backend_v2/tests/unit/services/sdui/adapters/test_authenticity_adapter.py] @[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py] @[backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py] @[backend_v2/tests/unit/models/prompts/test_synthesis_directives.py]`
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: `/tier2-hardening-frontend @[client_app_v2/lib/core/models/enums.dart] @[client_app_v2/lib/features/studio/models/output_profile.dart] @[client_app_v2/lib/features/studio/models/blueprint_config.dart] @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart] @[client_app_v2/test/features/studio/models/output_profile_test.dart] @[client_app_v2/test/features/studio/models/blueprint_config_test.dart] @[client_app_v2/test/features/studio/controllers/output_profile_controller_test.dart] @[client_app_v2/test/features/studio/views/widgets/profile/layout_editor_card_test.dart] @[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]`
+- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain — zero imports of deleted `include_diagnostic_scorecard` field, zero references to removed `AUTHENTICITY_THRESHOLDS` dict in adapters, zero raw XML tags in cleansed PromptBlocks.
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic across `@[backend_v2/services/blueprint.py]`, `@[backend_v2/services/sdui/adapters/]`, and `@[backend_v2/models/v2_core.py]`.
+- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+
+---
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/`.
+
+- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/` (specifically and exhaustively: `synthesis_directives.py` SSOT, `SystemUiConstraints` enum, `DisplayScale` cross-language enum parity, `TargetBlockType` strict dispatch pattern).
 - [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
 
+---
+
 ### Final Epic Audit
-- [ ] **[NOK]** Epic Boundary Audit: Run `uv run python scripts/audit_markdown_boundaries.py --file @[docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md]` to verify all AST line boundaries in the Epic are still correct.
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md] @[docs/epic/EPIC_144_tracker.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+
+- [ ] **[NOK]** Epic Boundary Audit: Run `uv run python scripts/audit_markdown_boundaries.py --file @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md]` to verify all AST line boundaries in the Epic are still correct.
+- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs\epic\EPIC_144_Output_Profile_Studio_UI_Modernization.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+
+---
 
 ## Instructions for the Execution Agent
-- Atomic commits are MANDATORY per file or cohesively related block of logic.
-- If seeding is necessary, use `uv run python backend_v2/seed/run_seed.py local`.
-- ALWAYS use `@-reference` syntax when referring to files (e.g. `@[backend_v2/models/enums.py]`).
-- You MUST update the `/tier5-resume` or `/tier0-research-plan` (or `/tier0-create-plan` if the plan is missing) command at the bottom of this tracker before handing over the session.
-- Additionally, whenever you finish a milestone, pause for user feedback, or complete a session, you MUST automatically output the next command in your chat response so the user can easily copy-paste it to continue.
-- The mandatory workflow loop is: `[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan`.
-- You MUST ALWAYS pass BOTH the plan and the tracker file in ALL commands.
-- Once all Phases are complete, the loop MUST continue through the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`.
-- Note: You do not need to specify `--rules` in the resume command; context rules are self-hydrating.
+
+1. **Atomic Commit Mandate:** After each successfully passing audit loop (`backend_audit_loop.py` or `flutter_audit_loop.py`), perform an atomic `git commit` specifying ALL modified file paths before proceeding to the next plan or step.
+2. **Seeding Environment:** When executing seed-related plans, run `uv run python backend_v2/seed/run_seed.py local` to refresh the local TinyDB database. Under `ConfigDict(strict=True, extra="forbid")`, stale keys in the local DB cause fatal `pydantic.ValidationError`.
+3. **`@-reference` Syntax:** All file references in plans and this tracker use workspace-relative `@[path]` notation. The IDE resolves these automatically.
+4. **You MUST update the Resume Command at the bottom of this tracker before handing over the session.** Additionally, whenever you finish a milestone, pause for user feedback, or complete a session, you MUST automatically output the next command in your chat response so the user can easily copy-paste it to continue.
+5. **Mandatory Workflow Loop:** `[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan`. You MUST ALWAYS pass BOTH the plan AND the tracker file in ALL commands.
+6. **Post-Phase Completion Loop:** Once all Phases are complete, the loop MUST continue through the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`.
+7. **Note:** You do not need to specify `--rules` in the resume command; context rules are self-hydrating.
+
+---
 
 ## Requirements Traceability Matrix
-| Requirement ID | Description | Mapped Step (Phase & Step ID) |
-|---|---|---|
-| REQ-144-01 | Sanitize `output_profiles` in `backend_v2/seed/seed_data.json` (valid enum keys, bilingual `metric_mappings`, zero `include_diagnostic_scorecard`) and execute local database reseed via `run_seed.py local`. | Phase 0, Step 1 |
-| REQ-144-02 | Centralize authenticity thresholds in `backend_v2/settings.py` (`authenticity_threshold_high: float = 80.0`, `authenticity_threshold_low: float = 50.0`) with `@model_validator(mode="after")` enforcing `high >= low` and unit tests in `test_settings.py`. | Phase 0, Step 2 |
-| REQ-144-03 | Define `DisplayScale(StrEnum)` in `backend_v2/models/enums.py` (`original`, `custom`, `normalized_100`) with `l10n_key` property and automated cross-language enum parity test in `test_enum_parity.py`. | Phase 0, Step 3 |
-| REQ-144-04 | Define `@JsonEnum() enum DisplayScale`, missing 4 `TargetBlockType` members, and `SystemUiConstraints` enum in `client_app_v2/lib/core/models/enums.dart`. | Phase 0, Step 4 |
-| REQ-144-05 | Purge `include_diagnostic_scorecard` from `OutputProfile` and DTOs, typing `target_block_order` as `list[TargetBlockType]`, `display_scale` as `DisplayScale`, and non-nullable `max_extension_items` in `v2_core.py` and `models/dtos/output_profile.py` under `ConfigDict(strict=True, extra="forbid")`. | Phase 0, Step 5 |
-| REQ-144-06 | Synchronize OpenAPI specification via `backend_v2/scripts/generate_openapi.py` and verify via `test_generate_openapi.py`. | Phase 0, Step 6 |
-| REQ-144-07 | Synchronize Dart Freezed model `OutputProfile` in `client_app_v2/lib/features/studio/models/output_profile.dart` and `blueprint_config.dart` (removing `includeDiagnosticScorecard`, typing `DisplayScale displayScale`, `List<TargetBlockType> targetBlockOrder`, non-nullable `@Default(3) int maxExtensionItems`, eradicating all `unknownEnumValue` fallback parameters) and run Freezed build runner. | Phase 0, Step 7 |
-| REQ-144-08 | Update mock fixtures and unit tests across backend (`test_output_profile.py`, `test_matrix_domain_parser.py`, `test_blueprint.py`, `test_scoring.py`, `test_worker_synthesis.py`, `test_v2_core_models.py`, `test_synthesis_distiller_hook.py`) and frontend (`output_profile_test.dart`, `output_profile_controller_test.dart`, `layout_editor_card_test.dart`, `blueprint_config_test.dart`). | Phase 0, Step 8 |
-| REQ-144-09 | Establish pre-refactoring Golden Master widget test baseline in `client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart` to lock form behavior before decomposition. | Phase 1, Step 1 |
-| REQ-144-10 | Implement `ProfileGeneralTab` in `client_app_v2/lib/features/studio/views/widgets/profile/profile_general_tab.dart` (workflow binding, profile name/description, custom preface rich text, advanced accordion for ID/slug). | Phase 1, Step 2 |
-| REQ-144-11 | Implement `ProfileScoringTab` in `client_app_v2/lib/features/studio/views/widgets/profile/profile_scoring_tab.dart` (strictness slider, scoring strategy selector, display scale selector). | Phase 1, Step 3 |
-| REQ-144-12 | Implement `ProfileLayoutsTab` in `client_app_v2/lib/features/studio/views/widgets/profile/profile_layouts_tab.dart` as dedicated scaffold container. | Phase 1, Step 4 |
-| REQ-144-13 | Modernize `output_profile_crud_view.dart` into a <200 line `DefaultTabController` scaffold wiring 3 tabs, eradicating untyped `AsyncValue<List<dynamic>>` (V3), hardcoded color (V4), raw pixel padding (V5), and `SizedBox.shrink()` (V2). | Phase 1, Step 5 |
-| REQ-144-14 | Implement `BaseBlockCard` with Universal Baseline toggle mapped exclusively to `target_block_order` SSOT and `BlockCardRegistry` map dispatch in `widgets/profile/blocks/`. | Phase 2, Step 1 |
-| REQ-144-15 | Implement `MatrixGraphsBlockCard` (Collection Builder with 1-N graph sub-items, inline accordion, 4 visual presets, context-adaptive axis dropdowns, and "+ Add Graph" button). | Phase 2, Step 2 |
-| REQ-144-16 | Implement `MatrixSummaryTableCard` as a single independent card for `preset_view == "matrix_summary"` with column visibility pills and I18n labels. | Phase 2, Step 3 |
-| REQ-144-17 | Implement `SynthesisTextBlockCard` supporting Dual-Mode Option A (Pipeline) and Option B (On-the-Fly) configuration with multilingual rich text editor. | Phase 2, Step 4 |
-| REQ-144-18 | Implement `XaiExtensionsBlockCard` with Dual-Input Hybrid pattern (slider clamping to 1-20 and companion text input validating 1-100 against `SystemUiConstraints` without null fallbacks). | Phase 2, Step 5 |
-| REQ-144-19 | Implement `MetadataBlockCard`, `BibliographyBlockCard`, and `SimpleToggleBlockCard` (for Penalties, Variance Validation, Authenticity Evaluation blocks) and integrate into `ProfileLayoutsTab`. | Phase 2, Step 6 |
-| REQ-144-20 | Unify graph synthesis and visual storytelling prompt mandates under `backend_v2/models/prompts/synthesis_directives.py` SSOT and export in `backend_v2/models/prompts/__init__.py`. | Phase 3, Step 1 |
-| REQ-144-21 | Purge 6 dead-weight synthesis fields from `seed_data.json` layout objects and `SynthesisConfigDTO` (backend and frontend Freezed models) under `ConfigDict(strict=True, extra="forbid")`. | Phase 3, Step 1 |
-| REQ-144-22 | Cleanse PromptBlocks in `seed_data.json` (`blk_111122223333444a`, `blk_111122223333444b`, `blk_111122223333444c`, `blk_34def5d628ba4ed4`, `blk_ad303690b26b413d`) to clean Markdown headings (`## Role`, `## Objective`) without raw XML tags while preserving qualitative coaching philosophy. | Phase 3, Step 1 |
-| REQ-144-23 | Refactor `backend_v2/worker.py` to inject `SYNTHESIS_GRAPH_DIRECTIVES_XML` into dynamic context while keeping system prompt 100% static for Prompt Caching. | Phase 3, Step 1 |
-| REQ-144-24 | Refactor `SynthesisTextAdapter` to read both static `content_blocks` and dynamic `section_syntheses` from `profile_cache`. | Phase 3, Step 1 |
-| REQ-144-25 | Refactor `MetadataAdapter` to eliminate hardcoded Finnish strings (V7), `getattr` duck-typing (V7a), title fallback (V7b), and runtime `isinstance` checks (V7c), resolving labels strictly from `metric_mappings`. | Phase 3, Step 1 |
-| REQ-144-26 | Refactor `AuthenticityAdapter` to eliminate module-level hardcoded `AUTHENTICITY_THRESHOLDS` dictionary (V13) and dynamically resolve thresholds from `settings.py`. | Phase 3, Step 1 |
-| REQ-144-27 | Refactor `ExecutiveSummaryAdapter` to read and append `section_syntheses` synthesis blocks alongside localized user role badge. | Phase 3, Step 1 |
-| REQ-144-28 | Refactor `backend_v2/services/blueprint.py` `_target_block_hydrators` to strictly typed `dict[TargetBlockType, Callable]` with `try...except KeyError:` raising `AppException(VALIDATION_FAILED)` on unmapped blocks (V14). | Phase 3, Step 1 |
-| REQ-144-29 | Refactor `backend_v2/services/matrix_domain_parser.py` to compare native `DisplayScale` enum members instead of magic strings. | Phase 3, Step 1 |
-| REQ-144-30 | Strictly type `RenderedSynthesisCache.xai_highlights` as `list[XaiHighlightItem]` and remove defensive try-catch loops in `XaiHighlightsAdapter`. | Phase 3, Step 1 |
-| REQ-144-31 | Synchronize all compile-time structural UI strings in `client_app_v2/lib/l10n/app_en.arb` and `client_app_v2/lib/l10n/app_fi.arb`, execute `flutter gen-l10n`, and validate Freezed model serialization. | Phase 4, Step 1 |
-| REQ-144-32 | Execute comprehensive automated unit, widget, and anti-happy-path negative test battery across backend and frontend domains with zero skips and full quality gates verification. | Phase 5, Step 1 |
+
+| # | Requirement | Source | Plan | Step(s) |
+|:--|:-----------|:-------|:-----|:--------|
+| R01 | Define `DisplayScale(StrEnum)` in `@[backend_v2/models/enums.py]` with ORIGINAL, CUSTOM, NORMALIZED_100 and `@property l10n_key` | Epic V6 (L59) | Plan 01 | Step 1 |
+| R02 | Add `authenticity_threshold_high` (default=80.0, ge=0.0, le=100.0) to `@[backend_v2/settings.py]` | Epic V13 (L69) | Plan 01 | Step 2 |
+| R03 | Add `authenticity_threshold_low` (default=50.0, ge=0.0, le=100.0) to `@[backend_v2/settings.py]` | Epic V13 (L69) | Plan 01 | Step 2 |
+| R04 | `@model_validator(mode="after")` enforcing `high >= low` in Settings | Epic V13 (L69) | Plan 01 | Step 2 |
+| R05 | Boundary tests for thresholds in `@[backend_v2/tests/unit/test_settings.py]` (-0.1, 100.1, inversion, env overrides) | Epic Phase 5 (L653) | Plan 01 | Step 3 |
+| R06 | Cross-language enum parity test `@[backend_v2/tests/unit/test_enum_parity.py]` for all shared enums | Epic V6/V14 (L59-L70) | Plan 01 | Step 4 |
+| R07 | Purge `include_diagnostic_scorecard` from `@[backend_v2/seed/seed_data.json]` | Epic V12 (L68) | Plan 02 | Step 2 |
+| R08 | Complete `metric_mappings` with bilingual metadata keys (metadata_user, metadata_organization, metadata_scoring_engine, metadata_strictness) | Epic V7 (L60) | Plan 02 | Step 3 |
+| R09 | Verify all `display_scale`, `preset_view`, `text_delivery_mode` values are valid enum strings in seed | Epic V6/V9 (L59, L65) | Plan 02 | Step 4 |
+| R10 | Execute local database reseed: `uv run python backend_v2/seed/run_seed.py local` | Epic V12 (L68) | Plan 02 | Step 5 |
+| R11 | Remove `include_diagnostic_scorecard` from `OutputProfile` in `@[backend_v2/models/v2_core.py]` | Epic V12 (L68) | Plan 03 | Step 1 |
+| R12 | Migrate `display_scale` from `Literal[...]` to `DisplayScale` in `OutputProfile` | Epic V6 (L59) | Plan 03 | Step 1 |
+| R13 | Migrate `target_block_order` from `list[str]` to `list[LaxTargetBlockType]` in `OutputProfile` | Epic V14 (L70) | Plan 03 | Step 1 |
+| R14 | Remove `include_diagnostic_scorecard` from `OutputProfileCreateDTO` | Epic V12 (L68) | Plan 03 | Step 2 |
+| R15 | Migrate `display_scale` to `DisplayScale` in `OutputProfileCreateDTO` | Epic V6 (L59) | Plan 03 | Step 2 |
+| R16 | Migrate `target_block_order` to `list[TargetBlockType]` in `OutputProfileCreateDTO` | Epic V14 (L70) | Plan 03 | Step 2 |
+| R17 | Non-nullable `max_extension_items: Annotated[int, Field(default=3, ge=1, le=100)]` on `OutputProfileCreateDTO` | Epic V10 (L66) | Plan 03 | Step 2 |
+| R18 | Remove `include_diagnostic_scorecard` from `OutputProfileUpdateDTO` | Epic V12 (L68) | Plan 03 | Step 3 |
+| R19 | `max_extension_items: Annotated[int | None, Field(default=None, ge=1, le=100)]` on `OutputProfileUpdateDTO` | Epic V10 (L66) | Plan 03 | Step 3 |
+| R20 | Remove `include_diagnostic_scorecard` from `OutputProfileResponseDTO` | Epic V12 (L68) | Plan 03 | Step 4 |
+| R21 | Non-nullable `max_extension_items` on `OutputProfileResponseDTO` | Epic V10 (L66) | Plan 03 | Step 4 |
+| R22 | `ConfigDict(strict=True, extra="forbid")` enforced on OutputProfile, OutputLayoutBlock, SynthesisConfigDTO, all DTOs | Epic §2.2 (L41) | Plan 03 | Steps 1-4 |
+| R23 | Update `test_v2_core_models.py` fixtures: DisplayScale enum, remove include_diagnostic_scorecard | Epic V9 (L65) | Plan 04 | Step 1 |
+| R24 | Negative tests for `max_extension_items` bounds (0, -1, 101), invalid `display_scale`, legacy keys, nested extra keys | Epic Phase 5 (L654) | Plan 04 | Step 2 |
+| R25 | Update `test_output_profile_regression.py` with TargetBlockType enum values | Epic V14 (L70) | Plan 04 | Step 3 |
+| R26 | Update `test_synthesis_distiller_hook.py` fixtures | Epic V9 (L65) | Plan 04 | Step 4 |
+| R27 | Update `test_blueprint.py` fixtures with DisplayScale, metric_mappings, target_block_order TargetBlockType | Epic V9 (L65) | Plan 05 | Step 1 |
+| R28 | Update `test_scoring.py` fixtures | Epic V9 (L65) | Plan 05 | Step 2 |
+| R29 | Update `test_worker_synthesis.py` fixtures | Epic V9 (L65) | Plan 05 | Step 3 |
+| R30 | Add DisplayScale coverage tests (ORIGINAL, CUSTOM, NORMALIZED_100) to `test_matrix_domain_parser.py` | Epic V6 (L59) | Plan 05 | Step 4 |
+| R31 | OpenAPI spec generation: `uv run python backend_v2/scripts/generate_openapi.py` | Epic V11 (L67) | Plan 06 | Step 1 |
+| R32 | OpenAPI parity test passes green | Epic V11 (L67) | Plan 06 | Step 2 |
+| R33 | Full backend regression gate passes | Epic §3.0 Step 3 (L248) | Plan 06 | Step 3 |
+| R34 | `@JsonEnum() enum DisplayScale` in `@[client_app_v2/lib/core/models/enums.dart]` | Epic V6 (L59) | Plan 07 | Step 1 |
+| R35 | Add 4 missing `TargetBlockType` enum members (matrixGraphsBlock, matrixSummaryTableBlock, varianceValidationBlock, authenticityEvaluationBlock) | Epic V14 (L70) | Plan 07 | Step 2 |
+| R36 | `SystemUiConstraints` enum in `enums.dart` (sliderMin=1, sliderMax=20, absoluteMax=100, default=3) | Epic V10 (L66) | Plan 07 | Step 3 |
+| R37 | Remove `includeDiagnosticScorecard` from `output_profile.dart` Freezed model | Epic V12 (L68) | Plan 07 | Step 4 |
+| R38 | Type `displayScale` as `DisplayScale` in Dart Freezed | Epic V6 (L59) | Plan 07 | Step 4 |
+| R39 | Type `targetBlockOrder` as `List<TargetBlockType>` in Dart Freezed | Epic V14 (L70) | Plan 07 | Step 4 |
+| R40 | Non-nullable `@Default(3) int maxExtensionItems` in Dart Freezed | Epic V10 (L66) | Plan 07 | Step 4 |
+| R41 | Eradicate ALL `unknownEnumValue` fallback parameters from `output_profile.dart` | Epic V1 (L54) | Plan 07 | Step 4 |
+| R42 | Eradicate `unknownEnumValue: PresetView.metrics1d` from `blueprint_config.dart` | Epic V1 (L54) | Plan 07 | Step 5 |
+| R43 | Freezed code generation passes cleanly | Epic V11 (L67) | Plan 07 | Step 6 |
+| R44 | Frontend negative tests: unmapped PresetView, TextDeliveryMode, HistoricalContextMode, DisplayScale, TargetBlockType → `CheckedFromJsonException` | Epic Phase 5 (L665) | Plan 08 | Step 1 |
+| R45 | Frontend negative tests: unrecognized JSON keys at root and nested levels → `CheckedFromJsonException` | Epic Phase 5 (L665) | Plan 08 | Steps 1-2 |
+| R46 | [NEW] `blueprint_config_test.dart` asserting `CheckedFromJsonException` on unmapped preset_view | Epic Phase 5 (L665) | Plan 08 | Step 2 |
+| R47 | Update `output_profile_controller_test.dart` fixtures | Epic V9 (L65) | Plan 08 | Step 3 |
+| R48 | Update `layout_editor_card_test.dart` fixtures | Epic V9 (L65) | Plan 08 | Step 4 |
+| R49 | Full backend regression: `uv run python scripts/backend_audit_loop.py backend_v2 --test` | Epic §3.0 (L262) | Plan 09 | Step 1 |
+| R50 | Full frontend Studio build and test passes green | Epic §3.0 (L263) | Plan 09 | Step 2 |
+| R51 | Cross-stack parity: zero `include_diagnostic_scorecard`, zero `unknownEnumValue`, all enum parity skips removed | Epic §3.0 (L262-263) | Plan 09 | Step 3 |
+| R52 | Golden Master characterization test baseline for `output_profile_crud_view.dart` | Epic Phase 1 (L365-367) | Plan 10 | Step 2 |
+| R53 | Decompose `output_profile_crud_view.dart` into ≤200-line TabBar/TabBarView shell | Epic Phase 1 (L369) | Plan 11 | Step 5 |
+| R54 | [NEW] `profile_general_tab.dart` ≤200 lines | Epic Phase 1 (L370-374) | Plan 11 | Step 2 |
+| R55 | [NEW] `profile_scoring_tab.dart` ≤200 lines | Epic Phase 1 (L375-378) | Plan 11 | Step 3 |
+| R56 | [NEW] `profile_layouts_tab.dart` ≤200 lines | Epic Phase 1 (L379-381) | Plan 11 | Step 4 |
+| R57 | Golden Master parity tests still pass after decomposition | Epic Phase 1 (L365-367) | Plan 11 | Step 6 |
+| R58 | Visual Block Builder with Registry Map pattern `Map<TargetBlockType, Widget Function()>` | Epic Phase 2 (L397) | Plan 12 | DEFERRED |
+| R59 | 9 dedicated block card widgets under `blocks/` directory | Epic Phase 2 (L384-395) | Plan 12 | DEFERRED |
+| R60 | Matrix Graphs Collection Builder with inline accordion editing | Epic Phase 2 (L407-412) | Plan 12 | DEFERRED |
+| R61 | Matrix Summary Table independent block card with FilterChip column toggles | Epic Phase 2 (L414-418) | Plan 12 | DEFERRED |
+| R62 | XAI Extensions slider with clamping + companion TextFormField validation | Epic Phase 2 (L427-483) | Plan 12 | DEFERRED |
+| R63 | Migrate `AUTHENTICITY_THRESHOLDS` from adapter to `get_settings()` dynamic resolution | Epic V13 (L69) | Plan 13 | DEFERRED |
+| R64 | MetadataAdapter: eradicate V7 hardcoded Finnish strings, V7a getattr duck-typing, V7b title fallback, V7c isinstance guard | Epic V7/V7a/V7b/V7c (L60-63) | Plan 13 | DEFERRED |
+| R65 | SynthesisTextAdapter: read both `content_blocks` and `section_syntheses` (V8 fix) | Epic V8 (L64) | Plan 13 | DEFERRED |
+| R66 | [NEW] `synthesis_directives.py` SSOT with XML mandate constants | Epic V15 (L71) | Plan 13 | DEFERRED |
+| R67 | Strip 6 dead-weight fields from `SynthesisConfigDTO` and seed_data.json layouts | Epic V15 (L71) | Plan 13 | DEFERRED |
+| R68 | Cleanse graph synthesis PromptBlocks to Markdown headings (de_generator_mandate_no_xml) | Epic V15 (L71) | Plan 13 | DEFERRED |
+| R69 | Worker.py inject `SYNTHESIS_GRAPH_DIRECTIVES_XML` into dynamic context | Epic V15 (L71) | Plan 13 | DEFERRED |
+| R70 | Type `xai_highlights` from `list[Any]` to `list[XaiHighlightItem]` | Epic Phase 3 §7 (L549) | Plan 13 | DEFERRED |
+| R71 | `matrix_domain_parser.py` compare native `DisplayScale` enum members | Epic V6 (L59) | Plan 13 | DEFERRED |
+| R72 | `blueprint.py` `_target_block_hydrators` typed as `dict[TargetBlockType, Callable]` with strict KeyError handling | Epic V14 (L70) | Plan 13 | DEFERRED |
+| R73 | Bilingual `.arb` keys for all 3 tab titles, 10 block card titles, preset labels, toggle labels | Epic Phase 4 (L622-627) | Plan 14 | DEFERRED |
+| R74 | Backend Enum `@property l10n_key` mapping for PresetView, XaiExtensionType, DisplayScale, ScoringStrategy | Epic Phase 4 (L627) | Plan 14 | DEFERRED |
+| R75 | `SynthesisConfigDTO` dead-weight field purge in Dart Freezed models | Epic V15 (L607) | Plan 14 | DEFERRED |
+| R76 | Backend negative tests: blueprint.py unmapped TargetBlockType → AppException | Epic Phase 5 (L650) | Plan 15 | DEFERRED |
+| R77 | Backend negative tests: MetadataAdapter missing metric_mappings keys → AppException | Epic Phase 5 (L651) | Plan 15 | DEFERRED |
+| R78 | Backend negative tests: AuthenticityAdapter threshold boundary classifications (80.0, 79.99, 50.0, 49.99) | Epic Phase 5 (L652) | Plan 15 | DEFERRED |
+| R79 | Frontend negative tests: SduiBlockDTO unknown block_type, missing fields, extra keys → exceptions | Epic Phase 5 (L666) | Plan 15 | DEFERRED |
+| R80 | Widget tests: max_extension_items=50 slider clamping without assertion crash | Epic Phase 5 (L668) | Plan 15 | DEFERRED |
+| R81 | Eradicate V2 (SizedBox.shrink to hide unavailable XAI extensions) | Epic V2 (L55) | Plan 11 | Steps 2-5 |
+| R82 | Eradicate V3 (AsyncValue<List<dynamic>> → typed AsyncValue) | Epic V3 (L56) | Plan 11 | Steps 2-5 |
+| R83 | Eradicate V4 (Hardcoded color `Color(0xFF2E7D32)`) | Epic V4 (L57) | Plan 11 | Steps 2-5 |
+| R84 | Eradicate V5 (Hardcoded pixel values → AppSpacing design tokens) | Epic V5 (L58) | Plan 11 | Steps 2-5 |
+
+---
 
 # Session Handover Context
+
 ## Achieved
-- **[Epic 144 Implementation Plans Created]**: Generated 6 phased implementation plans (`00_phase0_plan.md` through `05_phase5_plan.md`) in `docs/epic/tasks_EPIC_144/` with granular execution steps, strict DoD checklists, anti-targets, and validation gates aligned with `@[docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md]`.
-- **[Epic 144 Tracker Authored]**: Created `@[docs/epic/EPIC_144_tracker.md]` establishing the master audit trail, bidirectional Requirements Traceability Matrix (32 micro-requirements mapped to plan steps), post-implementation gates, and execution instructions.
+- Tier 1 Planning completed: 15 implementation plan files generated in `@[docs\epic\tasks_EPIC_144]`.
+- Plans 01-11 contain detailed execution protocols with granular steps, test contracts, validation gates, anti-targets, and DoD checklists.
+- Plans 12-15 are placeholders (DEFERRED) for Phases 2-5 pending completion of earlier phases.
+- EPIC 144 Tracker generated with full Phase Execution Status, granular step-level checkboxes, Requirements Traceability Matrix (84 requirements), Post-Implementation Gates, and Documentation/KI update gates.
 
 ## Learned
-- **Baseline State Snapshot**:
-  - `OutputProfileCrudView` (`@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`) is an 896-line monolithic widget mixing general identity, scoring configuration, metadata checklists, XAI toggles, and layout block rendering in a 3-column LayoutBuilder.
-  - `LayoutEditorCard` (`@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`) uses raw text inputs for comma-separated `steps` IDs and segmented button sub-tabs without visual preview cards.
-  - `OutputProfile` and DTOs contain redundant legacy field `include_diagnostic_scorecard`, raw string `display_scale`, and raw string list `target_block_order`.
-  - `seed_data.json` layout objects repeat 6 dead-weight synthesis fields (`model_strategy`, `historical_context_mode`, `enable_pii_masking`, `allowed_exports`, `omit_empty_sections`, `allowed_mcp_tools`) never consumed by `worker.py`.
-  - SDUI adapters (`MetadataAdapter`, `AuthenticityAdapter`) contain hardcoded Finnish strings (V7) and hardcoded threshold dictionaries (V13).
+- **Baseline State Snapshot:** The codebase currently has a monolithic 856-line `output_profile_crud_view.dart` with 14 identified violations (V1-V15). The `OutputProfile` model still contains `include_diagnostic_scorecard: bool`, uses raw `Literal["original", "custom", "normalized_100"]` for `display_scale`, uses `list[str]` for `target_block_order`, and the Dart Freezed models use `unknownEnumValue` fallback annotations. The `authenticity_adapter.py` has hardcoded `AUTHENTICITY_THRESHOLDS = {"high": 80.0, "low": 50.0}`. The `metadata_adapter.py` has hardcoded Finnish strings. The `seed_data.json` contains `include_diagnostic_scorecard` keys and potentially incomplete `metric_mappings`. The 6-Step Atomic Pipeline (Seed→Models→OpenAPI→Freezed→UI→Tests) must be strictly followed to avoid fatal `pydantic.ValidationError(extra_forbidden)` crashes.
 
 ## Remaining
-- Execute Phase 0 research analysis via `/tier0-research-plan @[docs/epic/tasks_EPIC_144/00_phase0_plan.md] @[docs/epic/EPIC_144_tracker.md]`.
-- Implement Phase 0 (Master seed sanitization, settings thresholds, DisplayScale / TargetBlockType enums, domain model & DTO purge, OpenAPI sync, Freezed generation, fixture updates).
-- Execute Phase 1 (Sub-Tab Information Architecture & Scaffold Decomposition).
-- Execute Phase 2 (Adaptive Visual Block Builder & UI Patterns).
-- Generate deferred Phase 3, Phase 4, Phase 5 plans via `/tier0-create-plan` upon reaching their respective execution milestones.
+- Execute Phase 0-A through Phase 0-I (Plans 01-09): Backend config, seed sanitization, model purge, test fixture alignment, OpenAPI sync, frontend enum sync, frontend test fixtures, integration checkpoint.
+- Execute Phase 1-A through Phase 1-B (Plans 10-11): Golden Master baseline and 3-tab scaffold decomposition.
+- Generate detailed plans for Phases 2-5 (Plans 12-15 are placeholders requiring `/tier0-create-plan`).
+- Execute Phases 2-5 after plans are created.
+- Run all Post-Implementation Gates (Golden Master audit, Proxy Sunset, Tier 2 Hardening Backend/Frontend, Pre-Delete Audit, Semantic Coverage, Final E2E).
+- Create Knowledge Items and run `/tier7-describe-architecture`.
+- Run Final Epic Audit `/tier8-audit-epic`.
 
 ## Resume Command
-`/tier0-research-plan @[docs/epic/tasks_EPIC_144/00_phase0_plan.md] @[docs/epic/EPIC_144_tracker.md]`
+`/tier0-research-plan @[docs\epic\tasks_EPIC_144\01_p0_backend_config_enums.md] @[docs\epic\EPIC_144_tracker.md]`
