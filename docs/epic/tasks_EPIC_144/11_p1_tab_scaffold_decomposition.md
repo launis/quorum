@@ -4,23 +4,25 @@
 **Source:** Epic Phase 1, "Tab Architecture & UI Scaffold" (L368-L430) and 6-Step Pipeline Step 5 (L256-L260)
 **Scope:** Frontend Flutter/Dart views only
 
-**Overview:** Decompose the 856-line monolithic `output_profile_crud_view.dart` into a 3-tab `TabBarView` architecture: General Tab, Scoring & Visualization Tab, and Layouts Tab. Each extracted tab widget MUST be ≤200 lines per the God Code Prevention mandate.
+**Overview:** Decompose the 899-line monolithic `output_profile_crud_view.dart` into a 3-tab `TabBarView` architecture: General Tab, Scoring & Extensions Tab, and Layouts Tab. Each extracted tab widget MUST be ≤200 lines per the God Code Prevention mandate.
 
 **Target Files:**
 - `[MODIFY]` `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`
 - `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]`
 - `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]`
 - `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`
+- `[MODIFY]` `@[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart]`
 
 **Context Files (Read-Only):**
-- `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]` — Form state controller
-- `[NEW from Plan 10]` `client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart` — Golden Master baseline (Plan 10)
+- `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]` — Form state controller (`outputProfileFormProvider`)
+- `@[client_app_v2/lib/features/studio/models/output_profile.dart]` — Freezed model
+- `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]` — Nested layout editor
 
 ```xml
 <execution_protocol>
   <step id="0" name="STRATEGIC ALIGNMENT CHECK">
     <action>Look backward: Verify Plan 10 (Golden Master Baseline) is complete — characterization tests pass green.</action>
-    <action>Look forward: Verify @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart] is still the monolithic ~856-line file and has NOT been decomposed yet.</action>
+    <action>Look forward: Verify @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart] is still the monolithic ~899-line file and has NOT been decomposed yet.</action>
     <constraint>If Golden Master tests do not pass, STOP. Do NOT decompose without a behavioral safety net.</constraint>
     <directive>EPIC SYNC MANDATE: If this plan is mutated during Tier 0 analysis, you MUST simultaneously open the parent Epic document and synchronize the architectural corrections back into the Epic.</directive>
   </step>
@@ -54,22 +56,39 @@
 
   <dod_checklist>
     <item>output_profile_crud_view.dart reduced to a TabBar/TabBarView shell ≤200 lines.</item>
-    <item>[NEW] profile_general_tab.dart contains profile identity fields (name, description, workflow, settings) — ≤200 lines.</item>
-    <item>[NEW] profile_scoring_tab.dart contains scoring configuration (strictness, scoring_strategy, display_scale, max_extension_items) — ≤200 lines.</item>
-    <item>[NEW] profile_layouts_tab.dart contains layout editor and target_block_order configuration — ≤200 lines.</item>
-    <item>Golden Master characterization tests from Plan 10 still pass green (behavioral parity maintained).</item>
-    <item>Flutter analyze reports zero new lints in the modified/new files.</item>
+    <item>[NEW] profile_general_tab.dart contains profile identity fields (id, slug, workflowId, name, description, customPreface) — ≤200 lines.</item>
+    <item>[NEW] profile_scoring_tab.dart contains scoring & extensions configuration (displayScale, strictnessLevel, scoringStrategy, visibleMetadata, maxExtensionItems, visibleBlockExtensions, visibleWorkflowExtensions) — ≤200 lines.</item>
+    <item>[NEW] profile_layouts_tab.dart contains layout editor and targetBlockOrder configuration — ≤200 lines.</item>
+    <item>Eradicate Phase 9 anti-patterns: untyped AsyncValue&lt;List&lt;dynamic&gt;&gt; (R82), hardcoded hex colors (R83), hardcoded padding doubles (R84), and silent shrink widgets (R81).</item>
+    <item>Golden Master characterization tests in output_profile_crud_view_test.dart updated for tab navigation and passing 100% green.</item>
+    <item>Flutter analyze reports zero new lints or warnings in modified/new files.</item>
   </dod_checklist>
 
-  <step id="1" name="ANALYZE MONOLITHIC VIEW STRUCTURE">
-    <action>Read @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart] in full (856 lines). Map the widget tree to identify which form fields belong to each tab:
+  <step id="1" name="MAP MONOLITHIC VIEW STRUCTURE &amp; FIELD BOUNDARIES">
+    <action>Analyze @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart] (899 lines) to establish exact field allocation across the 3 tabs:
 
-**Tab 1 - General:** Profile name, description, workflow selector, preset_view, text_delivery_mode, synthesis toggle, preamble_text, tone_instruction.
-**Tab 2 - Scoring & Visualization:** display_scale, scoring_strategy, strictness_level, max_extension_items, custom scale bounds.
-**Tab 3 - Layouts:** OutputLayoutBlock editor, target_block_order drag-and-drop/chips, matrix_column_labels, matrix_visible_columns.
+**Tab 1 - General (`ProfileGeneralTab`):**
+- Profile ID (`TextFormField`, read-only)
+- URL Slug (`TextFormField`, updating `payload.slug`)
+- Workflow Selector (`DropdownButtonFormField&lt;String&gt;`, listing workflows from `workflowsControllerProvider`, updating `payload.workflowId`)
+- Display Name (`I18nTextField`, updating `payload.name`)
+- Description (`I18nTextField`, updating `payload.description`)
+- Custom Preface (`I18nTextField`, updating `payload.customPreface`)
 
-Document exact line ranges for each extraction.</action>
-    <constraint>Do NOT modify any code. This is analysis only.</constraint>
+**Tab 2 - Scoring &amp; Extensions (`ProfileScoringTab`):**
+- Display Scale (`DropdownButton&lt;DisplayScale&gt;`, updating `payload.displayScale`)
+- Strictness Level (`DropdownButton&lt;int&gt;` with `StrictnessLevel` options, updating `payload.strictnessLevel`)
+- Scoring Strategy (`DropdownButton&lt;ScoringStrategy?&gt;`, updating `payload.scoringStrategy`)
+- Identity Metadata (`CheckboxListTile`s for `visibleMetadata`: date, organization, user, scoring_engine, strictness, cost, tokens)
+- Max Extension Items (`TextFormField` with integer validation, updating `payload.maxExtensionItems`)
+- Block-Level Extensions (`CheckboxListTile`s for `visibleBlockExtensions` filtered by `workflowAvailableExtensionsProvider(workflowId)`)
+- Workflow-Level Extensions (`CheckboxListTile`s for `visibleWorkflowExtensions`)
+
+**Tab 3 - Report Structure / Layouts (`ProfileLayoutsTab`):**
+- Workflow Unselected Warning Card (shown when `workflowId.isEmpty`)
+- OutputLayoutBlock List Editor (`LayoutEditorCard`, passing `layouts`, `allowedBlockIds`, `promptBlocksState`)
+- Target Block Order (`ReorderableListView` for `payload.targetBlockOrder`)</action>
+    <constraint>Do NOT modify any code during Step 1. This is analysis only.</constraint>
   </step>
 
   <step id="2" name="EXTRACT GENERAL TAB">
@@ -77,89 +96,194 @@ Document exact line ranges for each extraction.</action>
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
+import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
-/// Tab 1: Profile identity, workflow selection, and synthesis configuration.
+/// Tab 1: Profile identity, URL slug, workflow binding, and rich text preface.
 class ProfileGeneralTab extends ConsumerWidget {
-  const ProfileGeneralTab({super.key});
+  final String id;
+  const ProfileGeneralTab({super.key, required this.id});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Extract form fields from output_profile_crud_view.dart
-    // Profile name TextField
-    // Description TextField
-    // Workflow selector dropdown
-    // PresetView selector
-    // TextDeliveryMode selector
-    // Synthesis toggle + SynthesisConfigDTO editor
-    // Preamble text
-    // Tone instruction
+    final l10n = AppLocalizations.of(context)!;
+    final formState = ref.watch(outputProfileFormProvider(id));
+    final workflowsState = ref.watch(workflowsControllerProvider);
+
+    final payload = formState.value;
+    if (payload == null) return const SizedBox.shrink();
+
+    void updatePayload(OutputProfile p) {
+      ref.read(outputProfileFormProvider(id).notifier).updatePayload(p);
+    }
+
+    return ListView(
+      padding: AppSpacing.p16,
+      children: [
+        Card(
+          child: Padding(
+            padding: AppSpacing.p16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  initialValue: payload.id,
+                  decoration: InputDecoration(
+                    labelText: l10n.profileIdLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  readOnly: true,
+                ),
+                AppSpacing.h16,
+                TextFormField(
+                  initialValue: payload.slug,
+                  decoration: InputDecoration(
+                    labelText: l10n.urlSlugLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged: (val) {
+                    updatePayload(payload.copyWith(slug: val.trim()));
+                  },
+                ),
+                AppSpacing.h16,
+                switch (workflowsState) {
+                  AsyncData(value: final rawWorkflows) =&gt; Builder(
+                    builder: (context) {
+                      final workflows = rawWorkflows.cast&lt;Workflow&gt;();
+                      String? currentValue = payload.workflowId.isNotEmpty
+                          ? payload.workflowId
+                          : null;
+                      final bool hasValidValue =
+                          currentValue != null &amp;&amp;
+                          (workflows.any((w) =&gt; w.id == currentValue) ||
+                              currentValue == '');
+                      return DropdownButtonFormField&lt;String&gt;(
+                        initialValue: hasValidValue ? currentValue : null,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: l10n.workflowIdBindingLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        hint: Text(l10n.selectWorkflowHint),
+                        items: [
+                          DropdownMenuItem(
+                            value: '',
+                            child: Text(
+                              l10n.noneDefaultLabel,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          ...workflows.map((flow) {
+                            final flowId = flow.id;
+                            final localeCode = Localizations.localeOf(context).languageCode;
+                            final displayName = flow.name.get(localeCode);
+                            return DropdownMenuItem(
+                              value: flowId,
+                              child: Text(
+                                '$displayName ($flowId)',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            updatePayload(payload.copyWith(workflowId: val));
+                          }
+                        },
+                      );
+                    },
+                  ),
+                  AsyncLoading() =&gt; const Center(child: CircularProgressIndicator()),
+                  AsyncError(:final error) =&gt; Text(
+                    l10n.studioViewsErrorLoadingWorkflows(error.toString()),
+                  ),
+                },
+                AppSpacing.h16,
+                I18nTextField(
+                  label: l10n.profileDisplayNameLabel,
+                  initialData: payload.name,
+                  onChanged: (val) {
+                    updatePayload(payload.copyWith(name: val));
+                  },
+                ),
+                AppSpacing.h16,
+                I18nTextField(
+                  label: l10n.profileDescriptionLabel,
+                  initialData: payload.description,
+                  onChanged: (val) {
+                    final isEmpty =
+                        val.translations.isEmpty ||
+                        val.translations.values.every((v) =&gt; v.trim().isEmpty);
+                    updatePayload(
+                      payload.copyWith(description: isEmpty ? null : val),
+                    );
+                  },
+                ),
+                AppSpacing.h16,
+                I18nTextField(
+                  label: l10n.customPrefaceLabel,
+                  initialData: payload.customPreface,
+                  onChanged: (val) {
+                    final isEmpty =
+                        val.translations.isEmpty ||
+                        val.translations.values.every((v) =&gt; v.trim().isEmpty);
+                    updatePayload(
+                      payload.copyWith(customPreface: isEmpty ? null : val),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
-```
-Use `ref.watch()` to read form state from the existing Riverpod providers. Do NOT create new state management — reuse the existing controller's form state.</action>
+```</action>
     <constraint invariant="200_line_cap">This file MUST be ≤200 lines.</constraint>
-    <constraint invariant="zero_behavioral_change">The extracted form fields MUST render identically to their current positions in the monolithic view. No visual or functional changes permitted.</constraint>
+    <constraint invariant="zero_behavioral_change">Form fields render identically to their current functionality with zero regressions.</constraint>
   </step>
 
   <step id="3" name="EXTRACT SCORING TAB">
     <action>Create [NEW] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]:
-```dart
-/// Tab 2: Scoring & Visualization configuration.
-class ProfileScoringTab extends ConsumerWidget {
-  const ProfileScoringTab({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // DisplayScale selector (using DisplayScale enum from enums.dart)
-    // ScoringStrategy selector
-    // Strictness level slider/input
-    // MaxExtensionItems slider (using SystemUiConstraints enum bounds)
-    // Custom scale bounds (visible only when DisplayScale.custom selected)
-  }
-}
-```
-The `maxExtensionItems` slider MUST use `SystemUiConstraints.maxExtensionItemsSliderMin.value` and `SystemUiConstraints.maxExtensionItemsSliderMax.value` for its range bounds.</action>
+Extract displayScale, strictnessLevel, scoringStrategy, visibleMetadata, maxExtensionItems, visibleBlockExtensions, and visibleWorkflowExtensions.
+The maxExtensionItems input MUST validate `parsed &gt;= 1 &amp;&amp; parsed &lt;= 100` and display `l10n.extensionItemsMustBeIntError` on error.</action>
     <constraint invariant="200_line_cap">This file MUST be ≤200 lines.</constraint>
   </step>
 
   <step id="4" name="EXTRACT LAYOUTS TAB">
     <action>Create [NEW] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]:
-```dart
-/// Tab 3: Output layout configuration and target block ordering.
-class ProfileLayoutsTab extends ConsumerWidget {
-  const ProfileLayoutsTab({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // OutputLayoutBlock list editor (existing layout_editor_card.dart widgets)
-    // target_block_order configuration
-    // Matrix column labels
-    // Matrix visible columns
-  }
-}
-```</action>
+Extract the workflow empty check warning card, `LayoutEditorCard`, and `ReorderableListView` for `targetBlockOrder`.</action>
     <constraint invariant="200_line_cap">This file MUST be ≤200 lines.</constraint>
   </step>
 
   <step id="5" name="REFACTOR CRUD VIEW TO TAB SHELL">
-    <action>Modify @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart] to become a thin TabBar/TabBarView shell:
-1. Add `DefaultTabController(length: 3, ...)` wrapping the existing form scaffold.
-2. Add a `TabBar` with 3 tabs: "General", "Scoring", "Layouts" (use l10n keys).
-3. Replace the monolithic form body with a `TabBarView` containing `ProfileGeneralTab()`, `ProfileScoringTab()`, `ProfileLayoutsTab()`.
-4. Keep the AppBar with save/cancel actions, form key, and any shared form state in the parent shell.
-5. DELETE all extracted form field widgets from this file.</action>
+    <action>Modify @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart] to become a lightweight shell:
+1. Wrap the Scaffold in `DefaultTabController(length: 3, ...)`.
+2. Add `bottom: TabBar(tabs: [Tab(text: l10n.profileTabGeneral), Tab(text: l10n.profileTabXai), Tab(text: l10n.profileTabLayouts)])` to the AppBar.
+3. Replace the body with `Form(key: formKey, child: TabBarView(children: [ProfileGeneralTab(id: id), ProfileScoringTab(id: id), ProfileLayoutsTab(id: id)]))`.
+4. Keep the AppBar save and delete actions, replacing hardcoded colors (`Color(0xFF2E7D32)`) with Theme tokens and hardcoded EdgeInsets with `AppSpacing`.
+5. DELETE all extracted form field widgets and helper methods from this file.</action>
     <constraint invariant="200_line_cap">The refactored file MUST be ≤200 lines.</constraint>
-    <constraint invariant="zero_behavioral_change">The save/cancel flow, form validation, and data persistence MUST remain unchanged.</constraint>
+    <constraint invariant="zero_behavioral_change">Save, delete, form validation, and data persistence remain 100% intact.</constraint>
   </step>
 
-  <step id="6" name="VERIFY GOLDEN MASTER PARITY">
-    <action>Re-run the Golden Master characterization tests from Plan 10:
+  <step id="6" name="UPDATE &amp; VERIFY GOLDEN MASTER TESTS">
+    <action>Update @[client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart] to assert tab switching for fields on Tab 2 (Extensions/Scoring) and Tab 3 (Layouts).
+Re-run the Golden Master characterization test suite:
 `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart --test`</action>
-    <constraint>ALL Golden Master tests MUST still pass green. Any failure indicates a behavioral change that MUST be fixed before proceeding.</constraint>
+    <constraint>ALL 10 Golden Master tests MUST pass green.</constraint>
   </step>
 
   <step id="7" name="LINE COUNT VERIFICATION">
-    <action>Verify all files satisfy the ≤200 line cap:
+    <action>Verify all 4 files satisfy the ≤200 line cap:
 ```powershell
 Get-Content client_app_v2\lib\features\studio\views\output_profile_crud_view.dart | Measure-Object -Line
 Get-Content client_app_v2\lib\features\studio\views\widgets\profile\tabs\profile_general_tab.dart | Measure-Object -Line
@@ -177,3 +301,4 @@ Get-Content client_app_v2\lib\features\studio\views\widgets\profile\tabs\profile
   </validation_gate>
 </execution_protocol>
 ```
+

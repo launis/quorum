@@ -180,15 +180,15 @@
 
 #### Phase 1-B: 3-Tab Scaffold Decomposition
 **Plan:** `@[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
   - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Analyze Monolithic View Structure
+  - [ ] Step 1: Map Monolithic View Structure & Field Boundaries
   - [ ] Step 2: Extract General Tab
   - [ ] Step 3: Extract Scoring Tab
   - [ ] Step 4: Extract Layouts Tab
   - [ ] Step 5: Refactor CRUD View to Tab Shell
-  - [ ] Step 6: Verify Golden Master Parity
+  - [ ] Step 6: Update & Verify Golden Master Tests
   - [ ] Step 7: Line Count Verification
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]`
@@ -626,6 +626,15 @@
   - Confirmed zero supply-chain violations (banned AI bloatware packages in `pubspec.yaml`).
   - Executed global quality gates (`flutter_audit_loop.py`): build runner clean (55 outputs), **0 analyzer issues**, full frontend test suite passing **117/117 tests green**.
   - Emitted formal artifact: `@[red_team_audit_10_p1_golden_master_baseline.md]`.
+- **Phase 1-B Red-Teaming & Falsification Passed (`[OK]`):**
+  - Completed System 2 Red-Teaming on `@[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md]`.
+  - Diagnosed and resolved 4 critical architectural findings:
+    1. Fixed field mapping drift in Plan 11 (removed layout-level fields `preset_view`, `text_delivery_mode`, etc. from Tab 1 and anchored exact root-level fields: Tab 1 General = ID, slug, workflowId, name, description, customPreface; Tab 2 Scoring = displayScale, strictnessLevel, scoringStrategy, visibleMetadata, maxExtensionItems, visibleBlockExtensions, visibleWorkflowExtensions; Tab 3 Layouts = workflow check warning, LayoutEditorCard, targetBlockOrder).
+    2. Enforced Riverpod O(1) state resolution: extracted tabs accept `id: id` and watch `outputProfileFormProvider(id)` directly, eliminating multi-parameter drilling and reducing parent shell `output_profile_crud_view.dart` to ~90 lines.
+    3. Mandated eradication of Phase 9 Modernity Gate violations (R81 silent shrink removal, R82 untyped `AsyncValue<List<dynamic>>` elimination, R83 hex color replacement with Theme tokens, R84 double padding replacement with `AppSpacing`).
+    4. Synchronized `client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart` to assert tab navigation across the 3 `TabBarView` pages.
+  - Synchronized target tab paths (`widgets/profile/tabs/`) across `docs/epic/EPIC_144_Output_Profile_Studio_UI_Modernization.md`, `11_p1_tab_scaffold_decomposition.md`, and this tracker.
+  - Re-verified planner boundary fidelity with `audit_planner_output.py` (100% pass).
 
 ## Learned
 - **Codebase Baseline & Violation Topology:** The codebase currently has a monolithic 856-line `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` with 15 identified architectural violations (V1–V15).
@@ -657,6 +666,7 @@
 - **LayoutBuilder Constraints in Widget Testing:** In Flutter widget testing of responsive layouts with `LayoutBuilder`, `MediaQueryData(size: ...)` alone does not constrain the physical canvas; setting `tester.view.physicalSize = const Size(1920, 1080)` and `tester.view.devicePixelRatio = 1.0` with `addTearDown` cleanup is required to properly trigger wide-screen branches (e.g., 3-pane `Row` vs `ListView`).
 - **DotEnv Initialization in Widget Tests:** Notifier callbacks that call `ref.read(loggerServiceProvider)` trigger logger initialization which accesses `DotEnv.env`. Mocking `loggerServiceProvider.overrideWithValue(mockLogger)` in `ProviderScope.overrides` isolates widget tests from global environment variables.
 - **Global Studio View Parity on Freezed Migrations:** When migrating a Freezed model field from nullable `int?` to non-nullable `int` or from `String` to `Enum`, all legacy views consuming that model (e.g., `profile_editor_view.dart` as well as `output_profile_crud_view.dart`) must have their dropdown values and slider bounds synchronized with `SystemUiConstraints` to prevent Dart analyzer compilation errors during global `--build` audits.
+- **Tab Scaffold Decomposition & Widget Isolation:** Decomposing monolithic UI forms into Riverpod `ConsumerWidget` tabs accepting `id` allows each tab to watch its own dependencies (`workflowsControllerProvider`, `promptBlocksControllerProvider`, `workflowAvailableExtensionsProvider`) independently without constructor prop drilling, satisfying the ≤200 line cap per file.
 
 ## Remaining
 - **Phase 1-B (Plan 11):** 3-tab scaffold decomposition (`output_profile_crud_view.dart` decomposed into ≤200-line shell + 3 tabs: `profile_general_tab.dart`, `profile_scoring_tab.dart`, `profile_layouts_tab.dart`).
@@ -666,5 +676,5 @@
 
 ## Resume Command
 ```bash
-/tier0-research-plan @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]
+/tier2-execute @[docs\epic\tasks_EPIC_144\11_p1_tab_scaffold_decomposition.md] @[docs\epic\EPIC_144_tracker.md]
 ```

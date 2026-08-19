@@ -357,9 +357,9 @@ Align all unit test fixtures to the new strictly typed structure.
 ### Phase 1: Sub-Tab Information Architecture & Scaffold Decomposition
 **Target Files (Modify / New):**
 - `[MODIFY]` `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`
-- `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/profile_general_tab.dart]`
-- `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/profile_scoring_tab.dart]`
-- `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/profile_layouts_tab.dart]`
+- `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]`
+- `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]`
+- `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`
 - `[NEW]` `client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart`
 
 0. **Pre-Refactoring Golden Master Test Baseline (`remedial_refactoring_coverage` in `@[ki_god_code_prevention.md]`):**
@@ -367,23 +367,23 @@ Align all unit test fixtures to the new strictly typed structure.
    - Run `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart --test` to establish a clean green baseline.
 
 Decompose `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` into a highly streamlined 3-tab `DefaultTabController` scaffold matching the visual stepper idiom of `@[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]`. This strictly enforces the **God Code Prevention mandate** (`@[ki_god_code_prevention.md]`) by physically splitting the 896-line monolithic file into dedicated sub-widgets rather than appending more private helpers. All violations listed in Section 2.4 (Modernity Gate) MUST be eradicated during this phase:
-- **Tab 1: 📋 General & Preface (`ProfileGeneralTab` in `client_app_v2/lib/features/studio/views/widgets/profile/profile_general_tab.dart`)**
+- **Tab 1: 📋 General & Preface (`ProfileGeneralTab` in `client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart`)**
   - Workflow binding selector (`DropdownButtonFormField<String>`).
   - Profile name and description (`I18nTextField`).
   - Custom report preface / introduction rich text (`I18nTextField`).
   - Advanced expandable accordion for opaque `id` and semantic `slug`.
-- **Tab 2: ⚖️ Scoring & Scales (`ProfileScoringTab` in `client_app_v2/lib/features/studio/views/widgets/profile/profile_scoring_tab.dart`)**
+- **Tab 2: ⚖️ Scoring & Scales (`ProfileScoringTab` in `client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart`)**
   - Strictness level slider / segmented selector (Level 1 to 5).
   - Scoring Strategy selector (specifically and exhaustively: `waterfall`, `average`, `weighted_average`, `pure_math`).
   - Display Scale selector (specifically and exhaustively: `original`, `custom`, `normalized_100`).
-- **Tab 3: 📐 Report Structure (`ProfileLayoutsTab` in `client_app_v2/lib/features/studio/views/widgets/profile/profile_layouts_tab.dart`)**
+- **Tab 3: 📐 Report Structure (`ProfileLayoutsTab` in `client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart`)**
   - The master drag-and-drop canvas for the user-configurable execution blocks (specifically and exhaustively: `metadata_block`, `executive_summary_block`, `synthesis_text_block`, `matrix_graphs_block`, `grouped_extensions_block`, `penalties_block`, `matrix_summary_table_block`, `variance_validation_block`, `authenticity_evaluation_block`, `printable_sources_block`).
   - Contains all block-specific configuration cards (specifically and exhaustively: Metadata, Matrix Graphs, Matrix Summary Table, Synthesis Text, AI Extensions, Penalties, Variance, Authenticity, Bibliography).
 
 ### Phase 2: Adaptive Visual Block Builder & UI Patterns
 **Target Files (Modify / New):**
 - `[MODIFY]` `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`
-- `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/profile_layouts_tab.dart]`
+- `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`
 - `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]`
 - `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart]`
 - `[NEW]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]`
@@ -784,8 +784,8 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/v
 
 | Rule ID | Binding Constraint for Epic 144 |
 |:--------|:-------------------------------|
-| `anti_god_file_dumping` | The 3 new tab files (`client_app_v2/lib/features/studio/views/widgets/profile/profile_general_tab.dart`, `client_app_v2/lib/features/studio/views/widgets/profile/profile_scoring_tab.dart`, `client_app_v2/lib/features/studio/views/widgets/profile/profile_layouts_tab.dart`) and all 8 block cards in `client_app_v2/lib/features/studio/views/widgets/profile/blocks/` MUST each be dedicated single-responsibility widgets. No generic `utils.dart` or `helpers.dart` for shared logic — extract into named domain files. |
-| `private_helper_bloat_ban` | Extracted helper functions MUST NOT be placed as private methods in the parent `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` or `client_app_v2/lib/features/studio/views/widgets/profile/profile_layouts_tab.dart`. They MUST be physically separated into new widget files under `client_app_v2/lib/features/studio/views/widgets/profile/` and `client_app_v2/lib/features/studio/views/widgets/profile/blocks/`. |
+| `anti_god_file_dumping` | The 3 new tab files (`client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart`, `client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart`, `client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart`) and all 8 block cards in `client_app_v2/lib/features/studio/views/widgets/profile/blocks/` MUST each be dedicated single-responsibility widgets. No generic `utils.dart` or `helpers.dart` for shared logic — extract into named domain files. |
+| `private_helper_bloat_ban` | Extracted helper functions MUST NOT be placed as private methods in the parent `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]` or `client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart`. They MUST be physically separated into new widget files under `client_app_v2/lib/features/studio/views/widgets/profile/` and `client_app_v2/lib/features/studio/views/widgets/profile/blocks/`. |
 | `strategy_pattern_mandate` | The block editor routing in Tab 3 (selecting which block card to render) MUST use a Registry/Map pattern (`Map<TargetBlockType, Widget Function()>`), NOT an `if/elif/else` chain. |
 | `remedial_refactoring_coverage` | Before decomposing `output_profile_crud_view.dart`, existing widget test coverage MUST be verified. If below 80%, a Golden Master snapshot test MUST be written first. |
 | File limit: **200 lines** per file as hard architectural smell. New tab and block card widgets exceeding this limit MUST be further decomposed. |
