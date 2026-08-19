@@ -8,7 +8,7 @@ from backend_v2.models.dtos.output_profile import (
     OutputProfileResponseDTO,
     OutputProfileUpdateDTO,
 )
-from backend_v2.models.enums import DisplayScale, XaiExtensionType
+from backend_v2.models.enums import DisplayScale, TargetBlockType, XaiExtensionType
 
 _VALID_CREATE_PAYLOAD: dict[str, Any] = {
     "id": "prf_1234abcd",
@@ -170,3 +170,58 @@ def test_output_profile_response_dto_strictness() -> None:
     # Must omit organization_id from dump if inherited correctly from BaseResponseDTO
     dump = dto.model_dump()
     assert "organization_id" not in dump
+
+
+def test_output_profile_create_dto_accepts_string_enums_from_http_payload() -> None:
+    """Regression test: FastAPI HTTP requests pass raw strings like 'normalized_100' and 'metadata_block'.
+
+    OutputProfileCreateDTO must accept string-based enum representations for display_scale
+    and target_block_order via LaxDisplayScale and LaxTargetBlockType annotations.
+    """
+    payload = {
+        **_VALID_CREATE_PAYLOAD,
+        "display_scale": "normalized_100",
+        "target_block_order": [
+            "metadata_block",
+            "executive_summary_block",
+            "synthesis_text_block",
+            "matrix_graphs_block",
+            "grouped_extensions_block",
+            "penalties_block",
+            "matrix_summary_table_block",
+            "variance_validation_block",
+            "authenticity_evaluation_block",
+            "global_score_block",
+            "printable_sources_block",
+            "jargon_ratio_block",
+            "audit_trail_block",
+        ],
+    }
+    dto = OutputProfileCreateDTO.model_validate(payload)
+    assert dto.display_scale == DisplayScale.NORMALIZED_100
+    assert dto.target_block_order is not None
+    assert len(dto.target_block_order) == 13
+    assert dto.target_block_order[0] == TargetBlockType.METADATA_BLOCK
+
+
+def test_output_profile_update_dto_accepts_string_enums_from_http_payload() -> None:
+    """Regression test: OutputProfileUpdateDTO must accept string-based enum representations."""
+    payload = {
+        "display_scale": "normalized_100",
+        "target_block_order": ["metadata_block", "global_score_block"],
+    }
+    dto = OutputProfileUpdateDTO.model_validate(payload)
+    assert dto.display_scale == DisplayScale.NORMALIZED_100
+    assert dto.target_block_order == [TargetBlockType.METADATA_BLOCK, TargetBlockType.GLOBAL_SCORE_BLOCK]
+
+
+def test_output_profile_response_dto_accepts_string_enums_from_storage_payload() -> None:
+    """Regression test: OutputProfileResponseDTO must accept string-based enum representations."""
+    payload = {
+        **_VALID_CREATE_PAYLOAD,
+        "display_scale": "normalized_100",
+        "target_block_order": ["metadata_block", "global_score_block"],
+    }
+    dto = OutputProfileResponseDTO.model_validate(payload)
+    assert dto.display_scale == DisplayScale.NORMALIZED_100
+    assert dto.target_block_order == [TargetBlockType.METADATA_BLOCK, TargetBlockType.GLOBAL_SCORE_BLOCK]

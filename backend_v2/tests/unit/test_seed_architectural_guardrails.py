@@ -112,15 +112,32 @@ def test_output_profiles_zero_legacy_diagnostic_scorecard() -> None:
 
 
 def test_output_profiles_metric_mappings_contain_bilingual_metadata_keys() -> None:
-    """Architectural Guardrail: All output profiles must have complete bilingual metadata label keys."""
+    """Architectural Guardrail: All output profiles must have complete bilingual metric mappings (all 17 keys)."""
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
     required_keys = [
+        # Metadata labels
         "metadata_user",
         "metadata_organization",
         "metadata_scoring_engine",
         "metadata_strictness",
+        # Variance labels
+        "variance_mechanical",
+        "variance_cognitive",
+        "variance_total",
+        "variance_fallback_explanation",
+        # Alignment labels
+        "alignment_verdict",
+        "alignment_aligned",
+        "alignment_misaligned",
+        # Authenticity labels
+        "jargon_score",
+        "authenticity_level",
+        "level_high",
+        "level_medium",
+        "level_low",
+        "authenticity_fallback_explanation",
     ]
 
     profiles = data.get("output_profiles", [])
@@ -130,7 +147,7 @@ def test_output_profiles_metric_mappings_contain_bilingual_metadata_keys() -> No
         mappings = profile.get("metric_mappings", {})
         for req_key in required_keys:
             assert req_key in mappings, (
-                f"Required metadata key '{req_key}' missing from metric_mappings in profile '{profile.get('id')}'"
+                f"Required metric key '{req_key}' missing from metric_mappings in profile '{profile.get('id')}'"
             )
             i18n_entry = mappings[req_key]
             translations = i18n_entry.get("translations", {})
@@ -142,7 +159,7 @@ def test_output_profiles_metric_mappings_contain_bilingual_metadata_keys() -> No
             )
 
     # Anti-happy-path negative verification
-    def validate_metadata_keys(mappings_dict: dict[str, Any]) -> bool:
+    def validate_metric_keys(mappings_dict: dict[str, Any]) -> bool:
         for key in required_keys:
             if key not in mappings_dict:
                 return False
@@ -151,16 +168,22 @@ def test_output_profiles_metric_mappings_contain_bilingual_metadata_keys() -> No
                 return False
         return True
 
-    assert not validate_metadata_keys({})
-    assert not validate_metadata_keys({"metadata_user": {"translations": {"fi": "Käyttäjä:"}}})
-    assert not validate_metadata_keys(
+    assert not validate_metric_keys({})
+    assert not validate_metric_keys({"metadata_user": {"translations": {"fi": "Käyttäjä:"}}})
+    # Missing variance keys
+    assert not validate_metric_keys(
         {
             "metadata_user": {"translations": {"fi": "Käyttäjä:", "en": "User:"}},
             "metadata_organization": {"translations": {"fi": "Org:", "en": "Org:"}},
-            "metadata_scoring_engine": {"translations": {"fi": "Moottori:", "en": ""}},
+            "metadata_scoring_engine": {"translations": {"fi": "Moottori:", "en": "Engine:"}},
             "metadata_strictness": {"translations": {"fi": "Taso:", "en": "Level:"}},
         }
     )
+    # Complete dummy with 1 empty string in variance_mechanical
+    complete_dummy: dict[str, Any] = {k: {"translations": {"fi": f"Val_{k}", "en": f"Val_{k}"}} for k in required_keys}
+    assert validate_metric_keys(complete_dummy)
+    complete_dummy["variance_mechanical"]["translations"]["en"] = ""
+    assert not validate_metric_keys(complete_dummy)
 
 
 def test_output_profiles_enums_valid() -> None:

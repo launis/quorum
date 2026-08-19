@@ -116,7 +116,6 @@ async def save_output_profile(
         AppException: If updating the output profile fails.
     """
     update_data = data.model_dump(exclude_unset=True)
-    update_data.pop("metric_mappings", None)
     profile = await studio_service.save_output_profile(current_user, profile_id, update_data)
     return _to_dto(profile)
 

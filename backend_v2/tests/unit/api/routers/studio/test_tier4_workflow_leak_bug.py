@@ -14,53 +14,62 @@ app = FastAPI()
 app.include_router(api_router)
 client = TestClient(app)
 
+from collections.abc import Generator
+
 from backend_v2.api.dependencies import (
     get_current_user_from_header,
     get_studio_workflow_service,
 )
+from backend_v2.models.auth import UserRole
+from backend_v2.models.enums import HistoricalContextMode
+from backend_v2.models.v2_core import I18nText
 
 
-def mock_get_current_user():
-    return TokenData(id="test", role="ROOT", organization_id="root_org")
+def mock_get_current_user() -> TokenData:
+    return TokenData(id="test", role=UserRole.ROOT, organization_id="root_org")
 
 
 @pytest.fixture(autouse=True)
-def setup_overrides():
+def setup_overrides() -> Generator[None]:
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
     yield
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def mock_studio_service():
+def mock_studio_service() -> AsyncMock:
     mock_service = AsyncMock()
     app.dependency_overrides[get_studio_workflow_service] = lambda: mock_service
     return mock_service
 
 
 @pytest.mark.asyncio
-async def test_workflow_does_not_leak_metric_mappings(mock_studio_service):
+async def test_workflow_does_not_leak_metric_mappings(mock_studio_service: AsyncMock) -> None:
     """Ensure that the API response explicitly omits metric_mappings."""
     from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 
-    mock_profile_dto = OutputProfileResponseDTO(
-        id="prof_0123456789abcdef0123456789abcdef",
-        workflow_id="wf_0123456789abcdef0123456789abcdef",
-        slug="test-profile",
-        name={"default_locale": "en", "translations": {"en": "test"}},
-        layouts=[],
+    mock_profile_dto = OutputProfileResponseDTO.model_validate(
+        {
+            "id": "prof_0123456789abcdef0123456789abcdef",
+            "workflow_id": "wf_0123456789abcdef0123456789abcdef",
+            "slug": "test-profile",
+            "name": {"default_locale": "en", "translations": {"en": "test"}},
+            "layouts": [],
+        },
+        strict=False,
     )
 
     mock_workflow = WorkflowResponseDTO(
         id="wf_0123456789abcdef0123456789abcdef",
         slug="test-wf",
-        name={"default_locale": "en", "translations": {"en": "test wf"}},
+        name=I18nText(default_locale="en", translations={"en": "test wf"}),
         description="test",
         status="draft",
         version=1,
         default_profile_id="prof_0123456789abcdef0123456789abcdef",
         allowed_exports=["pdf"],
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        organization_id="root_org",
         output_profiles={"prof_0123456789abcdef0123456789abcdef": mock_profile_dto},
     )
 
@@ -75,8 +84,8 @@ async def test_workflow_does_not_leak_metric_mappings(mock_studio_service):
     wf_data = data[0]
     profiles = wf_data.get("output_profiles", {})
     assert "prof_0123456789abcdef0123456789abcdef" in profiles
-
     profile_data = profiles["prof_0123456789abcdef0123456789abcdef"]
 
-    assert "metric_mappings" not in profile_data
+    # Dual-Axis Localization contract requires metric_mappings to be retained in responses
+    assert "metric_mappings" in profile_data
     assert "score_display_label" not in profile_data

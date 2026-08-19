@@ -91,7 +91,7 @@ def run_tests_with_strict_coverage(target: str) -> None:
             "run",
             "python",
             "-c",
-            f"import sys\ntry: import numpy\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main(['{test_path}', '-v', '--tb=short', '--cov={cov_target}', '--cov-fail-under=0']))",
+            f"import os, sys\ntry: import numpy, pandas\nexcept ImportError: pass\ntry: import backend_v2.tests.conftest\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main(['{test_path}', '-v', '--tb=short', '--cov={cov_target}', '--cov-fail-under=0']))",
         ]
         print("Executing:", " ".join(cmd))
         result = subprocess.run(cmd)
@@ -128,7 +128,7 @@ def run_tests_with_strict_coverage(target: str) -> None:
             "run",
             "python",
             "-c",
-            f"import sys\ntry: import numpy\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main({args}))",
+            f"import os, sys\nos.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'\ntry: import numpy\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main({args}))",
         ]
         result = subprocess.run(cmd)
 

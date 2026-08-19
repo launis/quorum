@@ -9,7 +9,14 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.base import BaseResponseDTO
-from backend_v2.models.enums import DisplayScale, LaxScoringStrategy, LaxXaiExtensionType, TargetBlockType
+from backend_v2.models.enums import (
+    DisplayScale,
+    LaxDisplayScale,
+    LaxScoringStrategy,
+    LaxTargetBlockType,
+    LaxXaiExtensionType,
+    TargetBlockType,
+)
 from backend_v2.models.v2_core import (
     I18nText,
     OutputLayoutBlock,
@@ -105,7 +112,7 @@ class OutputProfileCreateDTO(V2CoreBase):
         ),
     ] = 3
     display_scale: Annotated[
-        DisplayScale,
+        LaxDisplayScale,
         Field(default=DisplayScale.ORIGINAL, description="UI rendering scale instruction."),
     ] = DisplayScale.ORIGINAL
     user_role_mappings: Annotated[
@@ -144,7 +151,7 @@ class OutputProfileCreateDTO(V2CoreBase):
         Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
     ]
     target_block_order: Annotated[
-        list[TargetBlockType] | None,
+        list[LaxTargetBlockType] | None,
         Field(default=None, description="Optional block order override."),
     ] = None
     performativity_detector_step_id: Annotated[
@@ -228,7 +235,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
         ),
     ] = None
     display_scale: Annotated[
-        DisplayScale | None,
+        LaxDisplayScale | None,
         Field(default=None, description="UI rendering scale instruction."),
     ] = None
     strictness_level: Annotated[
@@ -246,7 +253,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
         Field(default=None, description="Base SDUI content blocks predefined by the profile."),
     ]
     target_block_order: Annotated[
-        list[TargetBlockType] | None,
+        list[LaxTargetBlockType] | None,
         Field(default=None, description="Optional block order override."),
     ] = None
     performativity_detector_step_id: Annotated[
@@ -289,9 +296,9 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     language: str | None = None
     user_role_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
     extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
-    metric_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict, exclude=True)]
+    metric_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
     target_block_order: Annotated[
-        list[TargetBlockType],
+        list[LaxTargetBlockType],
         Field(
             default_factory=lambda: [
                 TargetBlockType.METADATA_BLOCK,
@@ -320,7 +327,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
         Field(default=3, ge=1, le=100, description="Top limit cap applying constraints to presentation loops."),
     ] = 3
     display_scale: Annotated[
-        DisplayScale,
+        LaxDisplayScale,
         Field(
             default=DisplayScale.ORIGINAL,
             description="Exact enumeration of UI rendering modes ('normalized_100').",
