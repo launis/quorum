@@ -36,7 +36,7 @@
 - **Current Phase:** Post-Implementation Gates — Tier 2 Hardening (Backend COMPLETED -> Frontend IN PROGRESS)
 - **Execution Status:** **100% EXECUTED & AUDITED (PASSED)** across all 6 Phases (Phase 0-A through 0-H, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5).
 - **Backend Hardening Status:** **15 / 15 (100%) COMPLETED** (All 15 production source targets hardened with target-locked audit matrices and $\ge 90\%$ test coverage).
-- **Frontend Hardening Status:** **10 / 17 (59%) COMPLETED** (10 targets audited with zero regressions, 7 remaining).
+- **Frontend Hardening Status:** **11 / 17 (65%) COMPLETED** (11 targets audited with zero regressions, 6 remaining).
 - **Tier 8 Plan Audit:** `red_team_audit_15_placeholder_phase5_quality_gates.md` verified 100% pass across all requirements, DoD checklist items, Freezed/Pydantic deserialization firewalls, and SDUI adapter dual-logging contracts.
 - **Mandatory Final Gate:** `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` **PASSED 100%** (full PDF ingestion, DAG execution, SDUI synthesis, and report rendering verified against live FastAPI backend and Arq worker).
 - **Backend Quality Audit Loop:** `uv run python scripts/backend_audit_loop.py` configured with 100% Ruff linting, formatting, MyPy strict typing, Jinja dumb painter templates, Seed Data dry-run validation, and $\ge 90\%$ test coverage per target.
@@ -394,7 +394,7 @@ Followed by remaining Post-Implementation Gates (Golden Master restoration, Prox
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]
