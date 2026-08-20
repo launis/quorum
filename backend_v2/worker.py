@@ -35,6 +35,7 @@ from backend_v2.models.dtos.synthesis import (
 )
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlockType
 from backend_v2.models.prompts import (
+    ANTI_JARGON_MANDATE_BLOCK,
     EXECUTIVE_SUMMARY_DIRECTIVE,
     EXECUTIVE_SUMMARY_SECTION_ID,
     GLOBAL_MANDATES_XML,
@@ -491,32 +492,6 @@ async def generate_pdf_task(
         # 1. Generate Omni-Channel JSON Payload
         dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
 
-        # 1.5 Scan for Performative AI Slop (Prong 2)
-        # Inspect blocks for penalty alerts
-        has_slop_penalty = False
-        phrases_str = ""
-        if dto.inner_sdui_blocks:
-            for block in dto.inner_sdui_blocks:
-                if hasattr(block, "text"):
-                    text = block.text
-                    if isinstance(text, str) and "PENALTY_SLOP:" in text:
-                        has_slop_penalty = True
-                        phrases_str = text.split("PENALTY_SLOP:")[1].strip()
-                        break
-
-        if has_slop_penalty:
-            logger.warning(f"[Task] OutputQualityScanner detected slop for {execution_id}: {phrases_str}")
-
-            # Update DB ExecutionRecord metadata for frontend quick querying
-            exec_record_local = await repo.get_execution(execution_id, hydrate=False)
-            if exec_record_local:
-                exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
-                new_meta = dict(exec_record_local.metadata) if exec_record_local.metadata else {}
-                new_meta["has_slop_warning"] = True
-                await repo.update_execution(execution_id, {"metadata": new_meta})
-        else:
-            logger.info(f"[Task] OutputQualityScanner approved {execution_id}: no slop penalty applied.")
-
         # 2. Feed structured DTO to PDF Engine instead of DB fetching
         service = PdfReportService()
         pdf_bytes = await service.generate_execution_pdf(execution_id, report_dto=dto, locale=accept_language)
@@ -872,6 +847,7 @@ async def generate_profile_synthesis_and_pdf_task(
                 # sys_prompt MUST remain 100% static for cache prefix survival
                 sys_prompt = pb.ai_description or ""
                 sys_prompt += f"\n\n{SYNTHESIS_SDUI_MANDATES}"
+                sys_prompt += f"\n\n{ANTI_JARGON_MANDATE_BLOCK}"
 
                 # Dynamic context parts injected into user message <dynamic_context>
                 base_dynamic_parts: list[str] = [GLOBAL_MANDATES_XML]

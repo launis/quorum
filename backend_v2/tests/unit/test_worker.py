@@ -785,45 +785,6 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     )
 
 
-@pytest.mark.asyncio
-async def test_generate_pdf_task_slop_penalty_detected_updates_warning() -> None:
-    """Verify generate_pdf_task detects PENALTY_SLOP in layout blocks and sets has_slop_warning in metadata."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "status": "RUNNING",
-                "metadata": {},
-                "output_profile_id": "prof_1111222233334444",
-                "step_states": {},
-            }
-
-            with patch("backend_v2.worker.BlueprintTransformer") as mock_transformer_class:
-                mock_transformer = AsyncMock()
-                mock_transformer_class.return_value = mock_transformer
-
-                mock_dto = MagicMock()
-                mock_block = MagicMock()
-                mock_block.text = "PENALTY_SLOP: detected generic pattern"
-                mock_dto.inner_sdui_blocks = [mock_block]
-                mock_transformer.build_report_dto.return_value = mock_dto
-
-                with patch("backend_v2.worker.PdfReportService") as mock_pdf_class:
-                    mock_pdf = AsyncMock()
-                    mock_pdf_class.return_value = mock_pdf
-                    mock_pdf.generate_execution_pdf.return_value = b"%PDF-1.4 sample"
-
-                    with patch("backend_v2.worker.get_storage_driver") as mock_storage_class:
-                        mock_storage = AsyncMock()
-                        mock_storage_class.return_value = mock_storage
-                        mock_storage.save.return_value = "report.pdf"
-
-                        await generate_pdf_task("exe_1234567890123456", "fi", "prof_1111222233334444")
-                        assert mock_repo.update_execution.call_count >= 1
 
 
 @pytest.mark.asyncio

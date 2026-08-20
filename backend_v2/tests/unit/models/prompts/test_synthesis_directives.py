@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.models.prompts.synthesis_directives import (
+    ANTI_JARGON_MANDATE_BLOCK,
     EXECUTIVE_SUMMARY_DIRECTIVE,
     EXECUTIVE_SUMMARY_SECTION_ID,
     MATRIX_1D_SYNTHESIS_DIRECTIVE,
@@ -13,6 +14,13 @@ from backend_v2.models.prompts.synthesis_directives import (
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     STATE_ISOLATION_BLOCK,
 )
+
+
+def test_anti_jargon_mandate_valid_xml() -> None:
+    """Verify ANTI_JARGON_MANDATE_BLOCK is valid XML and contains anti-jargon instructions."""
+    root = ET.fromstring(ANTI_JARGON_MANDATE_BLOCK)
+    assert root.tag == "anti_jargon_mandate"
+    assert "ANTI-JARGON MANDATE" in (root.text or "")
 
 
 def test_executive_summary_section_id_ssot_parity() -> None:

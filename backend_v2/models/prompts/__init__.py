@@ -41,6 +41,7 @@ from .hook_prompts import (
 from .linguistic_directives import build_linguistic_context
 from .matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
 from .synthesis_directives import (
+    ANTI_JARGON_MANDATE_BLOCK,
     EXECUTIVE_SUMMARY_DIRECTIVE,
     EXECUTIVE_SUMMARY_SECTION_ID,
     MATRIX_1D_SYNTHESIS_DIRECTIVE,
@@ -54,6 +55,7 @@ from .synthesis_directives import (
 
 __all__ = [
     "ANTI_ID_MANDATE",
+    "ANTI_JARGON_MANDATE_BLOCK",
     "ANTI_SCORE_MANDATE",
     "DESC_CONTEXTUAL_OVERRIDE",
     "DESC_EVALUATION_NOTES",

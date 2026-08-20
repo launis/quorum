@@ -3,19 +3,43 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from backend_v2.core.hook_registry import HookState
-from backend_v2.hooks.linguistics import detect_performative_patterns, scan_report_for_slop
-from backend_v2.models.v2_core import MatrixScorecardRowDTO, ReportDataDTO
-from backend_v2.models.view.sdui import SduiMetrics1DBlock
+from backend_v2.exceptions import AppException
+from backend_v2.hooks.linguistics import detect_performative_patterns
 
 
 @pytest.mark.asyncio
-async def test_detect_performative_patterns_prioritizes_user_only():
+async def test_detect_performative_patterns_empty_state() -> None:
+    deps = MagicMock()
+    result = await detect_performative_patterns(None, deps)  # type: ignore[arg-type]
+    assert result.success
+    assert result.state_delta == {}
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_skip_override() -> None:
+    state = HookState(
+        workflow_id="w1",
+        execution_id="e1",
+        inputs={"scan_for_performative_patterns": "false"},
+        global_context_vars={},
+        metadata={},
+    )
+    deps = MagicMock()
+    result = await detect_performative_patterns(state, deps)
+    assert result.success
+    res_dict = result.state_delta["global_context_vars"]["step_linguistics"]
+    assert res_dict["performative_patterns"] == []
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_prioritizes_user_only() -> None:
     state = HookState(
         workflow_id="w1",
         execution_id="e1",
         inputs={
             "chat_log": "**user**: normal text.\n\n**ai**: we must delve into the myriad of cutting edge tapestry.",
             "chat_log_user_only": "normal text.",
+            "language": "en",
         },
         global_context_vars={"language": "en"},
         metadata={},
@@ -41,63 +65,50 @@ async def test_detect_performative_patterns_prioritizes_user_only():
     assert result.success
     res_dict = result.state_delta["global_context_vars"]["step_linguistics"]
     patterns = res_dict.get("performative_patterns", [])
-
-    # Because user_only is just "normal text.", no performative patterns should be detected
-    # even though ai said "delve into", "myriad of", "cutting edge", "tapestry".
     assert len(patterns) == 0
 
 
-def test_scan_report_for_slop_empty_blocks():
-    report = ReportDataDTO.model_construct(inner_sdui_blocks=[])
-    words = ["delve", "tapestry"]
-    res = scan_report_for_slop(report, words)
-    assert len(res) == 0
-
-
-def test_scan_report_for_slop_malformed_synthesis_blocks():
-    from backend_v2.models.view.sdui import MarkdownBlock
-
-    # Use something that has no text attribute
-    layout1 = SduiMetrics1DBlock.model_construct(preset_view="default")
-    md_block = MarkdownBlock.model_construct(text=123)  # malformed text type
-    report = ReportDataDTO.model_construct(inner_sdui_blocks=[layout1, md_block])
-    words = ["delve", "tapestry"]
-    res = scan_report_for_slop(report, words)
-    assert len(res) == 0
-
-
-def test_scan_report_for_slop_detects_patterns():
-    from backend_v2.models.view.sdui import MarkdownBlock
-
-    layout1 = SduiMetrics1DBlock.model_construct(
-        preset_view="default",
-        axes=[
-            MatrixScorecardRowDTO.model_construct(
-                tda_id="row1",
-                label="Row 1",
-                score=5.0,
-                score_display_label="5.0 / 5.0",
-                row_explanation="A rich tapestry of ideas.",
-                coaching=None,
-                remediation_steps=None,
-                semantic_reasoning=None,
-                falsification=None,
-            )
-        ],
-    )
-    md = MarkdownBlock(text="We must delve into this matter.")
-    report = ReportDataDTO.model_construct(inner_sdui_blocks=[layout1, md])
-    words = ["delve into", "tapestry"]
-    res = scan_report_for_slop(report, words)
-    assert set(res) == {"delve into", "tapestry"}
-
-
 @pytest.mark.asyncio
-async def test_detect_performative_patterns_missing_user_only_graceful():
+async def test_detect_performative_patterns_detects_exact_and_fuzzy() -> None:
     state = HookState(
         workflow_id="w1",
         execution_id="e1",
-        # Missing chat_log_user_only
+        inputs={
+            "chat_log_user_only": "We need to delve into this rich tapestries.",
+            "language": "en",
+        },
+        global_context_vars={"language": "en"},
+        metadata={},
+    )
+
+    deps = MagicMock()
+    deps.system_repo = AsyncMock()
+    deps.system_repo.get_system_config.return_value = {
+        "id": "sys_e0b2a3c4d5e6f7a8",
+        "slug": "lexicon",
+        "type": "performative_lexicons",
+        "lexicon_configs": {
+            "en": {
+                "language_code": "en",
+                "language_name": "English",
+                "fuzz_threshold": 80.0,
+                "words": ["delve into", "tapestry"],
+            }
+        },
+    }
+    result = await detect_performative_patterns(state, deps)
+
+    assert result.success
+    res_dict = result.state_delta["global_context_vars"]["step_linguistics"]
+    patterns = res_dict.get("performative_patterns", [])
+    assert len(patterns) >= 1
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_missing_user_only_graceful() -> None:
+    state = HookState(
+        workflow_id="w1",
+        execution_id="e1",
         inputs={
             "chat_log": "**user**: delve into this.\n\n**ai**: yes.",
         },
@@ -123,12 +134,13 @@ async def test_detect_performative_patterns_missing_user_only_graceful():
     result = await detect_performative_patterns(state, deps)
 
     assert result.success
+    res_dict = result.state_delta["global_context_vars"]["step_linguistics"]
+    patterns = res_dict.get("performative_patterns", [])
+    assert len(patterns) == 1
 
 
 @pytest.mark.asyncio
-async def test_detect_performative_patterns_missing_lexicon_config():
-    from backend_v2.exceptions import AppException
-
+async def test_detect_performative_patterns_missing_lexicon_config() -> None:
     state = HookState(
         workflow_id="w1",
         execution_id="e1",
@@ -141,8 +153,63 @@ async def test_detect_performative_patterns_missing_lexicon_config():
 
     deps = MagicMock()
     deps.system_repo = AsyncMock()
-    # Missing lexicon config entirely
     deps.system_repo.get_system_config.return_value = None
+
+    with pytest.raises(AppException) as exc_info:
+        await detect_performative_patterns(state, deps)
+
+    assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_missing_language_words() -> None:
+    state = HookState(
+        workflow_id="w1",
+        execution_id="e1",
+        inputs={
+            "chat_log_user_only": "delve into this.",
+        },
+        global_context_vars={"language": "fi"},
+        metadata={},
+    )
+
+    deps = MagicMock()
+    deps.system_repo = AsyncMock()
+    deps.system_repo.get_system_config.return_value = {
+        "id": "sys_e0b2a3c4d5e6f7a8",
+        "slug": "lexicon",
+        "type": "performative_lexicons",
+        "lexicon_configs": {
+            "en": {
+                "language_code": "en",
+                "language_name": "English",
+                "fuzz_threshold": 90.0,
+                "words": ["delve into"],
+            }
+        },
+    }
+
+    with pytest.raises(AppException) as exc_info:
+        await detect_performative_patterns(state, deps)
+
+    assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_db_exception() -> None:
+    state = HookState(
+        workflow_id="w1",
+        execution_id="e1",
+        inputs={
+            "chat_log_user_only": "delve into this.",
+        },
+        global_context_vars={"language": "en"},
+        metadata={},
+    )
+
+    deps = MagicMock()
+    deps.system_repo = AsyncMock()
+    deps.system_repo.get_system_config.side_effect = RuntimeError("Database down")
 
     with pytest.raises(AppException) as exc_info:
         await detect_performative_patterns(state, deps)

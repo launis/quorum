@@ -279,9 +279,6 @@ class Settings(BaseSettings):
     metrics_reflection_min_length: Annotated[
         int, Field(description="Min chars in reflection to enable Say-Do analysis")
     ] = 50
-    slop_phrase_warning_threshold: Annotated[
-        int, Field(description="Minimum performative slop phrases to trigger a warning flag")
-    ] = 3
     metrics_mechanical_ratio: Annotated[float, Field(description="Ratio of mechanical words to trigger Say-Do Gap")] = (
         0.5
     )

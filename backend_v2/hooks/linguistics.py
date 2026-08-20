@@ -2,7 +2,6 @@
 
 import logging
 import uuid
-from typing import Any
 
 from fastapi import status
 from rapidfuzz import fuzz
@@ -15,7 +14,7 @@ from backend_v2.models.domain.linguistics import (
     PerformativePatternDTO,
 )
 from backend_v2.models.enums import SystemConfigID
-from backend_v2.models.v2_core import ReportDataDTO, SystemConfigPerformativeLexicons
+from backend_v2.models.v2_core import SystemConfigPerformativeLexicons
 
 logger = logging.getLogger(__name__)
 
@@ -149,50 +148,3 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     return HookResult(
         success=True, state_delta={"global_context_vars": {"step_linguistics": result_dto.model_dump(mode="json")}}
     )
-
-
-def scan_report_for_slop(
-    report_dto: ReportDataDTO, lexicon_words: list[str], fuzz_threshold: float = 90.0
-) -> list[str]:
-    """Pure function to scan the final rendered report text fields for performative AI jargon.
-
-    Args:
-        report_dto: The fully built report data object.
-        lexicon_words: The list of performative patterns to check against.
-        fuzz_threshold: The threshold for fuzzy matching.
-
-    Returns:
-        List of detected performative phrases.
-    """
-    detected_phrases: set[str] = set()
-
-    # Collect texts
-    texts_to_scan: list[str] = []
-
-    if report_dto.inner_sdui_blocks:
-        for block in report_dto.inner_sdui_blocks:
-            if hasattr(block, "text") and isinstance(block.text, str):
-                texts_to_scan.append(block.text)
-
-    all_matrices: list[Any] = []
-    if report_dto.inner_sdui_blocks:
-        for block in report_dto.inner_sdui_blocks:
-            axes = getattr(block, "axes", None)
-            if axes:
-                all_matrices.extend(axes)
-    for row in all_matrices:
-        texts_to_scan.append(row.row_explanation)
-        if row.semantic_reasoning:
-            texts_to_scan.append(row.semantic_reasoning)
-
-    for raw_text in texts_to_scan:
-        text_lower = raw_text.lower()
-        for pattern in lexicon_words:
-            if pattern in text_lower:
-                detected_phrases.add(pattern)
-            else:
-                ratio = fuzz.partial_ratio(pattern, text_lower)
-                if ratio >= fuzz_threshold:
-                    detected_phrases.add(pattern)
-
-    return list(detected_phrases)

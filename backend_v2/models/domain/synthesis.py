@@ -58,8 +58,6 @@ class SynthesisMetadataDTO(V2CoreBase):
     execution_summary: Annotated[dict[str, Any] | None, Field()] = None
     step_metrics: Annotated[dict[str, Any] | None, Field()] = None
 
-    has_slop_warning: Annotated[bool | None, Field()] = None
-
 
 class DistilledEvaluation(V2CoreBase):
     """Schema for distilled evaluation data used in synthesis.

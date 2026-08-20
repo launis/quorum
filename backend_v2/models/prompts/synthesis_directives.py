@@ -7,6 +7,7 @@ ensuring strict DRY compliance and zero-hardcoding across workers and hooks.
 from backend_v2.models.enums import TargetBlockType
 
 __all__ = [
+    "ANTI_JARGON_MANDATE_BLOCK",
     "EXECUTIVE_SUMMARY_DIRECTIVE",
     "EXECUTIVE_SUMMARY_SECTION_ID",
     "MATRIX_1D_SYNTHESIS_DIRECTIVE",
@@ -17,6 +18,13 @@ __all__ = [
     "SECTION_SYNTHESIS_DIRECTIVE_BLOCK",
     "STATE_ISOLATION_BLOCK",
 ]
+
+ANTI_JARGON_MANDATE_BLOCK: str = (
+    "<anti_jargon_mandate>\n"
+    "- ANTI-JARGON MANDATE: You MUST NOT use performative consulting clichés, empty buzzwords, or unsubstantiated meta-commentary.\n"
+    "- State all findings using direct, plain, evidence-backed statements.\n"
+    "</anti_jargon_mandate>"
+)
 
 EXECUTIVE_SUMMARY_SECTION_ID: str = TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
 

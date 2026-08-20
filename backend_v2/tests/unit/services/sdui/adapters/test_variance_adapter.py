@@ -383,4 +383,3 @@ def test_build_missing_extension_labels_raises_app_exception() -> None:
 
     assert exc_info.value.status_code == 500
     assert "Missing extension_labels mapping" in exc_info.value.message
-

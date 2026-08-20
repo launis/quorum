@@ -1469,151 +1469,6 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     assert accordions[0].title == "Coaching"
 
 
-@pytest.mark.asyncio
-async def test_blueprint_transformer_slop_scan_uses_system_repo() -> None:
-    """Proves that BlueprintTransformer correctly calls get_system_config on system_repo."""
-    from backend_v2.services.blueprint import BlueprintTransformer
-
-    mock_system_repo = AsyncMock()
-    mock_exec_repo = AsyncMock()
-    mock_workflow_repo = AsyncMock()
-    mock_comp_repo = AsyncMock()
-
-    from backend_v2.models.enums import ExecutionStatus, ScoringStrategy
-    from backend_v2.models.v2_core import ExecutionRecord, OutputProfile
-
-    mock_exec_repo.get_execution.return_value = ExecutionRecord(
-        id="exe_0000000000000001",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        profile_syntheses={},
-    )
-
-    def dict_to_obj(d: Any) -> Any:
-        from types import SimpleNamespace
-
-        from backend_v2.models.v2_core import I18nText
-
-        if isinstance(d, dict):
-            if "translations" in d and "default_locale" in d:
-                return I18nText(**d)
-            d.setdefault("expected_inputs", [])
-            return SimpleNamespace(**{k: dict_to_obj(v) for k, v in d.items()})
-        elif isinstance(d, list):
-            return [dict_to_obj(v) for v in d]
-        return d
-
-    mock_workflow_repo.get_workflow.return_value = dict_to_obj(
-        {
-            "id": "wf_1234abcd1234abcd",
-            "slug": "wf_1",
-            "name": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
-            "expected_inputs": [
-                {
-                    "id": "doc1",
-                    "input_key": "producttext",
-                    "label": {"default_locale": "en", "translations": {"en": "Product Text"}},
-                    "type": "document",
-                    "scan_for_performative_patterns": True,
-                }
-            ],
-            "default_profile_id": "prf_dddd1111dddd1111",
-            "allowed_exports": ["pdf"],
-            "historical_context_mode": "DISABLED",
-            "default_strictness_level": 85,
-            "default_scoring_strategy": ScoringStrategy.AVERAGE,
-            "steps": [],
-            "output_profiles": {
-                "prf_dddd1111dddd1111": {
-                    "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
-                    "layouts": [],
-                }
-            },
-        }
-    )
-
-    profile = OutputProfile.model_validate(
-        {
-            "id": "prf_dddd1111dddd1111",
-            "slug": "default",
-            "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
-            "workflow_id": "wf_1234abcd1234abcd",
-            "display_scale": DisplayScale.ORIGINAL,
-            "metric_mappings": {
-                "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
-                "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
-                "variance_total": {"default_locale": "en", "translations": {"en": "Variance"}},
-                "alignment_verdict": {"default_locale": "en", "translations": {"en": "Alignment Verdict"}},
-                "alignment_aligned": {"default_locale": "en", "translations": {"en": "ALIGNED"}},
-                "alignment_misaligned": {"default_locale": "en", "translations": {"en": "MISALIGNED"}},
-                "jargon_score": {"default_locale": "en", "translations": {"en": "AI-Jargon Score"}},
-                "authenticity_level": {"default_locale": "en", "translations": {"en": "Authenticity Level"}},
-                "level_high": {"default_locale": "en", "translations": {"en": "High"}},
-                "level_medium": {"default_locale": "en", "translations": {"en": "Medium"}},
-                "level_low": {"default_locale": "en", "translations": {"en": "Low"}},
-                "authenticity_fallback_explanation": {"default_locale": "en", "translations": {"en": "Fallback {0}"}},
-                "variance_fallback_explanation": {"default_locale": "en", "translations": {"en": "Fallback {0} {1}"}},
-            },
-            "layouts": [],
-        }
-    )
-
-    mock_comp_repo.get_all_output_profiles.return_value = fix_mock_dict([profile.model_dump()])
-
-    pb_dict_slop = {
-        "id": "blk_1234abcd1234abcd",
-        "slug": "logic_matrix",
-        "category_id": "matrix",
-        "type": "float",
-        "is_evaluative": True,
-        "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
-        "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
-        "scales": [
-            {
-                "score": 1,
-                "name": {"default_locale": "en", "translations": {"en": "1"}},
-                "ai_label": "1",
-                "claims": [
-                    {
-                        "label": {"default_locale": "en", "translations": {"en": "claim"}},
-                        "ai_description": "desc",
-                        "tda_assertions": [
-                            {
-                                "tda_id": "tda_00000000000000000000000000000000",
-                                "concept_description": "concept",
-                                "inverse_evidence": False,
-                                "aggregation_mode": "EXISTS",
-                            }
-                        ],
-                    }
-                ],
-            }
-        ],
-        "computed_min": 0,
-        "computed_max": 100,
-        "scale_min": 0,
-        "scale_max": 100,
-    }
-    mock_comp_repo.get_all_prompt_blocks.return_value = fix_mock_dict([pb_dict_slop])
-
-    transformer = BlueprintTransformer(
-        exec_repo=mock_exec_repo,
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_comp_repo,
-        output_profile_repo=mock_comp_repo,
-        identity_repo=AsyncMock(),
-        system_repo=mock_system_repo,
-    )
-
-    try:
-        await transformer.build_report_dto("exe_0000000000000001", accept_language="en")
-    except Exception:
-        import traceback
-
-        traceback.print_exc()
-
-    mock_system_repo.get_system_config.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -2208,18 +2063,13 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     assert "row_explanations_cache missing entry" in str(exc.value)
 
 
-from unittest.mock import patch
-
-
-@patch("backend_v2.services.blueprint.scan_report_for_slop")
 @pytest.mark.asyncio
-async def test_blueprint_slop_and_penalty_coverage(mock_scan: Any, mock_repo_transformer: Any) -> None:
-    mock_scan.return_value = ["slop_1", "slop_2", "slop_3", "slop_4", "slop_5"]
-
+async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -> None:
+    """Verifies penalty parsing and ensures AI output slop never affects global score."""
     from types import SimpleNamespace
 
     mock_repo_transformer.get_workflow.return_value.expected_inputs = [
-        SimpleNamespace(scan_for_performative_patterns=True)
+        SimpleNamespace(name="input_text", type="string")
     ]
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
@@ -2303,13 +2153,6 @@ async def test_blueprint_slop_and_penalty_coverage(mock_scan: Any, mock_repo_tra
         ]
     )
 
-    mock_repo_transformer.get_system_config.return_value = {
-        "id": "sys_1234abcd1234abcd",
-        "lexicon_configs": {
-            "en": {"language_code": "en", "language_name": "English", "words": ["slop_phrase"], "fuzz_threshold": 80}
-        },
-    }
-
     from backend_v2.services.blueprint import BlueprintTransformer
 
     transformer = BlueprintTransformer(
@@ -2325,15 +2168,15 @@ async def test_blueprint_slop_and_penalty_coverage(mock_scan: Any, mock_repo_tra
     # Expect Exception for PENALTY_INVALID:20
     with pytest.raises(AppException) as exc:
         await transformer.build_report_dto("exe_0000000000000101")
-    assert "unsupported penalty string detected" in str(exc.value)
+    assert "Legacy or unsupported penalty string detected" in str(exc.value)
 
-    # Remove invalid penalty
+    # Remove invalid penalty and keep only valid user-input penalties (10% + 15% = 25% penalty on 100 base)
     mock_repo_transformer.get_execution.return_value.execution_trace[0].content["scoring_result"][
         "penalties_applied"
     ] = ["PENALTY_SECURITY:10", "PENALTY_POST_HOC:15"]
 
     dto = await transformer.build_report_dto("exe_0000000000000101")
-    assert dto.has_warning is True
+    assert dto.global_score == 75.0
 
 
 @pytest.mark.asyncio
@@ -2574,62 +2417,6 @@ async def test_blueprint_transformer_fail_fast_branches(
     assert exc4.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
 
-@pytest.mark.asyncio
-async def test_blueprint_transformer_slop_missing_config(
-    mock_repo_transformer: MagicMock,
-) -> None:
-    """Test fail-fast slop scanning when system config is missing."""
-    transformer = BlueprintTransformer(
-        exec_repo=mock_repo_transformer,
-        workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
-        prompt_block_repo=mock_repo_transformer,
-        output_profile_repo=mock_repo_transformer,
-        identity_repo=mock_repo_transformer,
-        system_repo=mock_repo_transformer,
-    )
-
-    # Test slop scanning fail-fast when system config missing
-    profile = OutputProfile(
-        id="prf_0123456789abcdef0123456789abcdef",
-        slug="test-profile",
-        workflow_id="wf_1234abcd1234abcd",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
-        content_blocks=[],
-        target_block_order=[TargetBlockType.METADATA_BLOCK],
-        layouts=[],
-        user_role_mappings={},
-    )
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
-
-    mock_exec = ExecutionRecord(
-        id="exe_1111222233334444",
-        workflow_id="wf_1234abcd1234abcd",
-        active_profile_id=profile.id,
-        created_at=datetime.now(timezone.utc),
-        created_by="usr_admin",
-        metadata={"target_locale": "fi"},
-        execution_trace=[],
-        profile_syntheses={},
-    )
-    mock_repo_transformer.get_execution.return_value = mock_exec
-    mock_repo_transformer.get_user.return_value = {"display_name": "Test User"}
-
-    mock_wf_slop = SimpleNamespace(
-        id="wf_1234abcd1234abcd",
-        default_profile_id=profile.id,
-        default_strictness_level=85,
-        default_scoring_strategy=ScoringStrategy.AVERAGE,
-        expected_inputs=[SimpleNamespace(scan_for_performative_patterns=True)],
-        steps=[],
-    )
-    mock_repo_transformer.get_workflow.return_value = mock_wf_slop
-    mock_repo_transformer.get_system_config.return_value = None
-
-    with pytest.raises(AppException) as exc_slop:
-        await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
-    assert exc_slop.value.status_code == 500
-    assert exc_slop.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
