@@ -1,8 +1,10 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.dag_models import CausalEdge, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TheoryGrounding
 from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 
@@ -126,3 +128,121 @@ def test_ephemeral_block_creation_strictness() -> None:
             category_id="NOT_AN_ENUM",  # type: ignore
             ai_desc="Something",
         )
+
+
+def test_build_caching_prefix_contains_evaluation_directives() -> None:
+    """Regression test (RED): Ensure static system prompt includes anti-repetition and concise reasoning directives."""
+    prompt = MatrixSensorPromptBuilder.build_caching_prefix("Sample document", None)
+    system_text = prompt.static_messages[0]["content"]
+
+    # Verify that the system prompt explicitly bans repetitive keyword iteration and mandates concise reasoning
+    assert "repetitive" in system_text.lower()
+    assert "concise" in system_text.lower()
+
+
+def test_build_compiled_prompt_empty_nodes_raises_app_exception() -> None:
+    """Anti-happy path: Ensure building prompt with empty nodes raises AppException."""
+    with pytest.raises(AppException) as exc_info:
+        MatrixSensorPromptBuilder.build_compiled_prompt("Context", [], {}, None)
+    assert exc_info.value.status_code == 400
+    assert "Cannot build prompt with empty nodes" in exc_info.value.message
+
+
+def test_build_compiled_prompt_missing_alias_raises_app_exception() -> None:
+    """Anti-happy path: Ensure missing alias for node raises AppException."""
+    node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_11111111",
+            resolved_claim="Claim text.",
+            reasoning="R",
+            source_quote="Q",
+            source_id="chk_1",
+            source_sequence_index=1,
+        ),
+    )
+    with pytest.raises(AppException) as exc_info:
+        MatrixSensorPromptBuilder.build_compiled_prompt("Context", [node], {}, None)
+    assert exc_info.value.status_code == 400
+    assert "Missing alias for tda_id" in exc_info.value.message
+
+
+def test_build_compiled_prompt_with_inverse_assertion() -> None:
+    """Test building compiled prompt with is_inverse=True assertion."""
+    matrix_assertions = [
+        FlattenedAtom(
+            atom_id="tda_33333333",
+            question="Is it absent?",
+            extraction_rule="Check absence.",
+            anchor_target="target",
+            is_inverse=True,
+        )
+    ]
+    matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)
+    node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_33333333",
+            resolved_claim="Claim",
+            reasoning="R",
+            source_quote="Q",
+            source_id="chk_1",
+            source_sequence_index=1,
+        ),
+    )
+
+    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+        "Context", [node], {"tda_33333333": "a3"}, matrix_context
+    )
+    content = prompt.dynamic_messages[0]["content"]
+    assert "<is_inverse>" in content
+    assert "True" in content
+
+
+def test_build_compiled_prompt_with_dependencies_and_status_map() -> None:
+    """Test building compiled prompt with causal dependencies and status map."""
+    dep1 = CausalEdge(
+        tda_id="tda_11111111",
+        source_id="chk_1",
+        expected_status=ExecutionStatus.PASSED,
+        edge_reasoning="Parent must be satisfied first.",
+    )
+    dep2 = CausalEdge(
+        tda_id="tda_22222222",
+        source_id="chk_2",
+        expected_status=ExecutionStatus.FAILED,
+        edge_reasoning="Alternative condition.",
+    )
+    node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_33333333",
+            resolved_claim="Child claim.",
+            reasoning="R",
+            source_quote="Q",
+            source_id="chk_1",
+            source_sequence_index=1,
+        ),
+        depends_on=[dep1, dep2],
+    )
+
+    tda_id_to_alias = {
+        "tda_33333333": "a_child",
+        "tda_11111111": "a_p1",
+    }
+    atom_status_map = {
+        "tda_11111111": ExecutionStatus.PASSED,
+    }
+
+    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+        context_text="Context text",
+        nodes=[node],
+        tda_id_to_alias=tda_id_to_alias,
+        matrix_context=None,
+        atom_status_map=atom_status_map,
+    )
+    content = prompt.dynamic_messages[0]["content"]
+    assert "<causal_dependencies>" in content
+    assert 'parent_alias="a_p1"' in content
+    assert "<actual_status>" in content
+    assert "PASSED" in content
+    assert 'parent_alias="tda_22222222"' in content
+    assert "PENDING" in content
+    assert "Parent must be satisfied first." in content
