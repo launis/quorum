@@ -9417,10 +9417,6 @@
                     "steps": [],
                     "target_blocks": [],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_1a2b3c4d5e6f7a8b"
-                    },
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9450,8 +9446,6 @@
                         "blk_109dab5b6b3f403a"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": null,
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9480,8 +9474,6 @@
                         "blk_b476f89fb732448c"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": null,
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9510,8 +9502,6 @@
                         "blk_f6e286f050c94d60"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": null,
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9533,10 +9523,6 @@
                         "blk_fb15f8dcf23f4865"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_34def5d628ba4ed4"
-                    },
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9558,10 +9544,6 @@
                         "blk_ff72c2d79edb4ebf"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_34def5d628ba4ed4"
-                    },
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9583,10 +9565,6 @@
                         "blk_80732a33fe1947ee"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_34def5d628ba4ed4"
-                    },
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9608,10 +9586,6 @@
                         "blk_c3bc5f3eb8e74110"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_34def5d628ba4ed4"
-                    },
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9633,10 +9607,6 @@
                         "blk_22e3598e06414409"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_34def5d628ba4ed4"
-                    },
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9672,8 +9642,6 @@
                         "blk_22e3598e06414409"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": null,
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {
@@ -9739,8 +9707,6 @@
                         "global_score_block"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": null,
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9758,10 +9724,6 @@
                         "audit_trail_block"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_34def5d628ba4ed4"
-                    },
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},
@@ -9777,10 +9739,6 @@
                         "printable_sources_block"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_34def5d628ba4ed4"
-                    },
-                    "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
                     "matrix_column_labels": {},

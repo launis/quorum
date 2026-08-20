@@ -39,9 +39,8 @@ def test_output_profiles_do_not_contain_execution_logic() -> None:
     if "output_profiles" in data:
         for raw_profile in data["output_profiles"]:
             profile = OutputProfile.model_validate(raw_profile)
-            if hasattr(profile, "layouts"):
-                for i, layout in enumerate(profile.layouts):
-                    assert_no_execution_logic(layout.synthesis, f"Root Profile {profile.id} layout {i}")
+            if profile.synthesis:
+                assert_no_execution_logic(profile.synthesis, f"Root Profile {profile.id}")
 
     if "workflows" in data:
         for raw_wf in data["workflows"]:

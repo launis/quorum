@@ -32,10 +32,13 @@ from backend_v2.models.dtos.synthesis import (
 )
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
 from backend_v2.models.prompts import (
+    EXECUTIVE_SUMMARY_DIRECTIVE,
+    EXECUTIVE_SUMMARY_SECTION_ID,
     GLOBAL_MANDATES_XML,
     MATRIX_1D_SYNTHESIS_DIRECTIVE,
     MATRIX_2D_SYNTHESIS_DIRECTIVE,
     MATRIX_3D_SYNTHESIS_DIRECTIVE,
+    MATRIX_TEXT_SYNTHESIS_DIRECTIVE,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SECTION_RULES_PREFIX,
@@ -892,9 +895,18 @@ async def generate_profile_synthesis_and_pdf_task(
                     if tone:
                         dynamic_ctx_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
 
-                # Section rules (per-profile layout-specific instructions)
+                # Section rules (Executive Summary and per-profile layout-specific instructions)
                 has_section_rules = False
                 section_rules_str = ""
+
+                # Step 2: Prepend Executive Summary section instruction
+                section_rules_str += (
+                    f'\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
+                    f"{EXECUTIVE_SUMMARY_DIRECTIVE}\n"
+                    "</section_instruction>\n"
+                )
+                has_section_rules = True
+
                 if active_profile_dto and active_profile_dto.layouts:
                     language = distilled_data.get("language", "en")
                     title_map = distilled_data.get("title_map", {})
@@ -920,11 +932,8 @@ async def generate_profile_synthesis_and_pdf_task(
                             directive_content = MATRIX_2D_SYNTHESIS_DIRECTIVE
                         elif lay.preset_view in ("3d_matrix", "3d"):
                             directive_content = MATRIX_3D_SYNTHESIS_DIRECTIVE
-                        elif lay.synthesis and lay.synthesis.synthesis_block_id:
-                            lpb_dict = await repo.get_prompt_block(lay.synthesis.synthesis_block_id)
-                            if lpb_dict:
-                                lpb = PromptBlock.model_validate(lpb_dict, strict=False)
-                                directive_content = lpb.ai_description or ""
+                        elif lay.preset_view in ("text_only", "text"):
+                            directive_content = MATRIX_TEXT_SYNTHESIS_DIRECTIVE
 
                         if directive_content:
                             section_rules_str += f'\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n{directive_content}\n</section_instruction>\n'

@@ -603,7 +603,6 @@ def mock_repo_sdui() -> AsyncMock:
                         "steps": [],
                         "target_blocks": ["*"],
                         "description": None,
-                        "synthesis": {},
                     }
                 ],
                 "display_scale": DisplayScale.ORIGINAL,
@@ -2576,10 +2575,10 @@ async def test_blueprint_transformer_fail_fast_branches(
 
 
 @pytest.mark.asyncio
-async def test_blueprint_transformer_additional_hydrators_and_slop_missing_config(
+async def test_blueprint_transformer_slop_missing_config(
     mock_repo_transformer: MagicMock,
 ) -> None:
-    """Test placeholder hydrators and fail-fast slop scanning when config is missing."""
+    """Test fail-fast slop scanning when system config is missing."""
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
@@ -2589,12 +2588,6 @@ async def test_blueprint_transformer_additional_hydrators_and_slop_missing_confi
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
     )
-
-    # Test individual placeholder hydrators directly
-    assert transformer._hydrate_global_score_block() == []
-    assert transformer._hydrate_audit_trail_block() == []
-    jargon_res = transformer._hydrate_jargon_ratio_block()
-    assert len(jargon_res) == 1
 
     # Test slop scanning fail-fast when system config missing
     profile = OutputProfile(

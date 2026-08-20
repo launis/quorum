@@ -624,7 +624,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                             "default_locale": "en",
                             "translations": {"en": "Matrix Section", "fi": "Matriisiosio"},
                         },
-                        "synthesis": {"synthesis_block_id": "blk_3333444455556666"},
+                        "is_synthesis_enabled": True,
                         "target_blocks": ["blk_1111222233334444"],
                     }
                 ],

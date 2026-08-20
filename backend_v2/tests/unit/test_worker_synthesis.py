@@ -116,15 +116,17 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "max_extension_items": 3,
+        "synthesis": {
+            "synthesis_block_id": "pb_2222222222222222",
+            "length_constraint": 1000,
+            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional"}},
+        },
         "layouts": [
             {
                 "preset_view": "3d_matrix",
                 "title": {"default_locale": "en", "translations": {"en": "T"}},
-                "synthesis": {
-                    "synthesis_block_id": "pb_2222222222222222",
-                    "length_constraint": 1000,
-                    "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional"}},
-                },
+                "is_synthesis_enabled": True,
+                "target_blocks": [],
             }
         ],
         "display_scale": "original",
@@ -469,6 +471,7 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
         ("1d_metrics", "1D METRICS SYNTHESIS MANDATE:"),
         ("2d_compare", "2D COMPARISON SYNTHESIS MANDATE:"),
         ("3d_matrix", "3D RADAR SYNTHESIS MANDATE:"),
+        ("text_only", "TEXT-ONLY MATRIX SYNTHESIS MANDATE:"),
     ],
 )
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
@@ -508,8 +511,6 @@ async def test_worker_synthesis_matrix_layout_directives(
                 "is_synthesis_enabled": True,
                 "target_blocks": [],
                 "text_delivery_mode": "none",
-                "synthesis": None,
-                "synthesis_blocks": None,
                 "strictness_level": None,
                 "scoring_strategy": None,
                 "matrix_column_labels": {},
@@ -546,6 +547,7 @@ async def test_worker_synthesis_matrix_layout_directives(
     user_msg_content = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
     assert expected_snippet in user_msg_content
     assert f'id="layout_0_{preset_view}"' in user_msg_content
+    assert '<section_instruction id="executive_summary_block"' in user_msg_content
     assert 'title="' in user_msg_content
 
 
@@ -558,7 +560,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
-    """Negative Test: Verify layout with is_synthesis_enabled=False emits no section_instruction."""
+    """Negative Test: Verify layout with is_synthesis_enabled=False emits no section_instruction for that layout."""
     get_settings().use_mock_llm = True
 
     mock_repo = AsyncMock()
@@ -585,8 +587,6 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
                 "is_synthesis_enabled": False,
                 "target_blocks": [],
                 "text_delivery_mode": "none",
-                "synthesis": None,
-                "synthesis_blocks": None,
                 "strictness_level": None,
                 "scoring_strategy": None,
                 "matrix_column_labels": {},
@@ -616,19 +616,20 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     call_args = mock_client.run_structured_task.call_args
     messages = call_args.kwargs.get("messages", [])
     user_msg_content = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
-    assert "<section_instruction" not in user_msg_content
+    assert 'id="layout_0_2d_compare"' not in user_msg_content
+    assert '<section_instruction id="executive_summary_block"' in user_msg_content
 
 
 @pytest.mark.asyncio
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
 @patch("backend_v2.worker.LLMClient.from_strategy")
-async def test_worker_synthesis_non_matrix_without_synthesis_block_omits_instruction(
+async def test_worker_synthesis_executive_summary_instruction_and_cache(
     mock_from_strategy: AsyncMock,
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
-    """Negative Test: Verify non-matrix layout with synthesis=None or no block_id emits no section_instruction."""
+    """Test that worker generates executive_summary section instruction and populates cache."""
     get_settings().use_mock_llm = True
 
     mock_repo = AsyncMock()
@@ -637,8 +638,8 @@ async def test_worker_synthesis_non_matrix_without_synthesis_block_omits_instruc
 
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
-        "slug": "prof_text_only",
-        "name": {"default_locale": "en", "translations": {"en": "Text Only Profile"}},
+        "slug": "prof_exec_summary",
+        "name": {"default_locale": "en", "translations": {"en": "Exec Profile"}},
         "workflow_id": "wf_1234567812345678",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
@@ -648,30 +649,21 @@ async def test_worker_synthesis_non_matrix_without_synthesis_block_omits_instruc
             "length_constraint": 1000,
             "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
-        "layouts": [
-            {
-                "preset_view": "text_only",
-                "title": {"default_locale": "fi", "translations": {"fi": "Text Layout", "en": "Text Layout"}},
-                "is_synthesis_enabled": True,
-                "target_blocks": [],
-                "text_delivery_mode": "none",
-                "synthesis": None,
-                "synthesis_blocks": None,
-                "strictness_level": None,
-                "scoring_strategy": None,
-                "matrix_column_labels": {},
-                "matrix_visible_columns": [],
-            }
-        ],
+        "layouts": [],
     }
 
     mock_client = AsyncMock()
     mock_client.run_structured_task.return_value = (
         SynthesisOutputDTO(
-            user_role="Executive",
-            user_role_justification="Target executive persona",
+            user_role="ROLE_ARCHITECT",
+            user_role_justification="Demonstrates high strategic maturity",
             cited_sources=[],
-            section_syntheses=[],
+            section_syntheses=[
+                SynthesisSectionDTO(
+                    layout_id="executive_summary_block",
+                    content_blocks=[ParagraphBlock(text="Executive summary narrative paragraph 1.")],
+                )
+            ],
             xai_highlights=[],
         ),
         TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001),
@@ -686,4 +678,18 @@ async def test_worker_synthesis_non_matrix_without_synthesis_block_omits_instruc
     call_args = mock_client.run_structured_task.call_args
     messages = call_args.kwargs.get("messages", [])
     user_msg_content = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
-    assert "<section_instruction" not in user_msg_content
+    assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in user_msg_content
+    assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in user_msg_content
+
+    found_payload = None
+    for call in mock_repo.update_execution.call_args_list:
+        args, kwargs = call
+        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
+            found_payload = args[1]
+            break
+
+    assert found_payload is not None
+    sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
+    assert "executive_summary_block" in sec_synth
+    assert len(sec_synth["executive_summary_block"]) == 1
+    assert sec_synth["executive_summary_block"][0]["text"] == "Executive summary narrative paragraph 1."

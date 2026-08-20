@@ -45,6 +45,10 @@ void main() {
           maxExtensionItems: 3,
           displayScale: DisplayScale.original,
           extensionLabels: {'ext1': emptyI18n},
+          synthesis: SynthesisConfigDTO(
+            preambleText: emptyI18n,
+            toneInstruction: emptyI18n,
+          ),
           layouts: [
             OutputLayoutBlock(
               title: emptyI18n,
@@ -52,10 +56,6 @@ void main() {
               presetView: PresetView.defaultView,
               textDeliveryMode: TextDeliveryMode.full,
               matrixColumnLabels: {'col1': emptyI18n},
-              synthesis: SynthesisConfigDTO(
-                preambleText: emptyI18n,
-                toneInstruction: emptyI18n,
-              ),
             ),
           ],
         );
@@ -91,6 +91,16 @@ void main() {
           reason: 'profile.extensionLabels should be sanitized to empty map',
         );
         expect(
+          sanitized.synthesis?.preambleText,
+          isNull,
+          reason: 'profile.synthesis.preambleText should be sanitized',
+        );
+        expect(
+          sanitized.synthesis?.toneInstruction,
+          isNull,
+          reason: 'profile.synthesis.toneInstruction should be sanitized',
+        );
+        expect(
           sanitized.maxExtensionItems,
           3,
           reason: 'maxExtensionItems should be preserved as 3',
@@ -111,16 +121,6 @@ void main() {
           layout.description,
           isNull,
           reason: 'layout.description should be sanitized',
-        );
-        expect(
-          layout.synthesis?.preambleText,
-          isNull,
-          reason: 'layout.synthesis.preambleText should be sanitized',
-        );
-        expect(
-          layout.synthesis?.toneInstruction,
-          isNull,
-          reason: 'layout.synthesis.toneInstruction should be sanitized',
         );
         expect(
           layout.matrixColumnLabels,

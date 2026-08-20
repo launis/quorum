@@ -257,21 +257,22 @@ class OutputProfileForm extends _$OutputProfileForm {
             : profileWithId.toneInstruction,
         userRoleMappings: sanitizeMap(profileWithId.userRoleMappings),
         extensionLabels: sanitizeMap(profileWithId.extensionLabels),
+        synthesis: profileWithId.synthesis == null
+            ? null
+            : profileWithId.synthesis!.copyWith(
+                preambleText: isEmptyI18n(profileWithId.synthesis!.preambleText)
+                    ? null
+                    : profileWithId.synthesis!.preambleText,
+                toneInstruction:
+                    isEmptyI18n(profileWithId.synthesis!.toneInstruction)
+                    ? null
+                    : profileWithId.synthesis!.toneInstruction,
+              ),
         layouts: profileWithId.layouts.map((l) {
           return l.copyWith(
             title: isEmptyI18n(l.title) ? null : l.title,
             description: isEmptyI18n(l.description) ? null : l.description,
             matrixColumnLabels: sanitizeMap(l.matrixColumnLabels),
-            synthesis: l.synthesis == null
-                ? null
-                : l.synthesis!.copyWith(
-                    preambleText: isEmptyI18n(l.synthesis!.preambleText)
-                        ? null
-                        : l.synthesis!.preambleText,
-                    toneInstruction: isEmptyI18n(l.synthesis!.toneInstruction)
-                        ? null
-                        : l.synthesis!.toneInstruction,
-                  ),
           );
         }).toList(),
       );

@@ -103,12 +103,11 @@ class MatrixSummaryTableAdapter:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
-            if axes or layout_def.synthesis:
-                synthesis_config = layout_def.synthesis
+            if axes or layout_def.is_synthesis_enabled:
                 layout_id = f"layout_{idx}_{preset_view}"
 
                 section_blocks: list[AnySduiBlock] | None = None
-                if synthesis_config and layout_id in section_syntheses:
+                if layout_def.is_synthesis_enabled and layout_id in section_syntheses:
                     section_blocks = list(section_syntheses[layout_id])
 
                 if layout_def.title:

@@ -27,10 +27,6 @@ abstract class OutputLayoutBlock with _$OutputLayoutBlock {
     @JsonKey(name: 'is_synthesis_enabled')
     @Default(true)
     bool isSynthesisEnabled,
-    SynthesisConfigDTO? synthesis,
-    @JsonKey(name: 'synthesis_blocks')
-    @Default([])
-    List<SduiBlockDTO> synthesisBlocks,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'matrix_column_labels')

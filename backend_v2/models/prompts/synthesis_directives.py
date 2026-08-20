@@ -4,14 +4,30 @@ This module acts as the Single Source of Truth (SSOT) for synthesis prompt block
 ensuring strict DRY compliance and zero-hardcoding across workers and hooks.
 """
 
+from backend_v2.models.enums import TargetBlockType
+
 __all__ = [
+    "EXECUTIVE_SUMMARY_DIRECTIVE",
+    "EXECUTIVE_SUMMARY_SECTION_ID",
     "MATRIX_1D_SYNTHESIS_DIRECTIVE",
     "MATRIX_2D_SYNTHESIS_DIRECTIVE",
     "MATRIX_3D_SYNTHESIS_DIRECTIVE",
+    "MATRIX_TEXT_SYNTHESIS_DIRECTIVE",
     "SDUI_SYNTHESIS_MANDATE_BLOCK",
     "SECTION_SYNTHESIS_DIRECTIVE_BLOCK",
     "STATE_ISOLATION_BLOCK",
 ]
+
+EXECUTIVE_SUMMARY_SECTION_ID: str = TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
+
+EXECUTIVE_SUMMARY_DIRECTIVE: str = (
+    "<executive_summary_directive>\n"
+    "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n"
+    "- Synthesize the high-level findings, systemic implications, and strategic executive coaching advice.\n"
+    "- Structure the narrative into clear, logical paragraphs using SDUI ParagraphBlocks.\n"
+    "- Reference key strengths, vulnerabilities, and strategic focus areas from the evaluated data.\n"
+    "</executive_summary_directive>"
+)
 
 MATRIX_1D_SYNTHESIS_DIRECTIVE: str = (
     "<matrix_1d_directive>\n"
@@ -38,6 +54,15 @@ MATRIX_3D_SYNTHESIS_DIRECTIVE: str = (
     "- Identify overall balance, center of gravity, systemic strengths, and critical vulnerabilities.\n"
     "- Structure your findings directly as SDUI blocks.\n"
     "</matrix_3d_directive>"
+)
+
+MATRIX_TEXT_SYNTHESIS_DIRECTIVE: str = (
+    "<matrix_text_directive>\n"
+    "TEXT-ONLY MATRIX SYNTHESIS MANDATE:\n"
+    "- Synthesize the evaluated matrix dimensions into a cohesive analytical narrative.\n"
+    "- Provide actionable takeaways and contextual explanations for each evaluated topic.\n"
+    "- Structure your findings directly as SDUI ParagraphBlocks.\n"
+    "</matrix_text_directive>"
 )
 
 SDUI_SYNTHESIS_MANDATE_BLOCK: str = (

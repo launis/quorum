@@ -22,8 +22,6 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'target_blocks',
         'text_delivery_mode',
         'is_synthesis_enabled',
-        'synthesis',
-        'synthesis_blocks',
         'strictness_level',
         'scoring_strategy',
         'matrix_column_labels',
@@ -65,20 +63,6 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
         'is_synthesis_enabled',
         (v) => v as bool? ?? true,
       ),
-      synthesis: $checkedConvert(
-        'synthesis',
-        (v) => v == null
-            ? null
-            : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
-      ),
-      synthesisBlocks: $checkedConvert(
-        'synthesis_blocks',
-        (v) =>
-            (v as List<dynamic>?)
-                ?.map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
-                .toList() ??
-            const [],
-      ),
       strictnessLevel: $checkedConvert(
         'strictness_level',
         (v) => (v as num?)?.toInt(),
@@ -109,7 +93,6 @@ _OutputLayoutBlock _$OutputLayoutBlockFromJson(
     'targetBlocks': 'target_blocks',
     'textDeliveryMode': 'text_delivery_mode',
     'isSynthesisEnabled': 'is_synthesis_enabled',
-    'synthesisBlocks': 'synthesis_blocks',
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
     'matrixColumnLabels': 'matrix_column_labels',
@@ -127,8 +110,6 @@ Map<String, dynamic> _$OutputLayoutBlockToJson(
   'target_blocks': instance.targetBlocks,
   'text_delivery_mode': _$TextDeliveryModeEnumMap[instance.textDeliveryMode]!,
   'is_synthesis_enabled': instance.isSynthesisEnabled,
-  'synthesis': instance.synthesis?.toJson(),
-  'synthesis_blocks': instance.synthesisBlocks.map((e) => e.toJson()).toList(),
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'matrix_column_labels': instance.matrixColumnLabels.map(

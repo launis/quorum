@@ -115,30 +115,28 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 - The list of flattened messages.
                 - A dictionary of extra keyword arguments containing the cache reference name.
         """
-        estimated_token_count = compiled_prompt.metadata.get("estimated_token_count", 0)
+        # Vertex AI context caching requires caching static messages only.
+        # Calculate the token estimate strictly from static_messages to prevent premature API calls.
+        total_static_chars = 0
+        for msg in compiled_prompt.static_messages:
+            content = msg.get("content")
+            if isinstance(content, str):
+                total_static_chars += len(content)
+            elif isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        total_static_chars += len(block.get("text", ""))
+            elif content is not None:
+                total_static_chars += len(str(content))
+        static_token_count = total_static_chars // 4
 
-        if estimated_token_count == 0:
-            total_static_chars = 0
-            for msg in compiled_prompt.static_messages:
-                content = msg.get("content")
-                if isinstance(content, str):
-                    total_static_chars += len(content)
-                elif isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict) and block.get("type") == "text":
-                            total_static_chars += len(block.get("text", ""))
-                elif content is not None:
-                    total_static_chars += len(str(content))
-            estimated_token_count = total_static_chars // 4
+        min_threshold = max(get_settings().context_cache_minimum_token_limit, 1024)
 
-        if (
-            get_settings().disable_vertex_cache
-            or estimated_token_count < get_settings().context_cache_minimum_token_limit
-        ):
+        if get_settings().disable_vertex_cache or static_token_count < min_threshold:
             logger.info(
-                "Vertex AI caching bypassed: Token Proxy Score %d is below threshold %d (or globally disabled)",
-                estimated_token_count,
-                get_settings().context_cache_minimum_token_limit,
+                "Vertex AI caching bypassed: Static token count %d is below minimum threshold %d (or globally disabled).",
+                static_token_count,
+                min_threshold,
             )
             return compiled_prompt.to_flat_messages(), {}
 

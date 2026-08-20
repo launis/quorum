@@ -2,7 +2,10 @@
 
 import xml.etree.ElementTree as ET
 
+from backend_v2.models.enums import TargetBlockType
 from backend_v2.models.prompts.synthesis_directives import (
+    EXECUTIVE_SUMMARY_DIRECTIVE,
+    EXECUTIVE_SUMMARY_SECTION_ID,
     MATRIX_1D_SYNTHESIS_DIRECTIVE,
     MATRIX_2D_SYNTHESIS_DIRECTIVE,
     MATRIX_3D_SYNTHESIS_DIRECTIVE,
@@ -10,6 +13,19 @@ from backend_v2.models.prompts.synthesis_directives import (
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     STATE_ISOLATION_BLOCK,
 )
+
+
+def test_executive_summary_section_id_ssot_parity() -> None:
+    """Verify EXECUTIVE_SUMMARY_SECTION_ID strictly matches TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value."""
+    assert EXECUTIVE_SUMMARY_SECTION_ID == "executive_summary_block"
+    assert EXECUTIVE_SUMMARY_SECTION_ID == TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
+
+
+def test_executive_summary_directive_valid_xml() -> None:
+    """Verify EXECUTIVE_SUMMARY_DIRECTIVE is valid XML with expected root tag and content."""
+    root = ET.fromstring(EXECUTIVE_SUMMARY_DIRECTIVE)
+    assert root.tag == "executive_summary_directive"
+    assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in (root.text or "")
 
 
 def test_matrix_directives_valid_xml() -> None:

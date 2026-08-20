@@ -2,38 +2,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/shared/models/sdui_block_dto.dart';
 
 void main() {
   group('OutputLayoutBlock JSON Parsing', () {
-    test(
-      'Should parse OutputLayoutBlock with synthesis_blocks and valid enums',
-      () {
-        final jsonPayload = {
-          'preset_view': 'default',
-          'title': {
-            'default_locale': 'en',
-            'translations': {'fi': 'Otsikko', 'en': 'Title'},
-          },
-          'text_delivery_mode': 'full',
-          'synthesis_blocks': [
-            {'block_type': 'hero_insight', 'text': 'Some insight'},
-          ],
-        };
+    test('Should parse OutputLayoutBlock with valid enums and fields', () {
+      final jsonPayload = {
+        'preset_view': 'default',
+        'title': {
+          'default_locale': 'en',
+          'translations': {'fi': 'Otsikko', 'en': 'Title'},
+        },
+        'text_delivery_mode': 'full',
+        'is_synthesis_enabled': true,
+      };
 
-        final block = OutputLayoutBlock.fromJson(jsonPayload);
+      final block = OutputLayoutBlock.fromJson(jsonPayload);
 
-        expect(block, isNotNull);
-        expect(block.presetView, PresetView.defaultView);
-        expect(block.textDeliveryMode, TextDeliveryMode.full);
-        expect(block.synthesisBlocks.length, 1);
-        expect(block.synthesisBlocks.first, isA<SduiHeroInsightBlock>());
-        expect(
-          (block.synthesisBlocks.first as SduiHeroInsightBlock).text,
-          'Some insight',
-        );
-      },
-    );
+      expect(block, isNotNull);
+      expect(block.presetView, PresetView.defaultView);
+      expect(block.textDeliveryMode, TextDeliveryMode.full);
+      expect(block.isSynthesisEnabled, isTrue);
+    });
 
     test('Should parse empty JSON and default maps to {}', () {
       final jsonPayload = <String, dynamic>{};

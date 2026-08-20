@@ -36,7 +36,8 @@ class SynthesisSectionDTO(V2CoreBase):
 
     layout_id: Annotated[str, Field(description="The EXACT layout ID provided in the section instructions")]
     content_blocks: Annotated[
-        list[LlmSduiBlock], Field(..., description="Structured SDUI content blocks for this section")
+        list[LlmSduiBlock],
+        Field(..., min_length=1, description="Structured SDUI content blocks for this section"),
     ]
 
 

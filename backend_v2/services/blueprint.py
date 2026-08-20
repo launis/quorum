@@ -34,7 +34,6 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
-    ParagraphBlock,
     SduiRadarChartBlock,
 )
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
@@ -94,7 +93,7 @@ class BlueprintTransformer:
             TargetBlockType.PENALTIES_BLOCK: lambda ctx: PenaltiesAdapter.build(ctx),
             TargetBlockType.GLOBAL_SCORE_BLOCK: lambda ctx: GlobalScoreAdapter.build(ctx),
             TargetBlockType.AUDIT_TRAIL_BLOCK: lambda ctx: McpAuditAdapter.build(ctx),
-            TargetBlockType.JARGON_RATIO_BLOCK: lambda ctx: self._hydrate_jargon_ratio_block(),
+            TargetBlockType.JARGON_RATIO_BLOCK: lambda ctx: [],
             TargetBlockType.PRINTABLE_SOURCES_BLOCK: lambda ctx: PrintableSourcesAdapter.build(ctx),
             TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: XaiHighlightsAdapter.build(ctx),
             TargetBlockType.EXECUTIVE_SUMMARY_BLOCK: lambda ctx: ExecutiveSummaryAdapter.build(ctx),
@@ -119,18 +118,6 @@ class BlueprintTransformer:
         text = re.sub(r"[\w\.-]+@[\w\.-]+", "[REDACTED EMAIL]", text)
         text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[REDACTED PHONE]", text)
         return text
-
-    def _hydrate_global_score_block(self, **kwargs: Any) -> list[AnySduiBlock]:
-        """Placeholder for future global score hydration logic."""
-        return []
-
-    def _hydrate_audit_trail_block(self, **kwargs: Any) -> list[AnySduiBlock]:
-        """Placeholder for future audit trail hydration logic."""
-        return []
-
-    def _hydrate_jargon_ratio_block(self, **kwargs: Any) -> list[AnySduiBlock]:
-        """Placeholder for future jargon ratio hydration logic."""
-        return [ParagraphBlock(text="Jargon ratio placeholder", exact_quotes=[], citations=[])]
 
     async def build_report_dto(
         self,

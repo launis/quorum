@@ -259,7 +259,7 @@ def test_matrix_summary_table_adapter_wildcard_target_blocks() -> None:
 
 def test_matrix_summary_table_adapter_layout_description_and_section_syntheses() -> None:
     """EP (Layout Description and Section Syntheses): verify description and section_blocks injection."""
-    from backend_v2.models.v2_core import RenderedSynthesisCache, SynthesisConfigDTO
+    from backend_v2.models.v2_core import RenderedSynthesisCache
     from backend_v2.models.view.sdui import MarkdownBlock, ParagraphBlock
 
     profile = OutputProfile(
@@ -273,7 +273,7 @@ def test_matrix_summary_table_adapter_layout_description_and_section_syntheses()
                 title=I18nText(default_locale="en", translations={"en": "Table Summary"}),
                 target_blocks=["m1"],
                 description=I18nText(default_locale="en", translations={"en": "Test description"}),
-                synthesis=SynthesisConfigDTO(),
+                is_synthesis_enabled=True,
             )
         ],
     )

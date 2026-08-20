@@ -1271,12 +1271,6 @@ class OutputLayoutBlock(V2CoreBase):
         default="full", description="Granularity of text output in PDF and UI grids."
     )
 
-    synthesis: SynthesisConfigDTO | None = Field(
-        default=None, description="Optional Section-Level Synthesis configuration for this block."
-    )
-    synthesis_blocks: list[AnySduiBlock] | None = Field(
-        default=None, description="Optional Section-Level Synthesis content blocks."
-    )
     strictness_level: int | None = Field(
         default=None, ge=0, le=100, description="Override for strictness_level in this layout."
     )

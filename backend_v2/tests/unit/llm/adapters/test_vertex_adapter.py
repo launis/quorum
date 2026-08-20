@@ -303,3 +303,269 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     # Verify system message was extracted to system_instruction
     assert "system_instruction" in kwargs
     assert kwargs["system_instruction"] == large_static
+
+
+def test_vertex_token_usage_negative_savings_raises() -> None:
+    """Verify that negative savings in VertexTokenUsage raises a ValueError."""
+    with pytest.raises(ValueError, match="estimated_savings_usd must be greater than or equal to 0.0"):
+        VertexTokenUsage(
+            prompt_tokens=10,
+            completion_tokens=5,
+            total_tokens=15,
+            estimated_savings_usd=-1.0,
+        )
+
+
+def test_vertex_adapter_prepare_provider_kwargs() -> None:
+    """Verify prepare_provider_kwargs returns standard Vertex safety settings."""
+    adapter = VertexCacheAdapter()
+    kwargs = adapter.prepare_provider_kwargs("gemini-2.5-flash")
+    assert "safety_settings" in kwargs
+    assert len(kwargs["safety_settings"]) > 0
+
+
+def test_vertex_adapter_sanitize_messages() -> None:
+    """Verify sanitize_messages strips orphaned tool calls and preserves valid ones."""
+    adapter = VertexCacheAdapter()
+
+    messages = [
+        {"role": "user", "content": "Hello"},
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [{"id": "call_123", "type": "function", "function": {"name": "search"}}],
+        },
+        {"role": "tool", "tool_call_id": "call_123", "content": "Result 1"},
+        {"role": "tool", "tool_call_id": "orphaned_call_999", "content": "Orphaned result"},
+    ]
+
+    sanitized = adapter.sanitize_messages(messages)
+    assert len(sanitized) == 3
+    assert not any(m.get("tool_call_id") == "orphaned_call_999" for m in sanitized)
+    assert any(m.get("tool_call_id") == "call_123" for m in sanitized)
+
+
+def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
+    """Verify prepare_kwargs resolves vertex location and maps thinking budget tokens."""
+    adapter = VertexCacheAdapter()
+
+    config_mock = MagicMock()
+    config_mock.vertex_location = "europe-west1"
+    config_mock.additional_params = {"thinking_budget_tokens": 1024}
+
+    call_kwargs: dict[str, Any] = {}
+    result = adapter.prepare_kwargs(call_kwargs, config=config_mock)
+
+    assert result["vertex_location"] == "europe-west1"
+    assert (
+        result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"]
+        == 1024
+    )
+
+
+def test_vertex_adapter_prepare_kwargs_cached_content_with_tools_bypasses() -> None:
+    """Verify prepare_kwargs bypasses caching if tools are present in call_kwargs."""
+    adapter = VertexCacheAdapter()
+
+    call_kwargs: dict[str, Any] = {
+        "cached_content": "projects/test/locations/europe-north1/cachedContents/123",
+        "tools": [{"type": "function"}],
+    }
+
+    result = adapter.prepare_kwargs(call_kwargs)
+    assert "cached_content" not in result
+
+
+def test_vertex_adapter_prepare_kwargs_cached_content_scrubs_system_message() -> None:
+    """Verify prepare_kwargs scrubs stray system messages when caching is active."""
+    adapter = VertexCacheAdapter()
+
+    call_kwargs: dict[str, Any] = {
+        "cached_content": "projects/test/locations/europe-north1/cachedContents/123",
+        "messages": [
+            {"role": "system", "content": "Stray system message"},
+            {"role": "user", "content": "User prompt"},
+        ],
+    }
+
+    result = adapter.prepare_kwargs(call_kwargs)
+    assert result["extra_headers"]["cached_content"] == "projects/test/locations/europe-north1/cachedContents/123"
+    assert result["extra_body"]["cachedContent"] == "projects/test/locations/europe-north1/cachedContents/123"
+    assert len(result["messages"]) == 1
+    assert result["messages"][0]["role"] == "user"
+
+
+def test_vertex_adapter_build_http_client() -> None:
+    """Verify build_http_client returns an AsyncHTTPHandler with persistent settings."""
+    adapter = VertexCacheAdapter()
+    handler = adapter.build_http_client(45.0)
+    assert handler is not None
+    assert handler.timeout == 45.0
+    assert handler.client is not None
+
+
+def test_vertex_adapter_prepare_structured_output() -> None:
+    """Verify prepare_structured_output converts Pydantic model and strips unsupported constraints."""
+    from pydantic import BaseModel, Field
+
+    class OutputSchema(BaseModel):
+        summary: str = Field(description="Summary text", min_length=5)
+        score: int = Field(ge=1, le=10)
+
+    adapter = VertexCacheAdapter()
+    structured = adapter.prepare_structured_output(OutputSchema)
+
+    assert isinstance(structured, dict)
+    assert structured["type"] == "json_schema"
+    schema = structured["json_schema"]["schema"]
+    assert "minLength" not in schema.get("properties", {}).get("summary", {})
+
+
+@pytest.mark.asyncio
+async def test_vertex_adapter_bypasses_cache_when_static_messages_below_1024() -> None:
+    """Verify VertexCacheAdapter pre-flight check bypasses cache when static prompt is <1024 tokens even if metadata token count is high."""
+    adapter = VertexCacheAdapter()
+
+    # Short static messages (~30 chars = ~7 tokens), but metadata reports 50k tokens (document payload)
+    prompt = CompiledPrompt(
+        static_messages=[
+            {"role": "system", "content": "You are a concise classifier."},
+        ],
+        dynamic_messages=[
+            {"role": "user", "content": "Document text " * 5000},
+        ],
+        metadata={"estimated_token_count": 50000},
+    )
+
+    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
+    assert extra_kwargs == {}
+    assert len(flat_msgs) == 2
+
+
+@pytest.mark.asyncio
+async def test_vertex_adapter_static_chars_with_content_blocks() -> None:
+    """Verify token estimation handles content formatted as list of text blocks."""
+    adapter = VertexCacheAdapter()
+
+    prompt = CompiledPrompt(
+        static_messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Block one. "},
+                    {"type": "text", "text": "Block two."},
+                ],
+            },
+        ],
+        dynamic_messages=[],
+    )
+
+    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
+    assert extra_kwargs == {}
+    assert len(flat_msgs) == 1
+
+
+@pytest.mark.asyncio
+async def test_real_get_redis_client_pytest_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify real get_redis_client returns patched fakeredis pool in test environments."""
+    import backend_v2.llm.adapters.vertex_adapter as va_module
+
+    # Undo monkeypatch on module level for this specific test
+    monkeypatch.undo()
+
+    client = await va_module.get_redis_client()
+    assert client is not None
+    # Verify reusing same pool
+    client2 = await va_module.get_redis_client()
+    assert client2 is client
+
+
+@pytest.mark.asyncio
+async def test_vertex_cache_immediate_hit_in_shared_ledger() -> None:
+    """Verify that an existing cache in Redis returns immediately without lock or SDK creation."""
+    adapter = VertexCacheAdapter()
+    large_static = "A" * 150000
+    prompt = CompiledPrompt(
+        static_messages=[{"role": "system", "content": large_static}],
+        dynamic_messages=[{"role": "user", "content": "Query"}],
+    )
+
+    redis_client = await get_redis_client()
+    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
+    existing_cache_id = "projects/mock-proj/locations/europe-north1/cachedContents/hit-12345"
+    await redis_client.set(redis_key, existing_cache_id, ex=300)
+
+    dynamic_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    assert extra_kwargs == {"cached_content": existing_cache_id}
+    assert len(dynamic_msgs) == 1
+
+
+@pytest.mark.asyncio
+async def test_vertex_cache_assistant_role_and_unqualified_name() -> None:
+    """Verify assistant role is mapped to model and unqualified cache names are prefixed."""
+    mock_cached_contents.CachedContent.create.reset_mock()
+
+    class DummyCacheUnqualified:
+        name = "unqualified_cache_id_555"
+
+    mock_cached_contents.CachedContent.create.return_value = DummyCacheUnqualified()
+
+    large_static = "A" * 150000
+    prompt = CompiledPrompt(
+        static_messages=[
+            {"role": "system", "content": large_static},
+            {"role": "assistant", "content": "Previous assistant response in cache"},
+        ],
+        dynamic_messages=[],
+    )
+
+    adapter = VertexCacheAdapter()
+    redis_client = await get_redis_client()
+    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
+    lock_key = f"lock:vertex_cache:gemini-1.5-pro:{static_hash}"
+    await redis_client.delete(redis_key, lock_key)
+
+    _, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+
+    assert "cached_content" in extra_kwargs
+    assert extra_kwargs["cached_content"].endswith("/cachedContents/unqualified_cache_id_555")
+
+    # Verify assistant role was mapped to model in GAPIC contents
+    _, kwargs = mock_cached_contents.CachedContent.create.call_args
+    passed_contents = kwargs["contents"]
+    assert any(c["role"] == "model" for c in passed_contents)
+
+
+@pytest.mark.asyncio
+async def test_vertex_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify wait-and-poll loop handles timeout when lock is held by another worker."""
+    from backend_v2.settings import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "context_cache_lock_poll_interval_ms", 1)
+    monkeypatch.setattr(settings, "context_cache_lock_wait_limit_seconds", 0.005)
+
+    large_static = "A" * 150000
+    prompt = CompiledPrompt(
+        static_messages=[{"role": "system", "content": large_static}],
+        dynamic_messages=[],
+    )
+
+    adapter = VertexCacheAdapter()
+    redis_client = await get_redis_client()
+    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
+    lock_key = f"lock:vertex_cache:gemini-1.5-pro:{static_hash}"
+
+    # Lock held by worker_0, status CREATING
+    await redis_client.set(lock_key, "worker_0", ex=10)
+    await redis_client.set(redis_key, "CREATING", ex=10)
+
+    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+
+    assert extra_kwargs == {}
+    assert len(flat_msgs) == 1
+
+

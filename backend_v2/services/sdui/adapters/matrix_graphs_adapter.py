@@ -129,14 +129,13 @@ class MatrixGraphsAdapter:
             if text_delivery_mode in ["titles_only", "none"]:
                 axes = [axis.model_copy(update={"inner_sdui_blocks": []}) for axis in axes]
 
-            if axes or preset_view == "text_only" or layout_def.synthesis:
-                synthesis_config = layout_def.synthesis
-                layout_id = f"layout_{original_idx}_{preset_view}"
+            layout_id = f"layout_{original_idx}_{preset_view}"
 
-                section_blocks: list[AnySduiBlock] | None = None
-                if synthesis_config and layout_id in section_syntheses:
-                    section_blocks = list(section_syntheses[layout_id])
+            section_blocks: list[AnySduiBlock] | None = None
+            if layout_def.is_synthesis_enabled and layout_id in section_syntheses:
+                section_blocks = list(section_syntheses[layout_id])
 
+            if axes or preset_view == "text_only" or section_blocks:
                 should_render_content = preset_view in ["3d_matrix", "2d_compare", "1d_metrics", "text_only"]
 
                 if should_render_content:
@@ -150,11 +149,11 @@ class MatrixGraphsAdapter:
                 if section_blocks:
                     blocks.extend(section_blocks)
 
-                if preset_view == "3d_matrix":
+                if preset_view == "3d_matrix" and axes:
                     blocks.append(SduiRadarChartBlock(title=None, axes=axes))
-                elif preset_view == "2d_compare":
+                elif preset_view == "2d_compare" and axes:
                     blocks.append(SduiScatterPlotBlock(title=None, axes=axes))
-                elif preset_view == "1d_metrics":
+                elif preset_view == "1d_metrics" and axes:
                     blocks.append(SduiMetrics1DBlock(title=None, axes=axes))
                 elif preset_view == "text_only" and text_delivery_mode != "none":
                     for axis in axes:

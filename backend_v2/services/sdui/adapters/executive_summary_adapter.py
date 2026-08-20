@@ -8,7 +8,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 import logging
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.enums import RoleClassification
+from backend_v2.models.enums import RoleClassification, TargetBlockType
 from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
@@ -144,9 +144,9 @@ class ExecutiveSummaryAdapter:
 
         # 4. DYNAMIC SYNTHESES: Append executive summary section syntheses if present
         if profile_cache.section_syntheses:
-            for key in ("executive_summary", "executive_summary_block"):
-                if key in profile_cache.section_syntheses:
-                    for sb in profile_cache.section_syntheses[key]:
-                        blocks.append(sb.model_copy(deep=True))
+            target_key = TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
+            if target_key in profile_cache.section_syntheses:
+                for sb in profile_cache.section_syntheses[target_key]:
+                    blocks.append(sb.model_copy(deep=True))
 
         return blocks
