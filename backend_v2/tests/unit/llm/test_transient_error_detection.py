@@ -1,12 +1,11 @@
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 
 from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes, LLMSchemaValidationError
 from backend_v2.llm.provider import LiteLLMProvider, _is_transient_llm_error
-from backend_v2.models.v2_core import StepRule, Workflow
 from backend_v2.settings import get_settings
 
 

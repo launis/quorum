@@ -900,33 +900,35 @@ async def generate_profile_synthesis_and_pdf_task(
                     title_map = distilled_data.get("title_map", {})
 
                     for i, lay in enumerate(active_profile_dto.layouts):
-                        if getattr(lay, "synthesis", None) and lay.synthesis:
-                            lay_id = f"layout_{i}_{lay.preset_view}"
-                            lay_title = lay.title.resolve(language) if lay.title else lay_id
+                        if not lay.is_synthesis_enabled:
+                            continue
 
-                            target_titles = []
-                            if lay.target_blocks:
-                                for tb in lay.target_blocks:
-                                    if tb.lower() in title_map:
-                                        target_titles.append(title_map[tb.lower()])
-                            target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
+                        lay_id = f"layout_{i}_{lay.preset_view}"
+                        lay_title = lay.title.resolve(language) if lay.title else lay_id
 
-                            directive_content = ""
-                            if lay.synthesis.synthesis_block_id:
-                                lpb_dict = await repo.get_prompt_block(lay.synthesis.synthesis_block_id)
-                                if lpb_dict:
-                                    lpb = PromptBlock.model_validate(lpb_dict, strict=False)
-                                    directive_content = lpb.ai_description or ""
-                            elif lay.preset_view in ("1d_metrics", "1d"):
-                                directive_content = MATRIX_1D_SYNTHESIS_DIRECTIVE
-                            elif lay.preset_view in ("2d_compare", "2d"):
-                                directive_content = MATRIX_2D_SYNTHESIS_DIRECTIVE
-                            elif lay.preset_view in ("3d_matrix", "3d"):
-                                directive_content = MATRIX_3D_SYNTHESIS_DIRECTIVE
+                        target_titles = []
+                        if lay.target_blocks:
+                            for tb in lay.target_blocks:
+                                if tb.lower() in title_map:
+                                    target_titles.append(title_map[tb.lower()])
+                        target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
 
-                            if directive_content:
-                                section_rules_str += f'\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n{directive_content}\n</section_instruction>\n'
-                                has_section_rules = True
+                        directive_content = ""
+                        if lay.preset_view in ("1d_metrics", "1d"):
+                            directive_content = MATRIX_1D_SYNTHESIS_DIRECTIVE
+                        elif lay.preset_view in ("2d_compare", "2d"):
+                            directive_content = MATRIX_2D_SYNTHESIS_DIRECTIVE
+                        elif lay.preset_view in ("3d_matrix", "3d"):
+                            directive_content = MATRIX_3D_SYNTHESIS_DIRECTIVE
+                        elif lay.synthesis and lay.synthesis.synthesis_block_id:
+                            lpb_dict = await repo.get_prompt_block(lay.synthesis.synthesis_block_id)
+                            if lpb_dict:
+                                lpb = PromptBlock.model_validate(lpb_dict, strict=False)
+                                directive_content = lpb.ai_description or ""
+
+                        if directive_content:
+                            section_rules_str += f'\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n{directive_content}\n</section_instruction>\n'
+                            has_section_rules = True
 
                 if has_section_rules:
                     dynamic_ctx_parts.append(

@@ -19,6 +19,11 @@ def test_seed_data_output_profiles_have_synthesis_block_id() -> None:
         slug = profile.get("slug", "unknown")
         layouts = profile.get("layouts", [])
         for idx, layout in enumerate(layouts):
+            preset_view = layout.get("preset_view", "")
+            # Matrix layouts resolve their synthesis directives programmatically via synthesis_directives.py
+            if preset_view in ("1d_metrics", "1d", "2d_compare", "2d", "3d_matrix", "3d"):
+                continue
+
             synthesis = layout.get("synthesis")
             is_enabled = layout.get("is_synthesis_enabled", False)
             if synthesis is not None and is_enabled:

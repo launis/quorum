@@ -4,8 +4,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.synthesis import SynthesisOutputDTO, SynthesisSectionDTO
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
+from backend_v2.models.view.sdui import ParagraphBlock
 from backend_v2.settings import get_settings
 from backend_v2.worker import generate_profile_synthesis_and_pdf_task
 
@@ -457,3 +460,230 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
     assert found_payload is not None
     metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
     assert metrics is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("preset_view", "expected_snippet"),
+    [
+        ("1d_metrics", "1D METRICS SYNTHESIS MANDATE:"),
+        ("2d_compare", "2D COMPARISON SYNTHESIS MANDATE:"),
+        ("3d_matrix", "3D RADAR SYNTHESIS MANDATE:"),
+    ],
+)
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.worker.LLMClient.from_strategy")
+async def test_worker_synthesis_matrix_layout_directives(
+    mock_from_strategy: AsyncMock,
+    _mock_driver: AsyncMock,
+    mock_repo_class: AsyncMock,
+    preset_view: str,
+    expected_snippet: str,
+) -> None:
+    """Test that matrix layout presets deterministically receive their respective synthesis directives."""
+    get_settings().use_mock_llm = True
+
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+    _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
+
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "prof_test",
+        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "workflow_id": "wf_1234567812345678",
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "synthesis": {
+            "synthesis_block_id": "pb_2222222222222222",
+            "length_constraint": 1000,
+            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        },
+        "layouts": [
+            {
+                "preset_view": preset_view,
+                "title": {"default_locale": "fi", "translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
+                "is_synthesis_enabled": True,
+                "target_blocks": [],
+                "text_delivery_mode": "none",
+                "synthesis": None,
+                "synthesis_blocks": None,
+                "strictness_level": None,
+                "scoring_strategy": None,
+                "matrix_column_labels": {},
+                "matrix_visible_columns": [],
+            }
+        ],
+    }
+
+    mock_client = AsyncMock()
+    mock_client.run_structured_task.return_value = (
+        SynthesisOutputDTO(
+            user_role="Executive",
+            user_role_justification="Target executive persona",
+            cited_sources=[],
+            section_syntheses=[
+                SynthesisSectionDTO(
+                    layout_id="layout_0_" + preset_view,
+                    content_blocks=[ParagraphBlock(text="Section Content")],
+                )
+            ],
+            xai_highlights=[],
+        ),
+        TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001),
+    )
+    mock_from_strategy.return_value = mock_client
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+    )
+
+    assert mock_client.run_structured_task.called
+    call_args = mock_client.run_structured_task.call_args
+    messages = call_args.kwargs.get("messages", [])
+    user_msg_content = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+    assert expected_snippet in user_msg_content
+    assert f'id="layout_0_{preset_view}"' in user_msg_content
+    assert 'title="' in user_msg_content
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.worker.LLMClient.from_strategy")
+async def test_worker_synthesis_disabled_layout_omits_section_instruction(
+    mock_from_strategy: AsyncMock,
+    _mock_driver: AsyncMock,
+    mock_repo_class: AsyncMock,
+) -> None:
+    """Negative Test: Verify layout with is_synthesis_enabled=False emits no section_instruction."""
+    get_settings().use_mock_llm = True
+
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+    _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
+
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "prof_disabled",
+        "name": {"default_locale": "en", "translations": {"en": "Disabled Profile"}},
+        "workflow_id": "wf_1234567812345678",
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "synthesis": {
+            "synthesis_block_id": "pb_2222222222222222",
+            "length_constraint": 1000,
+            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        },
+        "layouts": [
+            {
+                "preset_view": "2d_compare",
+                "title": {"default_locale": "fi", "translations": {"fi": "Disabled Layout", "en": "Disabled Layout"}},
+                "is_synthesis_enabled": False,
+                "target_blocks": [],
+                "text_delivery_mode": "none",
+                "synthesis": None,
+                "synthesis_blocks": None,
+                "strictness_level": None,
+                "scoring_strategy": None,
+                "matrix_column_labels": {},
+                "matrix_visible_columns": [],
+            }
+        ],
+    }
+
+    mock_client = AsyncMock()
+    mock_client.run_structured_task.return_value = (
+        SynthesisOutputDTO(
+            user_role="Executive",
+            user_role_justification="Target executive persona",
+            cited_sources=[],
+            section_syntheses=[],
+            xai_highlights=[],
+        ),
+        TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001),
+    )
+    mock_from_strategy.return_value = mock_client
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+    )
+
+    assert mock_client.run_structured_task.called
+    call_args = mock_client.run_structured_task.call_args
+    messages = call_args.kwargs.get("messages", [])
+    user_msg_content = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+    assert "<section_instruction" not in user_msg_content
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.worker.LLMClient.from_strategy")
+async def test_worker_synthesis_non_matrix_without_synthesis_block_omits_instruction(
+    mock_from_strategy: AsyncMock,
+    _mock_driver: AsyncMock,
+    mock_repo_class: AsyncMock,
+) -> None:
+    """Negative Test: Verify non-matrix layout with synthesis=None or no block_id emits no section_instruction."""
+    get_settings().use_mock_llm = True
+
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+    _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
+
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "prof_text_only",
+        "name": {"default_locale": "en", "translations": {"en": "Text Only Profile"}},
+        "workflow_id": "wf_1234567812345678",
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "synthesis": {
+            "synthesis_block_id": "pb_2222222222222222",
+            "length_constraint": 1000,
+            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        },
+        "layouts": [
+            {
+                "preset_view": "text_only",
+                "title": {"default_locale": "fi", "translations": {"fi": "Text Layout", "en": "Text Layout"}},
+                "is_synthesis_enabled": True,
+                "target_blocks": [],
+                "text_delivery_mode": "none",
+                "synthesis": None,
+                "synthesis_blocks": None,
+                "strictness_level": None,
+                "scoring_strategy": None,
+                "matrix_column_labels": {},
+                "matrix_visible_columns": [],
+            }
+        ],
+    }
+
+    mock_client = AsyncMock()
+    mock_client.run_structured_task.return_value = (
+        SynthesisOutputDTO(
+            user_role="Executive",
+            user_role_justification="Target executive persona",
+            cited_sources=[],
+            section_syntheses=[],
+            xai_highlights=[],
+        ),
+        TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001),
+    )
+    mock_from_strategy.return_value = mock_client
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+    )
+
+    assert mock_client.run_structured_task.called
+    call_args = mock_client.run_structured_task.call_args
+    messages = call_args.kwargs.get("messages", [])
+    user_msg_content = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+    assert "<section_instruction" not in user_msg_content

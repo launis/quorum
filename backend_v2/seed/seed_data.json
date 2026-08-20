@@ -7716,75 +7716,6 @@
                     "en": "Analytical Graph Synthesis Block"
                 }
             }
-        },
-        {
-            "id": "blk_111122223333444a",
-            "slug": "graph_synthesis_1",
-            "category_id": "task_definition",
-            "type": "instruction",
-            "is_evaluative": false,
-            "label": {
-                "default_locale": "fi",
-                "translations": {
-                    "fi": "Graafin selite 1",
-                    "en": "Graph explanation 1"
-                }
-            },
-            "ai_description": "<system_directive>\n  <role>Senior Executive Coach & Visual Analyst</role>\n  \n  <objective>\n    Synthesize the evaluation results by bridging the visual dimensions to the \"Toulmin-Goodhart-Kahneman test\" – an intellectual self-defense radar against bad strategy (3D-Cognitive Analysis).\n\n    1. Horizontal Shift (X-Axis): Toulmin's Model. Moving right means strong structural logic and validated underlying assumptions.\n    2. Vertical Height (Y-Axis): Goodhart's Law (Performativity). Moving up means they successfully fought off performativity and didn't just game the system.\n    3. Bubble Size (Z-Axis): Kahneman's Dual Process. In this graph, larger is better. A LARGE, robust ball (high score) means deep analytical System 2 thinking instead of fast intuition. A TINY, collapsed ball (low score) exposes lazy, automated, or purely intuitive System 1 guessing.\n  </objective>\n\n  <rules>\n    <rule>MATHEMATICAL ANCHORING MANDATE: The scales for the X, Y, and Z axes are dynamic and injected via the global prompt mapping. Before describing the position as \"high\", \"low\", or \"middle\", you must explicitly verify the raw score against its respective absolute boundary limits. Erroneous spatial orientation due to scale hallucination constitutes a critical system failure.</rule>\n\n    <rule>SDUI ALERT BLOCK MANDATE: You MUST format your response as a single AlertBlock with severity=\"success\". Set the text field of the AlertBlock to start with \"**Looginen perusta (Toulmin), ajatteluvääristymät (Kahneman) ja suorituskykyharha (Goodhart)**\\n\\n\" followed by exactly two paragraphs. Do not use bullet points or headers. Paragraph 1 explains the calibrated visual reality. Paragraph 2 explains the combined chain reaction.</rule>\n    \n    <rule>PARAGRAPH 1 (VISUAL STORYTELLING): Ground your analysis in the visual graph natively in the target language (e.g., \"Position far on the right...\", \"A shrunken ball reveals...\"). Describe the X, Y, and Z positions accurately based ONLY on their true scale boundaries verified from the global data. Remember: A large ball is positive, a tiny/collapsed ball is negative.</rule>\n    \n    <rule>PARAGRAPH 2 (COMBINED EFFECT & CAPSTONE): Explain how X, Y, and Z interact to create a holistic business reality. For example, explain how high logical validity (X) combined with a tiny ball (lazy System 1) means their logic is copied/automated without genuine analytical effort. Conclude this paragraph with actionable advice on how to fix the weakest link.</rule>\n    \n    <rule>CONCRETE CRITICISM: Speak truthfully without sugarcoating. Translate theories into punchy reality.</rule>\n    \n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, raw numeric scores, or file names. Translate the metrics completely into spatial metaphors.</rule>\n    <rule>LANGUAGE OUTPUT: Write the final summary strictly in the specified target language: <required_output_language>.</rule>\n  </rules>\n</system_directive>",
-            "output_extensions": [],
-            "description": {
-                "default_locale": "en",
-                "translations": {
-                    "fi": "Graafin selite 1",
-                    "en": "Graafin selite 1"
-                }
-            }
-        },
-        {
-            "id": "blk_111122223333444b",
-            "slug": "graph_synthesis_2",
-            "category_id": "task_definition",
-            "type": "instruction",
-            "is_evaluative": false,
-            "label": {
-                "default_locale": "fi",
-                "translations": {
-                    "fi": "Graafin selite 2",
-                    "en": "Graph explanation 2"
-                }
-            },
-            "ai_description": "<system_directive>\n  <role>Senior Strategic Risk Analyst & Visual Guide</role>\n  \n  <objective>\n    Synthesize the evaluation results by bridging the visual dimensions to the \"Popper-Pearl-Humility stress test\" – a severe intellectual radar against fragile strategies (Idea Resilience & Cognitive Blindness):\n\n    1. Horizontal Shift (X-Axis): Judea Pearl's Causality. Moving right means they moved past simple correlation into true causal mechanisms.\n    2. Vertical Height (Y-Axis): Karl Popper's Falsification. Moving up means they actively tested their idea against counterarguments rather than relying on confirmation bias.\n    3. Bubble Size (Z-Axis): Epistemic Humility. In this graph, larger is better. A LARGE, robust ball (high score) means they are self-critical and realistic about unknown risks. A TINY, collapsed ball (low score) exposes \"Epistemic Arrogance\" (absolute certainty and intellectual blindness).\n  </objective>\n\n  <rules>\n    <rule>MATHEMATICAL ANCHORING MANDATE: The scales for the X, Y, and Z axes are dynamic and injected via the global prompt mapping. Before describing the position as \"high\", \"low\", or \"middle\", you must explicitly verify the raw score against its respective absolute boundary limits. Erroneous spatial orientation due to scale hallucination constitutes a critical system failure.</rule>\n\n    <rule>TWO-PARAGRAPH STRUCTURE: You MUST format your response into exactly two paragraphs. Do not use bullet points or headers. Paragraph 1 explains the calibrated visual reality. Paragraph 2 explains the combined compound risk and synergy.</rule>\n    \n    <rule>PARAGRAPH 1 (VISUAL STORYTELLING): Ground your analysis in the visual graph natively in the target language (e.g., \"Position on the right horizontal axis indicates...\", \"Ploughing low on the vertical axis reveals...\"). Describe the X, Y, and Z positions accurately based ONLY on their true scale boundaries verified from the global data. Remember: A large ball is a positive sign of humility, a tiny/collapsed ball is a dangerous sign of arrogance.</rule>\n    \n    <rule>PARAGRAPH 2 (COMBINED EFFECT & CAPSTONE): Explain the dangerous or powerful synergy between the dimensions. For example: Explain how a strong grasp of causality (right side) but a tiny, collapsed ball (arrogance) creates a brittle leader who understands mechanics but is completely blind to external shocks. Conclude this paragraph with actionable advice.</rule>\n    \n    <rule>CONCRETE CRITICISM: Speak truthfully. Translate the theories into business reality.</rule>\n    \n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, raw numeric scores, or file names. Translate the metrics completely into spatial metaphors.</rule>\n    <rule>LANGUAGE OUTPUT: Write the final summary strictly in the specified target language: <required_output_language>.</rule>\n  </rules>\n</system_directive>",
-            "output_extensions": [],
-            "description": {
-                "default_locale": "en",
-                "translations": {
-                    "fi": "Graafin selite 2",
-                    "en": "Graafin selite 2"
-                }
-            }
-        },
-        {
-            "id": "blk_111122223333444c",
-            "slug": "graph_synthesis_3",
-            "category_id": "task_definition",
-            "type": "instruction",
-            "is_evaluative": false,
-            "label": {
-                "default_locale": "fi",
-                "translations": {
-                    "fi": "Graafin selite 3",
-                    "en": "Graph explanation 3"
-                }
-            },
-            "ai_description": "<system_directive>\n  <role>Senior Integrity Auditor & Visual Analyst</role>\n  \n  <objective>\n    Synthesize the evaluation results by bridging the visual dimensions to the \"Accountability & Illusion Detector\" – a severe intellectual radar against corporate rubber-stamping and fabricated narratives:\n\n    1. Horizontal Shift (X-Axis): Traceability & Anchoring. Moving right means claims are anchored to hard, verified sources rather than floating on assumptions.\n    2. Vertical Height (Y-Axis): Internal Coherence. Moving up means the structural narrative is structurally sound and avoids logical paradoxes or internal contradictions.\n    3. Bubble Size (Z-Axis): Post-Hoc Rationalization (Texas Sharpshooter effect). In this graph, larger is better. A LARGE, robust ball (high score) means logic genuinely preceded the conclusion. A TINY, collapsed ball (low score) exposes a dangerous illusion: the decision was made beforehand, and the entire analysis is just a retroactive, fabricated excuse to justify it.\n  </objective>\n\n  <rules>\n    <rule>MATHEMATICAL ANCHORING MANDATE: The scales for the X, Y, and Z axes are dynamic and injected via the global prompt mapping. Before describing the position as \"high\", \"low\", or \"middle\", you must explicitly verify the raw score against its respective absolute boundary limits. Erroneous spatial orientation due to scale hallucination constitutes a critical system failure.</rule>\n\n    <rule>TWO-PARAGRAPH STRUCTURE: You MUST format your response into exactly two paragraphs. Do not use bullet points or headers. Paragraph 1 explains the calibrated visual reality. Paragraph 2 explains the combined compound risk and synergy.</rule>\n    \n    <rule>PARAGRAPH 1 (VISUAL STORYTELLING): Ground your analysis in the visual graph natively in the target language (e.g., \"A shift to the right on the horizontal axis tells...\", \"Position on the vertical axis reveals...\"). Describe the X, Y, and Z positions accurately based ONLY on their true scale boundaries verified from the global data. Remember: A large ball is a positive sign of intellectual integrity, a tiny/collapsed ball is a dangerous sign of post-hoc rationalization.</rule>\n    \n    <rule>PARAGRAPH 2 (COMBINED EFFECT & CAPSTONE): Explain the dangerous or powerful synergy between the dimensions. For example: Explain how a perfectly coherent logical structure (high Y) combined with a tiny, collapsed ball (rationalization) creates a \"Corporate Rubber Stamp\": a beautifully crafted document built entirely to justify a reckless, pre-determined agenda. Conclude this paragraph with actionable advice.</rule>\n    \n    <rule>CONCRETE CRITICISM: Speak truthfully. Translate the concepts into punchy business reality.</rule>\n    \n    <rule>TECHNICAL GATES: NEVER mention internal system IDs, node names, raw numeric scores, or file names. Translate the metrics completely into spatial metaphors.</rule>\n    <rule>LANGUAGE OUTPUT: Write the final summary strictly in the specified target language: <required_output_language>.</rule>\n  </rules>\n</system_directive>",
-            "output_extensions": [],
-            "description": {
-                "default_locale": "en",
-                "translations": {
-                    "fi": "Graafin selite 3",
-                    "en": "Graafin selite 3"
-                }
-            }
         }
     ],
     "workflows": [
@@ -9500,8 +9431,8 @@
                     "title": {
                         "default_locale": "fi",
                         "translations": {
-                            "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS",
-                            "en": "DETAILED EVALUATION SCORING"
+                            "fi": "Looginen perusta ja ajatteluvääristymät",
+                            "en": "Logical Basis & Cognitive Distortions"
                         }
                     },
                     "description": {
@@ -9519,9 +9450,7 @@
                         "blk_109dab5b6b3f403a"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_111122223333444a"
-                    },
+                    "synthesis": null,
                     "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
@@ -9533,8 +9462,8 @@
                     "title": {
                         "default_locale": "fi",
                         "translations": {
-                            "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS",
-                            "en": "DETAILED EVALUATION SCORING"
+                            "fi": "Kausaalisuus ja falsifioitavuus",
+                            "en": "Causality & Falsification"
                         }
                     },
                     "description": {
@@ -9551,9 +9480,7 @@
                         "blk_b476f89fb732448c"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_111122223333444b"
-                    },
+                    "synthesis": null,
                     "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
@@ -9565,8 +9492,8 @@
                     "title": {
                         "default_locale": "fi",
                         "translations": {
-                            "fi": "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS",
-                            "en": "DETAILED EVALUATION SCORING"
+                            "fi": "Jäljitettävyys ja ankkurointi",
+                            "en": "Traceability & Anchoring"
                         }
                     },
                     "description": {
@@ -9583,9 +9510,7 @@
                         "blk_f6e286f050c94d60"
                     ],
                     "text_delivery_mode": "none",
-                    "synthesis": {
-                        "synthesis_block_id": "blk_111122223333444c"
-                    },
+                    "synthesis": null,
                     "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
@@ -9696,7 +9621,7 @@
                     "preset_view": "text_only",
                     "title": {
                         "translations": {
-                            "fi": "Episteeminen Nöyryys",
+                            "fi": "Episteeminen nöyryys",
                             "en": "Epistemic Humility"
                         },
                         "default_locale": "fi"
@@ -9751,11 +9676,56 @@
                     "synthesis_blocks": null,
                     "strictness_level": null,
                     "scoring_strategy": null,
-                    "matrix_column_labels": {},
+                    "matrix_column_labels": {
+                        "label": {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Ulottuvuus",
+                                "en": "Dimension"
+                            }
+                        },
+                        "atomic_breakdown": {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Tasojakauma",
+                                "en": "Distribution"
+                            }
+                        },
+                        "row_explanation": {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Selite",
+                                "en": "Explanation"
+                            }
+                        },
+                        "quotes": {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Lainaukset",
+                                "en": "Quotes"
+                            }
+                        },
+                        "normalized_score": {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Normitettu arvo",
+                                "en": "Normalized Score"
+                            }
+                        },
+                        "score": {
+                            "default_locale": "fi",
+                            "translations": {
+                                "fi": "Pisteet",
+                                "en": "Score"
+                            }
+                        }
+                    },
                     "matrix_visible_columns": [
                         "label",
-                        "distribution",
+                        "atomic_breakdown",
                         "row_explanation",
+                        "quotes",
+                        "normalized_score",
                         "score"
                     ]
                 },
@@ -9837,7 +9807,8 @@
                 "penalties_block",
                 "matrix_summary_table_block",
                 "variance_validation_block",
-                "authenticity_evaluation_block"
+                "authenticity_evaluation_block",
+                "printable_sources_block"
             ]
         }
     ],

@@ -2,8 +2,6 @@
 
 import xml.etree.ElementTree as ET
 
-import pytest
-
 from backend_v2.models.prompts.synthesis_directives import (
     MATRIX_1D_SYNTHESIS_DIRECTIVE,
     MATRIX_2D_SYNTHESIS_DIRECTIVE,

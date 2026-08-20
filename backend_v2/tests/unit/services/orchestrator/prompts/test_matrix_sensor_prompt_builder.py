@@ -189,9 +189,7 @@ def test_build_compiled_prompt_with_inverse_assertion() -> None:
         ),
     )
 
-    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
-        "Context", [node], {"tda_33333333": "a3"}, matrix_context
-    )
+    prompt = MatrixSensorPromptBuilder.build_compiled_prompt("Context", [node], {"tda_33333333": "a3"}, matrix_context)
     content = prompt.dynamic_messages[0]["content"]
     assert "<is_inverse>" in content
     assert "True" in content
