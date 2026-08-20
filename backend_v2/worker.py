@@ -1176,14 +1176,16 @@ async def generate_profile_synthesis_and_pdf_task(
                 synth_cost += usage.cost_usd
                 synth_tokens += usage.total_tokens
 
-        for _lay_id, lay_task in t_matrix_sections:
+        for lay_id, lay_task in t_matrix_sections:
             if lay_task and lay_task.result():
                 mat_res, usage = lay_task.result()
                 if mat_res and isinstance(mat_res, MatrixSectionSynthesesResult):
+                    aggregated_blocks: list[AnySduiBlock] = []
                     for sec in mat_res.sections:
-                        sec_dict[sec.layout_id] = cast(
-                            list[AnySduiBlock], sec.content_blocks if sec.content_blocks else []
-                        )
+                        if sec.content_blocks:
+                            aggregated_blocks.extend(cast(list[AnySduiBlock], sec.content_blocks))
+                    if aggregated_blocks:
+                        sec_dict[lay_id] = aggregated_blocks
                 if usage:
                     synth_cost += usage.cost_usd
                     synth_tokens += usage.total_tokens

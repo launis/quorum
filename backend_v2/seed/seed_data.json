@@ -9410,19 +9410,6 @@
             "scoring_strategy": "AVERAGE",
             "layouts": [
                 {
-                    "preset_view": "text_only",
-                    "title": null,
-                    "description": null,
-                    "is_synthesis_enabled": true,
-                    "steps": [],
-                    "target_blocks": [],
-                    "text_delivery_mode": "none",
-                    "strictness_level": null,
-                    "scoring_strategy": null,
-                    "matrix_column_labels": {},
-                    "matrix_visible_columns": []
-                },
-                {
                     "preset_view": "2d_compare",
                     "title": {
                         "default_locale": "fi",
@@ -9508,119 +9495,6 @@
                     "matrix_visible_columns": []
                 },
                 {
-                    "preset_view": "text_only",
-                    "title": {
-                        "translations": {
-                            "fi": "Best Practices -yhteensopivuus",
-                            "en": "Best Practices Compliance"
-                        },
-                        "default_locale": "fi"
-                    },
-                    "description": null,
-                    "is_synthesis_enabled": false,
-                    "steps": [],
-                    "target_blocks": [
-                        "blk_fb15f8dcf23f4865"
-                    ],
-                    "text_delivery_mode": "none",
-                    "strictness_level": null,
-                    "scoring_strategy": null,
-                    "matrix_column_labels": {},
-                    "matrix_visible_columns": []
-                },
-                {
-                    "preset_view": "text_only",
-                    "title": {
-                        "translations": {
-                            "fi": "Lopullinen Tuomioasteikko",
-                            "en": "Final Verdict Scale"
-                        },
-                        "default_locale": "fi"
-                    },
-                    "description": null,
-                    "is_synthesis_enabled": false,
-                    "steps": [],
-                    "target_blocks": [
-                        "blk_ff72c2d79edb4ebf"
-                    ],
-                    "text_delivery_mode": "none",
-                    "strictness_level": null,
-                    "scoring_strategy": null,
-                    "matrix_column_labels": {},
-                    "matrix_visible_columns": []
-                },
-                {
-                    "preset_view": "text_only",
-                    "title": {
-                        "translations": {
-                            "fi": "Turvallisuuden ja Etiikan Auditointi",
-                            "en": "Security and Ethics Audit"
-                        },
-                        "default_locale": "fi"
-                    },
-                    "description": null,
-                    "is_synthesis_enabled": false,
-                    "steps": [],
-                    "target_blocks": [
-                        "blk_80732a33fe1947ee"
-                    ],
-                    "text_delivery_mode": "none",
-                    "strictness_level": null,
-                    "scoring_strategy": null,
-                    "matrix_column_labels": {},
-                    "matrix_visible_columns": []
-                },
-                {
-                    "preset_view": "text_only",
-                    "title": {
-                        "translations": {
-                            "fi": "Kausaalinen ja Abduktiivinen Integriteetti",
-                            "en": "Causal and Abductive Integrity"
-                        },
-                        "default_locale": "fi"
-                    },
-                    "description": null,
-                    "is_synthesis_enabled": false,
-                    "steps": [],
-                    "target_blocks": [
-                        "blk_c3bc5f3eb8e74110"
-                    ],
-                    "text_delivery_mode": "none",
-                    "strictness_level": null,
-                    "scoring_strategy": null,
-                    "matrix_column_labels": {},
-                    "matrix_visible_columns": []
-                },
-                {
-                    "preset_view": "text_only",
-                    "title": {
-                        "translations": {
-                            "fi": "Episteeminen nöyryys",
-                            "en": "Epistemic Humility"
-                        },
-                        "default_locale": "fi"
-                    },
-                    "description": null,
-                    "is_synthesis_enabled": false,
-                    "steps": [],
-                    "target_blocks": [
-                        "blk_22e3598e06414409"
-                    ],
-                    "text_delivery_mode": "none",
-                    "strictness_level": null,
-                    "scoring_strategy": null,
-                    "matrix_column_labels": {},
-                    "matrix_visible_columns": []
-                },
-                {
-                    "preset_view": "text_only",
-                    "is_synthesis_enabled": false,
-                    "target_blocks": [
-                        "grouped_extensions_block"
-                    ],
-                    "text_delivery_mode": "none"
-                },
-                {
                     "preset_view": "matrix_summary",
                     "title": null,
                     "description": null,
@@ -9696,53 +9570,6 @@
                         "normalized_score",
                         "score"
                     ]
-                },
-                {
-                    "preset_view": "text_only",
-                    "title": null,
-                    "description": null,
-                    "is_synthesis_enabled": true,
-                    "steps": [],
-                    "target_blocks": [
-                        "global_score_block"
-                    ],
-                    "text_delivery_mode": "none",
-                    "strictness_level": null,
-                    "scoring_strategy": null,
-                    "matrix_column_labels": {},
-                    "matrix_visible_columns": []
-                },
-                {
-                    "preset_view": "text_only",
-                    "title": null,
-                    "description": null,
-                    "is_synthesis_enabled": false,
-                    "steps": [],
-                    "target_blocks": [
-                        "executive_summary_block",
-                        "penalties_block",
-                        "audit_trail_block"
-                    ],
-                    "text_delivery_mode": "none",
-                    "strictness_level": null,
-                    "scoring_strategy": null,
-                    "matrix_column_labels": {},
-                    "matrix_visible_columns": []
-                },
-                {
-                    "preset_view": "text_only",
-                    "title": null,
-                    "description": null,
-                    "is_synthesis_enabled": false,
-                    "steps": [],
-                    "target_blocks": [
-                        "printable_sources_block"
-                    ],
-                    "text_delivery_mode": "none",
-                    "strictness_level": null,
-                    "scoring_strategy": null,
-                    "matrix_column_labels": {},
-                    "matrix_visible_columns": []
                 }
             ],
             "max_extension_items": 4,

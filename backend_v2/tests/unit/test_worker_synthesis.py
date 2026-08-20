@@ -736,3 +736,191 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     assert "executive_summary_block" in sec_synth
     assert len(sec_synth["executive_summary_block"]) == 1
     assert sec_synth["executive_summary_block"][0]["text"] == "Executive summary narrative paragraph 1."
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.worker.LLMClient.from_strategy")
+async def test_worker_synthesis_multi_section_aggregation(
+    mock_from_strategy: AsyncMock,
+    _mock_driver: AsyncMock,
+    mock_repo_class: AsyncMock,
+) -> None:
+    """Test that multiple SynthesisSectionDTO items for a layout are aggregated into sec_dict[lay_id]."""
+    get_settings().use_mock_llm = True
+
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+    _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
+
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "prof_multi_sec",
+        "name": {"default_locale": "en", "translations": {"en": "Multi Section Profile"}},
+        "workflow_id": "wf_1234567812345678",
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "synthesis": {
+            "synthesis_block_id": "pb_2222222222222222",
+            "length_constraint": 1000,
+            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        },
+        "layouts": [
+            {
+                "preset_view": "2d_compare",
+                "title": {"default_locale": "fi", "translations": {"fi": "Kausaalisuus", "en": "Causality"}},
+                "is_synthesis_enabled": True,
+                "target_blocks": [],
+                "text_delivery_mode": "none",
+                "strictness_level": None,
+                "scoring_strategy": None,
+                "matrix_column_labels": {},
+                "matrix_visible_columns": [],
+            }
+        ],
+    }
+
+    mock_client = AsyncMock()
+
+    async def _mock_run_structured_task_multi(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        resp_model = kwargs.get("response_model")
+        usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
+        if resp_model is ExecutiveSummarySectionResult:
+            return (
+                ExecutiveSummarySectionResult(
+                    user_role="Executive",
+                    user_role_justification="Target executive persona",
+                    cited_sources=[],
+                    executive_summary=[ParagraphBlock(text="Executive Summary", exact_quotes=[], citations=[])],
+                ),
+                usage,
+            )
+        if resp_model is MatrixSectionSynthesesResult:
+            return (
+                MatrixSectionSynthesesResult(
+                    sections=[
+                        SynthesisSectionDTO(
+                            layout_id="sub_paragraph_1",
+                            content_blocks=[ParagraphBlock(text="Paragraph 1 text", exact_quotes=[], citations=[])],
+                        ),
+                        SynthesisSectionDTO(
+                            layout_id="sub_paragraph_2",
+                            content_blocks=[ParagraphBlock(text="Paragraph 2 text", exact_quotes=[], citations=[])],
+                        ),
+                    ]
+                ),
+                usage,
+            )
+        if resp_model is XaiHighlightsResult:
+            return (XaiHighlightsResult(xai_highlights=[]), usage)
+        return (None, usage)
+
+    mock_client.run_structured_task.side_effect = _mock_run_structured_task_multi
+    mock_from_strategy.return_value = mock_client
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+    )
+
+    found_payload = None
+    for call in mock_repo.update_execution.call_args_list:
+        args, kwargs = call
+        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
+            found_payload = args[1]
+            break
+
+    assert found_payload is not None
+    sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
+    assert "layout_0_2d_compare" in sec_synth
+    assert len(sec_synth["layout_0_2d_compare"]) == 2
+    assert sec_synth["layout_0_2d_compare"][0]["text"] == "Paragraph 1 text"
+    assert sec_synth["layout_0_2d_compare"][1]["text"] == "Paragraph 2 text"
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.worker.LLMClient.from_strategy")
+async def test_worker_synthesis_empty_sections_not_set_in_cache(
+    mock_from_strategy: AsyncMock,
+    _mock_driver: AsyncMock,
+    mock_repo_class: AsyncMock,
+) -> None:
+    """Negative Test: Verify that when matrix sections or content_blocks are empty, no key is set in sec_dict."""
+    get_settings().use_mock_llm = True
+
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+    _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
+
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "prof_empty_sec",
+        "name": {"default_locale": "en", "translations": {"en": "Empty Section Profile"}},
+        "workflow_id": "wf_1234567812345678",
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "synthesis": {
+            "synthesis_block_id": "pb_2222222222222222",
+            "length_constraint": 1000,
+            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        },
+        "layouts": [
+            {
+                "preset_view": "2d_compare",
+                "title": {"default_locale": "fi", "translations": {"fi": "Kausaalisuus", "en": "Causality"}},
+                "is_synthesis_enabled": True,
+                "target_blocks": [],
+                "text_delivery_mode": "none",
+                "strictness_level": None,
+                "scoring_strategy": None,
+                "matrix_column_labels": {},
+                "matrix_visible_columns": [],
+            }
+        ],
+    }
+
+    mock_client = AsyncMock()
+
+    async def _mock_run_structured_task_empty(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        resp_model = kwargs.get("response_model")
+        usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
+        if resp_model is ExecutiveSummarySectionResult:
+            return (
+                ExecutiveSummarySectionResult(
+                    user_role="Executive",
+                    user_role_justification="Target executive persona",
+                    cited_sources=[],
+                    executive_summary=[],
+                ),
+                usage,
+            )
+        if resp_model is MatrixSectionSynthesesResult:
+            return (
+                MatrixSectionSynthesesResult(sections=[]),
+                usage,
+            )
+        if resp_model is XaiHighlightsResult:
+            return (XaiHighlightsResult(xai_highlights=[]), usage)
+        return (None, usage)
+
+    mock_client.run_structured_task.side_effect = _mock_run_structured_task_empty
+    mock_from_strategy.return_value = mock_client
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+    )
+
+    found_payload = None
+    for call in mock_repo.update_execution.call_args_list:
+        args, kwargs = call
+        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
+            found_payload = args[1]
+            break
+
+    assert found_payload is not None
+    sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
+    assert "layout_0_2d_compare" not in sec_synth

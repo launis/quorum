@@ -85,8 +85,9 @@ SDUI_SYNTHESIS_MANDATE_BLOCK: str = (
 SECTION_SYNTHESIS_DIRECTIVE_BLOCK: str = (
     "<section_synthesis_directive>\n"
     "CRITICAL: You MUST place the output for each section_instruction strictly inside the "
-    "`section_syntheses` dictionary using its exact `layout_id`. Do NOT put section analysis in "
-    "the global executive_summary.\n"
+    "`sections` array using the exact target `layout_id`. All generated content blocks MUST be "
+    "contained within `sections[].content_blocks` for that layout_id. Do NOT put section analysis "
+    "in the global executive_summary, and do NOT invent sub-paragraph layout IDs.\n"
     "</section_synthesis_directive>"
 )
 

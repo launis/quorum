@@ -135,16 +135,17 @@ class MatrixGraphsAdapter:
             if layout_def.is_synthesis_enabled and layout_id in section_syntheses:
                 section_blocks = list(section_syntheses[layout_id])
 
-            if axes or preset_view == "text_only" or section_blocks:
-                should_render_content = preset_view in ["3d_matrix", "2d_compare", "1d_metrics", "text_only"]
+            has_renderable_content = bool(
+                axes or section_blocks or (preset_view == "text_only" and text_delivery_mode != "none")
+            )
 
-                if should_render_content:
-                    if layout_def.title:
-                        blocks.append(MarkdownBlock(text=f"### {layout_def.title.resolve(locale)}"))
-                    if layout_def.description:
-                        blocks.append(
-                            ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
-                        )
+            if has_renderable_content:
+                if layout_def.title:
+                    blocks.append(MarkdownBlock(text=f"### {layout_def.title.resolve(locale)}"))
+                if layout_def.description:
+                    blocks.append(
+                        ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
+                    )
 
                 if section_blocks:
                     blocks.extend(section_blocks)
