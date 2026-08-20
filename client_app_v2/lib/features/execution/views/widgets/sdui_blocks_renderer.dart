@@ -5,7 +5,6 @@ import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/theme/app_colors.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_alert_box_widget.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_grid_widget.dart';
-import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/shared/widgets/logic_radar_chart.dart';
 import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
 import 'package:client_app/features/execution/views/widgets/matrix_row_item_widget.dart';
@@ -78,15 +77,278 @@ class SduiBlocksRenderer extends StatelessWidget {
             ),
           ),
           SduiMatrixTableBlock() => SduiMatrixTableWidget(block: block),
-          SduiBulletListBlock() ||
-          SduiHeroInsightBlock() ||
-          SduiQuoteCardBlock() ||
-          SduiWarningCardBlock() ||
-          SduiNACardBlock() => throw AppException.validation(
-            'Unsupported block type in SduiBlocksRenderer.',
-          ),
+          SduiBulletListBlock() => _buildBulletList(context, block),
+          SduiHeroInsightBlock() => _buildHeroInsight(context, block),
+          SduiQuoteCardBlock() => _buildQuoteCard(context, block),
+          SduiWarningCardBlock() => _buildWarningCard(context, block),
+          SduiNACardBlock() => _buildNACard(context, block),
         };
       }).toList(),
+    );
+  }
+
+  Widget _buildHeroInsight(BuildContext context, SduiHeroInsightBlock block) {
+    if (block.text.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
+        border: Border(
+          left: BorderSide(
+            color: theme.colorScheme.primary,
+            width: AppSpacing.s4,
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.lightbulb_outline,
+            color: theme.colorScheme.primary,
+            size: 24,
+          ),
+          AppSpacing.w8,
+          Expanded(child: OutputRenderer(markdownContent: block.text)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBulletList(BuildContext context, SduiBulletListBlock block) {
+    if (block.items.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: block.items.map((item) {
+          if (item.text.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.s8,
+                    left: AppSpacing.s4,
+                    right: AppSpacing.s8,
+                  ),
+                  child: Icon(
+                    Icons.circle,
+                    size: AppSpacing.s6,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                Expanded(child: OutputRenderer(markdownContent: item.text)),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildQuoteCard(BuildContext context, SduiQuoteCardBlock block) {
+    if (block.quote.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 1,
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant,
+          width: AppSpacing.s2 / 2,
+        ),
+      ),
+      color: theme.colorScheme.surfaceContainerLow,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.format_quote,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    block.quote,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (block.sourceAliases.isNotEmpty ||
+                block.citations.isNotEmpty) ...[
+              AppSpacing.h12,
+              Wrap(
+                spacing: AppSpacing.s8,
+                runSpacing: AppSpacing.s4,
+                children: [
+                  ...block.sourceAliases.map(
+                    (alias) => Chip(
+                      label: Text(
+                        alias,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSecondaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      backgroundColor: theme.colorScheme.secondaryContainer,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                  if (block.citations.isNotEmpty)
+                    Chip(
+                      avatar: Icon(
+                        Icons.bookmark_outline,
+                        size: 14,
+                        color: theme.colorScheme.primary,
+                      ),
+                      label: Text(
+                        block.citations.map((c) => '[$c]').join(' '),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWarningCard(BuildContext context, SduiWarningCardBlock block) {
+    if (block.message.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.intentWarning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
+        border: Border(
+          left: BorderSide(
+            color: AppColors.intentWarning,
+            width: AppSpacing.s4,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.intentWarning,
+                size: 24,
+              ),
+              AppSpacing.w8,
+              Expanded(child: OutputRenderer(markdownContent: block.message)),
+            ],
+          ),
+          if (block.quoteText != null && block.quoteText!.isNotEmpty) ...[
+            AppSpacing.h12,
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.s12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(AppSpacing.s4),
+                border: Border.all(
+                  color: AppColors.intentWarning.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Text(
+                block.quoteText!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNACard(BuildContext context, SduiNACardBlock block) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.intentNeutral.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
+        border: Border(
+          left: BorderSide(
+            color: AppColors.intentNeutral,
+            width: AppSpacing.s4,
+          ),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline,
+            color: AppColors.intentNeutral,
+            size: 24,
+          ),
+          AppSpacing.w8,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                OutputRenderer(markdownContent: block.message),
+                if (block.shortCircuitReasonTdaIds.isNotEmpty) ...[
+                  AppSpacing.h8,
+                  Wrap(
+                    spacing: AppSpacing.s4,
+                    runSpacing: AppSpacing.s4,
+                    children: block.shortCircuitReasonTdaIds
+                        .map(
+                          (tdaId) => Chip(
+                            label: Text(
+                              tdaId,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 /// V2 Forensic Boundary Protocol: AppExceptionBoundary
 ///
@@ -84,12 +85,15 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
     }
 
     return Container(
-      margin: const EdgeInsets.all(8.0),
-      padding: const EdgeInsets.all(16.0),
+      margin: AppSpacing.p8,
+      padding: AppSpacing.p16,
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer,
-        border: Border.all(color: theme.colorScheme.error, width: 2.0),
-        borderRadius: BorderRadius.circular(8.0),
+        border: Border.all(
+          color: theme.colorScheme.error,
+          width: AppSpacing.s2,
+        ),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -101,7 +105,7 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
                 Icons.report_problem,
                 color: theme.colorScheme.onErrorContainer,
               ),
-              const SizedBox(width: 8),
+              AppSpacing.w8,
               Expanded(
                 child: Text(
                   l10n?.errorUnknown ?? 'Data Corruption / Render Error',
@@ -111,18 +115,28 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
                   ),
                 ),
               ),
-              IconButton(
-                icon: Icon(
-                  Icons.refresh,
-                  color: theme.colorScheme.onErrorContainer,
-                  size: 20,
+              Semantics(
+                button: true,
+                label: 'Reset',
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppSpacing.s4),
+                    onTap: resetError,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.s4),
+                      child: Icon(
+                        Icons.refresh,
+                        color: theme.colorScheme.onErrorContainer,
+                        size: 20,
+                      ),
+                    ),
+                  ),
                 ),
-                onPressed: resetError,
-                tooltip: 'Reset',
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          AppSpacing.h8,
           Text(
             displayError,
             style: theme.textTheme.bodySmall?.copyWith(
