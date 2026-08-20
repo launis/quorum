@@ -25,12 +25,15 @@ from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
+    ExecutiveSummarySectionResult,
     MatrixExplanationContextDTO,
     MatrixExplanationContextList,
     MatrixExplanationsResult,
-    SynthesisOutputDTO,
+    MatrixSectionSynthesesResult,
+    XaiHighlightItem,
+    XaiHighlightsResult,
 )
-from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
+from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlockType
 from backend_v2.models.prompts import (
     EXECUTIVE_SUMMARY_DIRECTIVE,
     EXECUTIVE_SUMMARY_SECTION_ID,
@@ -841,13 +844,14 @@ async def generate_profile_synthesis_and_pdf_task(
 
         synthesis_model_strategy = "synthesis"
 
-        synthesis_res = None
-        row_expl_res = None
+        t_exec_summary = None
+        t_matrix_sections: list[tuple[str, Any]] = []
+        t_xai = None
+        t_row = None
+        t_variance = None
+        ext_metrics = None
 
         async with asyncio.TaskGroup() as tg:
-            t_synth = None
-            t_row = None
-
             if synthesis_cfg:
                 if not synthesis_block_id:
                     msg = f"Fail-Fast: OutputProfile '{profile_id}' missing mandatory synthesis_block_id."
@@ -865,48 +869,64 @@ async def generate_profile_synthesis_and_pdf_task(
                     )
 
                 pb = PromptBlock.model_validate(pb_dict, strict=False)
-                # Session 1, Task 1-5: sys_prompt MUST remain 100% static for cache prefix survival
+                # sys_prompt MUST remain 100% static for cache prefix survival
                 sys_prompt = pb.ai_description or ""
-
                 sys_prompt += f"\n\n{SYNTHESIS_SDUI_MANDATES}"
 
-                # Session 1, Task 1-5: ALL dynamic instructions injected into user message <dynamic_context>
-                dynamic_ctx_parts: list[str] = []
-
-                # Inject GLOBAL_MANDATES_XML for anti-ID and anti-score mandates
-                dynamic_ctx_parts.append(GLOBAL_MANDATES_XML)
-
-                # Inject linguistic context (language mandate)
+                # Dynamic context parts injected into user message <dynamic_context>
+                base_dynamic_parts: list[str] = [GLOBAL_MANDATES_XML]
                 lang_ctx = build_linguistic_context(
                     source_language="Unknown", target_locale=accept_language, include_mandate=True
                 )
-                dynamic_ctx_parts.append(lang_ctx)
+                base_dynamic_parts.append(lang_ctx)
 
                 compiler = PromptCompiler()
 
-                # Wire SynthesisConfigDTO dynamic fields into dynamic context (not sys_prompt)
                 if synthesis_cfg.length_constraint:
-                    dynamic_ctx_parts.append(
+                    base_dynamic_parts.append(
                         f"<global_length_constraint_chars>{synthesis_cfg.length_constraint}</global_length_constraint_chars>"
                     )
 
                 if synthesis_cfg.tone_instruction:
                     tone = compiler.resolve_i18n(synthesis_cfg.tone_instruction, accept_language)
                     if tone:
-                        dynamic_ctx_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
+                        base_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
 
-                # Section rules (Executive Summary and per-profile layout-specific instructions)
-                has_section_rules = False
-                section_rules_str = ""
+                client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
 
-                # Step 2: Prepend Executive Summary section instruction
-                section_rules_str += (
-                    f'\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
+                matrix_context = ""
+                if matrices_to_explain:
+                    matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')}"
+
+                # 1. Dedicated Executive Summary task
+                exec_dynamic_parts = list(base_dynamic_parts)
+                exec_section_rule = (
+                    f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
                     f"{EXECUTIVE_SUMMARY_DIRECTIVE}\n"
                     "</section_instruction>\n"
                 )
-                has_section_rules = True
+                exec_dynamic_parts.append(exec_section_rule)
+                exec_dynamic_context = "\n\n".join(exec_dynamic_parts)
 
+                exec_messages: list[dict[str, Any]] = [
+                    {"role": "system", "content": sys_prompt},
+                    {
+                        "role": "user",
+                        "content": (
+                            f"<dynamic_context>\n{exec_dynamic_context}\n</dynamic_context>"
+                            f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
+                        ),
+                    },
+                ]
+                t_exec_summary = tg.create_task(
+                    client.run_structured_task(
+                        messages=exec_messages,
+                        response_model=ExecutiveSummarySectionResult,
+                        mock_identity="ExecutiveSummaryTask",
+                    )
+                )
+
+                # 2. Dedicated Matrix Layout Sections tasks
                 if active_profile_dto and active_profile_dto.layouts:
                     language = distilled_data.get("language", "en")
                     title_map = distilled_data.get("title_map", {})
@@ -936,15 +956,35 @@ async def generate_profile_synthesis_and_pdf_task(
                             directive_content = MATRIX_TEXT_SYNTHESIS_DIRECTIVE
 
                         if directive_content:
-                            section_rules_str += f'\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n{directive_content}\n</section_instruction>\n'
-                            has_section_rules = True
+                            lay_dynamic_parts = list(base_dynamic_parts)
+                            lay_section_rule = (
+                                f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n'
+                                f"{directive_content}\n"
+                                f"</section_instruction>\n\n{SECTION_SYNTHESIS_DIRECTIVE_BLOCK}"
+                            )
+                            lay_dynamic_parts.append(lay_section_rule)
+                            lay_dynamic_context = "\n\n".join(lay_dynamic_parts)
 
-                if has_section_rules:
-                    dynamic_ctx_parts.append(
-                        f"{SYNTHESIS_SECTION_RULES_PREFIX}{section_rules_str}\n{SECTION_SYNTHESIS_DIRECTIVE_BLOCK}"
-                    )
+                            lay_messages: list[dict[str, Any]] = [
+                                {"role": "system", "content": sys_prompt},
+                                {
+                                    "role": "user",
+                                    "content": (
+                                        f"<dynamic_context>\n{lay_dynamic_context}\n</dynamic_context>"
+                                        f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
+                                    ),
+                                },
+                            ]
+                            task_handle = tg.create_task(
+                                client.run_structured_task(
+                                    messages=lay_messages,
+                                    response_model=MatrixSectionSynthesesResult,
+                                    mock_identity=f"MatrixSectionTask_{lay_id}",
+                                )
+                            )
+                            t_matrix_sections.append((lay_id, task_handle))
 
-                # XAI extension curation
+                # 3. Dedicated XAI Highlights task
                 if active_profile_dto and (
                     active_profile_dto.visible_block_extensions or active_profile_dto.visible_workflow_extensions
                 ):
@@ -964,34 +1004,28 @@ async def generate_profile_synthesis_and_pdf_task(
                     req_exts = ", ".join([str(e) for e in wf_exts]) if wf_exts else "none"
                     xai_cur = SYNTHESIS_XAI_CURATION.replace("<max_extension_items>", str(max_ext))
                     xai_cur = xai_cur.replace("<requested_extensions>", req_exts)
-                    dynamic_ctx_parts.append(xai_cur)
 
-                # Build the <dynamic_context> block for the user message
-                dynamic_context = "\n\n".join(dynamic_ctx_parts)
+                    xai_dynamic_parts = list(base_dynamic_parts)
+                    xai_dynamic_parts.append(xai_cur)
+                    xai_dynamic_context = "\n\n".join(xai_dynamic_parts)
 
-                client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
-
-                matrix_context = ""
-                if matrices_to_explain:
-                    matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')}"
-
-                synth_messages: list[dict[str, Any]] = [
-                    {"role": "system", "content": sys_prompt},
-                    {
-                        "role": "user",
-                        "content": (
-                            f"<dynamic_context>\n{dynamic_context}\n</dynamic_context>"
-                            f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
-                        ),
-                    },
-                ]
-                t_synth = tg.create_task(
-                    client.run_structured_task(
-                        messages=synth_messages,
-                        response_model=SynthesisOutputDTO,
-                        mock_identity="SynthesisHook",
+                    xai_messages: list[dict[str, Any]] = [
+                        {"role": "system", "content": sys_prompt},
+                        {
+                            "role": "user",
+                            "content": (
+                                f"<dynamic_context>\n{xai_dynamic_context}\n</dynamic_context>"
+                                f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
+                            ),
+                        },
+                    ]
+                    t_xai = tg.create_task(
+                        client.run_structured_task(
+                            messages=xai_messages,
+                            response_model=XaiHighlightsResult,
+                            mock_identity="XaiHighlightsTask",
+                        )
                     )
-                )
 
             if row_explanations_block_id and matrices_to_explain:
                 pb_dict = await repo.get_prompt_block(row_explanations_block_id)
@@ -1024,8 +1058,6 @@ async def generate_profile_synthesis_and_pdf_task(
                         )
                     )
 
-            t_variance = None
-            ext_metrics = None
             if (
                 active_profile_dto
                 and active_profile_dto.visible_workflow_extensions
@@ -1084,9 +1116,6 @@ async def generate_profile_synthesis_and_pdf_task(
                         if authenticity_score is not None and performative_phrases_count is not None:
                             break
 
-                    # For authenticity_score, we skip the complex fallback in worker.py.
-                    # If it's missing, blueprint.py will Fail-Fast anyway, so we just skip the explanation here.
-
                 if authenticity_score is not None and performative_phrases_count is not None:
                     variance_res = variance_engine.calculate_mechanical_cognitive_variance(
                         llm_authenticity_score=authenticity_score,
@@ -1133,13 +1162,42 @@ async def generate_profile_synthesis_and_pdf_task(
         synth_cost = 0.0
         synth_tokens = 0
 
-        if t_synth and t_synth.result():
-            synth_dto, usage = t_synth.result()
-            synthesis_res = synth_dto
+        sec_dict: dict[str, list[AnySduiBlock]] = {}
+        exec_dto: ExecutiveSummarySectionResult | None = None
+
+        if t_exec_summary and t_exec_summary.result():
+            exec_res, usage = t_exec_summary.result()
+            exec_dto = exec_res
+            if exec_dto and exec_dto.executive_summary:
+                sec_dict[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value] = cast(
+                    list[AnySduiBlock], exec_dto.executive_summary
+                )
             if usage:
                 synth_cost += usage.cost_usd
                 synth_tokens += usage.total_tokens
 
+        for _lay_id, lay_task in t_matrix_sections:
+            if lay_task and lay_task.result():
+                mat_res, usage = lay_task.result()
+                if mat_res and isinstance(mat_res, MatrixSectionSynthesesResult):
+                    for sec in mat_res.sections:
+                        sec_dict[sec.layout_id] = cast(
+                            list[AnySduiBlock], sec.content_blocks if sec.content_blocks else []
+                        )
+                if usage:
+                    synth_cost += usage.cost_usd
+                    synth_tokens += usage.total_tokens
+
+        xai_highlights_list: list[XaiHighlightItem] = []
+        if t_xai and t_xai.result():
+            xai_res, usage = t_xai.result()
+            if xai_res and isinstance(xai_res, XaiHighlightsResult):
+                xai_highlights_list = xai_res.xai_highlights
+            if usage:
+                synth_cost += usage.cost_usd
+                synth_tokens += usage.total_tokens
+
+        row_expl_res = None
         if t_row and t_row.result():
             row_dto, usage = t_row.result()
             row_expl_res = row_dto
@@ -1154,11 +1212,6 @@ async def generate_profile_synthesis_and_pdf_task(
             if usage:
                 synth_cost += usage.cost_usd
                 synth_tokens += usage.total_tokens
-
-        sec_dict: dict[str, list[AnySduiBlock]] = {}
-        if synthesis_res and synthesis_res.section_syntheses:
-            for sec in synthesis_res.section_syntheses:
-                sec_dict[sec.layout_id] = cast(list[AnySduiBlock], sec.content_blocks if sec.content_blocks else [])
 
         _raw_row_explanations = (
             {item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
@@ -1187,10 +1240,10 @@ async def generate_profile_synthesis_and_pdf_task(
         cache = RenderedSynthesisCache(
             section_syntheses=sec_dict,
             row_explanations=cache_row_explanations,
-            cited_sources=synthesis_res.cited_sources if synthesis_res else [],
-            xai_highlights=synthesis_res.xai_highlights if synthesis_res else [],
-            user_role=synthesis_res.user_role if synthesis_res else None,
-            user_role_justification=synthesis_res.user_role_justification if synthesis_res else None,
+            cited_sources=exec_dto.cited_sources if exec_dto else [],
+            xai_highlights=xai_highlights_list,
+            user_role=exec_dto.user_role if exec_dto else None,
+            user_role_justification=exec_dto.user_role_justification if exec_dto else None,
             extension_metrics=ext_metrics,
         )
 

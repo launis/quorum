@@ -125,6 +125,76 @@ class MatrixExplanationsResult(V2CoreBase):
     ]
 
 
+class ExecutiveSummarySectionResult(V2CoreBase):
+    """Structured output expected from the dedicated Executive Summary LLM task.
+
+    Attributes:
+        user_role: Extracted targeted user role for the output.
+        user_role_justification: LLM justification for role mapping.
+        cited_sources: List of references or citations found.
+        executive_summary: High-level synthesized summary content blocks.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    user_role: Annotated[
+        str,
+        Field(
+            description=f"Extracted targeted user role for the output (e.g. ROLE_ARCHITECT). {DESC_TRANSLATION_MANDATE}",
+        ),
+    ]
+    user_role_justification: Annotated[
+        str, Field(description=f"LLM justification for role mapping. {DESC_TRANSLATION_MANDATE}")
+    ]
+    cited_sources: Annotated[
+        list[str],
+        Field(default_factory=list, description=f"List of references or citations found. {DESC_TRANSLATION_MANDATE}"),
+    ]
+    executive_summary: Annotated[
+        list[LlmSduiBlock],
+        Field(
+            default_factory=list,
+            description="Structured SDUI content blocks representing the executive summary narrative.",
+        ),
+    ]
+
+
+class MatrixSectionSynthesesResult(V2CoreBase):
+    """Structured output expected from the layout section synthesis LLM task.
+
+    Attributes:
+        sections: List of synthesized sections mapped to layout IDs.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    sections: Annotated[
+        list[SynthesisSectionDTO],
+        Field(
+            default_factory=list,
+            description="List of synthesized sections. You MUST generate one item here for EVERY <section_instruction> provided in the system prompt!",
+        ),
+    ]
+
+
+class XaiHighlightsResult(V2CoreBase):
+    """Structured output expected from the dedicated XAI Highlights curation LLM task.
+
+    Attributes:
+        xai_highlights: The deduplicated insight items per extension category.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    xai_highlights: Annotated[
+        list[XaiHighlightItem],
+        Field(
+            default_factory=list,
+            description="List of synthesized XAI highlights deduced from the evaluation phase.",
+        ),
+    ]
+
+
 class SynthesisOutputDTO(V2CoreBase):
     """Structured output expected from the Synthesis LLM.
 

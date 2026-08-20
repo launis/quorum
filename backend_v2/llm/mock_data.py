@@ -40,7 +40,12 @@ from backend_v2.models.domain import (
     WaltonStressTest,
     XAIOutput,
 )
-from backend_v2.models.dtos.synthesis import SynthesisOutputDTO
+from backend_v2.models.dtos.synthesis import (
+    ExecutiveSummarySectionResult,
+    MatrixSectionSynthesesResult,
+    SynthesisOutputDTO,
+    XaiHighlightsResult,
+)
 from backend_v2.models.enums import (
     AbductiveConclusion,
     AuthenticityLevel,
@@ -286,6 +291,21 @@ MOCK_SYNTHESIS_OUTPUT = SynthesisOutputDTO(
     user_role_justification="Default mock role assignment",
 )
 
+MOCK_EXECUTIVE_SUMMARY_OUTPUT = ExecutiveSummarySectionResult(
+    user_role="Mock Analyst",
+    user_role_justification="Default mock role assignment",
+    cited_sources=[],
+    executive_summary=[],
+)
+
+MOCK_MATRIX_SECTION_SYNTHESES_OUTPUT = MatrixSectionSynthesesResult(
+    sections=[],
+)
+
+MOCK_XAI_HIGHLIGHTS_OUTPUT = XaiHighlightsResult(
+    xai_highlights=[],
+)
+
 MOCK_INPUT_PROCESSING_OUTPUT = InputProcessingOutputDTO(
     thought_process="Mock Guard Trace: Checked security.",
     conclusion="Safe to proceed.",
@@ -325,6 +345,9 @@ MOCK_REGISTRY: dict[type[Any], Any] = {
     PerformativityOutput: MOCK_PERFORMATIVITY_OUTPUT,
     OverseerOutput: MOCK_OVERSEER_OUTPUT,
     SynthesisOutputDTO: MOCK_SYNTHESIS_OUTPUT,
+    ExecutiveSummarySectionResult: MOCK_EXECUTIVE_SUMMARY_OUTPUT,
+    MatrixSectionSynthesesResult: MOCK_MATRIX_SECTION_SYNTHESES_OUTPUT,
+    XaiHighlightsResult: MOCK_XAI_HIGHLIGHTS_OUTPUT,
 }
 
 AGENT_CLASS_TO_MOCK_KEY = {
@@ -411,6 +434,15 @@ def get_fallback_data(key: str) -> dict[str, Any]:
 
     if key == "variance_explainer":
         return {"row_explanation": "Mock explanation for variance."}
+
+    if key == "ExecutiveSummaryTask":
+        return MOCK_EXECUTIVE_SUMMARY_OUTPUT.model_dump()
+
+    if key.startswith("MatrixSectionTask"):
+        return MOCK_MATRIX_SECTION_SYNTHESES_OUTPUT.model_dump()
+
+    if key == "XaiHighlightsTask":
+        return MOCK_XAI_HIGHLIGHTS_OUTPUT.model_dump()
 
     # STRICT FAIL-FAST: No silent dictionary fallbacks
     raise ValueError(f"Strict Mock Data Error: Mock data not found for key '{key}'")

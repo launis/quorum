@@ -204,22 +204,26 @@ class VarianceAdapter:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
         title_str = variance_label.resolve(context.locale)
-        variance_text = (
-            f"**{title_str}:** {auth_score_rounded}/100  \n**{lbl_align}:** {align_val}\n\n{llm_explanation}"
-        )
 
         variance_kwargs = {
             "block_id": "variance_metrics_row",
             "name": "Variance Metrics",
             "label_i18n": variance_label,
-            "row_explanation": "Variance metrics dashboard",
+            "row_explanation": "",
             "is_evaluative": False,
             "inner_sdui_blocks": [grid_block, alert_block],
         }
         row_dto = MatrixScorecardRowDTO.model_validate(variance_kwargs, strict=False)
 
-        blocks.append(ParagraphBlock(text=f"**{title_str}**", exact_quotes=[], citations=[]))
+        # 3. ASSEMBLE: Canonical Dumb Painter sequence
+        # Step 1: Localized Markdown Header
+        blocks.append(MarkdownBlock(text=f"### {title_str}"))
+
+        # Step 2: LLM Explanation Paragraph (if present)
+        if llm_explanation:
+            blocks.append(ParagraphBlock(text=llm_explanation, exact_quotes=[], citations=[]))
+
+        # Step 3: Visual Metrics Box
         blocks.append(SduiMetrics1DBlock(axes=[row_dto]))
-        blocks.append(MarkdownBlock(text=variance_text))
 
         return blocks

@@ -357,10 +357,7 @@ def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
     result = adapter.prepare_kwargs(call_kwargs, config=config_mock)
 
     assert result["vertex_location"] == "europe-west1"
-    assert (
-        result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"]
-        == 1024
-    )
+    assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 1024
 
 
 def test_vertex_adapter_prepare_kwargs_cached_content_with_tools_bypasses() -> None:
@@ -567,5 +564,3 @@ async def test_vertex_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyPatc
 
     assert extra_kwargs == {}
     assert len(flat_msgs) == 1
-
-

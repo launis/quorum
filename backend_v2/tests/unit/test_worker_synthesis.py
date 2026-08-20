@@ -5,7 +5,12 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.synthesis import SynthesisOutputDTO, SynthesisSectionDTO
+from backend_v2.models.dtos.synthesis import (
+    ExecutiveSummarySectionResult,
+    MatrixSectionSynthesesResult,
+    SynthesisSectionDTO,
+    XaiHighlightsResult,
+)
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.models.view.sdui import ParagraphBlock
@@ -520,21 +525,37 @@ async def test_worker_synthesis_matrix_layout_directives(
     }
 
     mock_client = AsyncMock()
-    mock_client.run_structured_task.return_value = (
-        SynthesisOutputDTO(
-            user_role="Executive",
-            user_role_justification="Target executive persona",
-            cited_sources=[],
-            section_syntheses=[
-                SynthesisSectionDTO(
-                    layout_id="layout_0_" + preset_view,
-                    content_blocks=[ParagraphBlock(text="Section Content")],
-                )
-            ],
-            xai_highlights=[],
-        ),
-        TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001),
-    )
+
+    async def _mock_run_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        resp_model = kwargs.get("response_model")
+        usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
+        if resp_model is ExecutiveSummarySectionResult:
+            return (
+                ExecutiveSummarySectionResult(
+                    user_role="Executive",
+                    user_role_justification="Target executive persona",
+                    cited_sources=[],
+                    executive_summary=[ParagraphBlock(text="Executive Summary", exact_quotes=[], citations=[])],
+                ),
+                usage,
+            )
+        if resp_model is MatrixSectionSynthesesResult:
+            return (
+                MatrixSectionSynthesesResult(
+                    sections=[
+                        SynthesisSectionDTO(
+                            layout_id="layout_0_" + preset_view,
+                            content_blocks=[ParagraphBlock(text="Section Content", exact_quotes=[], citations=[])],
+                        )
+                    ]
+                ),
+                usage,
+            )
+        if resp_model is XaiHighlightsResult:
+            return (XaiHighlightsResult(xai_highlights=[]), usage)
+        return (None, usage)
+
+    mock_client.run_structured_task.side_effect = _mock_run_structured_task
     mock_from_strategy.return_value = mock_client
 
     await generate_profile_synthesis_and_pdf_task(
@@ -542,13 +563,14 @@ async def test_worker_synthesis_matrix_layout_directives(
     )
 
     assert mock_client.run_structured_task.called
-    call_args = mock_client.run_structured_task.call_args
-    messages = call_args.kwargs.get("messages", [])
-    user_msg_content = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
-    assert expected_snippet in user_msg_content
-    assert f'id="layout_0_{preset_view}"' in user_msg_content
-    assert '<section_instruction id="executive_summary_block"' in user_msg_content
-    assert 'title="' in user_msg_content
+    all_user_content = ""
+    for call in mock_client.run_structured_task.call_args_list:
+        messages = call.kwargs.get("messages", [])
+        all_user_content += " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+    assert expected_snippet in all_user_content
+    assert f'id="layout_0_{preset_view}"' in all_user_content
+    assert '<section_instruction id="executive_summary_block"' in all_user_content
+    assert 'title="' in all_user_content
 
 
 @pytest.mark.asyncio
@@ -596,16 +618,27 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     }
 
     mock_client = AsyncMock()
-    mock_client.run_structured_task.return_value = (
-        SynthesisOutputDTO(
-            user_role="Executive",
-            user_role_justification="Target executive persona",
-            cited_sources=[],
-            section_syntheses=[],
-            xai_highlights=[],
-        ),
-        TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001),
-    )
+
+    async def _mock_run_structured_task_disabled(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        resp_model = kwargs.get("response_model")
+        usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
+        if resp_model is ExecutiveSummarySectionResult:
+            return (
+                ExecutiveSummarySectionResult(
+                    user_role="Executive",
+                    user_role_justification="Target executive persona",
+                    cited_sources=[],
+                    executive_summary=[],
+                ),
+                usage,
+            )
+        if resp_model is MatrixSectionSynthesesResult:
+            return (MatrixSectionSynthesesResult(sections=[]), usage)
+        if resp_model is XaiHighlightsResult:
+            return (XaiHighlightsResult(xai_highlights=[]), usage)
+        return (None, usage)
+
+    mock_client.run_structured_task.side_effect = _mock_run_structured_task_disabled
     mock_from_strategy.return_value = mock_client
 
     await generate_profile_synthesis_and_pdf_task(
@@ -613,11 +646,12 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     )
 
     assert mock_client.run_structured_task.called
-    call_args = mock_client.run_structured_task.call_args
-    messages = call_args.kwargs.get("messages", [])
-    user_msg_content = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
-    assert 'id="layout_0_2d_compare"' not in user_msg_content
-    assert '<section_instruction id="executive_summary_block"' in user_msg_content
+    all_user_content = ""
+    for call in mock_client.run_structured_task.call_args_list:
+        messages = call.kwargs.get("messages", [])
+        all_user_content += " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+    assert 'id="layout_0_2d_compare"' not in all_user_content
+    assert '<section_instruction id="executive_summary_block"' in all_user_content
 
 
 @pytest.mark.asyncio
@@ -653,21 +687,29 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     }
 
     mock_client = AsyncMock()
-    mock_client.run_structured_task.return_value = (
-        SynthesisOutputDTO(
-            user_role="ROLE_ARCHITECT",
-            user_role_justification="Demonstrates high strategic maturity",
-            cited_sources=[],
-            section_syntheses=[
-                SynthesisSectionDTO(
-                    layout_id="executive_summary_block",
-                    content_blocks=[ParagraphBlock(text="Executive summary narrative paragraph 1.")],
-                )
-            ],
-            xai_highlights=[],
-        ),
-        TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001),
-    )
+
+    async def _mock_run_structured_task_exec(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        resp_model = kwargs.get("response_model")
+        usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
+        if resp_model is ExecutiveSummarySectionResult:
+            return (
+                ExecutiveSummarySectionResult(
+                    user_role="ROLE_ARCHITECT",
+                    user_role_justification="Demonstrates high strategic maturity",
+                    cited_sources=[],
+                    executive_summary=[
+                        ParagraphBlock(text="Executive summary narrative paragraph 1.", exact_quotes=[], citations=[])
+                    ],
+                ),
+                usage,
+            )
+        if resp_model is MatrixSectionSynthesesResult:
+            return (MatrixSectionSynthesesResult(sections=[]), usage)
+        if resp_model is XaiHighlightsResult:
+            return (XaiHighlightsResult(xai_highlights=[]), usage)
+        return (None, usage)
+
+    mock_client.run_structured_task.side_effect = _mock_run_structured_task_exec
     mock_from_strategy.return_value = mock_client
 
     await generate_profile_synthesis_and_pdf_task(
@@ -675,11 +717,12 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     )
 
     assert mock_client.run_structured_task.called
-    call_args = mock_client.run_structured_task.call_args
-    messages = call_args.kwargs.get("messages", [])
-    user_msg_content = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
-    assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in user_msg_content
-    assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in user_msg_content
+    all_user_content = ""
+    for call in mock_client.run_structured_task.call_args_list:
+        messages = call.kwargs.get("messages", [])
+        all_user_content += " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+    assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in all_user_content
+    assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in all_user_content
 
     found_payload = None
     for call in mock_repo.update_execution.call_args_list:

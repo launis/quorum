@@ -5,6 +5,8 @@ Epic 93 Phase 2, Milestone 1.7: Tests for metadata stripping and matrices_to_exp
 
 from typing import Any
 
+import pytest
+
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 
 
@@ -113,6 +115,166 @@ def test_compress_synthesis_payload_compresses_anchors() -> None:
     assert "shuffled_atoms" not in compressed_str
     assert "value" in compressed_str
     assert "localized_anchors_found" in compressed_str
+
+
+def test_build_title_map_with_blocks_and_steps() -> None:
+    from backend_v2.models.enums import HistoricalContextMode
+    from backend_v2.models.v2_core import ExpectedInput, I18nText, PromptBlock, Step, StepRule, Workflow
+    from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
+
+    blocks_by_id = {
+        "blk_1234567890abcdef": PromptBlock(
+            id="blk_1234567890abcdef",
+            slug="test_block",
+            type="instruction",
+            category_id="system_rule",
+            label=I18nText(default_locale="en", translations={"en": "Block Label EN", "fi": "Lohkon nimi FI"}),
+            description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        )
+    }
+
+    step_blueprint = Step(
+        id="sp_1111111111111111",
+        slug="step_one",
+        name=I18nText(default_locale="en", translations={"en": "Step Blueprint Name"}),
+        model_strategy="fast",
+        type="logic",
+        hook="text_consolidation_hook",
+    )
+
+    wf = Workflow(
+        id="wf_1111111111111111",
+        slug="test_wf",
+        name=I18nText(default_locale="en", translations={"en": "Workflow Name"}),
+        description=I18nText(default_locale="en", translations={"en": "Workflow Desc"}),
+        status="draft",
+        version=1,
+        default_profile_id="prof_1111111111111111",
+        allowed_exports=["pdf"],
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        steps=[StepRule(id="sr_1111111111111111", task_blueprint="sp_1111111111111111")],
+        expected_inputs=[
+            ExpectedInput(
+                input_key="interview_text",
+                label=I18nText(default_locale="en", translations={"en": "Interview Text"}),
+                description=I18nText(default_locale="en", translations={"en": "Interview Text"}),
+                required=True,
+                input_modes=["paste"],
+            )
+        ],
+    )
+
+    # Resolve FI
+    title_map = _build_title_map(wf, [step_blueprint], "fi", blocks_by_id)
+    assert title_map["blk_1234567890abcdef"] == "Lohkon nimi FI"
+    assert title_map["sr_1111111111111111"] == "Step Blueprint Name"
+    assert title_map["interview_text"] == "Interview Text"
+
+    # None workflow
+    title_map_none = _build_title_map(None, [], "en", blocks_by_id)
+    assert title_map_none["blk_1234567890abcdef"] == "Block Label EN"
+
+
+def test_build_title_map_missing_blueprint_raises() -> None:
+    import pytest
+
+    from backend_v2.exceptions import AppException
+    from backend_v2.models.enums import HistoricalContextMode
+    from backend_v2.models.v2_core import I18nText, StepRule, Workflow
+    from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
+
+    wf = Workflow(
+        id="wf_1111111111111111",
+        slug="test_wf",
+        name=I18nText(default_locale="en", translations={"en": "Workflow Name"}),
+        description=I18nText(default_locale="en", translations={"en": "Workflow Desc"}),
+        status="draft",
+        version=1,
+        default_profile_id="prof_1111111111111111",
+        allowed_exports=["pdf"],
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        steps=[StepRule(id="sr_1111111111111111", task_blueprint="sp_2222222222222222")],
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        _build_title_map(wf, [], "en")
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_build_historical_context_all_branches() -> None:
+    from datetime import datetime, timezone
+    from unittest.mock import AsyncMock
+
+    from backend_v2.core.hook_registry import HookDependencies, HookState
+    from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
+    from backend_v2.models.view.sdui import ParagraphBlock
+    from backend_v2.services.orchestrator.synthesis_distiller import _fetch_historical_context
+
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+
+    state = HookState(
+        execution_id="ex_0000000000000000",
+        workflow_id="wf_1111111111111111",
+        metadata={"target_locale": "en"},
+        global_context_vars={"user_id": "u1", "organization_id": "org1"},
+        inputs={},
+    )
+
+    # 1. Disabled mode
+    res = await _fetch_historical_context(HistoricalContextMode.DISABLED, deps, state, "prof_1")
+    assert res == ""
+
+    # 2. No user or org
+    empty_state = HookState(
+        execution_id="ex_0000000000000000",
+        workflow_id="wf_1111111111111111",
+        metadata={"target_locale": "en"},
+        global_context_vars={},
+        inputs={},
+    )
+    res = await _fetch_historical_context(HistoricalContextMode.SLIDING_WINDOW_3, deps, empty_state, "prof_1")
+    assert res == ""
+
+    # 3. Valid past executions
+    past_exec1 = ExecutionRecord(
+        id="ex_1111111111111111",
+        workflow_id="wf_1111111111111111",
+        status=ExecutionStatus.PASSED,
+        completed_at=datetime.now(timezone.utc),
+        profile_syntheses={
+            "prof_1": RenderedSynthesisCache(
+                section_syntheses={"sec1": [ParagraphBlock(text="Past synthesis 1")]},
+            )
+        },
+    )
+    past_exec2 = ExecutionRecord(
+        id="ex_0000000000000000",  # should be ignored (matches state.execution_id)
+        workflow_id="wf_1111111111111111",
+        status=ExecutionStatus.PASSED,
+    )
+    past_exec3 = ExecutionRecord(
+        id="ex_2222222222222222",  # should be ignored
+        workflow_id="wf_1111111111111111",
+        status=ExecutionStatus.FAILED,
+    )
+
+    cast_repo = deps.exec_repo
+    cast_repo.get_all_executions.return_value = [past_exec1, past_exec2, past_exec3]  # type: ignore[attr-defined]
+
+    res = await _fetch_historical_context(HistoricalContextMode.SLIDING_WINDOW_3, deps, state, "prof_1")
+    assert "<HistoricalContext>" in res
+    assert "Past synthesis 1" in res
 
 
 # Import all wiring test functions so backend_audit_loop discovers and runs them

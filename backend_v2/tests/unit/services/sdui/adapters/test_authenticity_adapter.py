@@ -272,17 +272,19 @@ def test_build_boundary_classifications(
 
     blocks = AuthenticityAdapter.build(context)
     assert len(blocks) == 3
-    assert isinstance(blocks[0], ParagraphBlock)
-    metrics_block = blocks[1]
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert blocks[0].text == "### Authenticity Evaluation"
+    assert isinstance(blocks[1], ParagraphBlock)
+    assert blocks[1].text == "Detailed AI analysis."
+    metrics_block = blocks[2]
     assert isinstance(metrics_block, SduiMetrics1DBlock)
-    assert isinstance(blocks[2], MarkdownBlock)
 
     row_dto = metrics_block.axes[0]
+    assert row_dto.row_explanation == ""
     alert_block = row_dto.inner_sdui_blocks[1]
     assert isinstance(alert_block, AlertBlock)
     assert alert_block.severity == expected_severity
     assert f"Authenticity Level: {expected_level_text}" in alert_block.text
-    assert "Detailed AI analysis." in blocks[2].text
 
 
 def test_build_dynamic_settings_thresholds(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -318,7 +320,10 @@ def test_build_dynamic_settings_thresholds(monkeypatch: pytest.MonkeyPatch) -> N
     )
 
     blocks = AuthenticityAdapter.build(context)
-    metrics_block = blocks[1]
+    assert len(blocks) == 3
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert isinstance(blocks[1], ParagraphBlock)
+    metrics_block = blocks[2]
     assert isinstance(metrics_block, SduiMetrics1DBlock)
     row_dto = metrics_block.axes[0]
     alert_block = row_dto.inner_sdui_blocks[1]

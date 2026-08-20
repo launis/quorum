@@ -15,7 +15,7 @@ from fastapi import status
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.enums import HistoricalContextMode
+from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, PromptBlock, Step, Workflow
 from backend_v2.utils.alias_engine import AliasEngine
@@ -70,7 +70,7 @@ async def _fetch_historical_context(
     for e in all_execs:
         if e.id == state.execution_id:
             continue
-        if e.status.value != "completed":
+        if e.status not in (ExecutionStatus.PASSED, "completed", "PASSED"):
             continue
 
         best_cache = None
@@ -108,22 +108,34 @@ async def _fetch_historical_context(
     return "<HistoricalContext>\n" + "\n\n".join(historical_parts) + "\n</HistoricalContext>\n\n"
 
 
-def _build_title_map(workflow_data: Workflow | None, all_steps: list[Step], target_locale: str) -> dict[str, str]:
-    """Build an O(1) lookup map for resolving localized step and input titles.
+def _build_title_map(
+    workflow_data: Workflow | None,
+    all_steps: list[Step],
+    target_locale: str,
+    blocks_by_id: dict[str, PromptBlock] | None = None,
+) -> dict[str, str]:
+    """Build an O(1) lookup map for resolving localized step, input, and prompt block titles.
 
     Args:
         workflow_data: The SSOT workflow definition blueprint.
         all_steps: Master list of all steps from the registry.
         target_locale: Target translation locale code.
+        blocks_by_id: Optional dictionary of all prompt blocks by their Stripe ID.
 
     Returns:
-        Dictionary mapping step/input keys to resolved title strings.
+        Dictionary mapping step/input/block keys to resolved title strings.
 
     Raises:
         AppException: If a step references a missing blueprint (VALIDATION_FAILED).
     """
     # Epic 93 Phase 2, Milestone 1.4: Title map migration
     title_map: dict[str, str] = {}
+
+    if blocks_by_id:
+        for pb_id, pb in blocks_by_id.items():
+            if pb.label:
+                title_map[pb_id.lower()] = pb.label.resolve(target_locale)
+
     if not workflow_data:
         return title_map
 
@@ -272,7 +284,10 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     raw_steps = await deps.workflow_repo.get_all_steps()
     all_steps = [Step.model_validate(rs) for rs in raw_steps]
 
-    title_map = _build_title_map(workflow_data, all_steps, target_locale)
+    raw_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
+    blocks_by_id = {str(b["id"]): PromptBlock.model_validate(b) for b in raw_blocks if "id" in b}
+
+    title_map = _build_title_map(workflow_data, all_steps, target_locale, blocks_by_id=blocks_by_id)
 
     alias_engine = AliasEngine()
 
@@ -309,8 +324,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         consolidated_distilled_parts.append(f'<source id="{short_alias}" title="{step_title}">\n{v_str}\n</source>')
 
     # Phase 2, Milestone 1.5: Assemble matrices_to_explain
-    raw_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
-    blocks_by_id = {str(b["id"]): PromptBlock.model_validate(b) for b in raw_blocks if "id" in b}
     matrices_to_explain = MatrixExplanationService.assemble_matrices_to_explain(
         available_dtos, title_map, blocks_by_id, target_locale=target_locale
     )

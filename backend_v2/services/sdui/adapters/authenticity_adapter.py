@@ -206,20 +206,26 @@ class AuthenticityAdapter:
             )
 
         title_str = auth_label.resolve(context.locale)
-        auth_text = f"**{title_str}:** {auth_score_rounded}/100\n\n{llm_explanation}"
 
         auth_kwargs = {
             "block_id": "authenticity_metrics_row",
             "name": "Authenticity Metrics",
             "label_i18n": auth_label,
-            "row_explanation": "Authenticity metrics dashboard",
+            "row_explanation": "",
             "is_evaluative": False,
             "inner_sdui_blocks": [grid_block, alert_block],
         }
         auth_row_dto = MatrixScorecardRowDTO.model_validate(auth_kwargs, strict=False)
 
-        blocks.append(ParagraphBlock(text=f"**{title_str}**", exact_quotes=[], citations=[]))
+        # 3. ASSEMBLE: Canonical Dumb Painter sequence
+        # Step 1: Localized Markdown Header
+        blocks.append(MarkdownBlock(text=f"### {title_str}"))
+
+        # Step 2: LLM Explanation Paragraph (if present)
+        if llm_explanation:
+            blocks.append(ParagraphBlock(text=llm_explanation, exact_quotes=[], citations=[]))
+
+        # Step 3: Visual Metrics Box
         blocks.append(SduiMetrics1DBlock(axes=[auth_row_dto]))
-        blocks.append(MarkdownBlock(text=auth_text))
 
         return blocks
