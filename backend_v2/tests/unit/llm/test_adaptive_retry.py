@@ -58,11 +58,11 @@ async def test_lite_llm_provider_adaptive_retry_depleted(monkeypatch: pytest.Mon
     assert "rate limit exceeded" in str(exc_info.value).lower()
 
     # Verify primary model calls (attempts 1, 2, & 3)
-    assert mock_acompletion.call_count == get_settings().llm_max_retries + 1
+    assert mock_acompletion.call_count == get_settings().llm_max_transient_retries + 1
     assert mock_litellm_acompletion.call_count == 0
 
-    # Verify that sleep was called 2 times (during the retries)
-    assert mock_sleep.call_count == get_settings().llm_max_retries
+    # Verify that sleep was called (during the retries)
+    assert mock_sleep.call_count == get_settings().llm_max_transient_retries
 
 
 @pytest.mark.asyncio

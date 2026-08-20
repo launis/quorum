@@ -33,6 +33,15 @@ from backend_v2.models.llm import LLMProviderConfig, LLMResponse
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import get_settings
 
+__all__ = [
+    "LLMFactory",
+    "LLMProvider",
+    "LiteLLMProvider",
+    "LogfireShieldedClient",
+    "MockProvider",
+    "resolve_env_variables",
+]
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -43,16 +52,16 @@ load_dotenv(dotenv_path=_env_path)
 
 
 def resolve_env_variables(params: dict[str, Any]) -> dict[str, Any]:
-    """Korvaa parametrien ${ENV_VAR} -viitteet todellisilla ympäristömuuttujilla.
+    """Replace ${ENV_VAR} references with actual environment variable values.
 
     Args:
-        params: Sanakirja, joka sisältää konfiguraatioparametreja.
+        params: Dictionary containing configuration parameters.
 
     Returns:
-        Uusi sanakirja, jossa muuttujat on korvattu.
+        New dictionary with resolved environment variables.
 
     Raises:
-        ConfigurationError: Jos vaadittua ympäristömuuttujaa ei löydy (ErrorCodes.CONFIGURATION_ERROR).
+        ConfigurationError: If a required environment variable is not set (ErrorCodes.CONFIGURATION_ERROR).
     """
     resolved = {}
     for k, v in params.items():
@@ -61,7 +70,7 @@ def resolve_env_variables(params: dict[str, Any]) -> dict[str, Any]:
             resolved_value = os.getenv(env_key)
             if not resolved_value:
                 raise ConfigurationError(
-                    f"Strict Mode: Vaadittua ympäristömuuttujaa '{env_key}' ei löydy järjestelmästä parametrille '{k}'."
+                    f"Strict Mode: Required environment variable '{env_key}' is missing for parameter '{k}'."
                 )
             resolved[k] = resolved_value
         else:
@@ -89,25 +98,119 @@ def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> 
         logger.error("Failed to dump prompt: %s", e)
 
 
-def _is_transient_llm_error(e: BaseException) -> bool:
-    """Check if the LiteLLM/asyncio exception is a transient rate limit or timeout.
+def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) -> bool:
+    """Check if the LiteLLM/asyncio/HTTP exception is a transient network error, rate limit, or timeout.
+
+    Recursively unwrap causes, exception groups, and original errors to detect transient transport drops.
 
     Args:
         e: The caught exception.
+        _visited: Set of visited object IDs to prevent infinite cycles.
 
     Returns:
-        True if the error is a transient rate limit or timeout, False otherwise.
+        True if the error is transient and safe to retry, False otherwise.
     """
+    if _visited is None:
+        _visited = set()
+    if id(e) in _visited:
+        return False
+    _visited.add(id(e))
+
+    # 1. Check ExceptionGroup / BaseExceptionGroup
+    if isinstance(e, BaseExceptionGroup):
+        return any(_is_transient_llm_error(sub_exc, _visited) for sub_exc in e.exceptions)
+
+    # 2. Check direct LiteLLM transient exceptions
     import litellm
 
-    return (
-        isinstance(e, asyncio.TimeoutError)
-        or (hasattr(e, "status_code") and e.status_code in (429, 502, 503, 504))
-        or isinstance(e, getattr(litellm, "RateLimitError", type(None)))
-        or isinstance(e, getattr(litellm, "Timeout", type(None)))
-        or isinstance(e, getattr(litellm, "ServiceUnavailableError", type(None)))
-        or isinstance(e, getattr(litellm, "APIConnectionError", type(None)))
-    )
+    if isinstance(
+        e,
+        (
+            getattr(litellm, "RateLimitError", type(None)),
+            getattr(litellm, "Timeout", type(None)),
+            getattr(litellm, "ServiceUnavailableError", type(None)),
+            getattr(litellm, "APIConnectionError", type(None)),
+            getattr(litellm, "InternalServerError", type(None)),
+            getattr(litellm, "BadGatewayError", type(None)),
+        ),
+    ):
+        return True
+
+    # 3. Check direct Transport / Network / Timeout exceptions (httpx, aiohttp, socket, asyncio)
+    import httpx
+
+    if isinstance(
+        e,
+        (
+            asyncio.TimeoutError,
+            TimeoutError,
+            ConnectionError,
+            ConnectionResetError,
+            ConnectionRefusedError,
+            BrokenPipeError,
+            httpx.TimeoutException,
+            httpx.NetworkError,
+            httpx.ReadError,
+            httpx.ConnectError,
+            httpx.RemoteProtocolError,
+        ),
+    ):
+        return True
+
+    try:
+        import aiohttp
+
+        if isinstance(e, aiohttp.ClientError):
+            return True
+    except ImportError:
+        pass
+
+    # 4. Check HTTP Status Code attributes (e.g. 429, 502, 503, 504)
+    status_code = getattr(e, "status_code", None)
+    if isinstance(status_code, int) and status_code in (429, 502, 503, 504):
+        return True
+
+    # 5. Check AppException domain details for transient codes
+    if isinstance(e, AppException):
+        error_code = e.details.get("error_code") if isinstance(e.details, dict) else None
+        if error_code in (
+            ErrorCodes.UPSTREAM_TIMEOUT.value,
+            ErrorCodes.UPSTREAM_TIMEOUT.name,
+            ErrorCodes.RATE_LIMIT_EXCEEDED.value,
+            ErrorCodes.RATE_LIMIT_EXCEEDED.name,
+            ErrorCodes.NETWORK_UNAVAILABLE.value,
+            ErrorCodes.NETWORK_UNAVAILABLE.name,
+            ErrorCodes.SERVICE_UNAVAILABLE.value,
+            ErrorCodes.SERVICE_UNAVAILABLE.name,
+        ):
+            return True
+
+    # 6. Check error message string patterns for raw socket disconnects
+    msg = str(e).lower()
+    if (
+        "server disconnected" in msg
+        or "connection reset" in msg
+        or "remote end closed connection" in msg
+        or "connection closed" in msg
+    ):
+        return True
+
+    # 7. Recursively inspect causes and wrapped exceptions
+    original_error = getattr(e, "original_error", None)
+    if isinstance(original_error, BaseException) and _is_transient_llm_error(original_error, _visited):
+        return True
+
+    if e.__cause__ is not None and _is_transient_llm_error(e.__cause__, _visited):
+        return True
+
+    if (
+        e.__context__ is not None
+        and not getattr(e, "__suppress_context__", False)
+        and _is_transient_llm_error(e.__context__, _visited)
+    ):
+        return True
+
+    return False
 
 
 class LLMProvider(ABC):
@@ -535,7 +638,7 @@ class LiteLLMProvider(LLMProvider):
                 if resolved_client:
                     call_kwargs["client"] = LogfireShieldedClient(resolved_client)
 
-            max_rate_limit_retries = get_settings().llm_max_retries
+            max_rate_limit_retries = get_settings().llm_max_transient_retries
             response = None
 
             # Phase 3, Step 4: Enforce Exponential Backoff with Random Jitter
@@ -593,7 +696,8 @@ class LiteLLMProvider(LLMProvider):
                 and actual_model not in self.model_name
             ):
                 logger.info(
-                    "[LiteLLMProvider] LLM Fallback utilized: Primary model '%s' failed, successfully routed to fallback model '%s'.",
+                    "[LiteLLMProvider] LLM Fallback utilized: Primary model '%s' failed, "
+                    "successfully routed to fallback model '%s'.",
                     self.model_name,
                     actual_model,
                 )

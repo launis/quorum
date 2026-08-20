@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -110,6 +111,108 @@ class SduiMatrixTableWidget extends StatelessWidget {
                     ),
                   );
                   break;
+                case 'quotes':
+                  final atoms = axis.evaluatedAtoms;
+                  if (atoms.isNotEmpty) {
+                    final grouped = axis.atomsByLevel;
+                    final sortedLevels = grouped.keys.toList()
+                      ..sort((a, b) => b.compareTo(a));
+                    cellContent = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: sortedLevels.map((lvl) {
+                        final lvlName = axis.levelNames?[lvl.toString()] ?? '';
+                        final lvlAtoms = grouped[lvl] ?? [];
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$lvl - $lvlName',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                            AppSpacing.h4,
+                            ...lvlAtoms.map((atom) {
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.s4,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '- ${atom.chartDisplayLabel}',
+                                      style: TextStyle(
+                                        fontWeight:
+                                            atom.status ==
+                                                ExecutionStatus.passed
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    if (atom.exactQuotes.isNotEmpty)
+                                      ...atom.exactQuotes.map((q) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: AppSpacing.s8,
+                                            top: AppSpacing.s2,
+                                          ),
+                                          child: Text(
+                                            '"${q.quote}"',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontStyle: FontStyle.italic,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                  ],
+                                ),
+                              );
+                            }),
+                            AppSpacing.h4,
+                          ],
+                        );
+                      }).toList(),
+                    );
+                  } else {
+                    cellContent = const Text('-');
+                  }
+                  break;
+                case 'normalized_score':
+                  final ratio = axis.uiPlotRatio;
+                  if (ratio != null) {
+                    cellContent = Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s8,
+                        vertical: AppSpacing.s4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        border: Border.all(color: Colors.green.shade200),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${(ratio * 100).toStringAsFixed(1)}%',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    );
+                  } else {
+                    cellContent = const Text('-');
+                  }
+                  break;
                 case 'score':
                   cellContent = Text(
                     axis.scoreDisplayLabel ?? '-',
@@ -130,6 +233,8 @@ class SduiMatrixTableWidget extends StatelessWidget {
                         ? 250
                         : colKey == 'row_explanation'
                         ? 300
+                        : colKey == 'quotes'
+                        ? 350
                         : null,
                     child: cellContent,
                   ),

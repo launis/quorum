@@ -1153,8 +1153,10 @@ class ExecutionService:
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
 
-            pdf_service = PdfReportService(self.exec_repo, self.workflow_repo)
-            html_string = await pdf_service.generate_execution_html(execution_id, report_dto=rep_dto)
+            pdf_service = PdfReportService()
+            html_string = await pdf_service.generate_execution_html(
+                execution_id, report_dto=rep_dto, locale=accept_language
+            )
 
             return html_string.encode("utf-8"), "text/html", f"execution_{execution_id}.html"
 
@@ -1204,8 +1206,10 @@ class ExecutionService:
                 execution_id, resolved_pid, accept_language, custom_preface_md, local_time_str
             )
 
-            pdf_service = PdfReportService(self.exec_repo, self.workflow_repo)
-            pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, report_dto=rep_dto)
+            pdf_service = PdfReportService()
+            pdf_bytes = await pdf_service.generate_execution_pdf(
+                execution_id, report_dto=rep_dto, locale=accept_language
+            )
 
             if resolved_pid == default_pid:
                 try:

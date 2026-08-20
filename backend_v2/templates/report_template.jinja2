@@ -310,17 +310,18 @@
                 {% endif %}
             {% elif block.block_type is defined and block.block_type == 'matrix_summary' %}
                 {% set visible_cols = block.matrix_visible_columns if block.matrix_visible_columns else [] %}
+                {% set col_labels = block.matrix_column_labels if block.matrix_column_labels is defined and block.matrix_column_labels else {} %}
                 {% if visible_cols and block.axes %}
                 <div style="page-break-before: always; margin-top: 30px;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; background-color: #fff; border: 1px solid #e0e0e0;">
                         <thead>
                             <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ccc;">
-                                {% if 'label' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ l10n.lblLogicMatrix if l10n is defined else 'Logic Matrix' }}</th>{% endif %}
-                                {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.atomicBreakdownTitle if l10n is defined else 'Atomic Breakdown' }}</th>{% endif %}
-                                {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ l10n.rowExplanationTitle if l10n is defined else 'Row Explanation' }}</th>{% endif %}
-                                {% if 'quotes' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">Lainaukset (quotes)</th>{% endif %}
-                                {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.normalizedScore if l10n is defined else 'Normalized Score' }}</th>{% endif %}
-                                {% if 'score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ l10n.score if l10n is defined else 'Score' }}</th>{% endif %}
+                                {% if 'label' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ (col_labels['label'].resolve(lang_code) if col_labels and 'label' in col_labels else (l10n.lblLogicMatrix if l10n is defined else 'Logic Matrix')) }}</th>{% endif %}
+                                {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ (col_labels['atomic_breakdown'].resolve(lang_code) if col_labels and 'atomic_breakdown' in col_labels else (col_labels['distribution'].resolve(lang_code) if col_labels and 'distribution' in col_labels else (l10n.atomicBreakdownTitle if l10n is defined else 'Atomic Breakdown'))) }}</th>{% endif %}
+                                {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ (col_labels['row_explanation'].resolve(lang_code) if col_labels and 'row_explanation' in col_labels else (l10n.rowExplanationTitle if l10n is defined else 'Row Explanation')) }}</th>{% endif %}
+                                {% if 'quotes' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ (col_labels['quotes'].resolve(lang_code) if col_labels and 'quotes' in col_labels else 'Lainaukset (quotes)') }}</th>{% endif %}
+                                {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ (col_labels['normalized_score'].resolve(lang_code) if col_labels and 'normalized_score' in col_labels else (l10n.normalizedScore if l10n is defined else 'Normalized Score')) }}</th>{% endif %}
+                                {% if 'score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ (col_labels['score'].resolve(lang_code) if col_labels and 'score' in col_labels else (l10n.score if l10n is defined else 'Score')) }}</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -423,16 +424,15 @@
                         {% endfor %}
                         </tbody>
                     </table>
-                    {% set has_evaluative = false %}
-                    {% set has_override = false %}
+                    {% set ns = namespace(has_evaluative=false, has_override=false) %}
                     {% for axis in block.axes %}
-                        {% if axis.is_evaluative %}{% set has_evaluative = true %}{% endif %}
-                        {% if axis.allow_contextual_override %}{% set has_override = true %}{% endif %}
+                        {% if axis.is_evaluative %}{% set ns.has_evaluative = true %}{% endif %}
+                        {% if axis.allow_contextual_override %}{% set ns.has_override = true %}{% endif %}
                     {% endfor %}
-                    {% if has_evaluative or has_override %}
+                    {% if ns.has_evaluative or ns.has_override %}
                     <div style="font-size: 11px; color: #666; margin-top: 8px; font-style: italic;">
-                        {% if has_evaluative %}<div>{{ l10n.matrixEvaluativeAsteriskLegend if l10n is defined and l10n.matrixEvaluativeAsteriskLegend else '* Arvioiva matriisi' }}</div>{% endif %}
-                        {% if has_override %}<div>{{ l10n.matrixOverrideAsteriskLegend if l10n is defined and l10n.matrixOverrideAsteriskLegend else '** Kognitiivinen ohitus sallittu' }}</div>{% endif %}
+                        {% if ns.has_evaluative %}<div>{{ l10n.matrixEvaluativeAsteriskLegend if l10n is defined and l10n.matrixEvaluativeAsteriskLegend else '* Arvioiva matriisi' }}</div>{% endif %}
+                        {% if ns.has_override %}<div>{{ l10n.matrixOverrideAsteriskLegend if l10n is defined and l10n.matrixOverrideAsteriskLegend else '** Kognitiivinen ohitus sallittu' }}</div>{% endif %}
                     </div>
                     {% endif %}
                 </div>

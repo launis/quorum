@@ -110,6 +110,10 @@ async def test_epic_93_e2e_golden_master() -> None:
         "organization_id": "root",
         "name": {"default_locale": "en", "translations": {"en": "Mock Profile"}},
         "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "metric_mappings": {
+            "metadata_scoring_engine": {"default_locale": "en", "translations": {"en": "Scoring Engine"}},
+            "metadata_strictness": {"default_locale": "en", "translations": {"en": "Strictness"}},
+        },
         "layouts": [
             {
                 "preset_view": "1d_metrics",

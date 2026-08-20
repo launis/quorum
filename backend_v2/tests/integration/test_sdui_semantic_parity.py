@@ -8,7 +8,9 @@ from typing import Any
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
+from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.enums import VisualIntent
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixScorecardRowDTO,
@@ -16,10 +18,16 @@ from backend_v2.models.v2_core import (
     ScorecardAtomDTO,
     Workflow,
 )
+from backend_v2.services.pdf_generator import PdfReportService
 
 
 class WorkflowFactory(ModelFactory[Workflow]):
     __model__ = Workflow
+    __set_as_default_factory_for_type__ = True
+
+
+class ReasoningStepDTOFactory(ModelFactory[ReasoningStepDTO]):
+    __model__ = ReasoningStepDTO
     __set_as_default_factory_for_type__ = True
 
 
@@ -47,6 +55,7 @@ class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
 class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
     __model__ = ScorecardAtomDTO
     exact_quotes: list[Any] = []
+    visual_intent: VisualIntent = VisualIntent.SUCCESS
     __set_as_default_factory_for_type__ = True
 
 
@@ -143,7 +152,9 @@ async def test_sdui_semantic_parity() -> None:
                 "hero_insight",
                 "quote_card",
                 "warning_card",
-                "na_card",
+                "n_a_card",
+                "3d_matrix",
+                "2d_compare",
             ):
                 continue
 
@@ -167,24 +178,8 @@ async def test_sdui_semantic_parity() -> None:
         result = subprocess.run(cmd, cwd=flutter_cwd, capture_output=True, text=True, encoding="utf-8")
         assert result.returncode == 0, f"Flutter test failed: {result.stdout}\n{result.stderr}"
 
-        # Step 4: Generate PDF
-        from unittest.mock import AsyncMock
-
-        from backend_v2.services.pdf_generator import PdfReportService
-
-        exec_repo = AsyncMock()
-        exec_repo.get_execution.return_value = AsyncMock(
-            metadata={"target_locale": "en"}, workflow_id="mock_workflow_id"
-        )
-        workflow_repo = AsyncMock()
-
-        mock_wf = WorkflowFactory.build(
-            expected_inputs=[], steps=[], name=I18nText(default_locale="en", translations={"en": "mock_wf"})
-        )
-        workflow_repo.get_workflow_by_id.return_value = mock_wf.model_dump(mode="json")
-
-        pdf_service = PdfReportService(exec_repo=exec_repo, workflow_repo=workflow_repo)
-        pdf_bytes = await pdf_service.generate_execution_pdf("mock_exec_id", report_dto=dto)
+        pdf_service = PdfReportService()
+        pdf_bytes = await pdf_service.generate_execution_pdf("mock_exec_id", report_dto=dto, locale="en")
 
         pdf_fd, pdf_path = tempfile.mkstemp(suffix=".pdf")
         os.close(pdf_fd)

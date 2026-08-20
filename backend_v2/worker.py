@@ -33,6 +33,9 @@ from backend_v2.models.dtos.synthesis import (
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
 from backend_v2.models.prompts import (
     GLOBAL_MANDATES_XML,
+    MATRIX_1D_SYNTHESIS_DIRECTIVE,
+    MATRIX_2D_SYNTHESIS_DIRECTIVE,
+    MATRIX_3D_SYNTHESIS_DIRECTIVE,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SECTION_RULES_PREFIX,
@@ -509,8 +512,8 @@ async def generate_pdf_task(
             logger.info(f"[Task] OutputQualityScanner approved {execution_id}: no slop penalty applied.")
 
         # 2. Feed structured DTO to PDF Engine instead of DB fetching
-        service = PdfReportService(exec_repo=repo, workflow_repo=repo)
-        pdf_bytes = await service.generate_execution_pdf(execution_id, report_dto=dto)
+        service = PdfReportService()
+        pdf_bytes = await service.generate_execution_pdf(execution_id, report_dto=dto, locale=accept_language)
 
         # 3. Save bytes
         storage = get_storage_driver()
@@ -897,22 +900,32 @@ async def generate_profile_synthesis_and_pdf_task(
                     title_map = distilled_data.get("title_map", {})
 
                     for i, lay in enumerate(active_profile_dto.layouts):
-                        if getattr(lay, "synthesis", None) and lay.synthesis and lay.synthesis.synthesis_block_id:
+                        if getattr(lay, "synthesis", None) and lay.synthesis:
                             lay_id = f"layout_{i}_{lay.preset_view}"
-                            lpb_dict = await repo.get_prompt_block(lay.synthesis.synthesis_block_id)
-                            if lpb_dict:
-                                lpb = PromptBlock.model_validate(lpb_dict, strict=False)
+                            lay_title = lay.title.resolve(language) if lay.title else lay_id
 
-                                lay_title = lay.title.resolve(language) if lay.title else lay_id
+                            target_titles = []
+                            if lay.target_blocks:
+                                for tb in lay.target_blocks:
+                                    if tb.lower() in title_map:
+                                        target_titles.append(title_map[tb.lower()])
+                            target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
 
-                                target_titles = []
-                                if lay.target_blocks:
-                                    for tb in lay.target_blocks:
-                                        if tb.lower() in title_map:
-                                            target_titles.append(title_map[tb.lower()])
-                                target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
+                            directive_content = ""
+                            if lay.synthesis.synthesis_block_id:
+                                lpb_dict = await repo.get_prompt_block(lay.synthesis.synthesis_block_id)
+                                if lpb_dict:
+                                    lpb = PromptBlock.model_validate(lpb_dict, strict=False)
+                                    directive_content = lpb.ai_description or ""
+                            elif lay.preset_view in ("1d_metrics", "1d"):
+                                directive_content = MATRIX_1D_SYNTHESIS_DIRECTIVE
+                            elif lay.preset_view in ("2d_compare", "2d"):
+                                directive_content = MATRIX_2D_SYNTHESIS_DIRECTIVE
+                            elif lay.preset_view in ("3d_matrix", "3d"):
+                                directive_content = MATRIX_3D_SYNTHESIS_DIRECTIVE
 
-                                section_rules_str += f'\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n{lpb.ai_description}\n</section_instruction>\n'
+                            if directive_content:
+                                section_rules_str += f'\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n{directive_content}\n</section_instruction>\n'
                                 has_section_rules = True
 
                 if has_section_rules:
