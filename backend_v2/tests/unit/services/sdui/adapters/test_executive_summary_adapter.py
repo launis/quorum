@@ -48,7 +48,7 @@ def test_build_valid_role_returns_paragraph_block() -> None:
 
 
 def test_build_valid_role_with_narrative_and_section_syntheses() -> None:
-    """Test role badge combined with user_role_justification and section_syntheses."""
+    """Test role badge combined with section_syntheses (user_role_justification omitted)."""
     profile = OutputProfile(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
@@ -89,13 +89,12 @@ def test_build_valid_role_with_narrative_and_section_syntheses() -> None:
     )
 
     blocks = ExecutiveSummaryAdapter.build(context)
-    assert len(blocks) == 3
+    # user_role_justification is internal English trace, must NOT be emitted as SDUI block
+    assert len(blocks) == 2
     assert isinstance(blocks[0], ParagraphBlock)
     assert blocks[0].text == "**Role:** Navigator"
     assert isinstance(blocks[1], ParagraphBlock)
-    assert blocks[1].text == "You have demonstrated strategic guidance across team objectives."
-    assert isinstance(blocks[2], ParagraphBlock)
-    assert blocks[2].text == "The organization is performing with high operational discipline."
+    assert blocks[1].text == "The organization is performing with high operational discipline."
 
 
 def test_build_missing_user_role_returns_empty_list() -> None:

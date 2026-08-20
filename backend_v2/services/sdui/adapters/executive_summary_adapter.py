@@ -142,17 +142,7 @@ class ExecutiveSummaryAdapter:
                 )
             )
 
-        # 4. NARRATIVE PARAGRAPHS: Append user_role_justification if present
-        if profile_cache.user_role_justification:
-            blocks.append(
-                ParagraphBlock(
-                    text=profile_cache.user_role_justification,
-                    exact_quotes=[],
-                    citations=[],
-                )
-            )
-
-        # 5. DYNAMIC SYNTHESES: Append executive summary section syntheses if present
+        # 4. DYNAMIC SYNTHESES: Append executive summary section syntheses if present
         if profile_cache.section_syntheses:
             for key in ("executive_summary", "executive_summary_block"):
                 if key in profile_cache.section_syntheses:

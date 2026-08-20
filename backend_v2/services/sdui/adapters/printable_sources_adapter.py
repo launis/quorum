@@ -6,7 +6,6 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 """
 
 import logging
-from typing import Any
 
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
@@ -26,7 +25,12 @@ __all__ = ["PRINTABLE_SOURCES_RULES", "PrintableSourcesAdapter"]
 # chains for visual property selection.
 # ============================================================================
 
-PRINTABLE_SOURCES_RULES: dict[str, Any] = {}
+PRINTABLE_SOURCES_RULES: dict[str, dict[str, str]] = {
+    "header_title": {
+        "fi": "### Lähdeluettelo ja viitteet",
+        "en": "### Sources & Bibliography",
+    }
+}
 
 
 # ============================================================================
@@ -90,7 +94,11 @@ class PrintableSourcesAdapter:
         if not md_lines:
             return blocks
 
-        md_content = "\n".join(md_lines)
+        # 2. RESOLVE: Fail-Fast localized header title from Section 1 aesthetics rules
+        locale = context.locale if context.locale in ("fi", "en") else "en"
+        header_text = PRINTABLE_SOURCES_RULES["header_title"][locale]
+
+        md_content = f"{header_text}\n" + "\n".join(md_lines)
         blocks.append(MarkdownBlock(text=md_content))
 
         return blocks

@@ -56,10 +56,4 @@ class SynthesisTextAdapter:
             for cb in context.profile.content_blocks:
                 blocks.append(cb.model_copy(deep=True))
 
-        # 2. READ: Insert dynamic section syntheses computed during execution
-        if context.profile_cache and context.profile_cache.section_syntheses:
-            for sec_blocks in context.profile_cache.section_syntheses.values():
-                for sb in sec_blocks:
-                    blocks.append(sb.model_copy(deep=True))
-
         return blocks

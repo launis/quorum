@@ -35,8 +35,8 @@ def test_synthesis_text_adapter_builds_markdown_blocks() -> None:
     assert blocks[0].text == "Predefined content block"
 
 
-def test_synthesis_text_adapter_renders_both_content_blocks_and_section_syntheses() -> None:
-    """Test that SynthesisTextAdapter appends both static content_blocks and dynamic section_syntheses."""
+def test_synthesis_text_adapter_ignores_section_syntheses() -> None:
+    """Test that SynthesisTextAdapter strictly emits content_blocks, ignoring section_syntheses."""
     cb = ParagraphBlock(text="Static preface block", exact_quotes=[], citations=[])
 
     profile = OutputProfile(
@@ -68,10 +68,7 @@ def test_synthesis_text_adapter_renders_both_content_blocks_and_section_synthese
     )
 
     blocks = SynthesisTextAdapter.build(context)
-    assert len(blocks) == 3
+    # Section syntheses are rendered exclusively by MatrixGraphsAdapter
+    assert len(blocks) == 1
     assert isinstance(blocks[0], ParagraphBlock)
     assert blocks[0].text == "Static preface block"
-    assert isinstance(blocks[1], MarkdownBlock)
-    assert blocks[1].text == "Dynamic section 1 analysis"
-    assert isinstance(blocks[2], ParagraphBlock)
-    assert blocks[2].text == "Dynamic section 2 summary"

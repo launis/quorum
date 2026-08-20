@@ -79,7 +79,7 @@ def test_build_formats_cited_sources_as_markdown(valid_output_profile_fixture: O
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], MarkdownBlock)
-    assert blocks[0].text == "- Source 1\n- Source 2"
+    assert blocks[0].text == "### Sources & Bibliography\n- Source 1\n- Source 2"
 
 
 def test_build_preserves_existing_bullet_prefix(valid_output_profile_fixture: OutputProfile) -> None:
@@ -89,7 +89,7 @@ def test_build_preserves_existing_bullet_prefix(valid_output_profile_fixture: Ou
     )
     context = AdapterContext(
         execution=None,
-        locale="en",
+        locale="fi",
         penalties_applied=[],
         mcp_audit_map=None,
         global_score=None,
@@ -101,7 +101,7 @@ def test_build_preserves_existing_bullet_prefix(valid_output_profile_fixture: Ou
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], MarkdownBlock)
-    assert blocks[0].text == "- Source 1\n- Source 2"
+    assert blocks[0].text == "### Lähdeluettelo ja viitteet\n- Source 1\n- Source 2"
 
 
 def test_build_ep_valid_http_source(valid_output_profile_fixture: OutputProfile) -> None:
@@ -208,4 +208,4 @@ def test_build_whitespace_and_empty_strings_in_sources_filtered(
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], MarkdownBlock)
-    assert blocks[0].text == "- Valid Source"
+    assert blocks[0].text == "### Sources & Bibliography\n- Valid Source"
