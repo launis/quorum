@@ -86,6 +86,15 @@
 ```xml
 <execution_protocol level="0_create_plan">
   <step id="1" name="SynthesisEngine Circuit Breaker & Domain Data Envelopes">
+    <action name="PRE_IMPLEMENTATION_TECH_DEBT_CLEANUP">
+      Before adding new business logic, clean the following existing tech debt in @[backend_v2/services/orchestrator/engines/synthesis_engine.py]:
+      1) Move `import json` from the inline position inside `execute()` (currently at line 75) to the module-level import block at the top of the file. This violates `inline_imports_ban` (json is NOT a heavy AI/ML library).
+      2) Remove all "Epic 101" references from comments (specifically lines 47, 65, 101, 115). Rewrite these comments in present tense describing WHAT the code does NOW without referencing Epic numbers. Specifically:
+         - Line 47: `# Epic 101: Rule 1 - Extract Blackboard (Dependency Fail-Fast)` → `# Extract and validate GlobalAtomBlackboard (Dependency Fail-Fast)`
+         - Line 65: `# Epic 101: Rule 2 - Dual-Input Context` → `# Validate dual-input context (hydrated messages required)`
+         - Line 101: `# Epic 101: Rule 4 - Execution Delegation` → `# Delegate to LLM executor under semaphore`
+         - Line 115: `# Epic 101: Rule 5 - Alias Hydration and Filtering` → `# Alias hydration and hallucinated UUID filtering`
+    </action>
     <action>Modify @[backend_v2/settings.py] to add `synthesis_starvation_threshold: Annotated[int, Field(description="Atom count threshold at or below which synthesis short-circuits with a DataStarvationEvent.")] = 0` and `synthesis_sparse_threshold: Annotated[int, Field(description="Atom count threshold below which sparse data synthesis prompt rules are injected.")] = 3`.</action>
     <action>
       Modify @[backend_v2/models/dtos/trace.py] to define a new strict Pydantic model:
@@ -102,7 +111,7 @@
     <action>
       Modify @[backend_v2/models/v2_core.py] to add `data_starvation: DataStarvationEvent | None = Field(default=None, description="Domain event indicating synthesis short-circuit due to atom starvation")` to `RenderedSynthesisCache`.
     </action>
-    <action>Modify @[backend_v2/models/enums.py] to ensure `VisualIntent.WARNING` is present.</action>
+    <action>Modify @[backend_v2/models/enums.py] to ensure `VisualIntent.WARNING` is present (CONFIRMED: already present at line 232).</action>
     <action>Ensure `from backend_v2.settings import get_settings` is imported globally at the top of @[backend_v2/services/orchestrator/engines/synthesis_engine.py] (satisfying `global_settings_import`).</action>
     <action>Modify `SynthesisEngine.execute()` in @[backend_v2/services/orchestrator/engines/synthesis_engine.py] to calculate `total_atoms = len(all_atom_ids)` from the validated `GlobalAtomBlackboard` via `blackboard.get_all_atom_ids()`.</action>
     <action>Read the starvation threshold via `get_settings().synthesis_starvation_threshold`.</action>
@@ -114,13 +123,24 @@
       5) Return `EngineExecutionResult(results=[], hydrated_references={}, synthesis_output=starvation_content, trace_events=[starvation_event])` immediately without calling `self._executor.execute_structured_task()`.
     </action>
     <action>
-      Modify @[backend_v2/worker.py] in Phase 2 synthesis handling (`generate_profile_synthesis_and_pdf_task`):
-      Before initiating LLM structured tasks in `TaskGroup` (around lines 800-941), inspect if the DAG execution produced a `DataStarvationEvent` (e.g. from `final_inputs` step results, execution context variables, or `execution.execution_trace` where an output event content has `event_type == "starvation"` or `total_atoms == 0`).
-      If starvation occurred:
+      Modify @[backend_v2/worker.py] in the profile synthesis handling function.
+      DETECTION METHOD (deterministic, single path): Immediately after obtaining `execution` and `final_inputs` (before the `async with asyncio.TaskGroup() as tg:` block that starts at the line containing `async with asyncio.TaskGroup() as tg:`), iterate `execution.execution_trace` to detect starvation:
+      ```python
+      starvation_detected = False
+      for trace_evt in execution.execution_trace:
+          if (
+              trace_evt.event_type == "output"
+              and isinstance(trace_evt.content, dict)
+              and trace_evt.content.get("event_type") == "starvation"
+          ):
+              starvation_detected = True
+              break
+      ```
+      If `starvation_detected is True`:
       1) Instantiate `starvation_dto = DataStarvationEvent(total_atoms=0, reason="Data starvation: insufficient atoms")`.
-      2) Completely BYPASS `t_synth = tg.create_task(client.run_structured_task(...))` and `t_row = tg.create_task(...)` to avoid executing an unnecessary, hallucination-prone secondary LLM pass on empty data.
+      2) Completely BYPASS the entire `async with asyncio.TaskGroup() as tg:` block and all subsequent LLM synthesis tasks (`t_exec_summary`, `t_matrix_sections`, `t_xai`, `t_row`, `t_variance`) to avoid executing unnecessary, hallucination-prone LLM passes on empty data.
       3) Directly construct `cache = RenderedSynthesisCache(section_syntheses={}, row_explanations={}, cited_sources=[], xai_highlights=[], user_role=None, user_role_justification=None, extension_metrics=None, data_starvation=starvation_dto)`.
-      4) Persist `cache` to `execution.profile_syntheses[profile_id]` and update the execution in the repository.
+      4) Persist `cache` to `execution.profile_syntheses[profile_id]` and update the execution in the repository via `await repo.update_execution(execution_id, {"profile_syntheses": ...})`. Then skip directly to the PDF generation enqueue at the line containing `await redis.enqueue_job("generate_pdf_job", ...)`.
     </action>
     <constraint invariant="anti_god_code_dag_isolation">
       `DAGExecutor` MUST remain completely domain-agnostic. No synthesis-specific starvation checks or short-circuits are placed in @[backend_v2/services/orchestrator/dag_executor.py]. `SynthesisEngine` handles its own precondition and returns a valid `EngineExecutionResult`.
@@ -216,16 +236,16 @@
     </action>
     <action>Export `WarningCardAdapter` in @[backend_v2/services/sdui/adapters/__init__.py].</action>
     <action>
-      Modify @[backend_v2/services/blueprint.py] `transform()`:
-      1) Import `WarningCardAdapter`.
-      2) In Phase 2 assembly (around line 686), before iterating `dispatch_order`:
+      Modify @[backend_v2/services/blueprint.py] `build_report_dto()`:
+      1) Import `WarningCardAdapter` from `backend_v2.services.sdui.adapters.warning_card_adapter`.
+      2) In Phase 2 assembly, between the line `inner_sdui_blocks: list[AnySduiBlock] = []` (L576) and the `dispatch_order = profile.target_block_order` line (L595), insert:
          ```python
          warning_blocks = WarningCardAdapter.build(adapter_context)
          if warning_blocks:
              has_warning = True
              inner_sdui_blocks.extend(warning_blocks)
          ```
-      3) Retain the standard target block dispatch loop. If starvation occurred, `warning_blocks` populates `inner_sdui_blocks`, gracefully preventing the `if not inner_sdui_blocks: inner_sdui_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]` fallback from creating empty placeholder radar charts.
+      3) Retain the standard `for target_k in dispatch_order:` dispatch loop. If starvation occurred, `warning_blocks` populates `inner_sdui_blocks`, gracefully preventing the `if not inner_sdui_blocks: inner_sdui_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]` fallback (L619-620) from creating empty placeholder radar charts.
     </action>
     <action>Do NOT register the adapter in `_target_block_hydrators` and do NOT modify @[backend_v2/seed/seed_data.json] to include `"warning_card_block"`. The warning card is an orchestrator-level event projection, not a static blueprint component.</action>
     <constraint invariant="adapter_two_section_structure">
