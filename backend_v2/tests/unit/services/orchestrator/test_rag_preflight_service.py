@@ -8,7 +8,7 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
-from backend_v2.models.v2_core import ExecutionRecord, I18nText, Step, StepRule, WorkflowInputs
+from backend_v2.models.v2_core import ExecutionRecord, I18nText, Step, StepRule, TraceEvent, WorkflowInputs
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 
 
@@ -401,3 +401,70 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
         assert "chat_log" in result["atoms_by_input"]
         assert "document_date" not in result["atoms_by_input"]
         assert len(result["atoms_by_input"]["chat_log"]["atoms"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_keys(
+    preflight_service: RAGPreflightService,
+) -> None:
+    """Tests that preflight extracts inputs from execution_trace and ignores _user_only/_ai_only keys."""
+    step_rule = StepRule(
+        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+    )
+    step_def = make_valid_step_def()
+
+    sparse_chat_log = (
+        "<user_payload>\npaljon kello on\n</user_payload>\n\n"
+        "<ai_draft_context>\nKello on tällä hetkellä 7.43.\n</ai_draft_context>\n\n"
+        "<user_payload>\nkiitos\n</user_payload>\n\n"
+        "<ai_draft_context>\nOle hyvä! Autan mielelläni, jos sinulla on muuta kysyttävää.\n</ai_draft_context>"
+    )
+
+    # In raw_inputs, chat_log was unparsed (443 chars).
+    # In execution_trace inputs event, chat_log is parsed (48 user chars), with helper keys.
+    trace_event = TraceEvent(
+        step_name="inputs",
+        event_type="input",
+        content={
+            "inputs": {
+                "product_text": "lopputuote",
+                "reflection_text": "reflektiodokumentti",
+                "chat_log": sparse_chat_log,
+                "chat_log_user_only": "paljon kello on\n\nkiitos",
+                "chat_log_ai_only": "Kello on tällä hetkellä 7.43.\n\nOle hyvä! Autan mielelläni...",
+                "document_date": "2026-07-22T04:43:36+00:00",
+            },
+            "metadata": {"estimated_token_count": 100},
+        },
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wf_1234567890abcdef",
+        raw_inputs=WorkflowInputs(
+            dynamic_inputs={
+                "product_text": "lopputuote",
+                "reflection_text": "reflektiodokumentti",
+                "chat_log": "raw unparsed 443 char string that should be overridden by trace",
+                "document_date": "2026-07-22T04:43:36+00:00",
+            }
+        ),
+        execution_trace=[trace_event],
+    )
+
+    emit_mock = AsyncMock()
+
+    with patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls:
+        result = await preflight_service.execute(
+            target_step=step_rule,
+            step_def=step_def,
+            exec_record=exec_record,
+            emit_progress=emit_mock,
+        )
+
+        # 10 + 19 + 48 = 77 characters (< 100 chars min threshold).
+        # Auxiliary keys (chat_log_user_only, chat_log_ai_only) and metadata (document_date) are ignored.
+        mock_atomizer_cls.assert_not_called()
+        assert result == {"atoms_by_input": {}}
+        emit_mock.assert_called_with("Input data sparse/empty. Preflight extraction skipped.", 100)
+

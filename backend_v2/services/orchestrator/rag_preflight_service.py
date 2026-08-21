@@ -39,6 +39,43 @@ def _extract_effective_user_text(text: str) -> str:
     return text.strip()
 
 
+def _is_preflight_candidate_key(key: str, excluded_keys: list[str]) -> bool:
+    """Determine whether an input key represents a primary analytical document for preflight.
+
+    Excludes non-analytical metadata keys (such as document_date) as well as auxiliary
+    projections produced by InputProcessingHook (such as chat_log_user_only or chat_log_ai_only).
+
+    Args:
+        key: Input key name.
+        excluded_keys: Central list of excluded keys from settings.
+
+    Returns:
+        True if the key represents a primary candidate document, False otherwise.
+    """
+    if key in excluded_keys:
+        return False
+    if key.endswith("_user_only") or key.endswith("_ai_only"):
+        return False
+    return True
+
+
+def _extract_inputs_from_record(exec_record: ExecutionRecord) -> dict[str, Any]:
+    """Extract input dictionary from execution trace (processed) or fallback to raw inputs.
+
+    Args:
+        exec_record: ExecutionRecord containing trace events and raw inputs.
+
+    Returns:
+        Dictionary of dynamic inputs.
+    """
+    for event in reversed(exec_record.execution_trace):
+        if event.step_name == "inputs" and event.event_type == "input" and isinstance(event.content, dict):
+            inputs_payload = event.content.get("inputs")
+            if isinstance(inputs_payload, dict):
+                return inputs_payload
+    return dict(exec_record.raw_inputs.dynamic_inputs)
+
+
 class RAGPreflightService:
     """Service for RAG knowledge extraction phase 1B."""
 
@@ -97,13 +134,16 @@ class RAGPreflightService:
                 status_code=500,
             )
 
-        dynamic_inputs = exec_record.raw_inputs.dynamic_inputs
+        inputs = _extract_inputs_from_record(exec_record)
         settings = get_settings()
-        total_input_chars = sum(
-            len(_extract_effective_user_text(v))
-            for k, v in dynamic_inputs.items()
-            if isinstance(v, str) and k not in settings.rag_preflight_excluded_keys
-        )
+
+        candidate_inputs = {
+            k: v
+            for k, v in inputs.items()
+            if isinstance(v, str) and _is_preflight_candidate_key(k, settings.rag_preflight_excluded_keys)
+        }
+
+        total_input_chars = sum(len(_extract_effective_user_text(v)) for v in candidate_inputs.values())
 
         if total_input_chars < settings.rag_preflight_min_input_chars:
             logger.warning(
@@ -119,19 +159,13 @@ class RAGPreflightService:
         llm_executor = LLMTaskExecutor(self.compiler)
         atomizer = TwoPassAtomizer(llm_executor)
 
-        candidate_files = [
-            k
-            for k, v in dynamic_inputs.items()
-            if isinstance(v, str)
-            and k not in settings.rag_preflight_excluded_keys
-            and len(_extract_effective_user_text(v)) >= 20
-        ]
+        candidate_files = [k for k, v in candidate_inputs.items() if len(_extract_effective_user_text(v)) >= 20]
         total_files = len(candidate_files)
         processed_files = 0
         atoms_by_input = {}
 
-        for key, text_content in dynamic_inputs.items():
-            if key not in candidate_files or not isinstance(text_content, str):
+        for key, text_content in candidate_inputs.items():
+            if key not in candidate_files:
                 continue
 
             await emit_progress(
