@@ -1,0 +1,292 @@
+# EPIC 145 Tracker: Workflow Context Governance & Studio UX Harmonization
+
+**Epic:** @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md]
+**Task Directory:** @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX]
+
+```xml
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+  <ki>@[ki_synthesis_payload_compression.md]</ki>
+  <ki>@[ki_sdui_matrix_synthesis.md]</ki>
+  <ki>@[ki_tripartite_pipeline_architecture.md]</ki>
+  <ki>@[ki_god_code_prevention.md]</ki>
+  <ki>@[ki_dual_axis_localization_architecture.md]</ki>
+  <ki>@[ki_strict_sdui_serialization.md]</ki>
+  <ki>@[ki_python_314_concurrency_strictness.md]</ki>
+  <ki>@[ki_global_config_sovereignty.md]</ki>
+  <ki>@[ki_matrix_boolean_evaluation_strictness.md]</ki>
+  <ki>@[ki_ai_testing_standards.md]</ki>
+  <ki>@[ki_dag_engine_dto_projection_rules.md]</ki>
+  <ki>@[ki_neuro_symbolic_agentic_workflow.md]</ki>
+  <ki>@[ki_flat_polymorphic_pipeline.md]</ki>
+  <ki>@[ki_sdui_adapter_pattern.md]</ki>
+</required_context_rules>
+```
+
+---
+
+## Phase Execution Status
+
+### Phase 1: Cross-Domain DTO Parity, Freezed Code Generation Lock & Pre-Implementation Tech Debt Cleanups
+
+**Plan:** @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md]
+
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check — Verify codebase state from prior Epics against Phase 1 assumptions in `v2_core.py`, `settings.py`, and `workflow.dart`.
+  - [ ] Step 1: Pre-Implementation Technical Debt Cleanups — Eliminate `model_copy(update={...})` in `synthesis_payload_compressor.py`, eliminate magic number `[:300]`, eliminate `getattr(data, "organization_id", None)` duck-typing in `workflow_service.py`, replace Finnish docstring in `workflow.dart`.
+  - [ ] Step 2: Backend Pydantic Models & Settings Update — Add `is_system_core` to `Step`, `is_synthesis_source` to `StepRule`, `max_quotes_per_matrix` and `max_unmet_criteria` to `SynthesisConfigDTO`, `SYSTEM_PROTECTED_RESOURCE` to `ErrorCodes`, `max_synthesis_evaluations` and `max_synthesis_reasoning_length` to `Settings`.
+  - [ ] Step 3: Frontend Dart Freezed Models & Code Generation Lock — Add `isSynthesisSource` to `StepRule`, `isSystemCore` to `NodeStrategy.llm` and `NodeStrategy.logic`, run Freezed code generation.
+  - [ ] Step 4: Workflow Model Unit Tests — Update `workflow_test.dart` for deserialization of `isSystemCore` and `isSynthesisSource` defaults and explicit overrides.
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+
+---
+
+### Phase 2: Atomic Seed Data Migration & Database Re-seeding Gate (Vault Protocol)
+
+**Plan:** @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\02_phase2_plan.md]
+
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\02_phase2_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\02_phase2_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check — Verify Phase 1 completion and model acceptance of `is_system_core` and `is_synthesis_source`.
+  - [ ] Step 1: Backup Seed Data — Execute timestamped backup of `seed_data.json` to `backend_v2/seed/backups/seed_data_pre_epic145.json`.
+  - [ ] Step 2: Step Definitions Migration (`is_system_core`) — Set `true` for `sp_db849f9790984585`, `sp_192910b5f5a34c79`, `sp_d245365e4a274b9e`, `sp_7a8b9c0d1e2f3a4b`; set `false` for all remaining.
+  - [ ] Step 3: Workflow Step Rules Migration (`is_synthesis_source`) — Set `false` for `sr_f0a26d17cc9b48a7` (Input Processing); set `true` for all remaining step rules.
+  - [ ] Step 4: Seed Vault Verification & Local Re-Seeding — JSON validation and `uv run python backend_v2/seed/run_seed.py local`.
+  - [ ] Step 5: Domain Parity & Backend Test Verification — Frontend domain parity test and backend audit loop.
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\02_phase2_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+
+---
+
+### Phase 3: Backend Domain & Synthesis Payload Compression Hardening
+
+**Plan:** @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md]
+
+- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md] @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md] --phase=3`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+
+---
+
+### Phase 4: Studio Workflow & Step Blueprint UX Restructuring (3-Zone Management & Core Protection)
+
+**Plan:** @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md]
+
+- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md] @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md] --phase=4`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+
+---
+
+### Phase 5: Verification, Widget Testing & E2E Integration Gate
+
+**Plan:** @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\05_phase5_plan.md]
+
+- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md] @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\05_phase5_plan.md] @[docs\epic\EPIC_145_tracker.md] --phase=5`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\05_phase5_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\05_phase5_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\05_phase5_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+
+---
+
+### Integration Checkpoint: Full-Stack Validation
+
+- [ ] **[NOK]** Backend full audit: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+- [ ] **[NOK]** Frontend full audit: `uv run python scripts/flutter_audit_loop.py client_app_v2 --test`
+- [ ] **[NOK]** Domain Parity Gate: `uv run flutter test client_app_v2/test/models/domain_parity_test.dart`
+- [ ] **[NOK]** Seed Integrity Gate: `uv run python backend_v2/seed/run_seed.py local`
+
+---
+
+### Post-Implementation Gates
+
+- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths and delete deprecated proxies.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend files:
+  - [ ] @[backend_v2/models/v2_core.py]
+  - [ ] @[backend_v2/settings.py]
+  - [ ] @[backend_v2/exceptions.py]
+  - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
+  - [ ] @[backend_v2/services/studio/workflow_service.py]
+  - [ ] @[backend_v2/seed/run_seed.py]
+  - [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py]
+  - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
+  - [ ] @[backend_v2/api/routers/studio/steps.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified frontend files:
+  - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
+- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+- [ ] **[NOK] MANDATORY Final E2E REST API Verification Gate**: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`
+
+---
+
+### Documentation & Knowledge Item Update
+
+- [ ] **[NOK]** Create a Knowledge Item (KI) for new SSOTs in `<appDataDir>/knowledge/`.
+- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, and update `.agents/rules/04_directory_reference.md`.
+
+---
+
+### Final Epic Audit
+
+- [ ] **[NOK]** Epic Boundary Audit: Run `uv run python scripts/audit_markdown_boundaries.py --file @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md]` to verify all AST line boundaries in the Epic are still correct.
+- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+
+---
+
+## Instructions for the Execution Agent
+
+1. **Atomic Commit Mandate**: After every successful audit loop pass, perform an atomic `git commit` with exact relative file paths before proceeding to the next step. Commit messages MUST be in English.
+2. **Seeding Environment**: After modifying `seed_data.json`, execute: `uv run python backend_v2/seed/run_seed.py local`.
+3. **@-reference Syntax**: All file references in this tracker use `@[relative/path]` notation. The IDE resolves these automatically. Do NOT convert to absolute paths.
+4. **You MUST update the `/tier5-resume` or `/tier0-research-plan` (or `/tier0-create-plan` if the plan is missing) command at the bottom of this tracker before handing over the session.** Additionally, whenever you finish a milestone, pause for user feedback, or complete a session, you MUST automatically output the next command in your chat response so the user can easily copy-paste it to continue.
+5. **Mandatory Workflow Loop**: `[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan`. You MUST ALWAYS pass BOTH the plan and the tracker file in ALL commands.
+6. **Post-Phase Completion Loop**: Once all Phases are complete, the loop MUST continue through the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`.
+
+---
+
+## Requirements Traceability Matrix
+
+| # | Requirement | Source | Plan | Step |
+|:--|:-----------|:-------|:-----|:-----|
+| R001 | Add `is_system_core: bool = False` to Python `Step` model | Epic §3 Phase 1 Action 2 | 01_phase1_plan.md | Phase 1, Step 2 |
+| R002 | Add `is_synthesis_source: bool = True` to Python `StepRule` model | Epic §3 Phase 1 Action 3 | 01_phase1_plan.md | Phase 1, Step 2 |
+| R003 | Add `max_quotes_per_matrix: int | None = None` to `SynthesisConfigDTO` | Epic §3 Phase 1 Action 4 | 01_phase1_plan.md | Phase 1, Step 2 |
+| R004 | Add `max_unmet_criteria: int | None = None` to `SynthesisConfigDTO` | Epic §3 Phase 1 Action 4 | 01_phase1_plan.md | Phase 1, Step 2 |
+| R005 | Add `SYSTEM_PROTECTED_RESOURCE` to `ErrorCodes` enum | Epic §3 Phase 1 Action 5 | 01_phase1_plan.md | Phase 1, Step 2 |
+| R006 | Add `max_synthesis_evaluations: int = 0` (unbounded default) to `Settings` | Epic §3 Phase 1 Action 6 | 01_phase1_plan.md | Phase 1, Step 2 |
+| R007 | Add `max_synthesis_reasoning_length: int = 300` to `Settings` | Epic §3 Phase 1 Action 6 | 01_phase1_plan.md | Phase 1, Step 2 |
+| R008 | Eliminate `model_copy(update={...})` in `SynthesisPayloadCompressor`, replace with `DistilledEvaluation.model_validate()` | Epic §3 Phase 1 Action 1 | 01_phase1_plan.md | Phase 1, Step 1 |
+| R009 | Eliminate hardcoded magic number `[:300]` in compressor, reference `max_synthesis_reasoning_length` | Epic §3 Phase 1 Action 1 | 01_phase1_plan.md | Phase 1, Step 1 |
+| R010 | Eliminate `getattr(data, "organization_id", None)` duck-typing in `StudioWorkflowService.save_step` | Epic §3 Phase 1 Action 1 | 01_phase1_plan.md | Phase 1, Step 1 |
+| R011 | Add `isSystemCore` (default `false`) to Dart `NodeStrategy.llm` Freezed variant | Epic §3 Phase 1 Action 7 | 01_phase1_plan.md | Phase 1, Step 3 |
+| R012 | Add `isSystemCore` (default `false`) to Dart `NodeStrategy.logic` Freezed variant | Epic §3 Phase 1 Action 7 | 01_phase1_plan.md | Phase 1, Step 3 |
+| R013 | Add `isSynthesisSource` (default `true`) to Dart `StepRule` Freezed model | Epic §3 Phase 1 Action 7 | 01_phase1_plan.md | Phase 1, Step 3 |
+| R014 | Execute Freezed code generation lock before seed data mutation | Epic §3 Phase 1 Action 8 | 01_phase1_plan.md | Phase 1, Step 3 |
+| R015 | Update `workflow_test.dart` for `isSystemCore` and `isSynthesisSource` deserialization and defaults | Epic §3 Phase 1 Action 9 | 01_phase1_plan.md | Phase 1, Step 4 |
+| R016 | Replace Finnish docstring in `workflow.dart` line 69 with English equivalent | Epic §3 Phase 4 Action 2 | 01_phase1_plan.md | Phase 1, Step 1 |
+| R017 | Timestamped backup of `seed_data.json` before mutation | Epic §3 Phase 2 Action 1 | 02_phase2_plan.md | Phase 2, Step 1 |
+| R018 | Set `is_system_core: true` for `sp_db849f9790984585` (Input Processing) in `seed_data.json` steps | Epic §3 Phase 2 Action 2 | 02_phase2_plan.md | Phase 2, Step 2 |
+| R019 | Set `is_system_core: true` for `sp_192910b5f5a34c79` (XAI Reporter) in `seed_data.json` steps | Epic §3 Phase 2 Action 2 | 02_phase2_plan.md | Phase 2, Step 2 |
+| R020 | Set `is_system_core: true` for `sp_d245365e4a274b9e` (Scoring Engine) in `seed_data.json` steps | Epic §3 Phase 2 Action 2 | 02_phase2_plan.md | Phase 2, Step 2 |
+| R021 | Set `is_system_core: true` for `sp_7a8b9c0d1e2f3a4b` (Synteesin Generointi) in `seed_data.json` steps | Epic §3 Phase 2 Action 2 | 02_phase2_plan.md | Phase 2, Step 2 |
+| R022 | Set `is_system_core: false` for all remaining step definitions in `seed_data.json` | Epic §3 Phase 2 Action 2 | 02_phase2_plan.md | Phase 2, Step 2 |
+| R023 | Set `is_synthesis_source: false` for `sr_f0a26d17cc9b48a7` (Input Processing rule) in `workflows[0].steps` | Epic §3 Phase 2 Action 3 | 02_phase2_plan.md | Phase 2, Step 3 |
+| R024 | Set `is_synthesis_source: true` for all remaining step rules in `workflows[0].steps` | Epic §3 Phase 2 Action 3 | 02_phase2_plan.md | Phase 2, Step 3 |
+| R025 | Local database re-seeded via `run_seed.py local` after seed mutation | Epic §3 Phase 2 Action 4 | 02_phase2_plan.md | Phase 2, Step 4 |
+| R026 | Frontend domain parity test passes after seed data migration | Epic §3 Phase 2 Action 5 | 02_phase2_plan.md | Phase 2, Step 5 |
+| R027 | Backend audit loop passes after seed data migration | Epic §3 Phase 2 Action 5 | 02_phase2_plan.md | Phase 2, Step 5 |
+| R028 | Upgrade `_strip_heavy_keys` to strip `hydrated_references`, `shuffled_atoms`, `atom_quotes`, `_step_metadata`, `_audit_signature`, `_evaluative_matrices` | Epic §3 Phase 3 Action 1 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R029 | Implement `_normalize_result_item` with routing discriminator for `exact_quotes` key presence | Epic §3 Phase 3 Action 1 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R030 | Token Shield Unbounded Protocol: when `max_synthesis_evaluations == 0`, forward all evaluations without truncation | Epic §3 Phase 3 Action 1 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R031 | Token Shield Prioritized Stratification: 70% deficit budget, dynamic spillover, compound sort `(-len(exact_quotes), atom_id)` | Epic §3 Phase 3 Action 1 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R032 | Emit structured `logger.warning("Token Shield: Prioritized stratification applied", ...)` with counts | Epic §3 Phase 3 Action 1 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R033 | Final canonical sort by `atom_id` for byte-for-byte deterministic JSON serialization | Epic §3 Phase 3 Action 1 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R034 | Add `__all__` module export to `synthesis_payload_compressor.py` | Epic §3 Phase 3 Action 0 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R035 | Add `import logging` and `logger = logging.getLogger(__name__)` to `synthesis_payload_compressor.py` | Epic §3 Phase 3 Action 0 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R036 | Replace broad `except Exception` with specific `(ValidationError, ValueError)` in compressor | Epic §3 Phase 3 Action 1 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R037 | Add `__all__` module export to `synthesis_distiller.py` | Epic §3 Phase 3 Action 2 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R038 | Filter `available_dtos` by `StepRule.is_synthesis_source` in `synthesis_distiller_hook` | Epic §3 Phase 3 Action 2 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R039 | Forward `output_profile.synthesis` config into `MatrixExplanationService.assemble_matrices_to_explain()` | Epic §3 Phase 3 Action 2 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R040 | Add `__all__` module export to `matrix_explanation_service.py` | Epic §3 Phase 3 Action 3 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R041 | Accept `synthesis_config: SynthesisConfigDTO | None` parameter in `assemble_matrices_to_explain()` | Epic §3 Phase 3 Action 3 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R042 | Tripartite Configuration Resolution for `max_quotes_per_matrix` and `max_unmet_criteria` | Epic §3 Phase 3 Action 3 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R043 | Verify `seen_matrix_quotes: set[str]` pre-deduplication remains intact before `ranked_round_robin_select` | Epic §3 Phase 3 Action 3 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R044 | Verify `del groups[group_id]` strict key deletion remains intact in `ranked_round_robin.py` | Epic §3 Phase 3 Action 3 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R045 | Maintain probe boundary isolation on `LevelStatsDTO.model_validate` with `(ValidationError, ValueError)` | Epic §3 Phase 3 Action 3 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R046 | Replace `except Exception:` in claim label resolution with specific `(KeyError, AttributeError)` | Epic §3 Phase 3 Action 3 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R047 | Eliminate `tda_to_scale.get(tda_id, 999)` magic default, use direct `tda_to_scale[tda_id]` | Epic §3 Phase 3 Action 3 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R048 | Add `__all__` module export to `workflow_service.py` | Epic §3 Phase 3 Action 4 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R049 | Enforce `AppException(SYSTEM_PROTECTED_RESOURCE)` on deletion of system core steps | Epic §3 Phase 3 Action 4 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R050 | Enforce `AppException(SYSTEM_PROTECTED_RESOURCE)` on renaming of system core steps | Epic §3 Phase 3 Action 4 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R051 | Add localized ARB string `studioWorkflowTaskProfileTitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R052 | Add localized ARB string `studioWorkflowExecutionOrderTitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R053 | Add localized ARB string `studioWorkflowExecutionOrderSubtitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R054 | Add localized ARB string `studioWorkflowStep1IngestionTitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R055 | Add localized ARB string `studioWorkflowStep1IngestionSubtitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R056 | Add localized ARB string `studioWorkflowStep1OutputBadge` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R057 | Add localized ARB string `studioWorkflowAtomicScopeTitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R058 | Add localized ARB string `studioWorkflowAtomicScopeSubtitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R059 | Add localized ARB string `studioWorkflowPriorStepsTitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R060 | Add localized ARB string `studioWorkflowPriorStepsSubtitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R061 | Add localized ARB string `studioWorkflowZoneCAutoTitle` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R062 | Add localized ARB string `studioWorkflowXaiReporterAggregateBadge` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R063 | Add localized ARB string `studioWorkflowXaiReporterPayloadDesc` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R064 | Add localized ARB string `studioSystemCoreBadge` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R065 | Add localized ARB string `studioStepBuilderModelStrategyRequired` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R066 | Add localized ARB string `studioWorkflowInputPrefix` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R067 | Add localized ARB string `studioWorkflowStepPrefix` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R068 | Add localized ARB string `studioWorkflowNoSelectableInputs` (fi + en) | Epic §3 Phase 4 Action 1 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R069 | Zone A (Step 1): Header with hidden delete button, locked blueprint, raw documents container, output badge | Epic §3 Phase 4 Action 2 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R070 | Zone B (Steps 2..N): Dynamic specialist header, filtered blueprint dropdown (exclude `is_system_core == true`), dependency chips, atomized materials, prior step reports | Epic §3 Phase 4 Action 2 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R071 | Zone C (Steps N+1..N+3): Locked funnel anchors, zero manual input mutations, XAI aggregate badge | Epic §3 Phase 4 Action 2 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R072 | Eliminate hardcoded Finnish strings in `WorkflowStepCard` (lines 225, 279, 308), use `l10n` getters | Epic §3 Phase 4 Action 2 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R073 | Modernize `getBlueprintLabel` to use `bp.name.get(locale)` on `I18nText` instead of manual fallback chains | Epic §3 Phase 4 Action 2 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R074 | Eliminate manual `substring(0, 15)` at lines 181 and 273, use `TextOverflow.ellipsis` | Epic §3 Phase 4 Action 2 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R075 | Replace hardcoded hex `Color(0xFF2E7D32)` in `step_builder_view.dart` with theme-inherited styling | Epic §3 Phase 4 Action 3 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R076 | Replace hardcoded snackbar error text with `l10n.studioStepBuilderModelStrategyRequired` | Epic §3 Phase 4 Action 3 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R077 | System Core Protection in Step Builder: hide delete action, show `studioSystemCoreBadge`, lock execution type and hook | Epic §3 Phase 4 Action 3 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R078 | Slug Informational Policy: slug is display-only, binding by immutable `sp_...` Opaque Stripe ID | Epic §3 Phase 4 Action 3 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R079 | Mandatory quality gates for specialist blueprints: require Role Block and Model Strategy | Epic §3 Phase 4 Action 3 | 04_phase4_plan.md | Phase 4, Step 1 |
+| R080 | `test_compress_payload_unbounded_when_zero_evaluations_limit` | Epic §3 Phase 5 Action 1 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R081 | `test_compress_payload_prioritized_stratification_retains_critical_deficits_over_passes` | Epic §3 Phase 5 Action 1 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R082 | `test_compress_payload_stratification_is_100_percent_deterministic_with_tiebreakers` | Epic §3 Phase 5 Action 1 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R083 | `test_compress_payload_strips_hydrated_references_and_heavy_keys` | Epic §3 Phase 5 Action 1 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R084 | `test_compress_payload_with_results_only_no_evaluations` | Epic §3 Phase 5 Action 1 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R085 | `test_compress_payload_evaluations_empty_after_compression_fails_fast` | Epic §3 Phase 5 Action 1 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R086 | `test_compress_payload_heterogeneous_dag_types` (4 ISTQB partitions) | Epic §3 Phase 5 Action 1 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R087 | `test_delete_step_protected_system_core_fails_fast` | Epic §3 Phase 5 Action 1 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R088 | `test_save_step_direct_organization_id_access` | Epic §3 Phase 5 Action 1 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R089 | Flutter `workflow_step_card_test.dart`: categorized sections, toggle callbacks, localized strings | Epic §3 Phase 5 Action 2 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R090 | Flutter `domain_parity_test.dart`: background Isolate parsing of updated `seed_data.json` | Epic §3 Phase 5 Action 2 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R091 | Flutter `workflow_test.dart`: Freezed deserialization and default values | Epic §3 Phase 5 Action 2 | 05_phase5_plan.md | Phase 5, Step 1 |
+| R092 | Mandatory Final E2E REST API Verification Gate passes with zero HTTP errors | Epic §4 DoD | 05_phase5_plan.md | Phase 5, Step 1 |
+| R093 | `SynthesisPayloadCompressor` reduces payload by over 85% in multi-document runs | Epic §4 DoD | 03_phase3_plan.md | Phase 3, Step 1 |
+| R094 | `MatrixExplanationService` enforces Candidate Pre-Deduplication without quote starvation | Epic §4 DoD | 03_phase3_plan.md | Phase 3, Step 1 |
+| R095 | All modified backend Python modules declare explicit `__all__` module exports | Epic §4 DoD | 03_phase3_plan.md | Phase 3, Step 1 |
+| R096 | All modified backend Python modules have `import logging` and `logger = logging.getLogger(__name__)` | Epic §4 DoD | 03_phase3_plan.md | Phase 3, Step 1 |
+| R097 | Zero hardcoded user-facing strings in Flutter widgets | Epic §4 DoD | 04_phase4_plan.md | Phase 4, Step 1 |
+| R098 | Zero hardcoded hex color codes in Flutter widgets | Epic §4 DoD | 04_phase4_plan.md | Phase 4, Step 1 |
+| R099 | Observability: all probe-boundary and presentation-layer components log `details=str(e)` on validation errors | Epic §2 Compliance Gate 4 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R100 | SDUI adapters (`XaiHighlightsAdapter`) maintain structured logging parity with `exc_info=True` on config errors | Epic §2 Compliance Gate 4 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R101 | Process `evaluations` and `results` as dual explicit distillation paths without fallback chains | Epic §3 Phase 3 Action 1 | 03_phase3_plan.md | Phase 3, Step 1 |
+| R102 | Optimize `_strip_heavy_keys` to avoid redundant `copy.deepcopy` after `model_dump(exclude_unset=True)` | Epic §3 Phase 3 Action 1 | 03_phase3_plan.md | Phase 3, Step 1 |
+
+---
+
+# Session Handover Context
+
+## Achieved
+- Generated EPIC 145 Tracker from the parent Epic document and 5 implementation plan files (Phases 1-5).
+- Phase 1 plan (01_phase1_plan.md) has full granular execution steps (Steps 0-4).
+- Phase 2 plan (02_phase2_plan.md) has full granular execution steps (Steps 0-5).
+- Phases 3, 4, 5 have skeleton plans with `[DEFERRED_TO_TIER_1_RE_PLANNING]` and require `/tier0-create-plan` before execution.
+- Requirements Traceability Matrix generated with 102 granular requirements mapped to plan steps.
+- File-level hardening checklists generated for 9 backend `.py` files and 3 frontend `.dart` files.
+
+## Learned
+- **Baseline State Snapshot**: The codebase currently has no `is_system_core` field on `Step` or `is_synthesis_source` on `StepRule` in either Python or Dart models. `SynthesisPayloadCompressor` uses `model_copy(update={...})` for evaluation distillation and hardcodes `[:300]` for `semantic_reasoning`. `StudioWorkflowService.save_step` uses duck-typing `getattr(data, "organization_id", None)`. `WorkflowStepCard` has hardcoded Finnish strings and monolithic checkbox layout. `step_builder_view.dart` has a hardcoded hex color `0xFF2E7D32`. The `MatrixExplanationService` has a `tda_to_scale.get(tda_id, 999)` magic default and broad `except Exception:` blocks.
+- Phases 3, 4, 5 execution steps are deferred and require granular `/tier0-create-plan` re-planning after Phase 2 completes.
+
+## Remaining
+- Run `/tier0-research-plan` on Phase 1 plan to analyze it before execution.
+- Execute Phase 1 via `/tier2-execute` after research passes.
+- After Phase 2 completes, run `/tier0-create-plan` for Phases 3, 4, 5 to generate granular execution steps.
+- Complete all 5 phases, then proceed through Post-Implementation Gates.
+
+## Resume Command
+`/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
