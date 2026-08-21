@@ -242,16 +242,17 @@ class MarkdownAuditor:
         valid_enums = set()
 
         # Python Enums
-        py_enums = self.repo_root / "backend_v2" / "models" / "enums.py"
-        if py_enums.exists():
-            try:
-                with open(py_enums, encoding="utf-8") as f:
-                    tree = ast.parse(f.read())
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.ClassDef):
-                        valid_enums.add(node.name)
-            except Exception as e:
-                self.errors.append(f"Failed to parse {py_enums} for valid enums: {e}")
+        for py_enum_file in ["enums.py", "exceptions.py"]:
+            py_enums = self.repo_root / "backend_v2" / "models" / py_enum_file if py_enum_file == "enums.py" else self.repo_root / "backend_v2" / py_enum_file
+            if py_enums.exists():
+                try:
+                    with open(py_enums, encoding="utf-8") as f:
+                        tree = ast.parse(f.read())
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.ClassDef):
+                            valid_enums.add(node.name)
+                except Exception as e:
+                    self.errors.append(f"Failed to parse {py_enums} for valid enums: {e}")
 
         # Flutter Enums (Regex based parsing)
         dart_enums = self.repo_root / "client_app_v2" / "lib" / "core" / "models" / "enums.dart"
