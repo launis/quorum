@@ -579,3 +579,55 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
     atom_dto = step_atoms["step1"][atom_id]
     assert atom_dto.status == ExecutionStatus.PASSED
     assert atom_dto.semantic_reasoning == "Strong evidence found."
+
+
+def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache() -> None:
+    """Test that data starvation bypasses the missing row_explanations_cache check."""
+    from backend_v2.models.domain.output_profile import SynthesisConfigDTO
+    from backend_v2.models.dtos.trace import DataStarvationEvent
+    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
+
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+    profile_synth = profile.model_copy(
+        update={"synthesis": SynthesisConfigDTO(row_explanations_block_id="blk_row_exp")}
+    )
+
+    payload_valid = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+    }
+    dto_valid = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload_valid)
+
+    starvation_cache = RenderedSynthesisCache(
+        section_syntheses={},
+        row_explanations={},
+        cited_sources=[],
+        xai_highlights=[],
+        user_role=None,
+        user_role_justification=None,
+        extension_metrics=None,
+        data_starvation=DataStarvationEvent(total_atoms=0, reason="Data starvation"),
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wf_1234567890abcdef",
+        profile_syntheses={profile.id: starvation_cache},
+    )
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto_valid],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile_synth,
+        row_explanations_cache={},  # Empty row_explanations_cache
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+        execution=exec_record,
+    )
+    matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert matrix.row_explanation == ""
+

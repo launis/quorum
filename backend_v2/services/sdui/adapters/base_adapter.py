@@ -40,6 +40,11 @@ class AdapterContext(BaseModel):
     cost: float | None = None
     tokens: int | None = None
 
+    @property
+    def is_data_starved(self) -> bool:
+        """Single Source of Truth: returns True if execution analytical data was starved."""
+        return bool(self.profile_cache and self.profile_cache.data_starvation is not None)
+
 
 class SduiAdapterProtocol(Protocol):
     """Protocol for all SDUI presentation adapters.

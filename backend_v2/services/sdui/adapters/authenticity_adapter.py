@@ -97,6 +97,10 @@ class AuthenticityAdapter:
         ):
             return blocks
 
+        # Starvation Circuit Breaker: If data starvation occurred, skip extension metrics
+        if context.is_data_starved:
+            return blocks
+
         if context.execution is None:
             msg = "Strict Fail-Fast: context.execution cannot be None for authenticity evaluation."
             logger.error(

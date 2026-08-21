@@ -383,3 +383,41 @@ def test_build_missing_extension_labels_raises_app_exception() -> None:
 
     assert exc_info.value.status_code == 500
     assert "Missing extension_labels mapping" in exc_info.value.message
+
+
+def test_build_data_starvation_returns_empty() -> None:
+    from backend_v2.models.dtos.trace import DataStarvationEvent
+    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
+
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],
+        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+    )
+    execution = ExecutionRecord(
+        id="ex_0123456789abcdef0123456789abcdef",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+    )
+    cache = RenderedSynthesisCache(
+        data_starvation=DataStarvationEvent(total_atoms=0, reason="Data starvation"),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+
+    blocks = VarianceAdapter.build(context)
+    assert blocks == []
+

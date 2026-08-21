@@ -70,9 +70,14 @@ class WarningCardAdapter:
         """
         blocks: list[AnySduiBlock] = []
 
-        starvation = context.profile_cache.data_starvation if context.profile_cache else None
-        if starvation is None:
+        if (
+            not context.is_data_starved
+            or context.profile_cache is None
+            or context.profile_cache.data_starvation is None
+        ):
             return blocks
+
+        starvation = context.profile_cache.data_starvation
 
         try:
             aesthetics = WARNING_CARD_RULES[starvation.event_type]

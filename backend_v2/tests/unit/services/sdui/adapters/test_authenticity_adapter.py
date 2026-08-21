@@ -359,3 +359,34 @@ def test_authenticity_adapter_dual_logging_on_exception(monkeypatch: pytest.Monk
     assert mock_logger_error.called
     _args, kwargs = mock_logger_error.call_args
     assert kwargs.get("exc_info") is True
+
+
+def test_build_data_starvation_returns_empty() -> None:
+    from backend_v2.models.dtos.trace import DataStarvationEvent
+    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
+
+    profile = _create_base_profile()
+    execution = ExecutionRecord(
+        id="ex_0123456789abcdef0123456789abcdef",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+    )
+    cache = RenderedSynthesisCache(
+        data_starvation=DataStarvationEvent(total_atoms=0, reason="Data starvation"),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+
+    blocks = AuthenticityAdapter.build(context)
+    assert blocks == []
+
+

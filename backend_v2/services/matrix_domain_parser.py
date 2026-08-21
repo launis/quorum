@@ -320,7 +320,18 @@ class MatrixDomainParser:
             synthesis_expected = (
                 profile.synthesis is not None and profile.synthesis.row_explanations_block_id is not None
             )
-            if synthesis_expected:
+            is_data_starved = False
+            if execution and execution.profile_syntheses:
+                current_cache = execution.profile_syntheses.get(profile.id) or execution.profile_syntheses.get(
+                    "default"
+                )
+                if current_cache:
+                    if getattr(current_cache, "data_starvation", None) is not None:
+                        is_data_starved = True
+                    elif isinstance(current_cache, dict) and current_cache.get("data_starvation") is not None:
+                        is_data_starved = True
+
+            if synthesis_expected and not is_data_starved:
                 if b_id not in row_explanations_cache:
                     msg = f"Fail-Fast: row_explanations_cache missing entry for matrix '{b_id}'. Worker synthesis incomplete."
                     logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
