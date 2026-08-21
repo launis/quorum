@@ -1,6 +1,18 @@
 # IMPLEMENTATION PLAN: Circuit Breaker & Sparse Data Synthesis Rule
 
-**Objective**: Implement a deterministic Circuit Breaker in `SynthesisEngine` to handle "Data Starvation" (0 atoms) and introduce a static `SPARSE_DATA_SYNTHESIS_MANDATE` in `SynthesisEngine` to mitigate "Attention Dilution" for sparse data (1-2 atoms). This structurally prevents Prompt Leakage (hallucinated internal commands) and Prompt Injection without violating the Tripartite Pipeline, God Code Prevention mandates, Quorum Modernity Gate, or Zero-Compromise strictness.
+<required_context_rules>
+- @[.agents/rules/00-antigravity-core.md]
+- @[.agents/rules/01-python-backend.md]
+- @[.agents/rules/05_llm_architecture.md]
+- @[ki_god_code_prevention.md]
+- @[ki_sdui_matrix_synthesis.md]
+- @[ki_sdui_adapter_pattern.md]
+- @[ki_tripartite_pipeline_architecture.md]
+- @[ki_flat_polymorphic_pipeline.md]
+- @[ki_dual_axis_localization_architecture.md]
+</required_context_rules>
+
+**Objective**: Implement a deterministic Circuit Breaker in `SynthesisEngine` and `worker.py` to handle "Data Starvation" (0 atoms / 0 evidence) and introduce a static `SPARSE_DATA_SYNTHESIS_MANDATE` in `synthesis_directives.py` to mitigate "Attention Dilution" for sparse data (1-2 atoms). This structurally prevents Prompt Leakage (hallucinated internal commands) and Prompt Injection without violating the Tripartite Pipeline, God Code Prevention mandates, Quorum Modernity Gate, or Zero-Compromise strictness.
 
 ## Root Cause Analysis & Architectural Audit Findings
 
@@ -38,7 +50,7 @@
 - **[MODIFY]** @[backend_v2/models/v2_core.py]
 - **[MODIFY]** @[backend_v2/models/enums.py]
 - **[MODIFY]** @[backend_v2/settings.py]
-- **[NEW]** @[backend_v2/models/prompts/synthesis_directives.py]
+- **[MODIFY]** @[backend_v2/models/prompts/synthesis_directives.py]
 - **[MODIFY]** @[backend_v2/models/prompts/__init__.py]
 - **[MODIFY]** @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
 - **[MODIFY]** @[backend_v2/worker.py]
@@ -122,7 +134,7 @@
   </step>
 
   <step id="2" name="Synthesis Directives (Static Sparse Data Mandate)">
-    <action>Create a new dedicated file @[backend_v2/models/prompts/synthesis_directives.py] conforming to `anti_god_file_dumping` and `prompt_asset_ssot_mandate`.</action>
+    <action>Add `SPARSE_DATA_SYNTHESIS_MANDATE` to @[backend_v2/models/prompts/synthesis_directives.py] conforming to `anti_god_file_dumping` and `prompt_asset_ssot_mandate`.</action>
     <action>
       Define the 100% static XML mandate constant `SPARSE_DATA_SYNTHESIS_MANDATE`:
       ```python
