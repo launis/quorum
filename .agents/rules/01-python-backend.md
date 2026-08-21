@@ -102,6 +102,25 @@
 </catastrophic_system_bans>
 
 <architectural_invariants>
+    <rule_block id="context_envelope_ssot_predicates">
+        <banned_pattern>
+            1. Adding `@property` or computed methods to API DTOs, database persistence models, or OpenAPI schemas (`backend_v2/models/dtos/`, `backend_v2/models/api/`).
+            2. Adding `@property` methods to Context envelopes that execute I/O, database queries, state mutations, complex multi-branch business logic, or return mutable collections (dicts/lists).
+            3. Defining derived state as writable `Field` attributes on Context envelopes instead of read-only properties.
+            4. Writing repeated multi-level null-checks (e.g. `if context.profile_cache and context.profile_cache.data_starvation is not None:`) across multiple consumer classes instead of querying an encapsulated predicate.
+        </banned_pattern>
+        <mandatory_pattern>
+            Enforce the "Context Envelope Predicate SSOT" pattern under strict boundary constraints:
+            1. SCOPE ISOLATION: Allowed EXCLUSIVELY on in-memory, process-internal context envelopes (specifically `AdapterContext` and `ExecutionContext`). STRICTLY FORBIDDEN on API and Persistence DTOs.
+            2. PURE PREDICATES: The property MUST be side-effect free, O(1) complexity, and return strictly `bool` (named `is_*` or `has_*`) or a typed `Enum`. It MUST derive its value exclusively from existing immutable fields.
+            3. NO SILENT ERROR MASKING: Predicates must only inspect valid state. Incomplete or corrupted context data MUST fail-fast during context construction, not be masked by boolean defaults.
+            4. DERIVED ONLY: The predicate MUST NOT be defined as a Pydantic `Field` in the constructor schema.
+        </mandatory_pattern>
+        <catastrophic_reason>
+            Adding properties to API DTOs breaks OpenAPI generation and corrupts Flutter client serialization. Conversely, leaking deep object traversal across dozens of presentation adapters violates the Law of Demeter, introduces code duplication, and causes untraceable Fail-Fast crashes during valid bypass states.
+        </catastrophic_reason>
+    </rule_block>
+
     <rule_block id="pydantic_annotated_fields_mandate">
         <banned_pattern>Using bare type hints combined with a `Field(...)` assignment in Pydantic settings or models (e.g., `timeout: int = Field(...)`).</banned_pattern>
         <mandatory_pattern>ALWAYS use PEP 593 `Annotated` syntax to separate pure Python types from Pydantic runtime metadata (e.g., `timeout: Annotated[int, Field(description="...")] = 10`).</mandatory_pattern>

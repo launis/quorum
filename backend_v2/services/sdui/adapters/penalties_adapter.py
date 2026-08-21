@@ -66,7 +66,7 @@ class PenaltiesAdapter:
 
         source_data = context.penalties_applied
 
-        if not source_data:
+        if context.is_data_starved or not source_data:
             return blocks
 
         for p_str in source_data:

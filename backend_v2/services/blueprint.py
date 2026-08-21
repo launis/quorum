@@ -383,20 +383,21 @@ class BlueprintTransformer:
             # Phase 1: Build temp visualization blocks for slop scanner
             temp_visualization_blocks = []
 
-            # Map graph and table blocks via Adapters
-            temp_visualization_blocks.extend(MatrixGraphsAdapter.build(adapter_ctx))
-            temp_visualization_blocks.extend(MatrixSummaryTableAdapter.build(adapter_ctx))
+            if not adapter_ctx.is_data_starved:
+                # Map graph and table blocks via Adapters
+                temp_visualization_blocks.extend(MatrixGraphsAdapter.build(adapter_ctx))
+                temp_visualization_blocks.extend(MatrixSummaryTableAdapter.build(adapter_ctx))
 
-            variance_sdui_blocks = VarianceAdapter.build(adapter_ctx)
-            if variance_sdui_blocks:
-                temp_visualization_blocks.extend(variance_sdui_blocks)
+                variance_sdui_blocks = VarianceAdapter.build(adapter_ctx)
+                if variance_sdui_blocks:
+                    temp_visualization_blocks.extend(variance_sdui_blocks)
 
-            auth_sdui_blocks = AuthenticityAdapter.build(adapter_ctx)
-            if auth_sdui_blocks:
-                temp_visualization_blocks.extend(auth_sdui_blocks)
+                auth_sdui_blocks = AuthenticityAdapter.build(adapter_ctx)
+                if auth_sdui_blocks:
+                    temp_visualization_blocks.extend(auth_sdui_blocks)
 
-            if not temp_visualization_blocks:
-                temp_visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
+                if not temp_visualization_blocks:
+                    temp_visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
 
             visualization_blocks = temp_visualization_blocks
         except AppException:
@@ -544,7 +545,7 @@ class BlueprintTransformer:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
 
-            if evaluative_matrices:
+            if evaluative_matrices and not (profile_cache and profile_cache.data_starvation is not None):
                 total_norm = sum(m.normalized_score for m in evaluative_matrices if m.normalized_score is not None)
                 count_norm = sum(1 for m in evaluative_matrices if m.normalized_score is not None)
                 if count_norm > 0:
@@ -599,6 +600,9 @@ class BlueprintTransformer:
                 inner_sdui_blocks.extend(warning_blocks)
 
             dispatch_order = profile.target_block_order
+            if adapter_context.is_data_starved:
+                # In data starvation mode, ONLY the cover page/metadata is rendered.
+                dispatch_order = [t for t in dispatch_order if t == TargetBlockType.METADATA_BLOCK.value]
 
             for target_k in dispatch_order:
                 try:
@@ -622,7 +626,7 @@ class BlueprintTransformer:
                 if hydrated_blocks:
                     inner_sdui_blocks.extend(hydrated_blocks)
 
-            if not inner_sdui_blocks:
+            if not inner_sdui_blocks and not adapter_context.is_data_starved:
                 inner_sdui_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
 
             report_dto = ReportDataDTO(

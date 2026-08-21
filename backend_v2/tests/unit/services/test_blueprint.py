@@ -2826,3 +2826,87 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
     assert "tda_00000000000000000000000000000000" in report.hydrated_references
     assert len(report.mcp_tool_audit) == 1
     assert report.mcp_tool_audit[0].id == "mcp_00000000000000000000000000000001"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_data_starvation_renders_only_warning_and_metadata(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Test that in data starvation mode, BlueprintTransformer renders only AlertBlock and SduiMetadataBlock."""
+    from backend_v2.models.dtos.trace import DataStarvationEvent
+    from backend_v2.models.enums import TargetBlockType
+    from backend_v2.models.view.sdui import AlertBlock, SduiMetadataBlock
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    profile = OutputProfile(
+        id="prf_99998888777766665555444433332222",
+        slug="starvation-profile",
+        workflow_id="wf_1234abcd1234abcd1234abcd1234abcd",
+        name=I18nText(default_locale="en", translations={"en": "Report", "fi": "Talousraportti"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Kuvaus"}),
+        target_block_order=[
+            TargetBlockType.METADATA_BLOCK.value,
+            TargetBlockType.MATRIX_GRAPHS_BLOCK.value,
+            TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK.value,
+            TargetBlockType.GLOBAL_SCORE_BLOCK.value,
+        ],
+        content_blocks=[],
+        layouts=[],
+        metric_mappings={
+            "metadata_user": I18nText(default_locale="en", translations={"en": "User", "fi": "Käyttäjä"}),
+            "metadata_organization": I18nText(
+                default_locale="en", translations={"en": "Organization", "fi": "Organisaatio"}
+            ),
+            "metadata_scoring_engine": I18nText(
+                default_locale="en", translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}
+            ),
+            "metadata_strictness": I18nText(
+                default_locale="en", translations={"en": "Strictness", "fi": "Ankaruustaso"}
+            ),
+        },
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
+    mock_repo_transformer.get_output_profile.return_value = profile
+
+    mock_wf = SimpleNamespace(
+        id="wf_1234abcd1234abcd1234abcd1234abcd",
+        default_profile_id=profile.id,
+        default_scoring_strategy=ScoringStrategy.AVERAGE,
+        default_strictness_level=80,
+        steps=[],
+    )
+    mock_repo_transformer.get_workflow.return_value = mock_wf
+
+    mock_exec = ExecutionRecord(
+        id="exe_99998888777766665555444433332222",
+        workflow_id="wf_1234abcd1234abcd1234abcd1234abcd",
+        created_at=datetime.now(timezone.utc),
+        metadata={"target_locale": "fi"},
+        profile_syntheses={
+            profile.id: RenderedSynthesisCache(
+                data_starvation=DataStarvationEvent(total_atoms=0, reason="Data starvation"),
+            )
+        },
+        execution_trace=[],
+    )
+    mock_repo_transformer.get_execution.return_value = mock_exec
+
+    report = await transformer.build_report_dto(mock_exec.id, profile_id=profile.id, accept_language="fi")
+    assert report is not None
+    assert report.has_warning is True
+    assert report.global_score is None
+
+    # Verify inner_sdui_blocks contains ONLY WarningCard (AlertBlock) and Metadata (SduiMetadataBlock)
+    assert len(report.inner_sdui_blocks) == 2
+    assert isinstance(report.inner_sdui_blocks[0], AlertBlock)
+    assert isinstance(report.inner_sdui_blocks[1], SduiMetadataBlock)
+

@@ -51,6 +51,9 @@ class SynthesisTextAdapter:
         """
         blocks: list[AnySduiBlock] = []
 
+        if context.is_data_starved:
+            return blocks
+
         # 1. READ: Insert pre-defined content blocks from profile
         if context.profile and context.profile.content_blocks:
             for cb in context.profile.content_blocks:

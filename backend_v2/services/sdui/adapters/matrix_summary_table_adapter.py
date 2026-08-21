@@ -57,7 +57,7 @@ class MatrixSummaryTableAdapter:
         """
         blocks: list[AnySduiBlock] = []
 
-        if not context.profile.layouts:
+        if context.is_data_starved or not context.profile.layouts:
             return blocks
 
         locale = context.locale

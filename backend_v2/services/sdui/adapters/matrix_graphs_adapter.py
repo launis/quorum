@@ -64,7 +64,7 @@ class MatrixGraphsAdapter:
         blocks: list[AnySduiBlock] = []
         seen_axes: set[str] = set()
 
-        if not context.profile.layouts:
+        if context.is_data_starved or not context.profile.layouts:
             return blocks
 
         locale = context.locale

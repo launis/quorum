@@ -60,7 +60,7 @@ class XaiHighlightsAdapter:
         """
         blocks: list[AnySduiBlock] = []
 
-        if not context.profile_cache or not context.profile_cache.xai_highlights:
+        if context.is_data_starved or not context.profile_cache or not context.profile_cache.xai_highlights:
             return blocks
 
         profile = context.profile

@@ -48,7 +48,9 @@ class GlobalScoreAdapter:
         """
         blocks: list[AnySduiBlock] = []
 
-        if context.global_score is not None:
-            blocks.append(SduiScoreCardBlock(global_score=context.global_score))
+        if context.is_data_starved or context.global_score is None:
+            return blocks
+
+        blocks.append(SduiScoreCardBlock(global_score=context.global_score))
 
         return blocks

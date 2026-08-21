@@ -61,6 +61,9 @@ class PrintableSourcesAdapter:
         """
         blocks: list[AnySduiBlock] = []
 
+        if context.is_data_starved:
+            return blocks
+
         # 1. READ: Extract only the data this adapter needs from the context
         profile_cache = context.profile_cache
 

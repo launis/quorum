@@ -48,7 +48,8 @@ class McpAuditAdapter:
         """
         blocks: list[AnySduiBlock] = []
 
-        if context.mcp_audit_map:
+        if context.is_data_starved or not context.mcp_audit_map:
+            return blocks
             # We map any needed structure here. The SduiAuditTrailBlock
             # currently does not enforce specific fields but can be expanded.
             blocks.append(SduiAuditTrailBlock())

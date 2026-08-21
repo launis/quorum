@@ -82,7 +82,7 @@ class ExecutiveSummaryAdapter:
         profile = context.profile
         locale = context.locale
 
-        if not profile_cache:
+        if context.is_data_starved or not profile_cache:
             return blocks
 
         # 2. TRANSFORM: Strict validation and lookup of user role badge if present
