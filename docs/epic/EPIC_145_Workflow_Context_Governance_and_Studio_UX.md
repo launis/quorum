@@ -57,6 +57,11 @@ Payload compression MUST NOT degrade synthesis narrative richness into dry, robo
 4. **Observability & Structured Validation Logging Parity**: All probe-boundary and presentation-layer components (`MatrixExplanationService`, `XaiHighlightsAdapter`) MUST log caught `(ValidationError, ValueError)` exceptions with explicit structured error codes (`extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)}`). Dropping `str(e)` / error details is strictly forbidden to prevent silent observability degradation in Cloud Logging and Datadog. Unhandled system exceptions and configuration errors MUST be logged via `logger.error(..., exc_info=True)` before raising `AppException` or `ConfigurationError`.
 5. **Cross-Domain DTO Parity & Atomic Code Generation Lock (Contract First & Zero Duct-Tape)**: Because Quorum is in a pure development environment with zero live customers, zero legacy backwards-compatibility duct-tape or fallback chains are permitted (`zero_legacy_fallback_hacks`, `the_no_legacy_mandate`). The Consumer (Flutter Dart DTOs) and Producer (Python Pydantic DTOs) contracts MUST be updated and locked atomically in **Phase 1 (Contract First)**. Python Pydantic V2 `StepRule` / `Step` and Dart 3 Freezed `StepRule` / `NodeStrategy` (both `llm` and `logic` union variants) are synchronously updated with `is_synthesis_source` and `is_system_core`. Freezed code generation (`flutter_audit_loop.py --build`) MUST execute BEFORE any seed data mutation or Flutter domain parity tests (`domain_parity_test.dart`) to prevent `CheckedFromJsonException` crashes on `seed_data.json` deserialization.
 6. **Dual-Axis Localization**: Zero hardcoded strings in Flutter widgets. All labels, subtitles, and tooltips defined in `app_fi.arb` and `app_en.arb`.
+7. **God Code Prevention & Proactive Decomposition Governance (`@[ki_god_code_prevention.md]`)**:
+   - **File Boundary & Size Ceiling**: All modified and newly created files (`synthesis_payload_compressor.py`, `matrix_explanation_service.py`, `workflow_step_card.dart`) MUST strictly respect modular boundaries and avoid accumulating monolithic helper bloat (`anti_god_file_dumping`, `private_helper_bloat_ban`). Complex sub-logic (specifically token stratifications and matrix explanation assemblies) MUST be kept decoupled in dedicated single-responsibility services.
+   - **Pure Stateless DTOs (`domain_model_purity_mandate`)**: All Pydantic models (`Step`, `StepRule`, `SynthesisConfigDTO`) and Freezed Dart models MUST remain pure data transfer containers (`frozen=True, strict=True, extra="forbid"`), strictly isolating business logic into service layers.
+   - **AST Boundary Verification & Remedial Protection**: Any refactoring targeting large files (>300 lines) MUST use exact AST inspection (`ast.parse`) rather than loose text matching to protect method boundaries (`ast_boundary_verification_mandate`).
+   - **Safe Decomposition & Atomic Checkpoints**: Pre-implementation technical debt remediation and migrations MUST adhere to Strangler Fig / atomic batch constraints with continuous quality gate verification.
 
 ### Producer-Consumer Integration Check (Tripartite Lifecycle)
 ```mermaid
@@ -150,7 +155,7 @@ graph TD
   1. Upgrade `SynthesisPayloadCompressor._strip_heavy_keys`:
      - Explicitly and exhaustively strip keys using `obj.pop(key, None)` for each key in the following closed set: `"shuffled_atoms"`, `"atom_quotes"`, `"hydrated_references"`, `"_step_metadata"`, `"_audit_signature"`, `"_evaluative_matrices"`. NOTE: `pop(key, None)` is architecturally permitted here because these keys are OPTIONAL metadata that may or may not exist on any given payload dict. This is distinct from the `the_zero_compromise_pledge` ban which prohibits `.pop(key, None)` on keys that are KNOWN to exist in iterated collections.
      - Optimize top-level BaseModel handling: avoid redundant `copy.deepcopy` calls after `model_dump(exclude_unset=True)`.
-     - Implement dedicated `_normalize_result_item(item: dict[str, Any]) -> dict[str, Any]` for `results` payload schema, strictly enforcing `DistilledEvaluation.model_validate()` when item contains evaluation fields, or strict field whitelisting (specifically and exhaustively retaining only the whitelisted keys: `"output_text"`, `"status"`, `"atom_id"`) to prevent raw unvalidated dictionaries from propagating bloat into synthesis prompts (`no_naked_dicts_in_state` compliant).
+     - Implement dedicated `_normalize_result_item(item: dict[str, Any]) -> dict[str, Any]` for `results` payload schema. **Routing Discriminator**: If the result item dictionary contains the key `"exact_quotes"`, route to `DistilledEvaluation.model_validate()` (evaluation-type result). Otherwise, apply strict field whitelisting (specifically and exhaustively retaining only the whitelisted keys: `"output_text"`, `"status"`, `"atom_id"`) to prevent raw unvalidated dictionaries from propagating bloat into synthesis prompts (`no_naked_dicts_in_state` compliant).
      - Process `"evaluations"` and `"results"` as dual explicit distillation paths without fallback chains.
      - Enforce `DistilledEvaluation.model_validate(lite_ev_obj.model_dump(exclude_unset=True) | {...})` re-validation (strictly replacing `lite_ev_obj.model_copy(update={...})` and referencing `max_synthesis_reasoning_length`).
      - Refactor exception handling in `SynthesisPayloadCompressor`: eliminate broad `except Exception as e:` wrapping without RFC-7807 logging. Catch specific `(ValidationError, ValueError)` and log via `logger.error("[SynthesisCompressor] %s: Validation failed during payload distillation: %s", ErrorCodes.VALIDATION_FAILED.name, str(e))` before raising `AppException(status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})`.
@@ -178,7 +183,8 @@ graph TD
      - **Deduplication Starvation Prevention**: The `seen_matrix_quotes: set[str]` pre-deduplication pattern already exists at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L25-L224]`. Verify it remains intact and operates BEFORE `ranked_round_robin_select`.
      - **Strict Key Deletion Invariant**: The `del groups[group_id]` pattern already exists at `@[backend_v2/utils/ranked_round_robin.py#L73]`. Verify it remains intact and no `.pop(k, None)` patterns are introduced.
      - **Probe Boundary Isolation (Architectural Exception to Duct-Tape Ban)**: Maintain strict Probe Boundary isolation on `LevelStatsDTO.model_validate(raw_stats, strict=False)` and `AtomResultDTO.model_validate` with `try...except (ValidationError, ValueError) as e:` logging structured `extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)}`. **Architectural Justification**: These probe boundaries protect non-critical statistical metadata (level breakdowns) from crashing the overall synthesis aggregation. Malformed `level_breakdown` dictionaries from upstream DAG steps are explicitly non-critical and MUST NOT block synthesis. This follows the established pattern at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L25-L224]`.
-     - **Resolve `except Exception:` in Label Resolution**: Replace silent catch-all `except Exception:` in claim text resolution with direct typed resolution `claim.label.resolve(target_locale)` (or catching specific `(KeyError, AttributeError)` with structured debug logging) per `the_duct_tape_ban` and `universal_fail_fast`.
+      - **Resolve `except Exception:` in Label Resolution**: Replace silent catch-all `except Exception:` in claim text resolution at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L28-L224]` (inside `assemble_matrices_to_explain`, specifically lines 121-124) with direct typed resolution `claim.label.resolve(target_locale)` (or catching specific `(KeyError, AttributeError)` with structured debug logging) per `the_duct_tape_ban` and `universal_fail_fast`.
+     - **Eliminate `.get()` with Magic Default in `tda_to_scale`**: Replace `tda_to_scale.get(tda_id, 999)` at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L152]` with direct typed access `tda_to_scale[tda_id]`. The key is guaranteed to exist because `tda_to_claim` and `tda_to_scale` are populated from the identical loop (lines 126-128). The magic default `999` violates `strict_configuration_segregation` and `the_zero_compromise_pledge`.
   4. In backend `StudioWorkflowService` (`workflow_service.py`):
      - **Structural Prerequisite**: Add `__all__` module export declaration listing all public symbols.
      - Enforce Fail-Fast protection: If `step.is_system_core` is True, raise `AppException(ErrorCodes.SYSTEM_PROTECTED_RESOURCE)` on deletion or renaming attempts.
@@ -212,8 +218,10 @@ graph TD
      - `studioWorkflowStepPrefix`: `"Askel: {name}"` / `"Step: {name}"`
      - `studioWorkflowNoSelectableInputs`: `"Ei valittavia syötteitä tai riippuvuuksia."` / `"No selectable inputs or dependencies available."`
   2. Refactor `WorkflowStepCard` with the **3-Zone Layout, Blueprint Locking & Design System Parity**:
-     - Eliminate hardcoded Finnish strings (`'Syöte: $labelText'`, `'Askel: $labelStr'`, `'Ei valittavia syötteitä...'`) at lines 225, 279, 308, utilizing generated `l10n` getters per `no_magic_strings_l10n`.
+     - Eliminate hardcoded Finnish strings (`'Syöte: $labelText'`, `'Askel: $labelStr'`, `'Ei valittavia syötteitä...'`) at lines 225, 279, 308, utilizing generated `l10n` getters per `no_magic_strings_l10n` (Axis 1 - Structural Localization).
+     - Modernize `getBlueprintLabel(String stepId)` to use `bp.name.get(Localizations.localeOf(context).languageCode)` on `I18nText` instead of manual fallback chains (`bp.name.translations['fi'] ?? bp.name.translations['en']`) per `@[ki_dual_axis_localization_architecture.md]` (Axis 2 - Semantic Dynamic Localization).
      - Eliminate manual string truncation `substring(0, 15)` at lines 181 and 273, replacing with Flutter `Text(..., overflow: TextOverflow.ellipsis)` per `horizontal_overflow_prevention`.
+     - **Pre-Implementation Tech Debt**: Replace Finnish docstring comment `/// Polymorfisille luokille ei sallita Unknown/Fallback -tyyppejä.` at `@[client_app_v2/lib/features/studio/models/workflow.dart#L69]` with English equivalent `/// Sealed Classes Mandate: Unknown/Fallback union types are strictly forbidden.` per `internal_language_and_epic_ban`.
      - **Zone A (Step 1 - Input Processing)**:
        - Header: Index badge, title, collapse arrow (Delete button 🗑 is HIDDEN/DISABLED).
        - Blueprint: **Locked System Anchor** (`Input Processing`). Dropdown is disabled/hidden, displaying locked `studioSystemCoreBadge`.
@@ -243,8 +251,7 @@ graph TD
 
 ### Phase 5: Verification, Widget Testing & E2E Integration Gate
 - **Target Files**:
-   - `@[backend_v2/tests/unit/test_synthesis_payload_compression.py]`
-   - `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_payload_compressor.py]`
+   - `@[backend_v2/tests/unit/services/orchestrator/test_synthesis_payload_compressor.py]` (**Canonical Location** — all new compressor tests MUST be placed here. If a legacy file exists at `backend_v2/tests/unit/test_synthesis_payload_compression.py`, it MUST be migrated into the canonical path and the legacy file deleted to prevent dual SSOT.)
    - `@[backend_v2/tests/unit/services/test_studio.py#L238-L252]` (`test_delete_step`)
    - `@[client_app_v2/test/models/domain_parity_test.dart]`
    - `@[client_app_v2/test/features/studio/models/workflow_test.dart]`
@@ -350,26 +357,32 @@ $env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integr
 
 ---
 
-## 5. Required Knowledge Items (KI Registry)
+## 5. Required Context & Governance (Rules & KI Registry)
 
 ```xml
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+</required_context_rules>
+
 <required_knowledge_items>
-  - @[ki_synthesis_payload_compression.md]
-  - @[ki_sdui_matrix_synthesis.md]
-  - @[ki_tripartite_pipeline_architecture.md]
-  - @[ki_god_code_prevention.md]
-  - @[ki_dual_axis_localization_architecture.md]
-  - @[ki_strict_sdui_serialization.md]
-  - @[ki_python_314_concurrency_strictness.md]
-  - @[ki_global_config_sovereignty.md]
-  - @[ki_matrix_boolean_evaluation_strictness.md]
-  - @[ki_ai_testing_standards.md]
-  - @[ki_dag_engine_dto_projection_rules.md]
-  - @[.agents/rules/00-antigravity-core.md]
-  - @[.agents/rules/01-python-backend.md]
-  - @[.agents/rules/02_flutter_desktop.md]
-  - @[.agents/rules/03_seed_vault.md]
-  - @[.agents/rules/04_directory_reference.md]
-  - @[.agents/rules/05_llm_architecture.md]
+  <ki>@[ki_synthesis_payload_compression.md]</ki>
+  <ki>@[ki_sdui_matrix_synthesis.md]</ki>
+  <ki>@[ki_tripartite_pipeline_architecture.md]</ki>
+  <ki>@[ki_god_code_prevention.md]</ki>
+  <ki>@[ki_dual_axis_localization_architecture.md]</ki>
+  <ki>@[ki_strict_sdui_serialization.md]</ki>
+  <ki>@[ki_python_314_concurrency_strictness.md]</ki>
+  <ki>@[ki_global_config_sovereignty.md]</ki>
+  <ki>@[ki_matrix_boolean_evaluation_strictness.md]</ki>
+  <ki>@[ki_ai_testing_standards.md]</ki>
+  <ki>@[ki_dag_engine_dto_projection_rules.md]</ki>
+  <ki>@[ki_neuro_symbolic_agentic_workflow.md]</ki>
+  <ki>@[ki_flat_polymorphic_pipeline.md]</ki>
+  <ki>@[ki_sdui_adapter_pattern.md]</ki>
 </required_knowledge_items>
 ```

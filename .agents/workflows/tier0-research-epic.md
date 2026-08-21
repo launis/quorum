@@ -121,11 +121,11 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
         - **UPSTREAM PARITY &amp; GOAL ALIGNMENT**: Does this Epic perfectly align with the broader system goals, existing architectural invariants, and exact specifications of the Quorum 2026 guidelines? You MUST verify that the author did not hallucinate new paradigms, ignore established conventions, or drift from the core business objectives.
       </constraint>
       <gate name="ZERO-BEHAVIORAL CHANGE FALSIFICATION (IF REFACTOR)">First, identify if this is a Refactoring Epic or a Feature Epic. If it is a Feature Epic, new business logic is expected. If it is a Refactoring Epic, it MUST adhere to zero-behavioral change. You MUST flag an architectural violation ONLY if the Epic illegally mixes massive structural refactoring with new feature additions in the same phase. If they are mixed, demand they be split into separate phases.</gate>
-      <action name="KI COVERAGE AUDIT">You MUST perform a deterministic KI Coverage Audit on the Epic:
-        1. Locate the Epic's `&lt;required_knowledge_items&gt;` XML block.
-        2. IF the block does NOT exist: CREATE it by reviewing all KI summaries injected at the start of this conversation, identifying domain-relevant KIs, and inserting a `&lt;required_knowledge_items&gt;` block into the Epic under `## 5. Required Knowledge Items (KI Registry)` using the `@[ki_filename.md]` relative reference format.
-        3. IF the block EXISTS: Cross-reference it against the injected KI summaries. If any KI whose domain clearly overlaps with the Epic's scope is MISSING from the block, ADD it via `multi_replace_file_content` using the `@[ki_filename.md]` format.
-        4. Log the audit result: "KI Coverage Audit: {N} KIs verified, {M} KIs added."</action>
+      <action name="CONTEXT RULES &amp; KI COVERAGE AUDIT">You MUST perform a deterministic Context Rules &amp; KI Coverage Audit on the Epic:
+        1. Locate Section `## 5. Required Context &amp; Governance (Rules &amp; KI Registry)`.
+        2. Ensure `&lt;required_context_rules&gt;` contains all domain-relevant `.agents/rules/` files wrapped in `&lt;rule&gt;@[.agents/rules/...]&lt;/rule&gt;`.
+        3. Cross-reference `&lt;required_knowledge_items&gt;` against the injected KI summaries. If any KI whose domain clearly overlaps with the Epic's scope is MISSING from the block, ADD it via `multi_replace_file_content` using the `&lt;ki&gt;@[ki_filename.md]&lt;/ki&gt;` format.
+        4. Log the audit result: "Context &amp; KI Coverage Audit: {N} Rules verified, {M} KIs verified."</action>
     </step>
 
     <step id="4" name="AMBIGUITY RESOLUTION">
