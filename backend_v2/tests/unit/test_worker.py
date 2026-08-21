@@ -785,8 +785,6 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     )
 
 
-
-
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation() -> None:
     """Verify generate_profile_synthesis_and_pdf_task calculates dynamic matrix scores for step inputs."""

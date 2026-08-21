@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
-import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_metadata_section.dart';
-import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_xai_extensions_section.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 
-/// Tab 2: Scoring strategy, scale normalization, identity metadata, and XAI extensions.
+/// Tab 2: Pure mathematical scoring parameters and scale normalization.
 class ProfileScoringTab extends ConsumerWidget {
   final String id;
   const ProfileScoringTab({super.key, required this.id});
@@ -159,36 +157,6 @@ class ProfileScoringTab extends ConsumerWidget {
                     ),
                   ),
                 ),
-                AppSpacing.h24,
-                ProfileMetadataSection(id: id),
-                AppSpacing.h16,
-                TextFormField(
-                  initialValue: payload.maxExtensionItems.toString(),
-                  decoration: InputDecoration(
-                    labelText: l10n.maxExtensionItemsLabel,
-                    border: const OutlineInputBorder(),
-                    helperText: l10n.maxExtensionItemsHelper,
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) {
-                    final parsed = int.tryParse(val);
-                    if (parsed != null && parsed >= 1 && parsed <= 100) {
-                      updatePayload(
-                        payload.copyWith(maxExtensionItems: parsed),
-                      );
-                    }
-                  },
-                  validator: (val) {
-                    if (val == null || val.isEmpty) return null;
-                    final parsed = int.tryParse(val);
-                    if (parsed == null || parsed < 1 || parsed > 100) {
-                      return l10n.extensionItemsMustBeIntError;
-                    }
-                    return null;
-                  },
-                ),
-                AppSpacing.h24,
-                ProfileXaiExtensionsSection(id: id),
               ],
             ),
           ),

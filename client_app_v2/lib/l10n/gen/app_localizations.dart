@@ -6951,7 +6951,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileTabScoring.
   ///
   /// In en, this message translates to:
-  /// **'Scoring & XAI'**
+  /// **'Scoring'**
   String get profileTabScoring;
 
   /// No description provided for @profileTabReportStructure.

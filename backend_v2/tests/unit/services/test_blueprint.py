@@ -1469,8 +1469,6 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     assert accordions[0].title == "Coaching"
 
 
-
-
 @pytest.mark.asyncio
 async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer: MagicMock) -> None:
     """Proof of Failure:
@@ -2415,8 +2413,6 @@ async def test_blueprint_transformer_fail_fast_branches(
         await transformer.build_report_dto("exe_1111222233334444", profile_id="prf_nonexistent", accept_language="en")
     assert exc4.value.status_code == 404
     assert exc4.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
-
-
 
 
 @pytest.mark.asyncio

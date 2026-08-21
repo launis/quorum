@@ -17,6 +17,8 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/features/studio/views/widgets/profile/blocks/metadata_block_card.dart';
+import 'package:client_app/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart';
 
 class MockStudioClient extends Mock implements StudioClient {}
 
@@ -350,8 +352,8 @@ void main() {
       expect(find.text('exec-summary'), findsOneWidget);
       expect(find.text('Executive Summary Profile'), findsOneWidget);
 
-      // Switch to Tab 2 (Scoring & XAI)
-      await tester.tap(find.text('Scoring & XAI'));
+      // Switch to Tab 2 (Scoring)
+      await tester.tap(find.text('Scoring'));
       await tester.pumpAndSettle();
 
       // Expected on Tab 2: finds strictness and scoring strategy dropdowns
@@ -372,7 +374,10 @@ void main() {
         description: const I18nText(defaultLocale: 'en'),
         steps: [],
       );
-      final profile = createValidProfile(workflowId: 'wf_test');
+      final profile = createValidProfile(
+        workflowId: 'wf_test',
+        targetBlockOrder: [TargetBlockType.groupedExtensionsBlock],
+      );
       final overrides = [
         outputProfileFormProvider(
           'prf_test',
@@ -397,19 +402,16 @@ void main() {
       // Expected on Tab 1: finds DropdownButtonFormField with "Test Flow (wf_test)"
       expect(find.text('Test Flow (wf_test)'), findsOneWidget);
 
-      // Switch to Tab 2 (Scoring & XAI)
-      await tester.tap(find.text('Scoring & XAI'));
+      // Switch to Tab 3 (Report Structure)
+      await tester.tap(find.text('Report Structure'));
       await tester.pumpAndSettle();
 
-      // Expected on Tab 2: finds CheckboxListTile for citation and justification
+      // Expected on Tab 3: finds FilterChip for citation and justification in XaiExtensionsBlockCard
       expect(
-        find.widgetWithText(CheckboxListTile, 'Source Citation'),
+        find.widgetWithText(FilterChip, 'Source Citation'),
         findsOneWidget,
       );
-      expect(
-        find.widgetWithText(CheckboxListTile, 'Justification'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(FilterChip, 'Justification'), findsOneWidget);
     });
 
     testWidgets('test_crud_view_displays_workflow_warning_when_unselected', (
@@ -461,8 +463,11 @@ void main() {
     testWidgets('test_crud_view_validates_max_extension_items', (
       WidgetTester tester,
     ) async {
-      // Input: OutputProfile with maxExtensionItems modified to invalid string "-5"
-      final profile = createValidProfile(maxExtensionItems: 3);
+      // Input: OutputProfile with maxExtensionItems modified to invalid string "-5" in XaiExtensionsBlockCard
+      final profile = createValidProfile(
+        maxExtensionItems: 3,
+        targetBlockOrder: [TargetBlockType.groupedExtensionsBlock],
+      );
       final overrides = [
         outputProfileFormProvider(
           'prf_test',
@@ -484,11 +489,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Switch to Tab 2 (Scoring & XAI)
-      await tester.tap(find.text('Scoring & XAI'));
+      // Switch to Tab 3 (Report Structure)
+      await tester.tap(find.text('Report Structure'));
       await tester.pumpAndSettle();
 
-      // Find TextFormField with initial value '3'
+      // Find TextFormField with initial value '3' in XaiExtensionsBlockCard
       final textFormFieldFinder = find.byWidgetPredicate(
         (widget) => widget is TextFormField && widget.initialValue == '3',
       );
@@ -505,6 +510,108 @@ void main() {
       // Expected: Form validation fails and displays extensionItemsMustBeIntError
       expect(find.text('Given value must be an integer >= 1'), findsOneWidget);
     });
+
+    testWidgets(
+      'test_crud_view_navigates_to_layout_tab_and_displays_metadata_card',
+      (WidgetTester tester) async {
+        final testWorkflow = Workflow(
+          id: 'wf_test',
+          slug: 'wf-test',
+          name: const I18nText(
+            defaultLocale: 'en',
+            translations: {'en': 'Test Flow'},
+          ),
+          description: const I18nText(defaultLocale: 'en'),
+          steps: [],
+        );
+        final profile = createValidProfile(
+          workflowId: 'wf_test',
+          targetBlockOrder: [TargetBlockType.metadataBlock],
+          visibleMetadata: ['date', 'organization'],
+        );
+        final overrides = [
+          outputProfileFormProvider(
+            'prf_test',
+          ).overrideWith(() => TestOutputProfileForm(AsyncData(profile))),
+          promptBlocksControllerProvider.overrideWith(
+            () => MockPromptBlocksController(),
+          ),
+          workflowsControllerProvider.overrideWith(
+            () => MockWorkflowsController([testWorkflow]),
+          ),
+          stepsControllerProvider.overrideWith(() => MockStepsController()),
+          workflowAvailableExtensionsProvider(
+            'wf_test',
+          ).overrideWith((ref) async => []),
+        ];
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(profileId: 'prf_test', overrides: overrides),
+        );
+        await tester.pumpAndSettle();
+
+        // Switch to Tab 3 (Report Structure)
+        await tester.tap(find.text('Report Structure'));
+        await tester.pumpAndSettle();
+
+        // Expected: MetadataBlockCard is rendered and displays metadata FilterChips
+        expect(find.byType(MetadataBlockCard), findsOneWidget);
+        expect(find.widgetWithText(FilterChip, 'date'), findsOneWidget);
+        expect(find.widgetWithText(FilterChip, 'organization'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'test_crud_view_navigates_to_layout_tab_and_displays_xai_card',
+      (WidgetTester tester) async {
+        final testWorkflow = Workflow(
+          id: 'wf_test',
+          slug: 'wf-test',
+          name: const I18nText(
+            defaultLocale: 'en',
+            translations: {'en': 'Test Flow'},
+          ),
+          description: const I18nText(defaultLocale: 'en'),
+          steps: [],
+        );
+        final profile = createValidProfile(
+          workflowId: 'wf_test',
+          targetBlockOrder: [TargetBlockType.groupedExtensionsBlock],
+          visibleBlockExtensions: [XaiExtensionType.citation],
+        );
+        final overrides = [
+          outputProfileFormProvider(
+            'prf_test',
+          ).overrideWith(() => TestOutputProfileForm(AsyncData(profile))),
+          promptBlocksControllerProvider.overrideWith(
+            () => MockPromptBlocksController(),
+          ),
+          workflowsControllerProvider.overrideWith(
+            () => MockWorkflowsController([testWorkflow]),
+          ),
+          stepsControllerProvider.overrideWith(() => MockStepsController()),
+          workflowAvailableExtensionsProvider(
+            'wf_test',
+          ).overrideWith((ref) async => ['citation']),
+        ];
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(profileId: 'prf_test', overrides: overrides),
+        );
+        await tester.pumpAndSettle();
+
+        // Switch to Tab 3 (Report Structure)
+        await tester.tap(find.text('Report Structure'));
+        await tester.pumpAndSettle();
+
+        // Expected: XaiExtensionsBlockCard is rendered with filter chips
+        expect(find.byType(XaiExtensionsBlockCard), findsOneWidget);
+        expect(
+          find.widgetWithText(FilterChip, 'Source Citation'),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('test_crud_view_triggers_save_action', (
       WidgetTester tester,

@@ -3835,7 +3835,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get profileTabGeneral => 'Yleiset';
 
   @override
-  String get profileTabScoring => 'Pisteytys & XAI';
+  String get profileTabScoring => 'Pisteytys';
 
   @override
   String get profileTabReportStructure => 'Raportin rakenne';

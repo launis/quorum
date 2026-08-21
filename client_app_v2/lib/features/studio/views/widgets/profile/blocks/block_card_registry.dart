@@ -15,6 +15,17 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Exhaustive registry mapping each TargetBlockType to its dedicated builder widget.
 class BlockCardRegistry {
+  /// SSOT map of TargetBlockTypes that synchronize corresponding workflow-level XAI extensions.
+  static const Map<TargetBlockType, List<XaiExtensionType>>
+  syncWorkflowExtensionsMap = {
+    TargetBlockType.varianceValidationBlock: [
+      XaiExtensionType.varianceValidation,
+    ],
+    TargetBlockType.authenticityEvaluationBlock: [
+      XaiExtensionType.authenticityEvaluation,
+    ],
+  };
+
   static String getBlockTitle(TargetBlockType type, AppLocalizations l10n) {
     return switch (type) {
       TargetBlockType.metadataBlock => l10n.blockMetadataTitle,
@@ -84,6 +95,7 @@ class BlockCardRegistry {
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
+        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
       TargetBlockType.synthesisTextBlock => SynthesisTextBlockCard(
         key: key,
@@ -115,6 +127,7 @@ class BlockCardRegistry {
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
+        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
       TargetBlockType.matrixSummaryTableBlock => MatrixSummaryTableCard(
         key: key,
@@ -134,6 +147,7 @@ class BlockCardRegistry {
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
+        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
       TargetBlockType.authenticityEvaluationBlock => SimpleToggleBlockCard(
         key: key,
@@ -147,6 +161,7 @@ class BlockCardRegistry {
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
+        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
       TargetBlockType.printableSourcesBlock => BibliographyBlockCard(
         key: key,
@@ -163,6 +178,7 @@ class BlockCardRegistry {
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
+        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
       TargetBlockType.auditTrailBlock => SimpleToggleBlockCard(
         key: key,
@@ -173,6 +189,7 @@ class BlockCardRegistry {
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
+        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
       TargetBlockType.jargonRatioBlock => SimpleToggleBlockCard(
         key: key,
@@ -183,6 +200,7 @@ class BlockCardRegistry {
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
+        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
     };
   }

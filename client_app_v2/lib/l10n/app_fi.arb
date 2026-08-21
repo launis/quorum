@@ -1330,7 +1330,7 @@
   "excelSheetSummary": "Yhteenveto",
   "excelSheetRawData": "Raakadata",
   "profileTabGeneral": "Yleiset",
-  "profileTabScoring": "Pisteytys & XAI",
+  "profileTabScoring": "Pisteytys",
   "profileTabReportStructure": "Raportin rakenne",
   "blockMetadataTitle": "Raportin metatiedot",
   "blockExecutiveSummaryTitle": "Johdon tiivistelmä",

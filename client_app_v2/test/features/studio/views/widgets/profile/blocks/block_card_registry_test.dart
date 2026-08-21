@@ -67,6 +67,27 @@ void main() {
       );
     });
 
+    test(
+      'test_block_card_registry_sync_map_contains_exact_variance_and_authenticity_mappings',
+      () {
+        expect(
+          BlockCardRegistry.syncWorkflowExtensionsMap[TargetBlockType
+              .varianceValidationBlock],
+          equals([XaiExtensionType.varianceValidation]),
+        );
+        expect(
+          BlockCardRegistry.syncWorkflowExtensionsMap[TargetBlockType
+              .authenticityEvaluationBlock],
+          equals([XaiExtensionType.authenticityEvaluation]),
+        );
+        expect(
+          BlockCardRegistry.syncWorkflowExtensionsMap[TargetBlockType
+              .penaltiesBlock],
+          isNull,
+        );
+      },
+    );
+
     for (final type in TargetBlockType.values) {
       testWidgets('renders card for TargetBlockType.${type.name} cleanly', (
         tester,

@@ -183,8 +183,24 @@ class ProfileLayoutsTab extends ConsumerWidget {
                           final newOrder = List<TargetBlockType>.from(
                             payload.targetBlockOrder,
                           )..add(b);
+                          final syncExtensions =
+                              BlockCardRegistry.syncWorkflowExtensionsMap[b];
+                          final newWorkflowExtensions =
+                              List<XaiExtensionType>.from(
+                                payload.visibleWorkflowExtensions,
+                              );
+                          if (syncExtensions != null) {
+                            for (final ext in syncExtensions) {
+                              if (!newWorkflowExtensions.contains(ext)) {
+                                newWorkflowExtensions.add(ext);
+                              }
+                            }
+                          }
                           updatePayload(
-                            payload.copyWith(targetBlockOrder: newOrder),
+                            payload.copyWith(
+                              targetBlockOrder: newOrder,
+                              visibleWorkflowExtensions: newWorkflowExtensions,
+                            ),
                           );
                         },
                       );

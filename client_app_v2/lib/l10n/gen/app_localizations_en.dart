@@ -3808,7 +3808,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileTabGeneral => 'General';
 
   @override
-  String get profileTabScoring => 'Scoring & XAI';
+  String get profileTabScoring => 'Scoring';
 
   @override
   String get profileTabReportStructure => 'Report Structure';

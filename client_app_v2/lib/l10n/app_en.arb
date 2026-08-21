@@ -1989,7 +1989,7 @@
   "excelSheetSummary": "Summary",
   "excelSheetRawData": "Raw Data",
   "profileTabGeneral": "General",
-  "profileTabScoring": "Scoring & XAI",
+  "profileTabScoring": "Scoring",
   "profileTabReportStructure": "Report Structure",
   "blockMetadataTitle": "Report Metadata",
   "blockExecutiveSummaryTitle": "Executive Summary",

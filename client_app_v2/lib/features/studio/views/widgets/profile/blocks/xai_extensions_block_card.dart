@@ -160,6 +160,22 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
                       );
                     }
                   },
+                  validator: (val) {
+                    if (val == null || val.isEmpty) return null;
+                    final parsed = int.tryParse(val);
+                    if (parsed == null ||
+                        parsed <
+                            SystemUiConstraints
+                                .maxExtensionItemsSliderMin
+                                .value ||
+                        parsed >
+                            SystemUiConstraints
+                                .maxExtensionItemsAbsoluteMax
+                                .value) {
+                      return l10n.extensionItemsMustBeIntError;
+                    }
+                    return null;
+                  },
                 ),
               ),
             ],

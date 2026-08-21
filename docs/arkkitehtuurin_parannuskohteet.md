@@ -1,6 +1,6 @@
 # Arkkitehtuurin ja Tietomallien Parannuskohteet
 
-Tähän dokumenttiin kerätään järjestelmän koodikannassa, tietomalleissa ja orkestraatiossa havaittuja pieniä ja keskisuuria parannuskohteita, refaktorointitarpeita sekä arkkitehtuurisia selkeytyksiä.
+Tähän dokumenttiin kerätään järjestelmän koodikannassa, tietomalleissa ja orkestraatiossa havaitut arkkitehtuuriset parannuskohteet, refaktorointitarpeet ja skeeman selkeytykset. Dokumentti on auditoitu Tier 8 System 2 First Principles -arvioinnilla ([`feature_audit_architecture_improvements.md`](file:///C:/Users/risto/.gemini/antigravity-ide/brain/c43af70a-f313-4b1a-ae3e-ceec08774a09/feature_audit_architecture_improvements.md) ja [`feature_audit_architecture_improvements_scope_hardening.md`](file:///C:/Users/risto/.gemini/antigravity-ide/brain/ea82cb8a-cbed-44ca-87bf-0108c08de960/feature_audit_architecture_improvements_scope_hardening.md)), ja se noudattaa ehdotonta *The e.g. Ban* -sääntöä, *No Hidden Scope* -periaatetta sekä Quorumin *Zero-Tolerance* -laatuvaatimusta ilman siirtymäajan purkkaratkaisuja.
 
 ---
 
@@ -13,12 +13,12 @@ Tietokannassa ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_
 "scale_max": 5
 ```
 
-Samaan aikaan jokaisella matriisilla on `scales`-taulukko ([`MatrixScale`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L354-L374)), joka sisältää kunkin arvosanatason (esim. 1, 2, 3, 4, 5) kognitiiviset BARS-väitteet ja kriteerit. Järjestelmän invariantti `mathematical_extrema_anchoring` laskee automaattisesti näiden perusteella kentät `computed_min` ja `computed_max`.
+Samaan aikaan jokaisella matriisilla on `scales`-taulukko ([`MatrixScale`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L354-L374)), joka sisältää kunkin kokonaislukuarvosanatason (nimenomaan ja tyhjentävästi: 1, 2, 3, 4, 5) kognitiiviset BARS-väitteet ja kriteerit. Järjestelmän invariantti `mathematical_extrema_anchoring` laskee automaattisesti näiden perusteella kentät `computed_min` ja `computed_max`.
 
 Lisäksi esityskerroksen profiilissa ([`OutputProfile`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L1290-L1360)) on kenttä `display_scale`, jonka vaihtoehdot ovat:
 * `ORIGINAL` (käyttää kunkin matriisin omaa asteikkoa)
 * `NORMALIZED_100` (normalisoi kaikki arvot välille 0–100 %)
-* `CUSTOM` (käyttää matriisin `scale_min`/`scale_max` -arvoja)
+* `CUSTOM` (käyttää workflow- ja profiilitason `custom_scale_min`/`custom_scale_max` -arvoja)
 
 ### 1.2 Miksi matriisikohtainen esitysskaalaus on ongelmallinen?
 
@@ -33,8 +33,8 @@ Lisäksi esityskerroksen profiilissa ([`OutputProfile`](file:///c:/src/quorum/ba
    * 2D-scatter-matriiseissa ([`static_charts.py`](file:///c:/src/quorum/backend_v2/utils/static_charts.py), [`logic_matrix_chart.dart`](file:///c:/src/quorum/client_app_v2/lib/shared/widgets/logic_matrix_chart.dart)) ja tutkakaavioissa eri akseleiden vertailu edellyttää, että akseleilla on yhtenevät tai normalisoidut ääripäät.
 
 4. **Vastuualueiden sekoittuminen (Separation of Concerns):**
-   * **Matriisi (Rubriikki / Sensori):** Matriisin ainoa tehtävä on arvioida sisältöä omien BARS-kriteeriensä perusteella (esim. tasot 1–5). Matriisin ei tule tietää, missä asiakaskontekstissa tai millä loppuesitysasteikolla sen tulos halutaan raportoida.
-   * **Workflow & OutputProfile (Esityskonteksti):** Raportti ja sen kohdeyleisö määrittelevät esitysasteikon (esim. *"Tämä johdon arviointiraportti esitetään 4–10 kouluarvosana-asteikolla"* tai *"0–100 % indeksinä"*).
+   * **Matriisi (Rubriikki / Sensori):** Matriisin ainoa tehtävä on arvioida sisältöä omien BARS-kriteeriensä perusteella (nimenomaan BARS-tasot 1–5). Matriisin ei tule tietää, missä asiakaskontekstissa tai millä loppuesitysasteikolla sen tulos halutaan raportoida.
+   * **Workflow & OutputProfile (Esityskonteksti):** Raportti ja sen kohdeyleisö määrittelevät esitysasteikon (määrittäen kohdeasteikoksi `NORMALIZED_100` tai `CUSTOM` välille 4.0–10.0).
 
 5. **Datan redundanssi ja synkronointiriskit:**
    * Staattiset `scale_min` ja `scale_max` matriisitasolla toistavat vain `scales`-taulukon minimi- ja maksimiarvoja. Jos `scales`-kriteerejä muutetaan, staattiset arvot voivat jäädä epäsynkroniin.
@@ -64,7 +64,8 @@ Lisäksi esityskerroksen profiilissa ([`OutputProfile`](file:///c:/src/quorum/ba
 |    - display_scale määrittää koko workflow'n esitystavan:             |
 |        a) ORIGINAL: Kunkin matriisin oma BARS-asteikko                |
 |        b) NORMALIZED_100: Kaikki tulokset 0-100 %                     |
-|        c) CUSTOM: Koko workflow'lle yhteinen kohdeväli (esim. 4 - 10)  |
+|        c) CUSTOM: Koko workflow'lle yhteinen kohdeväli                |
+|           (määritelty kentissä custom_scale_min ja custom_scale_max)  |
 |    - MatrixDomainParser projisoi sekä osamatriisit että kokonais-     |
 |      arvosanan yhtenäisesti valitulle esitysasteikolle                |
 +-----------------------------------------------------------------------+
@@ -73,14 +74,18 @@ Lisäksi esityskerroksen profiilissa ([`OutputProfile`](file:///c:/src/quorum/ba
 ### 1.4 Konkreettiset toimenpiteet toteutettaessa (Backlog)
 
 1. **Domain- ja DTO-mallit ([`backend_v2/models/v2_core.py`](file:///c:/src/quorum/backend_v2/models/v2_core.py)):**
-   * Siirretään `custom_scale_min` ja `custom_scale_max` tarvittaessa `OutputProfile`-malliin (tai pidetään ne profiilitason asetuksena).
-   * Poistetaan `PromptBlock`-mallista vähitellen staattiset `scale_min` ja `scale_max` tarpeettomina, jolloin luotetaan yksinomaan `computed_min`- ja `computed_max`-kenttiin.
+   * Siirretään `custom_scale_min` ja `custom_scale_max` eksplisiittisesti `OutputProfile`-malliin ([`v2_core.py#L1290-L1360`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L1290-L1360)).
+   * Poistetaan `PromptBlock`-mallista atomaarisesti staattiset `scale_min` ja `scale_max` Luvun 6 protokollan mukaisesti, jolloin luotetaan yksinomaan `computed_min`- ja `computed_max`-kenttiin ([`v2_core.py#L376-L460`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L376-L460)).
 2. **Domain-parseri ([`backend_v2/services/matrix_domain_parser.py`](file:///c:/src/quorum/backend_v2/services/matrix_domain_parser.py)):**
    * Kun `display_scale == DisplayScale.CUSTOM`, kohdeasteikon rajat luetaan `OutputProfile`-tasolta eikä yksittäiseltä `PromptBlockilta`.
-3. **Frontend-mallit ([`client_app_v2`](file:///c:/src/quorum/client_app_v2)):**
-   * Päivitetään vastaavat Dart/Freezed-mallit noudattamaan samaa logiikkaa (`OutputProfile` vs `PromptBlock`).
+3. **Frontend-mallit ja näkymät ([`client_app_v2`](file:///c:/src/quorum/client_app_v2)):**
+   * Päivitetään vastaavat Dart/Freezed-mallit ([`client_app_v2/lib/features/studio/models/output_profile.dart`](file:///c:/src/quorum/client_app_v2/lib/features/studio/models/output_profile.dart), [`client_app_v2/lib/features/studio/models/prompt_block.dart`](file:///c:/src/quorum/client_app_v2/lib/features/studio/models/prompt_block.dart)) noudattamaan samaa logiikkaa (`OutputProfile` vs `PromptBlock`).
+   * Päivitetään pisteytystabi ([`client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart`](file:///c:/src/quorum/client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart)) ja sen yksikkötestit ([`profile_scoring_tab_test.dart`](file:///c:/src/quorum/client_app_v2/test/features/studio/views/widgets/profile/tabs/profile_scoring_tab_test.dart)).
 4. **Seed Vault ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)):**
-   * Siivotaan redundanssi matriisien määrittelyistä.
+   * Siivotaan redundanssi matriisien määrittelyistä Luvun 6 atomaarisen siemenmigraation mukaisesti.
+5. **Testifikstuurien skriptattu päivitys:**
+   * Päivitetään yli 100 yksikkötestiviittausta ([`test_static_charts.py`](file:///c:/src/quorum/backend_v2/tests/unit/utils/test_static_charts.py), [`test_matrix_domain_parser.py`](file:///c:/src/quorum/backend_v2/tests/unit/services/test_matrix_domain_parser.py)) poistamaan `scale_min`/`scale_max` -parametrit `PromptBlock`-alustuksista.
+   * Päivitetään Flutter-testit ([`output_profile_crud_view_test.dart`](file:///c:/src/quorum/client_app_v2/test/features/studio/views/output_profile_crud_view_test.dart), [`block_card_registry_test.dart`](file:///c:/src/quorum/client_app_v2/test/features/studio/views/widgets/profile/blocks/block_card_registry_test.dart)).
 
 ---
 
@@ -153,9 +158,11 @@ ARMA International. 'Generally Accepted Recordkeeping Principles (The Principles
 ### 2.4 Konkreettiset toimenpiteet toteutettaessa (Backlog)
 
 1. **Prompt-kokoaja ([`backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py`](file:///c:/src/quorum/backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py)):**
-   * Korvataan `theory_grounding.model_dump_json()` semanttisella muotoilulla (esim. `<theory_context source="...">...</theory_context>`).
+   * Korvataan `theory_grounding.model_dump_json()` semanttisella muotoilulla: `<theory_context source="...">...</theory_context>`.
 2. **Seed Vault ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)):**
-   * Siivotaan `EPISTEMIC ANCHOR:` -tekstit pois kaikkien 13 matriisin `ai_description`-kentistä, jolloin `ai_description` sisältää vain `OBJECTIVE:`-osion ja `theory_grounding` hoitaa ankkuroinnin.
+   * Siivotaan `EPISTEMIC ANCHOR:` -tekstit pois kaikkien 13 matriisin `ai_description`-kentistä Luvun 6 atomaarisen skriptin avulla, jolloin `ai_description` sisältää vain `OBJECTIVE:`-osion ja `theory_grounding` hoitaa ankkuroinnin.
+3. **Prompt- ja sensori-yksikkötestit:**
+   * Päivitetään [`test_prompt_factory.py`](file:///c:/src/quorum/backend_v2/tests/unit/services/orchestrator/strategies/llm_execution/test_prompt_factory.py) assertoimaan puhdasta `<theory_context>` -XML-rakennetta raa'an JSON-merkkijonon sijasta.
 
 ---
 
@@ -186,7 +193,7 @@ Samaan aikaan järjestelmän monikielisyysarkkitehtuurissa esityskieli määräy
 2. **Validaation sisäinen ristiriita:**
    * `I18nText.validate_i18n()` vaatii jo nyt, että englanninkielinen (`en`) käännös on aina pakollinen teknisenä varakielenä. Siten kenttäkohtainen `"default_locale": "fi"` on ristiriidassa järjestelmän globaalin fallback-käyttäytymisen kanssa.
 3. **Datamassan kohina ja JSON-koko:**
-   * Kenttä toistuu 500 kertaa `seed_data.json`:ssa sekä kymmenissä Flutter- ja Python-testifiktioissa (`defaultLocale: 'en'`), mikä kasvattaa turhaan tietomallien, API-DTO:iden ja tietokannan kokoa.
+   * Kenttä toistuu 500 kertaa `seed_data.json`:ssa sekä yli 1300:ssa Flutter- ja Python-testifiktioissa (`defaultLocale: 'en'`), mikä kasvattaa turhaan tietomallien, API-DTO:iden ja tietokannan kokoa.
 
 ---
 
@@ -211,12 +218,14 @@ Samaan aikaan järjestelmän monikielisyysarkkitehtuurissa esityskieli määräy
 ### 3.4 Konkreettiset toimenpiteet toteutettaessa (Backlog)
 
 1. **Python Domain -mallit ([`backend_v2/models/v2_core.py`](file:///c:/src/quorum/backend_v2/models/v2_core.py)):**
-   * Poistetaan `default_locale` -kenttä `I18nText`-mallista (tai tehdään siitä valinnainen defaulttina `"en"` siirtymävaiheessa).
-   * Päivitetään `resolve(target_locale, fallback_locale="en")` käyttämään parametrina annettua varakieltä.
+   * Poistetaan `default_locale` -kenttä `I18nText`-mallista.
+   * Päivitetään `resolve(target_locale, fallback_locale="en")` käyttämään parametrina annettua varakieltä ilman mallitason kenttää.
 2. **Flutter Client -mallit ([`client_app_v2/lib/shared/models/i18n_text.dart`](file:///c:/src/quorum/client_app_v2/lib/shared/models/i18n_text.dart)):**
    * Poistetaan `defaultLocale` Freezed-mallista ja päivitetään `get(langCode)` käyttämään sovelluksen oletuskieltä.
 3. **Seed Vault ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)):**
-   * Siivotaan 500 kappaletta `"default_locale"` -rivejä pois, jolloin tiedosto kevenee ja selkeytyy.
+   * Siivotaan 500 kappaletta `"default_locale"` -rivejä pois Luvun 6 atomaarisen skriptin avulla.
+4. **Yksikkötestifikstuurien AST/regex-migraatio ([`backend_v2/tests/`](file:///c:/src/quorum/backend_v2/tests)):**
+   * Ajetaan Luvun 6 skripti B, joka siivoaa `default_locale`-avaimet pois kaikista yli 1300 testitapauksesta ([`test_worker.py`](file:///c:/src/quorum/backend_v2/tests/unit/test_worker.py), [`test_worker_synthesis.py`](file:///c:/src/quorum/backend_v2/tests/unit/test_worker_synthesis.py), [`test_workflows.py`](file:///c:/src/quorum/backend_v2/tests/unit/test_workflows.py)).
 
 ---
 
@@ -275,7 +284,7 @@ Kooditarkastelu paljasti, miten tämä hajautuminen aiheuttaa konkreettisia toim
 
 #### B. "Split-Brain" Studio-simulaation ja tuotannon välillä
 * **Tuotantoajo ([`atom_flattening.py`](file:///c:/src/quorum/backend_v2/hooks/atom_flattening.py)):** Lukee `tda.concept_description` -kenttää.
-* **Studio-simulaatio ([`backend_v2/services/studio/simulation_service.py:181-182`](file:///c:/src/quorum/backend_v2/services/studio/simulation_service.py#L181-L182)):** Lukee `claim.ai_description` -kenttää (`rendered += f"  Rule: {claim.ai_description.strip()}\n"`).
+* **Studio-simulaatio ([`backend_v2/services/studio/simulation_service.py:181-182`](file:///c:/src/quorum/backend_v2/services/studio/simulation_service.py#L181-L182)):** Lukee `claim.ai_description` -kenttää duck-typingilla `getattr(claim, "ai_description", None)`.
 * **Seuraus:** Kun käyttäjä testaa matriisia Studiossa, simulaatio testaa eri kehotetta kuin mitä oikea tuotantomoottori suorittaa!
 
 #### C. Kontekstin spatiaalinen leikkaus ([`backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py:153`](file:///c:/src/quorum/backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L153))
@@ -305,12 +314,13 @@ Kooditarkastelu paljasti, miten tämä hajautuminen aiheuttaa konkreettisia toim
 ### 4.4 Konkreettiset toimenpiteet toteutettaessa (Backlog)
 
 1. **Seed Vault -migraatio ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)):**
-   * Kopioidaan kaikissa 70:ssä tyhjässä tapauksessa `MatrixClaim.ai_description` suoraan kenttään `TDAAssertion.concept_description`.
+   * Kopioidaan kaikissa 70:ssä tyhjässä tapauksessa `MatrixClaim.ai_description` suoraan kenttään `TDAAssertion.concept_description` ennen kentän poistamista.
    * Vahvistetaan ja yhdistetään 82 eriytynyttä tapausta `TDAAssertion`-tasolle.
-2. **Koodikannan harmonisointi:**
-   * Poistetaan `MatrixClaim.ai_description` domain-malleista ([`backend_v2/models/v2_core.py`](file:///c:/src/quorum/backend_v2/models/v2_core.py)) ja Flutter-malleista.
-   * Korjataan [`simulation_service.py`](file:///c:/src/quorum/backend_v2/services/studio/simulation_service.py) lukemaan `tda.concept_description`, jotta simulaatio ja tuotanto käyttävät 100 % identtistä promptia.
-
+2. **Koodikannan ja mallien harmonisointi:**
+   * Poistetaan `MatrixClaim.ai_description` domain-malleista ([`backend_v2/models/v2_core.py#L320-L338`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L320-L338)) ja Flutterin Freezed-malleista ([`client_app_v2/lib/features/studio/models/prompt_block.dart#L151-L180`](file:///c:/src/quorum/client_app_v2/lib/features/studio/models/prompt_block.dart#L151-L180)).
+   * Korjataan [`simulation_service.py:181-182`](file:///c:/src/quorum/backend_v2/services/studio/simulation_service.py#L181-L182) poistamaan `getattr` ja lukemaan suoraan `tda.concept_description`, jotta simulaatio ja tuotanto käyttävät 100 % identtistä promptia.
+3. **Testifikstuurien päivitys ([`test_blueprint.py`](file:///c:/src/quorum/backend_v2/tests/unit/services/test_blueprint.py)):**
+   * Päivitetään yli 350 testitapausta, jotka alustavat `MatrixClaim.ai_description` -kenttää, käyttämään suoraan `TDAAssertion.concept_description` -kenttää.
 
 ---
 
@@ -375,10 +385,107 @@ Tietokannan raporttiprofiilissa ([`OutputProfile: prof_5d6e7f8091a2b3c4`](file:/
 1. **Lokalisaation SSOT-siivous:**
    * Poistetaan staattiset UI-sanakirjat (`metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`) `OutputProfile`-tietokantarakenteesta ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)).
    * Muutetaan [`MetadataAdapter`](file:///c:/src/quorum/backend_v2/services/sdui/adapters/metadata_adapter.py) lähettämään avain-arvo -pareja merkkijonoketjutuksen sijaan.
-2. **Profiilimallin selkeytys ([`backend_v2/models/v2_core.py`](file:///c:/src/quorum/backend_v2/models/v2_core.py)):**
-   * Korvataan legacy-kenttiä sisältävä `layouts`-taulukko kevyellä `matrix_synthesis_groups` -rakenteella ja poistetaan tarpeettomat V1-kentät (`preset_view`, `text_delivery_mode`, `steps: []`).
-   * Päivitetään [`worker.py`](file:///c:/src/quorum/backend_v2/worker.py) ja adapterit käyttämään uutta puhdasta ryhmittelymallia.
+2. **Profiilimallin ja adapterien selkeytys:**
+   * Korvataan legacy-kenttiä sisältävä `layouts`-taulukko kevyellä `matrix_synthesis_groups` -rakenteella ([`backend_v2/models/v2_core.py#L1290-L1380`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L1290-L1380)) ja poistetaan tarpeettomat V1-kentät (`preset_view`, `text_delivery_mode`, `steps: []`).
+   * Päivitetään vastaava Flutter Freezed -malli ([`client_app_v2/lib/features/studio/models/output_profile.dart`](file:///c:/src/quorum/client_app_v2/lib/features/studio/models/output_profile.dart)), asettelutabi ([`client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart`](file:///c:/src/quorum/client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart)) ja sen testit ([`profile_layouts_tab_test.dart`](file:///c:/src/quorum/client_app_v2/test/features/studio/views/widgets/profile/tabs/profile_layouts_tab_test.dart)).
+   * Päivitetään [`worker.py:906-930`](file:///c:/src/quorum/backend_v2/worker.py#L906-L930) ja adapterit ([`backend_v2/services/sdui/adapters/matrix_graphs_adapter.py`](file:///c:/src/quorum/backend_v2/services/sdui/adapters/matrix_graphs_adapter.py), [`backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py`](file:///c:/src/quorum/backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py)) käyttämään uutta puhdasta ryhmittelymallia.
 
+---
 
+## Luku 6: Atomaarinen Data-, Testifikstuuri- ja Mallimigraatio (Atomic Migration Protocol)
 
+### 6.1 Arkkitehtuurinen riski: `extra='forbid'` ja testifikstuurien laajuus
+Kaikki Quorumin Pydantic V2 -mallit ([`backend_v2/models/v2_core.py`](file:///c:/src/quorum/backend_v2/models/v2_core.py)) ajetaan tiukalla `ConfigDict(strict=True, extra='forbid')` -asetuksella. Samoin Flutterin Freezed-mallit vaativat 100 % vastaavuuden API-avainten kanssa ilman hiljaisia ohituksia.
 
+Jos kenttiä (`scale_min`, `scale_max`, `default_locale`, `ai_description`, `metric_mappings`, `layouts`) poistetaan tietomalleista ennen kuin testidata ja siemendata on päivitetty:
+1. **1339+ testifikstuuria** kaatuu välittömästi `ValidationError: Extra inputs are not permitted` -virheeseen.
+2. Kehittäjä tai agentti ajautuu helposti rikkomaan sääntöjä lisäämällä purkkaratkaisuja (`extra='ignore'`, `@model_validator(mode="before")` tai `.get()` -fallbäkkejä).
+3. Paikallinen ajotietokanta `db_v2.json` jää epäsynkroniin master-siemendatan `seed_data.json` kanssa, jolloin backend kaatuu käynnistyessään.
+
+### 6.2 Pakollinen 5-vaiheinen migraatioprotokolla (Atomic Migration Protocol)
+
+Jokainen parannuskohteiden toteutusaskel on suoritettava poikkeuksetta seuraavan protokollan mukaisesti:
+
+```
++-----------------------------------------------------------------------------------+
+| VAIHE 0: DETERMINISTISET MIGRAATIOSKRIPTIT (scratch/ tai scripts/migrations/)     |
+|  1. Skripti A: seed_data.json -migraattori (kopioi tekstit, poistaa redundantit)  |
+|  2. Skripti B: Testifikstuurien AST/regex-migraattori (siivoaa 1300+ testitapausta)|
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+| VAIHE 1: SEED VAULT & TIETOKANNAN ATOMAARINEN PÄIVITYS                           |
+|  1. Varmuuskopiointi: backend_v2/seed/backups/seed_data_<timestamp>.json          |
+|  2. Aja Skripti A seed_data.json -tiedostolle                                     |
+|  3. JSON Integrity & Syntax Check (tarkista ettei rikkinäisiä sulkuja synny)     |
+|  4. Suorita uudelleensiemennys: uv run python backend_v2/seed/run_seed.py local   |
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+| VAIHE 2: PYTHON DOMAIN & FLUTTER FREEZED -MALLIEN YHTENÄISTÄMINEN                |
+|  1. Poista poistettavat kentät: v2_core.py, models/dtos/                         |
+|  2. Poista vastaavat kentät: client_app_v2 Freezed-mallit                         |
+|  3. Generoi Flutter-koodit: dart run build_runner build --delete-conflicting-outputs|
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+| VAIHE 3: YKSIKKÖTESTIEN JA PALVELUKERROKSEN KORJAUS                               |
+|  1. Aja Skripti B päivittämään kaikki testifikstuurit backend_v2/tests/ -kansiossa|
+|  2. Päivitä palvelut (matrix_domain_parser.py, simulation_service.py, adapterit)  |
+|  3. Aja auditointiluuppi: uv run python scripts/backend_audit_loop.py backend_v2  |
+|  4. Aja Flutter-auditointiluuppi: uv run python scripts/flutter_audit_loop.py     |
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+| VAIHE 4: AST GUARDRAIL & REGRESSION LOCK                                          |
+|  1. Lisää AST-testit: test_seed_architectural_guardrails.py kieltämään poistetut   |
+|     kentät (scale_min PromptBlockilla, default_locale I18nTextissä) pysyvästi     |
+|  2. Atomaarinen git-commit ennen seuraavaa kokonaisuutta                          |
++-----------------------------------------------------------------------------------+
+```
+
+### 6.3 Purkkaratkaisujen nollatoleranssi (Zero-Tolerance Gates)
+* **Kielto 1:** `extra='ignore'` -konfiguraation lisääminen malleihin teknisen velan ohittamiseksi on ehdottomasti kielletty ([`duck_typing_token_shield_exception`](file:///c:/src/quorum/.agents/rules/01-python-backend.md#L345-L349)).
+* **Kielto 2:** `@model_validator(mode="before")` -metodien kirjoittaminen poistettujen avaimien siivoamiseksi ajonaikaisesti on kielletty ([`zero_legacy_fallback_hacks`](file:///c:/src/quorum/.agents/rules/01-python-backend.md#L133-L137)).
+* **Kielto 3:** `.get("scale_min", 1.0)` tai vastaavien maagisten oletusarvojen lisääminen palvelukerrokseen on kielletty ([`zero_service_layer_fallbacks`](file:///c:/src/quorum/.agents/rules/00-antigravity-core.md#L132-L136)).
+* **Kielto 4:** Failing-testien ohittaminen `@pytest.mark.skip` -merkinnällä on ehdottomasti kielletty ([`anti_test_skipping_mandate`](file:///c:/src/quorum/.agents/rules/00-antigravity-core.md#L222-L226)). Testit on aina korjattava vastaamaan uutta skeemaa.
+
+---
+
+### 6.4 Toteutusvaiheistus ja Etenemisjärjestys (Implementation Packages Roadmap)
+
+Tier 8 -auditoinnin pohjalta kokonaisuus toteutetaan neljänä itsenäisenä ja hallittavana toteutuspakettina (Epicit / Tehtäväpaketit), joista jokainen suorittaa oman 5-vaiheisen atomaarisen migraationsa:
+
+```
++-----------------------------------------------------------------------------------+
+| PAKETTI 1: I18nText & TheoryGrounding Puhdistus (Luvut 3 & 2)                     |
+|  - default_locale poisto I18nText-mallista (Python + Flutter)                     |
+|  - theory_context XML-muotoilu ja ai_description tuplien poisto                  |
+|  - Skriptit A & B: testifikstuurien ja seed_data.json:n siivous                   |
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+| PAKETTI 2: TDAAssertion & Kehotteiden Yhdistäminen (Luku 4)                       |
+|  - 70 tyhjän <question>-bugin korjaus ja TDAAssertion SSOT -keskitys              |
+|  - simulation_service.py duck-typingin poisto ja testien päivitys                 |
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+| PAKETTI 3: Matriisiskaalauksen Keskitys (Luku 1)                                  |
+|  - scale_min / scale_max poisto PromptBlockilta (vain computed_min/max)           |
+|  - custom_scale_min / custom_scale_max siirto OutputProfilelle                    |
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+| PAKETTI 4: Esitysprofiilin L10n & Ryhmittelyn Uudistus (Luku 5)                   |
+|  - metric_mappings ym. sanakirjojen poisto seed_data.jsonista ja .arb-siirto      |
+|  - layouts -> matrix_synthesis_groups refaktorointi (Python, Flutter Tab, worker) |
++-----------------------------------------------------------------------------------+
+```

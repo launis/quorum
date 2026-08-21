@@ -13,6 +13,7 @@ class SimpleToggleBlockCard extends StatelessWidget {
   final OutputProfile payload;
   final void Function(OutputProfile) updatePayload;
   final Widget? dragHandle;
+  final List<XaiExtensionType>? syncWorkflowExtensions;
 
   const SimpleToggleBlockCard({
     super.key,
@@ -23,6 +24,7 @@ class SimpleToggleBlockCard extends StatelessWidget {
     required this.payload,
     required this.updatePayload,
     this.dragHandle,
+    this.syncWorkflowExtensions,
   });
 
   @override
@@ -38,14 +40,35 @@ class SimpleToggleBlockCard extends StatelessWidget {
       dragHandle: dragHandle,
       onToggle: (enabled) {
         final newOrder = List<TargetBlockType>.from(payload.targetBlockOrder);
+        final newWorkflowExtensions = List<XaiExtensionType>.from(
+          payload.visibleWorkflowExtensions,
+        );
+
         if (enabled) {
           if (!newOrder.contains(blockType)) {
             newOrder.add(blockType);
           }
+          if (syncWorkflowExtensions != null) {
+            for (final ext in syncWorkflowExtensions!) {
+              if (!newWorkflowExtensions.contains(ext)) {
+                newWorkflowExtensions.add(ext);
+              }
+            }
+          }
         } else {
           newOrder.remove(blockType);
+          if (syncWorkflowExtensions != null) {
+            for (final ext in syncWorkflowExtensions!) {
+              newWorkflowExtensions.remove(ext);
+            }
+          }
         }
-        updatePayload(payload.copyWith(targetBlockOrder: newOrder));
+        updatePayload(
+          payload.copyWith(
+            targetBlockOrder: newOrder,
+            visibleWorkflowExtensions: newWorkflowExtensions,
+          ),
+        );
       },
     );
   }
