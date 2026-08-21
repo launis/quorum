@@ -133,12 +133,16 @@ class Settings(BaseSettings):
         int, Field(description="Chunk size in characters for RAG preflight document extraction")
     ] = 12000
     llm_min_payload_length: Annotated[int, Field(description="Minimum chars for LLM payload before fail-fast")] = 10
+    rag_preflight_excluded_keys: Annotated[
+        list[str],
+        Field(description="Dynamic input keys excluded from RAG preflight character counting and LLM atomization"),
+    ] = ["document_date"]
     rag_preflight_min_input_chars: Annotated[
         int,
         Field(
-            description="Minimum total character length across dynamic inputs required for RAG preflight extraction."
+            description="Minimum total character length across analytical dynamic inputs required for RAG preflight extraction."
         ),
-    ] = 50
+    ] = 100
     llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 300
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
     semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20

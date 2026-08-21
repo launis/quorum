@@ -1,6 +1,7 @@
 """Service for extracting knowledge during RAG Preflight."""
 
 import logging
+import re
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -10,11 +11,32 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.v2_core import ExecutionRecord, Step, StepRule
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_effective_user_text(text: str) -> str:
+    """Extract analytical user text from raw dynamic input.
+
+    If <user_payload> XML tags are present, extracts and concatenates only the
+    inner text of all <user_payload>...</user_payload> blocks, stripping XML wrapper
+    tags and ignoring <ai_draft_context> AI response blocks. If no <user_payload>
+    tags are present, returns the stripped raw text.
+
+    Args:
+        text: Raw string input from dynamic inputs.
+
+    Returns:
+        Extracted user content with XML tags and AI responses excluded.
+    """
+    if "<user_payload>" in text:
+        matches = re.findall(r"<user_payload>(.*?)</user_payload>", text, flags=re.DOTALL)
+        return "\n\n".join(m.strip() for m in matches if m.strip())
+    return text.strip()
 
 
 class RAGPreflightService:
@@ -24,7 +46,7 @@ class RAGPreflightService:
         self,
         workflow_repo: IWorkflowRepository,
         system_repo: ISystemRepository,
-        prompt_compiler: Any,
+        prompt_compiler: PromptCompiler,
     ) -> None:
         """Initialize RAG Preflight Service.
 
@@ -77,11 +99,15 @@ class RAGPreflightService:
 
         dynamic_inputs = exec_record.raw_inputs.dynamic_inputs
         settings = get_settings()
-        total_input_chars = sum(len(v) for v in dynamic_inputs.values() if isinstance(v, str))
+        total_input_chars = sum(
+            len(_extract_effective_user_text(v))
+            for k, v in dynamic_inputs.items()
+            if isinstance(v, str) and k not in settings.rag_preflight_excluded_keys
+        )
 
         if total_input_chars < settings.rag_preflight_min_input_chars:
             logger.warning(
-                "RAGPreflightService: Total input characters (%d) is below minimum analytical threshold (%d). "
+                "RAGPreflightService: Total analytical input characters (%d) is below minimum threshold (%d). "
                 "Skipping LLM atomization.",
                 total_input_chars,
                 settings.rag_preflight_min_input_chars,
@@ -93,12 +119,19 @@ class RAGPreflightService:
         llm_executor = LLMTaskExecutor(self.compiler)
         atomizer = TwoPassAtomizer(llm_executor)
 
-        atoms_by_input = {}
-        total_files = len([k for k, v in dynamic_inputs.items() if isinstance(v, str)])
+        candidate_files = [
+            k
+            for k, v in dynamic_inputs.items()
+            if isinstance(v, str)
+            and k not in settings.rag_preflight_excluded_keys
+            and len(_extract_effective_user_text(v)) >= 20
+        ]
+        total_files = len(candidate_files)
         processed_files = 0
+        atoms_by_input = {}
 
         for key, text_content in dynamic_inputs.items():
-            if not isinstance(text_content, str):
+            if key not in candidate_files or not isinstance(text_content, str):
                 continue
 
             await emit_progress(
@@ -145,7 +178,7 @@ class RAGPreflightService:
                 bound_client, hydrated_text, ontology, progress_callback=phase_1_progress
             )
 
-            if len(draft_list.atoms) > get_settings().max_extracted_atoms_per_document:
+            if len(draft_list.atoms) > settings.max_extracted_atoms_per_document:
                 raise AppException(
                     message=f"Atom ceiling exceeded for file {key}. Extracted {len(draft_list.atoms)} atoms.",
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},

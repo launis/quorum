@@ -309,7 +309,12 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         workflow_id="wf_1234567890abcdef",
         raw_inputs=WorkflowInputs(
             language="en",
-            dynamic_inputs={"product_text": "This is valid document text that contains more than fifty characters."},
+            dynamic_inputs={
+                "product_text": (
+                    "This is valid document text that contains more than one hundred characters "
+                    "for complete analytical preflight processing."
+                )
+            },
         ),
     )
 
@@ -342,7 +347,10 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         processed_chunks = [call.args[1] for call in calls]
 
         assert len(processed_chunks) == 1
-        assert processed_chunks[0] == "[B0] This is valid document text that contains more than fifty characters."
+        assert (
+            processed_chunks[0]
+            == "[B0] This is valid document text that contains more than one hundred characters for complete analytical preflight processing."
+        )
 
 
 @pytest.mark.asyncio
@@ -427,7 +435,10 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
             "type": "llm",
         }
     )
-    reflection_text = "Emme ehtineet testata tietoturvaa lainkaan sovelluksessa."  # 55 chars (>= 50)
+    reflection_text = (
+        "Emme ehtineet testata tietoturvaa lainkaan sovelluksessa ennen ensimmäistä "
+        "tuotantojulkaisua asiakasympäristöön."
+    )  # 112 chars (>= 100)
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
