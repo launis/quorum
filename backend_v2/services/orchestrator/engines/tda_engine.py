@@ -7,7 +7,9 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.dag_models import AtomExecutionState, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
@@ -15,6 +17,7 @@ from backend_v2.services.orchestrator.result_projector import ResultProjector
 from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindowLinker
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 from backend_v2.settings import get_settings
+from backend_v2.utils.alias_engine import AliasEngine
 
 if TYPE_CHECKING:
     pass
@@ -54,6 +57,54 @@ class TDAEngine(ExecutionEngine):
         if request.running_event:
             request.running_event.set()
 
+        # Circuit Breaker: If preflight determined analytical data is starved, short-circuit immediately.
+        raw_blackboard = request.context.context_variables.get("__GLOBAL_ATOM_BLACKBOARD__")
+        is_starved = False
+        if raw_blackboard and isinstance(raw_blackboard, dict):
+            if raw_blackboard.get("is_data_starved", False) or not raw_blackboard.get("atoms_by_input"):
+                is_starved = True
+
+        if is_starved:
+            logger.info(
+                "[TDAEngine] Data starvation circuit breaker active for step %s. Short-circuiting LLM execution.",
+                request.step.id,
+            )
+            if request.shuffled_atoms:
+                nodes = []
+                states = {}
+                for i, atom in enumerate(request.shuffled_atoms):
+                    extracted = ExtractedAtom(
+                        reasoning="Insufficient input data (Data Starvation).",
+                        resolved_claim=atom.question,
+                        is_logical_deduction=True,
+                        source_quote=None,
+                        tda_id=atom.atom_id,
+                        source_id=_MATRIX_SOURCE_SENTINEL,
+                        source_sequence_index=i,
+                    )
+                    nodes.append(LinkedAtomGraph(atom=extracted, depends_on=[]))
+                    states[atom.atom_id] = AtomExecutionState(
+                        tda_id=atom.atom_id,
+                        status=ExecutionStatus.FAILED,
+                        evaluation_reasoning="Insufficient input data (Data Starvation).",
+                        extensions={},
+                    )
+
+                results, hydrated_references = ResultProjector.project(nodes, states, matrix_id=request.matrix_block_id)
+                if request.progress_callback:
+                    await request.progress_callback(100, 100)
+                return EngineExecutionResult(
+                    results=results,
+                    hydrated_references=hydrated_references,
+                )
+            else:
+                if request.progress_callback:
+                    await request.progress_callback(100, 100)
+                return EngineExecutionResult(
+                    results=[],
+                    hydrated_references={},
+                )
+
         try:
             llm_executor = LLMTaskExecutor(
                 self._compiler,
@@ -70,9 +121,6 @@ class TDAEngine(ExecutionEngine):
             dag_executor = EnrichedDagExecutor(llm_executor, request.bound_client)
 
             global_source_text = request.global_source_text
-
-            from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
-            from backend_v2.utils.alias_engine import AliasEngine
 
             alias_engine = AliasEngine()
             paragraphs = [p.strip() for p in global_source_text.split("\n\n") if p.strip()]

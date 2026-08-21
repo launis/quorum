@@ -141,7 +141,7 @@ async def test_rag_preflight_input_below_character_threshold_skips(
         )
 
         assert mock_atomizer_cls.called is False
-        assert result == {"atoms_by_input": {}}
+        assert result == {"atoms_by_input": {}, "is_data_starved": True}
         emit_mock.assert_called_once_with("Input data sparse/empty. Preflight extraction skipped.", 100)
 
 
@@ -302,7 +302,7 @@ async def test_rag_preflight_excludes_metadata_keys_from_count_and_atomization(
 
         # Since document_date is excluded and doc_1 has < 100 chars, it should skip
         assert mock_atomizer_cls.called is False
-        assert result == {"atoms_by_input": {}}
+        assert result == {"atoms_by_input": {}, "is_data_starved": True}
 
 
 @pytest.mark.asyncio
@@ -340,7 +340,7 @@ async def test_rag_preflight_chat_log_with_large_ai_text_sparse_user_text_skips(
         )
 
         assert mock_atomizer_cls.called is False
-        assert result == {"atoms_by_input": {}}
+        assert result == {"atoms_by_input": {}, "is_data_starved": True}
 
 
 @pytest.mark.asyncio
@@ -465,6 +465,6 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
         # 10 + 19 + 48 = 77 characters (< 100 chars min threshold).
         # Auxiliary keys (chat_log_user_only, chat_log_ai_only) and metadata (document_date) are ignored.
         mock_atomizer_cls.assert_not_called()
-        assert result == {"atoms_by_input": {}}
+        assert result == {"atoms_by_input": {}, "is_data_starved": True}
         emit_mock.assert_called_with("Input data sparse/empty. Preflight extraction skipped.", 100)
 

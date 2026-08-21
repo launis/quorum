@@ -153,7 +153,7 @@ class RAGPreflightService:
                 settings.rag_preflight_min_input_chars,
             )
             await emit_progress("Input data sparse/empty. Preflight extraction skipped.", 100)
-            return GlobalAtomBlackboard(atoms_by_input={}).model_dump(mode="json")
+            return GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True).model_dump(mode="json")
 
         bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo, pipeline_name="chunk_worker")
         llm_executor = LLMTaskExecutor(self.compiler)

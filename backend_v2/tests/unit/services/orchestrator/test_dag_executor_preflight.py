@@ -400,7 +400,7 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
         )
 
         assert mock_atomizer_cls.called is False
-        assert result == {"atoms_by_input": {}}
+        assert result == {"atoms_by_input": {}, "is_data_starved": True}
         emit_mock.assert_called_once_with("Input data sparse/empty. Preflight extraction skipped.", 100)
 
 

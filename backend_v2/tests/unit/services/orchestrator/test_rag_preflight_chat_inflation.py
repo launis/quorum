@@ -121,4 +121,4 @@ async def test_preflight_inflated_by_chat_xml_and_ai_text() -> None:
             f"Raw char count ({total_raw_chars}) passed threshold because "
             f"AI text, XML tags, and metadata inflated the count."
         )
-        assert result == {"atoms_by_input": {}}, "Expected empty blackboard for data-starved inputs"
+        assert result == {"atoms_by_input": {}, "is_data_starved": True}, "Expected empty blackboard for data-starved inputs"

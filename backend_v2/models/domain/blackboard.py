@@ -99,6 +99,10 @@ class GlobalAtomBlackboard(V2CoreBase):
         dict[str, DraftAtomList],
         Field(description="Extracted atoms keyed by their source input file key (e.g. 'product_text')."),
     ]
+    is_data_starved: Annotated[
+        bool,
+        Field(default=False, description="Set to True when RAG preflight skips extraction due to data starvation."),
+    ] = False
 
     def get_all_atom_ids(self) -> list[str]:
         """Returns a flat list of all draft_id strings across all inputs."""

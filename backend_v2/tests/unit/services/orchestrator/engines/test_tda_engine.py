@@ -267,3 +267,89 @@ async def test_tda_engine_execute_app_exception_bypass(
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == "NATIVE_ERROR"
     assert str(exc_info.value.message) == "Native crash"
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+async def test_tda_engine_data_starvation_circuit_breaker_with_shuffled_atoms(
+    mock_atomizer,
+    mock_projector,
+    engine_request,
+    mock_compiler,
+):
+    """Test that data starvation short-circuits matrix evaluation immediately without LLM calls."""
+    from backend_v2.models.dtos.engine import FlattenedAtom
+
+    atom = FlattenedAtom(atom_id="tda_11112222", question="Test rubric question")
+    req = engine_request.model_copy(
+        update={
+            "shuffled_atoms": [atom],
+            "context": engine_request.context.model_copy(
+                update={
+                    "context_variables": {
+                        "__GLOBAL_ATOM_BLACKBOARD__": {
+                            "atoms_by_input": {},
+                            "is_data_starved": True,
+                        }
+                    }
+                }
+            ),
+        }
+    )
+
+    mock_projector.project.return_value = ([], {})
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+    result = await engine.execute(req)
+
+    assert isinstance(result, EngineExecutionResult)
+    assert result.results == []
+    assert result.hydrated_references == {}
+
+    # Verify TwoPassAtomizer was NEVER called
+    mock_atomizer.assert_not_called()
+
+    # Verify ResultProjector was called with failed states
+    mock_projector.project.assert_called_once()
+    nodes_arg, states_arg = mock_projector.project.call_args[0][:2]
+    assert len(nodes_arg) == 1
+    assert nodes_arg[0].atom.tda_id == "tda_11112222"
+    assert states_arg["tda_11112222"].status.value == "FAILED"
+    assert "Data Starvation" in str(states_arg["tda_11112222"].evaluation_reasoning)
+    req.progress_callback.assert_called_with(100, 100)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+async def test_tda_engine_data_starvation_circuit_breaker_without_shuffled_atoms(
+    mock_atomizer,
+    engine_request,
+    mock_compiler,
+):
+    """Test that data starvation short-circuits non-matrix step returning empty results immediately."""
+    req = engine_request.model_copy(
+        update={
+            "shuffled_atoms": None,
+            "context": engine_request.context.model_copy(
+                update={
+                    "context_variables": {
+                        "__GLOBAL_ATOM_BLACKBOARD__": {
+                            "atoms_by_input": {},
+                            "is_data_starved": True,
+                        }
+                    }
+                }
+            ),
+        }
+    )
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+    result = await engine.execute(req)
+
+    assert isinstance(result, EngineExecutionResult)
+    assert result.results == []
+    assert result.hydrated_references == {}
+    mock_atomizer.assert_not_called()
+    req.progress_callback.assert_called_with(100, 100)
+

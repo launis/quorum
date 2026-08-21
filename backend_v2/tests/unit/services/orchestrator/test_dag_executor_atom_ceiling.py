@@ -110,7 +110,11 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_class,
         patch("backend_v2.services.orchestrator.rag_preflight_service.get_settings") as mock_settings,
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {}}))
+        doc_text = (
+            "This is a sufficiently long text with plenty of detailed analytical statements to pass the fail "
+            "fast check in LLM Task Executor and ensure preflight proceeds to atomization!"
+        )
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {"doc_1": doc_text}}))
 
         mock_settings.return_value.rag_preflight_min_input_chars = 50
         mock_settings.return_value.max_extracted_atoms_per_document = 2
@@ -141,7 +145,7 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(
                     dynamic_inputs={
-                        "doc_1": "This is a sufficiently long text to pass the fail fast check in LLM Task Executor!"
+                        "doc_1": "This is a sufficiently long text with plenty of detailed analytical statements to pass the fail fast check in LLM Task Executor and ensure preflight proceeds to atomization!"
                     }
                 ),
             )
