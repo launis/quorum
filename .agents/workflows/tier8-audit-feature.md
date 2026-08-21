@@ -51,6 +51,16 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
       <mandatory_pattern>After completing the Final Report, you MUST persist the audit findings by creating a timestamped artifact file (e.g., `feature_audit_[feature_name].md`) in the conversation artifact directory. This creates a permanent, searchable audit trail that survives context window closure.</mandatory_pattern>
       <catastrophic_reason>Without persistent audit artifacts, architectural analysis and identified edge cases are lost across session transitions, forcing redundant re-analysis.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="touched_scope_tech_debt_mandate">
+      <banned_pattern>Auditing, researching, planning, or refactoring features touching codebase files without performing an active technical debt and anti-pattern sweep on the target files and their immediate 1-hop dependencies.</banned_pattern>
+      <mandatory_pattern>Whenever you research, audit, plan, or modify codebase targets, your pre-flight analysis MUST explicitly inspect the TARGET files and their immediate 1-hop callers for existing technical debt:
+        1. Python Backend: Search for `getattr/hasattr`, `.get(`, silent `except Exception:`, `model_copy(update=)`, hardcoded magic numbers or timeouts (should reside in `settings.py`), and missing `@model_validator` or strict Pydantic DTOs.
+        2. Flutter Frontend: Search for hardcoded strings (missing `.arb` localization), hardcoded hex colors (`Color(0x...)`), manual string clippings (`substring(...)`), and missing `AppErrorBoundary` or `AsyncValue` guards.
+        3. ISTQB Testing: Verify whether test files lack negative ISTQB partition coverage or rely on legacy dictionary fixtures.
+        You MUST itemize all discovered technical debt and mandate its resolution as explicit pre-requisite cleanups in Phase 1 before new business logic is introduced. Enforce the Scoped Boy Scout boundary: clean technical debt exclusively in files touched by the active task.</mandatory_pattern>
+      <catastrophic_reason>Implementing new features on top of rotten or duct-taped foundations accelerates architectural drift, normalizes legacy anti-patterns, and causes cascading regressions.</catastrophic_reason>
+    </rule_block>
   </architectural_invariants>
 
   <execution_protocol level="8_audit_feature">
@@ -84,6 +94,12 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
         * Raw dictionary state passing instead of strict Pydantic V2 DTOs
         * String concatenation for prompts instead of isolated PromptBlock assembly
         * Hardcoded model strings or configuration values instead of `settings.py` / Model Garden
+
+      SECTION 5: TOUCHED SCOPE TECHNICAL DEBT &amp; ANTI-PATTERN SWEEP
+      - Inspect the active target files and their immediate 1-hop dependencies against the 7-item technical debt checklist:
+        1. Python Backend: `getattr/hasattr`, `.get(`, silent `except Exception:`, unvalidated `model_copy(update=)`, hardcoded magic numbers or timeouts, missing `@model_validator` / strict Pydantic DTOs.
+        2. Flutter Frontend: Hardcoded Finnish strings (missing `.arb`), magic hex colors (`Color(0x...)`), manual `substring()` clippings, missing `AppErrorBoundary` / `AsyncValue` guards.
+        3. ISTQB Testing: Missing negative ISTQB partitions (boundary values, error paths) or legacy dictionary test fixtures.
     </step>
 
     <step id="3">SYNTHESIS &amp; BEST-PRACTICE SOLUTION MODEL:
@@ -103,7 +119,8 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
         2. **Panel of Experts Audit (Backend, LLM/Konteksti, SDUI/Frontend)**
         3. **Falsification &amp; Red-Teaming (Tuotantoriskit &amp; Sivuvaikutukset)**
         4. **Quorum Modernity Gate Verification (Purkkaratkaisujen karsinta)**
-        5. **Recommended Architectural Model &amp; Roadmap (Suositeltava ratkaisumalli &amp; Askelmerkit)**
+        5. **Touched Scope Technical Debt &amp; Anti-Pattern Sweep (Teknisen velan kartoitus)**
+        6. **Recommended Architectural Model &amp; Roadmap (Suositeltava ratkaisumalli &amp; Askelmerkit)**
       - Conclude by providing the recommended next workflow command (e.g. `/tier0-create-epic` or `/tier0-create-plan`) for formalizing and planning the feature once approved.
     </step>
   </execution_protocol>

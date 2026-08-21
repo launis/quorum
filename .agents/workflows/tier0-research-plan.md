@@ -52,8 +52,16 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax (e.g., `@[backend_v2\seed\seed_data.json#L9036-L9056]`). This forces the executing agent to use `StartLine` and `EndLine` parameters when viewing the file, preventing catastrophic context window saturation and truncation crashes.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
-  
 
+    <rule_block id="touched_scope_tech_debt_mandate">
+      <banned_pattern>Auditing, researching, planning, or refactoring features touching codebase files without performing an active technical debt and anti-pattern sweep on the target files and their immediate 1-hop dependencies.</banned_pattern>
+      <mandatory_pattern>Whenever you research, audit, plan, or modify codebase targets, your pre-flight analysis MUST explicitly inspect the TARGET files and their immediate 1-hop callers for existing technical debt:
+        1. Python Backend: Search for `getattr/hasattr`, `.get(`, silent `except Exception:`, `model_copy(update=)`, hardcoded magic numbers or timeouts (should reside in `settings.py`), and missing `@model_validator` or strict Pydantic DTOs.
+        2. Flutter Frontend: Search for hardcoded strings (missing `.arb` localization), hardcoded hex colors (`Color(0x...)`), manual string clippings (`substring(...)`), and missing `AppErrorBoundary` or `AsyncValue` guards.
+        3. ISTQB Testing: Verify whether test files lack negative ISTQB partition coverage or rely on legacy dictionary fixtures.
+        You MUST itemize all discovered technical debt and mandate its resolution as explicit pre-requisite cleanups in Phase 1 before new business logic is introduced. Enforce the Scoped Boy Scout boundary: clean technical debt exclusively in files touched by the active task.</mandatory_pattern>
+      <catastrophic_reason>Implementing new features on top of rotten or duct-taped foundations accelerates architectural drift, normalizes legacy anti-patterns, and causes cascading regressions.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="0_research_plan">
@@ -72,7 +80,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
         Analyze the plan through the Quorum "Panel of Experts":
         - Python Backend Architect: Does this break strict Pydantic models or asynchronous constraints (e.g., TaskGroup)? Are the APIs designed correctly?
         - LLM Architect: Are the backend LLM calls and prompts safe and controlled? Are hallucinations prevented and is cache utilization maximized?
-        - Flutter & UI Developer: Does this fully support Server-Driven UI (SDUI)? Does the plan ensure UI components handle errors via Error Boundaries without crashing the entire app?
+        - Flutter &amp; UI Developer: Does this fully support Server-Driven UI (SDUI)? Does the plan ensure UI components handle errors via Error Boundaries without crashing the entire app?
       </constraint>
       <constraint name="QUORUM MODERNITY GATE">
         Ruthlessly audit the plan against Quorum anti-patterns. If ANY are detected, mutate the plan to enforce the mandated replacement:
@@ -94,6 +102,12 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
         * Frontend-side business logic → Backend SDUI with ICU Markdown parity
         * `if/else` routing chains → Strategy + Registry Pattern with Eager Loading
       </constraint>
+      <constraint name="TOUCHED_SCOPE_TECH_DEBT_SWEEP">
+        Actively inspect all TARGET files in the plan and their immediate 1-hop callers against the 7 technical debt items:
+        1. Python Backend: `getattr/hasattr`, `.get(`, silent `except Exception:`, unvalidated `model_copy(update=)`, hardcoded numbers/timeouts, missing `@model_validator` / strict Pydantic DTOs.
+        2. Flutter Frontend: Hardcoded strings (missing `.arb`), hex colors (`Color(0x...)`), manual `substring()` clippings, missing `AppErrorBoundary` / `AsyncValue` guards.
+        3. ISTQB Testing: Missing negative ISTQB partitions (boundary values, error paths) or legacy dictionary fixtures.
+      </constraint>
       <action>Evaluate if we are fixing the right problem (The XY Problem). Compare the solution against global industry best practices, particularly LLM provider recommendations.</action>
     </step>
 
@@ -109,7 +123,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
         - If we modify the backend data model, how do we ensure the Flutter client or the LLM parser does not break (second-order effects)?
         - How does the planned LLM functionality handle potential failure states (e.g., rate limits, token limits, failed JSON schema validations, or hallucinations) without compromising system stability?
         - CONTEXT WINDOW AUDIT: Does this plan overload the Context Window by trying to modify too many files (>4) in a single session without scheduling a Session Handover tracker update?
-        - UPSTREAM PARITY & GOAL ALIGNMENT: Does this plan perfectly align with the broader goals, architectural invariants, and exact specifications (including data payloads and identifiers) of the upstream Epic and `docs/architecture/` documents? You MUST verify that the planner did not hallucinate new behavior, drop requirements, or subtly alter constraints to take a 'path of least resistance'.
+        - UPSTREAM PARITY &amp; GOAL ALIGNMENT: Does this plan perfectly align with the broader goals, architectural invariants, and exact specifications (including data payloads and identifiers) of the upstream Epic and `docs/architecture/` documents? You MUST verify that the planner did not hallucinate new behavior, drop requirements, or subtly alter constraints to take a 'path of least resistance'.
       </constraint>
     </step>
 
@@ -123,6 +137,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
 
     <step id="6" name="PLAN MUTATION &amp; ANALYSIS SEPARATION (WRITE SAFETY)">
       <action>Update the actual `[implementation_plan]` document based on your validated findings so that the plan document itself remains clean and contains only straightforward execution instructions.</action>
+      <action name="TECH_DEBT_PRE_REQUISITE_INJECTION">If technical debt was discovered in touched files, you MUST mutate the implementation plan to inject explicit `### Pre-Implementation Technical Debt Cleanups` pre-requisite steps into Phase 1 before new business logic is added.</action>
       <action name="EPIC SSOT SYNC">If your analysis uncovered a significant architectural flaw, a missing dependency, or a change in strategy that affects the broader scope of the project, you MUST ALSO update the main parent Epic document (`docs/epic/EPIC_XXX.md`) and the Tracker file to document this new learning. The Epic must remain the accurate Single Source of Truth for future phases.</action>
       <constraint>You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation of the granular execution steps. Full file overwrites (`write_to_file`) are strictly forbidden.</constraint>
       <action>PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a short and concise justification for the architectural choices and changes you made.</action>

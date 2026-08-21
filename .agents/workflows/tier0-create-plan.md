@@ -48,8 +48,27 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. PROMPT BOUNDARY PRESERVATION: If the user provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plan.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` or dropping user-defined bounds forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
-  
 
+    <rule_block id="touched_scope_tech_debt_mandate">
+      <banned_pattern>Auditing, researching, planning, or refactoring features touching codebase files without performing an active technical debt and anti-pattern sweep on the target files and their immediate 1-hop dependencies.</banned_pattern>
+      <mandatory_pattern>Whenever you research, audit, plan, or modify codebase targets, your pre-flight analysis MUST explicitly inspect the TARGET files and their immediate 1-hop callers for existing technical debt:
+        1. Python Backend: Search for `getattr/hasattr`, `.get(`, silent `except Exception:`, `model_copy(update=)`, hardcoded magic numbers or timeouts (should reside in `settings.py`), and missing `@model_validator` or strict Pydantic DTOs.
+        2. Flutter Frontend: Search for hardcoded strings (missing `.arb` localization), hardcoded hex colors (`Color(0x...)`), manual string clippings (`substring(...)`), and missing `AppErrorBoundary` or `AsyncValue` guards.
+        3. ISTQB Testing: Verify whether test files lack negative ISTQB partition coverage or rely on legacy dictionary fixtures.
+        You MUST itemize all discovered technical debt and mandate its resolution as explicit pre-requisite cleanups in Phase 1 before new business logic is introduced. Enforce the Scoped Boy Scout boundary: clean technical debt exclusively in files touched by the active task.</mandatory_pattern>
+      <catastrophic_reason>Implementing new features on top of rotten or duct-taped foundations accelerates architectural drift, normalizes legacy anti-patterns, and causes cascading regressions.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="five_tier_regression_defense_mandate">
+      <banned_pattern>Introducing structural refactoring or feature additions without applying the 5-Tier Regression Defense Architecture.</banned_pattern>
+      <mandatory_pattern>All plans and execution steps MUST enforce the 5-Tier Regression Defense Architecture:
+        1. DTO &amp; Interface Isolation: Lock boundary schemas before modifying service or repository implementations.
+        2. Two-Stage Testing Pipeline: Run localized unit tests during iterative development, followed by the global completion gate (`backend_audit_loop.py` / `flutter_audit_loop.py`) before task sign-off.
+        3. Circuit Breaker &amp; Dirty Rollback: Execute `git restore . ; git clean -fd` immediately upon 3 consecutive test or quality gate failures before updating state trackers.
+        4. Phased Execution Order: Separate technical debt cleanups into Phase 1 before introducing functional feature logic in subsequent phases.
+        5. Atomic Checkpoint Commits: Commit each verified logical step individually with explicit relative paths in English.</mandatory_pattern>
+      <catastrophic_reason>Bypassing multi-tier regression safeguards leads to silent interface drift, un-rollbackable dirty working trees, and cascading system outages.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="0_create_plan">
@@ -74,6 +93,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         10. Strategy + Registry Pattern: Dynamic routing via static registries with Eager Loading (no `if/else` cascades or duck typing).
         11. Exact String Matching: `str.find()` for forensic quote evidence (no regex or fuzzy matching).
         12. AST Guardrail Mandate: Structural testing of new architectural constraints must precede execution.
+        13. Scoped Boy Scout Rule &amp; Technical Debt Sweep: Actively inspect touched target files for existing anti-patterns (getattr, .get, unvalidated model_copy, magic numbers, hardcoded UI strings/colors) and enforce their resolution in Phase 1 before new business logic is added.
       </constraint>
     </step>
 
@@ -84,6 +104,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         1. The top of the generated plan MUST be human-readable Markdown containing: Title, Objective, Scope (TARGET/CONTEXT files with bounded `@-references`), and explicit file modification categories (`[MODIFY]`, `[NEW]`, `[DELETE]`).
         2. The execution instructions MUST be wrapped in the canonical `<execution_protocol>` XML schema inside a fenced ` ```xml ``` ` codeblock.
         3. Architectural invariants MUST be injected as `<constraint invariant="rule_id">` tags within the relevant `<step>`.
+        4. If touched target files contain existing legacy anti-patterns, the generated plan MUST include `### Pre-Implementation Technical Debt Cleanups` in Phase 1 before functional features are introduced. Enforce the Scoped Boy Scout boundary (Big Bang Ban): clean technical debt exclusively in files touched by the active task.
       </constraint>
       <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` system **Artifact** (e.g., in your system artifact directory, do NOT write it to the project root or codebase directories) containing a pure Markdown checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent has a state-tracking file to consume, as they are forbidden from mutating the XML plan.</action>
       <action name="TRACKER SYNCHRONIZATION">If a Tracker file was provided in the context (e.g. `@[docs\epic\EPIC_XXX_tracker.md]`), you MUST surgically update it: Check off the `[NOK] Create Plan` step, inject every single `<step id>` from your generated XML plan as individual `- [ ] Step X: [Step Name]` checkboxes UNDER the `Execution:` command for this phase, and update the `# Session Handover Context`.</action>

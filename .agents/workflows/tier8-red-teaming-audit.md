@@ -70,12 +70,22 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
       <mandatory_pattern>After completing the Final Report, you MUST persist the audit findings by creating a timestamped artifact file (e.g., `red_team_audit_[target_name].md`) in the conversation artifact directory. This creates a searchable audit trail that survives context window closure and enables cross-session trend analysis.</mandatory_pattern>
       <catastrophic_reason>Without persistent audit trails, institutional security knowledge is lost with each conversation, forcing redundant re-audits and allowing previously identified vulnerabilities to silently re-emerge.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="touched_scope_tech_debt_mandate">
+      <banned_pattern>Auditing, researching, planning, or refactoring features touching codebase files without performing an active technical debt and anti-pattern sweep on the target files and their immediate 1-hop dependencies.</banned_pattern>
+      <mandatory_pattern>Whenever you research, audit, plan, or modify codebase targets, your pre-flight analysis MUST explicitly inspect the TARGET files and their immediate 1-hop callers for existing technical debt:
+        1. Python Backend: Search for `getattr/hasattr`, `.get(`, silent `except Exception:`, `model_copy(update=)`, hardcoded magic numbers or timeouts (should reside in `settings.py`), and missing `@model_validator` or strict Pydantic DTOs.
+        2. Flutter Frontend: Search for hardcoded strings (missing `.arb` localization), hardcoded hex colors (`Color(0x...)`), manual string clippings (`substring(...)`), and missing `AppErrorBoundary` or `AsyncValue` guards.
+        3. ISTQB Testing: Verify whether test files lack negative ISTQB partition coverage or rely on legacy dictionary fixtures.
+        You MUST itemize all discovered technical debt and mandate its resolution as explicit pre-requisite cleanups in Phase 1 before new business logic is introduced. Enforce the Scoped Boy Scout boundary: clean technical debt exclusively in files touched by the active task.</mandatory_pattern>
+      <catastrophic_reason>Implementing new features on top of rotten or duct-taped foundations accelerates architectural drift, normalizes legacy anti-patterns, and causes cascading regressions.</catastrophic_reason>
+    </rule_block>
   </architectural_invariants>
   
   <execution_protocol level="8">
     <step id="1">CONTEXT RETRIEVAL: Carefully read `tier0-research-plan.md` to ground your analytical methodology, and then thoroughly read the target workflow or rule file provided by the user. CONTEXT BUDGET GUARD: If the target file exceeds 120 lines, or if you must load more than 3 ADDITIONAL Knowledge Item (KI) files beyond the mandatory core and domain rules, you MUST proactively warn the user that the audit may suffer from context degradation and recommend splitting the audit into focused sub-sections.</step>
     
-    <step id="2">SYSTEM 2 ANALYSIS & CHAIN OF THOUGHT: Open a `<thinking_process>` block. Inside this block, deconstruct the current instructions in the target file. Evaluate whether these instructions genuinely guide the process such that Quorum architecture's strict requirements are practically enforced.
+    <step id="2">SYSTEM 2 ANALYSIS &amp; CHAIN OF THOUGHT: Open a `<thinking_process>` block. Inside this block, deconstruct the current instructions in the target file. Evaluate whether these instructions genuinely guide the process such that Quorum architecture's strict requirements are practically enforced.
     
     UNIVERSAL AXES (always apply):
     - Does the target enforce deterministic, reproducible behavior (static sorting keys, no random state)?
@@ -84,6 +94,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
     - Does it enforce Atomic Checkpoint commits and proper context window management?
     - **Quorum Modernity Check**: Does the target rely on any of the specific Quorum anti-patterns? Flag each instance with its mandated modern replacement.
     - **Peer Workflow Parity Check**: Does the target contain the same safety guardrails (e.g., circuit_breaker, session_handover, context_amnesia_prevention) as its peer workflows? If a peer has a guardrail that the target lacks, flag it as a potential gap.
+    - **Touched Scope Technical Debt Check**: Does the target workflow mandate active technical debt and anti-pattern sweeps on target files and 1-hop dependencies across the 7 checklist items (getattr/hasattr, .get(, except Exception:, model_copy, magic numbers, hardcoded UI strings/colors, ISTQB negative testing)?
     
     CONDITIONAL AXES (apply based on target domain):
     - Python/Backend: Push model data retrieval, Python 3.14+ standards (TaskGroup over gather), `uv run` enforcement, Pydantic V2 strict mode, polyfactory mock mandate.

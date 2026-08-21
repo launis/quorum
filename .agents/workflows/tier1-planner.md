@@ -220,6 +220,27 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       For every positive test, at least 2 negative/boundary tests MUST be specified. The executing agent MUST write these exact tests BEFORE or ALONGSIDE the implementation code — never after. If the plan modifies an existing function, the test contracts MUST include a `regression` category test that locks the current behavior before modification.</mandatory_pattern>
       <catastrophic_reason>Without explicit test contracts, executing agents write superficial "happy path only" tests that pass trivially but miss edge cases, boundary violations, and error paths. The vague instruction "add tests" gives the executing agent full discretion to write the minimum possible, which invariably means zero negative tests and zero boundary tests — the exact test categories that catch production bugs.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="touched_scope_tech_debt_mandate">
+      <banned_pattern>Auditing, researching, planning, or refactoring features touching codebase files without performing an active technical debt and anti-pattern sweep on the target files and their immediate 1-hop dependencies.</banned_pattern>
+      <mandatory_pattern>Whenever you research, audit, plan, or modify codebase targets, your pre-flight analysis MUST explicitly inspect the TARGET files and their immediate 1-hop callers for existing technical debt:
+        1. Python Backend: Search for `getattr/hasattr`, `.get(`, silent `except Exception:`, `model_copy(update=)`, hardcoded magic numbers or timeouts (should reside in `settings.py`), and missing `@model_validator` or strict Pydantic DTOs.
+        2. Flutter Frontend: Search for hardcoded strings (missing `.arb` localization), hardcoded hex colors (`Color(0x...)`), manual string clippings (`substring(...)`), and missing `AppErrorBoundary` or `AsyncValue` guards.
+        3. ISTQB Testing: Verify whether test files lack negative ISTQB partition coverage or rely on legacy dictionary fixtures.
+        You MUST itemize all discovered technical debt and mandate its resolution as explicit pre-requisite cleanups in Phase 1 before new business logic is introduced. Enforce the Scoped Boy Scout boundary: clean technical debt exclusively in files touched by the active task.</mandatory_pattern>
+      <catastrophic_reason>Implementing new features on top of rotten or duct-taped foundations accelerates architectural drift, normalizes legacy anti-patterns, and causes cascading regressions.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="five_tier_regression_defense_mandate">
+      <banned_pattern>Introducing structural refactoring or feature additions without applying the 5-Tier Regression Defense Architecture.</banned_pattern>
+      <mandatory_pattern>All plans and execution steps MUST enforce the 5-Tier Regression Defense Architecture:
+        1. DTO &amp; Interface Isolation: Lock boundary schemas before modifying service or repository implementations.
+        2. Two-Stage Testing Pipeline: Run localized unit tests during iterative development, followed by the global completion gate (`backend_audit_loop.py` / `flutter_audit_loop.py`) before task sign-off.
+        3. Circuit Breaker &amp; Dirty Rollback: Execute `git restore . ; git clean -fd` immediately upon 3 consecutive test or quality gate failures before updating state trackers.
+        4. Phased Execution Order: Separate technical debt cleanups into Phase 1 before introducing functional feature logic in subsequent phases.
+        5. Atomic Checkpoint Commits: Commit each verified logical step individually with explicit relative paths in English.</mandatory_pattern>
+      <catastrophic_reason>Bypassing multi-tier regression safeguards leads to silent interface drift, un-rollbackable dirty working trees, and cascading system outages.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_epic_planner">
@@ -247,6 +268,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
         2) NEVER mix Backend (Python) and Frontend (Flutter) changes in the same plan. 
         3) You MUST include explicit `@-reference` syntax for all target files in these sub-plans to ensure the executing agent automatically loads them.
         4) HYBRID SANDWICH ARCHITECTURE: Each generated plan MUST have human-readable Markdown at the top (overview, target files), but the actual step-by-step execution instructions MUST be wrapped in the canonical `<execution_protocol>` XML schema inside a fenced ` ```xml ``` ` codeblock. This XML MUST also include `<contract_freeze>`, `<dod_checklist>`, `<anti_targets>`, and end with a mandatory `<validation_gate>`.
+        5) PHASE 1 TECH DEBT ISOLATION: If any target file in the Epic contains pre-existing technical debt or legacy anti-patterns, the Planner MUST isolate these cleanups into Phase 1 ('Pre-Implementation Technical Debt Cleanups') before functional feature logic is scheduled in subsequent phases.
       </constraint>
       <constraint name="TOUCHED_ARTIFACTS_MANIFEST">
         Every generated sub-plan's XML metadata MUST include an explicit `<touched_artifacts>` block that enumerates ALL production `.py` and `.dart` files that are targets of `[MODIFY]` or `[NEW]` operations in that sub-plan. Format: `<touched_artifacts><backend>@[path/to/file.py]</backend><frontend>@[path/to/file.dart]</frontend></touched_artifacts>`. CRITICAL: Test files (paths containing `/tests/`, `/test/`, or starting/ending with `test_`) MUST NOT be listed in `<touched_artifacts>` because they are executed as quality gate verification evidence rather than production hardening targets. This machine-readable block is consumed by `tier1-tracker-generator.md` to generate granular file-level checklists in the tracker.

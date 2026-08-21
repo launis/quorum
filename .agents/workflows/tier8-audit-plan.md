@@ -45,8 +45,16 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If the plan touches systems governed by a KI, you MUST read the KI artifact to establish the correct audit baseline.</mandatory_pattern>
       <catastrophic_reason>Auditing without reading the domain's Knowledge Items leads to false-positive failures and destroys established architectural contracts.</catastrophic_reason>
     </rule_block>
-  
 
+    <rule_block id="touched_scope_tech_debt_mandate">
+      <banned_pattern>Auditing, researching, planning, or refactoring features touching codebase files without performing an active technical debt and anti-pattern sweep on the target files and their immediate 1-hop dependencies.</banned_pattern>
+      <mandatory_pattern>Whenever you research, audit, plan, or modify codebase targets, your pre-flight analysis MUST explicitly inspect the TARGET files and their immediate 1-hop callers for existing technical debt:
+        1. Python Backend: Search for `getattr/hasattr`, `.get(`, silent `except Exception:`, `model_copy(update=)`, hardcoded magic numbers or timeouts (should reside in `settings.py`), and missing `@model_validator` or strict Pydantic DTOs.
+        2. Flutter Frontend: Search for hardcoded strings (missing `.arb` localization), hardcoded hex colors (`Color(0x...)`), manual string clippings (`substring(...)`), and missing `AppErrorBoundary` or `AsyncValue` guards.
+        3. ISTQB Testing: Verify whether test files lack negative ISTQB partition coverage or rely on legacy dictionary fixtures.
+        You MUST itemize all discovered technical debt and mandate its resolution as explicit pre-requisite cleanups in Phase 1 before new business logic is introduced. Enforce the Scoped Boy Scout boundary: clean technical debt exclusively in files touched by the active task.</mandatory_pattern>
+      <catastrophic_reason>Implementing new features on top of rotten or duct-taped foundations accelerates architectural drift, normalizes legacy anti-patterns, and causes cascading regressions.</catastrophic_reason>
+    </rule_block>
   </architectural_invariants>
 
   <execution_protocol level="8_audit_plan">
@@ -56,7 +64,7 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
       - Deconstruct the plan into measurable requirements based on the `[MODIFY]`, `[NEW]`, and `[DELETE]` directives.
     </step>
 
-    <step id="2">AS-BUILT MAPPING & FORENSIC SEARCH: 
+    <step id="2">AS-BUILT MAPPING &amp; FORENSIC SEARCH: 
       - Actively use `grep_search` and `view_file` to trace every requirement from the plan into the physical codebase.
       - Verify that the stated features exist, are wired correctly, and are not just "dead code".
       - TDD FORENSIC AUDIT: You MUST use `grep_search` in the `backend_v2/tests/` and `client_app_v2/test/` directories to explicitly verify that NEW test functions were written for the plan's features. Specifically: (1) Search for test function names matching the plan's target modules. (2) Verify the presence of negative test cases by searching for exception assertions in the respective language tests. If no new negative tests are found for the features in the plan, flag it as a FINDING in the audit report per the `anti_happy_path_mandate`.
@@ -70,14 +78,18 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
       - MANDATORY CIRCUIT BREAKER: If a `grep_search` fails 3 times while looking for old symbols, accept that they are deleted or unrecognizable and move on. Do not enter an infinite search loop.
     </step>
 
-    <step id="4">MODERNITY, COMPLIANCE & QUALITY GATE VERIFICATION: 
+    <step id="4">MODERNITY, COMPLIANCE &amp; QUALITY GATE VERIFICATION: 
       - Determine the domain scope of the plan (Backend-only, Frontend-only, or Full-Stack).
       - Inspect the actual implementations against Quorum 2026 laws (TaskGroup, Pydantic V2 DTOs, No-String Mandate, no lazy fallbacks).
+      - TOUCHED SCOPE TECH DEBT AUDIT: For all `[MODIFY]` and `[NEW]` targets, verify that no legacy technical debt or anti-patterns were introduced or left unfixed in touched files and their immediate 1-hop callers:
+        1. Python Backend: `getattr/hasattr`, `.get(`, silent `except Exception:`, unvalidated `model_copy(update=)`, hardcoded magic numbers or timeouts, missing `@model_validator` / strict Pydantic DTOs.
+        2. Flutter Frontend: Hardcoded Finnish strings (missing `.arb`), magic hex colors (`Color(0x...)`), manual `substring()` clippings, missing `AppErrorBoundary` / `AsyncValue` guards.
+        3. ISTQB Testing: Missing negative ISTQB partitions (boundary values, error paths) or legacy dictionary test fixtures.
       - SCOPED SDUI Parity: If the plan is Backend-only, you may defer the implementation of Frontend UI visual components (Widgets) to the next phase. However, if the plan modified ANY Pydantic DTO schemas, you MUST enforce strict SDUI DTO Parity immediately—the corresponding Freezed models MUST be updated in this exact same plan. DTO Parity CANNOT be deferred.
       - You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.
       - SUPPLY CHAIN AUDIT: Use `grep_search` on `pyproject.toml` and `pubspec.yaml` to verify that no unauthorized third-party dependencies were introduced. Specifically search for packages banned by `dependency_hallucination_firewall` and `ai_bloatware_ban` (specifically and exhaustively: `langchain`, `llamaindex`, `crewai`, `autogen`, `semantic-kernel`). If any banned package is found, flag it as a CRITICAL finding.
       - MATHEMATICAL PROOF MANDATE: You MUST physically execute the universal quality gate scripts. You MUST enforce the Two-Stage Testing Pipeline from `fragmented_quality_gates_prevention`: First run localized tests on the modified directories for rapid feedback. Then, BEFORE declaring the audit PASSED, you MUST run the GLOBAL completion gate (`uv run python scripts/backend_audit_loop.py backend_v2/ --test` for backend, `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build` for frontend). A localized-only audit is NEVER sufficient for final sign-off.
-      - LINTER & DOCSTRING GATE AUDIT: For every `[MODIFY]` and `[NEW]` file listed in the implementation plan, run `uv run python -m ruff check --select D,E501 <file>` to verify zero pep257 docstring and line-length errors. Verify that no `CheckedFromJsonException` bypass patterns exist in target files via `grep_search`. Report any violations in the Gap Analysis table.
+      - LINTER &amp; DOCSTRING GATE AUDIT: For every `[MODIFY]` and `[NEW]` file listed in the implementation plan, run `uv run python -m ruff check --select D,E501 <file>` to verify zero pep257 docstring and line-length errors. Verify that no `CheckedFromJsonException` bypass patterns exist in target files via `grep_search`. Report any violations in the Gap Analysis table.
       - SCRIPT CRASH FALLBACK: If the quality gate script crashes due to an environment error rather than producing a normal test/linter failure, you MUST explicitly document it as an "Environment/Infrastructure Failure" in your report. Do not incorrectly fail the codebase implementation audit due to a local environment crash.
     </step>
 

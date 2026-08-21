@@ -51,8 +51,27 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
       <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
     </rule_block>
-  
 
+    <rule_block id="touched_scope_tech_debt_mandate">
+      <banned_pattern>Auditing, researching, planning, or refactoring features touching codebase files without performing an active technical debt and anti-pattern sweep on the target files and their immediate 1-hop dependencies.</banned_pattern>
+      <mandatory_pattern>Whenever you research, audit, plan, or modify codebase targets, your pre-flight analysis MUST explicitly inspect the TARGET files and their immediate 1-hop callers for existing technical debt:
+        1. Python Backend: Search for `getattr/hasattr`, `.get(`, silent `except Exception:`, `model_copy(update=)`, hardcoded magic numbers or timeouts (should reside in `settings.py`), and missing `@model_validator` or strict Pydantic DTOs.
+        2. Flutter Frontend: Search for hardcoded strings (missing `.arb` localization), hardcoded hex colors (`Color(0x...)`), manual string clippings (`substring(...)`), and missing `AppErrorBoundary` or `AsyncValue` guards.
+        3. ISTQB Testing: Verify whether test files lack negative ISTQB partition coverage or rely on legacy dictionary fixtures.
+        You MUST itemize all discovered technical debt and mandate its resolution as explicit pre-requisite cleanups in Phase 1 before new business logic is introduced. Enforce the Scoped Boy Scout boundary: clean technical debt exclusively in files touched by the active task.</mandatory_pattern>
+      <catastrophic_reason>Implementing new features on top of rotten or duct-taped foundations accelerates architectural drift, normalizes legacy anti-patterns, and causes cascading regressions.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="five_tier_regression_defense_mandate">
+      <banned_pattern>Introducing structural refactoring or feature additions without applying the 5-Tier Regression Defense Architecture.</banned_pattern>
+      <mandatory_pattern>All plans and execution steps MUST enforce the 5-Tier Regression Defense Architecture:
+        1. DTO &amp; Interface Isolation: Lock boundary schemas before modifying service or repository implementations.
+        2. Two-Stage Testing Pipeline: Run localized unit tests during iterative development, followed by the global completion gate (`backend_audit_loop.py` / `flutter_audit_loop.py`) before task sign-off.
+        3. Circuit Breaker &amp; Dirty Rollback: Execute `git restore . ; git clean -fd` immediately upon 3 consecutive test or quality gate failures before updating state trackers.
+        4. Phased Execution Order: Separate technical debt cleanups into Phase 1 before introducing functional feature logic in subsequent phases.
+        5. Atomic Checkpoint Commits: Commit each verified logical step individually with explicit relative paths in English.</mandatory_pattern>
+      <catastrophic_reason>Bypassing multi-tier regression safeguards leads to silent interface drift, un-rollbackable dirty working trees, and cascading system outages.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="0_create_epic">
@@ -79,6 +98,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
         10. Strategy + Registry Pattern: Dynamic routing via static registries with Eager Loading.
         11. Exact String Matching: `str.find()` for forensic quote evidence.
         12. AST Guardrail Mandate: Structural testing of new architectural constraints.
+        13. Scoped Boy Scout Rule &amp; Technical Debt Sweep: Actively inspect touched target files for existing anti-patterns (getattr, .get, unvalidated model_copy, magic numbers, hardcoded UI strings/colors) and mandate their resolution in Phase 1 before new business logic is added.
       </constraint>
     </step>
 
@@ -93,6 +113,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
           - **Compliance & Modernity Gates**: Quorum 2026 invariants.
           - **Producer-Consumer Integration Check**: Structural contract between data producers and data consumers.
         - `## 3. Phased Execution Plan (Implementation Strategy)`:
+          - Phase 1: Pre-Implementation Technical Debt Cleanups (Scoped Boy Scout cleanup of existing anti-patterns in touched target files before new logic)
           - Phase 2: Orchestration, Registry &amp; Prompt Compiler Updates
           - Phase 3: Frontend Flutter UI &amp; Freezed DTO Synchronization
           - Phase 4: Verification &amp; E2E Integration Gate

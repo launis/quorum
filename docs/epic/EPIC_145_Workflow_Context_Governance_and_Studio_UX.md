@@ -44,7 +44,7 @@ Payload compression MUST NOT degrade synthesis narrative richness into dry, robo
 
 ### Retained SSOT Invariants (`What We Will RETAIN`)
 - **Immutable Underlying Schema**: `StepRule.input_mappings: dict[str, str]` and `StepRule.depends_on: list[str]` remain 100% backward compatible and architecturally unchanged.
-- **SSOT Settings Limits**: `settings.max_synthesis_evaluations`, `settings.max_synthesis_quote_length`, `settings.max_synthesis_quotes_per_matrix`, and `settings.max_synthesis_unmet_criteria_per_matrix` in `@[backend_v2/settings.py]`.
+- **SSOT Settings Limits**: `settings.max_synthesis_evaluations` (default: `0` = Unbounded / no truncation by default), `settings.max_synthesis_quote_length`, `settings.max_synthesis_quotes_per_matrix`, and `settings.max_synthesis_unmet_criteria_per_matrix` in `@[backend_v2/settings.py]`.
 - **Tripartite Configuration Architecture**: Models define defaults, Settings defines global bounds, and Output Profile DTOs provide optional profile-level overrides.
 
 ### Compliance & Modernity Gates
@@ -52,7 +52,7 @@ Payload compression MUST NOT degrade synthesis narrative richness into dry, robo
 2. **Strict Dictionary Access & Key Deletion**: Iterated collections with known, validated keys MUST use deterministic and loud operations (specifically `del groups[group_id]` in `ranked_round_robin_select` upon bucket exhaustion). The use of duck-typing or soft fallbacks (`groups.pop(key, None)`) on known iterated keys is STRICTLY PROHIBITED per `the_zero_compromise_pledge`.
 3. **Probe Boundary & Fail-Fast Isolation**:
    - Empty `evaluations` container resulting from data loss -> `AppException(VALIDATION_FAILED)`.
-   - Evaluations exceeding `settings.max_synthesis_evaluations` -> Deterministic truncation with `logger.warning` (Token Shield).
+   - **Evaluations Count Governance & Token Shield Protocol**: When `settings.max_synthesis_evaluations == 0`, truncation is disabled (Unbounded Mode, full 100% forensic coverage without data loss). When `settings.max_synthesis_evaluations > 0` and count exceeds limit -> Deterministic **Prioritized Stratification** (deficits/failures prioritized up to 70% of limit, remaining budget to strengths) with structured `logger.warning` (Token Shield). Sokea listan leikkaus (`evals[:limit]`) on ankarasti kielletty "Auditing Whitewash" -vääristymien estämiseksi.
    - Dynamic step payload probing (`LevelStatsDTO` & `LightweightMatrixOutput`): Untrusted or malformed nested `level_breakdown` dictionaries MUST be wrapped in explicit `try...except (ValidationError, ValueError) as e:` PROBE BOUNDARIES with `logger.warning(..., extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)})` and skipped with `continue` to preserve Fail-Fast isolation and prevent non-critical statistical metadata corruption from crashing overall synthesis aggregation.
 4. **Observability & Structured Validation Logging Parity**: All probe-boundary and presentation-layer components (`MatrixExplanationService`, `XaiHighlightsAdapter`) MUST log caught `(ValidationError, ValueError)` exceptions with explicit structured error codes (`extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)}`). Dropping `str(e)` / error details is strictly forbidden to prevent silent observability degradation in Cloud Logging and Datadog. Unhandled system exceptions and configuration errors MUST be logged via `logger.error(..., exc_info=True)` before raising `AppException` or `ConfigurationError`.
 5. **Cross-Domain DTO Parity**: Python Pydantic V2 `StepRule` and Dart 3 Freezed `StepRule` synchronously updated with `is_synthesis_source` / `isSynthesisSource`.
@@ -79,6 +79,7 @@ graph TD
 
 ### Phase 1: Backend Domain Models & Synthesis Payload Compression Hardening
 - **Target Files**:
+  - `@[backend_v2/settings.py#L140-L155]` (`max_synthesis_evaluations` and `max_synthesis_reasoning_length` limit configs)
   - `@[backend_v2/models/v2_core.py#L709-L798]` (`Step` model)
   - `@[backend_v2/models/v2_core.py#L801-L834]` (`StepRule` model)
   - `@[backend_v2/models/v2_core.py#L1070-L1088]` (`SynthesisConfigDTO` model)
@@ -94,30 +95,68 @@ graph TD
   2. Add `is_synthesis_source: Annotated[bool, Field(description="Whether this step's narrative text output is forwarded to the synthesis LLM context.")] = True` to `StepRule` model. This field controls per-step opt-in/opt-out for the synthesis distiller payload. Default `True` preserves backward compatibility.
   3. Add `max_quotes_per_matrix: Annotated[int | None, Field(description="Per-profile override for quotes per matrix in explanations.")] = None` and `max_unmet_criteria: Annotated[int | None, Field(description="Per-profile override for unmet criteria per matrix.")] = None` to `SynthesisConfigDTO`.
   4. Add `SYSTEM_PROTECTED_RESOURCE = "SYSTEM_PROTECTED_RESOURCE"` to `ErrorCodes` enum in `@[backend_v2/exceptions.py#L99-L278]` under a new `# System Protection` section.
-  5. Upgrade `SynthesisPayloadCompressor._strip_heavy_keys`:
+  5. In `settings.py`:
+     - Update `max_synthesis_evaluations: Annotated[int, Field(ge=0, description="Max evaluations for synthesis token shield. Set to 0 for unbounded (no truncation by default).")] = 0`.
+     - Add `max_synthesis_reasoning_length: Annotated[int, Field(description="Maximum character length for semantic reasoning in synthesis payloads")] = 300` to eliminate hardcoded magic number `[:300]` in compressor logic per `strict_configuration_segregation` and `ki_global_config_sovereignty.md`.
+  6. Upgrade `SynthesisPayloadCompressor._strip_heavy_keys`:
      - Explicitly and exhaustively strip keys using `obj.pop(key, None)` for each key in the following closed set: `"shuffled_atoms"`, `"atom_quotes"`, `"hydrated_references"`, `"_step_metadata"`, `"_audit_signature"`, `"_evaluative_matrices"`. NOTE: `pop(key, None)` is architecturally permitted here because these keys are OPTIONAL metadata that may or may not exist on any given payload dict. This is distinct from the `the_zero_compromise_pledge` ban which prohibits `.pop(key, None)` on keys that are KNOWN to exist in iterated collections.
+     - Optimize top-level BaseModel handling: avoid redundant `copy.deepcopy` calls after `model_dump(exclude_unset=True)`.
      - Implement dedicated `_normalize_result_item(item: dict[str, Any]) -> dict[str, Any]` for `results` payload schema, strictly enforcing `DistilledEvaluation.model_validate()` when item contains evaluation fields, or strict field whitelisting (retaining only whitelisted keys e.g. `output_text`, `status`, `atom_id`) to prevent raw unvalidated dictionaries from propagating bloat into synthesis prompts (`no_naked_dicts_in_state` compliant).
      - Process `"evaluations"` and `"results"` as dual explicit distillation paths without fallback chains.
-     - Enforce `DistilledEvaluation.model_validate(lite_ev_dict, strict=False)` deep copy re-validation.
-     - **Token Shield Truncation (Intentional Fail-Fast Deviation)**: Evaluations exceeding `settings.max_synthesis_evaluations` MUST be deterministically truncated (sliced to limit) with `logger.warning("Token Shield: Truncating evaluations", extra={"original_count": len(evals), "limit": settings.max_synthesis_evaluations})`. This replaces the current `AppException` crash. **Architectural Justification**: Crashing the entire synthesis pipeline because a single step produced too many evaluations destroys business value disproportionately. The truncation is deterministic, observable via structured logging, and preserves the most informative evaluations.
-  6. In `synthesis_distiller.py`:
+     - Enforce `DistilledEvaluation.model_validate(lite_ev_obj.model_dump(exclude_unset=True) | {...})` re-validation (strictly replacing `lite_ev_obj.model_copy(update={...})` and referencing `settings.max_synthesis_reasoning_length`).
+     - Refactor exception handling in `SynthesisPayloadCompressor`: eliminate broad `except Exception as e:` wrapping without RFC-7807 logging. Catch specific `(ValidationError, ValueError)` and log via `logger.error("[SynthesisCompressor] %s: Validation failed during payload distillation: %s", ErrorCodes.VALIDATION_FAILED.name, str(e))` before raising `AppException(status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})`.
+     - **Token Shield Prioritized Stratification & Unbounded Protocol (Intentional Fail-Fast Deviation)**:
+       - If `settings.max_synthesis_evaluations == 0`: Truncation is completely disabled (Unbounded Mode). All valid distilled evaluations are forwarded to synthesis, ensuring 100% forensic coverage for standard production runs without data loss.
+       - If `settings.max_synthesis_evaluations > 0` and `len(lite_evals) > settings.max_synthesis_evaluations`:
+         Apply **Prioritized Stratification** via `_prune_and_stratify_evaluations(evals, limit)`:
+         1. Partition evaluations into Deficits/Failures (`status in ("FAILED", "UNMET", "NON_COMPLIANT")` or `is_unmet: True`) and Strengths/Passes.
+         2. Allot up to 70% of the limit to Deficits (critical deficits and compliance findings retained first).
+         3. Fill the remaining budget with representative Strengths/Passes (preserving a balanced cognitive profile).
+         4. Emit structured `logger.warning("Token Shield: Prioritized stratification applied", extra={"original_count": len(evals), "limit": limit, "deficits_retained": deficit_budget, "strengths_retained": strength_budget, "dropped_count": len(evals) - len(stratified)})`.
+       - **Architectural Justification**: Eliminates the "Auditing Whitewash" anti-pattern where blind array slicing (`evals[:limit]`) dropped critical compliance failures at the tail of the list and tricked the LLM into generating false-clean audit reports. Setting default to `0` guarantees complete audit fidelity while retaining configurable bounding for extreme multi-thousand atom runs.
+  7. In `synthesis_distiller.py`:
      - Forward `output_profile.synthesis` config into `MatrixExplanationService.assemble_matrices_to_explain()`.
      - Filter `available_dtos` using the `StepRule.is_synthesis_source` flag: only include steps where the corresponding `StepRule.is_synthesis_source == True` in the synthesis payload assembly.
-  7. In `matrix_explanation_service.py`:
+  8. In `matrix_explanation_service.py`:
      - Accept an additional `synthesis_config: SynthesisConfigDTO | None` parameter in `assemble_matrices_to_explain()`. Consume profile-level `max_quotes_per_matrix` and `max_unmet_criteria` overrides using the **Tripartite Configuration Resolution**: `synthesis_config.max_quotes_per_matrix if synthesis_config and synthesis_config.max_quotes_per_matrix is not None else settings_obj.max_synthesis_quotes_per_matrix`. This follows the Tripartite Configuration Architecture (Models → Settings → Profile Override) and is NOT a banned fallback chain per `zero_service_layer_fallbacks`.
      - **Deduplication Starvation Prevention**: The `seen_matrix_quotes: set[str]` pre-deduplication pattern already exists at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L130-L141]`. Verify it remains intact and operates BEFORE `ranked_round_robin_select`.
      - **Strict Key Deletion Invariant**: The `del groups[group_id]` pattern already exists at `@[backend_v2/utils/ranked_round_robin.py#L73]`. Verify it remains intact and no `.pop(k, None)` patterns are introduced.
      - **Probe Boundary Isolation (Architectural Exception to Duct-Tape Ban)**: Maintain strict Probe Boundary isolation on `LevelStatsDTO.model_validate(raw_stats, strict=False)` and `AtomResultDTO.model_validate` with `try...except (ValidationError, ValueError) as e:` logging structured `extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)}`. **Architectural Justification**: These probe boundaries protect non-critical statistical metadata (level breakdowns) from crashing the overall synthesis aggregation. Malformed `level_breakdown` dictionaries from upstream DAG steps are explicitly non-critical and MUST NOT block synthesis. This follows the established pattern at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L25-L224]`.
-  8. In backend `StudioWorkflowService` (`workflow_service.py`):
+     - **Resolve `except Exception:` in Label Resolution**: Replace silent catch-all `except Exception:` at line 123 in claim text resolution with direct typed resolution `claim.label.resolve(target_locale)` (or catching specific `(KeyError, AttributeError)` with structured debug logging) per `the_duct_tape_ban` and `universal_fail_fast`.
+  9. In backend `StudioWorkflowService` (`workflow_service.py`):
      - Enforce Fail-Fast protection: If `step.is_system_core` is True, raise `AppException(ErrorCodes.SYSTEM_PROTECTED_RESOURCE)` on deletion or renaming attempts.
-  9. **Existing Tech Debt (Non-Blocking, Document Only)**: The current `SynthesisPayloadCompressor` at line 132 uses `lite_ev_obj.model_copy(update={...})` which per `frozen_state_mutability` rule performs a shallow copy bypassing validation. This should be refactored to `DistilledEvaluation.model_validate(lite_ev_obj.model_dump(mode='json') | {...}, strict=False)` during this Epic's Phase 1 implementation.
+     - Eliminate duck typing `getattr(data, "organization_id", None)` at line 462 in `save_step`. Access typed attribute `data.organization_id` directly per `the_zero_compromise_pledge` and `zero_service_layer_fallbacks`.
+  10. **Existing Tech Debt (Non-Blocking, Document Only)**: The current `SynthesisPayloadCompressor` at line 132 uses `lite_ev_obj.model_copy(update={...})` which per `frozen_state_mutability` rule performs a shallow copy bypassing validation. This should be refactored to `DistilledEvaluation.model_validate(lite_ev_obj.model_dump(exclude_unset=True) | {...})` during this Epic's Phase 1 implementation, enforcing pure in-memory dictionary unpacking and strict Pydantic V2 re-validation without double-serialization or `strict=False` bypasses.
+
+### Phase 1.5: Atomic Seed Data Migration & Database Re-seeding Gate (Vault Protocol)
+- **Target Files**:
+  - `@[backend_v2/seed/seed_data.json]`
+  - `@[backend_v2/seed/run_seed.py]`
+- **Protocol Compliance**: Strictly follows `@[.agents/rules/03_seed_vault.md]` protocol.
+- **Actions**:
+  1. **Backup**: Execute timestamped backup: `New-Item -ItemType Directory -Force -Path backend_v2/seed/backups; Copy-Item backend_v2/seed/seed_data.json -Destination backend_v2/seed/backups/seed_data_pre_epic145.json`.
+  2. **Step Definitions Migration (`is_system_core`)**:
+     - In `seed_data.json` under `steps` array, set `"is_system_core": true` for protected foundational steps:
+       - `sp_db849f9790984585` (`step_input_processing`, Step 1: Input Processing)
+       - `sp_192910b5f5a34c79` (`step_xai_reporter`, Step 14: XAI Reporter)
+       - `sp_d245365e4a274b9e` (`sp_d245365e4a274b9e`, Step 15: Scoring Engine / Native Logic Hook)
+       - `sp_7a8b9c0d1e2f3a4b` (`synthesis_generation`, Step 16: Synteesin Generointi)
+     - Set `"is_system_core": false` explicitly for all other 15 specialist steps in the `steps` array.
+  3. **Workflow Step Rules Migration (`is_synthesis_source`)**:
+     - In `seed_data.json` under `workflows[0].steps` array, configure `"is_synthesis_source"` for all 16 `StepRule` definitions:
+       - Set `"is_synthesis_source": false` for `sr_f0a26d17cc9b48a7` (Step 1: Input Processing blueprint `sp_db849f9790984585`) to ensure raw document decompositions (`hydrated_references`) are excluded from synthesis.
+       - Set `"is_synthesis_source": true` for all cognitive specialist and funnel step rules (Steps 2..16) to forward their narrative evaluations to the synthesis engine.
+  4. **Integrity & Re-Seed Gate**:
+     - Dry-run JSON validation to ensure zero syntax or trailing comma regressions.
+     - Execute backend audit: `uv run python scripts/backend_audit_loop.py backend_v2 --test`.
+     - Re-seed local development database: `uv run python backend_v2/seed/run_seed.py local`.
 
 ### Phase 2: DTO & Freezed Serialization Parity
 - **Target Files**:
   - `@[client_app_v2/lib/features/studio/models/workflow.dart#L1-L185]`
 - **Actions**:
-  1. Add `@Default(false) bool isSystemCore` to BOTH `NodeStrategy.llm` and `NodeStrategy.logic` Freezed sealed class constructors at `@[client_app_v2/lib/features/studio/models/workflow.dart#L76-L116]`. Both variants MUST include the field since it maps to the unified Python `Step.is_system_core`.
-  2. Add `@Default(true) bool isSynthesisSource` to the `StepRule` Freezed model constructor at `@[client_app_v2/lib/features/studio/models/workflow.dart#L54-L62]`. This maps 1:1 to the Python `StepRule.is_synthesis_source` field.
+  1. Add `@Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore` to BOTH `NodeStrategy.llm` and `NodeStrategy.logic` Freezed sealed class constructors at `@[client_app_v2/lib/features/studio/models/workflow.dart#L76-L116]`. Both variants MUST include the field since it maps to the unified Python `Step.is_system_core`.
+  2. Add `@Default(true) @JsonKey(name: 'is_synthesis_source') bool isSynthesisSource` to the `StepRule` Freezed model constructor at `@[client_app_v2/lib/features/studio/models/workflow.dart#L54-L62]`. This maps 1:1 to the Python `StepRule.is_synthesis_source` field.
   3. Run Flutter code generation via `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/workflow.dart --build`.
 
 ### Phase 3: Studio Workflow & Step Blueprint UX Restructuring (3-Zone Management & Core Protection)
@@ -143,7 +182,13 @@ graph TD
      - `studioWorkflowStep14AggregateBadge`: `"⚡ Automaattinen koonti: Kokoaa automaattisesti kaikki yllä määritellyt työnkulun asiantuntijat."` / `"⚡ Automatic Aggregation: Automatically collects all active workflow specialists above."`
      - `studioWorkflowStep14PayloadDesc`: `"📑 Yhdistetty tilasyöte ($steps): Tämä askel lukee ja ristiinanalysoi kaikkien aktiivisten asiantuntijoiden havainnot ja todisteet. Raakatiedostoja ei tarvita."` / `"📑 Consolidated State Stream ($steps): This step ingests and cross-analyzes all active specialist findings. Raw files are excluded."`
      - `studioSystemCoreBadge`: `"🔒 Järjestelmän perusaskel (Suojattu)"` / `"🔒 System Core Step (Protected)"`
-  2. Refactor `WorkflowStepCard` with the **3-Zone Layout & Blueprint Locking**:
+     - `studioStepBuilderModelStrategyRequired`: `"Tekoälymalli (Model Strategy) on pakollinen LLM-askelille."` / `"Model Strategy is required for LLM steps."`
+     - `studioWorkflowInputPrefix`: `"Syöte: {name}"` / `"Input: {name}"`
+     - `studioWorkflowStepPrefix`: `"Askel: {name}"` / `"Step: {name}"`
+     - `studioWorkflowNoSelectableInputs`: `"Ei valittavia syötteitä tai riippuvuuksia."` / `"No selectable inputs or dependencies available."`
+  2. Refactor `WorkflowStepCard` with the **3-Zone Layout, Blueprint Locking & Design System Parity**:
+     - Eliminate hardcoded Finnish strings (`'Syöte: $labelText'`, `'Askel: $labelStr'`, `'Ei valittavia syötteitä...'`) at lines 225, 279, 308, utilizing generated `l10n` getters per `no_magic_strings_l10n`.
+     - Eliminate manual string truncation `substring(0, 15)` at lines 181 and 273, replacing with Flutter `Text(..., overflow: TextOverflow.ellipsis)` per `horizontal_overflow_prevention`.
      - **Zone A (Step 1 - Input Processing)**:
        - Header: Index badge, title, collapse arrow (Delete button 🗑 is HIDDEN/DISABLED).
        - Blueprint: **Locked System Anchor** (`Input Processing`). Dropdown is disabled/hidden, displaying locked `studioSystemCoreBadge`.
@@ -160,6 +205,8 @@ graph TD
          - Step 15 (Scoring Engine): Shows automatic CDM calculation badge connecting to Step 14.
          - Step 16 (Synteesin Generointi): Shows headless state sealing badge into Tripartite Phase 2.
   3. Refactor Step Blueprint Management (`step_builder_view.dart`):
+     - Replace hardcoded hex colors (e.g. `backgroundColor: const Color(0xFF2E7D32)` at line 252) with Semantic Theme Tokens (`Theme.of(context).colorScheme.primary` or snackbar theme color) per `design_token_absolute_rule`.
+     - Replace hardcoded snackbar error text at line 237 with `l10n.studioStepBuilderModelStrategyRequired`.
      - **System Core Protection (`is_system_core == true`)**:
        - Hide/disable the Delete action 🗑 and show the `studioSystemCoreBadge` (`🔒 Järjestelmän perusaskel (Suojattu)`).
        - Lock execution type (`logic` vs `llm`), hook name (specifically `apply_scoring_logic` for Scoring Engine), and expected input signatures to prevent engine disruption.
@@ -177,16 +224,19 @@ graph TD
    - [NEW] `@[client_app_v2/test/features/studio/views/widgets/workflow/workflow_step_card_test.dart]`
 
 - **Actions**:
-  1. Implement comprehensive unit and negative test suite in `test_synthesis_payload_compression.py` and `test_studio.py`:
+  1. Implement comprehensive unit, negative, and ISTQB equivalence partition test suite in `test_synthesis_payload_compression.py` and `test_studio.py` per `heterogeneous_payload_testing_mandate`:
+     - `test_compress_payload_unbounded_when_zero_evaluations_limit`
+     - `test_compress_payload_prioritized_stratification_retains_critical_deficits_over_passes`
      - `test_compress_payload_strips_hydrated_references_and_heavy_keys`
      - `test_compress_payload_with_results_only_no_evaluations`
-     - `test_compress_payload_truncates_exceeding_limit_without_crashing`
      - `test_compress_payload_evaluations_empty_after_compression_fails_fast`
-     - `test_compress_payload_heterogeneous_dag_types` (specifically covering the 4 ISTQB partitions: `str`, `list`, `int`/`float`/`bool`, `BaseModel`)
+     - `test_compress_payload_heterogeneous_dag_types` (exhaustively testing all 4 ISTQB partitions: Partition 1: `dict[str, Any]` matrix evaluations, Partition 2: `list[Any]` batch items and DTO lists, Partition 3: `str` pure Markdown/narratives, Partition 4: Scalars `int`/`float`/`bool` and empty falsy inputs `None`/`""`/`{}`)
      - `test_delete_step_protected_system_core_fails_fast` (verifying `AppException(SYSTEM_PROTECTED_RESOURCE)` on system core step deletion)
+     - `test_save_step_direct_organization_id_access` (verifying direct typed access without duck-typing fallback)
   2. Implement Flutter Widget test in `workflow_step_card_test.dart`:
      - Renders categorized `$inputs.` vs `$steps.` sections.
      - Toggling `isSynthesisSource` invokes `onChanged` callback with updated boolean.
+     - Verifies correct localized strings and absence of raw hardcoded Finnish strings.
   3. Execute automated Quality Gate audits:
      - `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/synthesis_payload_compressor.py --test`
      - `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart --test`
@@ -198,7 +248,9 @@ graph TD
 
 ### Definition of Done (DoD)
 - [ ] `SynthesisPayloadCompressor` strips `hydrated_references` and internal metadata, reducing synthesis payload size by over 85% in multi-document runs.
+- [ ] `SynthesisPayloadCompressor` supports Unbounded Mode (`max_synthesis_evaluations = 0` default) and Prioritized Stratification when limit > 0, preventing Auditing Whitewash.
 - [ ] `StepRule.is_synthesis_source` properly excludes unselected steps from `synthesis_distiller_hook` source blocks.
+- [ ] `backend_v2/seed/seed_data.json` is atomistically migrated with `is_system_core` on all 19 `steps` and `is_synthesis_source` on all 16 `workflows[0].steps` rules, and database re-seeded via `run_seed.py local`.
 - [ ] `SynthesisConfigDTO` profile overrides for `max_quotes_per_matrix` and `max_unmet_criteria` are functional in `MatrixExplanationService`.
 - [ ] `MatrixExplanationService` enforces Candidate Pre-Deduplication, guaranteeing full quote budget without deduplication starvation.
 - [ ] Studio `WorkflowStepCard` displays 3 distinct, categorized sections with localized explanatory text and zero hardcoded strings.
@@ -206,6 +258,9 @@ graph TD
 
 ### Automated Unit & Widget Tests
 ```powershell
+# Seed Data Migration & Re-Seeding Gate
+uv run python backend_v2/seed/run_seed.py local
+
 # Backend Compressor & Synthesis Tests
 uv run pytest backend_v2/tests/unit/test_synthesis_payload_compression.py -v
 uv run pytest backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py -k "deduplication_starvation" -v
@@ -217,12 +272,14 @@ uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/vi
 ```
 
 ### AST Guardrails & Structural Tests
-- Ensure `SynthesisPayloadCompressor` contains zero `.get()` fallback chains on mandatory evaluation keys.
-- Ensure `DistilledEvaluation` does not use in-place mutation or unvalidated model copies.
+- Ensure `SynthesisPayloadCompressor` contains zero `.get()` fallback chains on mandatory evaluation keys and zero hardcoded magic numbers (referencing `settings.max_synthesis_reasoning_length`).
+- Ensure `DistilledEvaluation` does not use in-place mutation or unvalidated model copies, enforcing `model_dump(exclude_unset=True)`.
+- Ensure `workflow_service.py` uses direct attribute access `data.organization_id` with zero `getattr()` calls.
 - Ensure `MatrixExplanationService` enforces Candidate Pre-Deduplication (`seen_matrix_quotes`) before invoking `ranked_round_robin_select`.
 - Ensure `MatrixExplanationService` protects `LevelStatsDTO` and atom parsing inside a dedicated `try...except (ValidationError, ValueError)` probe boundary with structured `ErrorCodes.INVALID_OUTPUT_SCHEMA` logging including `details=str(e)`.
 - Ensure SDUI adapters (`XaiHighlightsAdapter`) maintain structured logging parity with `details=str(e)` on validation errors and `exc_info=True` on configuration errors.
 - Ensure `ranked_round_robin_select` strictly uses deterministic `del groups[...]` upon bucket exhaustion without soft `.pop(..., None)` fallbacks.
+- Ensure Flutter widgets `workflow_step_card.dart` and `step_builder_view.dart` contain zero hardcoded user-facing strings or raw color hex codes.
 
 
 ### Manual Verification Steps
