@@ -16,8 +16,19 @@ __all__ = [
     "MATRIX_TEXT_SYNTHESIS_DIRECTIVE",
     "SDUI_SYNTHESIS_MANDATE_BLOCK",
     "SECTION_SYNTHESIS_DIRECTIVE_BLOCK",
+    "SPARSE_DATA_SYNTHESIS_MANDATE",
     "STATE_ISOLATION_BLOCK",
 ]
+
+SPARSE_DATA_SYNTHESIS_MANDATE: str = (
+    "<sparse_data_synthesis_mandate>\n"
+    "- CRITICAL SPARSE DATA INSTRUCTION: The evaluation dataset contains minimal atomic evidence.\n"
+    "- You MUST be extremely concise, objective, and brief.\n"
+    "- You MUST leave sections completely empty (empty strings or empty arrays) if there is no direct supporting data.\n"
+    "- Do NOT invent narrative filler, do NOT guess, and do NOT generate generic consultant advice.\n"
+    "- If a matrix dimension or report section lacks observations, output an empty structure according to schema.\n"
+    "</sparse_data_synthesis_mandate>"
+)
 
 ANTI_JARGON_MANDATE_BLOCK: str = (
     "<anti_jargon_mandate>\n"

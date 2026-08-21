@@ -307,7 +307,10 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
-        raw_inputs=WorkflowInputs(language="en", dynamic_inputs={"product_text": "This is valid document text."}),
+        raw_inputs=WorkflowInputs(
+            language="en",
+            dynamic_inputs={"product_text": "This is valid document text that contains more than fifty characters."},
+        ),
     )
 
     from backend_v2.models.domain.blackboard import DraftAtomList
@@ -334,10 +337,123 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         )
 
         # It should ONLY process dynamic_inputs, not system keys like 'language'
-        # Currently, it processes 'en' and then crashes.
         calls = mock_atomizer.execute_phase_0.call_args_list
         # Extract the text chunks passed to execute_phase_0
         processed_chunks = [call.args[1] for call in calls]
 
         assert len(processed_chunks) == 1
-        assert processed_chunks[0] == "[B0] This is valid document text."
+        assert processed_chunks[0] == "[B0] This is valid document text that contains more than fifty characters."
+
+
+@pytest.mark.asyncio
+async def test_rag_preflight_service_input_chars_below_threshold_skips_atomization(
+    mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
+    """Tests that input with total characters < 50 short-circuits without calling TwoPassAtomizer."""
+    from backend_v2.models.v2_core import ExecutionRecord
+
+    service = RAGPreflightService(
+        workflow_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    step_rule = StepRule(
+        id="stp_1234567890abcdef",
+        task_blueprint="blp_1234567890abcdef",
+        input_mappings={},
+        depends_on=[],
+    )
+    step_def = Step.model_validate(
+        {
+            "id": "stp_1234567890abcdef",
+            "slug": "blp_test",
+            "name": {"default_locale": "en", "translations": {"en": "blp_test"}},
+            "model_strategy": "fast",
+            "criteria_block_ids": ["blk_1234567890abcdef"],
+            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "type": "llm",
+        }
+    )
+    exec_record = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wf_1234567890abcdef",
+        raw_inputs=WorkflowInputs(language="en", dynamic_inputs={"product_text": "Short text"}),
+    )
+
+    emit_mock = AsyncMock()
+
+    with patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls:
+        result = await service.execute(
+            target_step=step_rule,
+            step_def=step_def,
+            exec_record=exec_record,
+            emit_progress=emit_mock,
+        )
+
+        assert mock_atomizer_cls.called is False
+        assert result == {"atoms_by_input": {}}
+        emit_mock.assert_called_once_with("Input data sparse/empty. Preflight extraction skipped.", 100)
+
+
+@pytest.mark.asyncio
+async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
+    mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
+    """Tests that concise reflection (>= 50 chars) proceeds to LLM atomization."""
+    from backend_v2.models.domain.blackboard import DraftAtomList
+    from backend_v2.models.v2_core import ExecutionRecord
+
+    service = RAGPreflightService(
+        workflow_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    step_rule = StepRule(
+        id="stp_1234567890abcdef",
+        task_blueprint="blp_1234567890abcdef",
+        input_mappings={},
+        depends_on=[],
+    )
+    step_def = Step.model_validate(
+        {
+            "id": "stp_1234567890abcdef",
+            "slug": "blp_test",
+            "name": {"default_locale": "en", "translations": {"en": "blp_test"}},
+            "model_strategy": "fast",
+            "criteria_block_ids": ["blk_1234567890abcdef"],
+            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "type": "llm",
+        }
+    )
+    reflection_text = "Emme ehtineet testata tietoturvaa lainkaan sovelluksessa."  # 55 chars (>= 50)
+    exec_record = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wf_1234567890abcdef",
+        raw_inputs=WorkflowInputs(language="fi", dynamic_inputs={"reflection_text": reflection_text}),
+    )
+
+    emit_mock = AsyncMock()
+
+    with (
+        patch("backend_v2.llm.client.LLMClient.from_strategy") as mock_client_factory,
+        patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
+    ):
+        mock_client = AsyncMock()
+        mock_client_factory.return_value = mock_client
+        mock_atomizer = mock_atomizer_cls.return_value
+        mock_atomizer.execute_phase_0 = AsyncMock(return_value={})
+        mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=[]))
+
+        result = await service.execute(
+            target_step=step_rule,
+            step_def=step_def,
+            exec_record=exec_record,
+            emit_progress=emit_mock,
+        )
+
+        assert mock_atomizer_cls.called is True
+        assert mock_atomizer.execute_phase_0.called is True
+        assert mock_atomizer.execute_phase_1_drafts.called is True
+        assert "reflection_text" in result["atoms_by_input"]

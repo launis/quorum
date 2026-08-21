@@ -12,6 +12,7 @@ from backend_v2.models.v2_core import ExecutionRecord, Step, StepRule
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 from backend_v2.settings import get_settings
+from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
@@ -74,13 +75,25 @@ class RAGPreflightService:
                 status_code=500,
             )
 
+        dynamic_inputs = exec_record.raw_inputs.dynamic_inputs
+        settings = get_settings()
+        total_input_chars = sum(len(v) for v in dynamic_inputs.values() if isinstance(v, str))
+
+        if total_input_chars < settings.rag_preflight_min_input_chars:
+            logger.warning(
+                "RAGPreflightService: Total input characters (%d) is below minimum analytical threshold (%d). "
+                "Skipping LLM atomization.",
+                total_input_chars,
+                settings.rag_preflight_min_input_chars,
+            )
+            await emit_progress("Input data sparse/empty. Preflight extraction skipped.", 100)
+            return GlobalAtomBlackboard(atoms_by_input={}).model_dump(mode="json")
+
         bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo, pipeline_name="chunk_worker")
         llm_executor = LLMTaskExecutor(self.compiler)
         atomizer = TwoPassAtomizer(llm_executor)
 
-        dynamic_inputs = exec_record.raw_inputs.dynamic_inputs
         atoms_by_input = {}
-
         total_files = len([k for k, v in dynamic_inputs.items() if isinstance(v, str)])
         processed_files = 0
 
@@ -92,8 +105,6 @@ class RAGPreflightService:
                 f"Extracting knowledge from file {processed_files + 1}/{total_files}...",
                 int(processed_files / total_files * 100),
             )
-
-            from backend_v2.utils.alias_engine import AliasEngine
 
             alias_engine = AliasEngine()
             paragraphs = [p.strip() for p in text_content.split("\n\n") if p.strip()]

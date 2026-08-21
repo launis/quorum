@@ -133,6 +133,12 @@ class Settings(BaseSettings):
         int, Field(description="Chunk size in characters for RAG preflight document extraction")
     ] = 12000
     llm_min_payload_length: Annotated[int, Field(description="Minimum chars for LLM payload before fail-fast")] = 10
+    rag_preflight_min_input_chars: Annotated[
+        int,
+        Field(
+            description="Minimum total character length across dynamic inputs required for RAG preflight extraction."
+        ),
+    ] = 50
     llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 300
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
     semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20
@@ -152,6 +158,18 @@ class Settings(BaseSettings):
         int,
         Field(description="Maximum number of unmet criteria descriptions per matrix in synthesis explanation context"),
     ] = 5
+    synthesis_starvation_threshold: Annotated[
+        int,
+        Field(
+            description=(
+                "Atom count threshold at or below which synthesis unconditionally "
+                "short-circuits with a DataStarvationEvent."
+            )
+        ),
+    ] = 0
+    synthesis_sparse_threshold: Annotated[
+        int, Field(description="Atom count threshold below which sparse data gating and mandates are applied.")
+    ] = 8
     context_cache_lock_ttl_seconds: Annotated[int, Field(description="Time-to-live for Vertex caching lock")] = 300
     context_cache_passive_ttl_seconds: Annotated[int, Field(description="Lifespan of Vertex context cache")] = 3600
     context_cache_lock_poll_interval_ms: Annotated[int, Field(description="Polling interval for lock acquire")] = 500

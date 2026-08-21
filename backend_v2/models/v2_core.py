@@ -22,6 +22,7 @@ from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngres
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, QuoteEvidenceDTO
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
+from backend_v2.models.dtos.trace import DataStarvationEvent
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
@@ -91,6 +92,8 @@ __all__ = [
     "ExtensionMetricsDTO",
     "ReportDataDTO",
     "XaiHighlightItem",
+    "RenderedSynthesisCache",
+    "DataStarvationEvent",
 ]
 
 
@@ -1598,6 +1601,9 @@ class RenderedSynthesisCache(V2CoreBase):
     user_role_justification: str | None = Field(default=None, description="User role justification")
     extension_metrics: ExtensionMetricsDTO | None = Field(
         default=None, description="Pre-calculated numeric or boolean metrics for UI adapters"
+    )
+    data_starvation: DataStarvationEvent | None = Field(
+        default=None, description="Domain event indicating synthesis short-circuit due to atom starvation"
     )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

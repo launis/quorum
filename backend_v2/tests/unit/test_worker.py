@@ -986,3 +986,47 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
                 with pytest.raises(AppException):
                     await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
                 assert mock_repo.update_execution.call_count >= 1
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit() -> None:
+    """Tests that data starvation in trace short-circuits synthesis and saves starvation cache."""
+    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+            mock_repo = AsyncMock()
+            mock_repo_class.return_value = mock_repo
+
+            mock_repo.get_execution.return_value = {
+                "id": "exe_1234567890123456",
+                "workflow_id": "wf_1234567890123456",
+                "status": "RUNNING",
+                "execution_trace": [
+                    {
+                        "step_name": "synthesis_step",
+                        "event_type": "output",
+                        "content": {"event_type": "starvation", "total_atoms": 0, "reason": "No atoms"},
+                    }
+                ],
+                "step_states": {
+                    "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
+                },
+                "metadata": {"target_locale": "en"},
+            }
+
+            mock_redis = AsyncMock()
+            await generate_profile_synthesis_and_pdf_task(
+                "exe_1234567890123456", accept_language="en", profile_id="prof_1111222233334444", redis=mock_redis
+            )
+
+            assert mock_repo.update_execution.call_count >= 1
+            calls_with_syntheses = [
+                call[0][1] for call in mock_repo.update_execution.call_args_list if "profile_syntheses" in call[0][1]
+            ]
+            assert len(calls_with_syntheses) == 1
+            call_payload = calls_with_syntheses[0]
+            saved_cache = call_payload["profile_syntheses"]["prof_1111222233334444"]
+            assert saved_cache["data_starvation"]["event_type"] == "starvation"
+            assert saved_cache["data_starvation"]["total_atoms"] == 0
+            mock_redis.enqueue_job.assert_called_once_with(
+                "generate_pdf_job", "exe_1234567890123456", "en", "prof_1111222233334444"
+            )

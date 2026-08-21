@@ -51,6 +51,7 @@ from backend_v2.models.prompts import (
 )
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
+    DataStarvationEvent,
     ExecutionRecord,
     ExecutionStepState,
     ExtensionMetricsDTO,
@@ -662,6 +663,52 @@ async def generate_profile_synthesis_and_pdf_task(
         loc = metadata["target_locale"] if "target_locale" in metadata else None
         if loc and not accept_language:
             accept_language = loc
+
+        # Check for starvation short-circuit from SynthesisEngine
+        starvation_detected = False
+        for trace_evt in execution.execution_trace:
+            if (
+                trace_evt.event_type == "output"
+                and isinstance(trace_evt.content, dict)
+                and trace_evt.content.get("event_type") == "starvation"
+            ):
+                starvation_detected = True
+                break
+
+        if starvation_detected:
+            logger.warning(
+                "[Task] Data starvation detected in execution %s trace. Short-circuiting synthesis tasks.",
+                execution_id,
+            )
+            starvation_dto = DataStarvationEvent(total_atoms=0, reason="Data starvation: insufficient atoms")
+            cache = RenderedSynthesisCache(
+                section_syntheses={},
+                row_explanations={},
+                cited_sources=[],
+                xai_highlights=[],
+                user_role=None,
+                user_role_justification=None,
+                extension_metrics=None,
+                data_starvation=starvation_dto,
+            )
+
+            current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
+            starvation_pid: str = profile_id if profile_id is not None else "default"
+            current_syntheses[starvation_pid] = cache
+            dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
+
+            starvation_payload: dict[str, Any] = {
+                "profile_syntheses": dict_syntheses,
+            }
+
+            await repo.update_execution(execution_id, starvation_payload)
+
+            logger.info(f"[Task] Starvation synthesis cached for {execution_id} (Profile: {profile_id})")
+
+            await _update_render_status("Koostetaan tulosteita valmiiksi...")
+            if redis:
+                await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
+            return
 
         # Fetch output profile to resolve dynamic strictness & strategy
         p_dict = await repo.get_output_profile_by_id(profile_id) if profile_id else None

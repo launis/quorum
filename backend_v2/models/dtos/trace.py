@@ -1,6 +1,6 @@
 """Execution trace DTO schemas."""
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
 
@@ -8,6 +8,20 @@ from backend_v2.models.domain.metadata import StepMetadataDTO
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import LaxExecutionStatus
+
+
+class DataStarvationEvent(BaseDTO):
+    """Strict domain event emitted when SynthesisEngine aborts due to atom starvation."""
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+    event_type: Annotated[Literal["starvation"], Field(default="starvation", description="Event discriminator")] = (
+        "starvation"
+    )
+    total_atoms: Annotated[int, Field(ge=0, description="Total raw atoms extracted before synthesis")]
+    reason: Annotated[
+        str, Field(default="Data starvation: insufficient atoms", description="Reason for short-circuit")
+    ] = "Data starvation: insufficient atoms"
 
 
 class TraceEventMetadataEnvelope(BaseDTO):

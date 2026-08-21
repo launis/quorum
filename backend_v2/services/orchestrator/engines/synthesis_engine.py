@@ -3,15 +3,20 @@
 Implements the ExecutionEngine protocol for LLM-driven synthesis processing.
 """
 
+import json
 import logging
 
 from pydantic import ValidationError
 
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
+from backend_v2.models.dtos.trace import DataStarvationEvent
+from backend_v2.models.prompts.synthesis_directives import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
@@ -44,7 +49,7 @@ class SynthesisEngine:
         Raises:
             AppException: If blackboard is missing, validation fails, or LLM errors occur.
         """
-        # Epic 101: Rule 1 - Extract Blackboard (Dependency Fail-Fast)
+        # Extract and validate GlobalAtomBlackboard (Dependency Fail-Fast)
         raw_blackboard = request.context.context_variables.get("__GLOBAL_ATOM_BLACKBOARD__")
         if raw_blackboard is None:
             logger.error(
@@ -61,34 +66,86 @@ class SynthesisEngine:
             blackboard = GlobalAtomBlackboard.model_validate(raw_blackboard)
             all_atom_ids = blackboard.get_all_atom_ids()
             doc_aliases = list(blackboard.atoms_by_input.keys())
+            total_atoms = len(all_atom_ids)
+            settings = get_settings()
 
-            # Epic 101: Rule 2 - Dual-Input Context
-            # Use hydrated messages if provided by LLMNodeStrategy, otherwise crash fail-fast
+            matrix_reducer_output = request.context.context_variables.get("__MATRIX_REDUCER_OUTPUT__")
+            has_matrix_evidence = False
+            if matrix_reducer_output and isinstance(matrix_reducer_output, dict):
+                reduced_atoms = matrix_reducer_output.get("reduced_atoms", [])
+                evaluated_matrices = matrix_reducer_output.get("evaluated_matrices", [])
+                raw_extensions = matrix_reducer_output.get("raw_extensions", {})
+                if reduced_atoms or evaluated_matrices or raw_extensions:
+                    has_matrix_evidence = True
+
+            is_starved = False
+            starvation_reason = ""
+
+            if total_atoms <= settings.synthesis_starvation_threshold:
+                is_starved = True
+                starvation_reason = (
+                    f"Data starvation: zero atoms extracted "
+                    f"({total_atoms} <= {settings.synthesis_starvation_threshold})"
+                )
+            elif total_atoms < settings.synthesis_sparse_threshold and not has_matrix_evidence:
+                is_starved = True
+                starvation_reason = (
+                    f"Data starvation: sparse atoms ({total_atoms}) yielded zero evaluative matrix evidence"
+                )
+
+            if is_starved:
+                logger.warning(
+                    "SynthesisEngine: Circuit breaker triggered (%s). Bypassing LLM execution.",
+                    starvation_reason,
+                )
+                starvation_dto = DataStarvationEvent(
+                    total_atoms=total_atoms,
+                    reason=starvation_reason,
+                )
+                starvation_content = starvation_dto.model_dump(mode="json")
+                starvation_event = TraceEvent(
+                    step_name=request.step.id,
+                    event_type="output",
+                    content=starvation_content,
+                )
+                return EngineExecutionResult(
+                    results=[],
+                    hydrated_references={},
+                    synthesis_output=starvation_content,
+                    trace_events=[starvation_event],
+                )
+
+            # Validate dual-input context (hydrated messages required)
             if request.hydrated_messages is None:
                 raise ValueError("hydrated_messages must be provided for SynthesisEngine")
 
             local_messages = [dict(msg) for msg in request.hydrated_messages]
 
-            matrix_reducer_output = request.context.context_variables.get("__MATRIX_REDUCER_OUTPUT__")
             raw_xai_extensions_str = ""
-            if matrix_reducer_output and "raw_extensions" in matrix_reducer_output:
-                import json
-
+            if (
+                matrix_reducer_output
+                and isinstance(matrix_reducer_output, dict)
+                and "raw_extensions" in matrix_reducer_output
+            ):
                 extensions_json = json.dumps(matrix_reducer_output["raw_extensions"], indent=2)
                 raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
 
-            local_messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        "Synthesize the following atoms according to the instructions:\n"
-                        "<user_payload>\n"
-                        f"{blackboard.to_markdown_synthesis_injection()}\n"
-                        "</user_payload>"
-                        f"{raw_xai_extensions_str}"
-                    ),
-                }
-            )
+            raw_blackboard_markdown = blackboard.to_markdown_synthesis_injection()
+            protected_user_payload = TemplateProcessor.encapsulate_payload(raw_blackboard_markdown)
+
+            user_content_parts = [
+                "Synthesize the following atoms according to the instructions:\n"
+                f"<user_payload>\n{protected_user_payload}\n</user_payload>"
+            ]
+
+            if raw_xai_extensions_str:
+                user_content_parts.append(raw_xai_extensions_str)
+
+            if total_atoms < settings.synthesis_sparse_threshold:
+                user_content_parts.append(SPARSE_DATA_SYNTHESIS_MANDATE)
+
+            final_user_content = "\n\n".join(user_content_parts)
+            local_messages.append({"role": "user", "content": final_user_content})
 
             logger.info("SynthesisEngine: Final hydrated message count: %d", len(local_messages))
 
@@ -98,7 +155,7 @@ class SynthesisEngine:
             if request.progress_callback:
                 await request.progress_callback(10, 100)
 
-            # Epic 101: Rule 4 - Execution Delegation
+            # Delegate to LLM executor under semaphore
             async with request.semaphore:
                 validated_model, usage = await self._executor.execute_structured_task(
                     client=request.bound_client,
@@ -112,7 +169,7 @@ class SynthesisEngine:
 
             output_dict = validated_model.model_dump()
 
-            # Epic 101: Rule 5 - Alias Hydration and Filtering
+            # Alias hydration and hallucinated UUID filtering
             alias_engine = AliasEngine()
             for atom_id in all_atom_ids:
                 alias_engine.alias_map[atom_id] = atom_id

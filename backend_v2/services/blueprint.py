@@ -46,6 +46,7 @@ from backend_v2.services.sdui.adapters.penalties_adapter import PenaltiesAdapter
 from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter
 from backend_v2.services.sdui.adapters.synthesis_text_adapter import SynthesisTextAdapter
 from backend_v2.services.sdui.adapters.variance_adapter import VarianceAdapter
+from backend_v2.services.sdui.adapters.warning_card_adapter import WarningCardAdapter
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
 
 logger = logging.getLogger(__name__)
@@ -591,6 +592,11 @@ class BlueprintTransformer:
                 cost=combined_cost,
                 tokens=combined_tokens,
             )
+
+            warning_blocks = WarningCardAdapter.build(adapter_context)
+            if warning_blocks:
+                has_warning = True
+                inner_sdui_blocks.extend(warning_blocks)
 
             dispatch_order = profile.target_block_order
 

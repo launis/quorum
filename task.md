@@ -1,6 +1,8 @@
-# Implementation Tracker: Matrix Synthesis Unification, Seed Data Vault Sync & SDUI Parity
+# Task Tracker: Circuit Breaker & Sparse Data Synthesis Rule
 
-- [x] Step 1: Worker Directive Routing Unification (`backend_v2/worker.py`)
-- [x] Step 2: Seed Data Vault Mutation and Cleanup (`backend_v2/seed/seed_data.json`)
-- [x] Step 3: Test Suite Alignment and Expansion (`test_output_profile_seed_synthesis.py`, `test_worker_synthesis.py`)
-- [x] Step 4: Universal Quality Gate and DB Reseed
+- [x] Milestone 1: SynthesisEngine Circuit Breaker & Domain Data Envelopes (`backend_v2/settings.py`, `backend_v2/models/dtos/trace.py`, `backend_v2/models/v2_core.py`, `backend_v2/services/orchestrator/engines/synthesis_engine.py`, `backend_v2/worker.py`)
+- [x] Milestone 2: Synthesis Directives (Static Sparse Data Mandate) (`backend_v2/models/prompts/synthesis_directives.py`, `backend_v2/models/prompts/__init__.py`)
+- [x] Milestone 3: Prompt Injection Protection & Sparse Data Mandate Injection (`backend_v2/services/orchestrator/engines/synthesis_engine.py`)
+- [x] Milestone 4: SDUI Warning Card Adapter Implementation (`backend_v2/services/sdui/adapters/warning_card_adapter.py`, `backend_v2/services/sdui/adapters/__init__.py`, `backend_v2/services/blueprint.py`)
+- [x] Milestone 5: Automated Verification, Unit Tests & Quality Gates
+- [x] Remediation & Hardening: Decoupled `rag_preflight_min_input_chars`, E501 line length compliance, and global regression pass (1664 passed).
