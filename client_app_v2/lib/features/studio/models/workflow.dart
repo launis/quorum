@@ -59,14 +59,15 @@ abstract class StepRule with _$StepRule {
     @JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType,
     @Default(0.0) double uiPosX,
     @Default(0.0) double uiPosY,
+    // Phase 1, Step 3: Synthesis context governance field
+    @Default(true) @JsonKey(name: 'is_synthesis_source') bool isSynthesisSource,
   }) = _StepRule;
 
   factory StepRule.fromJson(Map<String, dynamic> json) =>
       _$StepRuleFromJson(json);
 }
 
-/// Sealed Classes Mandate: Dart 3 Native Pattern Matching
-/// Polymorfisille luokille ei sallita Unknown/Fallback -tyyppejä.
+/// Sealed Classes Mandate: Unknown/Fallback union types are strictly forbidden.
 @Freezed(unionKey: 'type')
 sealed class NodeStrategy with _$NodeStrategy {
   const NodeStrategy._();
@@ -91,6 +92,8 @@ sealed class NodeStrategy with _$NodeStrategy {
     Map<String, dynamic>? outputSchema,
     String? modelStrategy,
     String? organizationId,
+    // Phase 1, Step 3: System core protection governance field
+    @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
   }) = NodeStrategyLlm;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -113,6 +116,8 @@ sealed class NodeStrategy with _$NodeStrategy {
     Map<String, dynamic>? outputSchema,
     String? modelStrategy,
     String? organizationId,
+    // Phase 1, Step 3: System core protection governance field
+    @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
   }) = NodeStrategyLogic;
 
   factory NodeStrategy.fromJson(Map<String, dynamic> json) =>

@@ -125,6 +125,7 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
         'expected_sdui_type',
         'ui_pos_x',
         'ui_pos_y',
+        'is_synthesis_source',
       ],
     );
     final val = _StepRule(
@@ -161,6 +162,10 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
         'ui_pos_y',
         (v) => (v as num?)?.toDouble() ?? 0.0,
       ),
+      isSynthesisSource: $checkedConvert(
+        'is_synthesis_source',
+        (v) => v as bool? ?? true,
+      ),
     );
     return val;
   },
@@ -171,6 +176,7 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
     'expectedSduiType': 'expected_sdui_type',
     'uiPosX': 'ui_pos_x',
     'uiPosY': 'ui_pos_y',
+    'isSynthesisSource': 'is_synthesis_source',
   },
 );
 
@@ -184,6 +190,7 @@ Map<String, dynamic> _$StepRuleToJson(_StepRule instance) => <String, dynamic>{
   'expected_sdui_type': _$SduiBlockTypeEnumMap[instance.expectedSduiType],
   'ui_pos_x': instance.uiPosX,
   'ui_pos_y': instance.uiPosY,
+  'is_synthesis_source': instance.isSynthesisSource,
 };
 
 const _$SduiBlockTypeEnumMap = {
@@ -232,6 +239,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'output_schema',
         'model_strategy',
         'organization_id',
+        'is_system_core',
         'type',
       ],
     );
@@ -303,6 +311,10 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
       ),
       modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      isSystemCore: $checkedConvert(
+        'is_system_core',
+        (v) => v as bool? ?? false,
+      ),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
@@ -319,6 +331,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     'outputSchema': 'output_schema',
     'modelStrategy': 'model_strategy',
     'organizationId': 'organization_id',
+    'isSystemCore': 'is_system_core',
     r'$type': 'type',
   },
 );
@@ -351,6 +364,7 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'output_schema': instance.outputSchema,
       'model_strategy': instance.modelStrategy,
       'organization_id': instance.organizationId,
+      'is_system_core': instance.isSystemCore,
       'type': instance.$type,
     };
 
@@ -390,6 +404,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'output_schema',
         'model_strategy',
         'organization_id',
+        'is_system_core',
         'type',
       ],
     );
@@ -461,6 +476,10 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
       ),
       modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      isSystemCore: $checkedConvert(
+        'is_system_core',
+        (v) => v as bool? ?? false,
+      ),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
@@ -477,6 +496,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
     'outputSchema': 'output_schema',
     'modelStrategy': 'model_strategy',
     'organizationId': 'organization_id',
+    'isSystemCore': 'is_system_core',
     r'$type': 'type',
   },
 );
@@ -509,6 +529,7 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'output_schema': instance.outputSchema,
       'model_strategy': instance.modelStrategy,
       'organization_id': instance.organizationId,
+      'is_system_core': instance.isSystemCore,
       'type': instance.$type,
     };
 

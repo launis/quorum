@@ -459,7 +459,8 @@ class StudioWorkflowService:
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after creation.
         """
-        org_id = getattr(data, "organization_id", None)
+        # Phase 1, Step 1: Direct typed attribute access (Zero duck-typing mandate)
+        org_id = data.organization_id
         enforce_modification_rights(initiator, org_id)
 
         dump = data.model_dump(mode="json")

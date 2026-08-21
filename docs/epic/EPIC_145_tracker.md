@@ -36,14 +36,14 @@
 
 **Plan:** @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md]
 
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check — Verify codebase state from prior Epics against Phase 1 assumptions in `v2_core.py`, `settings.py`, and `workflow.dart`.
-  - [ ] Step 1: Pre-Implementation Technical Debt Cleanups — Eliminate `model_copy(update={...})` in `synthesis_payload_compressor.py`, eliminate magic number `[:300]`, eliminate `getattr(data, "organization_id", None)` duck-typing in `workflow_service.py`, replace Finnish docstring in `workflow.dart`.
-  - [ ] Step 2: Backend Pydantic Models & Settings Update — Add `is_system_core` to `Step`, `is_synthesis_source` to `StepRule`, `max_quotes_per_matrix` and `max_unmet_criteria` to `SynthesisConfigDTO`, `SYSTEM_PROTECTED_RESOURCE` to `ErrorCodes`, `max_synthesis_evaluations` and `max_synthesis_reasoning_length` to `Settings`.
-  - [ ] Step 3: Frontend Dart Freezed Models & Code Generation Lock — Add `isSynthesisSource` to `StepRule`, `isSystemCore` to `NodeStrategy.llm` and `NodeStrategy.logic`, run Freezed code generation.
-  - [ ] Step 4: Workflow Model Unit Tests — Update `workflow_test.dart` for deserialization of `isSystemCore` and `isSynthesisSource` defaults and explicit overrides.
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check — Verify codebase state from prior Epics against Phase 1 assumptions in `v2_core.py`, `settings.py`, and `workflow.dart`.
+  - [x] Step 1: Pre-Implementation Technical Debt Cleanups — Eliminate `getattr(data, "organization_id", None)` duck-typing in `workflow_service.py`, replace Finnish docstring in `workflow.dart`. (Note: Compressor tech debt deferred to Phase 3 per Tier 0 mutation).
+  - [x] Step 2: Backend Pydantic Models & Settings Update — Add `is_system_core` to `Step`, `is_synthesis_source` to `StepRule`, `max_quotes_per_matrix` and `max_unmet_criteria` to `SynthesisConfigDTO`, `SYSTEM_PROTECTED_RESOURCE` to `ErrorCodes`, `ge=0` constraint on `max_synthesis_evaluations`, and `max_synthesis_reasoning_length` to `Settings`.
+  - [x] Step 3: Frontend Dart Freezed Models & Code Generation Lock — Add `isSynthesisSource` to `StepRule`, `isSystemCore` to `NodeStrategy.llm` and `NodeStrategy.logic`, run Freezed code generation.
+  - [x] Step 4: Workflow Model Unit Tests — Rename group in `workflow_test.dart`, add 7 tests (5 positive, 2 negative ISTQB) for deserialization of `isSystemCore` and `isSynthesisSource` defaults and explicit overrides.
+- [x] **[OK] Test Coverage Assertions:** Verified test coverage and audit loops on `v2_core.py` (96%), `settings.py` (96%), `workflow.dart` (codegen & analyze clean), and `workflow_test.dart` (11/11 passed).
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
 
 ---
@@ -277,16 +277,26 @@
 - Phases 3, 4, 5 have skeleton plans with `[DEFERRED_TO_TIER_1_RE_PLANNING]` and require `/tier0-create-plan` before execution.
 - Requirements Traceability Matrix generated with 102 granular requirements mapped to plan steps.
 - File-level hardening checklists generated for 9 backend `.py` files and 3 frontend `.dart` files.
+- **Phase 1 Red-Teaming PASSED** (`/tier0-research-plan`). Epic Fidelity Audit confirmed all 23 line boundaries, 14 KI references preserved.
+- **All 5 Tier 0 Mutations APPLIED** directly to @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md].
+- **Phase 1 EXECUTION COMPLETE** (`/tier2-execute`):
+  - ✅ **Step 0**: Strategic Alignment Check verified pre-flight assumptions cleanly.
+  - ✅ **Step 1**: Pre-Implementation Tech Debt resolved: eliminated `getattr(data, "organization_id", None)` duck-typing in `workflow_service.py:462` -> `data.organization_id`, replaced Finnish docstring in `workflow.dart:69` with English equivalent.
+  - ✅ **Step 2**: Backend Pydantic Models & Settings updated: added `is_system_core: Annotated[bool, Field(...)] = False` to `Step`, `is_synthesis_source: Annotated[bool, Field(...)] = True` to `StepRule`, `max_quotes_per_matrix` and `max_unmet_criteria` overrides to `SynthesisConfigDTO`, `SYSTEM_PROTECTED_RESOURCE` to `ErrorCodes`, `ge=0` constraint to `max_synthesis_evaluations`, and `max_synthesis_reasoning_length: Annotated[int, ...] = 300` to `Settings`.
+  - ✅ **Step 3**: Frontend Freezed Models & Code Generation Lock completed: added `isSynthesisSource` to `StepRule`, `isSystemCore` to `NodeStrategy.llm` and `NodeStrategy.logic`. Freezed codegen ran with 0 issues (`build_runner` generated 10 outputs, `dart analyze` clean).
+  - ✅ **Step 4**: Workflow Model Unit Tests updated: renamed group per English mandate in `workflow_test.dart`, added 7 new test contracts (5 positive + 2 negative ISTQB tests). All 11 unit tests passed!
+  - ✅ **Validation Gates Passed**: `backend_audit_loop.py backend_v2/models/v2_core.py --test` (59 tests passed, 96% coverage, Ruff/MyPy clean), `backend_audit_loop.py backend_v2/settings.py --test` (15 tests passed, 96% coverage), `flutter_audit_loop.py .../workflow.dart --build` (codegen + analyze clean), and `flutter test .../workflow_test.dart` (11/11 tests passed).
 
 ## Learned
-- **Baseline State Snapshot**: The codebase currently has no `is_system_core` field on `Step` or `is_synthesis_source` on `StepRule` in either Python or Dart models. `SynthesisPayloadCompressor` uses `model_copy(update={...})` for evaluation distillation and hardcodes `[:300]` for `semantic_reasoning`. `StudioWorkflowService.save_step` uses duck-typing `getattr(data, "organization_id", None)`. `WorkflowStepCard` has hardcoded Finnish strings and monolithic checkbox layout. `step_builder_view.dart` has a hardcoded hex color `0xFF2E7D32`. The `MatrixExplanationService` has a `tda_to_scale.get(tda_id, 999)` magic default and broad `except Exception:` blocks.
-- Phases 3, 4, 5 execution steps are deferred and require granular `/tier0-create-plan` re-planning after Phase 2 completes.
+- **Baseline State Snapshot**: The codebase now supports `is_system_core` on `Step` and `is_synthesis_source` on `StepRule` across Python Pydantic V2 and Dart Freezed sealed hierarchies.
+- **Pre-existing Codebase States**: `exceptions.py` has a pre-existing 68% coverage on unused custom exception branches, and `workflow_service.py` currently has no dedicated unit test file in `test/unit/services/studio/`, while all static analysis (Ruff + MyPy strict) passed 100%.
+- **Freezed Strict Parity**: Dart models enforce `@JsonSerializable(disallowUnrecognizedKeys: true)` and strict boolean parsing, successfully rejecting unknown keys and type corruption in negative ISTQB test runs.
 
 ## Remaining
-- Run `/tier0-research-plan` on Phase 1 plan to analyze it before execution.
-- Execute Phase 1 via `/tier2-execute` after research passes.
+- Run Phase 1 Audit via `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`.
+- Execute Phase 2 (Red-Teaming `/tier0-research-plan` -> Execution `/tier2-execute` -> Audit `/tier8-audit-plan`) for Atomic Seed Data Migration & Database Re-seeding Gate (`seed_data.json` updates).
 - After Phase 2 completes, run `/tier0-create-plan` for Phases 3, 4, 5 to generate granular execution steps.
 - Complete all 5 phases, then proceed through Post-Implementation Gates.
 
 ## Resume Command
-`/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+`/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\01_phase1_plan.md] @[docs\epic\EPIC_145_tracker.md]`

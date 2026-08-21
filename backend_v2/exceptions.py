@@ -276,6 +276,9 @@ class ErrorCodes(StrEnum):
     # XAI / Evidence
     SEMANTIC_EVIDENCE_HALLUCINATION = "SEMANTIC_EVIDENCE_HALLUCINATION"
 
+    # System Protection
+    SYSTEM_PROTECTED_RESOURCE = "SYSTEM_PROTECTED_RESOURCE"
+
 
 class AppException(Exception):
     """Base class for application exceptions (RFC 7807 compatible).

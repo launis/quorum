@@ -1,9 +1,11 @@
 import 'dart:isolate';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 
 void main() {
-  group('Epic 11 Phase B: NodeStrategy Strict Parsing', () {
+  // Phase 1, Step 4: Renamed from 'Epic 11 Phase B: NodeStrategy Strict Parsing'
+  group('NodeStrategy Strict Parsing', () {
     test(
       'Successfully parses valid expectedInputs and outputSchema via Isolate',
       () async {
@@ -109,6 +111,145 @@ void main() {
 
         // This is expected to throw a CheckedFromJsonException due to unrecognized keys
         expect(() => ExpectedInput.fromJson(payload), returnsNormally);
+      },
+    );
+  });
+
+  // Phase 1, Step 4: Governance field deserialization tests
+  group('StepRule Governance Fields', () {
+    test(
+      'test_step_rule_deserializes_is_synthesis_source_default_true',
+      () {
+        final json = {
+          'id': 'sr_1234567890abcdef',
+          'task_blueprint': 'sp_1234567890abcdef',
+        };
+
+        final stepRule = StepRule.fromJson(json);
+        expect(stepRule.isSynthesisSource, isTrue);
+      },
+    );
+
+    test(
+      'test_step_rule_deserializes_is_synthesis_source_explicit_false',
+      () {
+        final json = {
+          'id': 'sr_1234567890abcdef',
+          'task_blueprint': 'sp_1234567890abcdef',
+          'is_synthesis_source': false,
+        };
+
+        final stepRule = StepRule.fromJson(json);
+        expect(stepRule.isSynthesisSource, isFalse);
+      },
+    );
+
+    test(
+      'test_step_rule_rejects_is_synthesis_source_wrong_type',
+      () {
+        final json = {
+          'id': 'sr_1234567890abcdef',
+          'task_blueprint': 'sp_1234567890abcdef',
+          'is_synthesis_source': 'not_a_bool',
+        };
+
+        expect(
+          () => StepRule.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
+  });
+
+  group('NodeStrategy Governance Fields', () {
+    test(
+      'test_node_strategy_llm_deserializes_is_system_core_default_false',
+      () {
+        final json = {
+          'id': 'st_1234567890abcdef',
+          'slug': 'test',
+          'name': {'default_locale': 'en'},
+          'type': 'llm',
+          'model_strategy': 'fast',
+        };
+
+        final parsed = NodeStrategy.fromJson(json);
+        expect(parsed, isA<NodeStrategyLlm>());
+
+        switch (parsed) {
+          case NodeStrategyLlm l:
+            expect(l.isSystemCore, isFalse);
+          case NodeStrategyLogic _:
+            fail('Should be LLM');
+        }
+      },
+    );
+
+    test(
+      'test_node_strategy_llm_deserializes_is_system_core_explicit_true',
+      () {
+        final json = {
+          'id': 'st_1234567890abcdef',
+          'slug': 'test',
+          'name': {'default_locale': 'en'},
+          'type': 'llm',
+          'model_strategy': 'fast',
+          'is_system_core': true,
+        };
+
+        final parsed = NodeStrategy.fromJson(json);
+        expect(parsed, isA<NodeStrategyLlm>());
+
+        switch (parsed) {
+          case NodeStrategyLlm l:
+            expect(l.isSystemCore, isTrue);
+          case NodeStrategyLogic _:
+            fail('Should be LLM');
+        }
+      },
+    );
+
+    test(
+      'test_node_strategy_logic_deserializes_is_system_core_explicit_true',
+      () {
+        final json = {
+          'id': 'st_1234567890abcdef',
+          'slug': 'test',
+          'name': {'default_locale': 'en'},
+          'type': 'logic',
+          'hook': 'my_hook',
+          'is_system_core': true,
+        };
+
+        final parsed = NodeStrategy.fromJson(json);
+        expect(parsed, isA<NodeStrategyLogic>());
+
+        switch (parsed) {
+          case NodeStrategyLlm _:
+            fail('Should be Logic');
+          case NodeStrategyLogic l:
+            expect(l.isSystemCore, isTrue);
+        }
+      },
+    );
+
+    test(
+      'test_node_strategy_rejects_unknown_extra_key_with_is_system_core',
+      () {
+        final json = {
+          'id': 'st_1234567890abcdef',
+          'slug': 'test',
+          'name': {'default_locale': 'en'},
+          'type': 'llm',
+          'model_strategy': 'fast',
+          'is_system_core': false,
+          'unknown_forbidden_key': 'should_crash',
+        };
+
+        expect(
+          () => NodeStrategy.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
       },
     );
   });

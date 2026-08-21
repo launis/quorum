@@ -609,7 +609,8 @@ $I18nTextCopyWith<$Res> get description {
 /// @nodoc
 mixin _$StepRule {
 
-@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter() String get taskBlueprint; List<String> get dependsOn; Map<String, String> get inputMappings;@JsonKey(name: 'expected_sdui_type') SduiBlockType? get expectedSduiType; double get uiPosX; double get uiPosY;
+@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter() String get taskBlueprint; List<String> get dependsOn; Map<String, String> get inputMappings;@JsonKey(name: 'expected_sdui_type') SduiBlockType? get expectedSduiType; double get uiPosX; double get uiPosY;// Phase 1, Step 3: Synthesis context governance field
+@JsonKey(name: 'is_synthesis_source') bool get isSynthesisSource;
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -624,7 +625,7 @@ $StepRuleCopyWith<StepRule> get copyWith => _$StepRuleCopyWithImpl<StepRule>(thi
 
 @override
 String toString() {
-  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, expectedSduiType: $expectedSduiType, uiPosX: $uiPosX, uiPosY: $uiPosY)';
+  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, expectedSduiType: $expectedSduiType, uiPosX: $uiPosX, uiPosY: $uiPosY, isSynthesisSource: $isSynthesisSource)';
 }
 
 
@@ -635,7 +636,7 @@ abstract mixin class $StepRuleCopyWith<$Res>  {
   factory $StepRuleCopyWith(StepRule value, $Res Function(StepRule) _then) = _$StepRuleCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings,@JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType, double uiPosX, double uiPosY
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings,@JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType, double uiPosX, double uiPosY,@JsonKey(name: 'is_synthesis_source') bool isSynthesisSource
 });
 
 
@@ -652,7 +653,7 @@ class _$StepRuleCopyWithImpl<$Res>
 
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? expectedSduiType = freezed,Object? uiPosX = null,Object? uiPosY = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? expectedSduiType = freezed,Object? uiPosX = null,Object? uiPosY = null,Object? isSynthesisSource = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,taskBlueprint: null == taskBlueprint ? _self.taskBlueprint : taskBlueprint // ignore: cast_nullable_to_non_nullable
@@ -661,7 +662,8 @@ as List<String>,inputMappings: null == inputMappings ? _self.inputMappings : inp
 as Map<String, String>,expectedSduiType: freezed == expectedSduiType ? _self.expectedSduiType : expectedSduiType // ignore: cast_nullable_to_non_nullable
 as SduiBlockType?,uiPosX: null == uiPosX ? _self.uiPosX : uiPosX // ignore: cast_nullable_to_non_nullable
 as double,uiPosY: null == uiPosY ? _self.uiPosY : uiPosY // ignore: cast_nullable_to_non_nullable
-as double,
+as double,isSynthesisSource: null == isSynthesisSource ? _self.isSynthesisSource : isSynthesisSource // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -746,10 +748,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY, @JsonKey(name: 'is_synthesis_source')  bool isSynthesisSource)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StepRule() when $default != null:
-return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY);case _:
+return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY,_that.isSynthesisSource);case _:
   return orElse();
 
 }
@@ -767,10 +769,10 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY, @JsonKey(name: 'is_synthesis_source')  bool isSynthesisSource)  $default,) {final _that = this;
 switch (_that) {
 case _StepRule():
-return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY);case _:
+return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY,_that.isSynthesisSource);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -787,10 +789,10 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY, @JsonKey(name: 'is_synthesis_source')  bool isSynthesisSource)?  $default,) {final _that = this;
 switch (_that) {
 case _StepRule() when $default != null:
-return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY);case _:
+return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY,_that.isSynthesisSource);case _:
   return null;
 
 }
@@ -802,7 +804,7 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _StepRule extends StepRule {
-  const _StepRule({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter() required this.taskBlueprint, final  List<String> dependsOn = const [], final  Map<String, String> inputMappings = const {}, @JsonKey(name: 'expected_sdui_type') this.expectedSduiType, this.uiPosX = 0.0, this.uiPosY = 0.0}): _dependsOn = dependsOn,_inputMappings = inputMappings,super._();
+  const _StepRule({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter() required this.taskBlueprint, final  List<String> dependsOn = const [], final  Map<String, String> inputMappings = const {}, @JsonKey(name: 'expected_sdui_type') this.expectedSduiType, this.uiPosX = 0.0, this.uiPosY = 0.0, @JsonKey(name: 'is_synthesis_source') this.isSynthesisSource = true}): _dependsOn = dependsOn,_inputMappings = inputMappings,super._();
   factory _StepRule.fromJson(Map<String, dynamic> json) => _$StepRuleFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -824,6 +826,8 @@ class _StepRule extends StepRule {
 @override@JsonKey(name: 'expected_sdui_type') final  SduiBlockType? expectedSduiType;
 @override@JsonKey() final  double uiPosX;
 @override@JsonKey() final  double uiPosY;
+// Phase 1, Step 3: Synthesis context governance field
+@override@JsonKey(name: 'is_synthesis_source') final  bool isSynthesisSource;
 
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
@@ -840,7 +844,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, expectedSduiType: $expectedSduiType, uiPosX: $uiPosX, uiPosY: $uiPosY)';
+  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, expectedSduiType: $expectedSduiType, uiPosX: $uiPosX, uiPosY: $uiPosY, isSynthesisSource: $isSynthesisSource)';
 }
 
 
@@ -851,7 +855,7 @@ abstract mixin class _$StepRuleCopyWith<$Res> implements $StepRuleCopyWith<$Res>
   factory _$StepRuleCopyWith(_StepRule value, $Res Function(_StepRule) _then) = __$StepRuleCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings,@JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType, double uiPosX, double uiPosY
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings,@JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType, double uiPosX, double uiPosY,@JsonKey(name: 'is_synthesis_source') bool isSynthesisSource
 });
 
 
@@ -868,7 +872,7 @@ class __$StepRuleCopyWithImpl<$Res>
 
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? expectedSduiType = freezed,Object? uiPosX = null,Object? uiPosY = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? expectedSduiType = freezed,Object? uiPosX = null,Object? uiPosY = null,Object? isSynthesisSource = null,}) {
   return _then(_StepRule(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,taskBlueprint: null == taskBlueprint ? _self.taskBlueprint : taskBlueprint // ignore: cast_nullable_to_non_nullable
@@ -877,7 +881,8 @@ as List<String>,inputMappings: null == inputMappings ? _self._inputMappings : in
 as Map<String, String>,expectedSduiType: freezed == expectedSduiType ? _self.expectedSduiType : expectedSduiType // ignore: cast_nullable_to_non_nullable
 as SduiBlockType?,uiPosX: null == uiPosX ? _self.uiPosX : uiPosX // ignore: cast_nullable_to_non_nullable
 as double,uiPosY: null == uiPosY ? _self.uiPosY : uiPosY // ignore: cast_nullable_to_non_nullable
-as double,
+as double,isSynthesisSource: null == isSynthesisSource ? _self.isSynthesisSource : isSynthesisSource // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -911,7 +916,8 @@ NodeStrategy _$NodeStrategyFromJson(
 /// @nodoc
 mixin _$NodeStrategy {
 
-@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook;@StrictOpaqueIdConverter() String? get roleBlockId;@StrictOpaqueIdConverter() String? get extractionProtocolBlockId;@StrictOpaqueIdConverter() String? get executionPersonaBlockId; List<String> get criteriaBlockIds; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools; List<String> get expectedInputs; Map<String, dynamic>? get outputSchema; String? get modelStrategy; String? get organizationId;
+@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook;@StrictOpaqueIdConverter() String? get roleBlockId;@StrictOpaqueIdConverter() String? get extractionProtocolBlockId;@StrictOpaqueIdConverter() String? get executionPersonaBlockId; List<String> get criteriaBlockIds; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools; List<String> get expectedInputs; Map<String, dynamic>? get outputSchema; String? get modelStrategy; String? get organizationId;// Phase 1, Step 3: System core protection governance field
+@JsonKey(name: 'is_system_core') bool get isSystemCore;
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -924,16 +930,16 @@ $NodeStrategyCopyWith<NodeStrategy> get copyWith => _$NodeStrategyCopyWithImpl<N
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other.criteriaBlockIds, criteriaBlockIds)&&const DeepCollectionEquality().equals(other.preHooks, preHooks)&&const DeepCollectionEquality().equals(other.postHooks, postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other.allowedMcpTools, allowedMcpTools)&&const DeepCollectionEquality().equals(other.expectedInputs, expectedInputs)&&const DeepCollectionEquality().equals(other.outputSchema, outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other.criteriaBlockIds, criteriaBlockIds)&&const DeepCollectionEquality().equals(other.preHooks, preHooks)&&const DeepCollectionEquality().equals(other.postHooks, postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other.allowedMcpTools, allowedMcpTools)&&const DeepCollectionEquality().equals(other.expectedInputs, expectedInputs)&&const DeepCollectionEquality().equals(other.outputSchema, outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(criteriaBlockIds),const DeepCollectionEquality().hash(preHooks),const DeepCollectionEquality().hash(postHooks),safety,const DeepCollectionEquality().hash(allowedMcpTools),const DeepCollectionEquality().hash(expectedInputs),const DeepCollectionEquality().hash(outputSchema),modelStrategy,organizationId);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(criteriaBlockIds),const DeepCollectionEquality().hash(preHooks),const DeepCollectionEquality().hash(postHooks),safety,const DeepCollectionEquality().hash(allowedMcpTools),const DeepCollectionEquality().hash(expectedInputs),const DeepCollectionEquality().hash(outputSchema),modelStrategy,organizationId,isSystemCore);
 
 @override
 String toString() {
-  return 'NodeStrategy(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy, organizationId: $organizationId)';
+  return 'NodeStrategy(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy, organizationId: $organizationId, isSystemCore: $isSystemCore)';
 }
 
 
@@ -944,7 +950,7 @@ abstract mixin class $NodeStrategyCopyWith<$Res>  {
   factory $NodeStrategyCopyWith(NodeStrategy value, $Res Function(NodeStrategy) _then) = _$NodeStrategyCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy, String? organizationId
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore
 });
 
 
@@ -961,7 +967,7 @@ class _$NodeStrategyCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,Object? organizationId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,Object? organizationId = freezed,Object? isSystemCore = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -980,7 +986,8 @@ as List<String>,expectedInputs: null == expectedInputs ? _self.expectedInputs : 
 as List<String>,outputSchema: freezed == outputSchema ? _self.outputSchema : outputSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
 as String?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of NodeStrategy
@@ -1086,11 +1093,11 @@ return logic(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)?  logic,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)?  logic,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case NodeStrategyLogic() when logic != null:
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case _:
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId,_that.isSystemCore);case NodeStrategyLogic() when logic != null:
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId,_that.isSystemCore);case _:
   return orElse();
 
 }
@@ -1108,11 +1115,11 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)  logic,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)  logic,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm():
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case NodeStrategyLogic():
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);}
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId,_that.isSystemCore);case NodeStrategyLogic():
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId,_that.isSystemCore);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1126,11 +1133,11 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId)?  logic,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs,  Map<String, dynamic>? outputSchema,  String? modelStrategy,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)?  logic,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case NodeStrategyLogic() when logic != null:
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId);case _:
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId,_that.isSystemCore);case NodeStrategyLogic() when logic != null:
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.outputSchema,_that.modelStrategy,_that.organizationId,_that.isSystemCore);case _:
   return null;
 
 }
@@ -1142,7 +1149,7 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.r
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class NodeStrategyLlm extends NodeStrategy {
-  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], final  Map<String, dynamic>? outputSchema, this.modelStrategy, this.organizationId, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,_outputSchema = outputSchema,$type = $type ?? 'llm',super._();
+  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], final  Map<String, dynamic>? outputSchema, this.modelStrategy, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,_outputSchema = outputSchema,$type = $type ?? 'llm',super._();
   factory NodeStrategyLlm.fromJson(Map<String, dynamic> json) => _$NodeStrategyLlmFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1200,6 +1207,8 @@ class NodeStrategyLlm extends NodeStrategy {
 
 @override final  String? modelStrategy;
 @override final  String? organizationId;
+// Phase 1, Step 3: System core protection governance field
+@override@JsonKey(name: 'is_system_core') final  bool isSystemCore;
 
 @JsonKey(name: 'type')
 final String $type;
@@ -1218,16 +1227,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLlm&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&const DeepCollectionEquality().equals(other._outputSchema, _outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLlm&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&const DeepCollectionEquality().equals(other._outputSchema, _outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),const DeepCollectionEquality().hash(_outputSchema),modelStrategy,organizationId);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),const DeepCollectionEquality().hash(_outputSchema),modelStrategy,organizationId,isSystemCore);
 
 @override
 String toString() {
-  return 'NodeStrategy.llm(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy, organizationId: $organizationId)';
+  return 'NodeStrategy.llm(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy, organizationId: $organizationId, isSystemCore: $isSystemCore)';
 }
 
 
@@ -1238,7 +1247,7 @@ abstract mixin class $NodeStrategyLlmCopyWith<$Res> implements $NodeStrategyCopy
   factory $NodeStrategyLlmCopyWith(NodeStrategyLlm value, $Res Function(NodeStrategyLlm) _then) = _$NodeStrategyLlmCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy, String? organizationId
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore
 });
 
 
@@ -1255,7 +1264,7 @@ class _$NodeStrategyLlmCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = freezed,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,Object? organizationId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = freezed,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,Object? organizationId = freezed,Object? isSystemCore = null,}) {
   return _then(NodeStrategyLlm(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1274,7 +1283,8 @@ as List<String>,expectedInputs: null == expectedInputs ? _self._expectedInputs :
 as List<String>,outputSchema: freezed == outputSchema ? _self._outputSchema : outputSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
 as String?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -1306,7 +1316,7 @@ $I18nTextCopyWith<$Res>? get description {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class NodeStrategyLogic extends NodeStrategy {
-  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], final  Map<String, dynamic>? outputSchema, this.modelStrategy, this.organizationId, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,_outputSchema = outputSchema,$type = $type ?? 'logic',super._();
+  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], final  Map<String, dynamic>? outputSchema, this.modelStrategy, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,_outputSchema = outputSchema,$type = $type ?? 'logic',super._();
   factory NodeStrategyLogic.fromJson(Map<String, dynamic> json) => _$NodeStrategyLogicFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1364,6 +1374,8 @@ class NodeStrategyLogic extends NodeStrategy {
 
 @override final  String? modelStrategy;
 @override final  String? organizationId;
+// Phase 1, Step 3: System core protection governance field
+@override@JsonKey(name: 'is_system_core') final  bool isSystemCore;
 
 @JsonKey(name: 'type')
 final String $type;
@@ -1382,16 +1394,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLogic&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&const DeepCollectionEquality().equals(other._outputSchema, _outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLogic&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&const DeepCollectionEquality().equals(other._outputSchema, _outputSchema)&&(identical(other.modelStrategy, modelStrategy) || other.modelStrategy == modelStrategy)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),const DeepCollectionEquality().hash(_outputSchema),modelStrategy,organizationId);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),const DeepCollectionEquality().hash(_outputSchema),modelStrategy,organizationId,isSystemCore);
 
 @override
 String toString() {
-  return 'NodeStrategy.logic(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy, organizationId: $organizationId)';
+  return 'NodeStrategy.logic(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, outputSchema: $outputSchema, modelStrategy: $modelStrategy, organizationId: $organizationId, isSystemCore: $isSystemCore)';
 }
 
 
@@ -1402,7 +1414,7 @@ abstract mixin class $NodeStrategyLogicCopyWith<$Res> implements $NodeStrategyCo
   factory $NodeStrategyLogicCopyWith(NodeStrategyLogic value, $Res Function(NodeStrategyLogic) _then) = _$NodeStrategyLogicCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy, String? organizationId
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs, Map<String, dynamic>? outputSchema, String? modelStrategy, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore
 });
 
 
@@ -1419,7 +1431,7 @@ class _$NodeStrategyLogicCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,Object? organizationId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? outputSchema = freezed,Object? modelStrategy = freezed,Object? organizationId = freezed,Object? isSystemCore = null,}) {
   return _then(NodeStrategyLogic(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1438,7 +1450,8 @@ as List<String>,expectedInputs: null == expectedInputs ? _self._expectedInputs :
 as List<String>,outputSchema: freezed == outputSchema ? _self._outputSchema : outputSchema // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
 as String?,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

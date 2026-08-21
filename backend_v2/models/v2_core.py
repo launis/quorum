@@ -770,6 +770,11 @@ class Step(V2CoreBase):
         default=None,
         description="Optional JSON schema defining the structured output of this step.",
     )
+    # Phase 1, Step 2: Workflow context governance field
+    is_system_core: Annotated[
+        bool,
+        Field(description="Whether this step blueprint is a protected system foundational component."),
+    ] = False
 
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
@@ -819,6 +824,11 @@ class StepRule(V2CoreBase):
         Literal["markdown", "hero_insight", "grid"] | None,
         Field(description="Declares the expected SDUI output schema for schema compilation."),
     ] = None
+    # Phase 1, Step 2: Synthesis context governance field
+    is_synthesis_source: Annotated[
+        bool,
+        Field(description="Whether this step's narrative text output is forwarded to the synthesis LLM context."),
+    ] = True
 
     ui_pos_x: float = Field(default=0.0, description="X coordinate on the 2D DAG canvas.")
     ui_pos_y: float = Field(default=0.0, description="Y coordinate on the 2D DAG canvas.")
@@ -1088,6 +1098,15 @@ class SynthesisConfigDTO(V2CoreBase):
         default=None, description="Multilingual preamble text added before synthesis."
     )
     tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
+    # Phase 1, Step 2: Per-profile overrides for matrix explanation limits
+    max_quotes_per_matrix: Annotated[
+        int | None,
+        Field(description="Per-profile override for quotes per matrix in explanations."),
+    ] = None
+    max_unmet_criteria: Annotated[
+        int | None,
+        Field(description="Per-profile override for unmet criteria per matrix."),
+    ] = None
 
 
 class ErrorDetailsDTO(BaseModel):

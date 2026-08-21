@@ -151,7 +151,9 @@ class Settings(BaseSettings):
     semaphore_rpm_divisor: Annotated[int, Field(description="Divisor applied to requested RPM constraint")] = 10
     max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 2000000
     schema_max_evaluations: Annotated[int, Field(description="Max boolean metrics evaluation per prompt")] = 7
-    max_synthesis_evaluations: Annotated[int, Field(description="Max evaluations for synthesis token shield")] = 40
+    max_synthesis_evaluations: Annotated[int, Field(ge=0, description="Max evaluations for synthesis token shield")] = (
+        40
+    )
     max_synthesis_quote_length: Annotated[
         int, Field(description="Maximum character length for evidence quotes in synthesis payloads")
     ] = 300
@@ -162,6 +164,10 @@ class Settings(BaseSettings):
         int,
         Field(description="Maximum number of unmet criteria descriptions per matrix in synthesis explanation context"),
     ] = 5
+    # Phase 1, Step 2: Synthesis reasoning truncation limit
+    max_synthesis_reasoning_length: Annotated[
+        int, Field(description="Maximum character length for semantic reasoning in synthesis payloads")
+    ] = 300
     synthesis_starvation_threshold: Annotated[
         int,
         Field(
