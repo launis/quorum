@@ -130,16 +130,16 @@
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains. (Zero skips in EPIC 145 modified test domains).
 - [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths and delete deprecated proxies. (`test_synthesis_payload_compression.py` deleted, 0 zombie imports).
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend files:
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend files:
   - [x] @[backend_v2/models/v2_core.py]
   - [x] @[backend_v2/settings.py]
   - [x] @[backend_v2/exceptions.py]
   - [x] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
   - [x] @[backend_v2/services/studio/workflow_service.py]
-  - [ ] @[backend_v2/seed/run_seed.py]
-  - [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py]
-  - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
-  - [ ] @[backend_v2/api/routers/studio/steps.py]
+  - [x] @[backend_v2/seed/run_seed.py]
+  - [x] @[backend_v2/services/orchestrator/synthesis_distiller.py]
+  - [x] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
+  - [x] @[backend_v2/api/routers/studio/steps.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified frontend files:
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]

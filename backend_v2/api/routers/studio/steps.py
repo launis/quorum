@@ -18,6 +18,8 @@ from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["router"]
+
 router = APIRouter(prefix="/steps", tags=["Admin Studio V2 - Steps"])
 
 

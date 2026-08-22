@@ -1,29 +1,27 @@
 """V2 Seeder Script.
 
-**Mitä tämä skripti tekee:**
 Reads from backend_v2/seed/seed_data.json and populates the isolated V2 target database.
-Strictly restricted to V2 Pydantic models (SystemConfig, Role, Workflow, PromptBlock).
+Strictly restricted to V2 Pydantic models (SystemConfig, Role, Workflow, PromptBlock, Step, OutputProfile).
 
-**Ohjeet käyttöön:**
-Suorita skripti projektin juuressa eristettynä `uv run python` -komennolla:
+Usage:
+Execute the script from the project root using `uv run python`:
 
 ```bash
-uv run python backend_v2/seed/run_seed.py <kohde>
+uv run python backend_v2/seed/run_seed.py <target>
 ```
 
-**Kopioitavia esimerkkejä:**
-
-1. Päivitä pelkästään paikallinen TinyDB-tietokanta (data/db_v2.json):
+Examples:
+1. Update local TinyDB database only (data/db_v2.json):
 ```bash
 uv run python backend_v2/seed/run_seed.py local
 ```
 
-2. Päivitä Cloud Firestore -tietokanta:
+2. Update Cloud Firestore database:
 ```bash
 uv run python backend_v2/seed/run_seed.py firestore
 ```
 
-3. Päivitä molemmat samalla kertaa:
+3. Update both databases simultaneously:
 ```bash
 uv run python backend_v2/seed/run_seed.py all
 ```
@@ -39,7 +37,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from tinydb import Query, TinyDB
 
 try:
@@ -69,16 +67,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "FIREBASE_AVAILABLE",
+    "LOCAL_DB_PATH",
+    "PROJECT_ROOT",
+    "SEED_PATH",
+    "main",
+    "seed_database",
+]
+
 
 def _fail_fast(msg: str, error: Exception) -> None:
     """Logs a critical error and terminates the script immediately.
 
     Args:
-        msg: The failure message.
-        error: The caught exception.
+        msg: The failure message describing the context.
+        error: The caught exception instance.
 
-    Returns:
-        None
+    Raises:
+        SystemExit: Always terminates the process with exit code 1.
     """
     logger.critical(
         "[Seeder] %s: [CRITICAL FAIL FAST] %s - %s",
@@ -91,7 +98,12 @@ def _fail_fast(msg: str, error: Exception) -> None:
     sys.exit(1)
 
 
-async def _seed_tinydb(db_path: Path, seed_data: dict[str, Any], target_env: str, dry_run: bool = False) -> None:
+async def _seed_tinydb(
+    db_path: Path,
+    seed_data: dict[str, Any],
+    target_env: str,
+    dry_run: bool = False,
+) -> None:
     """Seeds the local TinyDB instance with parsed V2 registry data.
 
     Args:
@@ -100,8 +112,8 @@ async def _seed_tinydb(db_path: Path, seed_data: dict[str, Any], target_env: str
         target_env: Execution target environment string.
         dry_run: If True, bypass database modifications.
 
-    Returns:
-        None
+    Raises:
+        SystemExit: If TinyDB initialization, validation, or integrity checks fail.
     """
     try:
         if not dry_run:
@@ -151,17 +163,17 @@ async def _seed_tinydb(db_path: Path, seed_data: dict[str, Any], target_env: str
         pyd_adapter: Any = config["model"]
         count = 0
 
-        dumped_buffer = []
+        dumped_buffer: list[dict[str, Any]] = []
 
         for item in seed_data.get(col_key, []):
             try:
-                # Let Pydantic resolve the strictness natively using model_config=ConfigDict(strict=True)
+                # Let Pydantic resolve strictness natively using model_config=ConfigDict(strict=True)
                 validated = pyd_adapter.validate_python(item)
 
                 if col_key == "workflows":
                     DAGCompilerService.validate_workflow(validated)
 
-                if hasattr(validated, "model_dump"):
+                if isinstance(validated, BaseModel):
                     dumped = validated.model_dump(mode="json")
                 else:
                     dumped = pyd_adapter.dump_python(validated, mode="json")
@@ -215,8 +227,8 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
         seed_data: Raw JSON payload loaded from the seed file.
         target_env: Execution target environment string.
 
-    Returns:
-        None
+    Raises:
+        SystemExit: If Firestore validation or batch processing fails.
     """
     if not FIREBASE_AVAILABLE:
         print("Firebase Admin not installed.")
@@ -260,14 +272,17 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
         id_field = str(config["id_field"])
         pyd_adapter: Any = config["model"]
 
-        valid_items = []
+        valid_items: list[dict[str, Any]] = []
         for item in seed_data.get(col_key, []):
             try:
                 validated = pyd_adapter.validate_python(item)
                 if col_key == "workflows":
                     DAGCompilerService.validate_workflow(validated)
 
-                valid_items.append(validated.model_dump(mode="json"))
+                if isinstance(validated, BaseModel):
+                    valid_items.append(validated.model_dump(mode="json"))
+                else:
+                    valid_items.append(pyd_adapter.dump_python(validated, mode="json"))
             except ValidationError as ve:
                 _fail_fast(f"Validation Error for {col_key} item {item.get(id_field, 'unknown')}", ve)
             except Exception as e:
@@ -282,9 +297,6 @@ def _delete_collection(coll_ref: Any, batch_size: int = 50) -> None:
     Args:
         coll_ref: Firestore collection reference object.
         batch_size: Number of documents to delete per batch.
-
-    Returns:
-        None
     """
     docs = list(coll_ref.limit(batch_size).stream())
     deleted = 0
@@ -302,8 +314,8 @@ async def seed_database(target: str, dry_run: bool = False) -> None:
         target: Target database environment ('local', 'firestore', or 'all').
         dry_run: If True, bypass database modifications.
 
-    Returns:
-        None
+    Raises:
+        SystemExit: If seed file is missing or target fails to seed.
     """
     print(f"--- V2 SEEDING TARGET: {target.upper()} ---")
 
@@ -328,14 +340,14 @@ async def seed_database(target: str, dry_run: bool = False) -> None:
             print("[SUCCESS] V2 Seeded Cloud Firestore.")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Parses command line arguments and initializes the async seeding loop.
 
     Args:
-        None
+        argv: Optional list of argument strings for invocation.
 
-    Returns:
-        None
+    Raises:
+        SystemExit: If parsing fails or an unhandled seeding error occurs.
     """
     parser = argparse.ArgumentParser(description="Unified V2 Database Seeder")
     parser.add_argument(
@@ -350,7 +362,7 @@ def main() -> None:
         help="Validate seed data without modifying the database.",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     targets = set(args.targets)
     if "all" in targets:
