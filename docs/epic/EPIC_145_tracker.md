@@ -463,34 +463,34 @@
   - ✅ **Domain Hardening Verified**: Localized audit on compressor (`test_synthesis_payload_compressor.py`, `synthesis_payload_compressor.py`, `workflow_service.py`) verified 100% clean with **94% test coverage**.
   - ✅ **Global Quality Gates Verified**: Flutter test suite (186/186 passed) and seed re-seeding verified. Zero supply chain violations.
   - ✅ **Audit Status**: Marked `[x] [OK] Audit` in tracker and plan. All 5 phases of EPIC 145 are 100% executed and verified.
-- **Tier 2 Backend Hardening (Session 1 - 5 Files Completed)**:
+- **Tier 2 Backend Hardening (Completed - All 9 Files / 100% Compliant)**:
   - ✅ **`backend_v2/models/v2_core.py`**: Validated 153 rules in audit matrix; 59 tests passed, **96% coverage**, strict Pydantic V2 schemas with `ConfigDict(strict=True, extra="forbid")`.
   - ✅ **`backend_v2/settings.py`**: Validated 153 rules in audit matrix; 15 tests passed, **96% coverage**, BaseSettings with fail-fast validators and PEP 593 Annotated typing.
   - ✅ **`backend_v2/exceptions.py`**: Validated 153 rules in audit matrix; expanded `test_exceptions.py` to 8 tests passing with **99% coverage**, declared explicit `__all__` export list with 25 public symbols.
   - ✅ **`backend_v2/services/orchestrator/synthesis_payload_compressor.py`**: Validated 153 rules in audit matrix; 16 tests passed, **94% coverage**, deterministic prioritized stratification and unbounded token shield protocols.
   - ✅ **`backend_v2/services/studio/workflow_service.py`**: Validated 153 rules in audit matrix; 30 tests passed, **94% coverage**, typed attribute access and system core mutation protections.
+  - ✅ **`backend_v2/seed/run_seed.py`**: Validated 153 rules in audit matrix; expanded `test_run_seed.py` from 3 to 24 tests passing with **95% coverage**, strict English docstrings, explicit `__all__` export list, and structured `_fail_fast` handling.
+  - ✅ **`backend_v2/services/orchestrator/synthesis_distiller.py`**: Validated 153 rules in audit matrix; 20 tests passing with **94% coverage**, short `DOC-` alias registration via `AliasEngine`, unfiltered DTO forwarding, and fail-fast validation.
+  - ✅ **`backend_v2/services/orchestrator/matrix_explanation_service.py`**: Validated 153 rules in audit matrix; 12 tests passing with **92% coverage**, ranked round-robin quote diversity, localized claim resolutions, and `(KeyError, AttributeError)` exception tuple handling.
+  - ✅ **`backend_v2/api/routers/studio/steps.py`**: Validated 153 rules in audit matrix; expanded `test_steps.py` to 8 tests passing with **100% coverage**, explicit `__all__ = ["router"]`, full schema responses via `StepSimulationResponse`.
 
 ## Learned
-- **Encapsulation Strictness**: All standalone exception and domain service modules require explicit `__all__ = [...]` declarations to satisfy strict Phase 9 encapsulation.
-- **Exception Test Matrix**: `backend_v2/exceptions.py` requires comprehensive unit tests covering all exception subclasses, RFC 7807 problem detail generation, and `format_validation_error` fail-fast handlers, reaching 99% coverage.
+- **Encapsulation Strictness**: All standalone exception, domain service, and API router modules require explicit `__all__ = [...]` declarations to satisfy strict Phase 9 encapsulation.
+- **Exception Test Matrix & Tuple Syntax**: `backend_v2/exceptions.py` requires comprehensive unit tests covering all exception subclasses and RFC 7807 problem detail generation (99% coverage). Multiple exceptions caught in a `try...except` must be enclosed in parentheses `(KeyError, AttributeError)` to avoid legacy Python 2 assignment semantics.
 - **Baseline Architecture State**: Both backend (Python Pydantic V2) and frontend (Dart 3 Freezed) models strictly enforce `is_system_core` on steps and `is_synthesis_source` on step rules with fail-fast validation.
 - **Token Shield Prioritized Stratification Protocol**: Default `max_synthesis_evaluations = 0` provides Unbounded Mode for 100% forensic coverage. When bounded, deterministic multi-key sorting (`(-len(exact_quotes), atom_id)`) guarantees byte-for-byte prompt caching parity and prevents the "Auditing Whitewash" anti-pattern.
 - **Direct Typed Attribute Access in Studio Service**: `StudioWorkflowService.save_step` accesses `step.organization_id` directly from the typed Pydantic `Step` model, eliminating duck-typing `getattr(data, "organization_id", None)` and enforcing fail-fast data integrity.
+- **Router Isolation Testing with TestClient**: Testing APIRouters with `TestClient` using `app.dependency_overrides` ensures 100% line coverage of routing and parameter validation without requiring live database or network connections.
 
 ## Remaining
 - **Post-Implementation Hardening & Governance Pipeline**:
-  - **1. Backend Hardening Loop (`/tier2-hardening-backend` - Session 2)**: Complete audit on remaining 4 backend targets:
-    - @[backend_v2/seed/run_seed.py]
-    - @[backend_v2/services/orchestrator/synthesis_distiller.py]
-    - @[backend_v2/services/orchestrator/matrix_explanation_service.py]
-    - @[backend_v2/api/routers/studio/steps.py]
-  - **2. Frontend Hardening Loop (`/tier2-hardening-frontend`)**: File-by-file widget, localization, and theme token hardening:
+  - **1. Frontend Hardening Loop (`/tier2-hardening-frontend`)**: File-by-file widget, localization, and theme token hardening:
     - @[client_app_v2/lib/features/studio/models/workflow.dart]
     - @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
     - @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
-  - **3. Knowledge Item (KI) Creation/Update**: Update or create relevant KI entries documenting 3-Zone architecture, token shield compression, and system core protections.
-  - **4. As-Built Architectural Sync (`/tier7-describe-architecture`)**: Scan codebase and anchor as-built state in `docs/architecture/` and `.agents/rules/04_directory_reference.md`.
-  - **5. Final Reverse Epic Audit (`/tier8-audit-epic`)**: Full Epic AST and invariant reverse verification.
+  - **2. Knowledge Item (KI) Creation/Update**: Update or create relevant KI entries documenting 3-Zone architecture, token shield compression, and system core protections.
+  - **3. As-Built Architectural Sync (`/tier7-describe-architecture`)**: Scan codebase and anchor as-built state in `docs/architecture/` and `.agents/rules/04_directory_reference.md`.
+  - **4. Final Reverse Epic Audit (`/tier8-audit-epic`)**: Full Epic AST and invariant reverse verification.
 
 ## Resume Command
-`/tier2-hardening-backend @[backend_v2/seed/run_seed.py] @[backend_v2/services/orchestrator/synthesis_distiller.py] @[backend_v2/services/orchestrator/matrix_explanation_service.py] @[backend_v2/api/routers/studio/steps.py] @[docs/epic/EPIC_145_tracker.md]`
+`/tier2-hardening-frontend @[client_app_v2/lib/features/studio/models/workflow.dart] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart] @[client_app_v2/lib/features/studio/views/step_builder_view.dart] @[docs/epic/EPIC_145_tracker.md]`
