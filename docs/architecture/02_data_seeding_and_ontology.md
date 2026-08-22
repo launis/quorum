@@ -27,6 +27,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Dynamic localized strings must never be flattened into dictionary maps or separate schema fields (e.g., `title_en`).
 - **Enforcement:** Any user-facing string that exists within the ontology (like profile titles, layout descriptions, and preambles) MUST use the strictly typed `I18nText` object in Python and Flutter. This ensures safe fallback resolution logic, structural parity across boundaries, and prevents UI crashes due to missing translation keys.
 
+### 2.6. Workflow Context Governance & System Core Protections
+- **Law:** Foundational pipeline steps and synthesis context boundaries must be declaratively governed within the ontology rather than assumed by ad-hoc runtime code.
+- **Enforcement:** Foundational pipeline step definitions (such as raw document ingestion, scoring, holistic synthesis, and forensic XAI reporting) declare explicit system core protections (`is_system_core: true`). The system enforces immutable protection against deletion or unauthorized schema mutations on protected core resources. Furthermore, step rules declare explicit synthesis source flags (`is_synthesis_source`), enabling deterministic context boundary governance between upstream document extraction and downstream synthesis distillation.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
@@ -40,5 +44,3 @@ flowchart TD
     G -- Valid --> I[In-Memory / Database State]
     I --> J[LLM Execution Engine]
 ```
-
-

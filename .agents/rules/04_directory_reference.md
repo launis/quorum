@@ -102,7 +102,7 @@
 
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
-        <key_domains>studio/ (Pillar 2/4 Output Profile Editors: views/output_profile_crud_view.dart, views/widgets/profile/tabs/ [profile_general_tab.dart, profile_scoring_tab.dart, profile_layouts_tab.dart], views/widgets/profile/blocks/ [base_block_card.dart, block_card_registry.dart, metadata_block_card.dart, synthesis_text_block_card.dart, matrix_graphs_block_card.dart, matrix_summary_table_card.dart, xai_extensions_block_card.dart, bibliography_block_card.dart, simple_toggle_block_card.dart]), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Global Presentation), auth/ (Orphan), settings/ (Orphan)</key_domains>
+        <key_domains>studio/ (Pillar 2/4 Workflow & Profile Editors: views/workflow_builder_view.dart, views/step_builder_view.dart, views/output_profile_crud_view.dart, views/widgets/workflow/ [workflow_general_tab.dart, workflow_inputs_tab.dart, workflow_step_card.dart, workflow_steps_tab.dart], views/widgets/profile/tabs/ [profile_general_tab.dart, profile_scoring_tab.dart, profile_layouts_tab.dart], views/widgets/profile/blocks/ [base_block_card.dart, block_card_registry.dart, metadata_block_card.dart, synthesis_text_block_card.dart, matrix_graphs_block_card.dart, matrix_summary_table_card.dart, xai_extensions_block_card.dart, bibliography_block_card.dart, simple_toggle_block_card.dart]), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Global Presentation), auth/ (Orphan), settings/ (Orphan)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">

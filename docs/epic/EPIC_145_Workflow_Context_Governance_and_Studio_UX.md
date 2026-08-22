@@ -37,8 +37,8 @@ Payload compression MUST NOT degrade synthesis narrative richness into dry, robo
 ### Deprecations & Sunset List (`What We Will REMOVE`)
 | Symbol / Entity | Location | Action | Replacement / Destination |
 | :--- | :--- | :--- | :--- |
-| `hydrated_references` in synthesis payload | `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L17-L163]` | Purged | Stripped during payload compression |
-| `_step_metadata`, `_audit_signature`, `_evaluative_matrices` | `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L17-L163]` | Purged | Stripped during payload compression |
+| `hydrated_references` in synthesis payload | `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L25-L320]` | Purged | Stripped during payload compression |
+| `_step_metadata`, `_audit_signature`, `_evaluative_matrices` | `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L198-L317]` | Purged | Stripped during payload compression |
 | Monolithic input checkboxes container | `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart#L1-L335]` | Refactored | Split into Categorized Source Material and Prior Step Reports |
 | Jargon header `studioWorkflowInputMappings` | `@[client_app_v2/lib/l10n/app_fi.arb#L1075-L1125]`, `@[client_app_v2/lib/l10n/app_en.arb#L1620-L1670]` | Replaced | Replaced by `studioWorkflowSourceDocsTitle` and `studioWorkflowPriorStepsTitle` |
 
@@ -84,25 +84,25 @@ graph TD
 
 ### Phase 1: Cross-Domain DTO Parity, Freezed Code Generation Lock & Pre-Implementation Tech Debt Cleanups (Contract First & Zero Duct-Tape)
 - **Target Files**:
-  - `@[backend_v2/models/v2_core.py#L712-L801]` (`Step` model)
-  - `@[backend_v2/models/v2_core.py#L804-L836]` (`StepRule` model)
-  - `@[backend_v2/models/v2_core.py#L1073-L1090]` (`SynthesisConfigDTO` model)
-  - `@[backend_v2/settings.py#L51-L710]` (`Settings` class: `max_synthesis_evaluations` and `max_synthesis_reasoning_length` limit configs)
-  - `@[backend_v2/exceptions.py#L99-L277]` (`ErrorCodes` enum: `SYSTEM_PROTECTED_RESOURCE`)
-  - `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L17-L163]` (`SynthesisPayloadCompressor` tech debt remediation)
-  - `@[backend_v2/services/studio/workflow_service.py#L448-L479]` (`StudioWorkflowService.save_step` duck-typing elimination)
+  - `@[backend_v2/models/v2_core.py#L712-L806]` (`Step` model)
+  - `@[backend_v2/models/v2_core.py#L809-L846]` (`StepRule` model)
+  - `@[backend_v2/models/v2_core.py#L1083-L1109]` (`SynthesisConfigDTO` model)
+  - `@[backend_v2/settings.py#L51-L716]` (`Settings` class: `max_synthesis_evaluations` and `max_synthesis_reasoning_length` limit configs)
+  - `@[backend_v2/exceptions.py#L127-L308]` (`ErrorCodes` enum: `SYSTEM_PROTECTED_RESOURCE`)
+  - `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L25-L320]` (`SynthesisPayloadCompressor` tech debt remediation)
+  - `@[backend_v2/services/studio/workflow_service.py#L450-L500]` (`StudioWorkflowService.save_step` duck-typing elimination)
   - `@[client_app_v2/lib/features/studio/models/workflow.dart#L54-L116]` (`StepRule`, `NodeStrategy.llm`, `NodeStrategy.logic`)
   - `@[client_app_v2/test/features/studio/models/workflow_test.dart]`
 
 - **Actions**:
   1. **Pre-Implementation Technical Debt Cleanups (Mandatory Phase 1 Gate per `touched_scope_tech_debt_mandate`)**:
-     - In `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L20-L163]`: Strictly eliminate `lite_ev_obj.model_copy(update={...})` (which performs an unvalidated shallow copy bypassing Pydantic V2 Rust core) and replace it with direct Pydantic re-validation: `DistilledEvaluation.model_validate(lite_ev_obj.model_dump(exclude_unset=True) | {"exact_quotes": [q[: settings.max_synthesis_quote_length] for q in valid_quotes], "semantic_reasoning": str(lite_ev_obj.semantic_reasoning)[: max_synthesis_reasoning_length] if lite_ev_obj.semantic_reasoning else None})`.
-     - In `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L20-L163]`: Eliminate hardcoded magic number `[:300]` for `semantic_reasoning`, referencing the newly centralized `max_synthesis_reasoning_length` (added to `Settings` in Phase 1) per `strict_configuration_segregation` and `ki_global_config_sovereignty.md`.
-     - In `@[backend_v2/services/studio/workflow_service.py#L448-L479]`: Eliminate duck typing `getattr(data, "organization_id", None)` in `save_step`, replacing with direct typed attribute access `data.organization_id` per `the_zero_compromise_pledge` and `zero_service_layer_fallbacks`.
+     - In `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L25-L320]`: Strictly eliminate `lite_ev_obj.model_copy(update={...})` (which performs an unvalidated shallow copy bypassing Pydantic V2 Rust core) and replace it with direct Pydantic re-validation: `DistilledEvaluation.model_validate(lite_ev_obj.model_dump(exclude_unset=True) | {"exact_quotes": [q[: settings.max_synthesis_quote_length] for q in valid_quotes], "semantic_reasoning": str(lite_ev_obj.semantic_reasoning)[: max_synthesis_reasoning_length] if lite_ev_obj.semantic_reasoning else None})`.
+     - In `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L25-L320]`: Eliminate hardcoded magic number `[:300]` for `semantic_reasoning`, referencing the newly centralized `max_synthesis_reasoning_length` (added to `Settings` in Phase 1) per `strict_configuration_segregation` and `ki_global_config_sovereignty.md`.
+     - In `@[backend_v2/services/studio/workflow_service.py#L450-L500]`: Eliminate duck typing `getattr(data, "organization_id", None)` in `save_step`, replacing with direct typed attribute access `data.organization_id` per `the_zero_compromise_pledge` and `zero_service_layer_fallbacks`.
   2. Add `is_system_core: Annotated[bool, Field(description="Whether this step blueprint is a protected system foundational component.")] = False` to Python `Step` model.
   3. Add `is_synthesis_source: Annotated[bool, Field(description="Whether this step's narrative text output is forwarded to the synthesis LLM context.")] = True` to Python `StepRule` model.
   4. Add `max_quotes_per_matrix: Annotated[int | None, Field(description="Per-profile override for quotes per matrix in explanations.")] = None` and `max_unmet_criteria: Annotated[int | None, Field(description="Per-profile override for unmet criteria per matrix.")] = None` to `SynthesisConfigDTO`.
-  5. Add `SYSTEM_PROTECTED_RESOURCE = "SYSTEM_PROTECTED_RESOURCE"` to `ErrorCodes` in `@[backend_v2/exceptions.py#L99-L277]` under a new `# System Protection` section.
+  5. Add `SYSTEM_PROTECTED_RESOURCE = "SYSTEM_PROTECTED_RESOURCE"` to `ErrorCodes` in `@[backend_v2/exceptions.py#L127-L308]` under a new `# System Protection` section.
   6. In `settings.py`:
      - Update `max_synthesis_evaluations: Annotated[int, Field(ge=0, description="Max evaluations for synthesis token shield. Set to 0 for unbounded (no truncation by default).")] = 0`.
      - Add `max_synthesis_reasoning_length: Annotated[int, Field(description="Maximum character length for semantic reasoning in synthesis payloads")] = 300` to `Settings` to eliminate hardcoded magic number `[:300]` in compressor logic.
@@ -139,13 +139,13 @@ graph TD
 
 ### Phase 3: Backend Domain & Synthesis Payload Compression Hardening
 - **Target Files**:
-  - `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L17-L163]` (`SynthesisPayloadCompressor`)
-  - `@[backend_v2/services/orchestrator/synthesis_distiller.py#L171-L344]` (`synthesis_distiller_hook`)
-  - `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L25-L224]` (`MatrixExplanationService`)
-  - `@[backend_v2/services/studio/workflow_service.py#L481-L504]` (`StudioWorkflowService.delete_step`)
-  - `@[backend_v2/services/studio/workflow_service.py#L448-L479]` (`StudioWorkflowService.save_step`)
-  - `@[backend_v2/api/routers/studio/steps.py#L100-L119]` (`save_step` endpoint)
-  - `@[backend_v2/api/routers/studio/steps.py#L122-L142]` (`delete_step` endpoint)
+  - `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L25-L320]` (`SynthesisPayloadCompressor`)
+  - `@[backend_v2/services/orchestrator/synthesis_distiller.py#L167-L359]` (`synthesis_distiller_hook`)
+  - `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L27-L236]` (`MatrixExplanationService`)
+  - `@[backend_v2/services/studio/workflow_service.py#L502-L540]` (`StudioWorkflowService.delete_step`)
+  - `@[backend_v2/services/studio/workflow_service.py#L450-L500]` (`StudioWorkflowService.save_step`)
+  - `@[backend_v2/api/routers/studio/steps.py#L102-L121]` (`save_step` endpoint)
+  - `@[backend_v2/api/routers/studio/steps.py#L124-L144]` (`delete_step` endpoint)
 
 - **Actions**:
   0. **Structural Prerequisites (Encapsulation & Logging)**:
@@ -180,15 +180,15 @@ graph TD
   3. In `matrix_explanation_service.py`:
      - **Structural Prerequisite**: Add `__all__` module export declaration listing all public symbols.
      - Accept an additional `synthesis_config: SynthesisConfigDTO | None` parameter in `assemble_matrices_to_explain()`. Consume profile-level `max_quotes_per_matrix` and `max_unmet_criteria` overrides using the **Tripartite Configuration Resolution**: `synthesis_config.max_quotes_per_matrix if synthesis_config and synthesis_config.max_quotes_per_matrix is not None else settings_obj.max_synthesis_quotes_per_matrix`. This follows the Tripartite Configuration Architecture (Models → Settings → Profile Override) and is NOT a banned fallback chain per `zero_service_layer_fallbacks`.
-     - **Deduplication Starvation Prevention**: The `seen_matrix_quotes: set[str]` pre-deduplication pattern already exists at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L25-L224]`. Verify it remains intact and operates BEFORE `ranked_round_robin_select`.
+     - **Deduplication Starvation Prevention**: The `seen_matrix_quotes: set[str]` pre-deduplication pattern already exists at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L27-L236]`. Verify it remains intact and operates BEFORE `ranked_round_robin_select`.
      - **Strict Key Deletion Invariant**: The `del groups[group_id]` pattern already exists at `@[backend_v2/utils/ranked_round_robin.py#L73]`. Verify it remains intact and no `.pop(k, None)` patterns are introduced.
-     - **Probe Boundary Isolation (Architectural Exception to Duct-Tape Ban)**: Maintain strict Probe Boundary isolation on `LevelStatsDTO.model_validate(raw_stats, strict=False)` and `AtomResultDTO.model_validate` with `try...except (ValidationError, ValueError) as e:` logging structured `extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)}`. **Architectural Justification**: These probe boundaries protect non-critical statistical metadata (level breakdowns) from crashing the overall synthesis aggregation. Malformed `level_breakdown` dictionaries from upstream DAG steps are explicitly non-critical and MUST NOT block synthesis. This follows the established pattern at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L25-L224]`.
-      - **Resolve `except Exception:` in Label Resolution**: Replace silent catch-all `except Exception:` in claim text resolution at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L28-L224]` (inside `assemble_matrices_to_explain`, specifically lines 121-124) with direct typed resolution `claim.label.resolve(target_locale)` (or catching specific `(KeyError, AttributeError)` with structured debug logging) per `the_duct_tape_ban` and `universal_fail_fast`.
+     - **Probe Boundary Isolation (Architectural Exception to Duct-Tape Ban)**: Maintain strict Probe Boundary isolation on `LevelStatsDTO.model_validate(raw_stats, strict=False)` and `AtomResultDTO.model_validate` with `try...except (ValidationError, ValueError) as e:` logging structured `extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)}`. **Architectural Justification**: These probe boundaries protect non-critical statistical metadata (level breakdowns) from crashing the overall synthesis aggregation. Malformed `level_breakdown` dictionaries from upstream DAG steps are explicitly non-critical and MUST NOT block synthesis. This follows the established pattern at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L27-L236]`.
+      - **Resolve `except Exception:` in Label Resolution**: Replace silent catch-all `except Exception:` in claim text resolution at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L30-L236]` (inside `assemble_matrices_to_explain`, specifically lines 121-124) with direct typed resolution `claim.label.resolve(target_locale)` (or catching specific `(KeyError, AttributeError)` with structured debug logging) per `the_duct_tape_ban` and `universal_fail_fast`.
      - **Eliminate `.get()` with Magic Default in `tda_to_scale`**: Replace `tda_to_scale.get(tda_id, 999)` at `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L152]` with direct typed access `tda_to_scale[tda_id]`. The key is guaranteed to exist because `tda_to_claim` and `tda_to_scale` are populated from the identical loop (lines 126-128). The magic default `999` violates `strict_configuration_segregation` and `the_zero_compromise_pledge`.
   4. In backend `StudioWorkflowService` (`workflow_service.py`):
      - **Structural Prerequisite**: Add `__all__` module export declaration listing all public symbols.
      - Enforce Fail-Fast protection: If `step.is_system_core` is True, raise `AppException(ErrorCodes.SYSTEM_PROTECTED_RESOURCE)` on deletion or renaming attempts.
-     - In `@[backend_v2/services/studio/workflow_service.py#L448-L479]`: Eliminate duck typing `getattr(data, "organization_id", None)` in `save_step`. Access typed attribute `data.organization_id` directly per `the_zero_compromise_pledge` and `zero_service_layer_fallbacks`.
+     - In `@[backend_v2/services/studio/workflow_service.py#L450-L500]`: Eliminate duck typing `getattr(data, "organization_id", None)` in `save_step`. Access typed attribute `data.organization_id` directly per `the_zero_compromise_pledge` and `zero_service_layer_fallbacks`.
 
 ### Phase 4: Studio Workflow & Step Blueprint UX Restructuring (3-Zone Management & Core Protection)
 - **Target Files**:

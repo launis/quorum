@@ -47,6 +47,14 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Presentation logic must be strictly decoupled from raw execution states using isolated, modular presentation adapters.
 - **Enforcement:** Every SDUI presentation adapter acts as a self-contained builder with co-located aesthetic rules and strict input validation. Adapters employ fair round-robin distribution to interleave multi-category findings (such as XAI explanation highlights) without primacy bias or category starvation, ensuring balanced and deterministic visual presentations.
 
+### 2.11. Studio 3-Zone Workflow Governance & Step Lifecycle Protection
+- **Law:** Workflow step creation, configuration, and visualization in the management studio must maintain strict structural boundaries and prevent unauthorized tampering with foundational pipeline operations.
+- **Enforcement:** The workflow studio partitions pipeline step governance into three dedicated architectural zones:
+  1. **Zone A (Input Anchor):** Governs initial raw document ingestion with immutable execution bindings, locked deletion controls, and explicit input source tracking.
+  2. **Zone B (Dynamic Specialists):** Facilitates specialist analytical steps configured from custom blueprints, managing upstream dependency wiring and report inputs.
+  3. **Zone C (Funnel Anchors):** Governs downstream scoring, synthesis generation, and forensic explanation reporters with locked deletion controls and automated multi-source aggregation.
+  Foundational steps marked with system core protections display locked visual indicators, hide deletion controls, and prevent mutation of foundational hooks.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
