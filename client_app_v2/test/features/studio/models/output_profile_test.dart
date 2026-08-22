@@ -79,6 +79,23 @@ void main() {
       },
     );
 
+    test(
+      'Should parse SynthesisConfigDTO with max_quotes_per_matrix and max_unmet_criteria',
+      () {
+        final jsonPayload = {
+          'synthesis_block_id': 'blk_8f7e6d5c4b3a2019',
+          'row_explanations_block_id': 'blk_row_explanation_rules',
+          'max_quotes_per_matrix': 5,
+          'max_unmet_criteria': 3,
+        };
+
+        final dto = SynthesisConfigDTO.fromJson(jsonPayload);
+        expect(dto.synthesisBlockId, 'blk_8f7e6d5c4b3a2019');
+        expect(dto.maxQuotesPerMatrix, 5);
+        expect(dto.maxUnmetCriteria, 3);
+      },
+    );
+
     // Contract: test_synthesis_config_dto_purged_enable_pii_masking_throws
     test('test_synthesis_config_dto_purged_enable_pii_masking_throws', () {
       final jsonPayload = {'enable_pii_masking': false};

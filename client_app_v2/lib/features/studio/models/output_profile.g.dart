@@ -154,6 +154,8 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             'length_constraint',
             'preamble_text',
             'tone_instruction',
+            'max_quotes_per_matrix',
+            'max_unmet_criteria',
           ],
         );
         final val = _SynthesisConfigDTO(
@@ -180,6 +182,14 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
             (v) =>
                 v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
           ),
+          maxQuotesPerMatrix: $checkedConvert(
+            'max_quotes_per_matrix',
+            (v) => (v as num?)?.toInt(),
+          ),
+          maxUnmetCriteria: $checkedConvert(
+            'max_unmet_criteria',
+            (v) => (v as num?)?.toInt(),
+          ),
         );
         return val;
       },
@@ -190,6 +200,8 @@ _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
         'lengthConstraint': 'length_constraint',
         'preambleText': 'preamble_text',
         'toneInstruction': 'tone_instruction',
+        'maxQuotesPerMatrix': 'max_quotes_per_matrix',
+        'maxUnmetCriteria': 'max_unmet_criteria',
       },
     );
 
@@ -201,6 +213,8 @@ Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
       'length_constraint': instance.lengthConstraint,
       'preamble_text': instance.preambleText?.toJson(),
       'tone_instruction': instance.toneInstruction?.toJson(),
+      'max_quotes_per_matrix': instance.maxQuotesPerMatrix,
+      'max_unmet_criteria': instance.maxUnmetCriteria,
     };
 
 _OutputProfile _$OutputProfileFromJson(

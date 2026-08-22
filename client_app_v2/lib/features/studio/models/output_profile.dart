@@ -53,6 +53,8 @@ abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
     @JsonKey(name: 'length_constraint') int? lengthConstraint,
     @JsonKey(name: 'preamble_text') I18nText? preambleText,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
+    @JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,
+    @JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,
   }) = _SynthesisConfigDTO;
 
   factory SynthesisConfigDTO.fromJson(Map<String, dynamic> json) =>

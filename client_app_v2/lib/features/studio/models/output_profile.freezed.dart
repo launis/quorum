@@ -366,7 +366,7 @@ $I18nTextCopyWith<$Res>? get description {
 /// @nodoc
 mixin _$SynthesisConfigDTO {
 
-@JsonKey(name: 'system_prompt') String? get systemPrompt;@JsonKey(name: 'synthesis_block_id') String? get synthesisBlockId;@JsonKey(name: 'row_explanations_block_id') String? get rowExplanationsBlockId;@JsonKey(name: 'length_constraint') int? get lengthConstraint;@JsonKey(name: 'preamble_text') I18nText? get preambleText;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction;
+@JsonKey(name: 'system_prompt') String? get systemPrompt;@JsonKey(name: 'synthesis_block_id') String? get synthesisBlockId;@JsonKey(name: 'row_explanations_block_id') String? get rowExplanationsBlockId;@JsonKey(name: 'length_constraint') int? get lengthConstraint;@JsonKey(name: 'preamble_text') I18nText? get preambleText;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction;@JsonKey(name: 'max_quotes_per_matrix') int? get maxQuotesPerMatrix;@JsonKey(name: 'max_unmet_criteria') int? get maxUnmetCriteria;
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -381,7 +381,7 @@ $SynthesisConfigDTOCopyWith<SynthesisConfigDTO> get copyWith => _$SynthesisConfi
 
 @override
 String toString() {
-  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, lengthConstraint: $lengthConstraint, preambleText: $preambleText, toneInstruction: $toneInstruction)';
+  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, lengthConstraint: $lengthConstraint, preambleText: $preambleText, toneInstruction: $toneInstruction, maxQuotesPerMatrix: $maxQuotesPerMatrix, maxUnmetCriteria: $maxUnmetCriteria)';
 }
 
 
@@ -392,7 +392,7 @@ abstract mixin class $SynthesisConfigDTOCopyWith<$Res>  {
   factory $SynthesisConfigDTOCopyWith(SynthesisConfigDTO value, $Res Function(SynthesisConfigDTO) _then) = _$SynthesisConfigDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
+@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction,@JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,@JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria
 });
 
 
@@ -409,7 +409,7 @@ class _$SynthesisConfigDTOCopyWithImpl<$Res>
 
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? toneInstruction = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? toneInstruction = freezed,Object? maxQuotesPerMatrix = freezed,Object? maxUnmetCriteria = freezed,}) {
   return _then(_self.copyWith(
 systemPrompt: freezed == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
 as String?,synthesisBlockId: freezed == synthesisBlockId ? _self.synthesisBlockId : synthesisBlockId // ignore: cast_nullable_to_non_nullable
@@ -417,7 +417,9 @@ as String?,rowExplanationsBlockId: freezed == rowExplanationsBlockId ? _self.row
 as String?,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
 as int?,preambleText: freezed == preambleText ? _self.preambleText : preambleText // ignore: cast_nullable_to_non_nullable
 as I18nText?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
-as I18nText?,
+as I18nText?,maxQuotesPerMatrix: freezed == maxQuotesPerMatrix ? _self.maxQuotesPerMatrix : maxQuotesPerMatrix // ignore: cast_nullable_to_non_nullable
+as int?,maxUnmetCriteria: freezed == maxUnmetCriteria ? _self.maxUnmetCriteria : maxUnmetCriteria // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 /// Create a copy of SynthesisConfigDTO
@@ -526,10 +528,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction, @JsonKey(name: 'max_quotes_per_matrix')  int? maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria')  int? maxUnmetCriteria)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDTO() when $default != null:
-return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
+return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction,_that.maxQuotesPerMatrix,_that.maxUnmetCriteria);case _:
   return orElse();
 
 }
@@ -547,10 +549,10 @@ return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsB
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction, @JsonKey(name: 'max_quotes_per_matrix')  int? maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria')  int? maxUnmetCriteria)  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDTO():
-return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
+return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction,_that.maxQuotesPerMatrix,_that.maxUnmetCriteria);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -567,10 +569,10 @@ return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsB
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction, @JsonKey(name: 'max_quotes_per_matrix')  int? maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria')  int? maxUnmetCriteria)?  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDTO() when $default != null:
-return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
+return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction,_that.maxQuotesPerMatrix,_that.maxUnmetCriteria);case _:
   return null;
 
 }
@@ -582,7 +584,7 @@ return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsB
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _SynthesisConfigDTO extends SynthesisConfigDTO {
-  const _SynthesisConfigDTO({@JsonKey(name: 'system_prompt') this.systemPrompt, @JsonKey(name: 'synthesis_block_id') this.synthesisBlockId, @JsonKey(name: 'row_explanations_block_id') this.rowExplanationsBlockId, @JsonKey(name: 'length_constraint') this.lengthConstraint, @JsonKey(name: 'preamble_text') this.preambleText, @JsonKey(name: 'tone_instruction') this.toneInstruction}): super._();
+  const _SynthesisConfigDTO({@JsonKey(name: 'system_prompt') this.systemPrompt, @JsonKey(name: 'synthesis_block_id') this.synthesisBlockId, @JsonKey(name: 'row_explanations_block_id') this.rowExplanationsBlockId, @JsonKey(name: 'length_constraint') this.lengthConstraint, @JsonKey(name: 'preamble_text') this.preambleText, @JsonKey(name: 'tone_instruction') this.toneInstruction, @JsonKey(name: 'max_quotes_per_matrix') this.maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria') this.maxUnmetCriteria}): super._();
   factory _SynthesisConfigDTO.fromJson(Map<String, dynamic> json) => _$SynthesisConfigDTOFromJson(json);
 
 @override@JsonKey(name: 'system_prompt') final  String? systemPrompt;
@@ -591,6 +593,8 @@ class _SynthesisConfigDTO extends SynthesisConfigDTO {
 @override@JsonKey(name: 'length_constraint') final  int? lengthConstraint;
 @override@JsonKey(name: 'preamble_text') final  I18nText? preambleText;
 @override@JsonKey(name: 'tone_instruction') final  I18nText? toneInstruction;
+@override@JsonKey(name: 'max_quotes_per_matrix') final  int? maxQuotesPerMatrix;
+@override@JsonKey(name: 'max_unmet_criteria') final  int? maxUnmetCriteria;
 
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
@@ -607,7 +611,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, lengthConstraint: $lengthConstraint, preambleText: $preambleText, toneInstruction: $toneInstruction)';
+  return 'SynthesisConfigDTO(systemPrompt: $systemPrompt, synthesisBlockId: $synthesisBlockId, rowExplanationsBlockId: $rowExplanationsBlockId, lengthConstraint: $lengthConstraint, preambleText: $preambleText, toneInstruction: $toneInstruction, maxQuotesPerMatrix: $maxQuotesPerMatrix, maxUnmetCriteria: $maxUnmetCriteria)';
 }
 
 
@@ -618,7 +622,7 @@ abstract mixin class _$SynthesisConfigDTOCopyWith<$Res> implements $SynthesisCon
   factory _$SynthesisConfigDTOCopyWith(_SynthesisConfigDTO value, $Res Function(_SynthesisConfigDTO) _then) = __$SynthesisConfigDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
+@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction,@JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,@JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria
 });
 
 
@@ -635,7 +639,7 @@ class __$SynthesisConfigDTOCopyWithImpl<$Res>
 
 /// Create a copy of SynthesisConfigDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? toneInstruction = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? systemPrompt = freezed,Object? synthesisBlockId = freezed,Object? rowExplanationsBlockId = freezed,Object? lengthConstraint = freezed,Object? preambleText = freezed,Object? toneInstruction = freezed,Object? maxQuotesPerMatrix = freezed,Object? maxUnmetCriteria = freezed,}) {
   return _then(_SynthesisConfigDTO(
 systemPrompt: freezed == systemPrompt ? _self.systemPrompt : systemPrompt // ignore: cast_nullable_to_non_nullable
 as String?,synthesisBlockId: freezed == synthesisBlockId ? _self.synthesisBlockId : synthesisBlockId // ignore: cast_nullable_to_non_nullable
@@ -643,7 +647,9 @@ as String?,rowExplanationsBlockId: freezed == rowExplanationsBlockId ? _self.row
 as String?,lengthConstraint: freezed == lengthConstraint ? _self.lengthConstraint : lengthConstraint // ignore: cast_nullable_to_non_nullable
 as int?,preambleText: freezed == preambleText ? _self.preambleText : preambleText // ignore: cast_nullable_to_non_nullable
 as I18nText?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
-as I18nText?,
+as I18nText?,maxQuotesPerMatrix: freezed == maxQuotesPerMatrix ? _self.maxQuotesPerMatrix : maxQuotesPerMatrix // ignore: cast_nullable_to_non_nullable
+as int?,maxUnmetCriteria: freezed == maxUnmetCriteria ? _self.maxUnmetCriteria : maxUnmetCriteria // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
