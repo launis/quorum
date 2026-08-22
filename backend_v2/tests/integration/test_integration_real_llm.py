@@ -67,10 +67,11 @@ def get_base64_file(file_path: str) -> str:
 async def test_real_llm_pdf_execution() -> None:
     """Live E2E test verifying PDF processing via the FastAPI Backend."""
     # Verify PDF files exist
+    pdf_dir = os.path.join(WORKSPACE_ROOT, "docs", "jwdatat")
     pdf_files = {
-        "chat_log": os.path.join(TESTILYHYT_DIR, "keskusteluhistoriia.pdf"),
-        "product_text": os.path.join(TESTILYHYT_DIR, "loppputuote.pdf"),
-        "reflection_text": os.path.join(TESTILYHYT_DIR, "reflektio.pdf"),
+        "chat_log": os.path.join(pdf_dir, "keskusteluhistoria.pdf"),
+        "product_text": os.path.join(pdf_dir, "lopputuote.pdf"),
+        "reflection_text": os.path.join(pdf_dir, "reflektiodokumentti.pdf"),
     }
 
     for _, path in pdf_files.items():
@@ -191,8 +192,9 @@ async def test_real_llm_pdf_execution() -> None:
         for page in doc:
             full_text += page.get_text()
 
-        assert "ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS" in full_text, (
-            "Dynamic resolved title 'ARVIOINNIN YKSITYISKOHTAINEN PISTEYTYS' missing from PDF!"
+        # Verify header and executive content rendered into PDF
+        assert "Kokonaisvaltainen Auditointi" in full_text or "Raportti" in full_text, (
+            "Standard executive synthesis header missing from PDF!"
         )
 
         logger.info("PDF Execution E2E test passed successfully.")

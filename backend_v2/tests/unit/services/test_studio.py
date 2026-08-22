@@ -482,6 +482,29 @@ async def test_save_step(workflow_service: Any, admin_token: Any, mock_workflow_
     assert res.id == "step_1234567890abcdef12"
 
 
+async def test_save_step_direct_organization_id_access(
+    workflow_service: Any, admin_token: Any, mock_workflow_repo: Any
+) -> None:
+    """PROMISE: Prove typed direct access to step.organization_id during saving without duck typing."""
+    step_data = {
+        "id": "sp_1234567890abcdef12",
+        "slug": "step_direct_org",
+        "name": {"default_locale": "en", "translations": {"en": "Direct Org Step"}},
+        "type": "llm",
+        "organization_id": "org_123",
+        "safety": "safe",
+        "model_strategy": "fast",
+        "criteria_block_ids": ["blk_1234567890abcdef12"],
+        "extraction_protocol_block_id": "blk_1234567890abcdef12",
+    }
+    step_obj = Step.model_validate(step_data)
+    assert step_obj.organization_id == "org_123"
+
+    mock_workflow_repo.get_step_by_id.return_value = step_data
+    res = await workflow_service.save_step(admin_token, "sp_1234567890abcdef12", step_obj)
+    assert res.organization_id == "org_123"
+
+
 async def test_save_prompt_block(prompt_block_service: Any, admin_token: Any, mock_seed_prompt_block_repo: Any) -> None:
     blk_data = {
         "id": "blk_1234567890abcdef12",
