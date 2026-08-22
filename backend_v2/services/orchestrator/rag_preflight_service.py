@@ -83,7 +83,7 @@ class RAGPreflightService:
         self,
         workflow_repo: IWorkflowRepository,
         system_repo: ISystemRepository,
-        prompt_compiler: PromptCompiler,
+        prompt_compiler: PromptCompiler | Any,
     ) -> None:
         """Initialize RAG Preflight Service.
 

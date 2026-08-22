@@ -7837,6 +7837,7 @@
             "steps": [
                 {
                     "id": "sr_f0a26d17cc9b48a7",
+                    "is_synthesis_source": false,
                     "task_blueprint": "sp_db849f9790984585",
                     "depends_on": [],
                     "input_mappings": {
@@ -7848,6 +7849,7 @@
                 },
                 {
                     "id": "sr_0f7947ec7007498c",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_ddb7cf7c8a0245d4",
                     "depends_on": [
                         "sr_f0a26d17cc9b48a7"
@@ -7861,6 +7863,7 @@
                 },
                 {
                     "id": "sr_02b7cc1e7c2a4a62",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_76eedbc020274f66",
                     "depends_on": [
                         "sr_f0a26d17cc9b48a7",
@@ -7875,6 +7878,7 @@
                 },
                 {
                     "id": "sr_5a8ae009eee44fe2",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_b5c751d1cbe24735",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -7888,6 +7892,7 @@
                 },
                 {
                     "id": "sr_99ca8c82a5aa48cd",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_6a45d484ad5b497c",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -7901,6 +7906,7 @@
                 },
                 {
                     "id": "sr_87f408aeee64462f",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_8daee218c6b14f02",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -7914,6 +7920,7 @@
                 },
                 {
                     "id": "sr_d56fb84fbe13463a",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_6f40b964895c426b",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -7927,6 +7934,7 @@
                 },
                 {
                     "id": "sr_4d2272d8b4864847",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_bd0b3054fe664960",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -7940,6 +7948,7 @@
                 },
                 {
                     "id": "sr_1d7e6d26b02b457b",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_7f9649114d2344dc",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -7953,6 +7962,7 @@
                 },
                 {
                     "id": "sr_b4c328df1c4141c6",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_dfc365994fa944b2",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -7966,6 +7976,7 @@
                 },
                 {
                     "id": "sr_566e3209a60444d3",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_f22db9f1dde048b7",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -7979,6 +7990,7 @@
                 },
                 {
                     "id": "sr_ba028623acab447a",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_48974af1fc584407",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -7993,6 +8005,7 @@
                 },
                 {
                     "id": "sr_0228db320e8f41bb",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_25664f44773a4354",
                     "depends_on": [
                         "sr_02b7cc1e7c2a4a62"
@@ -8006,6 +8019,7 @@
                 },
                 {
                     "id": "sr_5f3dd7712a7f4bb3",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_192910b5f5a34c79",
                     "depends_on": [
                         "sr_5a8ae009eee44fe2",
@@ -8026,6 +8040,7 @@
                 },
                 {
                     "id": "sr_2fa56dc36614469a",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_d245365e4a274b9e",
                     "depends_on": [
                         "sr_5f3dd7712a7f4bb3"
@@ -8037,6 +8052,7 @@
                 },
                 {
                     "id": "sr_9e8d7c6b5a40312b",
+                    "is_synthesis_source": true,
                     "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
                     "depends_on": [
                         "sr_2fa56dc36614469a"
@@ -8065,6 +8081,7 @@
     "steps": [
         {
             "id": "sp_db849f9790984585",
+            "is_system_core": true,
             "slug": "step_input_processing",
             "name": {
                 "default_locale": "fi",
@@ -8106,6 +8123,7 @@
         },
         {
             "id": "sp_b5c751d1cbe24735",
+            "is_system_core": false,
             "slug": "sp_1624bd0454c9425e",
             "name": {
                 "default_locale": "fi",
@@ -8167,6 +8185,7 @@
         },
         {
             "id": "sp_f22db9f1dde048b7",
+            "is_system_core": false,
             "slug": "sp_2a81cb9e3e4b4694",
             "name": {
                 "default_locale": "fi",
@@ -8220,6 +8239,7 @@
         },
         {
             "id": "sp_bd0b3054fe664960",
+            "is_system_core": false,
             "slug": "step_causal_analyst",
             "name": {
                 "default_locale": "fi",
@@ -8275,6 +8295,7 @@
         },
         {
             "id": "sp_25664f44773a4354",
+            "is_system_core": false,
             "slug": "sp_744ca2e40b51424b",
             "name": {
                 "default_locale": "fi",
@@ -8343,6 +8364,7 @@
         },
         {
             "id": "sp_7f9649114d2344dc",
+            "is_system_core": false,
             "slug": "step_performativity_detector",
             "name": {
                 "default_locale": "fi",
@@ -8396,6 +8418,7 @@
         },
         {
             "id": "sp_6f40b964895c426b",
+            "is_system_core": false,
             "slug": "sp_d948cb51bed3454c",
             "name": {
                 "default_locale": "fi",
@@ -8454,6 +8477,7 @@
         },
         {
             "id": "sp_ddb7cf7c8a0245d4",
+            "is_system_core": false,
             "slug": "sp_b080d22fcc2f4ff0",
             "name": {
                 "default_locale": "fi",
@@ -8511,6 +8535,7 @@
         },
         {
             "id": "sp_48974af1fc584407",
+            "is_system_core": false,
             "slug": "sp_282a7b15f76d4c9e",
             "name": {
                 "default_locale": "fi",
@@ -8569,6 +8594,7 @@
         },
         {
             "id": "sp_8daee218c6b14f02",
+            "is_system_core": false,
             "slug": "sp_b7aea7179c1b4193",
             "name": {
                 "default_locale": "fi",
@@ -8624,6 +8650,7 @@
         },
         {
             "id": "sp_dfc365994fa944b2",
+            "is_system_core": false,
             "slug": "sp_76b0dbf44e36495e",
             "name": {
                 "default_locale": "fi",
@@ -8693,6 +8720,7 @@
         },
         {
             "id": "sp_6a45d484ad5b497c",
+            "is_system_core": false,
             "slug": "sp_d86aaa8a2756481b",
             "name": {
                 "default_locale": "fi",
@@ -8751,6 +8779,7 @@
         },
         {
             "id": "sp_192910b5f5a34c79",
+            "is_system_core": true,
             "slug": "step_xai_reporter",
             "name": {
                 "default_locale": "fi",
@@ -8799,6 +8828,7 @@
         },
         {
             "id": "sp_76eedbc020274f66",
+            "is_system_core": false,
             "slug": "step_fact_checker",
             "name": {
                 "default_locale": "en",
@@ -8845,6 +8875,7 @@
         },
         {
             "id": "sp_d245365e4a274b9e",
+            "is_system_core": true,
             "slug": "sp_d245365e4a274b9e",
             "type": "logic",
             "hook": "apply_scoring_logic",
@@ -8878,6 +8909,7 @@
         },
         {
             "id": "sp_8ffee13639e64e34",
+            "is_system_core": false,
             "slug": "sp_synthesis_distiller",
             "type": "logic",
             "hook": "synthesis_distiller_hook",
@@ -8910,6 +8942,7 @@
         },
         {
             "id": "sp_9c6a85edc29347b9",
+            "is_system_core": false,
             "slug": "sp_synthesis_llm",
             "type": "llm",
             "model_strategy": "synthesis",
@@ -8947,6 +8980,7 @@
         },
         {
             "id": "sp_fb1b8e908bf24c1f",
+            "is_system_core": false,
             "slug": "sp_row_explanations",
             "type": "llm",
             "model_strategy": "fast",
@@ -8982,6 +9016,7 @@
         },
         {
             "id": "sp_7a8b9c0d1e2f3a4b",
+            "is_system_core": true,
             "slug": "synthesis_generation",
             "type": "llm",
             "model_strategy": "synthesis",
