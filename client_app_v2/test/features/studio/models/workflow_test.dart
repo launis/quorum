@@ -117,48 +117,39 @@ void main() {
 
   // Phase 1, Step 4: Governance field deserialization tests
   group('StepRule Governance Fields', () {
-    test(
-      'test_step_rule_deserializes_is_synthesis_source_default_true',
-      () {
-        final json = {
-          'id': 'sr_1234567890abcdef',
-          'task_blueprint': 'sp_1234567890abcdef',
-        };
+    test('test_step_rule_deserializes_is_synthesis_source_default_true', () {
+      final json = {
+        'id': 'sr_1234567890abcdef',
+        'task_blueprint': 'sp_1234567890abcdef',
+      };
 
-        final stepRule = StepRule.fromJson(json);
-        expect(stepRule.isSynthesisSource, isTrue);
-      },
-    );
+      final stepRule = StepRule.fromJson(json);
+      expect(stepRule.isSynthesisSource, isTrue);
+    });
 
-    test(
-      'test_step_rule_deserializes_is_synthesis_source_explicit_false',
-      () {
-        final json = {
-          'id': 'sr_1234567890abcdef',
-          'task_blueprint': 'sp_1234567890abcdef',
-          'is_synthesis_source': false,
-        };
+    test('test_step_rule_deserializes_is_synthesis_source_explicit_false', () {
+      final json = {
+        'id': 'sr_1234567890abcdef',
+        'task_blueprint': 'sp_1234567890abcdef',
+        'is_synthesis_source': false,
+      };
 
-        final stepRule = StepRule.fromJson(json);
-        expect(stepRule.isSynthesisSource, isFalse);
-      },
-    );
+      final stepRule = StepRule.fromJson(json);
+      expect(stepRule.isSynthesisSource, isFalse);
+    });
 
-    test(
-      'test_step_rule_rejects_is_synthesis_source_wrong_type',
-      () {
-        final json = {
-          'id': 'sr_1234567890abcdef',
-          'task_blueprint': 'sp_1234567890abcdef',
-          'is_synthesis_source': 'not_a_bool',
-        };
+    test('test_step_rule_rejects_is_synthesis_source_wrong_type', () {
+      final json = {
+        'id': 'sr_1234567890abcdef',
+        'task_blueprint': 'sp_1234567890abcdef',
+        'is_synthesis_source': 'not_a_bool',
+      };
 
-        expect(
-          () => StepRule.fromJson(json),
-          throwsA(isA<CheckedFromJsonException>()),
-        );
-      },
-    );
+      expect(
+        () => StepRule.fromJson(json),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
   });
 
   group('NodeStrategy Governance Fields', () {

@@ -594,4 +594,3 @@ async def test_synthesis_distiller_wiring_forwards_synthesis_config() -> None:
         assert kwargs["synthesis_config"] is not None
         assert kwargs["synthesis_config"].max_quotes_per_matrix == 3
         assert kwargs["synthesis_config"].max_unmet_criteria == 2
-

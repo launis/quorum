@@ -844,4 +844,3 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
     # Verify unmet count is capped at 1
     unmet_count = justification.count("- Claim ")
     assert unmet_count == 1
-

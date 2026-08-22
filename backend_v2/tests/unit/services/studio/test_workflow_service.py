@@ -139,7 +139,10 @@ def _valid_matrix_block_dict(block_id: str = "blk_0123456789abcdef01") -> dict[s
 
 
 async def test_list_workflows_empty(
-    workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: Any, mock_output_profile_repo: Any
+    workflow_service: StudioWorkflowService,
+    root_token: TokenData,
+    mock_workflow_repo: Any,
+    mock_output_profile_repo: Any,
 ) -> None:
     mock_workflow_repo.get_all_workflows.return_value = []
     mock_output_profile_repo.get_all_output_profiles.return_value = []
@@ -148,7 +151,10 @@ async def test_list_workflows_empty(
 
 
 async def test_list_workflows_tenant_filtering(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: Any, mock_output_profile_repo: Any
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: Any,
+    mock_output_profile_repo: Any,
 ) -> None:
     wf1 = _valid_workflow_dict("wor_0123456789abcdef01", org_id="org_123")
     wf2 = _valid_workflow_dict("wor_0123456789abcdef02", org_id="org_999")
@@ -186,7 +192,10 @@ async def test_get_workflow_tenant_isolation_fails(
 
 
 async def test_get_workflow_success(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: Any, mock_output_profile_repo: Any
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: Any,
+    mock_output_profile_repo: Any,
 ) -> None:
     wf = _valid_workflow_dict(org_id="org_123")
     mock_workflow_repo.get_workflow_by_id.return_value = wf
@@ -203,9 +212,7 @@ async def test_get_workflow_available_extensions(
     mock_output_profile_repo: Any,
 ) -> None:
     wf_dict = _valid_workflow_dict(org_id="org_123")
-    wf_dict["steps"] = [
-        {"id": "sr_0123456789abcdef01", "task_blueprint": "sp_0123456789abcdef01"}
-    ]
+    wf_dict["steps"] = [{"id": "sr_0123456789abcdef01", "task_blueprint": "sp_0123456789abcdef01"}]
     mock_workflow_repo.get_workflow_by_id.return_value = wf_dict
     mock_output_profile_repo.get_all_output_profiles.return_value = []
 
@@ -228,7 +235,10 @@ async def test_save_workflow_missing_after_save_raises(
 
 
 async def test_save_workflow_success(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: Any, mock_output_profile_repo: Any
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: Any,
+    mock_output_profile_repo: Any,
 ) -> None:
     wf = Workflow.model_validate(_valid_workflow_dict(org_id="org_123"))
     mock_workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
@@ -255,7 +265,10 @@ async def test_delete_workflow_success(
 
 
 async def test_create_workflow_draft_root(
-    workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: Any, mock_output_profile_repo: Any
+    workflow_service: StudioWorkflowService,
+    root_token: TokenData,
+    mock_workflow_repo: Any,
+    mock_output_profile_repo: Any,
 ) -> None:
     mock_workflow_repo.get_workflow_by_id.side_effect = lambda id_: {
         **_valid_workflow_dict(id_, org_id=SystemOrganizations.ROOT_SYSTEM, status="draft")
