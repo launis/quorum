@@ -1,6 +1,6 @@
 """Unit tests for the Matrix Explanation Service.
 
-Epic 142/143: Tests for matrix explanation context generation, Status-Aware Dual Reporting,
+Tests for matrix explanation context generation, Status-Aware Dual Reporting,
 and Ranked Round-Robin quote and unmet criteria curation.
 """
 
@@ -11,6 +11,7 @@ from backend_v2.models.v2_core import (
     MatrixClaim,
     MatrixScale,
     PromptBlock,
+    SynthesisConfigDTO,
     TDAAssertion,
 )
 from backend_v2.services.orchestrator.matrix_explanation_service import MatrixExplanationService
@@ -753,3 +754,94 @@ def test_assemble_matrices_to_explain_corrupt_level_stats_graceful_handling() ->
     assert len(result) == 1
     justification = result[0].justification
     assert "[DISTRIBUTION CONTEXT: Level 1: 3/3 hits, Level 3: 1/2 hits]" in justification
+
+
+def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() -> None:
+    """PROMISE: Verify synthesis_config profile overrides for max_quotes_per_matrix and max_unmet_criteria."""
+    block_id = "blk_11112222333344445555666677778888"
+
+    scale = MatrixScale(
+        score=1,
+        ai_label="OVERRIDE_SCALE",
+        claims=[
+            MatrixClaim(
+                label=I18nText(default_locale="en", translations={"en": f"Claim {i}"}),
+                ai_description=f"Claim {i}",
+                tda_assertions=[
+                    TDAAssertion(
+                        tda_id=f"tda_{i:032x}",
+                        inverse_evidence=False,
+                        aggregation_mode="ALL_MUST_COMPLY",
+                        concept_description=f"Concept {i}",
+                    )
+                ],
+            )
+            for i in range(10)
+        ],
+    )
+
+    results = []
+    evaluated_atoms = {}
+    for i in range(5):
+        tda_id = f"tda_{i:032x}"
+        results.append(
+            {
+                "tda_id": tda_id,
+                "status": "PASSED",
+                "evaluation_reasoning": "Reason",
+                "source_quote": f"Valid quote number {i} with sufficient character length.",
+                "depends_on_tda_ids": [],
+                "short_circuit_reason_tda_ids": [],
+            }
+        )
+        evaluated_atoms[tda_id] = ExecutionStatus.PASSED
+
+    for i in range(5, 10):
+        tda_id = f"tda_{i:032x}"
+        results.append(
+            {
+                "tda_id": tda_id,
+                "status": "FAILED",
+                "evaluation_reasoning": "Failed reason",
+                "source_quote": None,
+                "depends_on_tda_ids": [],
+                "short_circuit_reason_tda_ids": [],
+            }
+        )
+        evaluated_atoms[tda_id] = ExecutionStatus.FAILED
+
+    dtos = [
+        StepOutputDTO(
+            step_id="step1",
+            block_id=block_id,
+            data_type="matrix",
+            payload={
+                "normalized_score": 60.0,
+                "results": results,
+                "evaluated_atoms": evaluated_atoms,
+            },
+        )
+    ]
+
+    blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=[scale])}
+
+    # Override: max_quotes_per_matrix = 2, max_unmet_criteria = 1
+    synthesis_config = SynthesisConfigDTO(
+        max_quotes_per_matrix=2,
+        max_unmet_criteria=1,
+    )
+
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en", synthesis_config=synthesis_config
+    )
+
+    assert len(result) == 1
+    justification = result[0].justification
+    # Verify quotes count is capped at 2
+    quote_count = justification.count('- "')
+    assert quote_count == 2
+
+    # Verify unmet count is capped at 1
+    unmet_count = justification.count("- Claim ")
+    assert unmet_count == 1
+

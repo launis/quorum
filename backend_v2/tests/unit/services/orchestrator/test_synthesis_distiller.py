@@ -3,11 +3,14 @@
 Epic 93 Phase 2, Milestone 1.7: Tests for metadata stripping and matrices_to_explain assembly.
 """
 
+import json
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
+from backend_v2.settings import Settings
 
 
 def test_compress_synthesis_payload_strips_heavy_keys() -> None:
@@ -39,7 +42,7 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
 
 
 def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
-    """PROMISE: Prevent LLM token explosion by failing fast on excessive evaluations."""
+    """PROMISE: Prevent LLM token explosion by stratifying and capping evaluations at settings.max_synthesis_evaluations."""
     evals = [
         {
             "atom_id": f"a{i}",
@@ -50,14 +53,15 @@ def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
     ]
     payload: dict[str, Any] = {"evaluations": evals}
 
-    import pytest
+    with patch(
+        "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
+        return_value=Settings(max_synthesis_evaluations=40),
+    ):
+        compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+        compressed_dict = json.loads(compressed_str)
 
-    from backend_v2.exceptions import AppException
-
-    with pytest.raises(AppException) as exc_info:
-        SynthesisPayloadCompressor.compress_synthesis_payload(payload)
-
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    pruned = compressed_dict.get("evaluations", [])
+    assert len(pruned) == 40
 
 
 def test_compress_synthesis_payload_handles_string_input() -> None:

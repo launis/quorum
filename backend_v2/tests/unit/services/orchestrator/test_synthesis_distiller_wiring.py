@@ -4,8 +4,6 @@ Tests that synthesis_distiller_hook passes complete, unfiltered cognitive execut
 state to both <source> block distillation and MatrixExplanationService, validates
 target_locale fail-fast boundaries, handles DTO hydration, and strictly enforces
 Zero Backwards Compatibility by purging legacy keys.
-
-Phase 2, Step 3: Synthesis Distiller Wiring Unit Tests (EPIC 143).
 """
 
 from collections.abc import Awaitable
@@ -20,6 +18,7 @@ from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import StepOutputDTO
+from backend_v2.models.v2_core import SynthesisConfigDTO
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
 
 
@@ -467,3 +466,132 @@ async def test_synthesis_distiller_wiring_filters_empty_and_metadata_blocks() ->
     assert "atom_quotes" not in distilled
     assert "_step_metadata" not in distilled
     assert "raw_inputs" not in distilled
+
+
+@pytest.mark.asyncio
+async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -> None:
+    """Contract: Verify steps with is_synthesis_source=False are filtered from <source> blocks."""
+    deps = _build_mock_deps()
+
+    # Configure workflow with 2 steps: 1 excluded (is_synthesis_source=False), 1 included
+    cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
+        "id": "wor_0123456789abcdef01",
+        "slug": "test_workflow",
+        "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
+        "description": {"default_locale": "en", "translations": {"en": "Test Description"}},
+        "status": "active",
+        "version": 1,
+        "organization_id": "org_0123456789abcdef01",
+        "default_profile_id": "pro_0123456789abcdef01",
+        "steps": [
+            {
+                "id": "sr_111111111111111111111111",
+                "task_blueprint": "sp_111111111111111111111111",
+                "is_synthesis_source": False,
+            },
+            {
+                "id": "sr_222222222222222222222222",
+                "task_blueprint": "sp_222222222222222222222222",
+                "is_synthesis_source": True,
+            },
+        ],
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+    }
+    cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = [
+        {
+            "id": "sp_111111111111111111111111",
+            "slug": "input_raw",
+            "name": {"default_locale": "en", "translations": {"en": "Input Processing"}},
+            "type": "logic",
+            "hook": "input_processing_hook",
+            "organization_id": "org_0123456789abcdef01",
+        },
+        {
+            "id": "sp_222222222222222222222222",
+            "slug": "specialist",
+            "name": {"default_locale": "en", "translations": {"en": "Specialist Analysis"}},
+            "type": "llm",
+            "model_strategy": "fast",
+            "criteria_block_ids": ["blk_222222222222222222222222"],
+            "extraction_protocol_block_id": "blk_222222222222222222222222",
+            "organization_id": "org_0123456789abcdef01",
+        },
+    ]
+
+    step_excluded = StepOutputDTO(
+        step_id="sr_111111111111111111111111",
+        block_id="blk_111111111111111111111111",
+        data_type="text",
+        payload="Raw ingested document text",
+    )
+    step_included = StepOutputDTO(
+        step_id="sr_222222222222222222222222",
+        block_id="blk_222222222222222222222222",
+        data_type="text",
+        payload="Specialist distilled analysis",
+    )
+
+    state = HookState(
+        execution_id="exe_0123456789abcdef01",
+        workflow_id="wor_0123456789abcdef01",
+        metadata={"target_locale": "en", "organization_id": "org_0123456789abcdef01"},
+        inputs={"steps": [step_excluded, step_included]},
+        global_context_vars={"organization_id": "org_0123456789abcdef01"},
+    )
+
+    result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    distilled = result.state_delta["distilled_inputs"]
+
+    assert "Specialist distilled analysis" in distilled
+    assert "Raw ingested document text" not in distilled
+
+
+@pytest.mark.asyncio
+async def test_synthesis_distiller_wiring_forwards_synthesis_config() -> None:
+    """Contract: Verify output_profile.synthesis is forwarded to MatrixExplanationService."""
+    deps = _build_mock_deps()
+
+    synthesis_cfg = SynthesisConfigDTO(max_quotes_per_matrix=3, max_unmet_criteria=2)
+    cast(AsyncMock, deps.output_profile_repo.get_output_profile_by_id).return_value = {
+        "id": "pro_0123456789abcdef01",
+        "slug": "prof_standard",
+        "workflow_id": "wor_0123456789abcdef01",
+        "name": {"default_locale": "en", "translations": {"en": "Standard Profile"}},
+        "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
+        "max_extension_items": 5,
+        "synthesis": synthesis_cfg.model_dump(mode="json"),
+    }
+
+    step_output = StepOutputDTO(
+        step_id="stp_1",
+        block_id="blk_1",
+        data_type="text",
+        payload="Analysis",
+    )
+
+    state = HookState(
+        execution_id="exe_0123456789abcdef01",
+        workflow_id="wor_0123456789abcdef01",
+        metadata={"target_locale": "en", "organization_id": "org_0123456789abcdef01"},
+        inputs={"steps": [step_output]},
+        global_context_vars={"organization_id": "org_0123456789abcdef01"},
+    )
+
+    with patch(
+        "backend_v2.services.orchestrator.synthesis_distiller.MatrixExplanationService.assemble_matrices_to_explain"
+    ) as mock_assemble:
+        mock_assemble.return_value = []
+
+        result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
+
+        assert result.success is True
+        mock_assemble.assert_called_once()
+        kwargs = mock_assemble.call_args[1]
+        assert kwargs["synthesis_config"] is not None
+        assert kwargs["synthesis_config"].max_quotes_per_matrix == 3
+        assert kwargs["synthesis_config"].max_unmet_criteria == 2
+

@@ -252,6 +252,60 @@ async def test_delete_step(workflow_service: Any, admin_token: Any, mock_workflo
     mock_workflow_repo.delete_step.assert_called_once()
 
 
+async def test_delete_step_protected_system_core_fails_fast(
+    workflow_service: Any, admin_token: Any, mock_workflow_repo: Any
+) -> None:
+    """PROMISE: Deleting a protected system core step raises AppException(SYSTEM_PROTECTED_RESOURCE)."""
+    step_data = {
+        "id": "sp_db849f9790984585",
+        "slug": "input_processing",
+        "name": {"default_locale": "en", "translations": {"en": "Input Processing"}},
+        "type": "logic",
+        "hook": "input_processing_hook",
+        "organization_id": "org_123",
+        "is_system_core": True,
+    }
+    mock_workflow_repo.get_step_by_id.return_value = step_data
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.delete_step(admin_token, "sp_db849f9790984585")
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.details["error_code"] == ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value
+    mock_workflow_repo.delete_step.assert_not_called()
+
+
+async def test_save_step_protected_system_core_slug_mutation_fails_fast(
+    workflow_service: Any, admin_token: Any, mock_workflow_repo: Any
+) -> None:
+    """PROMISE: Mutating the slug or is_system_core of a system core step raises AppException(SYSTEM_PROTECTED_RESOURCE)."""
+    existing_step_data = {
+        "id": "sp_db849f9790984585",
+        "slug": "input_processing",
+        "name": {"default_locale": "en", "translations": {"en": "Input Processing"}},
+        "type": "logic",
+        "hook": "input_processing_hook",
+        "organization_id": "org_123",
+        "is_system_core": True,
+    }
+    mock_workflow_repo.get_step_by_id.return_value = existing_step_data
+
+    modified_step = Step(
+        id="sp_db849f9790984585",
+        slug="mutated_slug",
+        name={"default_locale": "en", "translations": {"en": "Input Processing"}},
+        type="logic",
+        hook="input_processing_hook",
+        organization_id="org_123",
+        is_system_core=True,
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.save_step(admin_token, "sp_db849f9790984585", modified_step)
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.details["error_code"] == ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value
+
+
 async def test_list_prompt_blocks_empty(
     prompt_block_service: Any, root_token: Any, mock_seed_prompt_block_repo: Any
 ) -> None:

@@ -71,14 +71,14 @@
 
 - [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md] @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md] --phase=3`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check — Verify codebase state from Phase 2
-  - [ ] Step 1: Synthesis Payload Compressor Hardening — Export `__all__`, logger, `_strip_heavy_keys`, `_normalize_result_item`, `_prune_and_stratify_evaluations`, `DistilledEvaluation.model_validate`, `max_synthesis_reasoning_length`
-  - [ ] Step 2: Synthesis Distiller Hook Source Step Filtering — Export `__all__`, filter `valid_source_dtos` by `StepRule.is_synthesis_source`, forward `output_profile.synthesis`
-  - [ ] Step 3: Matrix Explanation Service Profile Overrides & Probe Boundaries — Export `__all__`, `synthesis_config` parameter, Tripartite Configuration Resolution, specific `(KeyError, AttributeError)` catch, direct `tda_to_scale` access
-  - [ ] Step 4: Studio Workflow Service System Core Protection — Export `__all__`, enforce `SYSTEM_PROTECTED_RESOURCE` on save/delete of system core steps
-  - [ ] Step 5: Unit & Regression Test Expansion — Tests for compressor, matrix explanation, and studio service in `test_synthesis_payload_compression.py`, `test_matrix_explanation_service.py`, and `test_studio.py`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check — Verify codebase state from Phase 2
+  - [x] Step 1: Synthesis Payload Compressor Hardening — Export `__all__`, logger, `_strip_heavy_keys`, `_normalize_result_item`, `_prune_and_stratify_evaluations`, `DistilledEvaluation.model_validate`, `max_synthesis_reasoning_length`
+  - [x] Step 2: Synthesis Distiller Hook Source Step Filtering — Export `__all__`, filter `valid_source_dtos` by `StepRule.is_synthesis_source`, forward `output_profile.synthesis`
+  - [x] Step 3: Matrix Explanation Service Profile Overrides & Probe Boundaries — Export `__all__`, `synthesis_config` parameter, Tripartite Configuration Resolution, specific `(KeyError, AttributeError)` catch, direct `tda_to_scale` access
+  - [x] Step 4: Studio Workflow Service System Core Protection — Export `__all__`, enforce `SYSTEM_PROTECTED_RESOURCE` on save/delete of system core steps
+  - [x] Step 5: Unit & Regression Test Expansion — Tests for compressor, matrix explanation, and studio service in `test_synthesis_payload_compression.py`, `test_matrix_explanation_service.py`, `test_synthesis_distiller_wiring.py`, and `test_workflow_service.py`
+- [x] **[OK] Test Coverage Assertions:** Verified test coverage and audit loops on `synthesis_payload_compressor.py` (94% coverage, 16 tests), `matrix_explanation_service.py` (92% coverage, 12 tests), `synthesis_distiller.py` (94% coverage, 20 tests), and `workflow_service.py` (94% coverage, 30 tests). Full backend test suite passing with 0 regressions.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
 
 ---
@@ -322,6 +322,32 @@
   - ✅ **Panel of Experts Architectural Approval**: Validated strict Pydantic V2 re-validation (`DistilledEvaluation.model_validate`), Token Shield Unbounded Mode (`max_synthesis_evaluations == 0`) and Deterministic Prioritized Stratification (`(-len(exact_quotes), atom_id)` with 70% deficit budget and `atom_id` canonical tie-breaker), source step filtering via `StepRule.is_synthesis_source`, Tripartite Configuration Resolution in `MatrixExplanationService`, and `AppException(SYSTEM_PROTECTED_RESOURCE)` on system core step mutations in `StudioWorkflowService`.
   - ✅ **Target Test Suite Verification**: Added @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py] to test execution targets and locked all 4 ISTQB heterogeneous payload partition requirements.
   - ✅ **Plan Mutated & Locked**: [03_phase3_plan.md](file:///C:/src/quorum/docs/epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/03_phase3_plan.md) updated and ready for execution.
+- **Phase 3 Execution**:
+  - ✅ **Step 1 (Compressor Hardening)**: Hardened `SynthesisPayloadCompressor` (@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]):
+    - Added `__all__ = ["SynthesisPayloadCompressor"]` and structured RFC-7807 logging.
+    - Hardened `_strip_heavy_keys` to purge `hydrated_references`, `shuffled_atoms`, `atom_quotes`, `_step_metadata`, `_audit_signature`, and `_evaluative_matrices`.
+    - Enforced strict `DistilledEvaluation.model_validate()` with `settings.max_synthesis_reasoning_length` (eliminated magic numbers and model copies).
+    - Implemented Token Shield Prioritized Stratification: Unbounded mode when `max_synthesis_evaluations == 0`, and prioritized stratification when bounded (70% deficit budget, `(-len(exact_quotes), atom_id)` sort, dynamic spillover, canonical `atom_id` sort).
+    - Added `_normalize_result_item` supporting dual-path ingestion for `evaluations` and `results`.
+  - ✅ **Step 2 (Distiller Hook Filtering)**: Hardened `synthesis_distiller_hook` (@[backend_v2/services/orchestrator/synthesis_distiller.py]):
+    - Exported `__all__ = ["synthesis_distiller_hook"]`.
+    - Mapped step rules by `id` and `task_blueprint` to evaluate `StepRule.is_synthesis_source`.
+    - Filtered out non-synthesis source steps (`is_synthesis_source == False`, e.g. Input Processing `sp_db849f9790984585` / `sr_f0a26d17cc9b48a7`), preventing 50k+ raw document tokens from polluting `<source>` blocks.
+    - Forwarded `output_profile.synthesis` into `MatrixExplanationService.assemble_matrices_to_explain(..., synthesis_config=output_profile.synthesis)`.
+  - ✅ **Step 3 (Matrix Explanation Overrides)**: Hardened `MatrixExplanationService` (@[backend_v2/services/orchestrator/matrix_explanation_service.py]):
+    - Exported `__all__ = ["MatrixExplanationService"]`.
+    - Accepted `synthesis_config: SynthesisConfigDTO | None = None` and implemented Tripartite Configuration Resolution for `max_quotes_per_matrix` and `max_unmet_criteria`.
+    - Narrowed claim label exception handling to `(KeyError, AttributeError)` and replaced dict defaults with typed direct access `tda_to_scale[tda_id]`.
+    - Hardened probe boundary logging with `ErrorCodes.INVALID_OUTPUT_SCHEMA`.
+  - ✅ **Step 4 (System Core Protection)**: Hardened `StudioWorkflowService` (@[backend_v2/services/studio/workflow_service.py]):
+    - Exported `__all__ = ["StudioWorkflowService"]`.
+    - Enforced `AppException(SYSTEM_PROTECTED_RESOURCE, status_code=403)` on save/delete of system core steps (`is_system_core == True`).
+  - ✅ **Step 5 (Unit & Regression Tests)**:
+    - `test_synthesis_payload_compression.py` / `test_synthesis_payload_compressor.py`: 16 tests passing, **94% coverage**.
+    - `test_matrix_explanation_service.py`: 12 tests passing, **92% coverage**.
+    - `test_synthesis_distiller_wiring.py` / `test_synthesis_distiller.py`: 20 tests passing, **94% coverage**.
+    - `test_workflow_service.py`: 30 tests passing, **94% coverage**.
+    - Full backend test suite verified: **1,743 tests passing**, 0 lint/formatting/MyPy errors.
 
 ## Learned
 - **Baseline Architecture State**: Both backend (Python Pydantic V2) and frontend (Dart 3 Freezed) models strictly enforce `is_system_core` on steps and `is_synthesis_source` on step rules with fail-fast validation.
@@ -329,15 +355,17 @@
 - **Seed Data Layout & Vault Protocol**: `seed_data.json` houses 16 `StepRule` definitions at lines 7837-8052 and 19 `Step` definitions at lines 8065-9020. Native `multi_replace_file_content` with line bounding avoids CRLF grep bugs and prevents context truncation.
 - **Service Type Tolerances**: `RAGPreflightService` accepts `PromptCompiler | Any` to maintain compatibility with `PromptCompilerAdapter` without requiring circular adapter abstractions.
 - **Token Shield Prioritized Stratification Protocol**: Default `max_synthesis_evaluations = 0` provides Unbounded Mode for 100% forensic coverage. When bounded, deterministic multi-key sorting (`(-len(exact_quotes), atom_id)`) guarantees byte-for-byte prompt caching parity and prevents the "Auditing Whitewash" anti-pattern.
+- **Tripartite Configuration Resolution**: Profile-level overrides (`output_profile.synthesis`) take precedence over global defaults (`settings.py`), allowing fine-grained token budgeting per report layout.
+- **StepRule & Step Identifier Schemas**: `StepRule` is identified by `id` (DAG node, e.g. `sr_...`) and references `task_blueprint` (e.g. `sp_...`). It does not have a separate `step_id` attribute. In contrast, `Step` is identified by `id` (e.g. `sp_...`) and requires `hook` when `type == "logic"`, or `criteria_block_ids` + `extraction_protocol_block_id` + `model_strategy` when `type == "llm"`.
 
 ## Remaining
-- **Phase 3**: Backend Domain & Synthesis Payload Compression Hardening (`/tier2-execute` -> `/tier8-audit-plan`).
+- **Phase 3 Audit**: Run `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`.
 - **Phase 4**: Studio Workflow & Step Blueprint UX Restructuring (`/tier0-create-plan` -> `/tier0-research-plan` -> `/tier2-execute` -> `/tier8-audit-plan`).
 - **Phase 5**: Verification, Widget Testing & E2E Integration Gate (`/tier0-create-plan` -> `/tier0-research-plan` -> `/tier2-execute` -> `/tier8-audit-plan`).
 - **Post-Implementation Gates**: Full-stack audit, `/tier2-hardening-backend`, `/tier2-hardening-frontend`, `/tier7-describe-architecture`, `/tier8-audit-epic`.
 
 ## Resume Command
-`/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+`/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
 
 
 

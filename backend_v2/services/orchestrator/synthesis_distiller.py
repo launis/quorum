@@ -1,11 +1,9 @@
 """Synthesis Distiller Hook for the Cognitive Quorum DAG Pipeline.
 
-Replaces the legacy 'God Code' in synthesis.py by providing a deterministic
+Replaces legacy synthesis logic by providing a deterministic
 logic DAG node that distills evaluation data, fetches historical context,
 and prepares the matrices_to_explain list for the downstream row explanations
 LLM step.
-
-Epic 93 Phase 2: Pipeline Unification — Milestone 1.
 """
 
 import json
@@ -17,14 +15,14 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, PromptBlock, Step, Workflow
+from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, PromptBlock, Step, StepRule, Workflow
+from backend_v2.services.orchestrator.matrix_explanation_service import MatrixExplanationService
+from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
-
-from backend_v2.services.orchestrator.matrix_explanation_service import MatrixExplanationService
-from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
+__all__ = ["synthesis_distiller_hook"]
 
 
 async def _fetch_historical_context(
@@ -41,7 +39,6 @@ async def _fetch_historical_context(
     Returns:
         Markdown structured historical context string or empty string if disabled.
     """
-    # Epic 93 Phase 2, Milestone 1.3: Historical context fetch inside distiller hook
     if mode == HistoricalContextMode.DISABLED:
         return ""
 
@@ -128,7 +125,6 @@ def _build_title_map(
     Raises:
         AppException: If a step references a missing blueprint (VALIDATION_FAILED).
     """
-    # Epic 93 Phase 2, Milestone 1.4: Title map migration
     title_map: dict[str, str] = {}
 
     if blocks_by_id:
@@ -175,8 +171,6 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     Logic DAG node that distills execution state data for downstream synthesis and
     row explanation LLM steps. Performs metadata stripping, historical context
     fetching, title map resolution, and matrices_to_explain assembly.
-
-    Epic 93 Phase 2, Milestone 1.6: Hook registration.
 
     Args:
         state: Immutable cognitive state including inputs.
@@ -271,7 +265,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     output_profile = OutputProfile.model_validate(p_dict)
 
     # Ensure available_dtos contains the unfiltered execution state for `<source>` prompt blocks assembly
-    # Target_blocks layout filtering is explicitly removed to prevent Context Context Deprivation
+    # Target_blocks layout filtering is explicitly removed to prevent Context Deprivation
 
     historical_mode = workflow_data.historical_context_mode
 
@@ -291,13 +285,30 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     alias_engine = AliasEngine()
 
-    # Filter valid source DTOs: skip internal metadata (starting with _) and empty payloads
+    # Phase 3, Step 2: Map step rules by ID to evaluate is_synthesis_source
+    step_rules_map: dict[str, StepRule] = {}
+    if workflow_data.steps:
+        for rule in workflow_data.steps:
+            step_rules_map[rule.id] = rule
+            step_rules_map[rule.task_blueprint] = rule
+
+    # Filter valid source DTOs: skip internal metadata (starting with _), empty payloads, and non-synthesis source steps
     valid_source_dtos: list[StepOutputDTO] = []
     for step_dto_obj in available_dtos:
         if step_dto_obj.block_id.startswith("_"):
             continue
         if not step_dto_obj.payload and step_dto_obj.payload is not False and step_dto_obj.payload != 0:
             continue
+
+        matched_rule = step_rules_map.get(step_dto_obj.step_id)
+        if matched_rule is not None and not matched_rule.is_synthesis_source:
+            logger.debug(
+                "[SynthesisDistiller] Skipping non-synthesis source step %s (rule %s)",
+                step_dto_obj.step_id,
+                matched_rule.id,
+            )
+            continue
+
         valid_source_dtos.append(step_dto_obj)
 
     uid_to_alias: dict[str, str] = {}
@@ -323,9 +334,13 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         # Inject the SHORT ALIAS instead of the long UID
         consolidated_distilled_parts.append(f'<source id="{short_alias}" title="{step_title}">\n{v_str}\n</source>')
 
-    # Phase 2, Milestone 1.5: Assemble matrices_to_explain
+    # Phase 3, Step 2: Forward output_profile.synthesis into MatrixExplanationService
     matrices_to_explain = MatrixExplanationService.assemble_matrices_to_explain(
-        available_dtos, title_map, blocks_by_id, target_locale=target_locale
+        available_dtos,
+        title_map,
+        blocks_by_id,
+        target_locale=target_locale,
+        synthesis_config=output_profile.synthesis,
     )
 
     return HookResult(

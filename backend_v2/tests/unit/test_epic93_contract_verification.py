@@ -230,16 +230,17 @@ class TestPhase2PipelineUnification:
         assert "Valid quote." in result, "Token shield stripped too much: valid quote missing"
 
     def test_compress_synthesis_caps_evaluations(self) -> None:
-        """PROMISE: Prevent LLM token explosion by failing fast on excessive evaluations.
+        """PROMISE: Prevent LLM token explosion by stratifying and capping evaluations at max_synthesis_evaluations.
 
-        Falsification: Feed 50 evaluations, verify AppException.
+        Falsification: Feed 50 evaluations, verify compressed payload caps at max_synthesis_evaluations.
         """
-        import pytest
+        import json
+        from unittest.mock import patch
 
-        from backend_v2.exceptions import AppException
         from backend_v2.services.orchestrator.synthesis_payload_compressor import (
             SynthesisPayloadCompressor,
         )
+        from backend_v2.settings import Settings
 
         evals = [
             {
@@ -249,10 +250,15 @@ class TestPhase2PipelineUnification:
             }
             for i in range(50)
         ]
-        with pytest.raises(AppException) as exc_info:
-            SynthesisPayloadCompressor.compress_synthesis_payload({"evaluations": evals})
+        with patch(
+            "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
+            return_value=Settings(max_synthesis_evaluations=40),
+        ):
+            compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload({"evaluations": evals})
+            compressed_dict = json.loads(compressed_str)
 
-        assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+        pruned = compressed_dict.get("evaluations", [])
+        assert len(pruned) == 40
 
     def test_matrices_to_explain_assembly(self) -> None:
         """PROMISE: Cross-reference atom_quotes with normalized scores.

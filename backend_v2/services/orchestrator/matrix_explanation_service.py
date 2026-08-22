@@ -14,12 +14,14 @@ from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, Lightweight
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import AtomResultDTO, PromptBlock
+from backend_v2.models.v2_core import AtomResultDTO, PromptBlock, SynthesisConfigDTO
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 from backend_v2.utils.ranked_round_robin import ranked_round_robin_select
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["MatrixExplanationService"]
 
 
 class MatrixExplanationService:
@@ -31,17 +33,16 @@ class MatrixExplanationService:
         title_map: dict[str, str],
         blocks_by_id: dict[str, PromptBlock],
         target_locale: str,
+        synthesis_config: SynthesisConfigDTO | None = None,
     ) -> list[MatrixExplanationContextDTO]:
         """Assemble the matrices_to_explain list by extracting quotes from evaluated_atoms.
-
-        Epic 94 Enriched Atom Graph migration: Extracts directly from MatrixScorecardRowDTO structures.
-        Epic 133A: Supports lightweight MatrixEvaluationResult dictionaries.
 
         Args:
             available_dtos: All step output DTOs from the execution state.
             title_map: Map of localized titles.
             blocks_by_id: Map of PromptBlock ID to PromptBlock model.
             target_locale: Target locale for claim label resolution.
+            synthesis_config: Optional OutputProfile synthesis configuration overrides.
 
         Returns:
             List of MatrixExplanationContextDTO objects.
@@ -49,11 +50,19 @@ class MatrixExplanationService:
         matrices_to_explain_map: dict[str, MatrixExplanationContextDTO] = {}
         alias_engine = AliasEngine()
 
-        # Hoist limits from settings SSOT
+        # Hoist limits via Tripartite Configuration Resolution SSOT
         settings_obj = get_settings()
         max_quote_len = settings_obj.max_synthesis_quote_length
-        max_quotes_per_matrix = settings_obj.max_synthesis_quotes_per_matrix
-        max_unmet_criteria = settings_obj.max_synthesis_unmet_criteria_per_matrix
+        max_quotes_per_matrix = (
+            synthesis_config.max_quotes_per_matrix
+            if synthesis_config and synthesis_config.max_quotes_per_matrix is not None
+            else settings_obj.max_synthesis_quotes_per_matrix
+        )
+        max_unmet_criteria = (
+            synthesis_config.max_unmet_criteria
+            if synthesis_config and synthesis_config.max_unmet_criteria is not None
+            else settings_obj.max_synthesis_unmet_criteria_per_matrix
+        )
 
         # Build map of tda_id -> list of quotes
         global_quotes_map: dict[str, list[str]] = {}
@@ -76,7 +85,8 @@ class MatrixExplanationService:
                             global_quotes_map.setdefault(atom_res.tda_id, []).append(cleaned[:max_quote_len])
                 except (ValidationError, ValueError) as e:
                     logger.warning(
-                        "[MatrixExplanationService] Skipping malformed atom result",
+                        "[MatrixExplanationService] %s: Skipping malformed atom result",
+                        ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
                         extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
                     )
                     continue
@@ -105,7 +115,8 @@ class MatrixExplanationService:
                 lw_matrix = LightweightMatrixOutput.model_validate(payload_to_validate, strict=False)
             except (ValidationError, ValueError) as e:
                 logger.warning(
-                    "[MatrixExplanationService] Skipping invalid matrix payload for block %s",
+                    "[MatrixExplanationService] %s: Skipping invalid matrix payload for block %s",
+                    ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
                     block_id,
                     extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
                 )
@@ -120,7 +131,7 @@ class MatrixExplanationService:
                         for claim in scale.claims:
                             try:
                                 claim_text = claim.label.resolve(target_locale)
-                            except Exception:
+                            except KeyError, AttributeError:
                                 claim_text = ""
                             if claim_text and claim.tda_assertions:
                                 for tda in claim.tda_assertions:
@@ -147,9 +158,9 @@ class MatrixExplanationService:
                                         }
                                     )
                     elif hit_status == ExecutionStatus.FAILED:
-                        if tda_id in tda_to_claim:
+                        if tda_id in tda_to_claim and tda_id in tda_to_scale:
                             claim_name = tda_to_claim[tda_id]
-                            scale_score = tda_to_scale.get(tda_id, 999)
+                            scale_score = tda_to_scale[tda_id]
                             if (
                                 claim_name not in unmet_claim_to_min_scale
                                 or scale_score < unmet_claim_to_min_scale[claim_name]
@@ -185,7 +196,8 @@ class MatrixExplanationService:
                             breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")
                         except (ValidationError, ValueError) as e:
                             logger.warning(
-                                "[MatrixExplanationService] Skipping malformed level stats for level %s",
+                                "[MatrixExplanationService] %s: Skipping malformed level stats for level %s",
+                                ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
                                 lvl,
                                 extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
                             )

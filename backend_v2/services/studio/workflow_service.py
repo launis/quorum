@@ -29,6 +29,8 @@ from backend_v2.services.studio.auth_validator import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["StudioWorkflowService"]
+
 
 class StudioWorkflowService:
     """Domain Service for Admin Studio Workflow and Step resources."""
@@ -457,11 +459,29 @@ class StudioWorkflowService:
             The saved step.
 
         Raises:
+            AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to mutate protected attributes of a system core step.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after creation.
         """
-        # Phase 1, Step 1: Direct typed attribute access (Zero duck-typing mandate)
+        # Direct typed attribute access
         org_id = data.organization_id
         enforce_modification_rights(initiator, org_id)
+
+        # System Core Protection
+        existing_raw = await self.workflow_repo.get_step_by_id(id)
+        if existing_raw:
+            existing_step = Step.model_validate(existing_raw, strict=False)
+            if existing_step.is_system_core:
+                if data.slug != existing_step.slug or data.is_system_core != existing_step.is_system_core:
+                    logger.error(
+                        "[StudioService] %s: Cannot mutate protected system core step %s.",
+                        ErrorCodes.SYSTEM_PROTECTED_RESOURCE.name,
+                        id,
+                    )
+                    raise AppException(
+                        message=f"Cannot mutate protected system core step {id}.",
+                        status_code=403,
+                        details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
+                    )
 
         dump = data.model_dump(mode="json")
         if "id" not in dump:
@@ -488,6 +508,7 @@ class StudioWorkflowService:
             force_delete: Whether to forcefully delete.
 
         Raises:
+            AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to delete a system core step.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
         data = await self.workflow_repo.get_step_by_id(id)
@@ -502,6 +523,20 @@ class StudioWorkflowService:
 
         step = Step.model_validate(data, strict=False)
         enforce_modification_rights(initiator, step.organization_id)
+
+        # Phase 3, Step 4: System Core Protection
+        if step.is_system_core:
+            logger.error(
+                "[StudioService] %s: Cannot delete protected system core step %s.",
+                ErrorCodes.SYSTEM_PROTECTED_RESOURCE.name,
+                id,
+            )
+            raise AppException(
+                message=f"Cannot delete protected system core step {id}.",
+                status_code=403,
+                details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
+            )
+
         await self.workflow_repo.delete_step(id, force_delete=force_delete)
 
     async def create_step_draft(self, initiator: TokenData) -> Step:
