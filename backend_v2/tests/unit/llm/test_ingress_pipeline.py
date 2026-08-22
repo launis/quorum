@@ -95,3 +95,153 @@ def test_clean_dict_against_model_alias_stripping_bug():
     # And validation should succeed
     validated = AliasModel.model_validate(cleaned)
     assert validated.my_field == "Target Data"
+
+
+def test_clean_dict_against_model_discriminated_unions_and_nested_structures():
+    """Verify UniversalIngress handles discriminated unions, heuristics, and nested types."""
+    from typing import Annotated, Literal
+    from pydantic import BaseModel, ConfigDict, Field
+
+    class CardA(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        block_type: Literal["card_a"] = "card_a"
+        severity: str
+        text: str
+
+    class CardB(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        block_type: Literal["card_b"] = "card_b"
+        items: list[str]
+
+    class CardC(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        block_type: Literal["card_c"] = "card_c"
+        quote: str
+
+    class CardD(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        block_type: Literal["card_d"] = "card_d"
+        message: str
+
+    class CardE(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        block_type: Literal["card_e"] = "card_e"
+        text: str
+
+    PolyCard = Annotated[CardA | CardB | CardC | CardD | CardE, Field(discriminator="block_type")]
+
+    class NestedChild(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        name: str
+
+    class ContainerModel(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        single_card: PolyCard
+        cards: list[PolyCard]
+        single_nested: NestedChild
+        nested_list: list[NestedChild]
+        strict_string: str
+
+    raw_payload = {
+        "single_card": {"message": "warning message"},
+        "cards": [
+            {"severity": "high", "text": "alert text"},
+            {"items": ["item 1", "item 2"]},
+            {"quote": "some quote"},
+            {"text": "paragraph text"},
+            {"block_type": "card_a", "severity": "low", "text": "explicit"},
+        ],
+        "single_nested": {"name": "child", "hallucinated_nested": 123},
+        "nested_list": [{"name": "item 1", "extra": True}],
+        "strict_string": None,
+        "hallucinated_root_key": "drop me",
+    }
+
+    cleaned = UniversalIngress.clean_dict_against_model(raw_payload, ContainerModel)
+    assert "hallucinated_root_key" not in cleaned
+    assert cleaned["strict_string"] == ""
+    assert cleaned["single_nested"] == {"name": "child"}
+    assert cleaned["nested_list"] == [{"name": "item 1"}]
+
+    validated = ContainerModel.model_validate(cleaned)
+    assert isinstance(validated.single_card, CardD)
+    assert len(validated.cards) == 5
+    assert isinstance(validated.cards[0], CardA)
+    assert isinstance(validated.cards[1], CardB)
+    assert isinstance(validated.cards[2], CardC)
+    assert isinstance(validated.cards[3], CardE)
+    assert isinstance(validated.cards[4], CardA)
+
+
+def test_clean_dict_non_dict_passthrough():
+    """Verify non-dict data is returned as-is."""
+    from pydantic import BaseModel
+
+    class Dummy(BaseModel):
+        val: int
+
+    assert UniversalIngress.clean_dict_against_model("not a dict", Dummy) == "not a dict"
+    assert UniversalIngress.clean_dict_against_model(123, Dummy) == 123
+
+
+def test_clean_dict_against_model_explicit_tag_literal_matching():
+    """Verify explicit tag matching with Literal type annotations and unknown tag fallback."""
+    from typing import Annotated, Literal
+    from pydantic import BaseModel, ConfigDict, Field
+
+    class OptionX(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        block_type: Literal["opt_x"]
+        data: str
+
+    class OptionY(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        block_type: Literal["opt_y"]
+        score: int
+
+    UnionOpt = Annotated[OptionX | OptionY, Field(discriminator="block_type")]
+
+    class WrapModel(BaseModel):
+        item: UnionOpt
+
+    # Matching via Literal annotation
+    res1 = UniversalIngress.clean_dict_against_model({"item": {"block_type": "opt_x", "data": "val"}}, WrapModel)
+    assert res1["item"]["block_type"] == "opt_x"
+
+    # Unknown tag fallback matches first candidate
+    res2 = UniversalIngress.clean_dict_against_model({"item": {"block_type": "unknown_opt", "data": "val"}}, WrapModel)
+    assert "data" in res2["item"]
+
+
+def test_clean_dict_against_model_overlap_inference_and_unmatched():
+    """Verify key overlap inference when signature heuristics do not match."""
+    from typing import Annotated, Literal
+    from pydantic import BaseModel, ConfigDict, Field
+
+    class CustomBlock(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        block_type: Literal["custom_b"] = "custom_b"
+        alpha: str
+        beta: int
+
+    class AnotherBlock(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        block_type: Literal["another_b"] = "another_b"
+        gamma: float
+
+    CustomUnion = Annotated[CustomBlock | AnotherBlock, Field(discriminator="block_type")]
+
+    class TopModel(BaseModel):
+        block: CustomUnion
+
+    # Overlap heuristic matches CustomBlock due to alpha and beta
+    res = UniversalIngress.clean_dict_against_model({"block": {"alpha": "a", "beta": 1}}, TopModel)
+    assert res["block"]["block_type"] == "custom_b"
+    assert res["block"]["alpha"] == "a"
+
+    # None input handling
+    assert UniversalIngress._clean_value_against_annotation(None, None) is None
+    assert UniversalIngress._clean_value_against_annotation(None, int) is None
+    assert UniversalIngress._clean_value_against_annotation(None, str) == ""
+
+

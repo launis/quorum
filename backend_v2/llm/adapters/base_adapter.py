@@ -235,12 +235,26 @@ class BaseLLMAdapter(ABC):
         """
         pass
 
-    def _strip_unsupported_constraints(self, schema_dict: Any) -> None:
+    def _strip_unsupported_constraints(
+        self,
+        schema_dict: Any,
+        known_discriminators: set[str] | None = None,
+    ) -> None:
         """Strip unsupported JSON schema constraints (e.g. minLength, maxLength) for strict mode.
+
+        Also ensures that any discriminator property (e.g., 'block_type', 'extension_type',
+        'runtimeType') present in an object schema's 'properties' is explicitly added to its
+        'required' array so LLMs are constrained to output discriminator tags.
 
         Args:
             schema_dict: The JSON schema dictionary to mutate in place.
+            known_discriminators: Set of property names that act as discriminators in the schema.
         """
+        if known_discriminators is None:
+            known_discriminators = {"block_type", "extension_type", "runtimeType"}
+            # Extract any explicit discriminator property names declared in the schema
+            self._collect_discriminator_names(schema_dict, known_discriminators)
+
         if isinstance(schema_dict, dict):
             # [2026-07-03] Targeted Schema Stripping:
             # We MUST strip mechanical constraints that cause Vertex's Guided Decoding state machine to explode
@@ -267,6 +281,16 @@ class BaseLLMAdapter(ABC):
             if "properties" in schema_dict:
                 schema_dict["properties"].pop("contextual_override", None)
                 schema_dict["properties"].pop("override_reason", None)
+
+                # Ensure any discriminator property present in properties is marked required
+                properties = schema_dict["properties"]
+                if isinstance(properties, dict):
+                    if "required" not in schema_dict or not isinstance(schema_dict["required"], list):
+                        schema_dict["required"] = []
+                    for disc in known_discriminators:
+                        if disc in properties and disc not in schema_dict["required"]:
+                            schema_dict["required"].append(disc)
+
             if "required" in schema_dict and isinstance(schema_dict["required"], list):
                 if "contextual_override" in schema_dict["required"]:
                     schema_dict["required"].remove("contextual_override")
@@ -274,7 +298,25 @@ class BaseLLMAdapter(ABC):
                     schema_dict["required"].remove("override_reason")
 
             for v in list(schema_dict.values()):
-                self._strip_unsupported_constraints(v)
+                self._strip_unsupported_constraints(v, known_discriminators=known_discriminators)
         elif isinstance(schema_dict, list):
             for item in schema_dict:
-                self._strip_unsupported_constraints(item)
+                self._strip_unsupported_constraints(item, known_discriminators=known_discriminators)
+
+    def _collect_discriminator_names(self, node: Any, result: set[str]) -> None:
+        """Recursively scan schema for discriminator propertyName declarations.
+
+        Args:
+            node: The schema node to inspect.
+            result: The accumulator set of discriminator names.
+        """
+        if isinstance(node, dict):
+            if "discriminator" in node and isinstance(node["discriminator"], dict):
+                prop_name = node["discriminator"].get("propertyName")
+                if isinstance(prop_name, str) and prop_name:
+                    result.add(prop_name)
+            for v in node.values():
+                self._collect_discriminator_names(v, result)
+        elif isinstance(node, list):
+            for item in node:
+                self._collect_discriminator_names(item, result)
