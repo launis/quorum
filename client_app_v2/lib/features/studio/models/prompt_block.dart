@@ -220,8 +220,6 @@ abstract class PromptBlock with _$PromptBlock {
     @JsonKey(name: 'is_lightweight_protocol')
     @Default(false)
     bool isLightweightProtocol,
-    int? scaleMin,
-    int? scaleMax,
     @JsonKey(includeToJson: false) int? computedMin,
     @JsonKey(includeToJson: false) int? computedMax,
     List<MatrixScale>? scales,

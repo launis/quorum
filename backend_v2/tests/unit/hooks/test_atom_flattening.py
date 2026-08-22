@@ -67,8 +67,6 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptB
         description=I18nText(default_locale="en", translations={"en": f"Desc {block_id}", "fi": f"Desc {block_id}"}),
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
-        scale_min=1,
-        scale_max=5,
         scales=scales,
     )
 

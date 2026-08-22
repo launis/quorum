@@ -2088,6 +2088,8 @@
   "displayScaleOriginal": "Original Scale (Unmodified)",
   "displayScaleCustom": "Custom Domain Scale",
   "displayScaleNormalized100": "Normalized 0-100% Scale",
+  "customScaleMinLabel": "Custom Scale Min",
+  "customScaleMaxLabel": "Custom Scale Max",
   "profileTabXai": "Extensions (XAI)",
   "profileTabLayouts": "Layouts",
   "layoutBlockDescriptionLabel": "Section Description (Optional)",

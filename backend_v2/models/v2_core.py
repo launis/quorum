@@ -37,6 +37,7 @@ from backend_v2.models.enums import (
     LaxScoringStrategy,
     LaxTargetBlockType,
     LaxXaiExtensionType,
+    PromptBlockCategory,
     ScoringStrategy,
     SDUIComponentType,
     StrictnessAnchor,
@@ -394,8 +395,6 @@ class PromptBlock(V2CoreBase):
         output_extensions: List of requested XAI output extensions.
         execution_persona: Defines the global system prompt rules applied to this block.
         theory_grounding: Fetches and injects source theory as <theory_context>.
-        scale_min: Minimum score for the scales matrix.
-        scale_max: Maximum score for the scales matrix.
         scales: BARS scale definitions with scores and localized claims.
         rows: Optional rows for grid matrices.
         columns: Optional columns for grid matrices.
@@ -449,12 +448,6 @@ class PromptBlock(V2CoreBase):
         default=False,
         description="If True, enables contextual override for ALL assertions in this matrix.",
     )
-    scale_min: int | None = Field(
-        default=None, description="Minimum score for the scales matrix. Required if scales are present."
-    )
-    scale_max: int | None = Field(
-        default=None, description="Maximum score for the scales matrix. Required if scales are present."
-    )
     scales: list[MatrixScale] | None = Field(
         default=None,
         description="BARS scale definitions with scores and localized claims. If provided, must not be empty.",
@@ -490,7 +483,7 @@ class PromptBlock(V2CoreBase):
             for s in scales:
                 if isinstance(s, dict) and "score" in s:
                     scores.append(s["score"])
-                elif hasattr(s, "score"):
+                elif isinstance(s, MatrixScale):
                     scores.append(s.score)
             if scores:
                 new_min = min(scores)
@@ -507,16 +500,6 @@ class PromptBlock(V2CoreBase):
             raise ValueError(msg)
 
         if scales is not None:
-            scale_min = data.get("scale_min")
-            scale_max = data.get("scale_max")
-            if scale_min is not None and scale_max is not None:
-                if scale_max <= scale_min:
-                    msg = (
-                        f"PromptBlock '{block_id}': scale_max ({scale_max}) "
-                        f"on oltava suurempi kuin scale_min ({scale_min})."
-                    )
-                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    raise ValueError(msg)
             if len(scales) == 0:
                 msg = (
                     f"PromptBlock '{block_id}': Jos scales on valittu käyttöön, "
@@ -525,9 +508,17 @@ class PromptBlock(V2CoreBase):
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             for scale in scales:
-                claims = scale.get("claims") if isinstance(scale, dict) else getattr(scale, "claims", None)
+                claims = (
+                    scale.get("claims")
+                    if isinstance(scale, dict)
+                    else (scale.claims if isinstance(scale, MatrixScale) else None)
+                )
                 if not claims or len(claims) == 0:
-                    score_val = scale.get("score") if isinstance(scale, dict) else getattr(scale, "score", None)
+                    score_val = (
+                        scale.get("score")
+                        if isinstance(scale, dict)
+                        else (scale.score if isinstance(scale, MatrixScale) else None)
+                    )
                     msg = (
                         f"PromptBlock '{block_id}' / Scale '{score_val}': "
                         "Jokaisella scorella pitää olla vähintään yksi claim."
@@ -541,7 +532,7 @@ class PromptBlock(V2CoreBase):
             data["computed_max"] = new_max
 
         category_id = data.get("category_id")
-        if category_id == "matrix":
+        if category_id in ("matrix", PromptBlockCategory.MATRIX):
             if data.get("computed_min") is None or data.get("computed_max") is None:
                 msg = (
                     f"PromptBlock '{block_id}': Kun category_id on 'matrix', "
@@ -1139,25 +1130,31 @@ class AtomResultDTO(BaseModel):
     tda_id: Annotated[str, Field(description="Opaque ID pointing to the hydrated_references dictionary key")]
     matrix_id: Annotated[
         str | None, Field(default=None, description="Opaque ID of the matrix block that requested this evaluation")
-    ]
+    ] = None
     status: ExecutionStatus
     extracted_data: Annotated[
         ExtractedValueDTO | None, Field(default=None, description="Quantitative or isolated result")
-    ]
-    source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote from the document")]
+    ] = None
+    source_quote: Annotated[
+        str | None, Field(default=None, description="Verbatim original quote from the document")
+    ] = None
     contextual_override: Annotated[
         bool, Field(default=False, description="Allows cognitive override without a verbatim quote")
-    ]
+    ] = False
     evaluation_reasoning: Annotated[
         str | None, Field(default=None, description="Strictly AI cognitive reasoning, no infra errors")
-    ]
+    ] = None
     error_details: Annotated[
         ErrorDetailsDTO | None, Field(default=None, description="Populated only if status is SYSTEM_ERROR")
-    ]
-    extensions: Annotated[dict[str, str], Field(default_factory=dict, description="Requested XAI extensions mapping")]
+    ] = None
+    extensions: Annotated[
+        dict[str, str], Field(default_factory=dict, description="Requested XAI extensions mapping")
+    ] = Field(default_factory=dict)
 
-    depends_on_tda_ids: Annotated[list[str], Field(default_factory=list, description="DAG adjacency list")]
-    short_circuit_reason_tda_ids: Annotated[list[str], Field(default_factory=list)]
+    depends_on_tda_ids: Annotated[list[str], Field(default_factory=list, description="DAG adjacency list")] = Field(
+        default_factory=list
+    )
+    short_circuit_reason_tda_ids: Annotated[list[str], Field(default_factory=list)] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
@@ -1357,6 +1354,14 @@ class OutputProfile(V2CoreBase):
             description="Selects the source scaling for the scores printed by Blueprint.",
         ),
     ] = DisplayScale.ORIGINAL
+    custom_scale_min: Annotated[
+        float | None,
+        Field(default=None, description="Minimum score boundary when display_scale is CUSTOM."),
+    ] = None
+    custom_scale_max: Annotated[
+        float | None,
+        Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
+    ] = None
     strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     user_role_mappings: dict[str, I18nText] = Field(
@@ -1403,6 +1408,26 @@ class OutputProfile(V2CoreBase):
     performativity_detector_step_id: str | None = Field(
         default=None, description="Optional step ID for the performativity detector"
     )
+
+    @model_validator(mode="after")
+    def validate_custom_scale_bounds(self) -> Self:
+        """Enforce that custom scale bounds are valid when display_scale is CUSTOM."""
+        if self.display_scale in (DisplayScale.CUSTOM, "custom"):
+            if self.custom_scale_min is None or self.custom_scale_max is None:
+                msg = (
+                    f"OutputProfile '{self.id}': custom_scale_min and custom_scale_max "
+                    "are required when display_scale is CUSTOM."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+            if self.custom_scale_max <= self.custom_scale_min:
+                msg = (
+                    f"OutputProfile '{self.id}': custom_scale_max ({self.custom_scale_max}) "
+                    f"must be strictly greater than custom_scale_min ({self.custom_scale_min})."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        return self
 
 
 class Workflow(V2CoreBase):

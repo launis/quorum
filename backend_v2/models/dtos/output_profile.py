@@ -3,10 +3,12 @@
 These models handle the ingestion and output formats for the Output Profile REST APIs.
 """
 
-from typing import Annotated, Literal
+import logging
+from typing import Annotated, Literal, Self
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
+from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.base import BaseResponseDTO
 from backend_v2.models.enums import (
@@ -23,6 +25,8 @@ from backend_v2.models.v2_core import (
     SynthesisConfigDTO,
 )
 from backend_v2.models.view.sdui import AnySduiBlock
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "OutputProfileCreateDTO",
@@ -115,6 +119,14 @@ class OutputProfileCreateDTO(V2CoreBase):
         LaxDisplayScale,
         Field(default=DisplayScale.ORIGINAL, description="UI rendering scale instruction."),
     ] = DisplayScale.ORIGINAL
+    custom_scale_min: Annotated[
+        float | None,
+        Field(default=None, description="Minimum score boundary when display_scale is CUSTOM."),
+    ] = None
+    custom_scale_max: Annotated[
+        float | None,
+        Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
+    ] = None
     user_role_mappings: Annotated[
         dict[str, I18nText],
         Field(
@@ -158,6 +170,26 @@ class OutputProfileCreateDTO(V2CoreBase):
         str | None,
         Field(default=None, description="Optional step ID for the performativity detector"),
     ] = None
+
+    @model_validator(mode="after")
+    def validate_custom_scale_bounds(self) -> Self:
+        """Enforce that custom scale bounds are valid when display_scale is CUSTOM."""
+        if self.display_scale in (DisplayScale.CUSTOM, "custom"):
+            if self.custom_scale_min is None or self.custom_scale_max is None:
+                msg = (
+                    f"OutputProfileCreateDTO '{self.id}': custom_scale_min and custom_scale_max "
+                    "are required when display_scale is CUSTOM."
+                )
+                logger.error("[DTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+            if self.custom_scale_max <= self.custom_scale_min:
+                msg = (
+                    f"OutputProfileCreateDTO '{self.id}': custom_scale_max ({self.custom_scale_max}) "
+                    f"must be strictly greater than custom_scale_min ({self.custom_scale_min})."
+                )
+                logger.error("[DTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        return self
 
 
 class OutputProfileUpdateDTO(V2CoreBase):
@@ -238,6 +270,14 @@ class OutputProfileUpdateDTO(V2CoreBase):
         LaxDisplayScale | None,
         Field(default=None, description="UI rendering scale instruction."),
     ] = None
+    custom_scale_min: Annotated[
+        float | None,
+        Field(default=None, description="Minimum score boundary when display_scale is CUSTOM."),
+    ] = None
+    custom_scale_max: Annotated[
+        float | None,
+        Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
+    ] = None
     strictness_level: Annotated[
         Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
     ]
@@ -260,6 +300,20 @@ class OutputProfileUpdateDTO(V2CoreBase):
         str | None,
         Field(default=None, description="Optional step ID for the performativity detector"),
     ] = None
+
+    @model_validator(mode="after")
+    def validate_custom_scale_bounds(self) -> Self:
+        """Enforce that custom scale bounds are valid when display_scale is CUSTOM."""
+        if self.display_scale in (DisplayScale.CUSTOM, "custom"):
+            if self.custom_scale_min is not None and self.custom_scale_max is not None:
+                if self.custom_scale_max <= self.custom_scale_min:
+                    msg = (
+                        f"OutputProfileUpdateDTO: custom_scale_max ({self.custom_scale_max}) "
+                        f"must be strictly greater than custom_scale_min ({self.custom_scale_min})."
+                    )
+                    logger.error("[DTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                    raise ValueError(msg)
+        return self
 
 
 class OutputProfileResponseDTO(BaseResponseDTO):
@@ -333,6 +387,8 @@ class OutputProfileResponseDTO(BaseResponseDTO):
             description="Exact enumeration of UI rendering modes ('normalized_100').",
         ),
     ] = DisplayScale.ORIGINAL
+    custom_scale_min: float | None = None
+    custom_scale_max: float | None = None
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
     synthesis: SynthesisConfigDTO | None = None

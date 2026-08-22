@@ -15,6 +15,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/models/prompt_block_category.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 
 /// **Universal Matrix Builder**
@@ -1213,56 +1214,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
               ],
             ),
             if (payload.scales != null) ...[
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: payload.scaleMin?.toString() ?? '4',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                        signed: true,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: l10n.scaleMinLabel,
-                        border: const OutlineInputBorder(),
-                      ),
-                      onChanged: (val) {
-                        final parsed = int.tryParse(val);
-                        if (parsed != null) {
-                          ref
-                              .read(promptBlockFormProvider(blockId).notifier)
-                              .forceRebuild(payload.copyWith(scaleMin: parsed));
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: payload.scaleMax?.toString() ?? '10',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                        signed: true,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: l10n.scaleMaxLabel,
-                        border: const OutlineInputBorder(),
-                      ),
-                      onChanged: (val) {
-                        final parsed = int.tryParse(val);
-                        if (parsed != null) {
-                          ref
-                              .read(promptBlockFormProvider(blockId).notifier)
-                              .forceRebuild(payload.copyWith(scaleMax: parsed));
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               BarsMatrixBuilder(
                 scales: payload.scales!,
                 onChanged: (newList) {

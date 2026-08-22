@@ -26,10 +26,7 @@ from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, PromptBlock, Step, Workflow
 from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 from backend_v2.settings import get_settings
-from backend_v2.utils.math_utils import (
-    normalize_score_to_100,
-    scale_to_custom_range,
-)
+from backend_v2.utils.math_utils import normalize_score_to_100
 from backend_v2.utils.scoring import get_scoring_engine
 
 logger = logging.getLogger(__name__)
@@ -1109,23 +1106,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                     message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                 )
 
-            # DISPLAY BOUNDARIES: UI projection targets
-            display_min = pb_model.scale_min
-            display_max = pb_model.scale_max
-
-            if display_min is None or display_max is None:
-                msg = (
-                    f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' missing explicit display "
-                    "'scale_min' or 'scale_max' in database. Fallback estimates are forbidden."
-                )
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
-                )
-
-            scores_in_scales = []
-            for s in scales:
-                scores_in_scales.append(float(s.score))
+            scores_in_scales = [float(s.score) for s in scales]
 
             if not scores_in_scales:
                 msg = (
@@ -1140,19 +1121,10 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             # 1. The original AI output, calculated on the internal Math bounds
             raw_float = float(raw_val)
 
-            math_min = min(scores_in_scales)
-            math_max = max(scores_in_scales)
+            math_min = float(pb_model.computed_min) if pb_model.computed_min is not None else min(scores_in_scales)
+            math_max = float(pb_model.computed_max) if pb_model.computed_max is not None else max(scores_in_scales)
 
-            # 2. Scale mathematically to custom Output Target Range (DB scale_min/scale_max explicitly for DISPLAY)
-            scaled_val = scale_to_custom_range(
-                score=raw_float,
-                raw_min=math_min,
-                raw_max=math_max,
-                target_min=float(display_min),
-                target_max=float(display_max),
-            )
-
-            # 3. The 1-100 normalized value for commensurable aggregation (V2 Logic)
+            # 2. The 1-100 normalized value for commensurable aggregation (V2 Logic)
             normalized_val = normalize_score_to_100(
                 score=raw_float,
                 math_min=math_min,
@@ -1184,10 +1156,9 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
             updates_made = True
             logger.info(
-                "[ScoringHook] 3-Tier Score '%s': Raw=%s, Scaled=%s, Normalized=%s",
+                "[ScoringHook] Matrix Score '%s': Raw=%s, Normalized=%s",
                 pb_id,
                 raw_val,
-                scaled_val,
                 normalized_val,
             )
 

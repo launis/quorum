@@ -79,8 +79,6 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
                 "ai_description": "CRITERIA: Evaluate Toulmin logic.",
                 "category_id": "matrix",
                 "type": "string",
-                "scale_min": 1,
-                "scale_max": 5,
                 "scales": [
                     {
                         "score": 1,

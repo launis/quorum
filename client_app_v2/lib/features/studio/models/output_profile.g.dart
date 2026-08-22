@@ -239,6 +239,8 @@ _OutputProfile _$OutputProfileFromJson(
         'visible_workflow_extensions',
         'max_extension_items',
         'display_scale',
+        'custom_scale_min',
+        'custom_scale_max',
         'strictness_level',
         'scoring_strategy',
         'tone_instruction',
@@ -311,6 +313,14 @@ _OutputProfile _$OutputProfileFromJson(
         (v) =>
             $enumDecodeNullable(_$DisplayScaleEnumMap, v) ??
             DisplayScale.original,
+      ),
+      customScaleMin: $checkedConvert(
+        'custom_scale_min',
+        (v) => (v as num?)?.toDouble(),
+      ),
+      customScaleMax: $checkedConvert(
+        'custom_scale_max',
+        (v) => (v as num?)?.toDouble(),
       ),
       strictnessLevel: $checkedConvert(
         'strictness_level',
@@ -414,6 +424,8 @@ _OutputProfile _$OutputProfileFromJson(
     'visibleWorkflowExtensions': 'visible_workflow_extensions',
     'maxExtensionItems': 'max_extension_items',
     'displayScale': 'display_scale',
+    'customScaleMin': 'custom_scale_min',
+    'customScaleMax': 'custom_scale_max',
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
@@ -446,6 +458,8 @@ Map<String, dynamic> _$OutputProfileToJson(
       .toList(),
   'max_extension_items': instance.maxExtensionItems,
   'display_scale': _$DisplayScaleEnumMap[instance.displayScale]!,
+  'custom_scale_min': instance.customScaleMin,
+  'custom_scale_max': instance.customScaleMax,
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'tone_instruction': instance.toneInstruction?.toJson(),

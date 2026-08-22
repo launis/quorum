@@ -14,14 +14,57 @@ from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, Output
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
 
-def get_dummy_profile(display_scale: DisplayScale = DisplayScale.ORIGINAL) -> OutputProfile:
+def get_dummy_profile(
+    display_scale: DisplayScale = DisplayScale.ORIGINAL,
+    custom_scale_min: float | None = None,
+    custom_scale_max: float | None = None,
+) -> OutputProfile:
+    if display_scale == DisplayScale.CUSTOM and custom_scale_min is None and custom_scale_max is None:
+        custom_scale_min = 4.0
+        custom_scale_max = 10.0
     return OutputProfile(
         id="prof_1234567890abcdef1234567890abcdef",
         slug="test",
         workflow_id="wf1",
         name=I18nText(default_locale="en", translations={"en": "test"}),
         display_scale=display_scale,
+        custom_scale_min=custom_scale_min,
+        custom_scale_max=custom_scale_max,
         target_block_order=[],
+    )
+
+
+def get_dummy_pb_5_scale() -> PromptBlock:
+    label = I18nText(default_locale="en", translations={"en": "test"})
+    desc = I18nText(default_locale="en", translations={"en": "test"})
+    scales = [
+        MatrixScale(
+            score=i,
+            name=I18nText(default_locale="en", translations={"en": f"Level {i}"}),
+            ai_label=f"LEVEL_{i}",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(default_locale="en", translations={"en": f"Claim {i}"}),
+                    ai_description="Desc",
+                    tda_assertions=[
+                        TDAAssertion(
+                            inverse_evidence=False, aggregation_mode="EXISTS", concept_description="test concept"
+                        )
+                    ],
+                )
+            ],
+        )
+        for i in range(1, 6)
+    ]
+    return PromptBlock(
+        id="blk_1234567890abcdef1234567890abcdef",
+        slug="test",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        label=label,
+        description=desc,
+        scales=scales,
     )
 
 
@@ -317,12 +360,15 @@ def test_parse_matrix_normalized_100_display_scale() -> None:
 
 
 def test_parse_matrix_custom_display_scale() -> None:
-    """Positive test: display_scale=CUSTOM uses scale_min/scale_max from prompt block."""
-    profile = get_dummy_profile(display_scale=DisplayScale.CUSTOM)
-    pb = get_dummy_pb()
-    pb = pb.model_copy(update={"scale_min": 1.0, "scale_max": 5.0})
+    """Positive test: display_scale=CUSTOM uses custom_scale_min/max from OutputProfile and projects scores."""
+    profile = get_dummy_profile(
+        display_scale=DisplayScale.CUSTOM,
+        custom_scale_min=4.0,
+        custom_scale_max=10.0,
+    )
+    pb = get_dummy_pb_5_scale()
 
-    payload = {"raw_score": 3.5, "normalized_score": 70.0, "evaluated_atoms": {}}
+    payload = {"raw_score": 3.0, "normalized_score": 50.0, "evaluated_atoms": {}}
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
     _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
@@ -336,10 +382,10 @@ def test_parse_matrix_custom_display_scale() -> None:
         row_curated_quotes_cache={},
     )
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
-    assert matrix.scale_min == 1.0
-    assert matrix.scale_max == 5.0
-    assert matrix.score == 3.5
-    assert matrix.score_display_label == "3.5 / 5.0"
+    assert matrix.scale_min == 4.0
+    assert matrix.scale_max == 10.0
+    assert matrix.score == 7.0
+    assert matrix.score_display_label == "7.0 / 10.0"
 
 
 def test_parse_matrix_original_display_scale() -> None:
@@ -368,12 +414,20 @@ def test_parse_matrix_original_display_scale() -> None:
 
 
 def test_parse_matrix_custom_display_scale_missing_bounds_fail_fast() -> None:
-    """Negative test: display_scale=CUSTOM with scale_min=None on PromptBlock raises AppException(CONFIGURATION_ERROR)."""
+    """Negative test: display_scale=CUSTOM with missing bounds on OutputProfile raises AppException(CONFIGURATION_ERROR)."""
     from backend_v2.exceptions import AppException, ErrorCodes
 
-    profile = get_dummy_profile(display_scale=DisplayScale.CUSTOM)
-    pb = get_dummy_pb()
-    pb = pb.model_copy(update={"scale_min": None, "scale_max": 5.0})
+    profile = OutputProfile.model_construct(
+        id="prof_1234567890abcdef1234567890abcdef",
+        slug="test",
+        workflow_id="wf1",
+        name=I18nText(default_locale="en", translations={"en": "test"}),
+        display_scale=DisplayScale.CUSTOM,
+        custom_scale_min=None,
+        custom_scale_max=None,
+        target_block_order=[],
+    )
+    pb = get_dummy_pb_5_scale()
 
     payload = {"raw_score": 3.0, "normalized_score": 60.0, "evaluated_atoms": {}}
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
@@ -390,7 +444,8 @@ def test_parse_matrix_custom_display_scale_missing_bounds_fail_fast() -> None:
             row_curated_quotes_cache={},
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
-    assert "UI bounds missing for PromptBlock" in str(exc_info.value)
+    assert "OutputProfile" in str(exc_info.value)
+    assert "missing custom_scale_min/max" in str(exc_info.value)
 
 
 def test_parse_matrices_missing_label_and_scales_fail_fast() -> None:

@@ -206,29 +206,6 @@ def test_prompt_block_validator_branches() -> None:
     label = I18nText(default_locale="en", translations={"en": "Scale Block"})
     desc = I18nText(default_locale="en", translations={"en": "Scale Desc"})
 
-    # Scale max <= scale min raises ValueError
-    with pytest.raises(ValueError, match="on oltava suurempi kuin scale_min"):
-        PromptBlock.model_validate(
-            {
-                "id": "blk_1111111111111111",
-                "slug": "invalid_scale",
-                "label": label,
-                "description": desc,
-                "category_id": PromptBlockCategory.MATRIX,
-                "type": BlockDataType.FLOAT,
-                "scale_min": 10.0,
-                "scale_max": 5.0,
-                "scales": [
-                    {
-                        "score": 5.0,
-                        "label": label,
-                        "description": desc,
-                        "claims": [{"label": label, "ai_description": "Claim 1"}],
-                    }
-                ],
-            }
-        )
-
     # Empty scales list raises ValueError
     with pytest.raises(ValueError, match="vähintään yksi MatrixScale"):
         PromptBlock.model_validate(

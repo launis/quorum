@@ -82,6 +82,8 @@ abstract class OutputProfile with _$OutputProfile {
     @Default(DisplayScale.original)
     @JsonKey(name: 'display_scale')
     DisplayScale displayScale,
+    @JsonKey(name: 'custom_scale_min') double? customScaleMin,
+    @JsonKey(name: 'custom_scale_max') double? customScaleMax,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,

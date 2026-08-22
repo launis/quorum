@@ -4019,6 +4019,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get displayScaleNormalized100 => 'Normalized 0-100% Scale';
 
   @override
+  String get customScaleMinLabel => 'Custom Scale Min';
+
+  @override
+  String get customScaleMaxLabel => 'Custom Scale Max';
+
+  @override
   String get profileTabXai => 'Extensions (XAI)';
 
   @override

@@ -377,5 +377,32 @@ void main() {
         throwsA(isA<CheckedFromJsonException>()),
       );
     });
+
+    test(
+      'Should parse and serialize OutputProfile with custom_scale_min and custom_scale_max',
+      () {
+        final jsonPayload = {
+          'id': 'op_1234567890abcdef',
+          'workflow_id': 'wf_9d68c573802341db',
+          'name': {
+            'default_locale': 'en',
+            'translations': {'en': 'Test Profile'},
+          },
+          'display_scale': 'custom',
+          'custom_scale_min': 4.0,
+          'custom_scale_max': 10.0,
+        };
+
+        final profile = OutputProfile.fromJson(jsonPayload);
+        expect(profile.displayScale, DisplayScale.custom);
+        expect(profile.customScaleMin, 4.0);
+        expect(profile.customScaleMax, 10.0);
+
+        final serialized = profile.toJson();
+        expect(serialized['display_scale'], 'custom');
+        expect(serialized['custom_scale_min'], 4.0);
+        expect(serialized['custom_scale_max'], 10.0);
+      },
+    );
   });
 }

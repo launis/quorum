@@ -97,8 +97,6 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
         description=I18nText(default_locale="en", translations={"en": "Description", "fi": "Description"}),
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.STRING,
-        scale_min=1,
-        scale_max=5,
         scales=[scale],
     )
 

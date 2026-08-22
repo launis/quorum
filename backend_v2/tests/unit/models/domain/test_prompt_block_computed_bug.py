@@ -41,8 +41,6 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
         "category_id": "matrix",
         "is_evaluative": True,
         "type": "string",
-        "scale_min": 1,
-        "scale_max": 5,
         # Notice: computed_min and computed_max are deliberately omitted
         "scales": [
             {

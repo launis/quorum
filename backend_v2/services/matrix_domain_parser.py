@@ -22,6 +22,7 @@ from backend_v2.models.v2_core import (
     StepRule,
 )
 from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.utils.math_utils import scale_to_custom_range
 
 __all__ = ["MatrixDomainParser"]
 
@@ -242,33 +243,48 @@ class MatrixDomainParser:
                 display_scale_min = 0.0
                 display_scale_max = 100.0
             elif display_scale == DisplayScale.CUSTOM:
-                scale_min_val = pb_meta.scale_min
-                scale_max_val = pb_meta.scale_max
-                if scale_min_val is None or scale_max_val is None:
+                if profile.custom_scale_min is None or profile.custom_scale_max is None:
                     logger.error(
-                        "[MatrixDomainParser] %s: UI bounds missing for PromptBlock '%s' under custom scale.",
+                        "[MatrixDomainParser] %s: OutputProfile '%s' is missing custom_scale_min/max under custom scale.",
                         ErrorCodes.CONFIGURATION_ERROR.name,
-                        b_id,
+                        profile.id,
                     )
                     raise AppException(
-                        message=f"UI bounds missing for PromptBlock '{b_id}' under custom scale.",
+                        message=f"OutputProfile '{profile.id}' is missing custom_scale_min/max under custom scale.",
                         status_code=500,
                         details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                     )
-                display_scale_min = float(scale_min_val)
-                display_scale_max = float(scale_max_val)
+                display_scale_min = float(profile.custom_scale_min)
+                display_scale_max = float(profile.custom_scale_max)
 
-            if active_score_key == "normalized_score":
-                target_val = matrix_payload.normalized_score
+            if display_scale == DisplayScale.CUSTOM:
+                if raw_score is not None:
+                    score_float = float(
+                        round(
+                            scale_to_custom_range(
+                                score=float(raw_score),
+                                raw_min=math_min,
+                                raw_max=math_max,
+                                target_min=display_scale_min,
+                                target_max=display_scale_max,
+                            ),
+                            1,
+                        )
+                    )
+                else:
+                    score_float = None
             else:
-                target_val = matrix_payload.raw_score
+                if active_score_key == "normalized_score":
+                    target_val = matrix_payload.normalized_score
+                else:
+                    target_val = matrix_payload.raw_score
 
-            if target_val is None:
-                target_val = raw_score
+                if target_val is None:
+                    target_val = raw_score
 
-            score_float = float(round(float(target_val), 1)) if target_val is not None else None
-            if display_scale == DisplayScale.NORMALIZED_100 and score_float is not None:
-                score_float = float(round(score_float))
+                score_float = float(round(float(target_val), 1)) if target_val is not None else None
+                if display_scale == DisplayScale.NORMALIZED_100 and score_float is not None:
+                    score_float = float(round(score_float))
 
             ui_plot_ratio = None
             if raw_score is not None:

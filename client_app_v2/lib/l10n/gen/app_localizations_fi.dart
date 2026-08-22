@@ -4047,6 +4047,12 @@ class AppLocalizationsFi extends AppLocalizations {
   String get displayScaleNormalized100 => 'Normalisoitu 0-100 % asteikko';
 
   @override
+  String get customScaleMinLabel => 'Mukautetun asteikon minimi';
+
+  @override
+  String get customScaleMaxLabel => 'Mukautetun asteikon maksimi';
+
+  @override
   String get profileTabXai => 'XAI';
 
   @override

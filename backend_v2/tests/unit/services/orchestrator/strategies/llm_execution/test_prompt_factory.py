@@ -31,8 +31,6 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
                 "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
                 "type": "string",
                 "category_id": "matrix",
-                "scale_min": 1,
-                "scale_max": 5,
                 "scales": [
                     {
                         "score": 1,

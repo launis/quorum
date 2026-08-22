@@ -77,6 +77,61 @@ class ProfileScoringTab extends ConsumerWidget {
                     ),
                   ),
                 ),
+                if (payload.displayScale == DisplayScale.custom) ...[
+                  AppSpacing.h16,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          initialValue:
+                              payload.customScaleMin?.toString() ?? '4.0',
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                            signed: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: l10n.customScaleMinLabel,
+                            isDense: true,
+                            border: const OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            final parsed = double.tryParse(val);
+                            if (parsed != null) {
+                              updatePayload(
+                                payload.copyWith(customScaleMin: parsed),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      AppSpacing.w16,
+                      Expanded(
+                        child: TextFormField(
+                          initialValue:
+                              payload.customScaleMax?.toString() ?? '10.0',
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                            signed: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: l10n.customScaleMaxLabel,
+                            isDense: true,
+                            border: const OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            final parsed = double.tryParse(val);
+                            if (parsed != null) {
+                              updatePayload(
+                                payload.copyWith(customScaleMax: parsed),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 AppSpacing.h24,
                 Text(
                   l10n.scoringEngineTitle,

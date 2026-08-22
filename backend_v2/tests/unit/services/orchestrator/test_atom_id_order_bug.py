@@ -22,8 +22,6 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
         "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
-        "scale_min": 1,
-        "scale_max": 5,
         "label": {
             "default_locale": "en",
             "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"},

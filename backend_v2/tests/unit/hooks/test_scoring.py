@@ -53,8 +53,6 @@ def _build_valid_pb_dict(
         "ai_description": "Test AI Desc",
         "type": pb_type,
         "category_id": category_id,
-        "scale_min": 1,
-        "scale_max": 5,
         "allow_contextual_override": True,
     }
     if scales:

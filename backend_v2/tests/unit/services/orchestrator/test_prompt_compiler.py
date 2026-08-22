@@ -16,8 +16,6 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
         "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
-        "scale_min": 1,
-        "scale_max": 5,
         "label": {
             "default_locale": "en",
             "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"},
@@ -146,8 +144,6 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
-        "scale_min": 1,
-        "scale_max": 5,
         "label": {"default_locale": "en", "translations": {"en": "Test Score", "fi": "Test Score"}},
         "ai_description": "Base Desc",
         "output_extensions": ["justification", "remediation_steps", "confidence"],
@@ -295,8 +291,6 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
         "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
-        "scale_min": 1,
-        "scale_max": 5,
         "label": {"default_locale": "en", "translations": {"en": "Extreme Score", "fi": "Extreme Score"}},
         "ai_description": extreme_desc,
         "scales": [

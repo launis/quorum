@@ -177,8 +177,6 @@ async def test_epic_93_e2e_golden_master() -> None:
         ],
         "computed_min": 0,
         "computed_max": 100,
-        "scale_min": 0,
-        "scale_max": 100,
     }
     mock_prompt_block_repo.get_all_prompt_blocks.return_value = [mock_pb]
     mock_comp_repo.get_all_components.return_value = [mock_pb]

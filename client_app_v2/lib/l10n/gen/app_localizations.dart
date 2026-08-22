@@ -7314,6 +7314,18 @@ abstract class AppLocalizations {
   /// **'Normalized 0-100% Scale'**
   String get displayScaleNormalized100;
 
+  /// No description provided for @customScaleMinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Scale Min'**
+  String get customScaleMinLabel;
+
+  /// No description provided for @customScaleMaxLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Scale Max'**
+  String get customScaleMaxLabel;
+
   /// No description provided for @profileTabXai.
   ///
   /// In en, this message translates to:

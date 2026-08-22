@@ -45,8 +45,6 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
             },
             "type": "float",
             "allow_decimals": True,
-            "scale_min": 1,
-            "scale_max": 5,
             "label": {"default_locale": "en", "translations": {"en": "Causal Analyst", "fi": "Causal Analyst"}},
             "ai_description": (
                 "<global_framework>\n"

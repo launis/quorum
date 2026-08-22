@@ -76,8 +76,6 @@ async def test_atomizer_deterministic_mapping() -> None:
             "description": {"default_locale": "en", "translations": {"en": "Test desc", "fi": "Test desc"}},
             "category_id": "system_rule",
             "type": "int",
-            "scale_min": 1,
-            "scale_max": 5,
             "scales": [scale.model_dump()],
         }
     )

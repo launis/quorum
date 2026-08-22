@@ -1429,6 +1429,8 @@
   "displayScaleOriginal": "Alkuperäinen asteikko (Muuttamaton)",
   "displayScaleCustom": "Mukautettu toimiala-asteikko",
   "displayScaleNormalized100": "Normalisoitu 0-100 % asteikko",
+  "customScaleMinLabel": "Mukautetun asteikon minimi",
+  "customScaleMaxLabel": "Mukautetun asteikon maksimi",
   "profileTabXai": "XAI",
   "profileTabLayouts": "Raporttipohjat",
   "layoutBlockDescriptionLabel": "Osion kuvaus (valinnainen väliotsikko)",

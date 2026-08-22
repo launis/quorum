@@ -225,3 +225,132 @@ def test_output_profile_response_dto_accepts_string_enums_from_storage_payload()
     dto = OutputProfileResponseDTO.model_validate(payload)
     assert dto.display_scale == DisplayScale.NORMALIZED_100
     assert dto.target_block_order == [TargetBlockType.METADATA_BLOCK, TargetBlockType.GLOBAL_SCORE_BLOCK]
+
+
+def test_output_profile_custom_scale_bounds_positive() -> None:
+    """ISTQB Positive: display_scale=CUSTOM with valid custom_scale_min < custom_scale_max passes."""
+    from backend_v2.models.v2_core import OutputProfile
+
+    # 1. OutputProfileCreateDTO
+    payload = {
+        **_VALID_CREATE_PAYLOAD,
+        "display_scale": DisplayScale.CUSTOM,
+        "custom_scale_min": 4.0,
+        "custom_scale_max": 10.0,
+    }
+    create_dto = OutputProfileCreateDTO.model_validate(payload)
+    assert create_dto.custom_scale_min == 4.0
+    assert create_dto.custom_scale_max == 10.0
+
+    # 2. OutputProfile Domain Model
+    domain_payload = {
+        **payload,
+        "id": "prf_1234567890abcdef",
+    }
+    domain_model = OutputProfile.model_validate(domain_payload)
+    assert domain_model.custom_scale_min == 4.0
+    assert domain_model.custom_scale_max == 10.0
+
+
+def test_output_profile_custom_scale_missing_bounds_negative() -> None:
+    """ISTQB Negative Boundary 1: display_scale=CUSTOM with missing bounds raises ValidationError."""
+    from backend_v2.models.v2_core import OutputProfile
+
+    # Missing min
+    with pytest.raises(ValidationError, match="custom_scale_min and custom_scale_max are required"):
+        OutputProfileCreateDTO.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "display_scale": DisplayScale.CUSTOM,
+                "custom_scale_min": None,
+                "custom_scale_max": 10.0,
+            }
+        )
+
+    # Missing max on domain model
+    with pytest.raises(ValidationError, match="custom_scale_min and custom_scale_max are required"):
+        OutputProfile.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "id": "prf_1234567890abcdef",
+                "display_scale": DisplayScale.CUSTOM,
+                "custom_scale_min": 4.0,
+                "custom_scale_max": None,
+            }
+        )
+
+
+def test_output_profile_custom_scale_inverted_bounds_negative() -> None:
+    """ISTQB Negative Boundary 2: display_scale=CUSTOM with custom_scale_min > custom_scale_max raises ValidationError."""
+    from backend_v2.models.v2_core import OutputProfile
+
+    with pytest.raises(ValidationError, match="must be strictly greater than custom_scale_min"):
+        OutputProfileCreateDTO.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "display_scale": DisplayScale.CUSTOM,
+                "custom_scale_min": 10.0,
+                "custom_scale_max": 4.0,
+            }
+        )
+
+    with pytest.raises(ValidationError, match="must be strictly greater than custom_scale_min"):
+        OutputProfile.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "id": "prf_1234567890abcdef",
+                "display_scale": DisplayScale.CUSTOM,
+                "custom_scale_min": 10.0,
+                "custom_scale_max": 4.0,
+            }
+        )
+
+
+def test_output_profile_custom_scale_equal_bounds_negative() -> None:
+    """ISTQB Negative Boundary 3: display_scale=CUSTOM with custom_scale_min == custom_scale_max raises ValidationError."""
+    from backend_v2.models.v2_core import OutputProfile
+
+    with pytest.raises(ValidationError, match="must be strictly greater than custom_scale_min"):
+        OutputProfileCreateDTO.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "display_scale": DisplayScale.CUSTOM,
+                "custom_scale_min": 5.0,
+                "custom_scale_max": 5.0,
+            }
+        )
+
+    with pytest.raises(ValidationError, match="must be strictly greater than custom_scale_min"):
+        OutputProfile.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "id": "prf_1234567890abcdef",
+                "display_scale": DisplayScale.CUSTOM,
+                "custom_scale_min": 5.0,
+                "custom_scale_max": 5.0,
+            }
+        )
+
+
+def test_output_profile_update_dto_custom_scale_validation() -> None:
+    """ISTQB: OutputProfileUpdateDTO validates custom scale bounds when display_scale is CUSTOM."""
+    # Valid update
+    update_valid = OutputProfileUpdateDTO.model_validate(
+        {
+            "display_scale": DisplayScale.CUSTOM,
+            "custom_scale_min": 1.0,
+            "custom_scale_max": 5.0,
+        }
+    )
+    assert update_valid.custom_scale_min == 1.0
+    assert update_valid.custom_scale_max == 5.0
+
+    # Inverted update
+    with pytest.raises(ValidationError, match="must be strictly greater than custom_scale_min"):
+        OutputProfileUpdateDTO.model_validate(
+            {
+                "display_scale": DisplayScale.CUSTOM,
+                "custom_scale_min": 5.0,
+                "custom_scale_max": 1.0,
+            }
+        )

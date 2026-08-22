@@ -264,8 +264,6 @@ def mock_repo_transformer() -> Any:
                 ],
                 "computed_min": 0,
                 "computed_max": 100,
-                "scale_min": 0,
-                "scale_max": 100,
             }
         ]
     )
@@ -362,8 +360,6 @@ def mock_repo_transformer() -> Any:
         ],
         "computed_min": 0,
         "computed_max": 100,
-        "scale_min": 0,
-        "scale_max": 100,
     }
     repo.get_all_prompt_blocks.return_value = fix_mock_dict([pb_dict])
     return repo
@@ -524,8 +520,6 @@ def mock_repo_microcot() -> Any:
                 ],
                 "computed_min": 0,
                 "computed_max": 3,
-                "scale_min": 0,
-                "scale_max": 3,
             },
             {
                 "id": "blk_5555666677778888",
@@ -561,8 +555,6 @@ def mock_repo_microcot() -> Any:
                 ],
                 "computed_min": 0,
                 "computed_max": 5,
-                "scale_min": 0,
-                "scale_max": 5,
             },
         ]
     )
@@ -649,8 +641,6 @@ def mock_repo_sdui() -> AsyncMock:
                 "label": {"default_locale": "en", "translations": {"en": "Metric Category", "fi": "Metric Category"}},
                 "computed_min": 0,
                 "computed_max": 5,
-                "scale_min": 0,
-                "scale_max": 5,
                 "scales": [
                     {
                         "score": 0,
@@ -1911,8 +1901,6 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
             label=mock_label,
             computed_min=0,
             computed_max=100,
-            scale_min=0,
-            scale_max=10,
             allow_contextual_override=False,
             scales=[
                 SimpleNamespace(
