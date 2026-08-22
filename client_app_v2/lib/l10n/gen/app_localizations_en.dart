@@ -4160,4 +4160,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get studioWorkflowNoSelectableInputs =>
       'No selectable inputs or dependencies available.';
+
+  @override
+  String get customScaleInvalidNumber => 'Please enter a valid number.';
+
+  @override
+  String get customScaleMaxMustBeGreater =>
+      'Custom Scale Max must be strictly greater than Custom Scale Min.';
 }

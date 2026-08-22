@@ -71,7 +71,23 @@ class ProfileScoringTab extends ConsumerWidget {
                       ],
                       onChanged: (val) {
                         if (val != null) {
-                          updatePayload(payload.copyWith(displayScale: val));
+                          if (val == DisplayScale.custom) {
+                            updatePayload(
+                              payload.copyWith(
+                                displayScale: val,
+                                customScaleMin: payload.customScaleMin ?? 4.0,
+                                customScaleMax: payload.customScaleMax ?? 10.0,
+                              ),
+                            );
+                          } else {
+                            updatePayload(
+                              payload.copyWith(
+                                displayScale: val,
+                                customScaleMin: null,
+                                customScaleMax: null,
+                              ),
+                            );
+                          }
                         }
                       },
                     ),
@@ -96,12 +112,22 @@ class ProfileScoringTab extends ConsumerWidget {
                             border: const OutlineInputBorder(),
                           ),
                           onChanged: (val) {
-                            final parsed = double.tryParse(val);
-                            if (parsed != null) {
-                              updatePayload(
-                                payload.copyWith(customScaleMin: parsed),
-                              );
+                            updatePayload(
+                              payload.copyWith(
+                                customScaleMin: double.tryParse(val.trim()),
+                              ),
+                            );
+                          },
+                          validator: (val) {
+                            if (payload.displayScale == DisplayScale.custom) {
+                              if (val == null || val.trim().isEmpty) {
+                                return l10n.fieldRequired;
+                              }
+                              if (double.tryParse(val.trim()) == null) {
+                                return l10n.customScaleInvalidNumber;
+                              }
                             }
+                            return null;
                           },
                         ),
                       ),
@@ -120,12 +146,27 @@ class ProfileScoringTab extends ConsumerWidget {
                             border: const OutlineInputBorder(),
                           ),
                           onChanged: (val) {
-                            final parsed = double.tryParse(val);
-                            if (parsed != null) {
-                              updatePayload(
-                                payload.copyWith(customScaleMax: parsed),
-                              );
+                            updatePayload(
+                              payload.copyWith(
+                                customScaleMax: double.tryParse(val.trim()),
+                              ),
+                            );
+                          },
+                          validator: (val) {
+                            if (payload.displayScale == DisplayScale.custom) {
+                              if (val == null || val.trim().isEmpty) {
+                                return l10n.fieldRequired;
+                              }
+                              final parsed = double.tryParse(val.trim());
+                              if (parsed == null) {
+                                return l10n.customScaleInvalidNumber;
+                              }
+                              if (payload.customScaleMin != null &&
+                                  parsed <= payload.customScaleMin!) {
+                                return l10n.customScaleMaxMustBeGreater;
+                              }
                             }
+                            return null;
                           },
                         ),
                       ),

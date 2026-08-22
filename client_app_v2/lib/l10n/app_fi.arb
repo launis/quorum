@@ -1479,5 +1479,7 @@
       }
     }
   },
-  "studioWorkflowNoSelectableInputs": "Ei valittavia syötteitä tai riippuvuuksia."
+  "studioWorkflowNoSelectableInputs": "Ei valittavia syötteitä tai riippuvuuksia.",
+  "customScaleInvalidNumber": "Syötä kelvollinen numero.",
+  "customScaleMaxMustBeGreater": "Maksimiarvon on oltava suurempi kuin minimiarvo."
 }

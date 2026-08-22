@@ -144,23 +144,25 @@ class ErrorView extends StatelessWidget {
     }
 
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title ?? l10n.systemError, // Or localized "System Error"
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: iconColor,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title ?? l10n.systemError, // Or localized "System Error"
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: iconColor,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              content,
-            ],
+                const SizedBox(height: 24),
+                content,
+              ],
+            ),
           ),
         ),
       ),

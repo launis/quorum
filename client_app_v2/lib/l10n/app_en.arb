@@ -2141,5 +2141,7 @@
       }
     }
   },
-  "studioWorkflowNoSelectableInputs": "No selectable inputs or dependencies available."
+  "studioWorkflowNoSelectableInputs": "No selectable inputs or dependencies available.",
+  "customScaleInvalidNumber": "Please enter a valid number.",
+  "customScaleMaxMustBeGreater": "Custom Scale Max must be strictly greater than Custom Scale Min."
 }

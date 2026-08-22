@@ -4189,4 +4189,11 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get studioWorkflowNoSelectableInputs =>
       'Ei valittavia syötteitä tai riippuvuuksia.';
+
+  @override
+  String get customScaleInvalidNumber => 'Syötä kelvollinen numero.';
+
+  @override
+  String get customScaleMaxMustBeGreater =>
+      'Maksimiarvon on oltava suurempi kuin minimiarvo.';
 }

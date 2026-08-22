@@ -7553,6 +7553,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No selectable inputs or dependencies available.'**
   String get studioWorkflowNoSelectableInputs;
+
+  /// No description provided for @customScaleInvalidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid number.'**
+  String get customScaleInvalidNumber;
+
+  /// No description provided for @customScaleMaxMustBeGreater.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Scale Max must be strictly greater than Custom Scale Min.'**
+  String get customScaleMaxMustBeGreater;
 }
 
 class _AppLocalizationsDelegate

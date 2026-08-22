@@ -6,6 +6,7 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:dio/dio.dart';
@@ -218,6 +219,21 @@ class OutputProfileForm extends _$OutputProfileForm {
         throw AppException.validation("Profile ID is required");
 
       final profileWithId = updatedData.copyWith(id: idToSave);
+
+      // CUSTOM SCALE FAIL-FAST VALIDATION
+      if (profileWithId.displayScale == DisplayScale.custom) {
+        if (profileWithId.customScaleMin == null ||
+            profileWithId.customScaleMax == null) {
+          throw AppException.validation(
+            "Custom Scale Min and Custom Scale Max are required when Display Scale is Custom.",
+          );
+        }
+        if (profileWithId.customScaleMax! <= profileWithId.customScaleMin!) {
+          throw AppException.validation(
+            "Custom Scale Max must be strictly greater than Custom Scale Min.",
+          );
+        }
+      }
 
       // RIGOROUS DTO SANITIZATION (Flatten empty I18nTexts to null to satisfy strict backend extra='forbid' & English-Only Mandate)
       bool isEmptyI18n(I18nText? text) {

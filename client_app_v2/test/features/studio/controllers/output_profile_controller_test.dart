@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:riverpod/riverpod.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/core/models/enums.dart';
@@ -129,5 +130,165 @@ void main() {
         );
       },
     );
+
+    group('Custom Scale Validation Partition Tests', () {
+      test(
+        'Negative Partition 1: submit sets AppException state when displayScale is custom but customScaleMin or customScaleMax is null',
+        () async {
+          final container = ProviderContainer(
+            overrides: [
+              outputProfilesControllerProvider.overrideWith(
+                () => MockOutputProfilesController(),
+              ),
+            ],
+          );
+
+          final profileMissingBounds = OutputProfile(
+            id: 'test_id',
+            workflowId: 'wf_1',
+            name: const I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Valid Name'},
+            ),
+            displayScale: DisplayScale.custom,
+            customScaleMin: null,
+            customScaleMax: null,
+          );
+
+          final formProvider = outputProfileFormProvider('test_id');
+          final formNotifier = container.read(formProvider.notifier);
+
+          await formNotifier.submit(profileMissingBounds);
+
+          final state = container.read(formProvider);
+          expect(state.hasError, isTrue);
+          expect(
+            state.error,
+            isA<AppException>().having(
+              (e) => e.detail,
+              'detail',
+              contains('Custom Scale Min and Custom Scale Max are required'),
+            ),
+          );
+        },
+      );
+
+      test(
+        'Negative Partition 2: submit sets AppException state when customScaleMax is less than customScaleMin (inverted)',
+        () async {
+          final container = ProviderContainer(
+            overrides: [
+              outputProfilesControllerProvider.overrideWith(
+                () => MockOutputProfilesController(),
+              ),
+            ],
+          );
+
+          final profileInvertedBounds = OutputProfile(
+            id: 'test_id',
+            workflowId: 'wf_1',
+            name: const I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Valid Name'},
+            ),
+            displayScale: DisplayScale.custom,
+            customScaleMin: 10.0,
+            customScaleMax: 4.0,
+          );
+
+          final formProvider = outputProfileFormProvider('test_id');
+          final formNotifier = container.read(formProvider.notifier);
+
+          await formNotifier.submit(profileInvertedBounds);
+
+          final state = container.read(formProvider);
+          expect(state.hasError, isTrue);
+          expect(
+            state.error,
+            isA<AppException>().having(
+              (e) => e.detail,
+              'detail',
+              contains('Custom Scale Max must be strictly greater'),
+            ),
+          );
+        },
+      );
+
+      test(
+        'Negative Partition 3: submit sets AppException state when customScaleMax is equal to customScaleMin',
+        () async {
+          final container = ProviderContainer(
+            overrides: [
+              outputProfilesControllerProvider.overrideWith(
+                () => MockOutputProfilesController(),
+              ),
+            ],
+          );
+
+          final profileEqualBounds = OutputProfile(
+            id: 'test_id',
+            workflowId: 'wf_1',
+            name: const I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Valid Name'},
+            ),
+            displayScale: DisplayScale.custom,
+            customScaleMin: 5.0,
+            customScaleMax: 5.0,
+          );
+
+          final formProvider = outputProfileFormProvider('test_id');
+          final formNotifier = container.read(formProvider.notifier);
+
+          await formNotifier.submit(profileEqualBounds);
+
+          final state = container.read(formProvider);
+          expect(state.hasError, isTrue);
+          expect(
+            state.error,
+            isA<AppException>().having(
+              (e) => e.detail,
+              'detail',
+              contains('Custom Scale Max must be strictly greater'),
+            ),
+          );
+        },
+      );
+
+      test(
+        'Positive Partition: submit succeeds when customScaleMin and customScaleMax are valid and max > min',
+        () async {
+          final container = ProviderContainer(
+            overrides: [
+              outputProfilesControllerProvider.overrideWith(
+                () => MockOutputProfilesController(),
+              ),
+            ],
+          );
+
+          final validCustomProfile = OutputProfile(
+            id: 'test_id',
+            workflowId: 'wf_1',
+            name: const I18nText(
+              defaultLocale: 'en',
+              translations: {'en': 'Valid Name'},
+            ),
+            displayScale: DisplayScale.custom,
+            customScaleMin: 4.0,
+            customScaleMax: 10.0,
+          );
+
+          final formProvider = outputProfileFormProvider('test_id');
+          final formNotifier = container.read(formProvider.notifier);
+
+          await formNotifier.submit(validCustomProfile);
+
+          final state = container.read(formProvider);
+          expect(state.hasError, isFalse);
+          expect(state.value?.customScaleMin, 4.0);
+          expect(state.value?.customScaleMax, 10.0);
+        },
+      );
+    });
   });
 }
