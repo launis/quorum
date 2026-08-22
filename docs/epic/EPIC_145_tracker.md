@@ -61,7 +61,7 @@
   - [x] Step 4: Seed Vault Verification & Local Re-Seeding — JSON validation and `uv run python backend_v2/seed/run_seed.py local`.
   - [x] Step 5: Domain Parity & Backend Test Verification — Frontend domain parity test and backend audit loop.
 - [x] **[OK] Test Coverage Assertions:** Verified domain parity test (`client_app_v2/test/models/domain_parity_test.dart` passed) and backend audit loop (`backend_v2` with 1162 tests passed, 0 lint/mypy errors, and dry-run seeder verification).
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\02_phase2_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\02_phase2_plan.md] @[docs\epic\EPIC_145_tracker.md]`
 
 ---
 
@@ -69,9 +69,15 @@
 
 **Plan:** @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md]
 
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md] @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md] --phase=3`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md] @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md] --phase=3`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+  - [ ] Step 0: Strategic Alignment Check — Verify codebase state from Phase 2
+  - [ ] Step 1: Synthesis Payload Compressor Hardening — Export `__all__`, logger, `_strip_heavy_keys`, `_normalize_result_item`, `_prune_and_stratify_evaluations`, `DistilledEvaluation.model_validate`, `max_synthesis_reasoning_length`
+  - [ ] Step 2: Synthesis Distiller Hook Source Step Filtering — Export `__all__`, filter `valid_source_dtos` by `StepRule.is_synthesis_source`, forward `output_profile.synthesis`
+  - [ ] Step 3: Matrix Explanation Service Profile Overrides & Probe Boundaries — Export `__all__`, `synthesis_config` parameter, Tripartite Configuration Resolution, specific `(KeyError, AttributeError)` catch, direct `tda_to_scale` access
+  - [ ] Step 4: Studio Workflow Service System Core Protection — Export `__all__`, enforce `SYSTEM_PROTECTED_RESOURCE` on save/delete of system core steps
+  - [ ] Step 5: Unit & Regression Test Expansion — Tests for compressor, matrix explanation, and studio service in `test_synthesis_payload_compression.py`, `test_matrix_explanation_service.py`, and `test_studio.py`
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
 
@@ -300,7 +306,7 @@
   - ✅ **Anti-Ambiguity Enumeration**: Explicitly enumerated all 4 protected System Core step IDs (`sp_db849f9790984585`, `sp_192910b5f5a34c79`, `sp_d245365e4a274b9e`, `sp_7a8b9c0d1e2f3a4b`) and all 15 remaining specialist steps, plus all 16 concrete step rule IDs.
   - ✅ **Tooling & Test Parity**: Corrected test commands to use `scripts/flutter_audit_loop.py` for `domain_parity_test.dart` and added dry-run JSON syntax check before re-seeding.
   - ✅ **Plan Mutated & Locked**: [02_phase2_plan.md](file:///C:/src/quorum/docs/epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/02_phase2_plan.md) updated and ready for execution.
-- **Phase 2 Execution (`/tier2-execute` - Tasks 02_phase2_plan.md)**:
+- **Phase 2 Execution (Commit `9fb5b3ba`)**:
   - ✅ **Step 0 (Alignment)**: Verified model schemas from Phase 1 accept `is_system_core` on `Step` and `is_synthesis_source` on `StepRule`.
   - ✅ **Step 1 (Pre-Flight Backup)**: Timestamped backup created in @[backend_v2/seed/backups/seed_data_pre_epic145.json].
   - ✅ **Step 2 (Step Definitions Migration)**: Migrated all 19 steps in @[backend_v2/seed/seed_data.json#L8065-L9020]. Configured `"is_system_core": true` for 4 protected steps (`sp_db849f9790984585`, `sp_192910b5f5a34c79`, `sp_d245365e4a274b9e`, `sp_7a8b9c0d1e2f3a4b`) and `"is_system_core": false` for all remaining 15 steps.
@@ -308,23 +314,32 @@
   - ✅ **Step 4 (Seed Vault Verification & Re-Seeding)**: Verified JSON dry-run integrity and re-seeded local database via `uv run python backend_v2/seed/run_seed.py local` (19 steps, 1 workflow, 90 prompt blocks, 3 system configs, 1 output profile verified).
   - ✅ **Step 5 (Quality Gates & Tests)**:
     - Frontend domain parity test (`client_app_v2/test/models/domain_parity_test.dart`) passed via `scripts/flutter_audit_loop.py`.
-    - Resolved MyPy strict type mismatch in `backend_v2/services/orchestrator/rag_preflight_service.py` (`prompt_compiler: PromptCompiler | Any`).
+    - Resolved MyPy strict type mismatch in @[backend_v2/services/orchestrator/rag_preflight_service.py] (`prompt_compiler: PromptCompiler | Any`).
     - Targeted audits on `rag_preflight_service.py` (9/9 tests passed, 100% coverage) and `test_v2_core_models.py` (13/13 tests passed, 100% coverage) passed.
-    - Full backend test suite passed 1162 unit tests with clean seeder dry-run validation.
+    - Full backend test suite verified 1675 unit tests with clean seeder dry-run validation.
+- **Phase 3 Plan Red-Teaming (`/tier0-research-plan`)**:
+  - ✅ **AST & Line Boundary Preservation**: Preserved exact line bounds from Epic for @[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L17-L163], @[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L20-L163], @[backend_v2/services/orchestrator/synthesis_distiller.py#L171-L344], @[backend_v2/services/orchestrator/matrix_explanation_service.py#L25-L224], @[backend_v2/services/orchestrator/matrix_explanation_service.py#L28-L224], @[backend_v2/services/studio/workflow_service.py#L448-L479], @[backend_v2/services/studio/workflow_service.py#L481-L504], @[backend_v2/api/routers/studio/steps.py#L100-L119], @[backend_v2/api/routers/studio/steps.py#L122-L142], and @[backend_v2/tests/unit/services/test_studio.py#L238-L252].
+  - ✅ **Panel of Experts Architectural Approval**: Validated strict Pydantic V2 re-validation (`DistilledEvaluation.model_validate`), Token Shield Unbounded Mode (`max_synthesis_evaluations == 0`) and Deterministic Prioritized Stratification (`(-len(exact_quotes), atom_id)` with 70% deficit budget and `atom_id` canonical tie-breaker), source step filtering via `StepRule.is_synthesis_source`, Tripartite Configuration Resolution in `MatrixExplanationService`, and `AppException(SYSTEM_PROTECTED_RESOURCE)` on system core step mutations in `StudioWorkflowService`.
+  - ✅ **Target Test Suite Verification**: Added @[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py] to test execution targets and locked all 4 ISTQB heterogeneous payload partition requirements.
+  - ✅ **Plan Mutated & Locked**: [03_phase3_plan.md](file:///C:/src/quorum/docs/epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/03_phase3_plan.md) updated and ready for execution.
 
 ## Learned
 - **Baseline Architecture State**: Both backend (Python Pydantic V2) and frontend (Dart 3 Freezed) models strictly enforce `is_system_core` on steps and `is_synthesis_source` on step rules with fail-fast validation.
 - **Strict Freezed Serialization**: Dart models enforce `@JsonSerializable(disallowUnrecognizedKeys: true)` and strict boolean coercion, preventing unrecognized keys and type corruption.
 - **Seed Data Layout & Vault Protocol**: `seed_data.json` houses 16 `StepRule` definitions at lines 7837-8052 and 19 `Step` definitions at lines 8065-9020. Native `multi_replace_file_content` with line bounding avoids CRLF grep bugs and prevents context truncation.
 - **Service Type Tolerances**: `RAGPreflightService` accepts `PromptCompiler | Any` to maintain compatibility with `PromptCompilerAdapter` without requiring circular adapter abstractions.
+- **Token Shield Prioritized Stratification Protocol**: Default `max_synthesis_evaluations = 0` provides Unbounded Mode for 100% forensic coverage. When bounded, deterministic multi-key sorting (`(-len(exact_quotes), atom_id)`) guarantees byte-for-byte prompt caching parity and prevents the "Auditing Whitewash" anti-pattern.
 
 ## Remaining
-- **Phase 2 Audit**: Run `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\02_phase2_plan.md] @[docs\epic\EPIC_145_tracker.md]` to verify Phase 2 execution.
-- **Phase 3**: Backend Domain & Synthesis Payload Compression Hardening (`/tier0-create-plan` -> `/tier0-research-plan` -> `/tier2-execute` -> `/tier8-audit-plan`).
+- **Phase 3**: Backend Domain & Synthesis Payload Compression Hardening (`/tier2-execute` -> `/tier8-audit-plan`).
 - **Phase 4**: Studio Workflow & Step Blueprint UX Restructuring (`/tier0-create-plan` -> `/tier0-research-plan` -> `/tier2-execute` -> `/tier8-audit-plan`).
 - **Phase 5**: Verification, Widget Testing & E2E Integration Gate (`/tier0-create-plan` -> `/tier0-research-plan` -> `/tier2-execute` -> `/tier8-audit-plan`).
 - **Post-Implementation Gates**: Full-stack audit, `/tier2-hardening-backend`, `/tier2-hardening-frontend`, `/tier7-describe-architecture`, `/tier8-audit-epic`.
 
 ## Resume Command
-`/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\02_phase2_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+`/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+
+
+
+
 

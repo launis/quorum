@@ -114,7 +114,9 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
             "This is a sufficiently long text with plenty of detailed analytical statements to pass the fail "
             "fast check in LLM Task Executor and ensure preflight proceeds to atomization!"
         )
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {"doc_1": doc_text}}))
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta={"inputs": {"doc_1": doc_text}})
+        )
 
         mock_settings.return_value.rag_preflight_min_input_chars = 50
         mock_settings.return_value.max_extracted_atoms_per_document = 2

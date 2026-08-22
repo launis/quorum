@@ -467,4 +467,3 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
         mock_atomizer_cls.assert_not_called()
         assert result == {"atoms_by_input": {}, "is_data_starved": True}
         emit_mock.assert_called_with("Input data sparse/empty. Preflight extraction skipped.", 100)
-

@@ -388,5 +388,3 @@ def test_build_data_starvation_returns_empty() -> None:
 
     blocks = AuthenticityAdapter.build(context)
     assert blocks == []
-
-

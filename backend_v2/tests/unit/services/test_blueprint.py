@@ -2909,4 +2909,3 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
     assert len(report.inner_sdui_blocks) == 2
     assert isinstance(report.inner_sdui_blocks[0], AlertBlock)
     assert isinstance(report.inner_sdui_blocks[1], SduiMetadataBlock)
-

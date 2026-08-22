@@ -420,4 +420,3 @@ def test_build_data_starvation_returns_empty() -> None:
 
     blocks = VarianceAdapter.build(context)
     assert blocks == []
-

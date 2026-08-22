@@ -1,8 +1,9 @@
 # Phase 2: Atomic Seed Data Migration & Database Re-seeding Gate (Vault Protocol)
 
-**Overview:** Perform atomic migration on `backend_v2/seed/seed_data.json` following the Seed Vault Protocol. Populate `is_system_core` on all step definitions and `is_synthesis_source` on all workflow step rules, verify JSON integrity, re-seed the local development database, and validate frontend domain parity.
+**Overview:** Perform atomic migration on `backend_v2/seed/seed_data.json` following the Seed Vault Protocol. Populate `is_system_core` on all step definitions (`backend_v2/seed/seed_data.json#L8065-L9005`) and `is_synthesis_source` on all workflow step rules (`backend_v2/seed/seed_data.json#L7837-L8045`), verify JSON integrity, re-seed the local development database, and validate frontend domain parity.
 **Target Files:**
-- `[MODIFY]` @[backend_v2/seed/seed_data.json]
+- `[MODIFY]` @[backend_v2/seed/seed_data.json#L7837-L8045]
+- `[MODIFY]` @[backend_v2/seed/seed_data.json#L8065-L9005]
 - `[MODIFY]` @[backend_v2/seed/run_seed.py]
 
 ```xml
@@ -16,12 +17,14 @@
 
   <dod_checklist>
     - [ ] Timestamped backup of `seed_data.json` created in `backend_v2/seed/backups/seed_data_pre_epic145.json`.
-    - [ ] `"is_system_core": true` configured for `sp_db849f9790984585`, `sp_192910b5f5a34c79`, `sp_d245365e4a274b9e`, and `sp_7a8b9c0d1e2f3a4b` in `seed_data.json` under `steps`.
-    - [ ] `"is_system_core": false` configured for all remaining step definitions in `steps` array.
-    - [ ] `"is_synthesis_source": false` configured for `sr_f0a26d17cc9b48a7` (Input Processing) in `workflows[0].steps`.
-    - [ ] `"is_synthesis_source": true` configured for all other step rules in `workflows[0].steps`.
+    - [ ] `"is_system_core": true` configured for protected step definitions in `seed_data.json#L8065-L9005`: `sp_db849f9790984585` (Input Processing), `sp_192910b5f5a34c79` (XAI Reporter), `sp_d245365e4a274b9e` (Scoring Engine), and `sp_7a8b9c0d1e2f3a4b` (Synteesin Generointi).
+    - [ ] `"is_system_core": false` configured explicitly for all remaining 15 step definitions in `seed_data.json#L8065-L9005`.
+    - [ ] `"is_synthesis_source": false` configured for `sr_f0a26d17cc9b48a7` (Input Processing) in `seed_data.json#L7837-L8045`.
+    - [ ] `"is_synthesis_source": true` configured explicitly for all remaining 15 step rules in `seed_data.json#L7837-L8045`.
+    - [ ] JSON syntax and schema integrity verified via dry-run parse before re-seeding.
     - [ ] Local database re-seeded via `uv run python backend_v2/seed/run_seed.py local`.
     - [ ] Frontend domain parity test `client_app_v2/test/models/domain_parity_test.dart` passes.
+    - [ ] Backend test suite `uv run pytest backend_v2/tests/unit/test_v2_core_models.py` and audit loop pass.
   </dod_checklist>
 
   <required_context_rules>
@@ -62,38 +65,38 @@
   </step>
 
   <step id="2" name="Step Definitions Migration (is_system_core)">
-    <action>In @[backend_v2/seed/seed_data.json], update all step items in the `steps` array:
+    <action>In @[backend_v2/seed/seed_data.json#L8065-L9005], update all 19 step items in the `steps` array:
 1. Set `"is_system_core": true` for protected steps:
-   - `sp_db849f9790984585` (Input Processing)
-   - `sp_192910b5f5a34c79` (XAI Reporter)
-   - `sp_d245365e4a274b9e` (Scoring Engine)
-   - `sp_7a8b9c0d1e2f3a4b` (Synteesin Generointi)
-2. Set `"is_system_core": false` explicitly for all remaining steps in the `steps` array.
+   - `sp_db849f9790984585` (Input Processing, lines 8066-8106)
+   - `sp_192910b5f5a34c79` (XAI Reporter, lines 8752-8799)
+   - `sp_d245365e4a274b9e` (Scoring Engine, lines 8846-8878)
+   - `sp_7a8b9c0d1e2f3a4b` (Synteesin Generointi, lines 8983-9003)
+2. Set `"is_system_core": false` explicitly for all remaining 15 steps in the `steps` array (specifically: `sp_b5c751d1cbe24735`, `sp_f22db9f1dde048b7`, `sp_bd0b3054fe664960`, `sp_25664f44773a4354`, `sp_7f9649114d2344dc`, `sp_6f40b964895c426b`, `sp_ddb7cf7c8a0245d4`, `sp_48974af1fc584407`, `sp_8daee218c6b14f02`, `sp_dfc365994fa944b2`, `sp_6a45d484ad5b497c`, `sp_76eedbc020274f66`, `sp_8ffee13639e64e34`, `sp_9c6a85edc29347b9`, `sp_fb1b8e908bf24c1f`).
     </action>
-    <constraint invariant="seed_vault_mutation">Use native multi_replace_file_content or bounded file edits; no procedural patch scripts.</constraint>
+    <constraint invariant="seed_vault_mutation">Use native multi_replace_file_content with exact line boundaries; procedural data patch scripts are strictly banned.</constraint>
   </step>
 
   <step id="3" name="Workflow Step Rules Migration (is_synthesis_source)">
-    <action>In @[backend_v2/seed/seed_data.json], update all items in the `workflows[0].steps` array:
-1. Set `"is_synthesis_source": false` for `sr_f0a26d17cc9b48a7` (Step 1: Input Processing `sp_db849f9790984585`).
-2. Set `"is_synthesis_source": true` for all other cognitive specialist and funnel step rules in `workflows[0].steps`.
+    <action>In @[backend_v2/seed/seed_data.json#L7837-L8045], update all 16 items in the `workflows[0].steps` array:
+1. Set `"is_synthesis_source": false` for `sr_f0a26d17cc9b48a7` (Step 1: Input Processing `sp_db849f9790984585`, lines 7838-7848).
+2. Set `"is_synthesis_source": true` for all other 15 cognitive specialist and funnel step rules in `workflows[0].steps` (specifically: `sr_0f7947ec7007498c`, `sr_02b7cc1e7c2a4a62`, `sr_5a8ae009eee44fe2`, `sr_99ca8c82a5aa48cd`, `sr_87f408aeee64462f`, `sr_d56fb84fbe13463a`, `sr_4d2272d8b4864847`, `sr_1d7e6d26b02b457b`, `sr_b4c328df1c4141c6`, `sr_566e3209a60444d3`, `sr_ba028623acab447a`, `sr_0228db320e8f41bb`, `sr_5f3dd7712a7f4bb3`, `sr_2fa56dc36614469a`, `sr_9e8d7c6b5a40312b`).
     </action>
     <constraint invariant="seed_vault_mutation">Strict alignment with Single Source of Truth structure.</constraint>
   </step>
 
   <step id="4" name="Seed Vault Verification & Local Re-Seeding">
-    <action>Verify JSON syntax of @[backend_v2/seed/seed_data.json] and execute local database re-seed via @[backend_v2/seed/run_seed.py]: `uv run python backend_v2/seed/run_seed.py local`.</action>
+    <action>Verify JSON syntax of @[backend_v2/seed/seed_data.json] via dry-run parser, and execute local database re-seed via @[backend_v2/seed/run_seed.py]: `uv run python backend_v2/seed/run_seed.py local`.</action>
     <constraint invariant="seeding_command_mandate">Seeding command must explicitly include the 'local' environment argument.</constraint>
   </step>
 
   <step id="5" name="Domain Parity & Backend Test Verification">
-    <action>Run frontend domain parity test to verify background isolate deserialization: `uv run flutter test client_app_v2/test/models/domain_parity_test.dart`.</action>
+    <action>Run frontend domain parity test to verify background Isolate deserialization: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/models/domain_parity_test.dart` (or `flutter test test/models/domain_parity_test.dart` within `client_app_v2`).</action>
     <action>Run backend audit loop: `uv run python scripts/backend_audit_loop.py backend_v2 --test`.</action>
   </step>
 
   <validation_gate>
     <action>Execute Seed Script: `uv run python backend_v2/seed/run_seed.py local`</action>
-    <action>Execute Domain Parity Test: `uv run flutter test client_app_v2/test/models/domain_parity_test.dart`</action>
+    <action>Execute Domain Parity Test: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/models/domain_parity_test.dart`</action>
     <action>Execute Backend Audit Loop: `uv run python scripts/backend_audit_loop.py backend_v2 --test`</action>
   </validation_gate>
 </execution_protocol>
