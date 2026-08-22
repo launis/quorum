@@ -7427,6 +7427,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Meta Tokens'**
   String get meta_tokens;
+
+  /// No description provided for @studioWorkflowTaskProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Profile (Cognitive Role)'**
+  String get studioWorkflowTaskProfileTitle;
+
+  /// No description provided for @studioWorkflowExecutionOrderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution Order & Dependencies'**
+  String get studioWorkflowExecutionOrderTitle;
+
+  /// No description provided for @studioWorkflowExecutionOrderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs only after the following prior steps complete:'**
+  String get studioWorkflowExecutionOrderSubtitle;
+
+  /// No description provided for @studioWorkflowStep1IngestionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw Source Documents from Input Screen (PDF, DOCX)'**
+  String get studioWorkflowStep1IngestionTitle;
+
+  /// No description provided for @studioWorkflowStep1IngestionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This step ingests raw documents and decomposes them into structured evidence and atoms.'**
+  String get studioWorkflowStep1IngestionSubtitle;
+
+  /// No description provided for @studioWorkflowStep1OutputBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'✨ Deconstructs files into atoms and citations for the pipeline.'**
+  String get studioWorkflowStep1OutputBadge;
+
+  /// No description provided for @studioWorkflowAtomicScopeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Atomized Materials (Select Analyzed Contents)'**
+  String get studioWorkflowAtomicScopeTitle;
+
+  /// No description provided for @studioWorkflowAtomicScopeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Decomposed atoms and citations from input screen documents (raw files are excluded):'**
+  String get studioWorkflowAtomicScopeSubtitle;
+
+  /// No description provided for @studioWorkflowPriorStepsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prior Step Text Summaries (Optional)'**
+  String get studioWorkflowPriorStepsTitle;
+
+  /// No description provided for @studioWorkflowPriorStepsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable only if this agent needs to read the narrative analysis. Structured findings are forwarded automatically.'**
+  String get studioWorkflowPriorStepsSubtitle;
+
+  /// No description provided for @studioWorkflowZoneCAutoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automated System Anchor (Protected)'**
+  String get studioWorkflowZoneCAutoTitle;
+
+  /// No description provided for @studioWorkflowXaiReporterAggregateBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'⚡ Automatic Aggregation: Automatically collects all active workflow specialists above.'**
+  String get studioWorkflowXaiReporterAggregateBadge;
+
+  /// No description provided for @studioWorkflowXaiReporterPayloadDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'📑 Consolidated State Stream (\$steps): This step ingests and cross-analyzes all active specialist findings. Raw files are excluded.'**
+  String get studioWorkflowXaiReporterPayloadDesc;
+
+  /// No description provided for @studioSystemCoreBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'🔒 System Core Step (Protected)'**
+  String get studioSystemCoreBadge;
+
+  /// No description provided for @studioStepBuilderModelStrategyRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Strategy is required for LLM steps.'**
+  String get studioStepBuilderModelStrategyRequired;
+
+  /// No description provided for @studioStepBuilderRoleOrCriteriaRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'At least one Role Block, Persona, or Criteria Block is required for specialist steps.'**
+  String get studioStepBuilderRoleOrCriteriaRequired;
+
+  /// No description provided for @studioWorkflowInputPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Input: {name}'**
+  String studioWorkflowInputPrefix(String name);
+
+  /// No description provided for @studioWorkflowStepPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Step: {name}'**
+  String studioWorkflowStepPrefix(String name);
+
+  /// No description provided for @studioWorkflowNoSelectableInputs.
+  ///
+  /// In en, this message translates to:
+  /// **'No selectable inputs or dependencies available.'**
+  String get studioWorkflowNoSelectableInputs;
 }
 
 class _AppLocalizationsDelegate

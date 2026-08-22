@@ -2106,5 +2106,38 @@
   "global_score_title": "Global Score Title",
   "evidence_rejected": "Evidence Rejected",
   "meta_costs": "Meta Costs",
-  "meta_tokens": "Meta Tokens"
+  "meta_tokens": "Meta Tokens",
+  "studioWorkflowTaskProfileTitle": "Task Profile (Cognitive Role)",
+  "studioWorkflowExecutionOrderTitle": "Execution Order & Dependencies",
+  "studioWorkflowExecutionOrderSubtitle": "Runs only after the following prior steps complete:",
+  "studioWorkflowStep1IngestionTitle": "Raw Source Documents from Input Screen (PDF, DOCX)",
+  "studioWorkflowStep1IngestionSubtitle": "This step ingests raw documents and decomposes them into structured evidence and atoms.",
+  "studioWorkflowStep1OutputBadge": "✨ Deconstructs files into atoms and citations for the pipeline.",
+  "studioWorkflowAtomicScopeTitle": "Atomized Materials (Select Analyzed Contents)",
+  "studioWorkflowAtomicScopeSubtitle": "Decomposed atoms and citations from input screen documents (raw files are excluded):",
+  "studioWorkflowPriorStepsTitle": "Prior Step Text Summaries (Optional)",
+  "studioWorkflowPriorStepsSubtitle": "Enable only if this agent needs to read the narrative analysis. Structured findings are forwarded automatically.",
+  "studioWorkflowZoneCAutoTitle": "Automated System Anchor (Protected)",
+  "studioWorkflowXaiReporterAggregateBadge": "⚡ Automatic Aggregation: Automatically collects all active workflow specialists above.",
+  "studioWorkflowXaiReporterPayloadDesc": "📑 Consolidated State Stream ($steps): This step ingests and cross-analyzes all active specialist findings. Raw files are excluded.",
+  "studioSystemCoreBadge": "🔒 System Core Step (Protected)",
+  "studioStepBuilderModelStrategyRequired": "Model Strategy is required for LLM steps.",
+  "studioStepBuilderRoleOrCriteriaRequired": "At least one Role Block, Persona, or Criteria Block is required for specialist steps.",
+  "studioWorkflowInputPrefix": "Input: {name}",
+  "@studioWorkflowInputPrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "studioWorkflowStepPrefix": "Step: {name}",
+  "@studioWorkflowStepPrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "studioWorkflowNoSelectableInputs": "No selectable inputs or dependencies available."
 }

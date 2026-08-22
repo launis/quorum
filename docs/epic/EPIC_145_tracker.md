@@ -79,7 +79,7 @@
   - [x] Step 4: Studio Workflow Service System Core Protection — Export `__all__`, enforce `SYSTEM_PROTECTED_RESOURCE` on save/delete of system core steps
   - [x] Step 5: Unit & Regression Test Expansion — Tests for compressor, matrix explanation, and studio service in `test_synthesis_payload_compression.py`, `test_matrix_explanation_service.py`, `test_synthesis_distiller_wiring.py`, and `test_workflow_service.py`
 - [x] **[OK] Test Coverage Assertions:** Verified test coverage and audit loops on `synthesis_payload_compressor.py` (94% coverage, 16 tests), `matrix_explanation_service.py` (92% coverage, 12 tests), `synthesis_distiller.py` (94% coverage, 20 tests), and `workflow_service.py` (94% coverage, 30 tests). Full backend test suite passing with 0 regressions.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
 
 ---
 
@@ -87,10 +87,15 @@
 
 **Plan:** @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md]
 
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md] @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md] --phase=4`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_145_Workflow_Context_Governance_and_Studio_UX.md] @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md] --phase=4`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Baseline Verification — Verified Phase 3 backend baseline, model parity, and Freezed codegen status.
+  - [x] Step 1: Dual-Axis ARB Localization Expansion — Added 19 keys in `app_fi.arb` and `app_en.arb` (including `studioStepBuilderRoleOrCriteriaRequired`) and ran `flutter gen-l10n`.
+  - [x] Step 2: WorkflowStepCard 3-Zone Restructuring & Tech Debt Elimination — Implemented Zone A (Input Anchor), Zone B (Specialists), and Zone C (Funnel Anchors), eliminated hardcoded strings (`l10n.studioWorkflowInputPrefix`, `l10n.studioWorkflowStepPrefix`, `l10n.studioWorkflowNoSelectableInputs`), modernized `getBlueprintLabel` via `bp.name.get(locale)`, and replaced manual clippings with `TextOverflow.ellipsis`.
+  - [x] Step 3: StepBuilderView System Core Protection & Quality Gates — Removed hardcoded hex colors (`Color(0xFF2E7D32)`, `Color(0xFFD32F2F)`, `Color(0xFF9E9E9E)`), localized validation snackbars (`studioStepBuilderModelStrategyRequired`, `studioStepBuilderRoleOrCriteriaRequired`), protected system core steps from deletion/renaming, and enforced specialist LLM quality gates.
+  - [x] Step 4: Flutter Quality Gate & Widget Verification — Ran `step_builder_view_dropdown_test.dart`, `workflow_test.dart`, `domain_parity_test.dart`, and created `workflow_step_card_test.dart` (5 positive + 2 negative ISTQB partitions, 100% passing).
+- [x] **[OK] Test Coverage Assertions:** Verified Flutter audit loop and tests on `workflow_step_card.dart` (185 tests passed in full test run, 7/7 new widget tests passed) and `step_builder_view.dart` (0 analyze issues, 100% clean formatting and quality loop).
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`
 
 ---
@@ -332,7 +337,7 @@
   - ✅ **Step 2 (Distiller Hook Filtering)**: Hardened `synthesis_distiller_hook` (@[backend_v2/services/orchestrator/synthesis_distiller.py]):
     - Exported `__all__ = ["synthesis_distiller_hook"]`.
     - Mapped step rules by `id` and `task_blueprint` to evaluate `StepRule.is_synthesis_source`.
-    - Filtered out non-synthesis source steps (`is_synthesis_source == False`, e.g. Input Processing `sp_db849f9790984585` / `sr_f0a26d17cc9b48a7`), preventing 50k+ raw document tokens from polluting `<source>` blocks.
+    - Filtered out non-synthesis source steps (`is_synthesis_source == False`, specifically Input Processing `sp_db849f9790984585` / `sr_f0a26d17cc9b48a7`), preventing 50k+ raw document tokens from polluting `<source>` blocks.
     - Forwarded `output_profile.synthesis` into `MatrixExplanationService.assemble_matrices_to_explain(..., synthesis_config=output_profile.synthesis)`.
   - ✅ **Step 3 (Matrix Explanation Overrides)**: Hardened `MatrixExplanationService` (@[backend_v2/services/orchestrator/matrix_explanation_service.py]):
     - Exported `__all__ = ["MatrixExplanationService"]`.
@@ -347,7 +352,49 @@
     - `test_matrix_explanation_service.py`: 12 tests passing, **92% coverage**.
     - `test_synthesis_distiller_wiring.py` / `test_synthesis_distiller.py`: 20 tests passing, **94% coverage**.
     - `test_workflow_service.py`: 30 tests passing, **94% coverage**.
-    - Full backend test suite verified: **1,743 tests passing**, 0 lint/formatting/MyPy errors.
+    - Full backend test suite verified: **1,726 unit tests passing**, 0 lint/formatting/MyPy errors.
+- **Phase 3 Plan Audit (`/tier8-audit-plan` - Artifact `red_team_audit_phase3_plan.md`)**:
+  - ✅ Verified 100% requirements traceability across 39 mapped requirements (R028-R050, R080-R087, R093-R096, R099-R102).
+  - ✅ Verified strict Pydantic V2 re-validation (`DistilledEvaluation.model_validate`) and Unbounded Protocol / Token Shield Prioritized Stratification (`(-len(exact_quotes), atom_id)` sort, 70% deficit budget, canonical tie-breaker).
+  - ✅ Verified distillation `<source>` filtering by `StepRule.is_synthesis_source` and Tripartite Configuration Resolution in `MatrixExplanationService`.
+  - ✅ Verified `AppException(SYSTEM_PROTECTED_RESOURCE, status_code=403)` on mutation or deletion of protected system core steps.
+  - ✅ Quality Gates confirmed: `synthesis_payload_compressor.py` (94% coverage), `matrix_explanation_service.py` (92% coverage), `synthesis_distiller.py` (94% coverage), `workflow_service.py` (94% coverage). Supply chain audit clean (zero banned packages).
+- **Phase 4 Plan Generation (`/tier0-create-plan`)**:
+  - ✅ **Discovery & Structural Mapping Complete**: Analyzed `app_fi.arb`, `app_en.arb`, `workflow_step_card.dart`, and `step_builder_view.dart`.
+  - ✅ **Dual-Axis Localization Expanded**: Enumerated and mapped all 18 new ARB keys (`studioWorkflowTaskProfileTitle`, `studioWorkflowExecutionOrderTitle`, `studioWorkflowExecutionOrderSubtitle`, `studioWorkflowStep1IngestionTitle`, `studioWorkflowStep1IngestionSubtitle`, `studioWorkflowStep1OutputBadge`, `studioWorkflowAtomicScopeTitle`, `studioWorkflowAtomicScopeSubtitle`, `studioWorkflowPriorStepsTitle`, `studioWorkflowPriorStepsSubtitle`, `studioWorkflowZoneCAutoTitle`, `studioWorkflowXaiReporterAggregateBadge`, `studioWorkflowXaiReporterPayloadDesc`, `studioSystemCoreBadge`, `studioStepBuilderModelStrategyRequired`, `studioWorkflowInputPrefix`, `studioWorkflowStepPrefix`, `studioWorkflowNoSelectableInputs`).
+  - ✅ **3-Zone Layout & Tech Debt Elimination Mapped**:
+    - **Zone A (Input Processing, Step 1)**: Locked blueprint selector with `studioSystemCoreBadge`, hidden/disabled delete button, `$inputs.*` source document scope container, output deconstruction badge.
+    - **Zone B (Cognitive Specialists, Steps 2..N)**: Filtered blueprint dropdown (`blueprints.where((bp) => !bp.isSystemCore)`), active delete button, dependency chips with cycle prevention, dual-categorized inputs for Atomized Materials (`$inputs.*`) and Prior Step Reports (`$steps.*`).
+    - **Zone C (Pipeline Funnel Anchors, Steps N+1..N+3)**: Locked blueprint selector with `studioSystemCoreBadge`, zero manual input mutations, hidden/disabled delete button, automated aggregation badges for XAI Reporter, Scoring Engine, and Synthesis.
+    - **Tech Debt Remediated**: Replaced hardcoded Finnish strings (`'Syöte: $labelText'`, `'Askel: $labelStr'`, `'Ei valittavia syötteitä...'`), modernized `getBlueprintLabel` via `bp.name.get(locale)` on `I18nText`, and replaced manual `substring(0, 15)` clippings with `TextOverflow.ellipsis`.
+  - ✅ **StepBuilderView System Core Protection & Quality Gates**: Removed hardcoded `Color(0xFF2E7D32)`, localized validation snackbar, hidden/disabled delete on system core steps, and enforced role block / model strategy validation on specialist blueprints.
+  - ✅ **Self-Healing Boundary Verification**: Ran `scripts/audit_markdown_boundaries.py` — passed with 0 errors.
+  - ✅ **Plan Mutated & Locked**: @[docs/epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/04_phase4_plan.md] fully detailed and synchronized.
+- **Phase 4 Plan Red-Teaming (`/tier0-research-plan`)**:
+  - ✅ **System 2 Falsification & Technical Debt Sweep**: Discovered and itemized hardcoded hex color values in `step_builder_view.dart` (`Color(0xFFD32F2F)` on delete action and `Color(0xFF9E9E9E)` on drag handle icon) in lines 940-1195, and injected their remediation into Step 3 per `design_token_absolute_rule`.
+  - ✅ **ISTQB Negative Test Hardening**: Verified that the new widget test file `workflow_step_card_test.dart` includes 5 positive and 2 negative ISTQB partitions (verifying system core blueprint exclusion in specialist dropdown and disabled delete on Zone A/Zone C steps).
+  - ✅ **Dual-Axis Localization Verification**: Verified that all 18 ARB keys in `app_fi.arb` and `app_en.arb` include proper metadata blocks and typed placeholders (`{name}`).
+  - ✅ **Parity & Line Boundary Verification**: Verified AST and line bounds across all modified Flutter target files via `scripts/audit_markdown_boundaries.py` (0 errors).
+  - ✅ **Plan Mutated & Locked**: [04_phase4_plan.md](file:///C:/src/quorum/docs/epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/04_phase4_plan.md) updated, verified, and locked for execution.
+
+- **Phase 4 Execution**:
+  - ✅ **Step 0 (Alignment)**: Verified Phase 3 backend baseline, model parity, and Freezed codegen status.
+  - ✅ **Step 1 (Dual-Axis ARB Expansion)**: Added 19 localized keys to `app_fi.arb` and `app_en.arb` covering 3-zone titles, badges, and step-builder requirements, and cleanly regenerated `AppLocalizations` via `flutter gen-l10n`.
+  - ✅ **Step 2 (WorkflowStepCard 3-Zone Restructuring)**:
+    - Restructured card layout into Zone A (Input Processing, Step 1), Zone B (Dynamic Specialists, Steps 2..N), and Zone C (Automated Funnel Anchors, Steps N+1..N+3).
+    - Eliminated hardcoded Finnish strings using `l10n.studioWorkflowInputPrefix(labelText)`, `l10n.studioWorkflowStepPrefix(labelStr)`, and `l10n.studioWorkflowNoSelectableInputs`.
+    - Modernized `getBlueprintLabel` with `bp.name.get(locale)` on `I18nText`.
+    - Replaced manual `substring(0, 15)` clippings with `TextOverflow.ellipsis`.
+    - Enforced system core protection (hidden delete button and locked blueprint display).
+  - ✅ **Step 3 (StepBuilderView System Core Protection & Quality Gates)**:
+    - Removed hardcoded hex colors (`Color(0xFF2E7D32)`, `Color(0xFFD32F2F)`, `Color(0xFF9E9E9E)`), adopting semantic theme tokens (`colorScheme.error`, `colorScheme.onSurfaceVariant`).
+    - Localized validation snackbar errors (`l10n.studioStepBuilderModelStrategyRequired`, `l10n.studioStepBuilderRoleOrCriteriaRequired`).
+    - Added `studioSystemCoreBadge` to the configuration header and disabled delete and ID editing for system core steps.
+    - Enforced specialist LLM blueprint quality gate requiring at least one role block, persona, or criteria block.
+  - ✅ **Step 4 (Flutter Quality Gate & Tests)**:
+    - Created `workflow_step_card_test.dart` implementing 5 positive and 2 negative ISTQB partitions (100% passing).
+    - Verified existing tests `step_builder_view_dropdown_test.dart`, `workflow_test.dart`, and `domain_parity_test.dart`.
+    - Full Flutter test suite passing (185 tests) with 0 analyze issues.
 
 ## Learned
 - **Baseline Architecture State**: Both backend (Python Pydantic V2) and frontend (Dart 3 Freezed) models strictly enforce `is_system_core` on steps and `is_synthesis_source` on step rules with fail-fast validation.
@@ -355,17 +402,26 @@
 - **Seed Data Layout & Vault Protocol**: `seed_data.json` houses 16 `StepRule` definitions at lines 7837-8052 and 19 `Step` definitions at lines 8065-9020. Native `multi_replace_file_content` with line bounding avoids CRLF grep bugs and prevents context truncation.
 - **Service Type Tolerances**: `RAGPreflightService` accepts `PromptCompiler | Any` to maintain compatibility with `PromptCompilerAdapter` without requiring circular adapter abstractions.
 - **Token Shield Prioritized Stratification Protocol**: Default `max_synthesis_evaluations = 0` provides Unbounded Mode for 100% forensic coverage. When bounded, deterministic multi-key sorting (`(-len(exact_quotes), atom_id)`) guarantees byte-for-byte prompt caching parity and prevents the "Auditing Whitewash" anti-pattern.
+- **Dynamic Stratification Spillover**: In `_prune_and_stratify_evaluations`, if the deficit partition contains fewer items than the 70% budget, the unused allocation dynamically spills over to the strengths partition (and vice versa), ensuring exact budget utilization up to `limit` without artificial quote starvation.
+- **Heterogeneous Partition Routing**: `_normalize_result_item` acts as a discriminator router for heterogeneous results: items containing `"exact_quotes"` are validated through `DistilledEvaluation.model_validate()`, while scalar/text step results undergo explicit field whitelisting (`{"output_text", "status", "atom_id"}`).
 - **Tripartite Configuration Resolution**: Profile-level overrides (`output_profile.synthesis`) take precedence over global defaults (`settings.py`), allowing fine-grained token budgeting per report layout.
-- **StepRule & Step Identifier Schemas**: `StepRule` is identified by `id` (DAG node, e.g. `sr_...`) and references `task_blueprint` (e.g. `sp_...`). It does not have a separate `step_id` attribute. In contrast, `Step` is identified by `id` (e.g. `sp_...`) and requires `hook` when `type == "logic"`, or `criteria_block_ids` + `extraction_protocol_block_id` + `model_strategy` when `type == "llm"`.
+- **StepRule & Step Identifier Schemas**: `StepRule` is identified by `id` (DAG node, like `sr_...`) and references `task_blueprint` (like `sp_...`). It does not have a separate `step_id` attribute. In contrast, `Step` is identified by `id` (like `sp_...`) and requires `hook` when `type == "logic"`, or `criteria_block_ids` + `extraction_protocol_block_id` + `model_strategy` when `type == "llm"`.
+- **System Core Immutability Guard**: `StudioWorkflowService` enforces slug and system-core immutability (`data.slug == existing.slug` and `data.is_system_core == existing.is_system_core`), effectively securing built-in system steps against accidental modification or deletion while allowing name/description updates.
+- **Frontend Dual-Axis Localization SSOT**: Frontend static labels are managed through `.arb` files and generated into `AppLocalizations` (`l10n.studioWorkflowTaskProfileTitle`, etc.), while semantic text fields on domain models use `I18nText.get(locale)` which safely defaults to Finnish/English.
+- **Workflow Step Zone Taxonomy**:
+  - `Zone A (Step 1)`: Input Processing anchor (`sp_db849f9790984585`). Protected system step.
+  - `Zone B (Steps 2..N)`: Dynamic Cognitive Specialists (`is_system_core == false`). Full mutation and dependency routing permitted.
+  - `Zone C (Steps N+1..N+3)`: Automated Funnel Anchors (`sp_192910b5f5a34c79`, `sp_d245365e4a274b9e`, `sp_7a8b9c0d1e2f3a4b`). Protected system steps with locked inputs and automated aggregations.
+- **Design Token Invariant in Step Builder**: All explicit `Color(...)` instantiations in Flutter widgets violate `design_token_absolute_rule` and must be replaced with themed `Theme.of(context).colorScheme` semantic properties (`error`, `onSurfaceVariant`, etc.).
 
 ## Remaining
-- **Phase 3 Audit**: Run `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`.
-- **Phase 4**: Studio Workflow & Step Blueprint UX Restructuring (`/tier0-create-plan` -> `/tier0-research-plan` -> `/tier2-execute` -> `/tier8-audit-plan`).
+- **Phase 4 Audit**: `/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`.
 - **Phase 5**: Verification, Widget Testing & E2E Integration Gate (`/tier0-create-plan` -> `/tier0-research-plan` -> `/tier2-execute` -> `/tier8-audit-plan`).
 - **Post-Implementation Gates**: Full-stack audit, `/tier2-hardening-backend`, `/tier2-hardening-frontend`, `/tier7-describe-architecture`, `/tier8-audit-epic`.
 
 ## Resume Command
-`/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\03_phase3_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+`/tier8-audit-plan @[docs\epic\tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX\04_phase4_plan.md] @[docs\epic\EPIC_145_tracker.md]`
+
 
 
 

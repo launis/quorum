@@ -233,25 +233,40 @@ class StepBuilderView extends HookConsumerWidget {
         if (strategy.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text(
-                'Model Strategy (Tekoälymalli) on pakollinen LLM-askelille.',
-              ),
+              content: Text(l10n.studioStepBuilderModelStrategyRequired),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
           return;
+        }
+
+        // Quality Gate: Specialist LLM blueprints must have at least one role/persona/criteria block
+        if (!payload.isSystemCore) {
+          final hasRoleOrPersona =
+              (payload.roleBlockId != null &&
+                  payload.roleBlockId!.isNotEmpty) ||
+              (payload.executionPersonaBlockId != null &&
+                  payload.executionPersonaBlockId!.isNotEmpty) ||
+              payload.criteriaBlockIds.isNotEmpty;
+
+          if (!hasRoleOrPersona) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l10n.studioStepBuilderRoleOrCriteriaRequired),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+            return;
+          }
         }
       }
 
       try {
         await ref.read(stepFormProvider(stepId).notifier).submit(payload);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.stepSavedSuccess),
-              backgroundColor: const Color(0xFF2E7D32),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.stepSavedSuccess)));
           context.pop();
         }
       } catch (e) {
@@ -282,7 +297,7 @@ class StepBuilderView extends HookConsumerWidget {
           ),
           title: Text(l10n.stepEditTitle),
           actions: [
-            if (payload.id.isNotEmpty)
+            if (payload.id.isNotEmpty && !payload.isSystemCore)
               IconButton(
                 onPressed: () =>
                     _deleteStep(context, ref, l10n, payload, deleteMutation),
@@ -297,12 +312,6 @@ class StepBuilderView extends HookConsumerWidget {
                   ? null
                   : () {
                       validateMutation.mutate(() async {
-                        // Backend actually expects { 'step': {...rules}, 'mock_inputs': {} }
-                        // but if simulateStep asks for NodeStrategy, we need to see its signature.
-                        // Assuming simulateStep(Map<String, dynamic>)
-                        // Let's pass the mapping directly if simulateStep was changed, or we just reconstruct the map.
-                        // Since the error is "can't be assigned to the parameter type 'NodeStrategy'", simulateStep is defined as: simulateStep(NodeStrategy)
-                        // If it wants NodeStrategy, we pass payload:
                         return await ref
                             .read(stepsControllerProvider.notifier)
                             .simulateStep(payload);
@@ -353,12 +362,41 @@ class StepBuilderView extends HookConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          l10n.configurationTitle,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              l10n.configurationTitle,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (payload.isSystemCore) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  l10n.studioSystemCoreBadge,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
@@ -367,7 +405,7 @@ class StepBuilderView extends HookConsumerWidget {
                             labelText: l10n.stepIdLabel,
                             border: const OutlineInputBorder(),
                           ),
-                          enabled: payload.id.isEmpty,
+                          enabled: payload.id.isEmpty && !payload.isSystemCore,
                           onChanged: (val) {
                             ref
                                 .read(stepFormProvider(stepId).notifier)
@@ -600,6 +638,7 @@ class StepBuilderView extends HookConsumerWidget {
                   itemBuilder: (context, index) {
                     final hooks = payload.preHooks;
                     return _buildPreHookCard(
+                      context,
                       ref,
                       l10n,
                       payload,
@@ -647,6 +686,7 @@ class StepBuilderView extends HookConsumerWidget {
                   itemBuilder: (context, index) {
                     final hooks = payload.postHooks;
                     return _buildPostHookCard(
+                      context,
                       ref,
                       l10n,
                       payload,
@@ -916,6 +956,7 @@ class StepBuilderView extends HookConsumerWidget {
   }
 
   Widget _buildPreHookCard(
+    BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     NodeStrategy payload,
@@ -939,9 +980,12 @@ class StepBuilderView extends HookConsumerWidget {
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
-            const Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.drag_indicator, color: Color(0xFF9E9E9E)),
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Icon(
+                Icons.drag_indicator,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             Expanded(
               child: DropdownButtonFormField<String>(
@@ -983,7 +1027,10 @@ class StepBuilderView extends HookConsumerWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Color(0xFFD32F2F)),
+              icon: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
               onPressed: () {
                 final hooks = List<String>.from(payload.preHooks);
                 hooks.removeAt(index);
@@ -999,6 +1046,7 @@ class StepBuilderView extends HookConsumerWidget {
   }
 
   Widget _buildPostHookCard(
+    BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     NodeStrategy payload,
@@ -1026,9 +1074,12 @@ class StepBuilderView extends HookConsumerWidget {
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
-            const Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.drag_indicator, color: Color(0xFF9E9E9E)),
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Icon(
+                Icons.drag_indicator,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             Expanded(
               child: DropdownButtonFormField<String>(
@@ -1088,7 +1139,10 @@ class StepBuilderView extends HookConsumerWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Color(0xFFD32F2F)),
+              icon: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
               onPressed: () {
                 final hooks = List<String>.from(payload.postHooks);
                 hooks.removeAt(index);
@@ -1121,9 +1175,12 @@ class StepBuilderView extends HookConsumerWidget {
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
-            const Padding(
-              padding: EdgeInsets.only(right: 8.0),
-              child: Icon(Icons.drag_indicator, color: Color(0xFF9E9E9E)),
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Icon(
+                Icons.drag_indicator,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             Expanded(
               child: DropdownButtonFormField<String>(
@@ -1183,7 +1240,10 @@ class StepBuilderView extends HookConsumerWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Color(0xFFD32F2F)),
+              icon: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
               onPressed: () {
                 final blocks = List<String>.from(payload.criteriaBlockIds);
                 blocks.removeAt(index);

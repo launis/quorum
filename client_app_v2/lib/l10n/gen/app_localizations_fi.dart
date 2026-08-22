@@ -4106,4 +4106,81 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get meta_tokens => 'Meta Tokens';
+
+  @override
+  String get studioWorkflowTaskProfileTitle =>
+      'Tehtäväprofiili (Kognitiivinen rooli)';
+
+  @override
+  String get studioWorkflowExecutionOrderTitle =>
+      'Suoritusjärjestys & Riippuvuudet';
+
+  @override
+  String get studioWorkflowExecutionOrderSubtitle =>
+      'Käynnistyy vasta kun valitut edeltävät vaiheet ovat valmistuneet:';
+
+  @override
+  String get studioWorkflowStep1IngestionTitle =>
+      'Syötenäytöllä määritetyt raakatiedostot (PDF, DOCX)';
+
+  @override
+  String get studioWorkflowStep1IngestionSubtitle =>
+      'Tämä vaihe lukee annetut raakadokumentit ja pilkkoo ne strukturoiduiksi todisteiksi ja atomeiksi.';
+
+  @override
+  String get studioWorkflowStep1OutputBadge =>
+      '✨ Muuntaa tiedostot puretuiksi atomeiksi loppuketjulle.';
+
+  @override
+  String get studioWorkflowAtomicScopeTitle =>
+      'Atomisoidut aineistot (Valitse analysoitavat sisällöt)';
+
+  @override
+  String get studioWorkflowAtomicScopeSubtitle =>
+      'Syötenäytöllä määritettyjen dokumenttien puretut atomit ja sitaatit (raakatiedostoja ei raahata mukana):';
+
+  @override
+  String get studioWorkflowPriorStepsTitle =>
+      'Edeltävien askeleiden tekstiyhteenvedot (Valinnainen)';
+
+  @override
+  String get studioWorkflowPriorStepsSubtitle =>
+      'Valitse vain jos agentin pitää lukea laaja sanallinen analyysi. Strukturoitu data ja havainnot siirtyvät aina automaattisesti.';
+
+  @override
+  String get studioWorkflowZoneCAutoTitle =>
+      'Automaattinen järjestelmäankkuri (Suojattu)';
+
+  @override
+  String get studioWorkflowXaiReporterAggregateBadge =>
+      '⚡ Automaattinen koonti: Kokoaa automaattisesti kaikki yllä määritellyt työnkulun asiantuntijat.';
+
+  @override
+  String get studioWorkflowXaiReporterPayloadDesc =>
+      '📑 Yhdistetty tilasyöte (\$steps): Tämä askel lukee ja ristiinanalysoi kaikkien aktiivisten asiantuntijoiden havainnot ja todisteet. Raakatiedostoja ei tarvita.';
+
+  @override
+  String get studioSystemCoreBadge => '🔒 Järjestelmän perusaskel (Suojattu)';
+
+  @override
+  String get studioStepBuilderModelStrategyRequired =>
+      'Tekoälymalli (Model Strategy) on pakollinen LLM-askelille.';
+
+  @override
+  String get studioStepBuilderRoleOrCriteriaRequired =>
+      'Vähintään yksi roolikehote, persoona tai kriteerilohko vaaditaan asiantuntija-askelille.';
+
+  @override
+  String studioWorkflowInputPrefix(String name) {
+    return 'Syöte: $name';
+  }
+
+  @override
+  String studioWorkflowStepPrefix(String name) {
+    return 'Askel: $name';
+  }
+
+  @override
+  String get studioWorkflowNoSelectableInputs =>
+      'Ei valittavia syötteitä tai riippuvuuksia.';
 }

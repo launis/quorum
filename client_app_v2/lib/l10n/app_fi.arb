@@ -1444,5 +1444,38 @@
   "global_score_title": "Global Score Title",
   "evidence_rejected": "Evidence Rejected",
   "meta_costs": "Meta Costs",
-  "meta_tokens": "Meta Tokens"
+  "meta_tokens": "Meta Tokens",
+  "studioWorkflowTaskProfileTitle": "Tehtäväprofiili (Kognitiivinen rooli)",
+  "studioWorkflowExecutionOrderTitle": "Suoritusjärjestys & Riippuvuudet",
+  "studioWorkflowExecutionOrderSubtitle": "Käynnistyy vasta kun valitut edeltävät vaiheet ovat valmistuneet:",
+  "studioWorkflowStep1IngestionTitle": "Syötenäytöllä määritetyt raakatiedostot (PDF, DOCX)",
+  "studioWorkflowStep1IngestionSubtitle": "Tämä vaihe lukee annetut raakadokumentit ja pilkkoo ne strukturoiduiksi todisteiksi ja atomeiksi.",
+  "studioWorkflowStep1OutputBadge": "✨ Muuntaa tiedostot puretuiksi atomeiksi loppuketjulle.",
+  "studioWorkflowAtomicScopeTitle": "Atomisoidut aineistot (Valitse analysoitavat sisällöt)",
+  "studioWorkflowAtomicScopeSubtitle": "Syötenäytöllä määritettyjen dokumenttien puretut atomit ja sitaatit (raakatiedostoja ei raahata mukana):",
+  "studioWorkflowPriorStepsTitle": "Edeltävien askeleiden tekstiyhteenvedot (Valinnainen)",
+  "studioWorkflowPriorStepsSubtitle": "Valitse vain jos agentin pitää lukea laaja sanallinen analyysi. Strukturoitu data ja havainnot siirtyvät aina automaattisesti.",
+  "studioWorkflowZoneCAutoTitle": "Automaattinen järjestelmäankkuri (Suojattu)",
+  "studioWorkflowXaiReporterAggregateBadge": "⚡ Automaattinen koonti: Kokoaa automaattisesti kaikki yllä määritellyt työnkulun asiantuntijat.",
+  "studioWorkflowXaiReporterPayloadDesc": "📑 Yhdistetty tilasyöte ($steps): Tämä askel lukee ja ristiinanalysoi kaikkien aktiivisten asiantuntijoiden havainnot ja todisteet. Raakatiedostoja ei tarvita.",
+  "studioSystemCoreBadge": "🔒 Järjestelmän perusaskel (Suojattu)",
+  "studioStepBuilderModelStrategyRequired": "Tekoälymalli (Model Strategy) on pakollinen LLM-askelille.",
+  "studioStepBuilderRoleOrCriteriaRequired": "Vähintään yksi roolikehote, persoona tai kriteerilohko vaaditaan asiantuntija-askelille.",
+  "studioWorkflowInputPrefix": "Syöte: {name}",
+  "@studioWorkflowInputPrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "studioWorkflowStepPrefix": "Askel: {name}",
+  "@studioWorkflowStepPrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "studioWorkflowNoSelectableInputs": "Ei valittavia syötteitä tai riippuvuuksia."
 }

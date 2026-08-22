@@ -4078,4 +4078,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meta_tokens => 'Meta Tokens';
+
+  @override
+  String get studioWorkflowTaskProfileTitle => 'Task Profile (Cognitive Role)';
+
+  @override
+  String get studioWorkflowExecutionOrderTitle =>
+      'Execution Order & Dependencies';
+
+  @override
+  String get studioWorkflowExecutionOrderSubtitle =>
+      'Runs only after the following prior steps complete:';
+
+  @override
+  String get studioWorkflowStep1IngestionTitle =>
+      'Raw Source Documents from Input Screen (PDF, DOCX)';
+
+  @override
+  String get studioWorkflowStep1IngestionSubtitle =>
+      'This step ingests raw documents and decomposes them into structured evidence and atoms.';
+
+  @override
+  String get studioWorkflowStep1OutputBadge =>
+      '✨ Deconstructs files into atoms and citations for the pipeline.';
+
+  @override
+  String get studioWorkflowAtomicScopeTitle =>
+      'Atomized Materials (Select Analyzed Contents)';
+
+  @override
+  String get studioWorkflowAtomicScopeSubtitle =>
+      'Decomposed atoms and citations from input screen documents (raw files are excluded):';
+
+  @override
+  String get studioWorkflowPriorStepsTitle =>
+      'Prior Step Text Summaries (Optional)';
+
+  @override
+  String get studioWorkflowPriorStepsSubtitle =>
+      'Enable only if this agent needs to read the narrative analysis. Structured findings are forwarded automatically.';
+
+  @override
+  String get studioWorkflowZoneCAutoTitle =>
+      'Automated System Anchor (Protected)';
+
+  @override
+  String get studioWorkflowXaiReporterAggregateBadge =>
+      '⚡ Automatic Aggregation: Automatically collects all active workflow specialists above.';
+
+  @override
+  String get studioWorkflowXaiReporterPayloadDesc =>
+      '📑 Consolidated State Stream (\$steps): This step ingests and cross-analyzes all active specialist findings. Raw files are excluded.';
+
+  @override
+  String get studioSystemCoreBadge => '🔒 System Core Step (Protected)';
+
+  @override
+  String get studioStepBuilderModelStrategyRequired =>
+      'Model Strategy is required for LLM steps.';
+
+  @override
+  String get studioStepBuilderRoleOrCriteriaRequired =>
+      'At least one Role Block, Persona, or Criteria Block is required for specialist steps.';
+
+  @override
+  String studioWorkflowInputPrefix(String name) {
+    return 'Input: $name';
+  }
+
+  @override
+  String studioWorkflowStepPrefix(String name) {
+    return 'Step: $name';
+  }
+
+  @override
+  String get studioWorkflowNoSelectableInputs =>
+      'No selectable inputs or dependencies available.';
 }
