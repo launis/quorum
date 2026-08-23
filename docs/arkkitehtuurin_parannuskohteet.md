@@ -244,7 +244,7 @@ Samaan aikaan järjestelmän monikielisyysarkkitehtuurissa esityskieli määräy
 ## Luku 4: Atomin kognitiivisen ohjeistuksen hajautuminen (`MatrixClaim.ai_description` vs. `TDAAssertion.concept_description`)
 
 ### 4.1 Nykytilanne ja havaittu ongelma
-Tietokannassa ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)) on 152 väitettä ([`MatrixClaim`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L320-L338)) ja tasan 152 TDA-assertiota ([`TDAAssertion`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L222-L290)). Jokainen väite sisältää 1:1 yhden TDA-assertion.
+Tietokannassa (@[backend_v2/seed/seed_data.json]) on 152 väitettä (@[backend_v2/models/v2_core.py#MatrixClaim]) ja tasan 152 TDA-assertiota (@[backend_v2/models/v2_core.py#TDAAssertion]). Jokainen väite sisältää 1:1 yhden TDA-assertion.
 
 Tietomallissa ohjetekstit jakautuvat kuitenkin kahdelle eri tasolle:
 ```json
@@ -274,14 +274,29 @@ Koko tietokannan auditointi osoittaa:
 
 ---
 
-### 4.2 Kooditason vaikutusanalyysi ja löydetyt ristiriidat (Pipeline Forensics)
+### 4.2 Juurisyy ja Ensiperiaateanalyysi (Root Cause & First Principles)
+
+1. **Juurisyy (Root Cause):**
+   * Ongelma johtuu historiallisesta arkkitehtuurin ja tietomallin migraatiovelasta. Kognitiivinen ohjeistus tallennettiin aiemmin yksinkertaiseen `MatrixClaim.ai_description` -kenttään.
+   * Kun järjestelmään esiteltiin `TDAAssertion`-rakenne tarkempaa testattavuutta varten, vanhaa kenttää ei poistettu.
+   * Tämä on aiheuttanut vakavan Single Source of Truth (SSOT) -rikkomuksen ja ajanut sovelluksen "Split-Brain" -tilaan: tuotantoympäristö nojaa uuteen kenttään (joka on 70 tapauksessa tyhjä), kun taas Studio-simulointipalvelu lukee vanhaa kenttää duck-typingin avulla.
+
+2. **Ensiperiaate (First Principles):**
+   * Abstraktiokerrosten vastuut on eriytettävä täydellisesti.
+   * `MatrixClaim` on ihmisluettava käyttöliittymäkomponentti (nimenomaan käyttöliittymässä esitettävä BARS-väiteteksti ja SDUI-otsikko), eikä sen tule sisältää tekoälyn suorituslogiikkaa.
+   * Vastaavasti `TDAAssertion` on koneellisen ohjauksen (LLM) ainoa totuuden lähde (SSOT).
+   * Vanhan kentän täydellinen hävittäminen (Ruthless Deletion) palauttaa järjestelmään deterministisyyden.
+
+---
+
+### 4.3 Kooditason vaikutusanalyysi ja asiantuntijapaneelin arvio (Panel of Experts Audit)
 
 Kooditarkastelu paljasti, miten tämä hajautuminen aiheuttaa konkreettisia toiminnallisia vikoja ja kehoteristiriitoja:
 
-#### A. Tuotantokehotteen rikkoutuminen (Tyhjä `<question>` -lohko)
-1. **Litistyskoukku ([`backend_v2/hooks/atom_flattening.py:133`](file:///c:/src/quorum/backend_v2/hooks/atom_flattening.py#L133)):** Poimii atomin kysymykseksi vain `tda.concept_description.strip()`.
-2. Koska 70 atomilla `concept_description` on tyhjä `""`, DTO:n [`FlattenedAtom.question`](file:///c:/src/quorum/backend_v2/models/dtos/engine.py#L21) saa arvoksi tyhjän merkkijonon.
-3. **Prompt-kokoaja ([`backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py:141-143`](file:///c:/src/quorum/backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L141-L143)):** Generoi LLM:lle menevään XML-kehotteeseen:
+#### A. LLM & Context Architect: Tuotantokehotteen rikkoutuminen (Tyhjä `<question>` -lohko)
+1. **Litistyskoukku (@[backend_v2/hooks/atom_flattening.py:133]):** Poimii atomin kysymykseksi vain `tda.concept_description.strip()`.
+2. Koska 70 atomilla `concept_description` on tyhjä `""`, DTO:n @[backend_v2/models/dtos/engine.py#FlattenedAtom] `question` saa arvoksi tyhjän merkkijonon.
+3. **Prompt-kokoaja (@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py:141-143]):** Generoi LLM:lle menevään XML-kehotteeseen:
    ```xml
    <claim alias="a0">
      <question>
@@ -292,19 +307,49 @@ Kooditarkastelu paljasti, miten tämä hajautuminen aiheuttaa konkreettisia toim
      </extraction_rule>
    </claim>
    ```
-   **Seuraus:** LLM ei koskaan saa `MatrixClaim.ai_description` -kentässä olevaa kysymystä/direktiiviä, vaan joutuu arvailemaan poimintakohdetta pelkän `<extraction_rule>` -lisäsäännön perusteella.
+   **Seuraus:** Tyhjien `<question><![CDATA[]]></question>` -lohkojen lähettäminen LLM:lle (70 tapauksessa) on massiivinen arkkitehtuuribugi. Se pakottaa mallin arvaamaan atomien tavoitteen pelkkien poimintasääntöjen varassa, mikä johtaa hallusinaatioihin. Keskittämällä ohjeet SSOT-kenttään LLM:n determinismi palautuu ja @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py:153] spatiaalinen ohjeiden leikkaus (`before phase X`) alkaa taas toimia luotettavasti.
 
-#### B. "Split-Brain" Studio-simulaation ja tuotannon välillä
-* **Tuotantoajo ([`atom_flattening.py`](file:///c:/src/quorum/backend_v2/hooks/atom_flattening.py)):** Lukee `tda.concept_description` -kenttää.
-* **Studio-simulaatio ([`backend_v2/services/studio/simulation_service.py:181-182`](file:///c:/src/quorum/backend_v2/services/studio/simulation_service.py#L181-L182)):** Lukee `claim.ai_description` -kenttää duck-typingilla `getattr(claim, "ai_description", None)`.
-* **Seuraus:** Kun käyttäjä testaa matriisia Studiossa, simulaatio testaa eri kehotetta kuin mitä oikea tuotantomoottori suorittaa!
+#### B. Backend & Typing Architect: "Split-Brain" ja Pydantic Strictness
+* **Tuotantoajo (@[backend_v2/hooks/atom_flattening.py]):** Lukee `tda.concept_description` -kenttää.
+* **Studio-simulaatio (@[backend_v2/services/studio/simulation_service.py:181-182]):** Lukee `claim.ai_description` -kenttää duck-typingilla `getattr(claim, "ai_description", None)`.
+* **Seuraus:** Kun käyttäjä testaa matriisia Studiossa, simulaatio testaa eri kehotetta kuin mitä oikea tuotantomoottori suorittaa.
+* **Tyyppiturvallisuus ja testifikstuurit:** `MatrixClaim.ai_description` -kentän poistaminen on kriittinen parannus koodin tyyppiturvallisuudelle. Quorum pakottaa Pydantic V2 -malleissa `extra='forbid'` ja `strict=True` -määritykset. Tämä tarkoittaa, että sadat testifikstuurit (@[backend_v2/tests/unit/services/test_blueprint.py] ja muut yksikkötestit) kaatuvat `ValidationError`-poikkeuksiin välittömästi, ellei niiden mock-dataa päivitetä täysin atomaarisesti samassa commitissa mallien päivityksen kanssa Luvun 6 mukaisesti.
 
-#### C. Kontekstin spatiaalinen leikkaus ([`backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py:153`](file:///c:/src/quorum/backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L153))
-* `ContextBuilder._collect_rule_descriptions()` etsii vaiheohjeita (`before phase X`) vain `tda.concept_description` -kentästä. Koska kenttä on 70 atomilla tyhjä, spatiaalinen leikkaus ei aktivoidu, vaikka `claim.ai_description` sisältäisi vaihemäärityksiä.
+#### C. SDUI & Frontend Architect: Freezed-mallit ja Studio UX
+* **Freezed-mallit (@[client_app_v2/lib/features/studio/models/prompt_block.dart]):** Päivitettävä poistamalla `aiDescription`. Kun vanha kenttä poistuu, frontendin siirtämä DTO-hyötykuorma (payload) kevenee.
+* **Studio-sovelluksen näkymät:**
+  - Asteikkomodaali (@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]) on reititettävä kirjoittamaan säännöt suoraan sisäkkäiseen `tda_assertions.first.concept_description` -polkuun ja alustamaan uudet väitteet suoraan `TDAAssertion.create(...)` -rakentajalla.
+  - Matriisirakentaja (@[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart]) on päivitettävä lukemaan `tda_assertions.first.concept_description`.
+  - Lohkorakentaja (@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart:1187]) on päivitettävä alustamaan uusi `MatrixClaim` ilman `aiDescription`-kenttää.
 
 ---
 
-### 4.3 Suositeltu tavoitearkkitehtuuri
+### 4.4 Touched Scope Technical Debt & Anti-Pattern Sweep (Boy Scout Boundary)
+
+Target-tiedostoissa ja niiden välittömissä 1-hop riippuvuuksissa on havaittu seuraava tekninen velka, joka ratkaistaan toteutuksessa:
+
+1. **@[backend_v2/models/v2_core.py] (`TDAAssertion`):**
+   * *Velka:* `TDAAssertion`-mallin `concept_description`-kenttä sallii tällä hetkellä tyhjät merkkijonot (Zombi-tila).
+   * *Ratkaisu:* Lisätään Pydantic-määrittely: `concept_description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=10)] = Field(description="Vain tiivis kuvaus itse konseptista, ei ajo-ohjeita")`. Tämä pakottaa validoinnin Fail-Fast -tilaan heti, kun dataa luetaan tietokannasta tai vastaanotetaan rajapinnasta.
+2. **@[backend_v2/models/v2_core.py] (`MatrixClaim`):**
+   * *Velka:* `MatrixClaim` sisältää redundantin ja virheellisen `ai_description: str` -kentän.
+   * *Ratkaisu:* Kenttä poistetaan kokonaan (Ruthless Deletion). `MatrixClaim` sisältää puhtaasti vain kentät `label: I18nText` ja `tda_assertions: list[TDAAssertion]`.
+3. **@[backend_v2/hooks/atom_flattening.py:133]:**
+   * *Velka:* Koodissa tehdään manuaalinen siivous: `tda.concept_description.strip()`.
+   * *Ratkaisu:* Siirretään vastuu tyyppiturvalliselle Pydantic-mallille (`StringConstraints`) ja poistetaan manuaalinen `.strip()` sekä tarpeettomat puolustavat tarkistukset.
+4. **@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py:141]:**
+   * *Velka:* Salliessaan tyhjän XML-kysymyslohkon järjestelmä ei varoita ketään.
+   * *Ratkaisu:* Injektoidaan moduuliin kova Fail-Fast: `if assertion and not assertion.question: raise AppException(message="Assertion question is empty", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})` ennen promptin generointia.
+5. **@[backend_v2/services/studio/simulation_service.py:181-182]:**
+   * *Velka:* Simulaatiopalvelu lukee vanhaa `claim.ai_description` -kenttää duck-typingilla `getattr(claim, "ai_description", None)`.
+   * *Ratkaisu:* Korvataan duck-typing iteroimalla `claim.tda_assertions` ja käyttämällä `tda.concept_description` -kenttää suoraan. Tämä takaa 100 % identtisen promptin Studio-simulaation ja tuotantoympäristön välillä.
+6. **@[client_app_v2/lib/features/studio/models/prompt_block.dart]:**
+   * *Velka:* Kenttien poistossa turvaudutaan usein `@Default('Fallback')` -viritelmiin.
+   * *Ratkaisu:* Tuhotaan `aiDescription`-kenttä täydellisesti `MatrixClaim`-luokasta ilman piilottavia varamekanismeja.
+
+---
+
+### 4.5 Suositeltu tavoitearkkitehtuuri
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -317,22 +362,57 @@ Kooditarkastelu paljasti, miten tämä hajautuminen aiheuttaa konkreettisia toim
                                           v
 +-----------------------------------------------------------------------------------+
 | 2. TEKOÄLYN TESTATTAVA SÄÄNTÖ (TDAAssertion - Ainoa SSOT)                         |
-|    - concept_description: Konseptin määritelmä ja päädirektiivi                   |
+|    - concept_description: Konseptin määritelmä (min_length=10, strip_whitespace)   |
 |    - extraction_rule: Varsinainen poimintasääntö                                  |
 |    - acceptance_criteria & anti_patterns: Strukturoidut kriteerit                 |
 +-----------------------------------------------------------------------------------+
 ```
 
-### 4.4 Konkreettiset toimenpiteet toteutettaessa (Backlog)
+---
 
-1. **Seed Vault -migraatio ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)):**
-   * Kopioidaan kaikissa 70:ssä tyhjässä tapauksessa `MatrixClaim.ai_description` suoraan kenttään `TDAAssertion.concept_description` ennen kentän poistamista.
-   * Vahvistetaan ja yhdistetään 82 eriytynyttä tapausta `TDAAssertion`-tasolle.
+### 4.6 Konkreettiset toimenpiteet ja toteutusvaiheet (Backlog & Execution Plan)
+
+1. **Seed Vault -migraatio (@[backend_v2/seed/seed_data.json]):**
+   * **Varmuuskopiointi (@[03_seed_vault.md]):** Luodaan aikaleimattu varmuuskopio hakemistoon `backend_v2/seed/backups/seed_data_<timestamp>.json` ennen muokkauksia.
+   * **70 tyhjän tapauksen migraatio:** Kopioidaan kaikissa 70:ssä tyhjässä tapauksessa `MatrixClaim.ai_description` suoraan kenttään `TDAAssertion.concept_description`.
+   * **ai_description -kentän hävitys:** Poistetaan `ai_description`-avain kaikista 152:sta `MatrixClaim`-objektista.
+   * **JSON-syntaksin validointi:** Varmistetaan, että tiedosto latautuu virheettömästi ja jokainen `TDAAssertion.concept_description` täyttää `min_length=10` -ehdon.
+   * **Uudelleensiemennys:** Suoritetaan paikallisen tietokannan alustus komennolla `uv run python backend_v2/seed/run_seed.py local`.
+
 2. **Koodikannan ja mallien harmonisointi:**
-   * Poistetaan `MatrixClaim.ai_description` domain-malleista ([`backend_v2/models/v2_core.py#L320-L338`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L320-L338)) ja Flutterin Freezed-malleista ([`client_app_v2/lib/features/studio/models/prompt_block.dart#L151-L180`](file:///c:/src/quorum/client_app_v2/lib/features/studio/models/prompt_block.dart#L151-L180)).
-   * Korjataan [`simulation_service.py:181-182`](file:///c:/src/quorum/backend_v2/services/studio/simulation_service.py#L181-L182) poistamaan `getattr` ja lukemaan suoraan `tda.concept_description`, jotta simulaatio ja tuotanto käyttävät 100 % identtistä promptia.
-3. **Testifikstuurien päivitys ([`test_blueprint.py`](file:///c:/src/quorum/backend_v2/tests/unit/services/test_blueprint.py)):**
-   * Päivitetään yli 350 testitapausta, jotka alustavat `MatrixClaim.ai_description` -kenttää, käyttämään suoraan `TDAAssertion.concept_description` -kenttää.
+   * **Python-mallit:** Päivitetään @[backend_v2/models/v2_core.py] lisäämällä `TDAAssertion.concept_description` -kentälle `StringConstraints(strip_whitespace=True, min_length=10)` ja poistamalla `MatrixClaim.ai_description`.
+   * **Flutter-mallit:** Päivitetään @[client_app_v2/lib/features/studio/models/prompt_block.dart] poistamalla `aiDescription` luokasta `MatrixClaim`. Ajetaan koodigenerointi komennolla `dart run build_runner build --delete-conflicting-outputs`.
+   * **Backend-palvelut ja koukut:** Päivitetään @[backend_v2/hooks/atom_flattening.py], @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py] ja @[backend_v2/services/studio/simulation_service.py].
+   * **Studio UI -komponentit:** Päivitetään @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart], @[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart] ja @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart].
+
+3. **Testifikstuurien atomaarinen harmonisointi:**
+   Päivitetään kaikki testitapaukset ja fikstuurit poistamaan `MatrixClaim.ai_description` ja varmistamaan, että `concept_description` on vähintään 10 merkkiä pitkä. Muutokset koskevat tyhjentävästi seuraavia tiedostoja:
+   * **Backend-yksikkö- ja integraatiotestit (19 tiedostoa):**
+     1. @[backend_v2/tests/unit/services/test_blueprint.py] (päivitetään `fix_mock_dict` ja mock-väitteet)
+     2. @[backend_v2/tests/unit/services/orchestrator/test_matrix_explanation_service.py]
+     3. @[backend_v2/tests/unit/test_epic93_contract_verification.py]
+     4. @[backend_v2/tests/unit/test_worker.py]
+     5. @[backend_v2/tests/unit/hooks/test_atom_flattening.py]
+     6. @[backend_v2/tests/unit/hooks/test_scoring.py]
+     7. @[backend_v2/tests/unit/services/test_matrix_domain_parser.py]
+     8. @[backend_v2/tests/unit/services/orchestrator/test_atomizer.py]
+     9. @[backend_v2/tests/unit/services/orchestrator/test_extractive_sensor_service.py]
+     10. @[backend_v2/tests/unit/services/orchestrator/test_schema_matrix_omission.py]
+     11. @[backend_v2/tests/unit/services/orchestrator/test_prompt_compiler.py]
+     12. @[backend_v2/tests/unit/services/orchestrator/test_causal_analyst_schema.py]
+     13. @[backend_v2/tests/unit/services/studio/test_workflow_service.py]
+     14. @[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py]
+     15. @[backend_v2/tests/unit/services/orchestrator/strategies/llm_execution/test_prompt_factory.py]
+     16. @[backend_v2/tests/unit/services/orchestrator/strategies/llm_execution/test_epic_60_decoupling.py]
+     17. @[backend_v2/tests/integration/test_lazy_llm_simulation.py]
+     18. @[backend_v2/tests/integration/test_epic_chain_e2e.py]
+     19. @[backend_v2/tests/unit/models/domain/test_prompt_block_computed_bug.py]
+   * **Frontend-testit:**
+     1. @[client_app_v2/test/features/studio/views/components/bars_matrix_builder_test.dart]
+
+4. **Laadunvarmistusportit (Quality Gates):**
+   * Backend: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+   * Frontend: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
 
 ---
 
