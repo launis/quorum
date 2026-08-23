@@ -90,8 +90,10 @@ def check_traceability_mapping(content: str, plan_dir: Path) -> tuple[list[str],
 
     plan_steps: dict[tuple[int, str], str] = {}
     for pf in plan_files:
-        p_match = re.search(r"(?:phase\s*(\d+)|0?(\d+)_phase)", pf.name, re.IGNORECASE)
-        p_num = int(p_match.group(1) or p_match.group(2)) if p_match else 1
+        p_match = re.search(r"phase\s*(\d+)", pf.name, re.IGNORECASE) or re.search(
+            r"0?(\d+)_phase", pf.name, re.IGNORECASE
+        )
+        p_num = int(p_match.group(1)) if p_match else 1
         for s_id in re.findall(r'<step\s+id="([^"]+)"', pf.read_text(encoding="utf-8")):
             if str(s_id) != "0":
                 plan_steps[(p_num, str(s_id))] = pf.name
