@@ -4,6 +4,8 @@ Constructs structured LLM messages for TDA sensor evaluation, strictly separatin
 cacheable static system instructions from dynamic per-batch user claims.
 """
 
+import logging
+
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
@@ -13,6 +15,8 @@ from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.prompts.matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
 from backend_v2.models.v2_core import I18nText, PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+
+logger = logging.getLogger(__name__)
 
 
 class MatrixSensorPromptBuilder:
@@ -38,14 +42,14 @@ class MatrixSensorPromptBuilder:
         context_text: str,
         matrix_context: MatrixEvaluationContext | None = None,
     ) -> CompiledPrompt:
-        """Builds a strictly static CompiledPrompt for pre-caching.
+        """Builds the cacheable prefix containing system instructions and context.
 
         Args:
-            context_text: The massive source document text.
-            matrix_context: Optional matrix evaluation context for global rules.
+            context_text: The source text (e.g. transcript, article).
+            matrix_context: Context containing optional framework/evaluation rules.
 
         Returns:
-            A CompiledPrompt with empty dynamic messages, ready for Context Cache upload.
+            CompiledPrompt with static system instructions and source text context.
         """
         # 1. Compile 100% Static System Instructions using PromptBlock Assembly
         blocks = [
@@ -105,12 +109,14 @@ class MatrixSensorPromptBuilder:
             nodes: The batch of LinkedAtomGraph nodes.
             tda_id_to_alias: Mapping of TDA ID to alias.
             matrix_context: Optional matrix evaluation context for global rules.
+            atom_status_map: Optional status map for dependencies.
 
         Returns:
             A strictly cached CompiledPrompt.
 
         Raises:
-            AppException: Triggered with VALIDATION_FAILED if nodes are empty or aliases are missing.
+            AppException: Triggered with VALIDATION_FAILED if nodes are empty, aliases are missing,
+                or an assertion question is empty.
         """
         prefix_prompt = MatrixSensorPromptBuilder.build_caching_prefix(context_text, matrix_context)
         system_content = prefix_prompt.static_messages[0]["content"]
@@ -141,6 +147,20 @@ class MatrixSensorPromptBuilder:
             assertion = matrix_assertions_map.get(tda_id)
 
             if assertion:
+                if not assertion.question or not assertion.question.strip():
+                    msg = f"Matrix assertion for atom '{tda_id}' has an empty question."
+                    logger.error(
+                        "[MatrixSensorPromptBuilder] %s: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg,
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tda_id": tda_id},
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+
                 q_cdata = TemplateProcessor.encapsulate_payload(assertion.question)
                 content = f"<question>\n{q_cdata}\n</question>\n"
 

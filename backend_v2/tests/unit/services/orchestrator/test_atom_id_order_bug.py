@@ -40,7 +40,6 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
                                 "fi": "Mock",
                             },
                         },
-                        "ai_description": "CRITICAL EVALUATION DIRECTIVE: Total failure of critical faculty.",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",

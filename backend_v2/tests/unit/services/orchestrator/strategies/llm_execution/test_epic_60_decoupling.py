@@ -86,11 +86,10 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
                         "claims": [
                             {
                                 "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
-                                "ai_description": "Claim 1 Desc",
                                 "tda_assertions": [
                                     {
                                         "tda_id": "tda_11111111111111111111111111111111",
-                                        "concept_description": "Atom 1",
+                                        "concept_description": "Atom 1 concept description",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     }

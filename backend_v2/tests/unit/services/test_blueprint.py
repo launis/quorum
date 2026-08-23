@@ -35,17 +35,33 @@ def fix_mock_dict(d: Any) -> Any:
     if isinstance(d, dict):
         import re
 
-        if "ai_description" in d and "tda_assertions" not in d:
-            d["tda_assertions"] = [
-                {
-                    "tda_id": "tda_00000000000000000000000000000000",
-                    "concept_description": "concept",
-                    "inverse_evidence": False,
-                    "aggregation_mode": "EXISTS",
-                }
-            ]
         if "score" in d and "claims" in d and "ai_label" not in d:
             d["ai_label"] = "ai_label_mock"
+        if "claims" in d and isinstance(d["claims"], list):
+            for claim_dict in d["claims"]:
+                if isinstance(claim_dict, dict):
+                    claim_dict.pop("ai_description", None)
+                    if "tda_assertions" not in claim_dict:
+                        claim_dict["tda_assertions"] = [
+                            {
+                                "tda_id": "tda_00000000000000000000000000000000",
+                                "concept_description": "concept_description_valid",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                            }
+                        ]
+                    else:
+                        for assertion in claim_dict["tda_assertions"]:
+                            if isinstance(assertion, dict):
+                                desc = assertion.get("concept_description", "")
+                                if not isinstance(desc, str) or len(desc) < 10:
+                                    assertion["concept_description"] = "concept_description_valid"
+        if (
+            "concept_description" in d
+            and isinstance(d["concept_description"], str)
+            and len(d["concept_description"]) < 10
+        ):
+            d["concept_description"] = "concept_description_valid"
         if "strictness_level" in d:
             d["strictness_level"] = 85
         if "default_strictness_level" in d:

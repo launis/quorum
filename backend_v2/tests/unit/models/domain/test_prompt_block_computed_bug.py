@@ -49,11 +49,10 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                 "claims": [
                     {
                         "label": {"default_locale": "en", "translations": {"en": "Bad", "fi": "Bad"}},
-                        "ai_description": "bad",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": "bad",
+                                "concept_description": "bad quality concept description",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
                             }
@@ -67,11 +66,10 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
                 "claims": [
                     {
                         "label": {"default_locale": "en", "translations": {"en": "Good", "fi": "Good"}},
-                        "ai_description": "good",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
-                                "concept_description": "good",
+                                "concept_description": "good quality concept description",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
                             }

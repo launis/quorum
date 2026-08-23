@@ -17,7 +17,7 @@ def test_tda_assertion_validation() -> None:
     # Should pass
     valid = TDAAssertion(
         tda_id="tda_12345678123456781234567812345678",
-        concept_description="Test rule",
+        concept_description="Test rule validation",
         inverse_evidence=False,
         aggregation_mode="ALL_MUST_COMPLY",
     )
@@ -26,7 +26,7 @@ def test_tda_assertion_validation() -> None:
     # Should pass
     valid_inverse = TDAAssertion(
         tda_id="tda_87654321876543218765432187654321",
-        concept_description="Poison test",
+        concept_description="Poison test valid description",
         inverse_evidence=True,
         aggregation_mode="EXISTS",
     )
@@ -36,11 +36,11 @@ def test_tda_assertion_validation() -> None:
     with pytest.raises(ValidationError) as exc:
         TDAAssertion(
             tda_id="tda_abcdef1234567890abcdef1234567890",
-            concept_description="Invalid poison test",
+            concept_description="Invalid poison test description",
             inverse_evidence=True,
             aggregation_mode="ALL_MUST_COMPLY",
         )
-    assert "EHDOTTOMASTI 'EXISTS' -aggregaation" in str(exc.value)
+    assert "Inverse evidence (poison detection) strictly requires 'EXISTS' aggregation mode." in str(exc.value)
 
 
 @pytest.mark.asyncio
@@ -48,21 +48,20 @@ async def test_atomizer_deterministic_mapping() -> None:
     """Test the O(1) deterministic mapping of TDA assertions in PromptAtomizer."""
     # Arrange
     tda1 = TDAAssertion(
-        concept_description="Rule 1",
+        concept_description="Rule 1 concept description",
         inverse_evidence=False,
         aggregation_mode="ALL_MUST_COMPLY",
     )
 
     tda2 = TDAAssertion(
         tda_id="tda_12341234123412341234123412341234",  # Intentionally preset to test persistence
-        concept_description="Rule 2",
+        concept_description="Rule 2 concept description",
         inverse_evidence=True,
         aggregation_mode="EXISTS",
     )
 
     claim = MatrixClaim(
         label=I18nText(default_locale="en", translations={"en": "Test claim", "fi": "Test claim"}),
-        ai_description="Test",
         tda_assertions=[tda1, tda2],
     )
 

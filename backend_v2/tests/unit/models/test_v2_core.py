@@ -161,7 +161,7 @@ def test_tda_assertion_validation_branches() -> None:
     from backend_v2.models.v2_core import TDAAssertion
 
     # Inverse evidence requires EXISTS aggregation mode
-    with pytest.raises(ValueError, match="Käänteinen sääntö"):
+    with pytest.raises(ValueError, match="Inverse evidence"):
         TDAAssertion.model_validate(
             {
                 "tda_id": "tda_11111111111111111111111111111111",

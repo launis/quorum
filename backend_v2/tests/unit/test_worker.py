@@ -865,7 +865,6 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                             "claims": [
                                 {
                                     "label": {"default_locale": "en", "translations": {"en": "Low claim"}},
-                                    "ai_description": "Low claim rule",
                                     "tda_assertions": [
                                         {
                                             "tda_id": "tda_11112222333344445555666677778888",
@@ -883,7 +882,6 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                             "claims": [
                                 {
                                     "label": {"default_locale": "en", "translations": {"en": "High claim"}},
-                                    "ai_description": "High claim rule",
                                     "tda_assertions": [
                                         {
                                             "tda_id": "tda_22223333444455556666777788889999",

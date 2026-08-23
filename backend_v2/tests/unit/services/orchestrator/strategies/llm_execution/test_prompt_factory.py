@@ -38,17 +38,16 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
                         "claims": [
                             {
                                 "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
-                                "ai_description": "Claim 1 Desc",
                                 "tda_assertions": [
                                     {
                                         "tda_id": "tda_11111111111111111111111111111111",
-                                        "concept_description": "Atom 1",
+                                        "concept_description": "Atom 1 concept description",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     },
                                     {
                                         "tda_id": "tda_22222222222222222222222222222222",
-                                        "concept_description": "Atom 2",
+                                        "concept_description": "Atom 2 concept description",
                                         "inverse_evidence": False,
                                         "aggregation_mode": "EXISTS",
                                     },

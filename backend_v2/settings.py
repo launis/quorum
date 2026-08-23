@@ -197,6 +197,9 @@ class Settings(BaseSettings):
     max_tool_calls_per_step: Annotated[int, Field(description="Limits external searches")] = 3
     max_development_chunks: Annotated[int, Field(description="Limits chunks in dev")] = 0
     matrix_sampling_limit: Annotated[int, Field(description="Limits V2 Matrix items")] = 0
+    tda_concept_min_length: Annotated[
+        int, Field(description="Minimum character length for TDA assertion concept descriptions.")
+    ] = 10
     schema_max_localized_anchors: Annotated[int, Field(description="Max localized anchors")] = 15
     schema_max_quotes_target: Annotated[int, Field(description="Target quotes count")] = 5
     schema_max_quote_length: Annotated[int, Field(description="Target quote length")] = 150

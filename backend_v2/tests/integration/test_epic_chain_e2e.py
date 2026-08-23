@@ -143,11 +143,10 @@ async def test_epic_93_e2e_golden_master() -> None:
                 "claims": [
                     {
                         "label": {"default_locale": "en", "translations": {"en": "claim"}},
-                        "ai_description": "desc",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_00000000000000000000000000000000",
-                                "concept_description": "concept",
+                                "concept_description": "concept description 1",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
                             }
@@ -162,11 +161,10 @@ async def test_epic_93_e2e_golden_master() -> None:
                 "claims": [
                     {
                         "label": {"default_locale": "en", "translations": {"en": "claim 2"}},
-                        "ai_description": "desc 2",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": "concept 2",
+                                "concept_description": "concept description 2",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
                             }

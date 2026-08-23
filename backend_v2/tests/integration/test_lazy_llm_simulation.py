@@ -81,7 +81,6 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
     )
     claim = MatrixClaim(
         label=I18nText(default_locale="en", translations={"en": "Claim Label", "fi": "Claim Label"}),
-        ai_description="Verify no failures before phase 2",
         tda_assertions=[assertion],
     )
     scale = MatrixScale(

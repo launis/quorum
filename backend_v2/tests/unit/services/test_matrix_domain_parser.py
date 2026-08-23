@@ -45,10 +45,11 @@ def get_dummy_pb_5_scale() -> PromptBlock:
             claims=[
                 MatrixClaim(
                     label=I18nText(default_locale="en", translations={"en": f"Claim {i}"}),
-                    ai_description="Desc",
                     tda_assertions=[
                         TDAAssertion(
-                            inverse_evidence=False, aggregation_mode="EXISTS", concept_description="test concept"
+                            inverse_evidence=False,
+                            aggregation_mode="EXISTS",
+                            concept_description="test concept description",
                         )
                     ],
                 )
@@ -87,10 +88,11 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
                 claims=[
                     MatrixClaim(
                         label=I18nText(default_locale="en", translations={"en": "Claim"}),
-                        ai_description="Desc",
                         tda_assertions=[
                             TDAAssertion(
-                                inverse_evidence=False, aggregation_mode="EXISTS", concept_description="test concept"
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                                concept_description="test concept description",
                             )
                         ],
                     )
@@ -103,10 +105,11 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
                 claims=[
                     MatrixClaim(
                         label=I18nText(default_locale="en", translations={"en": "Claim"}),
-                        ai_description="Desc",
                         tda_assertions=[
                             TDAAssertion(
-                                inverse_evidence=False, aggregation_mode="EXISTS", concept_description="test concept"
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                                concept_description="test concept description",
                             )
                         ],
                     )

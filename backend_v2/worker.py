@@ -842,7 +842,7 @@ async def generate_profile_synthesis_and_pdf_task(
             audit_repo=repo,
             system_repo=repo,
         )
-        hook_result = await synthesis_distiller_hook(hook_state, hook_deps)  # type: ignore
+        hook_result = await synthesis_distiller_hook(hook_state, hook_deps)
         distilled_data = hook_result.state_delta
         if distilled_data is None:
             raise AppException(

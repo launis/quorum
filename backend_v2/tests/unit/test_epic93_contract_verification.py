@@ -338,13 +338,12 @@ class TestPhase2PipelineUnification:
                         claims=[
                             MatrixClaim(
                                 label=I18nText(default_locale="en", translations={"en": "Claim"}),
-                                ai_description="Claim description",
                                 tda_assertions=[
                                     TDAAssertion(
                                         tda_id="tda_00000000000000000000000000000001",
                                         inverse_evidence=False,
                                         aggregation_mode="ALL_MUST_COMPLY",
-                                        concept_description="Concept",
+                                        concept_description="Concept Description Valid",
                                     )
                                 ],
                             )

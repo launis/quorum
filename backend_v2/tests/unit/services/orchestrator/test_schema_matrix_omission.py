@@ -12,13 +12,12 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
     # Create a Matrix PromptBlock
     tda = TDAAssertion(
         tda_id="tda_1234567890abcdef1234567890abcdef",
-        concept_description="Test",
+        concept_description="Test concept description valid",
         aggregation_mode="ALL_MUST_COMPLY",
         inverse_evidence=False,
     )
     claim = MatrixClaim(
         label=I18nText(default_locale="en", translations={"en": "test"}),
-        ai_description="test claim",
         tda_assertions=[tda],
     )
     scale = MatrixScale(

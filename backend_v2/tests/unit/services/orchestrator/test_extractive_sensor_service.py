@@ -22,7 +22,7 @@ def test_extractive_sensor_service_fallback_llm() -> None:
         evaluation_track="EXTRACTIVE_SENSOR",
         facts_to_find=["Fakta"],
         logical_expression="Fakta",
-        concept_description="desc",
+        concept_description="Concept description valid",
         inverse_evidence=False,
         aggregation_mode="EXISTS",
     )
@@ -40,7 +40,7 @@ def test_extractive_sensor_service_aggregation_exists_delegate() -> None:
         evaluation_track="EXTRACTIVE_SENSOR",
         facts_to_find=["Fakta"],
         logical_expression="Fakta",
-        concept_description="desc",
+        concept_description="Concept description valid",
         inverse_evidence=False,
     )
 
@@ -58,7 +58,7 @@ def test_extractive_sensor_service_aggregation_exists_fail() -> None:
         evaluation_track="EXTRACTIVE_SENSOR",
         facts_to_find=["Fakta"],
         logical_expression="Fakta",
-        concept_description="desc",
+        concept_description="Concept description valid",
         inverse_evidence=False,
     )
 
@@ -78,7 +78,7 @@ def test_extractive_sensor_service_aggregation_all_must_comply_fail() -> None:
         evaluation_track="EXTRACTIVE_SENSOR",
         facts_to_find=["Fakta"],
         logical_expression="Fakta",
-        concept_description="desc",
+        concept_description="Concept description valid",
         inverse_evidence=False,
     )
 
@@ -97,7 +97,7 @@ def test_extractive_sensor_service_inverse_evidence_early_exit() -> None:
         evaluation_track="EXTRACTIVE_SENSOR",
         facts_to_find=["Fakta"],
         logical_expression="Fakta",
-        concept_description="desc",
+        concept_description="Concept description valid",
     )
 
     # Poison ei löydy -> Voidaan päättää heti. Koska se on inverse, puuttuminen on PASS.
@@ -119,7 +119,7 @@ def test_extractive_sensor_service_fuzzy_match() -> None:
         evaluation_track="EXTRACTIVE_SENSOR",
         facts_to_find=["Fakta"],
         logical_expression="Fakta",
-        concept_description="desc",
+        concept_description="Concept description valid",
         inverse_evidence=False,
     )
 
@@ -291,7 +291,7 @@ def test_extractive_sensor_service_allow_contextual_override() -> None:
         evaluation_track="EXTRACTIVE_SENSOR",
         facts_to_find=["Fakta"],
         logical_expression="Fakta",
-        concept_description="desc",
+        concept_description="Concept description valid",
         inverse_evidence=False,
     )
 

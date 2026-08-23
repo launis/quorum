@@ -317,3 +317,39 @@ def test_build_compiled_prompt_with_dependencies_and_status_map() -> None:
     assert 'parent_alias="tda_22222222"' in content
     assert "PENDING" in content
     assert "Parent must be satisfied first." in content
+
+
+def test_build_compiled_prompt_empty_assertion_question_raises_app_exception() -> None:
+    """Anti-happy path: matrix assertion with empty question raises AppException(VALIDATION_FAILED)."""
+    tda_id = "tda_00000000000000000000000000000000"
+    matrix_assertions = [
+        FlattenedAtom(
+            atom_id=tda_id,
+            question="   ",
+            extraction_rule="Extract rule",
+            anchor_target="Anchor",
+            is_inverse=False,
+        )
+    ]
+    matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)
+    node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id=tda_id,
+            resolved_claim="Claim",
+            reasoning="Reasoning",
+            source_quote="Quote",
+            source_id="chk_1",
+            source_sequence_index=1,
+        ),
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        MatrixSensorPromptBuilder.build_compiled_prompt(
+            context_text="Some context",
+            nodes=[node],
+            tda_id_to_alias={tda_id: "a0"},
+            matrix_context=matrix_context,
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "empty question" in exc_info.value.message

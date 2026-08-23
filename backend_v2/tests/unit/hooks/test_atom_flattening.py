@@ -40,11 +40,10 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptB
         claims = [
             MatrixClaim(
                 label=I18nText(default_locale="en", translations={"en": f"Claim {score}", "fi": f"Claim {score}"}),
-                ai_description=f"Desc {score}",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_{score:016x}{i:016x}",
-                        concept_description=f"Atom {score}-{i}",
+                        concept_description=f"Concept Atom {score}-{i}",
                         inverse_evidence=False,
                         aggregation_mode="EXISTS",
                     )

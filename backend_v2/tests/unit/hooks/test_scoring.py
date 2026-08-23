@@ -20,11 +20,10 @@ def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict
         claims.append(
             {
                 "label": {"default_locale": "en", "translations": {"en": "Test Claim", "fi": "Test Claim"}},
-                "ai_description": "Test Claim Desc",
                 "tda_assertions": [
                     {
                         "tda_id": f"tda_{hashlib.md5(atom.encode()).hexdigest()[:32]}",
-                        "concept_description": atom,
+                        "concept_description": f"Concept description for {atom}",
                         "inverse_evidence": False,
                         "aggregation_mode": "EXISTS",
                     }

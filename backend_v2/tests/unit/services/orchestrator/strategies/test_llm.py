@@ -395,9 +395,12 @@ async def test_llm_strategy_missing_atoms_crash(
                     "claims": [
                         {
                             "label": {"default_locale": "en", "translations": {"en": "Test"}},
-                            "ai_description": "desc",
                             "tda_assertions": [
-                                {"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}
+                                {
+                                    "inverse_evidence": False,
+                                    "aggregation_mode": "EXISTS",
+                                    "concept_description": "mock concept description",
+                                }
                             ],
                         }
                     ],
@@ -408,9 +411,12 @@ async def test_llm_strategy_missing_atoms_crash(
                     "claims": [
                         {
                             "label": {"default_locale": "en", "translations": {"en": "Test"}},
-                            "ai_description": "desc",
                             "tda_assertions": [
-                                {"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}
+                                {
+                                    "inverse_evidence": False,
+                                    "aggregation_mode": "EXISTS",
+                                    "concept_description": "mock concept description",
+                                }
                             ],
                         }
                     ],
@@ -500,9 +506,12 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
                     "claims": [
                         {
                             "label": {"default_locale": "en", "translations": {"en": "Test"}},
-                            "ai_description": "desc",
                             "tda_assertions": [
-                                {"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}
+                                {
+                                    "inverse_evidence": False,
+                                    "aggregation_mode": "EXISTS",
+                                    "concept_description": "mock concept description",
+                                }
                             ],
                         }
                     ],
@@ -513,9 +522,12 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
                     "claims": [
                         {
                             "label": {"default_locale": "en", "translations": {"en": "Test"}},
-                            "ai_description": "desc",
                             "tda_assertions": [
-                                {"inverse_evidence": False, "aggregation_mode": "EXISTS", "concept_description": "mock"}
+                                {
+                                    "inverse_evidence": False,
+                                    "aggregation_mode": "EXISTS",
+                                    "concept_description": "mock concept description",
+                                }
                             ],
                         }
                     ],

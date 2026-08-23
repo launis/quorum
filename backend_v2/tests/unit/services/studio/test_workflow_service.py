@@ -122,13 +122,12 @@ def _valid_matrix_block_dict(block_id: str = "blk_0123456789abcdef01") -> dict[s
                 "claims": [
                     {
                         "label": {"default_locale": "en", "translations": {"en": "Default Claim"}},
-                        "ai_description": "Default claim description",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_00000000000000000000000000000001",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
-                                "concept_description": "Concept",
+                                "concept_description": "Concept Description Valid",
                             }
                         ],
                     }

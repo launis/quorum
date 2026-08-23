@@ -46,10 +46,6 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                                 "fi": "Mock",
                             },
                         },
-                        "ai_description": (
-                            "CRITICAL EVALUATION DIRECTIVE: Total failure of critical faculty. "
-                            "The user exhibits sycophantic behavior..."
-                        ),
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
@@ -64,9 +60,6 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                             "default_locale": "en",
                             "translations": {"en": "No corrective move or objection presented.", "fi": "Mock"},
                         },
-                        "ai_description": (
-                            "ENFORCEMENT RULE: Falsify immediately if any objection exists. Absolute zero tolerance."
-                        ),
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_22222222222222222222222222222222",
@@ -90,7 +83,6 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                                 "fi": "Mock",
                             },
                         },
-                        "ai_description": "CRITICAL EVALUATION DIRECTIVE: Engagement is purely cosmetic...",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_33333333333333333333333333333333",
@@ -154,11 +146,10 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
                 "claims": [
                     {
                         "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Claim 1"}},
-                        "ai_description": "Directive 1",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_44444444444444444444444444444444",
-                                "concept_description": "Directive 1",
+                                "concept_description": "Directive 1 valid description",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }
@@ -303,11 +294,10 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
                             "default_locale": "en",
                             "translations": {"en": "Minimal Claim", "fi": "Minimal Claim"},
                         },
-                        "ai_description": "Minimal claim AI description",
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
-                                "concept_description": "Assertion rule",
+                                "concept_description": "Assertion rule valid description",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "ALL_MUST_COMPLY",
                             }

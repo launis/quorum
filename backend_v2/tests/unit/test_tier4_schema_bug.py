@@ -29,7 +29,6 @@ def test_reproduce_tier4_schema_bug() -> None:
                     "claims": [
                         {
                             "label": {"translations": {"en": "Claim"}, "default_locale": "en"},
-                            "ai_description": "rule",
                             "tda_assertions": [
                                 {
                                     "concept_description": "Evaluate and verify the rule",

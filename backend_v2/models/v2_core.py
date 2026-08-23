@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 from fastapi import status
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -247,7 +247,7 @@ class TDAAssertion(V2CoreBase):
     inverse_evidence: bool = Field(description="If True, acts as a poison/penalty detector.")
     aggregation_mode: Literal["EXISTS", "ALL_MUST_COMPLY"] = Field(description="Aggregation constraint.")
 
-    # Phase 1, Milestone 1: Add new properties for decoupled TDA
+    # Decoupled evaluation track properties for extractive sensor and cognitive judgement pipelines
     evaluation_track: Literal["EXTRACTIVE_SENSOR", "COGNITIVE_JUDGEMENT"] = Field(
         default="COGNITIVE_JUDGEMENT",
         description="Decoupled evaluation track: extractive logic vs cognitive judgement.",
@@ -265,13 +265,14 @@ class TDAAssertion(V2CoreBase):
         description="If True, enables multi-agent ensemble majority voting for this assertion.",
     )
 
-    # Phase 4: Monolingual concept description for LLM (migrated from flat ai_rule_description)
-    concept_description: str = Field(description="Vain tiivis kuvaus itse konseptista, ei ajo-ohjeita")
-    anchor_target: str | None = Field(default=None, description="Mitä ankkuria etsitään (ent. STEP 1)")
+    # Monolingual concept description consumed by the LLM extraction pipeline
+    concept_description: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=10),
+    ] = Field(description="Concise concept definition for this assertion, not runtime instructions")
+    anchor_target: str | None = Field(default=None, description="Target anchor to search for during extraction")
     bounding_box_scope: Literal["sentence", "paragraph", "document", "adjacent_paragraphs"] = Field(default="paragraph")
-    extraction_rule: str | None = Field(
-        default=None, description="Varsinainen sääntö, joka datan on täytettävä (ent. EXTRACTION CONDITION)"
-    )
+    extraction_rule: str | None = Field(default=None, description="The extraction rule that data must satisfy")
     acceptance_criteria: list[AcceptanceCriterion] = Field(
         default_factory=list,
         description="Structured acceptance criteria with monolingual instructions.",
@@ -304,36 +305,34 @@ class TDAAssertion(V2CoreBase):
             The validated assertion.
         """
         if self.inverse_evidence and self.aggregation_mode == "ALL_MUST_COMPLY":
-            msg = "Käänteinen sääntö (myrkyn etsintä) vaatii EHDOTTOMASTI 'EXISTS' -aggregaation..."
+            msg = "Inverse evidence (poison detection) strictly requires 'EXISTS' aggregation mode."
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
 
-        # Phase 1, Milestone 1: Enforce strict dual-track TDA validations
+        # Enforce strict dual-track TDA validations
         if self.evaluation_track == "EXTRACTIVE_SENSOR":
             if not self.facts_to_find:
-                msg = "EXTRACTIVE_SENSOR -rata vaatii vähintään yhden haettavan faktan (facts_to_find)."
+                msg = "EXTRACTIVE_SENSOR track requires at least one fact in facts_to_find."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             if not self.logical_expression or not self.logical_expression.strip():
-                msg = "EXTRACTIVE_SENSOR -rata vaatii määrittämään loogisen lausekkeen (logical_expression)."
+                msg = "EXTRACTIVE_SENSOR track requires a defined logical_expression."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
         return self
 
 
 class MatrixClaim(V2CoreBase):
-    """Represents a single behavioral claim with an AI evaluation directive.
+    """Represents a single behavioral claim with empirical TDA assertions.
 
     Attributes:
         label: User-facing empirical claim.
-        ai_description: Specific AI enforcement rule for this claim.
         tda_assertions: Test-Driven Assertion rules explicitly set by experts.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
     label: I18nText = Field(description="User-facing empirical claim.")
-    ai_description: str = Field(description="Specific AI enforcement rule for this claim.")
     tda_assertions: list[TDAAssertion] = Field(
         ...,
         min_length=1,

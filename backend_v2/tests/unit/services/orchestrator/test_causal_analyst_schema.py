@@ -61,7 +61,6 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
                     "claims": [
                         {
                             "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Claim 1"}},
-                            "ai_description": "Massive claim AI description explaining strict details...",
                             "tda_assertions": [
                                 {
                                     "tda_id": "tda_11112222333344441111222233334444",

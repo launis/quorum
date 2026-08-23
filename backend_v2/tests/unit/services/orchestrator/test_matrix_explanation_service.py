@@ -30,13 +30,12 @@ def _create_matrix_block(
                 claims=[
                     MatrixClaim(
                         label=I18nText(default_locale="en", translations={"en": "Default Claim"}),
-                        ai_description="Default claim description",
                         tda_assertions=[
                             TDAAssertion(
                                 tda_id="tda_00000000000000000000000000000001",
                                 inverse_evidence=False,
                                 aggregation_mode="ALL_MUST_COMPLY",
-                                concept_description="Concept",
+                                concept_description="Concept Description Valid",
                             )
                         ],
                     )
@@ -261,25 +260,23 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
         claims=[
             MatrixClaim(
                 label=I18nText(default_locale="en", translations={"en": "Claim 1"}),
-                ai_description="Claim 1 AI description",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=tda_id_1,
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
-                        concept_description="Concept 1",
+                        concept_description="Concept 1 Long Enough",
                     )
                 ],
             ),
             MatrixClaim(
                 label=I18nText(default_locale="en", translations={"en": "Claim 3"}),
-                ai_description="Claim 3 AI description",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=tda_id_3,
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
-                        concept_description="Concept 3",
+                        concept_description="Concept 3 Long Enough",
                     )
                 ],
             ),
@@ -309,26 +306,24 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
         claims=[
             MatrixClaim(
                 label=I18nText(default_locale="en", translations={"en": "Claim Alpha"}),
-                ai_description="Alpha",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_a000000000000000000000000000000{i}",
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
-                        concept_description="Alpha",
+                        concept_description=f"Alpha Concept {i}",
                     )
                     for i in range(4)
                 ],
             ),
             MatrixClaim(
                 label=I18nText(default_locale="en", translations={"en": "Claim Beta"}),
-                ai_description="Beta",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_b000000000000000000000000000000{i}",
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
-                        concept_description="Beta",
+                        concept_description=f"Beta Concept {i}",
                     )
                     for i in range(4)
                 ],
@@ -403,26 +398,24 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
         claims=[
             MatrixClaim(
                 label=I18nText(default_locale="en", translations={"en": "Claim A"}),
-                ai_description="A",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_da00000000000000000000000000000{i}",
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
-                        concept_description="A",
+                        concept_description=f"Concept A {i}",
                     )
                     for i in range(5)
                 ],
             ),
             MatrixClaim(
                 label=I18nText(default_locale="en", translations={"en": "Claim B"}),
-                ai_description="B",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_db00000000000000000000000000000{i}",
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
-                        concept_description="B",
+                        concept_description=f"Concept B {i}",
                     )
                     for i in range(5)
                 ],
@@ -498,13 +491,12 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
             claims=[
                 MatrixClaim(
                     label=I18nText(default_locale="en", translations={"en": f"Deficit Level 1 Claim {i}"}),
-                    ai_description=f"Deficit L1 {i}",
                     tda_assertions=[
                         TDAAssertion(
                             tda_id=f"tda_1111111111111111111111111111111{i}",
                             inverse_evidence=False,
                             aggregation_mode="ALL_MUST_COMPLY",
-                            concept_description="L1",
+                            concept_description=f"Deficit Concept L1 {i}",
                         )
                     ],
                 )
@@ -517,13 +509,12 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
             claims=[
                 MatrixClaim(
                     label=I18nText(default_locale="en", translations={"en": f"Deficit Level 2 Claim {i}"}),
-                    ai_description=f"Deficit L2 {i}",
                     tda_assertions=[
                         TDAAssertion(
                             tda_id=f"tda_2222222222222222222222222222222{i}",
                             inverse_evidence=False,
                             aggregation_mode="ALL_MUST_COMPLY",
-                            concept_description="L2",
+                            concept_description=f"Deficit Concept L2 {i}",
                         )
                     ],
                 )
@@ -536,13 +527,12 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
             claims=[
                 MatrixClaim(
                     label=I18nText(default_locale="en", translations={"en": f"Deficit Level 5 Claim {i}"}),
-                    ai_description=f"Deficit L5 {i}",
                     tda_assertions=[
                         TDAAssertion(
                             tda_id=f"tda_5555555555555555555555555555555{i}",
                             inverse_evidence=False,
                             aggregation_mode="ALL_MUST_COMPLY",
-                            concept_description="L5",
+                            concept_description=f"Deficit Concept L5 {i}",
                         )
                     ],
                 )
@@ -669,13 +659,12 @@ def test_assemble_matrices_to_explain_multilingual_resolution() -> None:
                 label=I18nText(
                     default_locale="en", translations={"en": "English Criteria Name", "fi": "Suomalainen Kriteeri"}
                 ),
-                ai_description="AI rule",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=tda_id,
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
-                        concept_description="Multi",
+                        concept_description="Multilingual Concept",
                     )
                 ],
             )
@@ -766,13 +755,12 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
         claims=[
             MatrixClaim(
                 label=I18nText(default_locale="en", translations={"en": f"Claim {i}"}),
-                ai_description=f"Claim {i}",
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_{i:032x}",
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
-                        concept_description=f"Concept {i}",
+                        concept_description=f"Concept {i} Long Enough",
                     )
                 ],
             )

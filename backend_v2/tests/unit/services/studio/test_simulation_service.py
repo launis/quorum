@@ -48,9 +48,7 @@ def test_token() -> TokenData:
 
 
 @pytest.mark.asyncio
-async def test_simulate_workflow_success(
-    simulation_service: StudioSimulationService, test_token: TokenData
-) -> None:
+async def test_simulate_workflow_success(simulation_service: StudioSimulationService, test_token: TokenData) -> None:
     """Test successful DAG resolution and input mapping in workflow simulation."""
     workflow = Workflow(
         id="wor_1234567890abcdef1234567890abcdef",
@@ -221,9 +219,7 @@ async def test_simulate_workflow_fatal_error(
 
 
 @pytest.mark.asyncio
-async def test_simulate_prompt_block_simple(
-    simulation_service: StudioSimulationService, test_token: TokenData
-) -> None:
+async def test_simulate_prompt_block_simple(simulation_service: StudioSimulationService, test_token: TokenData) -> None:
     """Test simple prompt block simulation with template formatting."""
     block = PromptBlock(
         id="blk_11111111111111111111111111111111",
@@ -283,7 +279,6 @@ async def test_simulate_prompt_block_matrix_scales(
                 claims=[
                     MatrixClaim(
                         label=I18nText(default_locale="en", translations={"en": "Claim Label", "fi": "Väite"}),
-                        ai_description="claim_rule",
                         tda_assertions=[
                             TDAAssertion(
                                 concept_description="Verify that evidence exists",

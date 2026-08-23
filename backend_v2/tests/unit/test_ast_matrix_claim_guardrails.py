@@ -4,8 +4,6 @@ import ast
 import json
 from pathlib import Path
 
-import pytest
-
 from backend_v2.settings import get_settings
 
 # ---------------------------------------------------------------------------
@@ -67,7 +65,11 @@ def scan_class_field_annotation_has_min_length_10(tree: ast.AST, class_name: str
                                 and child.value.value >= 10
                             ):
                                 return True
-                        if isinstance(child, ast.Call) and isinstance(child.func, ast.Name) and child.func.id == "StringConstraints":
+                        if (
+                            isinstance(child, ast.Call)
+                            and isinstance(child.func, ast.Name)
+                            and child.func.id == "StringConstraints"
+                        ):
                             for kw in child.keywords:
                                 if (
                                     kw.arg == "min_length"
@@ -127,7 +129,6 @@ def scan_file_for_claim_ai_description_access(tree: ast.AST) -> list[int]:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="Awaiting Phase 2 seed data migration and reseed")
 def test_seed_claims_have_no_ai_description() -> None:
     """Verify seed_data.json has 0 matrix claims containing ai_description."""
     seed_path = Path("backend_v2/seed/seed_data.json")
@@ -147,7 +148,6 @@ def test_seed_claims_have_no_ai_description() -> None:
     assert len(violations) == 0, f"Found {len(violations)} matrix claims with ai_description: {violations}"
 
 
-@pytest.mark.skip(reason="Awaiting Phase 2 seed data migration and reseed")
 def test_seed_claims_all_tda_assertions_have_valid_concept_description() -> None:
     """Verify all 152 tda_assertions in seed_data.json have concept_description with len >= 10."""
     seed_path = Path("backend_v2/seed/seed_data.json")
@@ -169,12 +169,11 @@ def test_seed_claims_all_tda_assertions_have_valid_concept_description() -> None
                             short_assertions.append((assertion.get("tda_id"), desc))
 
     assert total_assertions == 152, f"Expected 152 assertions in seed, found {total_assertions}"
-    assert (
-        len(short_assertions) == 0
-    ), f"Found {len(short_assertions)} assertions with concept_description < 10 chars: {short_assertions}"
+    assert len(short_assertions) == 0, (
+        f"Found {len(short_assertions)} assertions with concept_description < 10 chars: {short_assertions}"
+    )
 
 
-@pytest.mark.skip(reason="Awaiting Phase 3 settings and domain model harmonization")
 def test_settings_tda_concept_min_length_defined() -> None:
     """Verify Settings defines tda_concept_min_length == 10."""
     settings = get_settings()
@@ -182,7 +181,6 @@ def test_settings_tda_concept_min_length_defined() -> None:
     assert settings.tda_concept_min_length == 10, "settings.tda_concept_min_length must equal 10"
 
 
-@pytest.mark.skip(reason="Awaiting Phase 3 domain model harmonization")
 def test_ast_matrix_claim_has_no_ai_description_field() -> None:
     """Verify MatrixClaim class in v2_core.py AST does not define ai_description."""
     model_path = Path("backend_v2/models/v2_core.py")
@@ -194,7 +192,6 @@ def test_ast_matrix_claim_has_no_ai_description_field() -> None:
     assert not has_ai_desc, "MatrixClaim in v2_core.py must NOT define ai_description"
 
 
-@pytest.mark.skip(reason="Awaiting Phase 3 domain model harmonization")
 def test_ast_tda_assertion_has_string_constraints_min_length_10() -> None:
     """Verify TDAAssertion.concept_description enforces min_length=10 via AST."""
     model_path = Path("backend_v2/models/v2_core.py")
