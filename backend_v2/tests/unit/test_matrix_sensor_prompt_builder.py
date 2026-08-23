@@ -48,6 +48,27 @@ def test_build_caching_prefix_success() -> None:
     assert len(prompt.dynamic_messages) == 0
 
 
+def test_build_caching_prefix_with_theory_grounding_xml() -> None:
+    """PROMISE: Prove theory_grounding is injected as pure <theory_context> XML."""
+    from backend_v2.models.v2_core import TheoryGrounding
+
+    tg = TheoryGrounding(
+        source_url="https://example.com/test",
+        citation_reference="Test Framework Citation (2026)",
+    )
+    matrix_ctx = MatrixEvaluationContextFactory.build(
+        theory_grounding=tg,
+        matrix_objective="Test objective.",
+    )
+
+    prompt = MatrixSensorPromptBuilder.build_caching_prefix("Massive Context Text", matrix_context=matrix_ctx)
+    system_content = prompt.static_messages[0]["content"]
+
+    assert "<theory_context>" in system_content
+    assert "Test Framework Citation (2026)" in system_content
+    assert "https://example.com/test" not in system_content
+
+
 def test_build_compiled_prompt_cdata_encapsulation() -> None:
     """PROMISE: Prove CDATA encapsulation for dynamic matrix assertions."""
     atom_id = "tda_abcdef1234567890"

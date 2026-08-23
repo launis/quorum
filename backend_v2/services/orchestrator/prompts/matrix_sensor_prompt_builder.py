@@ -65,14 +65,17 @@ class MatrixSensorPromptBuilder:
                         ai_desc=matrix_context.matrix_objective,
                     )
                 )
-            if matrix_context.theory_grounding:
-                blocks.append(
-                    MatrixSensorPromptBuilder._create_ephemeral_block(
-                        block_id="blk_3333333333333333",
-                        category_id=PromptBlockCategory.SYSTEM_RULE,
-                        ai_desc=matrix_context.theory_grounding.model_dump_json(),
+            if matrix_context.theory_grounding and matrix_context.theory_grounding.citation_reference:
+                citation = matrix_context.theory_grounding.citation_reference.strip()
+                if citation:
+                    theory_desc = f"<theory_context>\n{citation}\n</theory_context>"
+                    blocks.append(
+                        MatrixSensorPromptBuilder._create_ephemeral_block(
+                            block_id="blk_3333333333333333",
+                            category_id=PromptBlockCategory.SYSTEM_RULE,
+                            ai_desc=theory_desc,
+                        )
                     )
-                )
 
         compiler = PromptCompilerAdapter()
         system_content = compiler.compile_static_instructions(blocks, target_locale="en")

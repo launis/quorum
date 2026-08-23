@@ -12,7 +12,7 @@ from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder impor
 def test_build_caching_prefix_with_context() -> None:
     """Test building a caching prefix when full matrix context is provided."""
     theory_grounding = TheoryGrounding(
-        source_url="Test Framework",
+        source_url="https://arma.org/guidelines",
         citation_reference="Test Citation",
     )
     matrix_context = MatrixEvaluationContext(
@@ -28,12 +28,85 @@ def test_build_caching_prefix_with_context() -> None:
     assert len(prompt.static_messages) == 2
     assert prompt.static_messages[0]["role"] == "system"
     assert "Evaluate matrix rules." in prompt.static_messages[0]["content"]
-    assert "Test Framework" in prompt.static_messages[0]["content"]
+    assert "<theory_context>" in prompt.static_messages[0]["content"]
+    assert "Test Citation" in prompt.static_messages[0]["content"]
+    assert "https://arma.org/guidelines" not in prompt.static_messages[0]["content"]
 
     assert prompt.static_messages[1]["role"] == "user"
     assert "Here is a massive document." in prompt.static_messages[1]["content"]
 
     assert len(prompt.dynamic_messages) == 0
+
+
+def test_build_caching_prefix_theory_grounding_none_citation() -> None:
+    """Boundary test: theory_grounding with None citation_reference does not add ephemeral block."""
+    theory_grounding = TheoryGrounding(
+        source_url="https://arma.org/guidelines",
+        citation_reference=None,
+    )
+    matrix_context = MatrixEvaluationContext(
+        theory_grounding=theory_grounding,
+        matrix_objective="Evaluate matrix rules.",
+    )
+    prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
+    assert "<theory_context>" not in prompt.static_messages[0]["content"]
+
+
+def test_build_caching_prefix_theory_grounding_empty_citation() -> None:
+    """Boundary test: theory_grounding with empty string citation_reference does not add ephemeral block."""
+    theory_grounding = TheoryGrounding(
+        source_url="https://arma.org/guidelines",
+        citation_reference="",
+    )
+    matrix_context = MatrixEvaluationContext(
+        theory_grounding=theory_grounding,
+        matrix_objective="Evaluate matrix rules.",
+    )
+    prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
+    assert "<theory_context>" not in prompt.static_messages[0]["content"]
+
+
+def test_build_caching_prefix_theory_grounding_whitespace_only() -> None:
+    """Boundary test: theory_grounding with whitespace-only citation_reference does not add ephemeral block."""
+    theory_grounding = TheoryGrounding(
+        source_url="https://arma.org/guidelines",
+        citation_reference="   \n\t  ",
+    )
+    matrix_context = MatrixEvaluationContext(
+        theory_grounding=theory_grounding,
+        matrix_objective="Evaluate matrix rules.",
+    )
+    prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
+    assert "<theory_context>" not in prompt.static_messages[0]["content"]
+
+
+def test_build_caching_prefix_theory_grounding_omits_raw_urls() -> None:
+    """Security/Optimization test: raw source_url is never leaked or injected into system prompt."""
+    theory_grounding = TheoryGrounding(
+        source_url="https://secret-internal-domain.org/doc",
+        citation_reference="Valid Scientific Citation",
+    )
+    matrix_context = MatrixEvaluationContext(
+        theory_grounding=theory_grounding,
+    )
+    prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
+    assert "<theory_context>" in prompt.static_messages[0]["content"]
+    assert "Valid Scientific Citation" in prompt.static_messages[0]["content"]
+    assert "https://secret-internal-domain.org" not in prompt.static_messages[0]["content"]
+
+
+def test_build_caching_prefix_theory_grounding_xml_special_chars() -> None:
+    """Edge test: citation containing special characters renders cleanly."""
+    theory_grounding = TheoryGrounding(
+        source_url="https://arma.org/guidelines",
+        citation_reference="Author & Co. (2020) <Principles>",
+    )
+    matrix_context = MatrixEvaluationContext(
+        theory_grounding=theory_grounding,
+    )
+    prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
+    assert "<theory_context>" in prompt.static_messages[0]["content"]
+    assert "Author & Co. (2020) <Principles>" in prompt.static_messages[0]["content"]
 
 
 def test_build_caching_prefix_without_context() -> None:
