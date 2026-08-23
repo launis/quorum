@@ -45,9 +45,9 @@
     </rule_block>
 
     <rule_block id="slug_data_relation_ban">
-        <banned_pattern>Using `slug`, UI labels, or other informational fields as JSON schema keys, Pydantic field names, or for strict data relations.</banned_pattern>
-        <mandatory_pattern>ALWAYS use the object's `id` (e.g., the opaque Stripe-pattern ID `blk_123...`) for ALL data relations, schema generation, and dictionary key bindings.</mandatory_pattern>
-        <catastrophic_reason>Slugs are highly mutable strings meant for SEO/Display. Binding system architecture or LLM JSON outputs to mutable slugs permanently breaks data extraction and causes undetected key-collisions.</catastrophic_reason>
+        <banned_pattern>Using `slug`, UI labels, or other informational fields as JSON schema keys, Pydantic field names, for strict data relations, inside logger statements (`logger.info/warning/error`), in exception/error messages, or for business logic conditional branches (`if b.slug == ...`).</banned_pattern>
+        <mandatory_pattern>ALWAYS use the object's canonical Opaque Stripe ID (e.g., `blk_123...`, `stp_123...`, `wor_123...`) for ALL data relations, schema generation, dictionary key bindings, logger outputs, error traces, and business logic. Slugs are strictly human-readable display metadata and MUST NEVER appear in system logs, exception messages, or runtime logic branching.</mandatory_pattern>
+        <catastrophic_reason>Slugs are highly mutable strings meant for SEO/Display. Using slugs in logs fragments the Logfire/forensic audit trail by disassociating log entries from canonical Opaque Stripe IDs. Using slugs in logic branching breaks polymorphic routing and creates brittle shadow dependencies.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="anemic_routers">

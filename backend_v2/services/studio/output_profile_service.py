@@ -139,7 +139,7 @@ class StudioOutputProfileService:
         for layout in profile.layouts:
             for comp in layout.target_blocks:
                 if comp != "*" and comp not in allowed_blocks:
-                    msg = f"Target Component '{comp}' does not exist in the context of Workflow '{workflow.slug}'."
+                    msg = f"Target Component '{comp}' does not exist in the context of Workflow '{workflow.id}'."
                     logger.error(
                         "[StudioOutputProfileService] %s: %s (Initiator: %s, Profile: %s)",
                         ErrorCodes.VALIDATION_FAILED.name,

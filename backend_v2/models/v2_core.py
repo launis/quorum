@@ -779,19 +779,19 @@ class Step(V2CoreBase):
         """
         if self.type == "llm":
             if not self.model_strategy:
-                msg = f"LLM Step '{self.slug}' must declare an explicit model_strategy (Zero-Fallback Rule)."
+                msg = f"LLM Step '{self.id}' must declare an explicit model_strategy (Zero-Fallback Rule)."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             if not self.criteria_block_ids:
-                msg = f"LLM Step '{self.slug}' must define at least one criteria_block_id."
+                msg = f"LLM Step '{self.id}' must define at least one criteria_block_id."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             if not self.extraction_protocol_block_id:
-                msg = f"LLM Step '{self.slug}' must define a valid extraction_protocol_block_id."
+                msg = f"LLM Step '{self.id}' must define a valid extraction_protocol_block_id."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
         if self.type == "logic" and not self.hook:
-            msg = f"Logic Step '{self.slug}' must define a native 'hook' execution target."
+            msg = f"Logic Step '{self.id}' must define a native 'hook' execution target."
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return self

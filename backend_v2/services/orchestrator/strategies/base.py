@@ -213,7 +213,7 @@ class NodeStrategy(ABC):
                 logger.warning(
                     "[NodeStrategy] Pre-hook '%s' returned success=False for step '%s'.",
                     pre_hook,
-                    step_obj.slug,
+                    step_obj.id,
                 )
 
         return hook_state, emitted_events
@@ -277,7 +277,7 @@ class NodeStrategy(ABC):
                 logger.warning(
                     "[NodeStrategy] Post-hook '%s' returned success=False for step '%s'.",
                     post_hook,
-                    step_obj.slug,
+                    step_obj.id,
                 )
 
         return hook_state, emitted_events

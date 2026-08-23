@@ -79,7 +79,7 @@ async def test_save_output_profile_fails_wrong_workflow_block(service: Any, mock
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="root")
 
     workflow = AsyncMock()
-    workflow.slug = "test_wf"
+    workflow.id = "wf_123"
     workflow.steps = []
 
     workflow.get_allowed_layout_targets = Mock(return_value={"blk_allowed"})
@@ -101,7 +101,7 @@ async def test_save_output_profile_fails_wrong_workflow_block(service: Any, mock
         await service.save_output_profile(initiator, profile.id, profile)
 
     assert exc_info.value.status_code == 400
-    assert "Target Component 'blk_wrong_workflow' does not exist in the context of Workflow 'test_wf'" in str(
+    assert "Target Component 'blk_wrong_workflow' does not exist in the context of Workflow 'wf_123'" in str(
         exc_info.value.message
     )
 
@@ -112,7 +112,7 @@ async def test_save_output_profile_fails_invalid_block(service: Any, mock_workfl
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="root")
 
     workflow = AsyncMock()
-    workflow.slug = "test_wf"
+    workflow.id = "wf_123"
     workflow.steps = []
 
     workflow.get_allowed_layout_targets = Mock(return_value={"blk_allowed"})
@@ -134,6 +134,6 @@ async def test_save_output_profile_fails_invalid_block(service: Any, mock_workfl
         await service.save_output_profile(initiator, profile.id, profile)
 
     assert exc_info.value.status_code == 400
-    assert "Target Component 'invalid_block_123' does not exist in the context of Workflow 'test_wf'" in str(
+    assert "Target Component 'invalid_block_123' does not exist in the context of Workflow 'wf_123'" in str(
         exc_info.value.message
     )
