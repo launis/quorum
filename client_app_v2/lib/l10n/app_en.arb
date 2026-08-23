@@ -2215,5 +2215,16 @@
         "type": "int"
       }
     }
-  }
+  },
+  "tdaConceptMinLengthError": "Concept description must be at least {min} characters long.",
+  "@tdaConceptMinLengthError": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "tdaAnchorTargetHelper": "Specific entity, keyword, or sentence to anchor on",
+  "tdaExtractionRuleHelper": "Condition that must hold true within the bounding box"
 }
+

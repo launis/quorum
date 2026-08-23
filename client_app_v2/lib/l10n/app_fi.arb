@@ -1522,5 +1522,8 @@
   "rowAiRuleHelper": "TÄYTYY olla englanniksi. Käytä komentosävyä.",
   "rowItemContentLabel": "Kohteen sisältö (Käyttöliittymä/PDF)",
   "rowItemContentSimpleLabel": "Kohteen sisältö",
-  "barsMatrixMoreAssertions": "+ {count} lisää"
+  "barsMatrixMoreAssertions": "+ {count} lisää",
+  "tdaConceptMinLengthError": "Käsitekuvauksen on oltava vähintään {min} merkkiä pitkä.",
+  "tdaAnchorTargetHelper": "Tietty entiteetti, avainsana tai lause, johon kiinnitytään",
+  "tdaExtractionRuleHelper": "Ehto, jonka on pädettävä rajausalueella"
 }

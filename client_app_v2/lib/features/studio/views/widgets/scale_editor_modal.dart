@@ -32,9 +32,15 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
     setState(() {
       final claims = List<MatrixClaim>.from(_editableScale.claims);
       claims.add(
-        const MatrixClaim(
-          label: I18nText(defaultLocale: 'en', translations: {'en': ''}),
-          aiDescription: 'CRITICAL MANDATE: ',
+        MatrixClaim(
+          label: const I18nText(defaultLocale: 'en', translations: {'en': ''}),
+          tdaAssertions: [
+            TDAAssertion.create(
+              conceptDescription: 'CRITICAL MANDATE: ',
+              inverseEvidence: false,
+              aggregationMode: AggregationMode.exists,
+            ),
+          ],
         ),
       );
       _editableScale = _editableScale.copyWith(claims: claims);
@@ -129,7 +135,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                 final claim = entry.value;
 
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 16.0),
+                  margin: AppSpacing.p16,
                   color: Theme.of(context).colorScheme.surface,
                   child: Padding(
                     padding: AppSpacing.p12,
@@ -156,34 +162,6 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                           ],
                         ),
                         AppSpacing.h8,
-                        TextFormField(
-                          initialValue: claim.aiDescription,
-                          decoration: InputDecoration(
-                            labelText: l10n.scaleClaimAiRuleLabel,
-                            helperText: l10n.scaleClaimAiRuleHelper,
-                            helperStyle: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            border: const OutlineInputBorder(),
-                            alignLabelWithHint: true,
-                          ),
-                          maxLines: 3,
-                          onChanged: (val) {
-                            setState(() {
-                              final newClaims = List<MatrixClaim>.from(
-                                _editableScale.claims,
-                              );
-                              newClaims[index] = claim.copyWith(
-                                aiDescription: val,
-                              );
-                              _editableScale = _editableScale.copyWith(
-                                claims: newClaims,
-                              );
-                            });
-                          },
-                        ),
-                        AppSpacing.h16,
                         I18nTextField(
                           label: l10n.scaleClaimTranslationLabel,
                           initialData: claim.label,
@@ -249,7 +227,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                           final tda = tdaEntry.value;
 
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
+                            margin: AppSpacing.p12,
                             color: Theme.of(
                               context,
                             ).colorScheme.surfaceContainerLow,
@@ -262,7 +240,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                               ),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(10.0),
+                              padding: AppSpacing.p8,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -367,6 +345,20 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                           ),
                                     ),
                                     maxLines: 2,
+                                    validator: (val) {
+                                      if (val == null ||
+                                          val.trim().length <
+                                              SystemUiConstraints
+                                                  .tdaConceptMinLength
+                                                  .value) {
+                                        return l10n.tdaConceptMinLengthError(
+                                          SystemUiConstraints
+                                              .tdaConceptMinLength
+                                              .value,
+                                        );
+                                      }
+                                      return null;
+                                    },
                                     onChanged: (newDesc) {
                                       setState(() {
                                         final newTdas = List<TDAAssertion>.from(
@@ -392,8 +384,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                     initialValue: tda.anchorTarget,
                                     decoration: InputDecoration(
                                       labelText: l10n.tdaAnchorTarget,
-                                      helperText:
-                                          'Specific entity, keyword, or sentence to anchor on',
+                                      helperText: l10n.tdaAnchorTargetHelper,
                                       border: const OutlineInputBorder(),
                                       contentPadding:
                                           const EdgeInsets.symmetric(
@@ -481,8 +472,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                     initialValue: tda.extractionRule,
                                     decoration: InputDecoration(
                                       labelText: l10n.tdaExtractionRule,
-                                      helperText:
-                                          'Condition that must hold true within the bounding box',
+                                      helperText: l10n.tdaExtractionRuleHelper,
                                       border: const OutlineInputBorder(),
                                       contentPadding:
                                           const EdgeInsets.symmetric(
@@ -688,7 +678,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       });
                                     },
                                   ),
-                                  const SizedBox(height: 10),
+                                  AppSpacing.h8,
                                   Row(
                                     children: [
                                       Expanded(
@@ -703,7 +693,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            const SizedBox(height: 2),
+                                            AppSpacing.h4,
                                             Text(
                                               l10n.scaleEnforcePreFlightDesc,
                                               style: TextStyle(

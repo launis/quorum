@@ -377,7 +377,8 @@ enum SystemUiConstraints {
   maxExtensionItemsSliderMin(1),
   maxExtensionItemsSliderMax(20),
   maxExtensionItemsAbsoluteMax(100),
-  maxExtensionItemsDefault(3);
+  maxExtensionItemsDefault(3),
+  tdaConceptMinLength(10);
 
   const SystemUiConstraints(this.value);
   final int value;

@@ -14,6 +14,7 @@ import 'package:client_app/features/studio/views/components/bars_matrix_builder.
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/models/prompt_block_category.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -1176,21 +1177,28 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         onPressed: () async {
                           final result = await showDialog<MatrixScale>(
                             context: context,
-                            builder: (ctx) => const ScaleEditorModal(
+                            builder: (ctx) => ScaleEditorModal(
                               initialScale: MatrixScale(
                                 score: 1,
                                 aiLabel: '1',
-                                name: I18nText(
+                                name: const I18nText(
                                   defaultLocale: 'en',
                                   translations: {'en': ''},
                                 ),
                                 claims: [
                                   MatrixClaim(
-                                    aiDescription: '',
-                                    label: I18nText(
+                                    label: const I18nText(
                                       defaultLocale: 'en',
                                       translations: {'en': ''},
                                     ),
+                                    tdaAssertions: [
+                                      TDAAssertion.create(
+                                        conceptDescription:
+                                            'CRITICAL MANDATE: ',
+                                        inverseEvidence: false,
+                                        aggregationMode: AggregationMode.exists,
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

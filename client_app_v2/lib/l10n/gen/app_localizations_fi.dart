@@ -4344,4 +4344,17 @@ class AppLocalizationsFi extends AppLocalizations {
   String barsMatrixMoreAssertions(int count) {
     return '+ $count lisää';
   }
+
+  @override
+  String tdaConceptMinLengthError(int min) {
+    return 'Käsitekuvauksen on oltava vähintään $min merkkiä pitkä.';
+  }
+
+  @override
+  String get tdaAnchorTargetHelper =>
+      'Tietty entiteetti, avainsana tai lause, johon kiinnitytään';
+
+  @override
+  String get tdaExtractionRuleHelper =>
+      'Ehto, jonka on pädettävä rajausalueella';
 }

@@ -19,19 +19,18 @@ void main() {
           name: I18nText(defaultLocale: 'en', translations: {'en': 'Terrible'}),
           claims: [
             MatrixClaim(
-              label: I18nText(
+              label: const I18nText(
                 defaultLocale: 'en',
                 translations: {'en': 'Claim 1'},
               ),
-              aiDescription: 'AI Rule 1',
               tdaAssertions: [
-                TDAAssertion(
+                const TDAAssertion(
                   tdaId: 'tda_1',
                   conceptDescription: 'Atom 1 Rule',
                   inverseEvidence: false,
                   aggregationMode: AggregationMode.exists,
                 ),
-                TDAAssertion(
+                const TDAAssertion(
                   tdaId: 'tda_2',
                   conceptDescription: 'Atom 2 Rule',
                   inverseEvidence: true,
@@ -72,6 +71,7 @@ void main() {
       expect(find.textContaining('1 - Terrible'), findsOneWidget);
       expect(find.textContaining('5 - Excellent'), findsOneWidget);
       expect(find.text('AI: LOW'), findsOneWidget);
+      expect(find.text('Atom 1 Rule'), findsWidgets);
       expect(
         find.textContaining('Atom'),
         findsWidgets,

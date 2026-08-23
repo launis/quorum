@@ -239,41 +239,29 @@ const _$EvaluationTrackEnumMap = {
   EvaluationTrack.cognitiveJudgement: 'COGNITIVE_JUDGEMENT',
 };
 
-_MatrixClaim _$MatrixClaimFromJson(Map<String, dynamic> json) => $checkedCreate(
-  '_MatrixClaim',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      allowedKeys: const ['label', 'ai_description', 'tda_assertions'],
-    );
-    final val = _MatrixClaim(
-      label: $checkedConvert(
-        'label',
-        (v) => I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      aiDescription: $checkedConvert('ai_description', (v) => v as String),
-      tdaAssertions: $checkedConvert(
-        'tda_assertions',
-        (v) =>
-            (v as List<dynamic>?)
-                ?.map((e) => TDAAssertion.fromJson(e as Map<String, dynamic>))
-                .toList() ??
-            const [],
-      ),
-    );
-    return val;
-  },
-  fieldKeyMap: const {
-    'aiDescription': 'ai_description',
-    'tdaAssertions': 'tda_assertions',
-  },
-);
+_MatrixClaim _$MatrixClaimFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('_MatrixClaim', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['label', 'tda_assertions']);
+      final val = _MatrixClaim(
+        label: $checkedConvert(
+          'label',
+          (v) => I18nText.fromJson(v as Map<String, dynamic>),
+        ),
+        tdaAssertions: $checkedConvert(
+          'tda_assertions',
+          (v) =>
+              (v as List<dynamic>?)
+                  ?.map((e) => TDAAssertion.fromJson(e as Map<String, dynamic>))
+                  .toList() ??
+              const [],
+        ),
+      );
+      return val;
+    }, fieldKeyMap: const {'tdaAssertions': 'tda_assertions'});
 
 Map<String, dynamic> _$MatrixClaimToJson(_MatrixClaim instance) =>
     <String, dynamic>{
       'label': instance.label.toJson(),
-      'ai_description': instance.aiDescription,
       'tda_assertions': instance.tdaAssertions.map((e) => e.toJson()).toList(),
     };
 

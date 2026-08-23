@@ -122,7 +122,7 @@ abstract class TDAAssertion with _$TDAAssertion {
   factory TDAAssertion.fromJson(Map<String, dynamic> json) =>
       _$TDAAssertionFromJson(json);
 
-  /// Phase 2: Generates an Opaque Stripe ID automatically
+  /// Generates an Opaque Stripe ID automatically with 32 hex chars
   factory TDAAssertion.create({
     required String conceptDescription,
     required bool inverseEvidence,
@@ -133,7 +133,7 @@ abstract class TDAAssertion with _$TDAAssertion {
   }) {
     final uuidHex = const Uuid().v4().replaceAll('-', '');
     return TDAAssertion(
-      tdaId: 'tda_${uuidHex.substring(0, 16)}',
+      tdaId: 'tda_$uuidHex',
       conceptDescription: conceptDescription,
       inverseEvidence: inverseEvidence,
       aggregationMode: aggregationMode,
@@ -154,7 +154,6 @@ abstract class MatrixClaim with _$MatrixClaim {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory MatrixClaim({
     required I18nText label,
-    required String aiDescription,
     @JsonKey(name: 'tda_assertions')
     @Default([])
     List<TDAAssertion> tdaAssertions,

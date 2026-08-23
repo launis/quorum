@@ -1089,7 +1089,7 @@ as String?,
 /// @nodoc
 mixin _$MatrixClaim {
 
- I18nText get label; String get aiDescription;@JsonKey(name: 'tda_assertions') List<TDAAssertion> get tdaAssertions;
+ I18nText get label;@JsonKey(name: 'tda_assertions') List<TDAAssertion> get tdaAssertions;
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1104,7 +1104,7 @@ $MatrixClaimCopyWith<MatrixClaim> get copyWith => _$MatrixClaimCopyWithImpl<Matr
 
 @override
 String toString() {
-  return 'MatrixClaim(label: $label, aiDescription: $aiDescription, tdaAssertions: $tdaAssertions)';
+  return 'MatrixClaim(label: $label, tdaAssertions: $tdaAssertions)';
 }
 
 
@@ -1115,7 +1115,7 @@ abstract mixin class $MatrixClaimCopyWith<$Res>  {
   factory $MatrixClaimCopyWith(MatrixClaim value, $Res Function(MatrixClaim) _then) = _$MatrixClaimCopyWithImpl;
 @useResult
 $Res call({
- I18nText label, String aiDescription,@JsonKey(name: 'tda_assertions') List<TDAAssertion> tdaAssertions
+ I18nText label,@JsonKey(name: 'tda_assertions') List<TDAAssertion> tdaAssertions
 });
 
 
@@ -1132,11 +1132,10 @@ class _$MatrixClaimCopyWithImpl<$Res>
 
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? label = null,Object? aiDescription = null,Object? tdaAssertions = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? label = null,Object? tdaAssertions = null,}) {
   return _then(_self.copyWith(
 label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: null == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String,tdaAssertions: null == tdaAssertions ? _self.tdaAssertions : tdaAssertions // ignore: cast_nullable_to_non_nullable
+as I18nText,tdaAssertions: null == tdaAssertions ? _self.tdaAssertions : tdaAssertions // ignore: cast_nullable_to_non_nullable
 as List<TDAAssertion>,
   ));
 }
@@ -1231,10 +1230,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription, @JsonKey(name: 'tda_assertions')  List<TDAAssertion> tdaAssertions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText label, @JsonKey(name: 'tda_assertions')  List<TDAAssertion> tdaAssertions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MatrixClaim() when $default != null:
-return $default(_that.label,_that.aiDescription,_that.tdaAssertions);case _:
+return $default(_that.label,_that.tdaAssertions);case _:
   return orElse();
 
 }
@@ -1252,10 +1251,10 @@ return $default(_that.label,_that.aiDescription,_that.tdaAssertions);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription, @JsonKey(name: 'tda_assertions')  List<TDAAssertion> tdaAssertions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText label, @JsonKey(name: 'tda_assertions')  List<TDAAssertion> tdaAssertions)  $default,) {final _that = this;
 switch (_that) {
 case _MatrixClaim():
-return $default(_that.label,_that.aiDescription,_that.tdaAssertions);case _:
+return $default(_that.label,_that.tdaAssertions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1272,10 +1271,10 @@ return $default(_that.label,_that.aiDescription,_that.tdaAssertions);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText label,  String aiDescription, @JsonKey(name: 'tda_assertions')  List<TDAAssertion> tdaAssertions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText label, @JsonKey(name: 'tda_assertions')  List<TDAAssertion> tdaAssertions)?  $default,) {final _that = this;
 switch (_that) {
 case _MatrixClaim() when $default != null:
-return $default(_that.label,_that.aiDescription,_that.tdaAssertions);case _:
+return $default(_that.label,_that.tdaAssertions);case _:
   return null;
 
 }
@@ -1287,11 +1286,10 @@ return $default(_that.label,_that.aiDescription,_that.tdaAssertions);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _MatrixClaim extends MatrixClaim {
-  const _MatrixClaim({required this.label, required this.aiDescription, @JsonKey(name: 'tda_assertions') final  List<TDAAssertion> tdaAssertions = const []}): _tdaAssertions = tdaAssertions,super._();
+  const _MatrixClaim({required this.label, @JsonKey(name: 'tda_assertions') final  List<TDAAssertion> tdaAssertions = const []}): _tdaAssertions = tdaAssertions,super._();
   factory _MatrixClaim.fromJson(Map<String, dynamic> json) => _$MatrixClaimFromJson(json);
 
 @override final  I18nText label;
-@override final  String aiDescription;
  final  List<TDAAssertion> _tdaAssertions;
 @override@JsonKey(name: 'tda_assertions') List<TDAAssertion> get tdaAssertions {
   if (_tdaAssertions is EqualUnmodifiableListView) return _tdaAssertions;
@@ -1315,7 +1313,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'MatrixClaim(label: $label, aiDescription: $aiDescription, tdaAssertions: $tdaAssertions)';
+  return 'MatrixClaim(label: $label, tdaAssertions: $tdaAssertions)';
 }
 
 
@@ -1326,7 +1324,7 @@ abstract mixin class _$MatrixClaimCopyWith<$Res> implements $MatrixClaimCopyWith
   factory _$MatrixClaimCopyWith(_MatrixClaim value, $Res Function(_MatrixClaim) _then) = __$MatrixClaimCopyWithImpl;
 @override @useResult
 $Res call({
- I18nText label, String aiDescription,@JsonKey(name: 'tda_assertions') List<TDAAssertion> tdaAssertions
+ I18nText label,@JsonKey(name: 'tda_assertions') List<TDAAssertion> tdaAssertions
 });
 
 
@@ -1343,11 +1341,10 @@ class __$MatrixClaimCopyWithImpl<$Res>
 
 /// Create a copy of MatrixClaim
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? label = null,Object? aiDescription = null,Object? tdaAssertions = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? label = null,Object? tdaAssertions = null,}) {
   return _then(_MatrixClaim(
 label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: null == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String,tdaAssertions: null == tdaAssertions ? _self._tdaAssertions : tdaAssertions // ignore: cast_nullable_to_non_nullable
+as I18nText,tdaAssertions: null == tdaAssertions ? _self._tdaAssertions : tdaAssertions // ignore: cast_nullable_to_non_nullable
 as List<TDAAssertion>,
   ));
 }

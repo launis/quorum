@@ -173,20 +173,20 @@ class BarsMatrixBuilder extends StatelessWidget {
                           maxLines: 4,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        AppSpacing.h4,
-                        Text(
-                          claim.aiDescription,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                            fontStyle: FontStyle.italic,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
                         if (claim.tdaAssertions.isNotEmpty) ...[
+                          AppSpacing.h4,
+                          Text(
+                            claim.tdaAssertions.first.conceptDescription,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           AppSpacing.h4,
                           Wrap(
                             spacing: 4,

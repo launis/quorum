@@ -7811,6 +7811,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'+ {count} more'**
   String barsMatrixMoreAssertions(int count);
+
+  /// No description provided for @tdaConceptMinLengthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Concept description must be at least {min} characters long.'**
+  String tdaConceptMinLengthError(int min);
+
+  /// No description provided for @tdaAnchorTargetHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Specific entity, keyword, or sentence to anchor on'**
+  String get tdaAnchorTargetHelper;
+
+  /// No description provided for @tdaExtractionRuleHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition that must hold true within the bounding box'**
+  String get tdaExtractionRuleHelper;
 }
 
 class _AppLocalizationsDelegate

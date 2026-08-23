@@ -4311,4 +4311,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String barsMatrixMoreAssertions(int count) {
     return '+ $count more';
   }
+
+  @override
+  String tdaConceptMinLengthError(int min) {
+    return 'Concept description must be at least $min characters long.';
+  }
+
+  @override
+  String get tdaAnchorTargetHelper =>
+      'Specific entity, keyword, or sentence to anchor on';
+
+  @override
+  String get tdaExtractionRuleHelper =>
+      'Condition that must hold true within the bounding box';
 }

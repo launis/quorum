@@ -87,7 +87,7 @@
   - [x] Step 2: Prompt Builders & Hooks Verification — Verify atom_flattening.py concept_description usage and enforce Fail-Fast validation on empty assertion.question in matrix_sensor_prompt_builder.py
   - [x] Step 3: Test Fixture Harmonization & AST Guardrail Activation — Atomically modernize mock claim fixtures across 24 backend test files, un-skip 3 AST guardrail tests, and add empty question anti-happy-path test
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\04_placeholder_phase3_backend_domain_and_service_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\04_placeholder_phase3_backend_domain_and_service_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
 
 ---
 
@@ -95,13 +95,15 @@
 
 **Plan:** @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md]
 
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check — Verify enums.dart and prompt_block.dart baseline state
-  - [ ] Step 1: Centralized Enums & Freezed Models Update — Add SystemUiConstraints.tdaConceptMinLength(10), remove aiDescription from MatrixClaim Freezed model, enforce 32 hex char tdaId format, and run code generation
-  - [ ] Step 2: Studio Views Alignment & Modal Hygiene — Align scale editor modal, row editor modal, BARS matrix builder, and prompt block builder view with updated models
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check — Verify backend models baseline and prompt_block.dart
+  - [x] Step 1: Pre-Implementation Technical Debt Cleanups & ARB Localization Setup — Add tdaConceptMinLengthError, helper texts to ARB, compile l10n, and clean magic numbers with AppSpacing
+  - [x] Step 2: Centralized Enums & Freezed Models Update — Add SystemUiConstraints.tdaConceptMinLength(10), remove aiDescription from MatrixClaim, enforce 32 hex char tdaId format, and run code generation
+  - [x] Step 3: Studio Views Alignment & Modal Modernization — Align scale editor modal, row editor modal, BARS matrix builder, and prompt block builder view with updated models
+  - [x] Step 4: Unit Test Modernization & ISTQB Negative Partition Coverage — Modernize bars_matrix_builder_test.dart, establish matrix_claim_test.dart, and run domain parity gate
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
 
 ---
 
@@ -345,7 +347,7 @@
   - Un-skipped and passed AST guardrail seed tests `test_seed_claims_have_no_ai_description` and `test_seed_claims_all_tda_assertions_have_valid_concept_description` in `backend_v2/tests/unit/test_ast_matrix_claim_guardrails.py`.
   - Verified JSON schema integrity of `seed_data.json`.
   - Executed and PASSED `/tier8-audit-plan` for Phase 2 with full verification matrix and audit artifact generated (`red_team_audit_03_phase2_seed_data_verification_and_reseed.md`).
-- **Phase 3 Plan (`04_placeholder_phase3_backend_domain_and_service_harmonization.md`) Complete & Verified**:
+- **Phase 3 Plan (`04_placeholder_phase3_backend_domain_and_service_harmonization.md`) Complete & Audited**:
   - Defined `tda_concept_min_length: 10` in `backend_v2/settings.py`.
   - Updated `TDAAssertion.concept_description` with `Annotated[str, StringConstraints(strip_whitespace=True, min_length=10)]` in `backend_v2/models/v2_core.py`.
   - Permanently deleted `ai_description: str` from `MatrixClaim` in `backend_v2/models/v2_core.py`, retaining `label` and `tda_assertions` as the sole assertion container.
@@ -356,45 +358,52 @@
   - Systematically modernized mock claim fixtures and concept descriptions across all 24 backend test files across Batches 1, 2a, and 2b.
   - Cleaned unused `# type: ignore` comments in `backend_v2/worker.py` and updated exception assertions in `backend_v2/tests/unit/models/test_v2_core.py`.
   - Verified Quality Gates: `backend_audit_loop.py` passed with 100% strict typing and test coverage on modified targets; all 1,824 backend unit tests passing; `flutter_audit_loop.py client_app_v2` passed cleanly.
+  - Executed and PASSED `/tier8-audit-plan` for Phase 3 with full verification matrix and audit artifact generated (`red_team_audit_04_placeholder_phase3_backend_domain_and_service_harmonization.md`).
+- **Phase 4 Plan (`05_placeholder_phase4_flutter_studio_client_harmonization.md`) Complete & Audited**:
+  - Added `tdaConceptMinLength(10)` to `SystemUiConstraints` in `client_app_v2/lib/core/models/enums.dart`.
+  - Permanently eradicated `aiDescription` from `MatrixClaim` in `client_app_v2/lib/features/studio/models/prompt_block.dart`, restoring 1:1 parity with backend `v2_core.py`.
+  - Updated `TDAAssertion.create` to produce 32 hex char IDs (`tda_$uuidHex`), establishing exact parity with backend regex `^tda_[a-f0-9]{32}$`.
+  - Added ARB localization keys `tdaConceptMinLengthError`, `tdaAnchorTargetHelper`, and `tdaExtractionRuleHelper` to `app_en.arb` and `app_fi.arb`, and compiled via `flutter gen-l10n`.
+  - Replaced legacy spacing magic numbers with `AppSpacing` design tokens in `scale_editor_modal.dart`.
+  - Aligned `ScaleEditorModal`: updated `_addClaim()` to instantiate `MatrixClaim` with `TDAAssertion.create`, eradicated `claim.aiDescription` text field, added validator enforcing `SystemUiConstraints.tdaConceptMinLength.value`, and connected localized helpers.
+  - Aligned `BarsMatrixBuilder`: rendered `claim.tdaAssertions.first.conceptDescription` in place of `claim.aiDescription`.
+  - Aligned `PromptBlockBuilderView`: updated `ScaleEditorModal` initial scale to instantiate valid `TDAAssertion.create` and imported `enums.dart`.
+  - Modernized `bars_matrix_builder_test.dart` fixture removing `aiDescription` and adding explicit assertion for `Atom 1 Rule`.
+  - Created comprehensive unit test suite in `client_app_v2/test/models/matrix_claim_test.dart` covering regex matching, deserialization, `CheckedFromJsonException` on legacy `ai_description` (strict mode), ISTQB boundary value analysis (9 vs 10 chars), and missing required field errors.
+  - Verified Quality Gates: `flutter_audit_loop.py client_app_v2 --build` passed cleanly with 0 analyzer issues and build runner outputs, `matrix_claim_test.dart` passed (6/6 tests), `bars_matrix_builder_test.dart` passed, and `domain_parity_test.dart` passed (3/3 tests against all 152 prompt blocks in `seed_data.json`).
+  - Executed and PASSED `/tier8-audit-plan` for Phase 4 with full verification matrix and audit artifact generated (`red_team_audit_phase4_flutter_studio_client_harmonization.md`).
 
 ## Learned
 - **Pydantic V2 Strictness & extra='forbid' on Domain Models**:
   - Eradicating `ai_description` from `MatrixClaim` immediately surfaces all test files attempting to instantiate legacy claim fields with `ValidationError: Extra inputs are not permitted [extra_forbidden]`.
   - Enforcing `StringConstraints(min_length=10)` on `TDAAssertion.concept_description` prevents abbreviated placeholder text like `"Concept"` or `"Claim"` from slipping through test fixtures or ingestion pipelines.
+- **AST Guardrail Testing Automation**:
+  - Static AST inspection (`test_ast_matrix_claim_guardrails.py`) provides an ironclad automated boundary proving 0 legacy fields exist in domain models without relying on runtime instantiation.
 - **Pydantic Exception Translation Parity**:
   - When translating validation error strings in Pydantic `@model_validator`s (e.g. from Finnish to English), any unit test checking error messages via `pytest.raises(ValueError, match=...)` must simultaneously be updated to assert against the English regex pattern.
 - **Seed Data Migration & Single Source of Truth**:
   - `MatrixClaim` and `TDAAssertion` definitions inside `prompt_blocks` reside within `scales[].claims[]` arrays (not at the top-level block body).
   - Copying `claim.ai_description` to `tda.concept_description` and eradicating `claim.ai_description` establishes `TDAAssertion.concept_description` as the sole SSOT without altering qualitative coaching text (`prompt_preservation_mandate`).
   - Database re-seeding via `run_seed.py local` will execute immediately upon updating `MatrixClaim` in `v2_core.py`, since Pydantic V2 strictly enforces schema alignment during seeding.
-- **Cross-Layer Freezed Model Synchronization**:
-  - Freezed models in Dart enforce strict non-null required parameters (e.g. `required String aiDescription`). Frontend test fixtures must not remove required arguments before the Dart model Freezed code generator (`build_runner`) runs in Phase 4.
-- **Seed Vault Mutation Protocol (`03_seed_vault.md`)**:
-  - Always enforce pre-mutation backup in `backend_v2/seed/backups/` before modifying `seed_data.json`.
-  - Never edit `db_v2.json` directly; always perform clean-slate seeding via `uv run python backend_v2/seed/run_seed.py local`.
-- **GoRouter Deep Linking Invariant (`go_router_extra_ban`)**:
-  - Passing `$extra` map/objects into routes causes deep linking failures and stale state on reload.
-  - Modifying `StepEditRoute` from parameterless path with `$extra` to `TypedGoRoute<StepEditRoute>(path: 'step/edit/:id')` ensures target views pull pristine state from Riverpod providers natively.
-- **TDA Assertion Instantiation SSOT**:
-  - TDA assertion creation across modals must strictly route through `TDAAssertion.create()` rather than ad-hoc string formatting, preserving deterministic 32-char UUID hex IDs.
-- **Fail-Fast Frontend Localization (`no_magic_strings_l10n`, `strict_translation_fallback_mandate`)**:
-  - Translation chains (`?? 'fi' ?? 'en' ?? id`) hide missing localization data in production. Replacing them with localized active locale -> English fallback -> `AppException.validation` guarantees deterministic rendering.
+- **Cross-Layer Freezed Model Synchronization & Client Firewall (`sdui_contract_fracture_prevention`, `disallowUnrecognizedKeys`)**:
+  - Freezed models in Dart enforce strict non-null required parameters and `disallowUnrecognizedKeys: true`.
+  - Removing `aiDescription` from Dart `MatrixClaim` restores 1:1 cross-language serialization parity with backend `v2_core.py`, preventing client white-screen crashes.
+- **TDA Assertion Instantiation & Regex Parity (`atom_aliasing_hydration_mandate`)**:
+  - `TDAAssertion.create` factory in Dart previously truncated UUIDs to 16 hex chars (`tda_${uuidHex.substring(0, 16)}`).
+  - Updating `tdaId` to `tda_$uuidHex` (32 hex chars) establishes exact 1:1 parity with backend regex `^tda_[a-f0-9]{32}$`.
+- **UI Form Validation & Localization (`no_magic_strings_l10n`)**:
+  - All form validation error messages must be strictly localized via `.arb` runtime dictionaries (`l10n.tdaConceptMinLengthError(min)`), completely preventing hardcoded strings in widget logic.
 - **Design Token Invariant (`design_token_absolute_rule`)**:
   - Using hardcoded colors or spacing doubles degrades desktop multi-resolution rendering; all UI surfaces must consume `Theme.of(context).colorScheme` and `AppSpacing` tokens.
 
 ## Remaining
-- **Phase 3: Backend Domain & Service Harmonization (and Test Fixtures Harmonization)**:
-  - Audit Phase 3: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\04_placeholder_phase3_backend_domain_and_service_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
-- **Phase 4: Flutter Studio Client Harmonization**:
-  - Red-Team Phase 4 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
-  - Execute Phase 4: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
-  - Audit Phase 4: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\05_placeholder_phase4_flutter_studio_client_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
-- **Phases 6 through 11**:
-  - Phase 6 (Layer 1 Global Mandates & Compiler) -> Phase 7 (Polymorphic AnyPromptBlock Discriminated Union) -> Phase 8 (Clean Stack Compiler) -> Phase 9 (Flutter Zero-XML UI) -> Phase 10 (Seed Vault Pruning & Reseed) -> Phase 11 (Live LLM E2E Gate & Knowledge Sync).
+- **Phase 6: Layer 1 Global Mandates Injection & Compiler Foundation**:
+  - [ ] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md] --phase=6`
+  - [ ] Red-Team Phase 6 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [ ] Execute Phase 6: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [ ] Audit Phase 6: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+- **Phases 7 through 11**:
+  - Phase 7 (Polymorphic AnyPromptBlock Discriminated Union) -> Phase 8 (Clean Stack Compiler) -> Phase 9 (Flutter Zero-XML UI) -> Phase 10 (Seed Vault Pruning & Reseed) -> Phase 11 (Live LLM E2E Gate & Knowledge Sync).
 
 ## Resume Command
-`/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\04_placeholder_phase3_backend_domain_and_service_harmonization.md] @[docs\epic\EPIC_146_tracker.md]`
-
-
-
-
+`/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md] --phase=6`
