@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.models.v2_core import XaiHighlightItem
 from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: F403, F401
@@ -1704,12 +1705,14 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
 
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
         [
-            OutputProfile(
+            OutputProfile.model_construct(
                 id="prf_dddd1111dddd1111",
                 slug="default",
                 workflow_id="wf_1234abcd1234abcd",
                 name=I18nText(default_locale="en", translations={"en": "Default"}),
                 display_scale=DisplayScale.CUSTOM,
+                custom_scale_min=None,
+                custom_scale_max=None,
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
                 metric_mappings={},
                 layouts=[
@@ -1736,11 +1739,10 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
         system_repo=mock_repo_transformer,
     )
 
-    with pytest.raises(AppException) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         await transformer.build_report_dto("exe_0000000000000099")
 
-    assert "UI bounds missing for PromptBlock 'blk_0000000000000002' under custom scale." in str(exc_info.value)
-    assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"
+    assert "custom_scale_min and custom_scale_max are required when display_scale is CUSTOM" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -1840,6 +1842,8 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         workflow_id="wf_1111111111111111",
         name=I18nText(default_locale="en", translations={"en": "test"}),
         display_scale=DisplayScale.CUSTOM,
+        custom_scale_min=1.0,
+        custom_scale_max=5.0,
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         layouts=[
             OutputLayoutBlock(
@@ -2842,10 +2846,10 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         name=I18nText(default_locale="en", translations={"en": "Report", "fi": "Talousraportti"}),
         description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Kuvaus"}),
         target_block_order=[
-            TargetBlockType.METADATA_BLOCK.value,
-            TargetBlockType.MATRIX_GRAPHS_BLOCK.value,
-            TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK.value,
-            TargetBlockType.GLOBAL_SCORE_BLOCK.value,
+            TargetBlockType.METADATA_BLOCK,
+            TargetBlockType.MATRIX_GRAPHS_BLOCK,
+            TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
+            TargetBlockType.GLOBAL_SCORE_BLOCK,
         ],
         content_blocks=[],
         layouts=[],
