@@ -31,6 +31,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Foundational pipeline steps and synthesis context boundaries must be declaratively governed within the ontology rather than assumed by ad-hoc runtime code.
 - **Enforcement:** Foundational pipeline step definitions (such as raw document ingestion, scoring, holistic synthesis, and forensic XAI reporting) declare explicit system core protections (`is_system_core: true`). The system enforces immutable protection against deletion or unauthorized schema mutations on protected core resources. Furthermore, step rules declare explicit synthesis source flags (`is_synthesis_source`), enabling deterministic context boundary governance between upstream document extraction and downstream synthesis distillation.
 
+### 2.7. The Epistemic Separation Paradigm (TheoryGrounding SSOT)
+- **Law:** Bibliographic references and provenance metadata must be strictly decoupled from operational prompting instructions.
+- **Enforcement:** `PromptBlock.theory_grounding` (`TheoryGrounding`) is the sole Single Source of Truth for citation references (`citation_reference`) and target URLs (`source_url`). `PromptBlock.ai_description` is strictly reserved for operational prompts (`OBJECTIVE:`, `ROLE:`, `MANDATE:`). Standardizing this structure eliminates semantic drift, prevents duplicate persistence of academic citations, and ensures that presentation layers and PDF reports consume clean, structured metadata without brittle string scraping.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

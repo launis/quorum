@@ -136,33 +136,45 @@ ARMA International. 'Generally Accepted Recordkeeping Principles (The Principles
 
 ---
 
-### 2.3 Suositeltu tavoitearkkitehtuuri
+### 2.3 Suositeltu tavoitearkkitehtuuri: Episteeminen eriyttämisparadigma (Epistemic Separation Paradigm)
 
 ```
 +-----------------------------------------------------------------------------------+
 | 1. TIETOMALLIN TYÖNJAON SELKEYTYS (seed_data.json)                                |
 |    - ai_description: Sisältää VAIN tavoitteen ja arviointilogiikan (OBJECTIVE:)  |
-|    - theory_grounding: Ainoa virallinen totuuden lähde lähdeviitteelle           |
+|    - theory_grounding: Ainoa virallinen totuuden lähde lähdeviitteelle (SSOT)    |
 +-----------------------------------------------------------------------------------+
                                           |
                                           v
 +-----------------------------------------------------------------------------------+
-| 2. PROMPT-KOKOAJAN SIISTIMINEN (matrix_sensor_prompt_builder.py)                 |
-|    - Injektoidaan siisti semanttinen XML-lohko raa'an JSON-dumpin sijaan:         |
-|      <theory_context source="https://...">                                        |
-|        ARMA International. (2014). Generally Accepted Recordkeeping Principles.   |
-|      </theory_context>                                                            |
+| 2. LLM-KEHOTTEIDEN KOKOOJA (Prompt Builder)                                       |
+|    - Standardikehotteet (system_rule, agent_role, task_definition):              |
+|      -> Syötetään VAIN ai_description (ei bibliografista kohinaa tai URL-linkkejä)|
+|    - Matriisikehotteet (category_id: "matrix"):                                   |
+|      -> Injektoidaan siisti semanttinen XML-tekstiviite ilman URL-tokenikuormaa: |
+|         <theory_context>                                                          |
+|           ARMA International. (2014). Generally Accepted Recordkeeping Principles.|
+|         </theory_context>                                                         |
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+| 3. ESITYSKERROS (Flutter UI & PDF-raportit)                                       |
+|    - source_url & citation_reference luetaan TheoryGrounding-oliosta              |
+|    - Tarjoaa klikattavat hyperlinkit selaimessa ja virallisen lähdeluettelon      |
 +-----------------------------------------------------------------------------------+
 ```
 
 ### 2.4 Konkreettiset toimenpiteet toteutettaessa (Backlog)
 
 1. **Prompt-kokoaja ([`backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py`](file:///c:/src/quorum/backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py)):**
-   * Korvataan `theory_grounding.model_dump_json()` semanttisella muotoilulla: `<theory_context source="...">...</theory_context>`.
+   * Korvataan `theory_grounding.model_dump_json()` puhtaalla semanttisella tekstiviitemuotoilulla: `<theory_context>\n{citation_reference}\n</theory_context>`. URL-osoite (`source_url`) jätetään LLM-kehotteesta pois ja varataan esityskerrokselle.
 2. **Seed Vault ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)):**
-   * Siivotaan `EPISTEMIC ANCHOR:` -tekstit pois kaikkien 13 matriisin `ai_description`-kentistä Luvun 6 atomaarisen skriptin avulla, jolloin `ai_description` sisältää vain `OBJECTIVE:`-osion ja `theory_grounding` hoitaa ankkuroinnin.
+   * Siivotaan `EPISTEMIC ANCHOR:` -tekstit pois kaikkien 13 matriisin `ai_description`-kentistä Luvun 6 atomaarisen skriptin avulla, jolloin `ai_description` sisältää vain `OBJECTIVE:`-osion ja `theory_grounding` toimii SSOT-viitteenä.
 3. **Prompt- ja sensori-yksikkötestit:**
-   * Päivitetään [`test_prompt_factory.py`](file:///c:/src/quorum/backend_v2/tests/unit/services/orchestrator/strategies/llm_execution/test_prompt_factory.py) assertoimaan puhdasta `<theory_context>` -XML-rakennetta raa'an JSON-merkkijonon sijasta.
+   * Päivitetään yksikkötestit ([`test_matrix_sensor_prompt_builder.py`](file:///c:/src/quorum/backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py)) assertoimaan puhdasta `<theory_context>` -XML-rakennetta raa'an JSON-merkkijonon tai URL-injektioiden sijasta.
+4. **AST- ja skeema-guardrailit:**
+   * Luodaan `test_ast_theory_grounding_guardrails.py` estämään `EPISTEMIC ANCHOR:` -duplikaattien synty ja varmistamaan, ettei `model_dump_json()` -kutsuja päädy kehotteisiin.
 
 ---
 

@@ -124,8 +124,8 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       <action name="CONTEXT RULES &amp; KI COVERAGE AUDIT">You MUST perform a deterministic Context Rules &amp; KI Coverage Audit on the Epic:
         1. Locate Section `## 5. Required Context &amp; Governance (Rules &amp; KI Registry)`.
         2. Ensure `&lt;required_context_rules&gt;` contains all domain-relevant `.agents/rules/` files wrapped in `&lt;rule&gt;@[.agents/rules/...]&lt;/rule&gt;`.
-        3. Cross-reference `&lt;required_knowledge_items&gt;` against the injected KI summaries. If any KI whose domain clearly overlaps with the Epic's scope is MISSING from the block, ADD it via `multi_replace_file_content` using the `&lt;ki&gt;@[ki_filename.md]&lt;/ki&gt;` format.
-        4. Log the audit result: "Context &amp; KI Coverage Audit: {N} Rules verified, {M} KIs verified."</action>
+        3. Cross-reference `<required_context_rules>` against the injected KI summaries. If any KI whose domain clearly overlaps with the Epic's scope is MISSING from the block, ADD it via `multi_replace_file_content` using the `<knowledge_item>@[ki_filename.md]</knowledge_item>` format.
+        4. Log the audit result: "Context & KI Coverage Audit: {N} Rules verified, {M} KIs verified."</action>
     </step>
 
     <step id="4" name="AMBIGUITY RESOLUTION">

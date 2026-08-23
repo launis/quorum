@@ -47,9 +47,9 @@ Furthermore, a second critical disconnection was discovered during the Tier 8 au
 > **Hook-based Pre-Engine Integration & Pipeline Reconnection**, adhering strictly to Tripartite Pipeline and 3-Zone Workflow Governance:
 
 1. **Pre-Hook Phase**: `source_verification_hook` runs as a pre-hook on Faktantarkistaja/Falsifier steps. It extracts claims from the step's input context (including `prior_analysis`) and dispatches searches via `ToolDispatcher` -> `TavilyTool`.
-2. **Evidence Injection (Pure Prompt Architecture)**: The hook returns evidence XML in `state_delta["global_context_vars"]["external_evidence"]`. `PromptFactory.build()` takes `llm_context_data` containing `global_context_vars` and places `<external_evidence>` deterministically inside `<source_data>` in `user_payload`. `PromptPayload` remains completely immutable (`@dataclass(frozen=True)`), eliminating raw string concatenation in `llm.py`.
+2. **Evidence Injection (Pure Prompt Architecture)**: The hook returns evidence XML in `state_delta["global_context_vars"]["external_evidence"]`. `PromptFactory.build()` takes `global_context_vars` as an explicit direct parameter (without any `PromptCompiler.compile()` proxy indirection) and places `<external_evidence>` deterministically inside `<source_data>` in `user_payload`, truncated to `settings.source_evidence_max_chars`. `PromptPayload` remains completely immutable (`@dataclass(frozen=True)`), eliminating raw string concatenation in `llm.py`.
 3. **Audit Persistence**: `MCPAuditTrace` objects are written to `state_delta["metadata"]["mcp_audit_traces"]`.
-4. **Thread-Safe Trace Accumulation & Strict Fail-Fast Validation**: `LLMStrategy.execute()` MUST NOT directly `.append()` to `frozen_ctx.mcp_tool_audit`. Instead, `LLMStrategy.execute()` returns the traces via its event output (`TraceEvent(event_type="decision", metadata={"mcp_audit_traces": [...]})`). In `dag_executor.py`'s `run_step_wrapper`, every raw trace is explicitly validated via `MCPAuditTrace.model_validate()`. If a `ValidationError` occurs, it is logged with `ErrorCodes.VALIDATION_FAILED` and raises `AppException(status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED, ...})` (Fail-Fast). Validated traces are then merged into `exec_record.frozen_context.mcp_tool_audit` under `_update_lock` using `model_copy(update=...)`.
+4. **Thread-Safe Trace Accumulation & Strict Fail-Fast Validation**: `LLMStrategy.execute()` MUST NOT directly `.append()` to `frozen_ctx.mcp_tool_audit`. Instead, `LLMStrategy.execute()` returns the traces via its event output (`TraceEvent(event_type="decision", metadata={"mcp_audit_traces": [...]})`). In `dag_executor.py`'s `run_step_wrapper`, every raw trace is explicitly validated via `MCPAuditTrace.model_validate()`. If a `ValidationError` occurs, it is logged with `ErrorCodes.VALIDATION_FAILED` and raises `AppException(message=f"Failed to validate MCP audit traces for step '{step_id}': {val_err}", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value, ...})` (Fail-Fast). Validated traces are then merged into `exec_record.frozen_context.mcp_tool_audit` under `_update_lock` using `model_copy(update=...)`.
 5. **Downstream (zero changes needed)**: `blueprint.py` -> `AdapterContext.mcp_audit_map` -> `PrintableSourcesAdapter` already renders sources correctly.
 6. **Studio UI Context Anchoring Alignment**: Align localization keys (`app_fi.arb` and `app_en.arb`) with **"Kontekstiankkurointi" (Context Anchoring)** to clearly explain the cognitive impact of binding prior step narratives.
 
@@ -57,16 +57,16 @@ Furthermore, a second critical disconnection was discovered during the Tier 8 au
 sequenceDiagram
     participant Hook as source_verification_hook
     participant Base as base.py run_pre_hooks
-    participant Factory as PromptFactory.build
     participant LLM as llm.py LLMStrategy
+    participant Factory as PromptFactory.build
     participant DAG as dag_executor.py
     participant Blueprint as blueprint.py
     participant Adapter as PrintableSourcesAdapter
     
     Hook->>Base: HookResult(state_delta={metadata: {mcp_audit_traces}, global_context_vars: {external_evidence}})
     Base->>LLM: hook_state.metadata["mcp_audit_traces"] + hook_state.global_context_vars["external_evidence"]
-    LLM->>Factory: Pass llm_context_data with global_context_vars
-    Factory->>Factory: Embed external_evidence inside <source_data> structurally
+    LLM->>Factory: PromptFactory.build(..., global_context_vars=hook_state.global_context_vars)
+    Factory->>Factory: Embed external_evidence inside <source_data> structurally (clamped to source_evidence_max_chars)
     LLM->>DAG: TraceEvent(event_type="decision", metadata={mcp_audit_traces: [...]})
     DAG->>DAG: _update_lock merge into exec_record.frozen_context.mcp_tool_audit
     DAG->>Blueprint: execution.frozen_context.mcp_tool_audit
@@ -91,13 +91,13 @@ sequenceDiagram
 > **In-Memory Hook DI Container (Zero FastAPI Context Coupling)**: Per System 2 audit (`feature_audit_tavily_hook_di_context.md`), hooks run inside asynchronous background workers (`DAGExecutor` / `LLMNodeStrategy`) without FastAPI HTTP request context. `source_verification_hook` strictly uses the injected in-memory `HookDependencies` parameter (`deps: HookDependencies`), enforcing explicit Fail-Fast validation on `deps.system_repo`. No FastAPI `Depends()` or `backend_v2.api.dependencies` imports are permitted.
 
 > [!IMPORTANT]
-> **MCPAuditTrace Pydantic Validation & RFC 7807 Fail-Fast**: Per System 2 audit (`feature_audit_mcp_pydantic_validation.md`), `dag_executor.py` must explicitly validate all raw trace dictionaries using `MCPAuditTrace.model_validate(raw)`. If validation fails, it must NOT fall back or drop traces silently; it must log `ErrorCodes.VALIDATION_FAILED` and raise `AppException(status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED, ...})`. Validated traces are accumulated into `frozen_context.mcp_tool_audit` under `_update_lock`.
+> **MCPAuditTrace Pydantic Validation & RFC 7807 Fail-Fast**: Per System 2 audit (`feature_audit_mcp_pydantic_validation.md`), `dag_executor.py` must explicitly validate all raw trace dictionaries using `MCPAuditTrace.model_validate(raw)`. If validation fails, it must NOT fall back or drop traces silently; it must log `ErrorCodes.VALIDATION_FAILED` and raise `AppException(message=f"Failed to validate MCP audit traces for step '{step_id}': {val_err}", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value, ...})`. Validated traces are accumulated into `frozen_context.mcp_tool_audit` under `_update_lock`.
 
 > [!IMPORTANT]
 > **`seed_data.json` Mutation**: Adding `"source_verification_hook"` to `pre_hooks` arrays of two steps, and restoring `"prior_analysis": "$steps.sr_0f7947ec7007498c"` in workflow DAG node `sr_02b7cc1e7c2a4a62`. This follows the `03_seed_vault.md` Bounded Mutation Protocol.
 
 > [!CAUTION]
-> **Tier 0 Research Mutation (2026-08-23): Critical Evidence Data Path Fix**. Original plan referenced `llm_context_data['global_context_vars']` for evidence injection — physically impossible as `ContextBuilder.build()` does NOT include `global_context_vars` in `llm_context_data`. Fixed: `PromptFactory.build()` now receives `global_context_vars` as an explicit parameter. Also added: `source_evidence_max_chars` token budget, `prompt_factory.py` touched-file tech debt, second `getattr` instance at L501-L503, and session handover boundary between Phase 2→3. See `research_analysis_tavily_bibliography.md` for full audit.
+> **Tier 0 Research Mutation (2026-08-23): Critical Evidence Data Path Fix**. Original plan referenced `llm_context_data['global_context_vars']` for evidence injection — physically impossible as `ContextBuilder.build()` does NOT include `global_context_vars` in `llm_context_data`. Fixed: `PromptFactory.build()` now receives `global_context_vars` as an explicit parameter (bypassing any unnecessary `PromptCompiler` indirection). Also added: `source_evidence_max_chars` token budget, `prompt_factory.py` touched-file tech debt, second `getattr` instance at L501-L503, and session handover boundary between Phase 2→3. See `research_analysis_tavily_bibliography.md` for full audit.
 
 ---
 
@@ -142,20 +142,20 @@ sequenceDiagram
       <description>Register hook, fix literal newline bug, add polymorphic payload extraction, enforce HookDependencies.system_repo Fail-Fast validation, and export in hooks/__init__.py.</description>
       <constraint invariant="hook_registration_mandate">Decorate with @hook_registry.register(name="source_verification_hook").</constraint>
       <constraint invariant="polymorphic_dag_payload_handling">Extract text polymorphically from state.inputs (str, dict, list) and fix literal \\n\\n bug to clean \n\n.</constraint>
-      <constraint invariant="di_container_mandate">Initialize SourceVerificationService using the in-memory HookDependencies container parameter (deps.system_repo) with explicit Fail-Fast validation (if not deps.system_repo: raise AppException(ErrorCodes.CONFIGURATION_ERROR)), completely decoupled from FastAPI HTTP request context. Instantiate LLMClient.from_strategy('fast', repository=deps.system_repo, pipeline_name='source_verification') and LLMTaskExecutor(PromptCompiler()).</constraint>
+      <constraint invariant="di_container_mandate">Initialize SourceVerificationService using the in-memory HookDependencies container parameter (deps.system_repo) with explicit Fail-Fast validation (if not deps.system_repo: raise AppException(message="Missing system_repo in HookDependencies", status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})), completely decoupled from FastAPI HTTP request context. Instantiate LLMClient.from_strategy('fast', repository=deps.system_repo, pipeline_name='source_verification') and LLMTaskExecutor(PromptCompiler()).</constraint>
       <constraint invariant="immutable_dto_contract">Return HookResult with state_delta containing metadata.mcp_audit_traces and global_context_vars.external_evidence.</constraint>
     </step>
 
     <step id="1.4" target="backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py">
-      <description>Add global_context_vars parameter, embed external_evidence XML structurally inside &lt;source_data&gt;, and clean touched-file tech debt.</description>
-      <constraint invariant="pure_prompt_architecture">Add new parameter `global_context_vars: dict[str, Any] | None = None` to PromptFactory.build(). Extract external_evidence from global_context_vars (NOT llm_context_data) and embed directly inside &lt;source_data&gt; after xml_ctx, truncated to settings.source_evidence_max_chars. Root cause: llm_context_data is built by ContextBuilder.build() from state_data/inputs only — it does NOT contain global_context_vars.</constraint>
+      <description>Add global_context_vars parameter directly to PromptFactory.build(), embed external_evidence XML structurally inside &lt;source_data&gt;, and clean touched-file tech debt.</description>
+      <constraint invariant="pure_prompt_architecture">Add new parameter `global_context_vars: dict[str, Any] | None = None` directly to PromptFactory.build(). Extract external_evidence from global_context_vars (NOT llm_context_data) and embed directly inside &lt;source_data&gt; after xml_ctx, truncated to settings.source_evidence_max_chars. Root cause: llm_context_data is built by ContextBuilder.build() from state_data/inputs only — it does NOT contain global_context_vars.</constraint>
       <constraint invariant="the_zero_compromise_pledge">Clean L173 getattr(b, 'slug', None) → use b.slug directly (PromptBlock has typed slug field).</constraint>
       <constraint invariant="fail_fast_hydration_mandate">Clean L88-L96 deep .get() chain for execution_time extraction → add isinstance guard at top then direct [] access with structural validation.</constraint>
       <constraint invariant="touched_scope_tech_debt_mandate">FLAG for follow-up: L140-L168 find_value_by_key recursive hasattr/isinstance God Method exceeds Scoped Boy Scout boundary for this plan.</constraint>
     </step>
 
     <step id="1.5" target="backend_v2/services/orchestrator/strategies/llm.py">
-      <description>1-Hop Scoped Boy Scout Cleanups: Clean all 8 anti-patterns in LLMNodeStrategy.execute, pass global_context_vars to PromptFactory, extract traces from hook metadata, and return in event list.</description>
+      <description>1-Hop Scoped Boy Scout Cleanups: Clean all 8 anti-patterns in LLMNodeStrategy.execute, directly pass hook_state.global_context_vars to PromptFactory.build() without PromptCompiler indirection, extract traces from hook metadata, and return in event list.</description>
       <constraint invariant="ast_boundary_verification_mandate">Verify line boundaries of LLMNodeStrategy.execute (L103-L774) using ast.parse before editing.</constraint>
       <constraint invariant="touched_scope_tech_debt_mandate">Remove L223 debug print statement.</constraint>
       <constraint invariant="frozen_state_mutability">Refactor L300-307 metadata mutation to clean dictionary initialization.</constraint>
@@ -164,14 +164,14 @@ sequenceDiagram
       <constraint invariant="the_no_legacy_mandate">Delete dead L548-558 getattr(step, 'mcp_tools', None) duck-typing loops. Derive mcp_prefixes from step_obj.allowed_mcp_tools.</constraint>
       <constraint invariant="zero_service_layer_fallbacks">Replace L569 hook_state.metadata.get() and L570 getattr(step, 'expected_sdui_type') with direct access.</constraint>
       <constraint invariant="trace_event_propagation">Return mcp_audit_traces_raw in step TraceEvent(event_type="decision", metadata={"mcp_audit_traces": ...}) for DAG-level merge.</constraint>
-      <constraint invariant="pure_prompt_architecture">Pass hook_state.global_context_vars as new parameter to PromptFactory.build() call at L417-L431.</constraint>
+      <constraint invariant="pure_prompt_architecture">Pass hook_state.global_context_vars directly to PromptFactory.build(..., global_context_vars=hook_state.global_context_vars) at L417-L431 (eliminating any PromptCompiler.compile proxy method).</constraint>
     </step>
 
     <step id="1.6" target="backend_v2/services/orchestrator/dag_executor.py">
       <description>Strict Fail-Fast validation and thread-safe accumulation of MCP audit traces in run_step_wrapper under _update_lock.</description>
       <constraint invariant="ast_boundary_verification_mandate">Verify line boundaries of DAGExecutor.run_step_wrapper (L559-L752) using ast.parse before editing.</constraint>
       <constraint invariant="strict_pydantic_v2_rust">Explicitly validate all raw traces from event.metadata['mcp_audit_traces'] via MCPAuditTrace.model_validate().</constraint>
-      <constraint invariant="rfc7807_dual_reporting_mandate">Catch pydantic.ValidationError during trace parsing, log logger.error with ErrorCodes.VALIDATION_FAILED, and raise AppException(status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED, "step_id": step_id, "validation_errors": val_err.errors()}) to enforce Universal Fail-Fast.</constraint>
+      <constraint invariant="rfc7807_dual_reporting_mandate">Catch pydantic.ValidationError during trace parsing, log logger.error with ErrorCodes.VALIDATION_FAILED, and raise AppException(message=f"Failed to validate MCP audit traces for step '{step_id}': {val_err}", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "step_id": step_id, "validation_errors": val_err.errors()}) to enforce Universal Fail-Fast.</constraint>
       <constraint invariant="concurrency_lock_mandate">Merge validated MCPAuditTrace objects into exec_record.frozen_context.mcp_tool_audit inside _update_lock using model_copy(update=...). NO direct .append().</constraint>
     </step>
   </phase>
@@ -226,8 +226,8 @@ sequenceDiagram
     </step>
 
     <step id="5.3" target="backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_audit.py">
-      <description>Implement ISTQB negative tests verifying that malformed MCPAuditTrace payloads in event.metadata raise AppException(ErrorCodes.VALIDATION_FAILED) and that valid traces are merged under _update_lock without mutating frozen instances.</description>
-      <constraint invariant="anti_happy_path_mandate">Test valid MCPAuditTrace list merge, invalid dict payload (missing required field) triggering AppException(ErrorCodes.VALIDATION_FAILED), and non-list payload handling.</constraint>
+      <description>Implement ISTQB negative tests verifying that malformed MCPAuditTrace payloads in event.metadata raise AppException with ErrorCodes.VALIDATION_FAILED and that valid traces are merged under _update_lock without mutating frozen instances.</description>
+      <constraint invariant="anti_happy_path_mandate">Test valid MCPAuditTrace list merge, invalid dict payload (missing required field) triggering AppException with ErrorCodes.VALIDATION_FAILED, and non-list payload handling.</constraint>
     </step>
   </phase>
 </execution_protocol>
