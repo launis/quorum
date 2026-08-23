@@ -316,30 +316,32 @@
 # Session Handover Context
 
 ## Achieved
-- Completed `/tier2-execute` implementation and automated quality loop verification for Phase 1 Backend Plan (`01_phase1_backend_tech_debt_and_ast_guardrails.md`).
-- Step 0: Verified strategic alignment and confirmed `PromptBlock.ai_description` (valid, retained) vs `MatrixClaim.ai_description` (scheduled for Phase 3 deprecation).
-- Step 1: Cleaned up @[backend_v2/services/studio/simulation_service.py] — eradicated duck-typing `getattr(claim, 'ai_description', None)` and lazy fallback `rendered = data.ai_description or ""`, replaced raw dictionary lookups with strongly-typed `claim.label.resolve("en")`.
-- Step 2: Remediated @[backend_v2/tests/unit/test_tier4_schema_bug.py] (un-skipped, updated fixture to `PromptBlockCategory.SYSTEM_RULE` and valid `concept_description` >= 10 chars). Verified @[backend_v2/tests/unit/test_schema_builder.py] passes cleanly.
-- Step 3: Implemented 9 AST & seed guardrails in @[backend_v2/tests/unit/test_ast_matrix_claim_guardrails.py] (4 active AST/negative checks + 5 aspirational skipped checks for Phases 2 & 3).
-- Created comprehensive unit tests in @[backend_v2/tests/unit/services/studio/test_simulation_service.py] (10 passed, 98% code coverage on `simulation_service.py`, 0 lint/MyPy errors).
-- Passed all 22 Phase 1 Unit and AST tests and verified the universal backend quality gate (`uv run python scripts/backend_audit_loop.py backend_v2/services/studio/simulation_service.py --test`).
-- Marked all DoD checklist items as completed in `01_phase1_backend_tech_debt_and_ast_guardrails.md` and updated `EPIC_146_tracker.md`.
+- Executed and PASSED `/tier8-audit-plan` for Phase 1 Backend Plan (`01_phase1_backend_tech_debt_and_ast_guardrails.md`).
+- Generated comprehensive red-team audit report artifact: `red_team_audit_01_phase1_backend_tech_debt_and_ast_guardrails.md`.
+- Verified mathematical fidelity of Tier 1 Planner output against Epic via `audit_planner_output.py` (22 line bounds verified against AST).
+- Verified eradication of duck typing `getattr(claim, 'ai_description', None)` and lazy fallback `data.ai_description or ""` in `simulation_service.py` with 0 AST/grep violations.
+- Verified remediation of `test_tier4_schema_bug.py` (un-skipped, `concept_description` length >= 10, valid PromptBlock schema) and verified `test_schema_builder.py`.
+- Verified 9 AST and seed guardrail tests in `test_ast_matrix_claim_guardrails.py` (4 active passing tests + 5 aspirational skipped anchors).
+- Verified full backend quality gate (`backend_audit_loop.py` on `simulation_service.py` with 98% coverage, 0 Ruff/MyPy errors).
+- Resolved global test suite regression in `test_blueprint.py` (aligned `OutputProfile` mock instances with `validate_custom_scale_bounds` validator and fixed `TargetBlockType` typing), achieving a 100% green test suite across 1846 backend tests with 0 failures (`e30e32b9`).
+- Synchronized `EPIC_146_tracker.md` to record Phase 1 Backend Audit as `[x] [OK]`.
 
 ## Learned
-- **Domain Simulation & Pydantic V2 Integrity**:
-  - `StudioSimulationService` requires full topological graph resolution testing and isolated unit tests under `backend_v2/tests/unit/services/studio/test_simulation_service.py` to satisfy directory isolation and coverage targets.
-  - Under strict Pydantic V2 validation, `ExpectedInput` requires `input_modes` (e.g. `["paste"]`) and `label`/`description` as `I18nText`, while `Step` with `type="llm"` requires at least one `criteria_block_ids` entry.
-- **AST Guardrail Pattern & Aspirational Tests (`ki_ast_guardrail_testing.md`)**:
-  - AST tests inspecting AST nodes (`ast.parse()`, `ast.ClassDef`, `ast.AnnAssign`, `ast.Attribute`) reliably catch duck-typing and unconstrained schema properties without executing domain logic.
-  - Negative testing with mock AST fragments is essential to prove scanners reject unconstrained or malformed models.
-  - Skipping future-phase tests with `@pytest.mark.skip(reason="Awaiting Phase X...")` provides clear architectural anchors without breaking intermediate test gates.
+- **OutputProfile Custom Scale Validation Invariant**:
+  - `OutputProfile` enforces that when `display_scale` is `DisplayScale.CUSTOM`, `custom_scale_min` and `custom_scale_max` are strictly required and `custom_scale_max > custom_scale_min`.
+  - When constructing test fixtures that test downstream parsing of missing bounds, use `OutputProfile.model_construct(...)` or supply explicit bounds for valid profiles.
+- **AST Guardrails for Plan Verification (`ki_ast_guardrail_testing.md`)**:
+  - AST scanning statically verifies absence of `getattr`/`hasattr` and structural compliance before runtime execution.
+  - Aspirational tests with `@pytest.mark.skip` prevent regressions while keeping intermediate audit loops passing.
 
 ## Remaining
-- Perform System 2 Plan Audit on Phase 1 Backend via `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`.
 - Perform Red-Teaming for Phase 1 Frontend Plan (`02_phase1_frontend_tech_debt_cleanups.md`) via `/tier0-research-plan`.
 - Execute Phase 1 Frontend Cleanups (`02_phase1_frontend_tech_debt_cleanups.md`) via `/tier2-execute`.
+- Perform Plan Audit on Phase 1 Frontend via `/tier8-audit-plan`.
+- Proceed to Phase 2 Seed Data Verification (`03_phase2_seed_data_verification_and_reseed.md`).
 
 ## Resume Command
-`/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+`/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\02_phase1_frontend_tech_debt_cleanups.md] @[docs\epic\EPIC_146_tracker.md]`
+
 
 
