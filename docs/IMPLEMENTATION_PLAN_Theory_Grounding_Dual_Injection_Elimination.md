@@ -2,7 +2,7 @@
 
 ## Executive Summary & Objective
 
-In accordance with **Chapter 2 of `@[docs/arkkitehtuurin_parannuskohteet.md]`**, the **System 2 Feature Audit `@[feature_audit_xml_truncation_prompt_injection.md]`** (`AUDIT-PROMPT-XML-INJECTION-2026-08-23`), the **DAG Concurrency Audit `@[feature_audit_dag_executor_mcp_concurrency.md]`** (`AUDIT-DAG-CONCURRENCY-MCP-2026-08-23`), and the **Ghost Execution Audit `@[feature_audit_ghost_execution_source_verification.md]`** (`AUDIT-GHOST-EXECUTION-SOURCE-VERIFICATION-2026-08-23`), this implementation plan resolves three critical architectural vulnerabilities in the Quorum backend:
+This implementation plan resolves three critical architectural vulnerabilities in the Quorum backend:
 
 1. **Theory Grounding Dual Injection Elimination**: Eliminates prompt duplication, URL token bloat, XML corruption vulnerabilities, and Single Source of Truth (SSOT) violations caused by storing theoretical and epistemic anchors concurrently in both `PromptBlock.ai_description` (as freeform `EPISTEMIC ANCHOR:` text blocks) and `PromptBlock.theory_grounding` (as structured `TheoryGrounding` DTOs). Reformats `theory_grounding` in `MatrixSensorPromptBuilder` into a pure `<theory_context>\n{citation_reference}\n</theory_context>` XML block, omitting raw URLs from the LLM prompt while preserving `source_url` for Flutter UI and PDF reports.
 2. **DAG Executor Concurrency & Trace Data Loss Hardening**: Resolves the critical race condition in `@[backend_v2/services/orchestrator/dag_executor.py]` where `model_copy(update={"mcp_tool_audit": new_traces})` overwrites the entire trace list, destroying earlier/concurrent step traces. Implements an atomic, deduplicating accumulator pattern under `_update_lock`, respecting Pydantic V2 `FrozenContext` and `ExecutionRecord` immutability via explicit model reassignment.
@@ -42,6 +42,7 @@ In accordance with **Chapter 2 of `@[docs/arkkitehtuurin_parannuskohteet.md]`**,
 ### TARGET Files (Editable)
 - `[MODIFY]` `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L36-L88]`
 - `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor.py#L690-L730]`
+- `[MODIFY]` `@[backend_v2/models/state.py#L110-L135]`
 - `[MODIFY]` `@[backend_v2/seed/seed_data.json]`
 - `[MODIFY]` `@[backend_v2/hooks/source_verification_hook.py#L1-L47]`
 - `[MODIFY]` `@[backend_v2/services/source_verification_service.py#L1-L257]`
@@ -55,8 +56,6 @@ In accordance with **Chapter 2 of `@[docs/arkkitehtuurin_parannuskohteet.md]`**,
 - `[NEW]` `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py]`
 
 ### CONTEXT Files (Read-Only)
-- `@[docs/arkkitehtuurin_parannuskohteet.md#L92-L179]` (Architecture Improvement Manifesto - Chapter 2: Theory Grounding Dual Injection)
-- `@[feature_audit_ghost_execution_source_verification.md]` (System 2 Feature Audit on Ghost Executions)
 - `@[backend_v2/models/v2_core.py#L194-L208]` (`TheoryGrounding` schema SSOT)
 - `@[backend_v2/models/v2_core.py#L635-L657]` (`MCPAuditTrace` schema SSOT)
 - `@[backend_v2/models/v2_core.py#L1563-L1700]` (`FrozenContext`, `ExecutionRecord` schemas)
@@ -73,7 +72,7 @@ In accordance with **Chapter 2 of `@[docs/arkkitehtuurin_parannuskohteet.md]`**,
 Pre-flight inspection of touched targets and 1-hop dependencies reveals:
 1. **Raw JSON in System Prompt**: `MatrixSensorPromptBuilder.build_caching_prefix` calls `matrix_context.theory_grounding.model_dump_json()`, injecting unformatted JSON strings into static LLM system directives.
 2. **DAG Executor Concurrency Race Condition & Trace Data Loss**: `dag_executor.py` lacks atomic merging for `mcp_tool_audit` on `FrozenContext`. Concurrent steps in `TaskGroup` overwrite each other's traces, and direct tuple/in-place mutation violates Pydantic V2 `strict=True` / `frozen=True` contracts.
-3. **Unsynchronized Trace Event Appends**: Lines 694 and 785 append to `exec_record.execution_trace` outside `_update_lock`.
+3. **Unsynchronized Trace Event Appends**: Line 694 appends to `exec_record.execution_trace` inside the for-loop at L693-L703 **outside** `_update_lock`. Line 785 is a separate `_emit_preflight_progress` path that IS correctly guarded inside `async with _update_lock:`; it does NOT require remediation.
 4. **Ghost Executions on Empty/Whitespace Inputs**: `source_verification_hook.py` does loose `isinstance(val, str)` iteration and returns `state_delta={}` on empty input, dropping the `verified_sources` key.
 5. **Hardcoded Mock LLM Configuration in Production Path**: `SourceVerificationService._ensure_initialized()` constructs a hardcoded `LLMProviderConfig(api_key="mock", model_name="gemini/gemini-2.5-flash")` violating the Model Registry and crashing in live environments.
 6. **Missing Hook Registration**: `source_verification_hook.py` lacks `@hook_registry.register("source_verification")` and is omitted from `backend_v2/hooks/__init__.py`.
@@ -120,12 +119,13 @@ Pre-flight inspection of touched targets and 1-hop dependencies reveals:
     <step id="1.2" name="UPDATE_SENSOR_PROMPT_BUILDER_UNIT_TESTS">
       <target>@[backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py#L12-L36]</target>
       <action>
-        Update test assertions in `test_build_caching_prefix_with_context` to verify the pure `&lt;theory_context&gt;\nTest Citation\n&lt;/theory_context&gt;` XML structure.
+        Update test assertions in `test_build_caching_prefix_with_context` (line 31) to verify the pure `&lt;theory_context&gt;\nTest Citation\n&lt;/theory_context&gt;` XML structure.
+        CRITICAL BREAKING ASSERTION: Remove the existing assertion `assert "Test Framework" in prompt.static_messages[0]["content"]` (line 31) — `source_url` is intentionally excluded from the LLM prompt. Replace it with `assert "&lt;theory_context&gt;" in prompt.static_messages[0]["content"]` and `assert "Test Citation" in prompt.static_messages[0]["content"]`.
         Add negative, boundary, and injection test cases:
         1. `test_build_caching_prefix_theory_grounding_none_citation`: Verifies behavior when `citation_reference` is None.
         2. `test_build_caching_prefix_theory_grounding_empty_citation`: Verifies behavior when `citation_reference` is empty string.
         3. `test_build_caching_prefix_theory_grounding_whitespace_only`: Verifies behavior when `citation_reference` contains only whitespace.
-        4. `test_build_caching_prefix_theory_grounding_omits_raw_urls`: Verifies that `source_url` is NEVER present in the compiled static system prompt.
+        4. `test_build_caching_prefix_theory_grounding_omits_raw_urls`: Verifies that `source_url` is NEVER present in the compiled static system prompt (assert `"Test Framework"` is absent from `prompt.static_messages[0]["content"]`).
         5. `test_build_caching_prefix_theory_grounding_xml_special_chars`: Verifies citation text with special characters is rendered cleanly without unclosed tag corruption.
       </action>
       <constraint invariant="anti_happy_path_mandate">
@@ -145,40 +145,66 @@ Pre-flight inspection of touched targets and 1-hop dependencies reveals:
     <step id="2.1" name="DAG_EXECUTOR_ATOMIC_MCP_ACCUMULATOR">
       <target>@[backend_v2/services/orchestrator/dag_executor.py#L690-L730]</target>
       <action>
-        In `DAGExecutor.run_step_wrapper`, implement atomic deduplicating accumulation of `MCPAuditTrace` objects into `exec_record.frozen_context.mcp_tool_audit` under `_update_lock`:
+        In `DAGExecutor.run_step_wrapper`, move the unsynchronized for-loop at L693-L703 inside `_update_lock`, and implement atomic deduplicating accumulation of `MCPAuditTrace` objects into `exec_record.frozen_context.mcp_tool_audit` in the same critical section.
+        **ARCHITECTURAL CONSTRAINT**: Per `strict_pydantic_v2_rust` and `the_zero_compromise_pledge`, `hasattr()` and `isinstance(data, dict)` dispatch are strictly banned for event payload access. Events emitted by steps that include MCP traces MUST surface them as typed `MCPAuditTrace` instances already attached to a known structured event field (not by inspecting generic `content` dicts). The executor MUST use `TraceEvent.mcp_audit_traces: list[MCPAuditTrace]` (a dedicated typed field to be added to `TraceEvent` in `@[backend_v2/models/state.py#L110-L135]`) to carry MCP traces from steps to the accumulator:
         ```python
-        # Collect any MCP tool traces emitted during step execution
-        step_mcp_traces: list[MCPAuditTrace] = []
-        for evt in events:
-            if hasattr(evt, "content") and isinstance(evt.content, dict) and "mcp_tool_audit" in evt.content:
-                raw_audits = evt.content["mcp_tool_audit"]
-                if isinstance(raw_audits, list):
-                    for audit_data in raw_audits:
-                        if isinstance(audit_data, MCPAuditTrace):
-                            step_mcp_traces.append(audit_data)
-                        elif isinstance(audit_data, dict):
-                            step_mcp_traces.append(MCPAuditTrace.model_validate(audit_data))
-
+        has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
         async with _update_lock:
-            # Atomic event trace append
+            # Atomic critical section: all mutations to exec_record consolidated
+            step_mcp_traces: list[MCPAuditTrace] = []
+            new_cv = dict(exec_record.context_variables)
+            has_cv_updates = False
             for evt in events:
                 exec_record.execution_trace.append(evt)
                 projector.apply_delta(evt)
+                if (
+                    evt.event_type == "decision"
+                    and evt.metadata
+                    and "is_context_update" in evt.metadata
+                    and evt.metadata["is_context_update"]
+                ):
+                    new_cv.update(evt.content)
+                    has_cv_updates = True
+                # Typed field access only — no hasattr/isinstance dict dispatch.
+                match evt:
+                    case TraceEvent() if evt.mcp_audit_traces:
+                        step_mcp_traces.extend(evt.mcp_audit_traces)
+
+            updates: dict[str, Any] = {}
+            if has_cv_updates:
+                updates["context_variables"] = new_cv
 
             # Atomic MCP audit trace accumulation & deduplication
             if step_mcp_traces:
                 current_traces: list[MCPAuditTrace] = list(exec_record.frozen_context.mcp_tool_audit)
                 seen_ids: set[str] = {t.id for t in current_traces if t.id}
-                new_unique_traces = [t for t in step_mcp_traces if (t.id is None or t.id not in seen_ids)]
+                new_unique_traces: list[MCPAuditTrace] = [
+                    t for t in step_mcp_traces if t.id is None or t.id not in seen_ids
+                ]
                 merged_traces: list[MCPAuditTrace] = current_traces + new_unique_traces
-
-                updated_frozen_ctx = exec_record.frozen_context.model_copy(
+                updates["frozen_context"] = exec_record.frozen_context.model_copy(
                     update={"mcp_tool_audit": merged_traces}
                 )
-                exec_record = exec_record.model_copy(
-                    update={"frozen_context": updated_frozen_ctx}
-                )
+
+            step_status = ExecutionStatus.FAILED if has_error_evt else ExecutionStatus.PASSED
+            new_state = exec_record.step_states[step_id].model_copy(update={"status": step_status})
+            updates["step_states"] = {**exec_record.step_states, step_id: new_state}
+
+            exec_record = exec_record.model_copy(update=updates)
+
+        if has_error_evt:
+            err_msg = [evt.error_message for evt in events if isinstance(evt, ErrorTraceEvent)][0]
+            msg = f"Step {step_id} emitted ErrorTraceEvent: {err_msg}"
+            logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
+            )
+
+        await _safe_commit()
         ```
+        **PRE-REQUISITE**: Before executing Step 2.1, verify whether `TraceEvent` in `@[backend_v2/models/state.py#L110-L135]` already has an `mcp_audit_traces: list[MCPAuditTrace]` field. If absent, add it as an optional field with `default_factory=list` in the same atomic commit.
       </action>
       <constraint invariant="frozen_state_mutability">
         Never mutate `FrozenContext` or `ExecutionRecord` in place. Always create immutable copies with merged collections and reassign `exec_record` under `_update_lock`.
@@ -210,22 +236,26 @@ Pre-flight inspection of touched targets and 1-hop dependencies reveals:
         ```python
         class SourceVerificationInputsDTO(V2CoreBase):
             """Strict inputs schema for source verification hook."""
-            model_config = ConfigDict(strict=True, extra="ignore")
+            model_config = ConfigDict(strict=True, extra="forbid")
 
             prior_analysis: str | None = None
             text: str | None = None
             document: str | None = None
-
-            @property
-            def consolidated_text(self) -> str:
-                parts = [p.strip() for p in (self.prior_analysis, self.text, self.document) if isinstance(p, str) and p.strip()]
-                return "\n\n".join(parts)
         ```
+        **ARCHITECTURAL CONSTRAINT — NO @property ON DTOs**: Per `context_envelope_ssot_predicates`, `@property` methods are STRICTLY FORBIDDEN on API/Persistence DTOs in `models/dtos/`. The text consolidation logic MUST be computed as a local variable in `source_verification_hook.py` immediately after DTO parsing:
+        ```python
+        inputs = SourceVerificationInputsDTO.model_validate(state.inputs)
+        text_parts = [p.strip() for p in (inputs.prior_analysis, inputs.text, inputs.document) if isinstance(p, str) and p.strip()]
+        text_content = "\n\n".join(text_parts)
+        ```
+        **ARCHITECTURAL CONSTRAINT — extra="forbid"**: `extra="ignore"` is duct-tape programming that silently discards unknown `state.inputs` keys. Use `extra="forbid"` to Fail-Fast on unexpected input shapes.
         2. In `backend_v2/services/source_verification_service.py`:
-           - Define static module-level system directives `_EXTRACTION_SYSTEM_PROMPT` and `_VERIFICATION_SYSTEM_PROMPT` to enable 100% Google Gemini Context Caching.
-           - Replace hardcoded `LLMProviderConfig(api_key="mock", ...)` with `LLMClient.from_strategy("fast", repository=self.system_repo)`.
-           - In `_extract_source_claims` and `_verify_single_claim`, wrap untrusted content inside `<source_data>` and `<claim>` with `html.escape()` to eliminate XML injection vulnerabilities.
-           - Enforce minimum character threshold `MIN_VERIFIABLE_TEXT_LENGTH = 15` in `run_full_verification` to short-circuit ghost executions before initializing the LLM client.
+            - Add `system_repo: ISystemRepository | None = None` and `llm_task_executor: LLMTaskExecutor | None = None` parameters to `SourceVerificationService.__init__(self, system_repo: ISystemRepository | None = None, llm_task_executor: LLMTaskExecutor | None = None) -> None`. This ensures production DI from hook (`deps.system_repo`) and test DI (mocked `llm_task_executor`) work without breaking existing test fixtures.
+            - Define `MIN_VERIFIABLE_TEXT_LENGTH: int = 15` as an explicit SSOT module-level constant in `source_verification_service.py`.
+            - Define static module-level system directives `_EXTRACTION_SYSTEM_PROMPT` and `_VERIFICATION_SYSTEM_PROMPT` to enable 100% Google Gemini Context Caching.
+            - Replace hardcoded `LLMProviderConfig(api_key="mock", ...)` with `await LLMClient.from_strategy("fast", repository=self.system_repo)` and `LLMTaskExecutor(PromptCompiler(), client=self.llm_client)` in `_ensure_initialized()`.
+            - In `_extract_source_claims` and `_verify_single_claim`, wrap untrusted content inside `<source_data>` and `<claim>` with `html.escape()` to eliminate XML injection vulnerabilities.
+            - Enforce minimum character threshold `len(text.strip()) < MIN_VERIFIABLE_TEXT_LENGTH` in `run_full_verification` to short-circuit ghost executions before initializing the LLM client.
       </action>
       <constraint invariant="role_segregation_and_fencing">
         Always XML-escape raw user payload strings with `html.escape()` before injecting into prompt blocks.
@@ -244,8 +274,9 @@ Pre-flight inspection of touched targets and 1-hop dependencies reveals:
         1. In `backend_v2/hooks/source_verification_hook.py`:
            - Decorate hook with `@hook_registry.register(name="source_verification")`.
            - Parse inputs through `SourceVerificationInputsDTO.model_validate(state.inputs)`.
+           - Compute consolidated text as a local variable (NOT a DTO property): `text_parts = [p.strip() for p in (inputs.prior_analysis, inputs.text, inputs.document) if isinstance(p, str) and p.strip()]; text_content = "\n\n".join(text_parts)`.
            - If inputs are missing, empty, whitespace-only, or `len(text_content) < MIN_VERIFIABLE_TEXT_LENGTH`, return a fully initialized `SourceVerificationResultDTO` with zero claims in `state_delta={"verified_sources": empty_result.model_dump(mode="json")}` to preserve state schema parity.
-           - Pass `system_repo=deps.system_repo` to `SourceVerificationService`.
+           - Pass `system_repo=deps.system_repo` to `SourceVerificationService(system_repo=deps.system_repo)`.
            - Wrap errors in RFC 7807 `AppException` with `ErrorCodes.AGENT_EXECUTION_CRITICAL`.
         2. In `backend_v2/hooks/__init__.py`:
            - Import `source_verification_hook` and add `"source_verification_hook"` to `__all__`.
@@ -342,7 +373,7 @@ Pre-flight inspection of touched targets and 1-hop dependencies reveals:
     </step>
 
     <step id="5.2" name="EXECUTE_GLOBAL_QUALITY_GATE">
-      <target>@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L18-L204]</target>
+      <target>@[backend_v2]</target>
       <action>
         Run the comprehensive backend audit loop:
         `uv run python scripts/backend_audit_loop.py backend_v2 --test`

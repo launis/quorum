@@ -100,6 +100,7 @@ def test_clean_dict_against_model_alias_stripping_bug():
 def test_clean_dict_against_model_discriminated_unions_and_nested_structures():
     """Verify UniversalIngress handles discriminated unions, heuristics, and nested types."""
     from typing import Annotated, Literal
+
     from pydantic import BaseModel, ConfigDict, Field
 
     class CardA(BaseModel):
@@ -187,6 +188,7 @@ def test_clean_dict_non_dict_passthrough():
 def test_clean_dict_against_model_explicit_tag_literal_matching():
     """Verify explicit tag matching with Literal type annotations and unknown tag fallback."""
     from typing import Annotated, Literal
+
     from pydantic import BaseModel, ConfigDict, Field
 
     class OptionX(BaseModel):
@@ -216,6 +218,7 @@ def test_clean_dict_against_model_explicit_tag_literal_matching():
 def test_clean_dict_against_model_overlap_inference_and_unmatched():
     """Verify key overlap inference when signature heuristics do not match."""
     from typing import Annotated, Literal
+
     from pydantic import BaseModel, ConfigDict, Field
 
     class CustomBlock(BaseModel):
@@ -243,5 +246,3 @@ def test_clean_dict_against_model_overlap_inference_and_unmatched():
     assert UniversalIngress._clean_value_against_annotation(None, None) is None
     assert UniversalIngress._clean_value_against_annotation(None, int) is None
     assert UniversalIngress._clean_value_against_annotation(None, str) == ""
-
-

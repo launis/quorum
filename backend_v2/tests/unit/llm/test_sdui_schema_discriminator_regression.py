@@ -7,6 +7,7 @@ the schema generator omits 'block_type' from 'required'.
 """
 
 from typing import Annotated, Any, Literal
+
 import pytest
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -138,6 +139,7 @@ def test_strip_unsupported_constraints_preserves_custom_discriminator_names():
     """Partition 4: Verify that _strip_unsupported_constraints forces arbitrary discriminator
     properties into required for custom discriminated unions.
     """
+
     class VariantA(BaseModel):
         model_config = ConfigDict(strict=True, extra="forbid")
         extension_type: Literal["type_a"] = "type_a"

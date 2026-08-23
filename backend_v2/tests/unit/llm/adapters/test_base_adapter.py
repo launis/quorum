@@ -2,6 +2,7 @@
 
 from typing import Annotated, Any, Literal
 from unittest.mock import AsyncMock, patch
+
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -171,7 +172,9 @@ async def test_get_redis_client_for_pacing_production_branch() -> None:
 async def test_get_redis_client_for_pacing_init_failure() -> None:
     """Verify get_redis_client_for_pacing raises AppException on connection failure."""
     with patch.dict("os.environ", {}, clear=True):
-        with patch("backend_v2.llm.adapters.base_adapter.create_pool", side_effect=RuntimeError("Redis connection error")):
+        with patch(
+            "backend_v2.llm.adapters.base_adapter.create_pool", side_effect=RuntimeError("Redis connection error")
+        ):
             with patch("backend_v2.llm.adapters.base_adapter._redis_pool", None):
                 with pytest.raises(AppException) as exc_info:
                     await get_redis_client_for_pacing()
@@ -193,5 +196,3 @@ def test_base_adapter_strip_unsupported_constraints_list_and_explicit_discrimina
     assert "minLength" not in schema_list[0]
     assert schema_list[0]["enum"] == ["fixed_val"]
     assert "custom_tag" in schema_list[1]["required"]
-
-

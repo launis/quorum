@@ -49,7 +49,7 @@ Furthermore, a second critical disconnection was discovered during the Tier 8 au
 1. **Pre-Hook Phase**: `source_verification_hook` runs as a pre-hook on Faktantarkistaja/Falsifier steps. It extracts claims from the step's input context (including `prior_analysis`) and dispatches searches via `ToolDispatcher` -> `TavilyTool`.
 2. **Evidence Injection (Pure Prompt Architecture)**: The hook returns evidence XML in `state_delta["global_context_vars"]["external_evidence"]`. `PromptFactory.build()` takes `global_context_vars` as an explicit direct parameter (without any `PromptCompiler.compile()` proxy indirection) and places `<external_evidence>` deterministically inside `<source_data>` in `user_payload`, truncated to `settings.source_evidence_max_chars`. `PromptPayload` remains completely immutable (`@dataclass(frozen=True)`), eliminating raw string concatenation in `llm.py`.
 3. **Audit Persistence & Strict Event Sourcing in `base.py`**: `MCPAuditTrace` dictionaries are returned in `state_delta["metadata"]["mcp_audit_traces"]`. In `base.py`'s `run_pre_hooks()`, if `"mcp_audit_traces" in metadata_updates and metadata_updates["mcp_audit_traces"]`, a `TraceEvent(step_name=step.id, event_type="decision", content={"mcp_audit_traces": metadata_updates["mcp_audit_traces"]}, metadata={"mcp_audit_traces": metadata_updates["mcp_audit_traces"]})` is automatically appended to `emitted_events`. `LLMNodeStrategy` remains 100% decoupled from MCP audit tracing and never performs dictionary indexing on `hook_state.metadata`, completely eliminating `KeyError` / `NullReference` risks.
-4. **Thread-Safe Trace Accumulation & Strict Fail-Fast Validation in `dag_executor.py`**: `dag_executor.py`'s `run_step_wrapper` iterates over `events`. When encountering an event with `evt.metadata and "mcp_audit_traces" in evt.metadata and evt.metadata["mcp_audit_traces"]`, every raw trace is explicitly validated via `MCPAuditTrace.model_validate(raw)`. If a `ValidationError` occurs, it is logged with `ErrorCodes.VALIDATION_FAILED` and raises `AppException(message=f"Failed to validate MCP audit traces for step '{step_id}': {val_err}", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value, ...})` (Fail-Fast). Validated traces are then merged into `exec_record.frozen_context.mcp_tool_audit` under `_update_lock` using `model_copy(update=...)`.
+4. **Thread-Safe Trace Accumulation, Lock Consolidation & Strict Fail-Fast Validation in `dag_executor.py`**: `dag_executor.py`'s `run_step_wrapper` moves the formerly-unsynchronized event processing loop (L693-L703: `exec_record.execution_trace.append(evt)`, `projector.apply_delta(evt)`, and context variable updates) INSIDE `async with _update_lock:`. When encountering an event with `evt.metadata and "mcp_audit_traces" in evt.metadata and evt.metadata["mcp_audit_traces"]`, every raw trace is explicitly validated via `MCPAuditTrace.model_validate(raw)`. If a `ValidationError` occurs, it is logged with `ErrorCodes.VALIDATION_FAILED` and raises `AppException(message=f"Failed to validate MCP audit traces for step '{step_id}': {val_err}", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value, ...})` (Fail-Fast). Validated traces are merged into `exec_record.frozen_context.mcp_tool_audit` under that exact same `_update_lock` critical section using `model_copy(update=...)`, eliminating race conditions and redundant double-lock acquisitions.
 5. **Downstream (zero changes needed)**: `blueprint.py` -> `AdapterContext.mcp_audit_map` -> `PrintableSourcesAdapter` already renders sources correctly.
 6. **Studio UI Context Anchoring Alignment**: Align localization keys (`app_fi.arb` and `app_en.arb`) with **"Kontekstiankkurointi" (Context Anchoring)** to clearly explain the cognitive impact of binding prior step narratives.
 
@@ -100,6 +100,18 @@ sequenceDiagram
 > [!CAUTION]
 > **Tier 0 Research Mutation (2026-08-23): Critical Evidence Data Path Fix**. Original plan referenced `llm_context_data['global_context_vars']` for evidence injection — physically impossible as `ContextBuilder.build()` does NOT include `global_context_vars` in `llm_context_data`. Fixed: `PromptFactory.build()` now receives `global_context_vars` as an explicit parameter (bypassing any unnecessary `PromptCompiler` indirection). Also added: `source_evidence_max_chars` token budget, `prompt_factory.py` touched-file tech debt, second `getattr` instance at L501-L503, and session handover boundary between Phase 2→3. See `research_analysis_tavily_bibliography.md` for full audit.
 
+> [!CAUTION]
+> **Tier 0 Research Mutation V2 (2026-08-23): 3 Critical Plan Fixes**. (A) **BLOCKER**: Phase 4 settings dissolved into new Step 1.0 — settings must exist before Steps 1.1/1.4 reference them. (B) **HIGH**: Step 1.1 `_verify_single_claim` must use Circuit Breaker degradation (return INCONCLUSIVE) for per-claim Tavily API failures, not blanket Fail-Fast (per `anti_fragility_boundaries` rule). (C) **MEDIUM**: Mid-Phase-1 session checkpoint added between Steps 1.4→1.5. See `research_analysis_tavily_bibliography_v2.md` for full audit.
+
+> [!CAUTION]
+> **Tier 0 Research Mutation V3 (2026-08-23): Lock Consolidation, Ghost Execution & XML Injection Hardening**.
+> 1. **DAG Executor Event Loop Lock Consolidation**: In `dag_executor.py` (`run_step_wrapper`), the unsynchronized for-loop at L693-L703 (`exec_record.execution_trace.append(evt)`, `projector.apply_delta(evt)`, and context updates) is merged inside `async with _update_lock:`. MCP audit trace validation and merging into `exec_record.frozen_context.mcp_tool_audit` occurs within this single critical section, eliminating race conditions and redundant double-lock acquisitions.
+> 2. **Ghost Execution Prevention & Context Caching in Source Verification**:
+>    - `source_verification_service.py`: Enforce static module-level `_EXTRACTION_SYSTEM_PROMPT` and `_VERIFICATION_SYSTEM_PROMPT` for 100% Gemini Context Caching. Wrap untrusted text in `<source_data>` and `<claim>` with `html.escape()`. Enforce `source_verification_min_text_length` setting check to short-circuit ghost executions before initializing clients.
+>    - `source_verification_hook.py`: For empty, whitespace, or sub-threshold inputs (`len(text) < settings.source_verification_min_text_length`), return a deterministic empty result `HookResult(success=True, state_delta={"metadata": {"mcp_audit_traces": []}, "global_context_vars": {"external_evidence": ""}})` (avoiding loose `{}` fallbacks while maintaining state schema parity). Text consolidation must avoid `isinstance(p, str)` after typed extraction (`p is not None and p.strip()`).
+> 3. **Settings Sovereignty**: Step 1.0 defines `source_verification_min_text_length: Annotated[int, Field(...)] = 15` alongside `source_extraction_max_chars` (30000) and `source_evidence_max_chars` (8000).
+> 4. **Mandatory Test Fixture Update**: Step 5.2 mandates updating the `service` fixture in `test_source_verification_service.py` to supply mock constructor dependencies, with negative tests for sub-threshold text and XML escaping.
+
 ---
 
 ## Target Files and Modification Categories
@@ -117,22 +129,50 @@ sequenceDiagram
 - **[MODIFY]** @[client_app_v2/lib/l10n/app_en.arb#L2120-L2121]
 - **[MODIFY]** @[client_app_v2/test/features/studio/views/widgets/workflow/workflow_step_card_test.dart#L237-L239]
 - **[MODIFY]** @[backend_v2/settings.py]
+- **[MODIFY]** @[backend_v2/tests/unit/services/test_source_verification_service.py]
 - **[NEW]** @[backend_v2/tests/unit/hooks/test_source_verification_hook.py]
+- **[NEW]** @[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_audit.py]
 
 ---
 
 ```xml
 <execution_protocol>
+  <dod_checklist>
+    - [ ] `source_extraction_max_chars` (30000), `source_evidence_max_chars` (8000), and `source_verification_min_text_length` (15) defined in `backend_v2/settings.py` with `Annotated[int, Field(...)]`.
+    - [ ] `SourceVerificationService` cleaned of all 12 anti-patterns in `backend_v2/services/source_verification_service.py` (strict constructor DI, static prompts `_EXTRACTION_SYSTEM_PROMPT` / `_VERIFICATION_SYSTEM_PROMPT`, XML `html.escape()`, ghost execution min length short-circuit, `ToolDispatcher.execute_tool` integration, circuit breaker on per-claim search failures).
+    - [ ] `audit_traces: list[MCPAuditTrace]` field added to `SourceVerificationResultDTO` in `backend_v2/models/domain/source_verification.py`.
+    - [ ] `source_verification_hook` registered with `@hook_registry.register(name="source_verification_hook")` in `backend_v2/hooks/source_verification_hook.py`, exported in `backend_v2/hooks/__init__.py`, with `HookDependencies.system_repo` Fail-Fast validation, fixed newline literal `\n\n`, and ghost execution short-circuit returning `HookResult(success=True, state_delta={"metadata": {"mcp_audit_traces": []}, "global_context_vars": {"external_evidence": ""}})`.
+    - [ ] `PromptFactory.build()` in `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py` updated with `global_context_vars: dict[str, Any] | None = None` parameter, embedding `<external_evidence>` inside `<source_data>` clamped to `settings.source_evidence_max_chars`, and cleaned of all touched tech debt (L173 `b.slug`, L88-L133 timestamp extraction, L140-L169 `find_value_by_key` God Method replaced with `_extract_mechanical_anchors`).
+    - [ ] `NodeStrategy.run_pre_hooks()` in `backend_v2/services/orchestrator/strategies/base.py` emits `TraceEvent(step_name=step.id, event_type="decision", content={"mcp_audit_traces": metadata_updates["mcp_audit_traces"]}, metadata={"mcp_audit_traces": metadata_updates["mcp_audit_traces"]})` when `mcp_audit_traces` is present in `metadata_updates`.
+    - [ ] `LLMNodeStrategy.execute()` in `backend_v2/services/orchestrator/strategies/llm.py` cleaned of all 7 anti-patterns (L223 debug print removed, L300-307 metadata mutation fixed, L524-539 loose parsing replaced with typed snapshot extraction, L501-L503 and L543 `getattr(step, 'input_mappings')` replaced with direct access, L548-558 dead `mcp_tools` loop removed, L569-570 fallbacks removed, L417-L431 passing `hook_state.global_context_vars` directly to `PromptFactory.build`).
+    - [ ] `DAGExecutor.run_step_wrapper()` in `backend_v2/services/orchestrator/dag_executor.py` consolidates unsynchronized event loop (L693-L703) inside `async with _update_lock:`, explicitly validates raw MCP audit traces via `MCPAuditTrace.model_validate(raw)` with RFC 7807 Fail-Fast (`AppException(ErrorCodes.VALIDATION_FAILED)`), and merges traces into `exec_record.frozen_context.mcp_tool_audit` via immutable `model_copy`.
+    - [ ] `seed_data.json` updated with `"source_verification_hook"` in `pre_hooks` of Faktantarkistaja (`sp_76eedbc020274f66`) and Falsifier (`sp_6f40b964895c426b`), and `"prior_analysis": "$steps.sr_0f7947ec7007498c"` restored in workflow DAG node `sr_02b7cc1e7c2a4a62` following Bounded Mutation Protocol.
+    - [ ] Studio UI localization keys (`app_fi.arb`, `app_en.arb`) updated to "Edeltävien askeleiden kontekstiankkurointi (Valinnainen)" / "Prior Step Context Anchoring (Optional)" and widget test assertions updated in `workflow_step_card_test.dart`.
+    - [ ] ISTQB unit tests implemented in `test_source_verification_hook.py`, `test_source_verification_service.py` (with updated constructor fixture and negative cases), and `test_dag_executor_mcp_audit.py`.
+    - [ ] Quality gates pass: `backend_audit_loop.py` and `flutter_audit_loop.py`.
+  </dod_checklist>
+
   <phase id="1" name="Pre-Implementation Technical Debt Cleanups &amp; Hook Registration">
+    <step id="1.0" target="backend_v2/settings.py">
+      <description>Add source_extraction_max_chars, source_evidence_max_chars, and source_verification_min_text_length settings as prerequisite for Phase 1 service cleanups. This step MUST execute first because Steps 1.1, 1.3, and 1.4 reference these settings.</description>
+      <constraint invariant="central_config_sovereignty">Define settings in Settings class with Annotated[int, Field(description=...)].
+      - source_extraction_max_chars: Annotated[int, Field(description="Maximum character budget for input text truncation in source claim extraction.")] = 30000.
+      - source_evidence_max_chars: Annotated[int, Field(description="Maximum character budget for evidence XML injected into prompts to prevent token explosion.")] = 8000.
+      - source_verification_min_text_length: Annotated[int, Field(description="Minimum character length of input text required to run source verification; payloads below this threshold short-circuit to prevent ghost executions.")] = 15.</constraint>
+    </step>
+
     <step id="1.1" target="backend_v2/services/source_verification_service.py">
-      <description>Clean all 12 banned anti-patterns in SourceVerificationService per Zero Compromise Pledge. Shrink file to &lt; 150 lines.</description>
+      <description>Clean all 12 banned anti-patterns in SourceVerificationService per Zero Compromise Pledge. Enforce static module-level prompt directives, XML escaping, ghost execution threshold, and strict constructor DI. Shrink file to &lt; 150 lines.</description>
       <constraint invariant="strict_configuration_segregation">Move MAX_EXTRACTION_CHARS (L27) to settings.py as source_extraction_max_chars.</constraint>
       <constraint invariant="inline_imports_ban">Move LLMClient, LLMProviderConfig, PromptCompiler imports to module top level.</constraint>
       <constraint invariant="the_zero_compromise_pledge">Replace getattr(llm_task_executor, 'llm_client', None) with strict constructor injection: __init__(self, llm_task_executor: LLMTaskExecutor, llm_client: LLMClient).</constraint>
       <constraint invariant="the_no_legacy_mandate">Remove _ensure_initialized completely.</constraint>
       <constraint invariant="srp_mandate">Replace direct tavily_search call with await DISPATCHER.execute_tool(tool_id=TAVILY_TOOL_ID, query=query, step_name='source_verification', target_language='en', llm_client=self.llm_client, claim_text=claim.claim_text).</constraint>
       <constraint invariant="strict_pydantic_v2_rust">Replace isinstance() and .get() duck-typing with strict typed execute_chat_task() evaluation.</constraint>
-      <constraint invariant="the_duct_tape_ban">Replace silent except Exception -&gt; INCONCLUSIVE with Fail-Fast AppException(ErrorCodes.FETCH_FAILED).</constraint>
+      <constraint invariant="ephemeral_caching_topology">Define static module-level system directives _EXTRACTION_SYSTEM_PROMPT and _VERIFICATION_SYSTEM_PROMPT to guarantee 100% Gemini Context Caching.</constraint>
+      <constraint invariant="role_segregation_and_fencing">Wrap untrusted text payloads inside &lt;source_data&gt; and &lt;claim&gt; with html.escape() to eliminate XML prompt injection vulnerabilities.</constraint>
+      <constraint invariant="ghost_execution_prevention">Enforce min length check (len(text.strip()) &lt; get_settings().source_verification_min_text_length) in run_full_verification to return empty SourceVerificationResultDTO immediately without invoking LLM or search tools.</constraint>
+      <constraint invariant="anti_fragility_boundaries">Split error handling into two tiers: (A) Structural/configuration failures (_extract_source_claims L113 except Exception, missing client initialization) MUST Fail-Fast with AppException(ErrorCodes.FETCH_FAILED). (B) Per-claim Tavily API failures in _verify_single_claim (HTTP 429, timeouts, individual search crashes) MUST log ErrorCodes.FETCH_FAILED with structured trace (logger.error with error_code extra) and return SourceVerificationStatus.INCONCLUSIVE for THAT claim only — this is the correct Circuit Breaker degradation pattern for external API boundaries.</constraint>
     </step>
 
     <step id="1.2" target="backend_v2/models/domain/source_verification.py">
@@ -141,11 +181,12 @@ sequenceDiagram
     </step>
 
     <step id="1.3" target="backend_v2/hooks/source_verification_hook.py">
-      <description>Register hook, fix literal newline bug, add polymorphic payload extraction, enforce HookDependencies.system_repo Fail-Fast validation, and export in hooks/__init__.py.</description>
+      <description>Register hook, fix literal newline bug, add polymorphic payload extraction without isinstance duck-typing, add ghost execution short-circuit with deterministic empty DTO envelope, enforce HookDependencies.system_repo Fail-Fast validation, and export in hooks/__init__.py.</description>
       <constraint invariant="hook_registration_mandate">Decorate with @hook_registry.register(name="source_verification_hook").</constraint>
-      <constraint invariant="polymorphic_dag_payload_handling">Extract text polymorphically from state.inputs (str, dict, list) and fix literal \\n\\n bug to clean \n\n.</constraint>
+      <constraint invariant="polymorphic_dag_payload_handling">Extract text polymorphically from state.inputs (str, dict, list) and fix literal \\n\\n bug to clean \n\n. Avoid isinstance(p, str) anti-pattern after extraction (use p is not None and p.strip()).</constraint>
+      <constraint invariant="ghost_execution_prevention">If consolidated text is empty, whitespace-only, or len(text) &lt; get_settings().source_verification_min_text_length, immediately return HookResult(success=True, state_delta={"metadata": {"mcp_audit_traces": []}, "global_context_vars": {"external_evidence": ""}}) without initializing services or calling external APIs.</constraint>
       <constraint invariant="di_container_mandate">Initialize SourceVerificationService using the in-memory HookDependencies container parameter (deps.system_repo) with explicit Fail-Fast validation (if not deps.system_repo: raise AppException(message="Missing system_repo in HookDependencies", status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})), completely decoupled from FastAPI HTTP request context. Instantiate LLMClient.from_strategy('fast', repository=deps.system_repo, pipeline_name='source_verification') and LLMTaskExecutor(PromptCompiler()).</constraint>
-      <constraint invariant="immutable_dto_contract">Return HookResult with state_delta containing metadata.mcp_audit_traces and global_context_vars.external_evidence.</constraint>
+      <constraint invariant="immutable_dto_contract">Return HookResult with state_delta containing metadata.mcp_audit_traces (list[dict]) and global_context_vars.external_evidence (str).</constraint>
     </step>
 
     <step id="1.4" target="backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py">
@@ -155,6 +196,8 @@ sequenceDiagram
       <constraint invariant="fail_fast_hydration_mandate">Refactor L88-L133 deep .get() and or fallback chains for execution_time extraction into a deterministic _resolve_execution_time(llm_context_data, execution_id) method.</constraint>
       <constraint invariant="touched_scope_tech_debt_mandate">Completely delete L140-L169 recursive find_value_by_key God Method (hasattr/isinstance duck-typing). Replace with a deterministic, typed _extract_mechanical_anchors(llm_context_data) helper that extracts performative phrases and text metrics using LinguisticsResultDTO.model_validate() and direct dictionary lookups without hasattr or recursive object traversal.</constraint>
     </step>
+
+    <!-- RECOMMENDED SESSION CHECKPOINT: Steps 1.0-1.4 (settings + service + hook + prompt_factory) should be completed and git-committed before proceeding to Steps 1.5-1.7 (base.py + llm.py + dag_executor.py). Run /tier5-session-handover if the context window is degraded after processing the prompt_factory.py God Method cleanup. -->
 
     <step id="1.5" target="backend_v2/services/orchestrator/strategies/base.py">
       <description>Add MCP audit TraceEvent emission to NodeStrategy.run_pre_hooks under deterministic membership check.</description>
@@ -175,12 +218,13 @@ sequenceDiagram
     </step>
 
     <step id="1.7" target="backend_v2/services/orchestrator/dag_executor.py">
-      <description>Strict Fail-Fast validation and thread-safe accumulation of MCP audit traces in run_step_wrapper under _update_lock with deterministic membership guard.</description>
+      <description>Strict Fail-Fast validation and thread-safe accumulation of MCP audit traces in run_step_wrapper under _update_lock, consolidating the entire unsynchronized event loop inside _update_lock.</description>
       <constraint invariant="ast_boundary_verification_mandate">Verify line boundaries of DAGExecutor.run_step_wrapper (L559-L752) using ast.parse before editing.</constraint>
+      <constraint invariant="concurrency_lock_mandate">Move the formerly unsynchronized for-loop at L693-L703 (exec_record.execution_trace.append, projector.apply_delta, context_variables update) INSIDE `async with _update_lock:`. Merge the context variable update and MCP trace accumulation into this single critical section to eliminate race conditions and avoid double-locking overhead.</constraint>
       <constraint invariant="deterministic_membership_guard">Check `if evt.event_type == "decision" and evt.metadata and "mcp_audit_traces" in evt.metadata and evt.metadata["mcp_audit_traces"]:` before accessing traces.</constraint>
       <constraint invariant="strict_pydantic_v2_rust">Explicitly validate all raw traces from evt.metadata['mcp_audit_traces'] via MCPAuditTrace.model_validate(raw).</constraint>
       <constraint invariant="rfc7807_dual_reporting_mandate">Catch pydantic.ValidationError during trace parsing, log logger.error with ErrorCodes.VALIDATION_FAILED, and raise AppException(message=f"Failed to validate MCP audit traces for step '{step_id}': {val_err}", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "step_id": step_id, "validation_errors": val_err.errors()}) to enforce Universal Fail-Fast.</constraint>
-      <constraint invariant="concurrency_lock_mandate">Merge validated MCPAuditTrace objects into exec_record.frozen_context.mcp_tool_audit inside _update_lock using model_copy(update=...). NO direct .append().</constraint>
+      <constraint invariant="frozen_state_mutability">Merge validated MCPAuditTrace objects into exec_record.frozen_context.mcp_tool_audit inside _update_lock using model_copy(update={"frozen_context": exec_record.frozen_context.model_copy(update={"mcp_tool_audit": merged_traces})}). NO direct .append().</constraint>
     </step>
   </phase>
 
@@ -215,12 +259,7 @@ sequenceDiagram
     </step>
   </phase>
 
-  <phase id="4" name="Central Settings SSOT Enhancement">
-    <step id="4.1" target="backend_v2/settings.py">
-      <description>Add source_extraction_max_chars: int = 30000 and source_evidence_max_chars: int = 8000 settings.</description>
-      <constraint invariant="central_config_sovereignty">Define both settings in Settings class with Annotated[int, Field(description=...)]. source_extraction_max_chars controls input text truncation. source_evidence_max_chars controls maximum character budget for evidence XML injected into prompts to prevent token explosion.</constraint>
-    </step>
-  </phase>
+  <!-- Phase 4 (Central Settings SSOT Enhancement) DISSOLVED into Step 1.0 per Tier 0 Research V2 dependency ordering fix. -->
 
   <phase id="5" name="ISTQB Testing &amp; Verification Gate">
     <step id="5.1" target="backend_v2/tests/unit/hooks/test_source_verification_hook.py">
@@ -229,7 +268,9 @@ sequenceDiagram
     </step>
 
     <step id="5.2" target="backend_v2/tests/unit/services/test_source_verification_service.py">
-      <description>Update existing service tests to mock ToolDispatcher.execute_tool instead of tavily_search.</description>
+      <description>Update existing service tests with mandatory fixture update for injected dependencies, mock ToolDispatcher.execute_tool instead of tavily_search, and add negative/edge test cases.</description>
+      <constraint invariant="mandatory_fixture_update">Update the `service` fixture to provide mock dependencies matching the new SourceVerificationService.__init__ constructor signature.</constraint>
+      <constraint invariant="anti_happy_path_mandate">Add unit test cases for empty text, whitespace text, sub-threshold text (&lt; settings.source_verification_min_text_length), and XML special character payload escaping (html.escape verification).</constraint>
       <constraint invariant="regression_defense">Verify zero test regressions across existing suite.</constraint>
     </step>
 
@@ -238,6 +279,17 @@ sequenceDiagram
       <constraint invariant="anti_happy_path_mandate">Test valid MCPAuditTrace list merge, invalid dict payload (missing required field) triggering AppException with ErrorCodes.VALIDATION_FAILED, and non-list payload handling.</constraint>
     </step>
   </phase>
+
+  <validation_gate>
+    <action>Execute Settings &amp; Domain Model Audit: `uv run python scripts/backend_audit_loop.py backend_v2/settings.py --test`</action>
+    <action>Execute Source Verification Service Audit: `uv run python scripts/backend_audit_loop.py backend_v2/services/source_verification_service.py --test`</action>
+    <action>Execute Source Verification Hook Audit: `uv run python scripts/backend_audit_loop.py backend_v2/hooks/source_verification_hook.py --test`</action>
+    <action>Execute Prompt Factory &amp; LLM Strategy Audit: `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/strategies/llm.py --test`</action>
+    <action>Execute DAG Executor Audit: `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor.py --test`</action>
+    <action>Execute Hook Unit Tests: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/hooks/test_source_verification_hook.py --test`</action>
+    <action>Execute DAG Executor MCP Audit Tests: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_audit.py --test`</action>
+    <action>Execute Flutter Localization &amp; Widget Test: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/views/widgets/workflow/workflow_step_card_test.dart`</action>
+  </validation_gate>
 </execution_protocol>
 ```
 
