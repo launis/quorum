@@ -156,7 +156,7 @@ class StudioSimulationService:
             AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): On core errors during simulation.
         """
         errors: list[str] = []
-        rendered = data.ai_description or ""
+        rendered = data.ai_description if data.ai_description is not None else ""
 
         # 1. Base rendering using template syntax if needed
         if rendered and mock_inputs:
@@ -174,12 +174,12 @@ class StudioSimulationService:
             for scale in data.scales:
                 rendered += f"\nScore {scale.score}:\n"
                 for claim in scale.claims:
-                    fallback = claim.label.translations.get(claim.label.default_locale, "")
-                    en_text = claim.label.translations.get("en", fallback)
+                    en_text = claim.label.resolve("en")
                     if en_text:
                         rendered += f"- {en_text.strip()}\n"
-                    if getattr(claim, "ai_description", None):
-                        rendered += f"  Rule: {claim.ai_description.strip()}\n"
+                    for tda in claim.tda_assertions:
+                        if tda.concept_description:
+                            rendered += f"  Rule: {tda.concept_description.strip()}\n"
 
         prompt_context = PromptContextDTO(
             static_messages=[{"role": "system", "content": rendered.strip()}],

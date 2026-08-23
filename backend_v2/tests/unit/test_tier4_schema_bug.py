@@ -6,7 +6,6 @@ from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_reproduce_tier4_schema_bug() -> None:
     # Setup prompt compiler
     compiler = PromptCompiler()
@@ -18,7 +17,7 @@ def test_reproduce_tier4_schema_bug() -> None:
         {
             "id": "blk_599645bd5baf44e2",
             "type": "instruction",
-            "category_id": PromptBlockCategory.MATRIX,
+            "category_id": PromptBlockCategory.SYSTEM_RULE,
             "label": {"translations": {"en": "Matrix"}, "default_locale": "en"},
             "ai_description": "Do matrix things",
             "slug": "test_block",
@@ -33,10 +32,7 @@ def test_reproduce_tier4_schema_bug() -> None:
                             "ai_description": "rule",
                             "tda_assertions": [
                                 {
-                                    "concept_description": {
-                                        "default_locale": "en",
-                                        "translations": {"en": "rule", "fi": "rule"},
-                                    },
+                                    "concept_description": "Evaluate and verify the rule",
                                     "inverse_evidence": False,
                                     "aggregation_mode": "EXISTS",
                                 }

@@ -42,12 +42,12 @@
 **Plan:** @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md]
 **Plan (Frontend):** @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\02_phase1_frontend_tech_debt_cleanups.md]
 
-- [ ] **[NOK] Red-Teaming (Backend):** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
-- [ ] **[NOK] Execution (Backend):** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check — Verify simulation service, test_tier4_schema_bug.py, and test_schema_builder.py
-  - [ ] Step 1: Simulation Service Technical Debt Cleanup — Eliminate duck typing `getattr(claim, 'ai_description', None)` and lazy fallback `rendered = data.ai_description or ""` in simulation_service.py
-  - [ ] Step 2: Unit Test Fixtures Remediation — Un-skip and fix test_tier4_schema_bug.py (adapt fixture to plain string with >= 10 chars, remove `ai_description`), verify test_schema_builder.py
-  - [ ] Step 3: AST and Seed Guardrail Suite Creation — Implement 9 AST and seed guardrails in test_ast_matrix_claim_guardrails.py
+- [x] **[OK] Red-Teaming (Backend):** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Execution (Backend):** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check — Verify simulation service, test_tier4_schema_bug.py, and test_schema_builder.py
+  - [x] Step 1: Simulation Service Technical Debt Cleanup — Eliminate duck typing `getattr(claim, 'ai_description', None)`, lazy fallback `rendered = data.ai_description or ""`, and raw dict `translations.get` in simulation_service.py
+  - [x] Step 2: Unit Test Fixtures Remediation — Un-skip and fix test_tier4_schema_bug.py (adapt fixture to plain string with >= 10 chars, retain valid `ai_description` until Phase 3), verify test_schema_builder.py
+  - [x] Step 3: AST and Seed Guardrail Suite Creation — Implement 9 AST and seed guardrails in test_ast_matrix_claim_guardrails.py with live Phase 1 checks, negative mock tests, and aspirational anchors
 - [ ] **[NOK] Red-Teaming (Frontend):** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\02_phase1_frontend_tech_debt_cleanups.md] @[docs\epic\EPIC_146_tracker.md]`
 - [ ] **[NOK] Execution (Frontend):** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\02_phase1_frontend_tech_debt_cleanups.md] @[docs\epic\EPIC_146_tracker.md]`
   - [ ] Step 0: Strategic Alignment Check — Verify step_builder_view.dart, router.dart, and prompt_block_builder_view.dart
@@ -316,20 +316,30 @@
 # Session Handover Context
 
 ## Achieved
-- Completed Tier 1 Planning and Tracker Generation for Epic 146: Unified Prompt Orchestration and Cognitive Harmonization.
-- Generated comprehensive implementation sub-plans for all 11 phases across Wave 1 (TDA Assertion SSOT) and Wave 2 (Zero-XML UI & Clean Stack Prompt Engine) in `docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/`.
-- Verified and aligned `audit_tracker_output.py` structural auditor to ensure bidirectional mapping between Requirements Traceability Matrix and sub-plan step IDs.
-- Generated the official `EPIC_146_tracker.md` document containing full phase execution statuses, granular file-level hardening checklists, instructions for execution agents, and 40-row Requirements Traceability Matrix.
+- Completed `/tier2-execute` implementation and automated quality loop verification for Phase 1 Backend Plan (`01_phase1_backend_tech_debt_and_ast_guardrails.md`).
+- Step 0: Verified strategic alignment and confirmed `PromptBlock.ai_description` (valid, retained) vs `MatrixClaim.ai_description` (scheduled for Phase 3 deprecation).
+- Step 1: Cleaned up @[backend_v2/services/studio/simulation_service.py] — eradicated duck-typing `getattr(claim, 'ai_description', None)` and lazy fallback `rendered = data.ai_description or ""`, replaced raw dictionary lookups with strongly-typed `claim.label.resolve("en")`.
+- Step 2: Remediated @[backend_v2/tests/unit/test_tier4_schema_bug.py] (un-skipped, updated fixture to `PromptBlockCategory.SYSTEM_RULE` and valid `concept_description` >= 10 chars). Verified @[backend_v2/tests/unit/test_schema_builder.py] passes cleanly.
+- Step 3: Implemented 9 AST & seed guardrails in @[backend_v2/tests/unit/test_ast_matrix_claim_guardrails.py] (4 active AST/negative checks + 5 aspirational skipped checks for Phases 2 & 3).
+- Created comprehensive unit tests in @[backend_v2/tests/unit/services/studio/test_simulation_service.py] (10 passed, 98% code coverage on `simulation_service.py`, 0 lint/MyPy errors).
+- Passed all 22 Phase 1 Unit and AST tests and verified the universal backend quality gate (`uv run python scripts/backend_audit_loop.py backend_v2/services/studio/simulation_service.py --test`).
+- Marked all DoD checklist items as completed in `01_phase1_backend_tech_debt_and_ast_guardrails.md` and updated `EPIC_146_tracker.md`.
 
 ## Learned
-- **Baseline Codebase State Snapshot**:
-  - `seed_data.json` already has 0 `ai_description` keys on claims and 0 redundant global mandate block IDs in persistence, making Phase 2 verification-only.
-  - `MatrixClaim.ai_description` in `backend_v2/models/v2_core.py` and `MatrixClaim.aiDescription` in `client_app_v2/lib/features/studio/models/prompt_block.dart` are still physically present in domain code and must be cleanly eradicated in Phases 3 and 4.
-  - `GLOBAL_MANDATES_XML` is already centralized in `backend_v2/models/prompts/global_mandates.py` with 11 system mandates, but is currently injected into the dynamic user payload (`exec_params`) in `prompt_factory.py`; Wave 2 will migrate it into the Layer 1 static caching prefix.
-  - `PromptBlock` is currently a monolithic class with optional catch-all fields and runtime duck-typing validation (`pre_validate_block_consistency`) in `v2_core.py`; Phase 7 will decompose it into a clean `AnyPromptBlock` discriminated union with `Field(discriminator='category_id')`.
+- **Domain Simulation & Pydantic V2 Integrity**:
+  - `StudioSimulationService` requires full topological graph resolution testing and isolated unit tests under `backend_v2/tests/unit/services/studio/test_simulation_service.py` to satisfy directory isolation and coverage targets.
+  - Under strict Pydantic V2 validation, `ExpectedInput` requires `input_modes` (e.g. `["paste"]`) and `label`/`description` as `I18nText`, while `Step` with `type="llm"` requires at least one `criteria_block_ids` entry.
+- **AST Guardrail Pattern & Aspirational Tests (`ki_ast_guardrail_testing.md`)**:
+  - AST tests inspecting AST nodes (`ast.parse()`, `ast.ClassDef`, `ast.AnnAssign`, `ast.Attribute`) reliably catch duck-typing and unconstrained schema properties without executing domain logic.
+  - Negative testing with mock AST fragments is essential to prove scanners reject unconstrained or malformed models.
+  - Skipping future-phase tests with `@pytest.mark.skip(reason="Awaiting Phase X...")` provides clear architectural anchors without breaking intermediate test gates.
 
 ## Remaining
-- Execute Phase 1: Pre-Requisite Technical Debt Cleanups & AST Guardrails (Backend & Frontend) via `/tier0-research-plan`.
+- Perform System 2 Plan Audit on Phase 1 Backend via `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`.
+- Perform Red-Teaming for Phase 1 Frontend Plan (`02_phase1_frontend_tech_debt_cleanups.md`) via `/tier0-research-plan`.
+- Execute Phase 1 Frontend Cleanups (`02_phase1_frontend_tech_debt_cleanups.md`) via `/tier2-execute`.
 
 ## Resume Command
-`/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+`/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\01_phase1_backend_tech_debt_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+
+
