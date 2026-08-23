@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, QuoteEvidenceDTO
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
@@ -61,6 +62,7 @@ __all__ = [
     "LexiconSuggestionListDTO",
     "AllowedMCPTool",
     "MCPAuditTrace",
+    "MechanicalAnchorsPayload",
     "Step",
     "StepRule",
     "Role",

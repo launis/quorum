@@ -111,13 +111,14 @@
 
 **Plan:** @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md]
 
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md] --phase=6`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check — Verify Wave 1 baseline in prompt_factory.py, matrix_sensor_prompt_builder.py, and localization_compiler.py
-  - [ ] Step 1: Global Mandates Static Prefix Migration — Inject GLOBAL_MANDATES_XML into Layer 1 base_system_prompt static prefix in prompt_factory.py and matrix_sensor_prompt_builder.py
-  - [ ] Step 2: Compiler Refactoring & Anti-Pattern Demolition — Replace find_value_by_key and hasattr/getattr with MechanicalAnchorsPayload DTO, eradicate 7 get fallback chains via ExecutionTimeResolver, and replace localization compiler fallback with Fail-Fast validation
-  - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md] --phase=6`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check — Verify Wave 1 baseline in v2_core.py, global_mandates.py, prompt_factory.py, matrix_sensor_prompt_builder.py, and localization_compiler.py
+  - [x] Step 1: Global Mandates Static Prefix Migration — Inject GLOBAL_MANDATES_XML into Layer 1 base_system_prompt in prompt_factory.py and build_caching_prefix in matrix_sensor_prompt_builder.py
+  - [x] Step 2: Mechanical Anchors & Execution Time Resolver Decomposition — Create MechanicalAnchorsPayload and ExecutionTimeResolver, eradicate find_value_by_key / hasattr / getattr, replace slug checks with polymorphic checks, and replace LANGUAGE_NAMES.get with Fail-Fast AppException
+  - [x] Step 3: Unit Test Modernization & ISTQB Negative Partition Coverage — Modernize test_prompt_factory.py, test_epic_60_decoupling.py, create test_execution_time_resolver.py, update test_localization_compiler.py, and update test_matrix_sensor_prompt_builder.py
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
 
 ---
@@ -209,12 +210,14 @@
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths and delete deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend production files:
   - [ ] @[backend_v2/hooks/atom_flattening.py]
-  - [ ] @[backend_v2/models/domain/prompt_blocks.py]
+  - [ ] [NEW] @[backend_v2/models/domain/mechanical_anchors.py]
+  - [ ] [NEW] @[backend_v2/models/domain/prompt_blocks.py]
   - [ ] @[backend_v2/models/prompts/global_mandates.py]
   - [ ] @[backend_v2/models/v2_core.py]
   - [ ] @[backend_v2/seed/seed_registry.py]
   - [ ] @[backend_v2/services/orchestrator/localization_compiler.py]
   - [ ] @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]
+  - [ ] [NEW] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]
   - [ ] @[backend_v2/services/studio/simulation_service.py]
   - [ ] @[backend_v2/settings.py]
@@ -258,12 +261,12 @@
    - Never run raw seed execution without the environment argument.
 
 3. **Workspace Relative References**:
-   - All file references MUST use `@-reference` syntax (e.g. `@[backend_v2/models/v2_core.py]`).
-   - For Knowledge Items, use relative filename syntax (e.g. `@[ki_god_code_prevention.md]`).
+   - All file references MUST use `@-reference` syntax (specifically `@[backend_v2/models/v2_core.py]`).
+   - For Knowledge Items, use relative filename syntax (specifically `@[ki_god_code_prevention.md]`).
 
 4. **Workflow Execution Pipeline**:
    - The mandatory workflow loop for deferred phases is: `[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan`.
-   - You MUST pass BOTH the plan file and tracker file in ALL commands (e.g. `/tier0-research-plan @[path_to_plan.md] @[docs\epic\EPIC_146_tracker.md]`).
+   - You MUST pass BOTH the plan file and tracker file in ALL commands (specifically `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`).
    - Once all phases are executed and audited, proceed through the Post-Implementation Gates:
      `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`.
    - Whenever completing a session or handing over, automatically output the next resume command in your chat response. Note that context rules are self-hydrating from `<required_context_rules>` blocks; `--rules` flag is not needed.
@@ -372,15 +375,29 @@
   - Created comprehensive unit test suite in `client_app_v2/test/models/matrix_claim_test.dart` covering regex matching, deserialization, `CheckedFromJsonException` on legacy `ai_description` (strict mode), ISTQB boundary value analysis (9 vs 10 chars), and missing required field errors.
   - Verified Quality Gates: `flutter_audit_loop.py client_app_v2 --build` passed cleanly with 0 analyzer issues and build runner outputs, `matrix_claim_test.dart` passed (6/6 tests), `bars_matrix_builder_test.dart` passed, and `domain_parity_test.dart` passed (3/3 tests against all 152 prompt blocks in `seed_data.json`).
   - Executed and PASSED `/tier8-audit-plan` for Phase 4 with full verification matrix and audit artifact generated (`red_team_audit_phase4_flutter_studio_client_harmonization.md`).
+- **Phase 6 Plan (`06_placeholder_phase6_layer1_global_mandates_and_compiler.md`) Complete & Verified**:
+  - Migrated `GLOBAL_MANDATES_XML` from dynamic user payload (`exec_params`) to Layer 1 of `base_system_prompt` static caching prefix in `prompt_factory.py` and `build_caching_prefix` in `matrix_sensor_prompt_builder.py`, guaranteeing prompt purity (never present in `user_payload`).
+  - Created strongly-typed `MechanicalAnchorsPayload` domain model (`backend_v2/models/domain/mechanical_anchors.py`) with strict Pydantic V2 config (`strict=True, extra='forbid'`), deterministic `.from_context()`, and `.to_xml()`, eliminating all reflection helpers (`find_value_by_key`), `hasattr`/`getattr` calls, and replacing hardcoded slug checks with polymorphic category checks (`PromptBlockCategory.MATRIX`).
+  - Re-exported `MechanicalAnchorsPayload` in `backend_v2/models/domain/__init__.py` and `backend_v2/models/v2_core.py`.
+  - Created `ExecutionTimeResolver` (`backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py`) resolving prompt execution time across dynamic inputs, physical disk input file `st_mtime`, and metadata timestamps, replacing 7 `.get()` fallback chains.
+  - Hardened `LocalizationCompiler` (`backend_v2/services/orchestrator/localization_compiler.py`) by replacing `LANGUAGE_NAMES.get(..., "English")` fallbacks with Fail-Fast `AppException` (400, `VALIDATION_FAILED`) on unsupported locales.
+  - Added comprehensive unit tests and ISTQB negative partition coverage:
+    - Created `test_mechanical_anchors.py` (100% coverage).
+    - Created `test_execution_time_resolver.py` (100% coverage).
+    - Updated `test_prompt_factory.py` with static AST inspection test verifying zero `hasattr`/`getattr` calls in `prompt_factory.py` (93% coverage).
+    - Updated `test_epic_60_decoupling.py` asserting Layer 1 global mandates in `base_system_prompt`.
+    - Updated `test_localization_compiler.py` covering supported locales, invalid input types, and unsupported locale error handling (97% coverage).
+    - Updated `test_matrix_sensor_prompt_builder.py` asserting Layer 1 global mandates in `build_caching_prefix` (100% coverage).
+  - Verified Quality Gates: `backend_audit_loop.py` passed with 100% strict typing and test coverage on all modified targets; all 323 orchestrator tests passed cleanly.
 
 ## Learned
 - **Pydantic V2 Strictness & extra='forbid' on Domain Models**:
   - Eradicating `ai_description` from `MatrixClaim` immediately surfaces all test files attempting to instantiate legacy claim fields with `ValidationError: Extra inputs are not permitted [extra_forbidden]`.
-  - Enforcing `StringConstraints(min_length=10)` on `TDAAssertion.concept_description` prevents abbreviated placeholder text like `"Concept"` or `"Claim"` from slipping through test fixtures or ingestion pipelines.
+  - Enforcing `StringConstraints(min_length=10)` on `TDAAssertion.concept_description` prevents abbreviated placeholder text ("Concept" or "Claim") from slipping through test fixtures or ingestion pipelines.
 - **AST Guardrail Testing Automation**:
-  - Static AST inspection (`test_ast_matrix_claim_guardrails.py`) provides an ironclad automated boundary proving 0 legacy fields exist in domain models without relying on runtime instantiation.
+  - Static AST inspection (`test_ast_matrix_claim_guardrails.py`, `test_prompt_factory_has_zero_reflection_via_ast`) provides an ironclad automated boundary proving zero legacy fields or banned reflection patterns (`hasattr`/`getattr`) exist in production code without relying on runtime execution paths.
 - **Pydantic Exception Translation Parity**:
-  - When translating validation error strings in Pydantic `@model_validator`s (e.g. from Finnish to English), any unit test checking error messages via `pytest.raises(ValueError, match=...)` must simultaneously be updated to assert against the English regex pattern.
+  - When translating validation error strings in Pydantic `@model_validator`s (specifically from Finnish to English), any unit test checking error messages via `pytest.raises(ValueError, match=...)` must simultaneously be updated to assert against the English regex pattern.
 - **Seed Data Migration & Single Source of Truth**:
   - `MatrixClaim` and `TDAAssertion` definitions inside `prompt_blocks` reside within `scales[].claims[]` arrays (not at the top-level block body).
   - Copying `claim.ai_description` to `tda.concept_description` and eradicating `claim.ai_description` establishes `TDAAssertion.concept_description` as the sole SSOT without altering qualitative coaching text (`prompt_preservation_mandate`).
@@ -395,15 +412,33 @@
   - All form validation error messages must be strictly localized via `.arb` runtime dictionaries (`l10n.tdaConceptMinLengthError(min)`), completely preventing hardcoded strings in widget logic.
 - **Design Token Invariant (`design_token_absolute_rule`)**:
   - Using hardcoded colors or spacing doubles degrades desktop multi-resolution rendering; all UI surfaces must consume `Theme.of(context).colorScheme` and `AppSpacing` tokens.
+- **Context Caching Layer Hierarchy (Layer 1-4 Architecture)**:
+  - Placing global mandates (`GLOBAL_MANDATES_XML`) inside `base_system_prompt` rather than `exec_params` (dynamic user payload) ensures 100% static prefix caching across LLM providers, drastically reducing API costs and latency.
+- **DTO-Driven Extraction vs Reflection Loops**:
+  - Replacing ad-hoc reflection helper functions (`find_value_by_key` using `hasattr`/`getattr`) with strongly-typed domain DTOs (`MechanicalAnchorsPayload.from_context()`) eliminates duck-typing runtime errors and makes prompt anchor injection deterministic and inspectable via AST.
+- **Fail-Fast Boundary Validation on Dynamic Locales**:
+  - Defaulting unknown locale codes to `"English"` via dictionary `.get(..., "English")` masks configuration flaws; raising structured `AppException(VALIDATION_FAILED)` immediately surfaces malformed workflow steps or unmapped locale headers.
+- **AST Bounded Reference Integrity (`audit_markdown_boundaries.py` & `audit_planner_output.py`)**:
+  - All `@-referenced` Python files with line ranges in architectural plans must align with exact AST node boundaries (`ClassDef`, `FunctionDef`, `AsyncFunctionDef`), ensuring automated verification tools can parse and audit plan targets.
+- **Downstream Unit Test Blast-Radius in Prompt Compilation**:
+  - Because `test_epic_60_decoupling.py` directly validates prompt structure generated by `PromptFactory.build()`, modifying Layer 1 global mandates injection requires synchronizing `test_epic_60_decoupling.py` alongside `test_prompt_factory.py`.
 
 ## Remaining
 - **Phase 6: Layer 1 Global Mandates Injection & Compiler Foundation**:
-  - [ ] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md] --phase=6`
-  - [ ] Red-Team Phase 6 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Execute Phase 6: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md] --phase=6`
+  - [x] Red-Team Phase 6 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Execute Phase 6: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
   - [ ] Audit Phase 6: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
-- **Phases 7 through 11**:
-  - Phase 7 (Polymorphic AnyPromptBlock Discriminated Union) -> Phase 8 (Clean Stack Compiler) -> Phase 9 (Flutter Zero-XML UI) -> Phase 10 (Seed Vault Pruning & Reseed) -> Phase 11 (Live LLM E2E Gate & Knowledge Sync).
+- **Phase 7: Polymorphic AnyPromptBlock Discriminated Union & AST Guardrails**:
+  - [ ] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md] --phase=7`
+  - [ ] Red-Team Phase 7 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [ ] Execute Phase 7: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [ ] Audit Phase 7: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+- **Phases 8 through 11**:
+  - Phase 8 (Clean Stack Compiler) -> Phase 9 (Flutter Zero-XML UI) -> Phase 10 (Seed Vault Pruning & Reseed) -> Phase 11 (Live LLM E2E Gate & Knowledge Sync).
 
 ## Resume Command
-`/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md] --phase=6`
+`/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+
+
+

@@ -124,3 +124,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
 
     # 3. Assert criteria compiled instructions are integrated
     assert "Compiled Criteria Instructions" in payload.base_system_prompt
+
+    # 4. Assert Layer 1 Global Mandates are integrated in base_system_prompt
+    assert "<global_system_mandates>" in payload.base_system_prompt
+    assert "<global_system_mandates>" not in payload.user_payload

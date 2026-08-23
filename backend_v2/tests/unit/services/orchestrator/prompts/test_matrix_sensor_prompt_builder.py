@@ -27,6 +27,7 @@ def test_build_caching_prefix_with_context() -> None:
     # Validate the generated compiled prompt
     assert len(prompt.static_messages) == 2
     assert prompt.static_messages[0]["role"] == "system"
+    assert "<global_system_mandates>" in prompt.static_messages[0]["content"]
     assert "Evaluate matrix rules." in prompt.static_messages[0]["content"]
     assert "<theory_context>" in prompt.static_messages[0]["content"]
     assert "Test Citation" in prompt.static_messages[0]["content"]

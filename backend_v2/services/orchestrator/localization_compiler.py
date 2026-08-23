@@ -89,10 +89,20 @@ class LocalizationCompiler:
             A formatted string of all static instruction directives.
 
         Raises:
+            AppException: If target_locale is unsupported.
             ConfigurationError: If a PromptBlock is missing mandatory ai_description.
         """
         compiled_lines = []
-        target_lang_name = LANGUAGE_NAMES.get(target_locale.split("-")[0].lower(), "English")
+        base_locale = target_locale.split("-")[0].lower()
+        if base_locale not in LANGUAGE_NAMES:
+            msg = f"Unsupported target locale '{target_locale}'"
+            logger.error("[LocalizationCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        target_lang_name = LANGUAGE_NAMES[base_locale]
 
         for block in blocks:
             if block.category_id != "matrix" and block.category_id != "runtime_variables":
@@ -134,7 +144,7 @@ class LocalizationCompiler:
             A formatted string of all dynamic runtime instruction directives.
 
         Raises:
-            AppException: If execution_time string cannot be parsed as ISO-8601.
+            AppException: If target_locale is unsupported or execution_time string cannot be parsed as ISO-8601.
             ConfigurationError: If a runtime_variables block is missing mandatory ai_description.
         """
         now_utc = None
@@ -168,7 +178,17 @@ class LocalizationCompiler:
 
         current_date_str = now_utc.strftime("%Y-%m-%d")
         dynamic_time_str = now_utc.strftime("%H:%M:%S UTC")
-        target_lang_name = LANGUAGE_NAMES.get(target_locale.split("-")[0].lower(), "English")
+
+        base_locale = target_locale.split("-")[0].lower()
+        if base_locale not in LANGUAGE_NAMES:
+            msg = f"Unsupported target locale '{target_locale}'"
+            logger.error("[LocalizationCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        target_lang_name = LANGUAGE_NAMES[base_locale]
 
         compiled_lines = []
         for block in blocks:

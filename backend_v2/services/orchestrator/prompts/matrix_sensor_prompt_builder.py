@@ -12,6 +12,7 @@ from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.prompts.matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
 from backend_v2.models.v2_core import I18nText, PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
@@ -82,7 +83,10 @@ class MatrixSensorPromptBuilder:
                     )
 
         compiler = PromptCompilerAdapter()
-        system_content = compiler.compile_static_instructions(blocks, target_locale="en")
+        compiled_instructions = compiler.compile_static_instructions(blocks, target_locale="en")
+
+        # Prepend Layer 1 Global Mandates to static prefix
+        system_content = f"{GLOBAL_MANDATES_XML.strip()}\n\n{compiled_instructions}"
 
         context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_text)
 

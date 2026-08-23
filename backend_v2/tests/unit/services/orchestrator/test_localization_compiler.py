@@ -1,6 +1,6 @@
 import pytest
 
-from backend_v2.exceptions import ConfigurationError
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
 
@@ -18,7 +18,37 @@ def test_resolve_i18n() -> None:
         compiler.resolve_i18n(text_obj, "sv")
 
 
-def test_compile_static_instructions() -> None:
+def test_compile_static_instructions_supported_locales() -> None:
+    """Test all supported locales resolve successfully in compile_static_instructions."""
+    compiler = LocalizationCompiler()
+    mock_criteria = [
+        {
+            "id": "blk_5234567890abcdef",
+            "slug": "test_static",
+            "category_id": "system_rule",
+            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "type": "instruction",
+            "label": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+            "ai_description": "Target language is {TARGET_LANGUAGE}",
+        }
+    ]
+    blocks = [PromptBlock.model_validate(c) for c in mock_criteria]
+
+    expected = {
+        "en": "English",
+        "fi": "Finnish",
+        "sv": "Swedish",
+        "de": "German",
+        "fr": "French",
+        "es": "Spanish",
+    }
+    for loc, lang_name in expected.items():
+        result = compiler.compile_static_instructions(blocks, target_locale=loc)
+        assert f"Target language is {lang_name}" in result
+
+
+def test_compile_static_instructions_unsupported_locale_raises_app_exception() -> None:
+    """Negative test 1: Unsupported locale raises AppException with VALIDATION_FAILED (400)."""
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
@@ -31,14 +61,18 @@ def test_compile_static_instructions() -> None:
             "ai_description": "Test static instruction",
         }
     ]
-    result = compiler.compile_static_instructions(
-        [PromptBlock.model_validate(c) for c in mock_criteria], target_locale="en"
-    )
-    assert "<STATIC_INSTRUCTION" in result
-    assert "Test static instruction" in result
+    blocks = [PromptBlock.model_validate(c) for c in mock_criteria]
+
+    with pytest.raises(AppException) as exc_info:
+        compiler.compile_static_instructions(blocks, target_locale="zh")
+
+    assert exc_info.value.status_code == 400
+    assert "Unsupported target locale 'zh'" in str(exc_info.value.message)
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
 
-def test_compile_dynamic_instructions() -> None:
+def test_compile_dynamic_instructions_supported_locales() -> None:
+    """Test all supported locales resolve successfully in compile_dynamic_instructions."""
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
@@ -48,11 +82,90 @@ def test_compile_dynamic_instructions() -> None:
             "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
             "type": "instruction",
             "label": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-            "ai_description": "Today is {CURRENT_DATE}",
+            "ai_description": "Today is {CURRENT_DATE} in {TARGET_LANGUAGE}",
         }
     ]
-    result = compiler.compile_dynamic_instructions(
-        [PromptBlock.model_validate(c) for c in mock_criteria], target_locale="en"
-    )
+    blocks = [PromptBlock.model_validate(c) for c in mock_criteria]
+    result = compiler.compile_dynamic_instructions(blocks, target_locale="fi")
     assert "<DYNAMIC_INSTRUCTION" in result
     assert "{CURRENT_DATE}" not in result
+    assert "in Finnish" in result
+
+
+def test_resolve_i18n_invalid_inputs() -> None:
+    """Test error handling in resolve_i18n for invalid dictionary or types."""
+    compiler = LocalizationCompiler()
+
+    # Invalid dict
+    with pytest.raises(ConfigurationError):
+        compiler.resolve_i18n({"invalid_key": 123}, "en")
+
+    # Invalid type (e.g. integer or legacy string)
+    with pytest.raises(ConfigurationError):
+        compiler.resolve_i18n(12345, "en")
+
+
+def test_compile_static_instructions_missing_ai_description() -> None:
+    """Test ConfigurationError when block is missing mandatory ai_description."""
+    compiler = LocalizationCompiler()
+    mock_block = PromptBlock.model_construct(  # type: ignore[call-arg]
+        id="blk_nodesc",
+        slug="no_desc",
+        category_id="system_rule",
+        label={"default_locale": "en", "translations": {"en": "Label"}},
+        ai_description=None,
+    )
+    with pytest.raises(ConfigurationError):
+        compiler.compile_static_instructions([mock_block], target_locale="en")
+
+
+def test_compile_dynamic_instructions_missing_ai_description() -> None:
+    """Test ConfigurationError when runtime_variables block is missing ai_description."""
+    compiler = LocalizationCompiler()
+    mock_block = PromptBlock.model_construct(  # type: ignore[call-arg]
+        id="blk_nodyn",
+        slug="no_dyn",
+        category_id="runtime_variables",
+        label={"default_locale": "en", "translations": {"en": "Label"}},
+        ai_description=None,
+    )
+    with pytest.raises(ConfigurationError):
+        compiler.compile_dynamic_instructions([mock_block], target_locale="en")
+
+
+def test_compile_dynamic_instructions_execution_time_types() -> None:
+    """Test compilation with valid ISO string, valid datetime, invalid string, and invalid type."""
+    import datetime
+
+    compiler = LocalizationCompiler()
+    mock_criteria = [
+        {
+            "id": "blk_7234567890abcdef",
+            "slug": "test_dyn_time",
+            "category_id": "runtime_variables",
+            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "type": "instruction",
+            "label": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+            "ai_description": "Date: {CURRENT_DATE} Time: {DYNAMIC_TIME}",
+        }
+    ]
+    blocks = [PromptBlock.model_validate(c) for c in mock_criteria]
+
+    # ISO string
+    res1 = compiler.compile_dynamic_instructions(blocks, target_locale="en", execution_time="2026-05-01T12:00:00Z")
+    assert "Date: 2026-05-01" in res1
+
+    # Datetime object
+    dt = datetime.datetime(2026, 7, 7, 8, 30, tzinfo=datetime.timezone.utc)
+    res2 = compiler.compile_dynamic_instructions(blocks, target_locale="en", execution_time=dt)
+    assert "Date: 2026-07-07" in res2
+
+    # Invalid string raises AppException
+    with pytest.raises(AppException) as exc1:
+        compiler.compile_dynamic_instructions(blocks, target_locale="en", execution_time="not-a-datetime")
+    assert exc1.value.status_code == 400
+
+    # Invalid type raises AppException
+    with pytest.raises(AppException) as exc2:
+        compiler.compile_dynamic_instructions(blocks, target_locale="en", execution_time=12345)  # type: ignore[arg-type]
+    assert exc2.value.status_code == 400

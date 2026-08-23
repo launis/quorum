@@ -74,6 +74,9 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
         has_shuffled_atoms=True,
     )
 
+    # Layer 1 Global Mandates & Persona in base_system_prompt
+    assert "<global_system_mandates>" in payload.base_system_prompt
+    assert "<global_system_mandates>" not in payload.user_payload
     assert "You are a highly accurate, structured evaluation assistant." in payload.base_system_prompt
     assert "Static Instructions" in payload.base_system_prompt
 
@@ -216,3 +219,24 @@ def test_prompt_factory_missing_anchors_data(mock_compiler: MagicMock) -> None:
     assert "<say_do_gap>0.0</say_do_gap>" in payload.user_payload
     assert "<automation_bias>0.0</automation_bias>" in payload.user_payload
     assert "<phrase_count>0</phrase_count>" in payload.user_payload
+
+
+def test_prompt_factory_has_zero_reflection_via_ast() -> None:
+    """AST Guardrail: Verify that PromptFactory contains zero hasattr or getattr calls."""
+    import ast
+    from pathlib import Path
+
+    import backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory as pf_mod
+
+    prompt_factory_path = Path(pf_mod.__file__)
+    assert prompt_factory_path.exists(), f"Target file {prompt_factory_path} does not exist"
+
+    tree = ast.parse(prompt_factory_path.read_text(encoding="utf-8"))
+
+    banned_calls: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id in ("hasattr", "getattr", "setattr"):
+                banned_calls.append(f"{node.func.id} on line {node.lineno}")
+
+    assert len(banned_calls) == 0, f"Found banned reflection calls in prompt_factory.py: {banned_calls}"

@@ -64,6 +64,7 @@ from backend_v2.models.domain.logician import (
     ToulminComponent,
     WaltonScheme,
 )
+from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
 from backend_v2.models.domain.overseer import (
     EthicalObservation,
     FactCheckRFI,
@@ -178,6 +179,7 @@ __all__ = [
     "PreMortemAnalysis",
     "LinguisticsResult",
     "PerformativePattern",
+    "MechanicalAnchorsPayload",
     "OverseerInput",
     "OverseerOutput",
     "OverseerDTO",
