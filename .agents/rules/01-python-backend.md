@@ -307,12 +307,6 @@
         <catastrophic_reason>Hardcoding database keys inside the backend architecture breaks isolation. When environments (e.g., Staging vs Production) drift or database schemas evolve, hardcoded keys result in immediate catastrophic logic failures and make tests impossible without massive data mocking.</catastrophic_reason>
     </rule_block>
 
-    <rule_block id="prompt_compiler_immutability">
-        <banned_pattern>Modifying the `backend_v2/services/orchestrator/prompt_compiler.py` file.</banned_pattern>
-        <mandatory_pattern>The Prompt Compiler is a frozen architectural cornerstone. Do NOT touch this file. If a change is absolutely necessary, you must explicitly flag it and seek USER CONFIRMATION before making any edits.</mandatory_pattern>
-        <catastrophic_reason>Altering the Prompt Compiler risks breaking the deterministic synthesis pipeline, Schema V2 generation, and the core Fail-Fast architecture.</catastrophic_reason>
-    </rule_block>
-
     <rule_block id="orchestrator_god_object_fragility">
         <banned_pattern>Modifying individual files within the DAG Engine core (`backend_v2/services/orchestrator/`, e.g., `atomizer.py`, `dag_executor.py`, `topological_evaluator.py`, `matrix_reducer.py`) without performing a full blast-radius analysis of the entire engine.</banned_pattern>
         <mandatory_pattern>The DAG Orchestrator is a mathematically coupled "God Object" ecosystem. If you are tasked with modifying ANY file in this core (even to fix a minor bug in atom sorting keys), you MUST STOP and explicitly request "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem". You must then run the FULL backend audit loop and evaluate the entire topological flow, never assuming a change is isolated.</mandatory_pattern>
