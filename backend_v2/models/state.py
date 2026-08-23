@@ -4,11 +4,16 @@ This module defines the new Event Sourcing state model, replacing the old mutabl
 It uses an append-only log of `TraceEvent`s and a `ReasoningTrace` to capture cognitive processes.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Annotated, Any, Literal  # noqa: F401
+from typing import TYPE_CHECKING, Annotated, Any, Literal  # noqa: F401
+
+if TYPE_CHECKING:
+    from backend_v2.models.v2_core import MCPAuditTrace
 
 from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -130,6 +135,9 @@ class TraceEvent(V2CoreBase):
     content: dict[str, Any] = Field(default_factory=dict, description="Structured content of the event.")
     reasoning: ReasoningTrace | None = Field(default=None, description="Associated reasoning trace.")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata.")
+    mcp_audit_traces: list[MCPAuditTrace] = Field(
+        default_factory=list, description="Associated MCP tool audit traces."
+    )
 
 
 class ErrorTraceEvent(TraceEvent):
@@ -163,9 +171,15 @@ class StepOutputDTO(V2CoreBase):
 
 # Resolve deferred annotations on ExecutionCoreFields (Pydantic V2 circular reference pattern).
 # execution_core.py uses TYPE_CHECKING for TraceEvent types → annotations are strings.
-# Now that TraceEvent, ErrorTraceEvent, TombstoneEvent are defined, resolve them.
+from backend_v2.models.v2_core import MCPAuditTrace
 
-ExecutionCoreFields.model_rebuild()
+_state_localns = {
+    "MCPAuditTrace": MCPAuditTrace,
+    "TraceEvent": TraceEvent,
+    "ErrorTraceEvent": ErrorTraceEvent,
+    "TombstoneEvent": TombstoneEvent,
+}
+ExecutionCoreFields.model_rebuild(_types_namespace=_state_localns)
 
 
 class WorkflowState(ExecutionCoreFields):

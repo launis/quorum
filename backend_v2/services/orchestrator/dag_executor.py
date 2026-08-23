@@ -32,6 +32,7 @@ from backend_v2.models.v2_core import (
     ExecutionStatus,
     ExecutionStepState,
     FrozenContext,
+    MCPAuditTrace,
     Step,
     StepRule,
     Workflow,
@@ -688,31 +689,48 @@ class DAGExecutor:
                 finally:
                     watcher_task.cancel()
 
-                new_cv = dict(exec_record.context_variables)
-                has_cv_updates = False
-                for evt in events:
-                    exec_record.execution_trace.append(evt)
-                    projector.apply_delta(evt)
-                    if (
-                        evt.event_type == "decision"
-                        and evt.metadata
-                        and "is_context_update" in evt.metadata
-                        and evt.metadata["is_context_update"]
-                    ):
-                        new_cv.update(evt.content)
-                        has_cv_updates = True
+                has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
+                async with _update_lock:
+                    step_mcp_traces: list[MCPAuditTrace] = []
+                    new_cv = dict(exec_record.context_variables)
+                    has_cv_updates = False
+                    for evt in events:
+                        exec_record.execution_trace.append(evt)
+                        projector.apply_delta(evt)
+                        if (
+                            evt.event_type == "decision"
+                            and evt.metadata
+                            and "is_context_update" in evt.metadata
+                            and evt.metadata["is_context_update"]
+                        ):
+                            new_cv.update(evt.content)
+                            has_cv_updates = True
+                        match evt:
+                            case TraceEvent() if evt.mcp_audit_traces:
+                                step_mcp_traces.extend(evt.mcp_audit_traces)
 
-                if has_cv_updates:
-                    async with _update_lock:
-                        exec_record = exec_record.model_copy(update={"context_variables": new_cv})
+                    updates: dict[str, Any] = {}
+                    if has_cv_updates:
+                        updates["context_variables"] = new_cv
 
-                if any(isinstance(evt, ErrorTraceEvent) for evt in events):
-                    async with _update_lock:
-                        new_state = exec_record.step_states[step_id].model_copy(
-                            update={"status": ExecutionStatus.FAILED}
+                    if step_mcp_traces:
+                        current_traces: list[MCPAuditTrace] = list(exec_record.frozen_context.mcp_tool_audit)
+                        seen_ids: set[str] = {t.id for t in current_traces if t.id}
+                        new_unique_traces: list[MCPAuditTrace] = [
+                            t for t in step_mcp_traces if t.id is None or t.id not in seen_ids
+                        ]
+                        merged_traces: list[MCPAuditTrace] = current_traces + new_unique_traces
+                        updates["frozen_context"] = exec_record.frozen_context.model_copy(
+                            update={"mcp_tool_audit": merged_traces}
                         )
-                        new_states = {**exec_record.step_states, step_id: new_state}
-                        exec_record = exec_record.model_copy(update={"step_states": new_states})
+
+                    step_status = ExecutionStatus.FAILED if has_error_evt else ExecutionStatus.PASSED
+                    new_state = exec_record.step_states[step_id].model_copy(update={"status": step_status})
+                    updates["step_states"] = {**exec_record.step_states, step_id: new_state}
+
+                    exec_record = exec_record.model_copy(update=updates)
+
+                if has_error_evt:
                     err_msg = [evt.error_message for evt in events if isinstance(evt, ErrorTraceEvent)][0]
                     msg = f"Step {step_id} emitted ErrorTraceEvent: {err_msg}"
                     logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
@@ -722,10 +740,6 @@ class DAGExecutor:
                         details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                     )
 
-                async with _update_lock:
-                    new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.PASSED})
-                    new_states = {**exec_record.step_states, step_id: new_state}
-                    exec_record = exec_record.model_copy(update={"step_states": new_states})
                 await _safe_commit()
 
             except Exception as e:
