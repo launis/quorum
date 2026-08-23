@@ -441,8 +441,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                   .read(stepsControllerProvider.notifier)
                   .createStepDraft();
               if (context.mounted) {
-                // Pass the draft as Extra
-                StepEditRoute($extra: draft.toJson()).go(context);
+                StepEditRoute(id: draft.id).go(context);
               }
             } catch (e) {
               if (context.mounted) {
@@ -506,7 +505,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           ],
                         ),
                         onTap: () {
-                          StepEditRoute($extra: blueprint.toJson()).go(context);
+                          StepEditRoute(id: blueprintId).go(context);
                         },
                       ),
                     );

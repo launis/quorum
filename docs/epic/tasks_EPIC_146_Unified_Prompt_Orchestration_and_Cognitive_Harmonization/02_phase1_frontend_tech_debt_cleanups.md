@@ -3,7 +3,10 @@
 **Overview:** Remediate 1-hop technical debt and legacy anti-patterns across Studio UI views and modals: eliminate dynamic step typing, GoRouter extra passing, when-branching, SizedBox.shrink, translation fallback chains, hardcoded hex colors, inlined language ternaries, ad-hoc ID generators, and hardcoded spacing doubles.
 **Target Files:**
 - `[MODIFY]` @[client_app_v2/lib/features/studio/views/step_builder_view.dart#L23-L38]
-- `[MODIFY]` @[client_app_v2/lib/router/router.dart#L297]
+- `[MODIFY]` @[client_app_v2/lib/router/router.dart#L226-L232]
+- `[MODIFY]` @[client_app_v2/lib/router/router.dart#L284-L298]
+- `[MODIFY]` @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L445]
+- `[MODIFY]` @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L509]
 - `[MODIFY]` @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart#L243]
 - `[MODIFY]` @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart#L390-L395]
 - `[MODIFY]` @[client_app_v2/lib/features/studio/views/step_builder_view.dart#L569-L573]
@@ -24,7 +27,7 @@
 
   <dod_checklist>
     - [ ] `final dynamic step;` replaced with `final String stepId;` in @[client_app_v2/lib/features/studio/views/step_builder_view.dart#L23-L38].
-    - [ ] GoRouter `$extra ?? const {}` removed for `StepBuilderView` in @[client_app_v2/lib/router/router.dart#L297], routing purely by `stepId`.
+    - [ ] GoRouter `$extra ?? const {}` removed for `StepBuilderView` in @[client_app_v2/lib/router/router.dart#L284-L298] and `TypedGoRoute<StepEditRoute>(path: 'step/edit/:id')`, routing purely by `stepId` (`StepEditRoute(id: ...)` in @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L445] and @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L509]).
     - [ ] `formState.when(...)` replaced with Dart 3 native `switch (formState)` pattern matching in @[client_app_v2/lib/features/studio/views/step_builder_view.dart].
     - [ ] `const SizedBox.shrink()` (line 557) eradicated and replaced with Fail-Fast validation.
     - [ ] Translation fallback chains `translations[currentLocale] ?? translations['fi'] ?? ...` in @[client_app_v2/lib/features/studio/views/step_builder_view.dart#L569-L573] eradicated and replaced with Fail-Fast `AppException.validation`.
@@ -65,6 +68,7 @@
   <touched_artifacts>
     <frontend>@[client_app_v2/lib/features/studio/views/step_builder_view.dart]</frontend>
     <frontend>@[client_app_v2/lib/router/router.dart]</frontend>
+    <frontend>@[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]</frontend>
     <frontend>@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]</frontend>
     <frontend>@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]</frontend>
     <frontend>@[client_app_v2/lib/features/studio/views/widgets/row_editor_modal.dart]</frontend>
@@ -82,7 +86,7 @@
   <step id="1" name="Step Builder View & Router Cleanups">
     <action>In @[client_app_v2/lib/features/studio/views/step_builder_view.dart#L23-L38], replace `final dynamic step;` and `if (step is NodeStrategy) ... else if (step is Map) ...` with `final String stepId;`.</action>
     <demolish>REMOVE: `final dynamic step;` and runtime dynamic type checks at @[client_app_v2/lib/features/studio/views/step_builder_view.dart#L23-L38]. REPLACE WITH: strictly typed `final String stepId;`.</demolish>
-    <action>In @[client_app_v2/lib/router/router.dart#L297], eliminate `$extra ?? const {}` passing for `StepBuilderView`, routing purely by `stepId` (`/admin/steps/:id`).</action>
+    <action>In @[client_app_v2/lib/router/router.dart#L226-L232] and @[client_app_v2/lib/router/router.dart#L284-L298], eliminate `$extra ?? const {}` passing for `StepBuilderView`, routing purely by `stepId` (`TypedGoRoute<StepEditRoute>(path: 'step/edit/:id')` and `StepBuilderView(stepId: id)`). Update callers in @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L445] and @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L509] to pass `id` directly (`StepEditRoute(id: draft.id).go(context)` and `StepEditRoute(id: blueprintId).go(context)`).</action>
     <demolish>REMOVE: `$extra ?? const {}` object passing at @[client_app_v2/lib/router/router.dart#L297]. REPLACE WITH: pure ID routing parameter `StepBuilderView(stepId: id)`.</demolish>
     <action>In @[client_app_v2/lib/features/studio/views/step_builder_view.dart], replace `formState.when(...)` with Dart 3 native `switch (formState)` pattern matching.</action>
     <demolish>REMOVE: `formState.when(...)` pattern at @[client_app_v2/lib/features/studio/views/step_builder_view.dart]. REPLACE WITH: Dart 3 native `switch (formState)`.</demolish>
@@ -119,7 +123,7 @@
   <validation_gate>
     <action>Generate Localization: `cd client_app_v2; flutter gen-l10n`</action>
     <action>Execute Frontend Audit Loop: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/views/step_builder_view.dart --build`</action>
-    <action>Execute Flutter Tests: `uv run flutter test client_app_v2/test/features/studio/views/components/bars_matrix_builder_test.dart`</action>
+    <action>Execute Flutter Tests: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/views/components/bars_matrix_builder_test.dart --test`</action>
   </validation_gate>
 </execution_protocol>
 ```

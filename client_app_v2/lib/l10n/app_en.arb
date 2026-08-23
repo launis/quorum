@@ -2143,5 +2143,77 @@
   },
   "studioWorkflowNoSelectableInputs": "No selectable inputs or dependencies available.",
   "customScaleInvalidNumber": "Please enter a valid number.",
-  "customScaleMaxMustBeGreater": "Custom Scale Max must be strictly greater than Custom Scale Min."
+  "customScaleMaxMustBeGreater": "Custom Scale Max must be strictly greater than Custom Scale Min.",
+  "matrixCategoryLockedHelper": "Evaluation matrix category is locked to preserve structure.",
+  "backToStudioTooltip": "Back to Studio",
+  "simulatePromptTooltip": "Simulate Prompt",
+  "scaleGradeScoreLabel": "Grade Score (int, e.g., 5)",
+  "scaleGradeNameLabel": "Grade Name (Optional, e.g. \"Excellent\")",
+  "scaleGradeAiLabel": "Grade AI Label (e.g. CATASTROPHIC FAILURE)",
+  "scaleClaimsTitle": "Claims (Evaluative Guidelines)",
+  "scaleClaimIndexTitle": "Claim {index}",
+  "@scaleClaimIndexTitle": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "scaleClaimAiRuleLabel": "Claim AI Rule (MANDATORY ENGLISH)",
+  "scaleClaimAiRuleHelper": "MUST be in English. Use strict commanding language (e.g., 'CRITICAL EVALUATION DIRECTIVE:').",
+  "scaleClaimTranslationLabel": "Claim Translation (UI Screen/PDF)",
+  "scaleTdaTitle": "Test-Driven Assertions (TDA) ({count})",
+  "@scaleTdaTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scaleAddTdaBtn": "Add TDA",
+  "scaleAssertionIndexTitle": "Assertion {index} ({tdaId})",
+  "@scaleAssertionIndexTitle": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "tdaId": {
+        "type": "String"
+      }
+    }
+  },
+  "scaleEvaluationTrackLabel": "Evaluation Track",
+  "scaleTrackSensor": "EXTRACTIVE_SENSOR (Mechanical)",
+  "scaleTrackJudgement": "COGNITIVE_JUDGEMENT (Holistic)",
+  "scaleConceptDescriptionLabel": "Concept Description (Monolingual English)",
+  "scaleAntiPatternsLabel": "Anti-Patterns (One per line)",
+  "scaleAntiPatternsHelper": "Exclusion conditions / NEGATIVE BOUNDARIES",
+  "scaleContrastiveExampleLabel": "Contrastive Example (Correct vs Incorrect)",
+  "scaleContrastiveExampleHelper": "Calibration examples: ACCEPTABLE: X affects Y. UNACCEPTABLE: X is associated with Y.",
+  "scaleAcceptanceCriteriaLabel": "Acceptance Criteria (One per line)",
+  "scaleSyntacticAnchorsLabel": "Syntactic Anchors (Comma-separated list)",
+  "scaleSyntacticAnchorsHelper": "Required terminology (e.g. CSR, ESG)",
+  "scaleEnforcePreFlightTitle": "Enforce Pre-Flight Checklist",
+  "scaleEnforcePreFlightDesc": "Must pass explicit criteria checks before assertion evaluation.",
+  "scaleAggregationModeLabel": "Aggregation Mode",
+  "scaleInverseLabel": "Inverse:",
+  "scaleFactsToFindLabel": "Facts To Find (Comma-separated list)",
+  "scaleFactsToFindHelper": "Define the facts to extract (e.g. fact_A, fact_B)",
+  "scaleLogicalExpressionLabel": "Logical Expression",
+  "scaleLogicalExpressionHelper": "AST evaluation logic (e.g. fact_A and not fact_B)",
+  "scaleRemoveClaimTooltip": "Remove Claim",
+  "scaleRemoveTdaTooltip": "Remove TDA Assertion",
+  "rowEditorDefaultTitle": "Edit Row/Column",
+  "rowAiRuleLabel": "Row AI Rule (MANDATORY ENGLISH)",
+  "rowAiRuleHelper": "MUST be in English. Use strict commanding language.",
+  "rowItemContentLabel": "Item Content (UI/PDF)",
+  "rowItemContentSimpleLabel": "Item Content",
+  "barsMatrixMoreAssertions": "+ {count} more",
+  "@barsMatrixMoreAssertions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

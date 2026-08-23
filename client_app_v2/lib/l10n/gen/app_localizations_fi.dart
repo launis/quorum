@@ -4196,4 +4196,152 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get customScaleMaxMustBeGreater =>
       'Maksimiarvon on oltava suurempi kuin minimiarvo.';
+
+  @override
+  String get matrixCategoryLockedHelper =>
+      'Arviointimatriisin kategoria on lukittu muodon säilyttämiseksi.';
+
+  @override
+  String get backToStudioTooltip => 'Takaisin Studioon';
+
+  @override
+  String get simulatePromptTooltip => 'Simuloi kehotetta';
+
+  @override
+  String get scaleGradeScoreLabel => 'Arvosana (kokonaisluku, esim. 5)';
+
+  @override
+  String get scaleGradeNameLabel =>
+      'Arvosanan nimi (Valinnainen, esim. \"Erinomainen\")';
+
+  @override
+  String get scaleGradeAiLabel =>
+      'Arvosanan AI-tunniste (esim. CATASTROPHIC FAILURE)';
+
+  @override
+  String get scaleClaimsTitle => 'Kriteerit (Arviointiohjeet)';
+
+  @override
+  String scaleClaimIndexTitle(int index) {
+    return 'Kriteeri $index';
+  }
+
+  @override
+  String get scaleClaimAiRuleLabel =>
+      'Kriteerin AI-sääntö (PAKOLLINEN ENGLANTI)';
+
+  @override
+  String get scaleClaimAiRuleHelper =>
+      'TÄYTYY olla englanniksi. Käytä ehdotonta komentosävyä (esim. \'CRITICAL EVALUATION DIRECTIVE:\').';
+
+  @override
+  String get scaleClaimTranslationLabel =>
+      'Kriteerin käännös (Käyttöliittymä/PDF)';
+
+  @override
+  String scaleTdaTitle(int count) {
+    return 'Testivetoiset väitteet (TDA) ($count)';
+  }
+
+  @override
+  String get scaleAddTdaBtn => 'Lisää TDA';
+
+  @override
+  String scaleAssertionIndexTitle(int index, String tdaId) {
+    return 'Väite $index ($tdaId)';
+  }
+
+  @override
+  String get scaleEvaluationTrackLabel => 'Arviointiraita (Evaluation Track)';
+
+  @override
+  String get scaleTrackSensor => 'EXTRACTIVE_SENSOR (Mekaaninen)';
+
+  @override
+  String get scaleTrackJudgement => 'COGNITIVE_JUDGEMENT (Holistinen)';
+
+  @override
+  String get scaleConceptDescriptionLabel =>
+      'Käsitekuvaus (Yksikielinen englanti)';
+
+  @override
+  String get scaleAntiPatternsLabel => 'Antimallit (Yksi per rivi)';
+
+  @override
+  String get scaleAntiPatternsHelper => 'Poissulkuehdot / NEGATIIVISET RAJAT';
+
+  @override
+  String get scaleContrastiveExampleLabel =>
+      'Kontrastoiva esimerkki (Oikein vs Väärin)';
+
+  @override
+  String get scaleContrastiveExampleHelper =>
+      'Kalibrointiesimerkit: HYVÄKSYTTÄVÄ: X vaikuttaa Y:hyn. HYLÄTTÄVÄ: X liittyy Y:hyn.';
+
+  @override
+  String get scaleAcceptanceCriteriaLabel =>
+      'Hyväksymiskriteerit (Yksi per rivi)';
+
+  @override
+  String get scaleSyntacticAnchorsLabel =>
+      'Syntaktiset ankkurit (Pilkulla erotettu lista)';
+
+  @override
+  String get scaleSyntacticAnchorsHelper =>
+      'Vaadittu terminologia (esim. CSR, ESG)';
+
+  @override
+  String get scaleEnforcePreFlightTitle =>
+      'Pakota esitarkistuslista (Pre-Flight)';
+
+  @override
+  String get scaleEnforcePreFlightDesc =>
+      'Täytyy läpäistä eksplisiittiset kriteeritarkistukset ennen väitteen arviointia.';
+
+  @override
+  String get scaleAggregationModeLabel => 'Aggregaatiotila';
+
+  @override
+  String get scaleInverseLabel => 'Käänteinen:';
+
+  @override
+  String get scaleFactsToFindLabel =>
+      'Etsittävät faktat (Pilkulla erotettu lista)';
+
+  @override
+  String get scaleFactsToFindHelper =>
+      'Määritä poimittavat faktat (esim. fact_A, fact_B)';
+
+  @override
+  String get scaleLogicalExpressionLabel => 'Looginen lauseke';
+
+  @override
+  String get scaleLogicalExpressionHelper =>
+      'AST-arviointilogiikka (esim. fact_A and not fact_B)';
+
+  @override
+  String get scaleRemoveClaimTooltip => 'Poista kriteeri';
+
+  @override
+  String get scaleRemoveTdaTooltip => 'Poista TDA-väite';
+
+  @override
+  String get rowEditorDefaultTitle => 'Muokkaa riviä/saraketta';
+
+  @override
+  String get rowAiRuleLabel => 'Rivin AI-sääntö (PAKOLLINEN ENGLANTI)';
+
+  @override
+  String get rowAiRuleHelper => 'TÄYTYY olla englanniksi. Käytä komentosävyä.';
+
+  @override
+  String get rowItemContentLabel => 'Kohteen sisältö (Käyttöliittymä/PDF)';
+
+  @override
+  String get rowItemContentSimpleLabel => 'Kohteen sisältö';
+
+  @override
+  String barsMatrixMoreAssertions(int count) {
+    return '+ $count lisää';
+  }
 }

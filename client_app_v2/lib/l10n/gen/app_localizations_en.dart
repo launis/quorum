@@ -4167,4 +4167,148 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get customScaleMaxMustBeGreater =>
       'Custom Scale Max must be strictly greater than Custom Scale Min.';
+
+  @override
+  String get matrixCategoryLockedHelper =>
+      'Evaluation matrix category is locked to preserve structure.';
+
+  @override
+  String get backToStudioTooltip => 'Back to Studio';
+
+  @override
+  String get simulatePromptTooltip => 'Simulate Prompt';
+
+  @override
+  String get scaleGradeScoreLabel => 'Grade Score (int, e.g., 5)';
+
+  @override
+  String get scaleGradeNameLabel => 'Grade Name (Optional, e.g. \"Excellent\")';
+
+  @override
+  String get scaleGradeAiLabel => 'Grade AI Label (e.g. CATASTROPHIC FAILURE)';
+
+  @override
+  String get scaleClaimsTitle => 'Claims (Evaluative Guidelines)';
+
+  @override
+  String scaleClaimIndexTitle(int index) {
+    return 'Claim $index';
+  }
+
+  @override
+  String get scaleClaimAiRuleLabel => 'Claim AI Rule (MANDATORY ENGLISH)';
+
+  @override
+  String get scaleClaimAiRuleHelper =>
+      'MUST be in English. Use strict commanding language (e.g., \'CRITICAL EVALUATION DIRECTIVE:\').';
+
+  @override
+  String get scaleClaimTranslationLabel => 'Claim Translation (UI Screen/PDF)';
+
+  @override
+  String scaleTdaTitle(int count) {
+    return 'Test-Driven Assertions (TDA) ($count)';
+  }
+
+  @override
+  String get scaleAddTdaBtn => 'Add TDA';
+
+  @override
+  String scaleAssertionIndexTitle(int index, String tdaId) {
+    return 'Assertion $index ($tdaId)';
+  }
+
+  @override
+  String get scaleEvaluationTrackLabel => 'Evaluation Track';
+
+  @override
+  String get scaleTrackSensor => 'EXTRACTIVE_SENSOR (Mechanical)';
+
+  @override
+  String get scaleTrackJudgement => 'COGNITIVE_JUDGEMENT (Holistic)';
+
+  @override
+  String get scaleConceptDescriptionLabel =>
+      'Concept Description (Monolingual English)';
+
+  @override
+  String get scaleAntiPatternsLabel => 'Anti-Patterns (One per line)';
+
+  @override
+  String get scaleAntiPatternsHelper =>
+      'Exclusion conditions / NEGATIVE BOUNDARIES';
+
+  @override
+  String get scaleContrastiveExampleLabel =>
+      'Contrastive Example (Correct vs Incorrect)';
+
+  @override
+  String get scaleContrastiveExampleHelper =>
+      'Calibration examples: ACCEPTABLE: X affects Y. UNACCEPTABLE: X is associated with Y.';
+
+  @override
+  String get scaleAcceptanceCriteriaLabel =>
+      'Acceptance Criteria (One per line)';
+
+  @override
+  String get scaleSyntacticAnchorsLabel =>
+      'Syntactic Anchors (Comma-separated list)';
+
+  @override
+  String get scaleSyntacticAnchorsHelper =>
+      'Required terminology (e.g. CSR, ESG)';
+
+  @override
+  String get scaleEnforcePreFlightTitle => 'Enforce Pre-Flight Checklist';
+
+  @override
+  String get scaleEnforcePreFlightDesc =>
+      'Must pass explicit criteria checks before assertion evaluation.';
+
+  @override
+  String get scaleAggregationModeLabel => 'Aggregation Mode';
+
+  @override
+  String get scaleInverseLabel => 'Inverse:';
+
+  @override
+  String get scaleFactsToFindLabel => 'Facts To Find (Comma-separated list)';
+
+  @override
+  String get scaleFactsToFindHelper =>
+      'Define the facts to extract (e.g. fact_A, fact_B)';
+
+  @override
+  String get scaleLogicalExpressionLabel => 'Logical Expression';
+
+  @override
+  String get scaleLogicalExpressionHelper =>
+      'AST evaluation logic (e.g. fact_A and not fact_B)';
+
+  @override
+  String get scaleRemoveClaimTooltip => 'Remove Claim';
+
+  @override
+  String get scaleRemoveTdaTooltip => 'Remove TDA Assertion';
+
+  @override
+  String get rowEditorDefaultTitle => 'Edit Row/Column';
+
+  @override
+  String get rowAiRuleLabel => 'Row AI Rule (MANDATORY ENGLISH)';
+
+  @override
+  String get rowAiRuleHelper =>
+      'MUST be in English. Use strict commanding language.';
+
+  @override
+  String get rowItemContentLabel => 'Item Content (UI/PDF)';
+
+  @override
+  String get rowItemContentSimpleLabel => 'Item Content';
+
+  @override
+  String barsMatrixMoreAssertions(int count) {
+    return '+ $count more';
+  }
 }

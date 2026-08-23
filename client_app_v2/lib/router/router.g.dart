@@ -241,7 +241,10 @@ RouteBase get $adminShellRoute => GoRouteData.$route(
       factory: $PromptBlockEditRoute._fromState,
     ),
     GoRouteData.$route(path: 'step/new', factory: $StepNewRoute._fromState),
-    GoRouteData.$route(path: 'step/edit', factory: $StepEditRoute._fromState),
+    GoRouteData.$route(
+      path: 'step/edit/:id',
+      factory: $StepEditRoute._fromState,
+    ),
     GoRouteData.$route(
       path: 'profiles/:workflowId',
       factory: $ProfileEditorRoute._fromState,
@@ -418,27 +421,27 @@ mixin $StepNewRoute on GoRouteData {
 
 mixin $StepEditRoute on GoRouteData {
   static StepEditRoute _fromState(GoRouterState state) =>
-      StepEditRoute($extra: state.extra as Map<String, dynamic>?);
+      StepEditRoute(id: state.pathParameters['id']!);
 
   StepEditRoute get _self => this as StepEditRoute;
 
   @override
-  String get location => GoRouteData.$location('/admin/step/edit');
+  String get location => GoRouteData.$location(
+    '/admin/step/edit/${Uri.encodeComponent(_self.id)}',
+  );
 
   @override
-  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+  void go(BuildContext context) => context.go(location);
 
   @override
-  Future<T?> push<T>(BuildContext context) =>
-      context.push<T>(location, extra: _self.$extra);
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
 
   @override
   void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location, extra: _self.$extra);
+      context.pushReplacement(location);
 
   @override
-  void replace(BuildContext context) =>
-      context.replace(location, extra: _self.$extra);
+  void replace(BuildContext context) => context.replace(location);
 }
 
 mixin $ProfileEditorRoute on GoRouteData {

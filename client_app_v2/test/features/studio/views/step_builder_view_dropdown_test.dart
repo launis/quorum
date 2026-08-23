@@ -84,7 +84,7 @@ void main() {
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: StepBuilderView(step: mockStep),
+            home: StepBuilderView(stepId: mockStep.id),
           ),
         ),
       );
@@ -195,7 +195,7 @@ void main() {
               child: MaterialApp(
                 localizationsDelegates: AppLocalizations.localizationsDelegates,
                 supportedLocales: AppLocalizations.supportedLocales,
-                home: StepBuilderView(step: mockStep),
+                home: StepBuilderView(stepId: mockStep.id),
               ),
             ),
           );

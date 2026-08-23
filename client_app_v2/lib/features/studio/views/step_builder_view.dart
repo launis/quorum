@@ -20,42 +20,34 @@ import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 
 class StepBuilderView extends HookConsumerWidget {
-  final dynamic step;
+  final String stepId;
 
-  const StepBuilderView({super.key, required this.step});
+  const StepBuilderView({super.key, required this.stepId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    String stepId = 'new';
-    if (step is NodeStrategy) {
-      stepId = (step as NodeStrategy).id.isNotEmpty
-          ? (step as NodeStrategy).id
-          : 'new';
-    } else if (step is Map) {
-      final idStr = step['id']?.toString() ?? '';
-      stepId = idStr.isNotEmpty ? idStr : 'new';
-    }
 
     final formState = ref.watch(stepFormProvider(stepId));
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
     final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
 
-    return formState.when(
-      loading: () => Scaffold(
+    return switch (formState) {
+      AsyncLoading() => Scaffold(
         appBar: AppBar(title: Text(l10n.stepEditTitle)),
         body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (e, st) => Scaffold(
+      AsyncError(:final error, :final stackTrace) => Scaffold(
         appBar: AppBar(title: Text(l10n.stepEditTitle)),
         body: ErrorView(
-          error: e,
-          stackTrace: st,
+          error: error,
+          stackTrace: stackTrace,
           compact: false,
           onRetry: () => ref.invalidate(stepFormProvider(stepId)),
         ),
       ),
-      data: (payload) {
+      AsyncData(:final value) => () {
+        final payload = value;
         // Absolute Fail-Fast for dependencies
         if (promptBlocksAsync.hasError) throw promptBlocksAsync.error!;
         if (mcpGatewaysAsync.hasError) throw mcpGatewaysAsync.error!;
@@ -75,8 +67,8 @@ class StepBuilderView extends HookConsumerWidget {
           promptBlocksAsync.value!,
           mcpGatewaysAsync.value!,
         );
-      },
-    );
+      }(),
+    };
   }
 
   void _addCriteriaBlock(WidgetRef ref, NodeStrategy payload, String blockId) {
@@ -114,7 +106,14 @@ class StepBuilderView extends HookConsumerWidget {
   ) {
     final id = payload.id;
     final trans = payload.name.translations;
-    final nameToDisplay = trans['fi'] ?? trans['en'] ?? id;
+    final currentLocale = Localizations.localeOf(context).languageCode;
+    final nameToDisplay = trans[currentLocale] ?? trans['en'];
+
+    if (nameToDisplay == null || nameToDisplay.trim().isEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Step $id lacks required localization for active language or English fallback.',
+      );
+    }
 
     showDialog(
       context: context,
@@ -551,10 +550,14 @@ class StepBuilderView extends HookConsumerWidget {
                         final tools = gateway['tools'] as List<dynamic>? ?? [];
                         return tools;
                       })
+                      .where((toolRaw) {
+                        if (toolRaw is! Map<String, dynamic>) return false;
+                        final toolId = toolRaw['tool_id']?.toString() ?? '';
+                        return toolId.isNotEmpty;
+                      })
                       .map((toolRaw) {
                         final toolData = toolRaw as Map<String, dynamic>;
                         final toolId = toolData['tool_id']?.toString() ?? '';
-                        if (toolId.isEmpty) return const SizedBox.shrink();
 
                         final nameMap =
                             toolData['name'] as Map<String, dynamic>? ?? {};
@@ -562,15 +565,18 @@ class StepBuilderView extends HookConsumerWidget {
                             nameMap['translations'] as Map<String, dynamic>? ??
                             {};
 
-                        // Current locale via Localizations or simple fallback
                         final currentLocale = Localizations.localeOf(
                           context,
                         ).languageCode;
                         final labelText =
-                            translations[currentLocale] ??
-                            translations['fi'] ??
-                            translations['en'] ??
-                            toolId;
+                            translations[currentLocale] ?? translations['en'];
+
+                        if (labelText == null ||
+                            labelText.toString().trim().isEmpty) {
+                          throw AppException.validation(
+                            'Fail-Fast: MCP tool $toolId lacks required translation for locale $currentLocale or en fallback.',
+                          );
+                        }
 
                         final allowedMcpTools = List<String>.from(
                           payload.allowedMcpTools,
@@ -578,7 +584,7 @@ class StepBuilderView extends HookConsumerWidget {
                         final isSelected = allowedMcpTools.contains(toolId);
 
                         return FilterChip(
-                          label: Text(labelText),
+                          label: Text(labelText.toString()),
                           selected: isSelected,
                           onSelected: (bool selected) {
                             if (selected) {
@@ -762,8 +768,15 @@ class StepBuilderView extends HookConsumerWidget {
                                         ).languageCode;
                                     final rawLabel =
                                         m.label.translations[currentLocale] ??
-                                        m.label.translations['en'] ??
-                                        m.id;
+                                        m.label.translations['en'];
+
+                                    if (rawLabel == null ||
+                                        rawLabel.trim().isEmpty) {
+                                      throw AppException.validation(
+                                        'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
+                                      );
+                                    }
+
                                     return DropdownMenuItem(
                                       value: m.id,
                                       child: Text(
@@ -849,8 +862,15 @@ class StepBuilderView extends HookConsumerWidget {
                                         ).languageCode;
                                     final rawLabel =
                                         m.label.translations[currentLocale] ??
-                                        m.label.translations['en'] ??
-                                        m.id;
+                                        m.label.translations['en'];
+
+                                    if (rawLabel == null ||
+                                        rawLabel.trim().isEmpty) {
+                                      throw AppException.validation(
+                                        'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
+                                      );
+                                    }
+
                                     return DropdownMenuItem(
                                       value: m.id,
                                       child: Text(

@@ -375,7 +375,6 @@
                   "en": "The claim lacks any grounds (No Data)."
                 }
               },
-              "ai_description": "LOCATE an assertive claim that is presented entirely without supporting Data or evidence.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_34259a6c02b74917b12f74b5f3839a66",
@@ -384,7 +383,7 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "LOCATE an assertive claim that is presented entirely without supporting Data or evidence.",
                   "acceptance_criteria": [
                     {
                       "instruction": "Identify specific dogmatic absolute markers such as 'is the best', 'must be done', or 'is the only way'.",
@@ -426,14 +425,13 @@
                   "en": "The logical bridge (Warrant) is completely missing."
                 }
               },
-              "ai_description": "IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_69cc84e0b0c44996a8a95e09b356c692",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.",
                   "anti_patterns": [
                     {
                       "pattern": "a mechanism is described",
@@ -455,14 +453,13 @@
                   "en": "Absolute certainty without reservations (No Qualifier)."
                 }
               },
-              "ai_description": "EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_d9cb646741ba4750ab561bf766c94f03",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.",
                   "anti_patterns": [
                     {
                       "pattern": "it states a mathematical/historical fact",
@@ -497,14 +494,13 @@
                   "en": "The text contains a basic claim and some data."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of a Claim and some supporting Data.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_f348220a3bea450b8e7e87b5f5117a1c",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of a Claim and some supporting Data.",
                   "anti_patterns": [
                     {
                       "pattern": "no data point is provided",
@@ -526,14 +522,13 @@
                   "en": "The data is disconnected or weak."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the provided Data is logically disconnected or objectively too weak to support the Claim.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_3613ef7137cc4e48a2d62b9921e5583c",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: LOCATE an instance where the provided Data is logically disconnected or objectively too weak to support the Claim.",
                   "anti_patterns": [
                     {
                       "pattern": "it's just a personal story without broad policy claims",
@@ -555,14 +550,13 @@
                   "en": "Counter-arguments are ignored."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that completely ignores obvious counter-arguments or limitations.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_b03e802130ef46c781ff49c6a71d6ada",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that completely ignores obvious counter-arguments or limitations.",
                   "anti_patterns": [
                     {
                       "pattern": "data is provided",
@@ -597,14 +591,13 @@
                   "en": "The logical bridge exists but is implicit."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND an argument where the Claim and Data are present, and the Warrant exists but remains implicit.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_6e3e3aa6b9134a01838c3b70a35b4f32",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: FIND an argument where the Claim and Data are present, and the Warrant exists but remains implicit.",
                   "anti_patterns": [
                     {
                       "pattern": "it uses precise causal mechanism ('which directly causes')",
@@ -626,14 +619,13 @@
                   "en": "Addresses counter-arguments superficially."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author mentions a counter-argument but dismisses it superficially without dismantling it.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_25f0540101174b66a09fe7770a28d110",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: LOCATE an instance where the author mentions a counter-argument but dismisses it superficially without dismantling it.",
                   "anti_patterns": [
                     {
                       "pattern": "counter-data is presented",
@@ -659,14 +651,13 @@
                   "en": "Foundational backing is missing."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a structural weakness where the Warrant is stated but lacks deeper Backing.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_1d7531b5f5944175bb1eee7eaed44f69",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY a structural weakness where the Warrant is stated but lacks deeper Backing.",
                   "anti_patterns": [
                     {
                       "pattern": "an empirical source is cited",
@@ -701,14 +692,13 @@
                   "en": "The logical bridge (Warrant) is explicitly articulated."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE a robust, explicitly stated Warrant that clearly bridges the Data to the Claim.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_10dd47750c9244139c394ca875f160e6",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: LOCATE a robust, explicitly stated Warrant that clearly bridges the Data to the Claim.",
                   "anti_patterns": [
                     {
                       "pattern": "it just says 'because' without stating the general rule",
@@ -730,14 +720,13 @@
                   "en": "Uncertainties are acknowledged (Qualifier)."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND epistemological humility where the author explicitly uses Qualifiers to limit the scope of their Claim.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_4a8347422e464965a6e9206dcc240c26",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: FIND epistemological humility where the author explicitly uses Qualifiers to limit the scope of their Claim.",
                   "anti_patterns": [
                     {
                       "pattern": "vague filler words ('maybe', 'perhaps') are used to avoid taking a stance",
@@ -759,14 +748,13 @@
                   "en": "Counter-arguments are handled constructively."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the author actively engages with a Rebuttal and systematically addresses it.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_47bade191cf346ec818757f081f6aef3",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: EXTRACT an instance where the author actively engages with a Rebuttal and systematically addresses it.",
                   "anti_patterns": [
                     {
                       "pattern": "it's dismissed rhetorically",
@@ -801,14 +789,13 @@
                   "en": "The argument is perfectly anchored to expert sources."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE an argument where the Warrant is fortified by explicit Backing from external expert sources.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_9da28945325e4486a8b4941c561299fa",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: LOCATE an argument where the Warrant is fortified by explicit Backing from external expert sources.",
                   "anti_patterns": [
                     {
                       "pattern": "it's a vague reference ('research shows')",
@@ -834,14 +821,13 @@
                   "en": "Cognitive friction is explicitly documented."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation where the author acts as their own prosecutor.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_9a08254fb47a46fdb8a78030ed68f853",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation where the author acts as their own prosecutor.",
                   "anti_patterns": [
                     {
                       "pattern": "it is just a pros/cons list",
@@ -863,14 +849,13 @@
                   "en": "Causal relationships are watertight."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed Claim-Data-Warrant triad that leaves zero room for logical fallacy.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_dff85ed8a43a4ca99c34873b2fe44d89",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed Claim-Data-Warrant triad that leaves zero room for logical fallacy.",
                   "anti_patterns": [
                     {
                       "pattern": "any of the three (Claim, Data, Warrant) is missing from the explicit text",
@@ -956,14 +941,13 @@
                   "en": "Mechanical Rote Recall"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_b36d3ec7b1f94fe9ad4b45795a8a104b",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find a declarative verb.",
                   "bounding_box_scope": "sentence",
                   "extraction_rule": "the sentence states a standalone fact without explanatory conjunctions. Do not accept sentences that attempt to explain the or.",
@@ -979,14 +963,13 @@
                   "en": "Contextless Fact Dump"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_d29b77c237394ccab4b8d52502f873f9",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find abrupt transition markers or the absence of them (e.g., starting a new paragraph directly with a proper noun or number).",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "a fact is presented with zero preceding context or framing. Do not accept facts that are logically connected to the previous sentence.",
@@ -1002,14 +985,13 @@
                   "en": "Absolute Certainty Without Critique"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_216cc3fd45284deb8d51ea4cf2b2fd93",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find absolute words.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "the absolute claim is presented without any citations or stated limitations. Do not accept absolute statements that are mathematically proven or properly cited.",
@@ -1038,14 +1020,13 @@
                   "en": "Information Paraphrasing"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_131403148eab4c739149e6bd29164ce2",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find reformulation markers.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "found, the author is paraphrasing. Do not accept verbatim copy-pasting of definitions.",
@@ -1061,14 +1042,13 @@
                   "en": "Juxtaposition Without Synthesis"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_b7dfe23403db4db5b92a29a8bda9957c",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If ANY verb exists in the sentence that defines a causal or operational relationship between the two...",
@@ -1090,14 +1070,13 @@
                   "en": "Oversimplification"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_4ba32055738247d28e00a597f505ce9e",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the text acknowledges alternative paths, middle grounds, or nuance, you MUST return JSON null....",
@@ -1132,14 +1111,13 @@
                   "en": "Concrete Application of Concept"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_6a779cd5e9714994b83168dd0fef0ef7",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find application markers.",
                   "bounding_box_scope": "sentence",
                   "extraction_rule": "an abstract framework or rule is explicitly linked to a physical, real-world noun (e.g., a specific project, person, or physical action). Do not accept purely theoretical analogies without actionable context.",
@@ -1155,14 +1133,13 @@
                   "en": "Mechanistic Execution"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_20e76f768d24458fb2cc131b2bde4e04",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find blind procedural markers.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "a rule is enforced explicitly despite stated contextual evidence that it might be suboptimal. Do not accept justifiable adherence to safety or compliance protocols where no counter-evidence is presented.",
@@ -1178,14 +1155,13 @@
                   "en": "Blind to Alternatives"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_eec00de564394e9dbcc5744ca77f8e60",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find exclusionary solution markers.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "a single method is pushed without mentioning any alternatives. Do not accept solutions that have explicitly evaluated and dismissed alternatives with data.",
@@ -1214,14 +1190,13 @@
                   "en": "Deconstruction into Parts"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_10f455c36f754d33a3a551e9e7b61da4",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find structural breakdown verbs.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "a single overarching concept is explicitly split into at least two named sub-components. Do not accept simple bullet-point lists of unrelated features.",
@@ -1237,14 +1212,13 @@
                   "en": "Identifying Hidden Structures"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_bfbe65b639b54106913902d5bd0ae6ab",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find revelation markers.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "the text identifies a mechanism or assumption that is not immediately visible on the surface. Do not accept superficial observations of visible symptoms.",
@@ -1273,14 +1247,13 @@
                   "en": "Explicit Value Judgment"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a3d407a71ade4ea4aa3afeaf1bb61b3c",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find evaluative judgment verbs.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "the text delivers a defensible judgment on the validity or utility of an idea. Do not accept subjective emotional opinions.",
@@ -1296,14 +1269,13 @@
                   "en": "Criteria Anchoring"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_5198e13cde3447fe9d0737a80abe458c",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anti_patterns": [
                     {
                       "pattern": "generic regulatory mention without specific sub-clause",
@@ -1338,14 +1310,13 @@
                   "en": "Novel Synthesis"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_b3c69e002634430ca9f2e2a33f7b280e",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find synthesis verbs.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "the text explicitly merges at least two disparate elements into a completely new, named framework or solution. Do not accept mere combinations of existing ideas without a novel theoretical leap.",
@@ -1361,14 +1332,13 @@
                   "en": "Documented Cognitive Friction"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_40c435f393cb4357b31cf835ca601a54",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find hypothesis generation markers.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "the text generates a new hypothesis and explicitly documents the step-by-step logical friction or trade-offs in its creation. Do not accept hypotheses presented as sudden epiphanies without documented reasoning.",
@@ -1384,14 +1354,13 @@
                   "en": "Unanchored Abstraction"
                 }
               },
-              "ai_description": "DEPRECATED - V4 uses tda_assertions directly.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_d95b263f55504cc38901001296374825",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
                   "anchor_target": "Find absolute novelty claims.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "a synthesized framework floats purely in abstraction without ANY citations or anchoring to concrete prior expert literature. Do not accept grounded hypotheses that cite valid external precedents.",
@@ -1472,7 +1441,6 @@
                   "en": "Reactive Speed"
                 }
               },
-              "ai_description": "IDENTIFY the baseline presence of unexamined System 1 thinking.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_3a362e01de66444c813e5b79adec27bf",
@@ -1505,14 +1473,13 @@
                   "en": "Heuristics and Biases"
                 }
               },
-              "ai_description": "EXTRACT evidence of cognitive biases or mental shortcuts.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_7b88a578c3824b31b83a5154f7d3667a",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "EXTRACT evidence of cognitive biases or mental shortcuts.",
                   "anti_patterns": [
                     {
                       "pattern": "the text explicitly maps out what is NOT known",
@@ -1534,7 +1501,6 @@
                   "en": "Hubris"
                 }
               },
-              "ai_description": "IDENTIFY subjective views or initial reactions presented as absolute truth.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_2d12f15e1c2d4488b7c2ef32d0ccfa26",
@@ -1576,7 +1542,6 @@
                   "en": "One-Sided Framing"
                 }
               },
-              "ai_description": "IDENTIFY a one-sided argument that fails to systematically address alternative hypotheses.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_5568f81c93bc4d1fb524fbfc1d9f0e04",
@@ -1618,7 +1583,6 @@
                   "en": "Systematic Deconstruction"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE where the response systematically deconstructs the problem, explicitly overriding initial intuitions.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_5257ba1edae34afe8b837c8c238cf743",
@@ -1651,14 +1615,13 @@
                   "en": "Epistemic Anchoring"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the structured logic is explicitly tethered to external expert references.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_64cce5cf564a497dbbc2341248cea637",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY where the structured logic is explicitly tethered to external expert references.",
                   "anti_patterns": [
                     {
                       "pattern": "it relies purely on internal logic",
@@ -1745,14 +1708,13 @@
                   "en": "Authority Bias"
                 }
               },
-              "ai_description": "IDENTIFY if the user treats the AI's probabilistic generation as an infallible oracle.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_85ef05fdcd2f48afb925fd03b6c54d4d",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "IDENTIFY if the user treats the AI's probabilistic generation as an infallible oracle.",
                   "anti_patterns": [
                     {
                       "pattern": "a document or source is provided",
@@ -1787,14 +1749,13 @@
                   "en": "Factual errors have been corrected."
                 }
               },
-              "ai_description": "IDENTIFY active corrections limited to factual, stylistic, or formatting details.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a9c96a0c55fe4ac884795440c722eb5d",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "IDENTIFY active corrections limited to factual, stylistic, or formatting details.",
                   "anti_patterns": [
                     {
                       "pattern": "logical changes are requested",
@@ -1816,7 +1777,6 @@
                   "en": "Metrics are accepted without questioning."
                 }
               },
-              "ai_description": "IDENTIFY explicit optimization for a proxy metric (MOP) over the qualitative goal (Goodhart's Law).",
               "tda_assertions": [
                 {
                   "tda_id": "tda_8275735bde0244e2bdbf3ab915838d59",
@@ -1852,7 +1812,6 @@
                   "en": "Metric Fixation"
                 }
               },
-              "ai_description": "IDENTIFY where the user accepts stylistic or minor tweaks while leaving the substantive core argument unchallenged.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_c17684acfcbe4a918e5ae0705b452b06",
@@ -1875,7 +1834,6 @@
                   "en": "One-Sided Execution"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY one-sided execution without demand for alternative models.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a08f0bc1e4f14623ab2248528ae42a3d",
@@ -1911,14 +1869,13 @@
                   "en": "Strategic Navigation"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively prevents Goodhart's Law by questioning the reliability of the metric.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_bd85f009b0fb4f7899b40ff0e763dee7",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively prevents Goodhart's Law by questioning the reliability of the metric.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the text merely tracks a metric without questioning its validity, you MUST return JSON null....",
@@ -1940,14 +1897,13 @@
                   "en": "Few-shot Coaching"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively coaches the AI by providing concrete examples of desired formats or styles.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_657fb164be984788a760eed250b3bc61",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively coaches the AI by providing concrete examples of desired formats or styles.",
                   "anchor_target": "Find examples or model structures provided by the user.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "The user provides a concrete linguistic model or structurally detailed template to direct the AI. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema..",
@@ -1963,14 +1919,13 @@
                   "en": "Identification of Uncertainty"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user demands acknowledgment of uncertainties.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_86b9e792dd604b37a3443bffe25de8dd",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY where the user demands acknowledgment of uncertainties.",
                   "anchor_target": "Find demands for epistemological humility.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "the user explicitly commands the AI to state its uncertainties or missing data. Demands for absolute certainty.",
@@ -1999,14 +1954,13 @@
                   "en": "Socratic Steering"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user acts as a Socratic steer, probing assumptions and demanding logical arguments.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_71e60846894545b2bc43a3361b7a5a9c",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY where the user acts as a Socratic steer, probing assumptions and demanding logical arguments.",
                   "anchor_target": "Find Socratic conceptual questions by the user.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "The user actively probes the foundational reasoning or forces the AI to defend its logic. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema.. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
@@ -2022,14 +1976,13 @@
                   "en": "Objective Anchoring"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user demands external grounding and concrete expert verification.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_9fd2fff3ab4a46d29b5df31488561dd4",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY where the user demands external grounding and concrete expert verification.",
                   "anchor_target": "Find demands for external grounding.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "the user explicitly restricts the AI to an external, objective anchor. Acceptance of unsourced hallucinated facts. NEGATIVE BOUNDARY: General questions or requests for explanation DO NOT count as external grounding unless they explicitly demand a citation or source material restriction.",
@@ -2243,14 +2196,13 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "IDENTIFY blatant fabrication where the output contradicts foundational constraints.",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit rejection markers.",
                   "bounding_box_scope": "sentence",
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
-              ],
-              "ai_description": "IDENTIFY blatant fabrication where the output contradicts foundational constraints."
+              ]
             },
             {
               "label": {
@@ -2266,14 +2218,13 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "EXTRACT an assertion presented as absolute truth without verifiable provenance.",
                   "extraction_rule": "",
                   "anchor_target": "Find dogmatic absolute markers.",
                   "bounding_box_scope": "paragraph",
                   "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
-              ],
-              "ai_description": "EXTRACT an assertion presented as absolute truth without verifiable provenance."
+              ]
             },
             {
               "label": {
@@ -2289,14 +2240,13 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "LOCATE an instance where sensitive or restricted information is exposed or mishandled.",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit exposure actions.",
                   "bounding_box_scope": "sentence",
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
-              ],
-              "ai_description": "LOCATE an instance where sensitive or restricted information is exposed or mishandled."
+              ]
             }
           ]
         },
@@ -2325,14 +2275,13 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "IDENTIFY the baseline presence of isolated compliance without overarching structural integrity.",
                   "extraction_rule": "",
                   "anchor_target": "Find physical actions of organizing or saving data.",
                   "bounding_box_scope": "sentence",
                   "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
-              ],
-              "ai_description": "IDENTIFY the baseline presence of isolated compliance without overarching structural integrity."
+              ]
             },
             {
               "label": {
@@ -2348,14 +2297,13 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: EXTRACT evidence where a required standard operating procedure is explicitly bypassed.",
                   "extraction_rule": "",
                   "anchor_target": "Find shortcut markers.",
                   "bounding_box_scope": "paragraph",
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT evidence where a required standard operating procedure is explicitly bypassed."
+              ]
             },
             {
               "label": {
@@ -2371,14 +2319,13 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: LOCATE an execution that blindly follows one rule while completely ignoring conflicting constraints.",
                   "extraction_rule": "",
                   "anchor_target": "Find absolute exclusion markers.",
                   "bounding_box_scope": "paragraph",
                   "contrastive_example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE an execution that blindly follows one rule while completely ignoring conflicting constraints."
+              ]
             }
           ]
         },
@@ -2407,14 +2354,13 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Extract explicit procedural execution steps that lack analytical or synthesis terminology.",
                   "extraction_rule": "Extract the paragraph IF AND ONLY IF it contains these procedural markers AND LACKS any synthesis/deduction verbs.",
                   "anchor_target": "Find procedural sequential markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "paragraph",
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: Extract explicit procedural execution steps that lack analytical or synthesis terminology."
+              ]
             },
             {
               "label": {
@@ -2437,8 +2383,7 @@
                   "contrastive_example": "ACCEPTABLE: \"The source material contained layout formatting errors, which were corrected.\" (Retrospective observation of a technical error, not an absolute claim ignoring risks).\nUNACCEPTABLE: \"Our system has achieved 100% perfect compliance and is completely without risk.\" (Absolute claim ignoring risks).",
                   "anti_patterns": []
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: Extract explicit absolute compliance claims that physically lack risk terminology."
+              ]
             },
             {
               "label": {
@@ -2461,8 +2406,7 @@
                   "contrastive_example": "ACCEPTABLE: \"I reformatted the table layout and trimmed empty lines.\" (Purely editorial/formatting action without modifying source intent).\nUNACCEPTABLE: \"This statement must be true because I personally adjusted the text.\" (Claiming authority over content verification).",
                   "anti_patterns": []
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY a reliance on undocumented or unverified internal knowledge."
+              ]
             }
           ]
         },
@@ -2491,14 +2435,13 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: LOCATE explicit adherence to structured directives where the chain of reasoning is clearly verifiable.",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit methodology links.",
                   "bounding_box_scope": "sentence",
                   "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE explicit adherence to structured directives where the chain of reasoning is clearly verifiable."
+              ]
             },
             {
               "label": {
@@ -2514,14 +2457,13 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: FIND epistemological humility where limitations and boundary conditions are explicitly stated.",
                   "extraction_rule": "",
                   "anchor_target": "Find boundary definition markers.",
                   "bounding_box_scope": "paragraph",
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: FIND epistemological humility where limitations and boundary conditions are explicitly stated."
+              ]
             },
             {
               "label": {
@@ -2537,14 +2479,13 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: EXTRACT an instance where potential compliance conflicts are systematically addressed.",
                   "extraction_rule": "",
                   "anchor_target": "Find conflict resolution markers.",
                   "bounding_box_scope": "paragraph",
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT an instance where potential compliance conflicts are systematically addressed."
+              ]
             }
           ]
         },
@@ -2573,14 +2514,13 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation detailing why specific compliance tradeoffs were made.",
                   "extraction_rule": "",
                   "anchor_target": "Find explicit dialectical reasoning.",
                   "bounding_box_scope": "paragraph",
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation detailing why specific compliance tradeoffs were made."
+              ]
             },
             {
               "label": {
@@ -2596,14 +2536,13 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: LOCATE where the execution is fortified by explicit backing from external expert frameworks.",
                   "extraction_rule": "",
                   "anchor_target": "Find formal citation markers.",
                   "bounding_box_scope": "sentence",
                   "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE where the execution is fortified by explicit backing from external expert frameworks."
+              ]
             },
             {
               "label": {
@@ -2619,14 +2558,13 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed resolution that seamlessly balances strict compliance with operational goals.",
                   "extraction_rule": "",
                   "anchor_target": "Find integration markers.",
                   "bounding_box_scope": "paragraph",
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
                 }
-              ],
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed resolution that seamlessly balances strict compliance with operational goals."
+              ]
             }
           ]
         }
@@ -2706,7 +2644,6 @@
                   "en": "Confusing Correlation with Causation"
                 }
               },
-              "ai_description": "Identify if a mere association is falsely presented as a definitive cause without a mechanism.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_bd90e5a66c5d433a9ed650f295132625",
@@ -2729,7 +2666,6 @@
                   "en": "Post Hoc Fallacy"
                 }
               },
-              "ai_description": "Find instances where chronological order is the sole proof of causation.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_51a1544a321e4a18b3f4ea09b5bbe02e",
@@ -2752,7 +2688,6 @@
                   "en": "Magic Word Causality"
                 }
               },
-              "ai_description": "Extract explicit causal claims driven by metaphysical vocabulary that lack physical mechanism tokens.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_3eed2113bd9842f3b8fd050046505e4d",
@@ -2789,14 +2724,13 @@
                   "en": "Oversimplified Single Cause"
                 }
               },
-              "ai_description": "Find instances attributing a complex outcome to a single, isolated factor.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_8ecd3f17b3984e4fa1bb6a8cb5576b65",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": false,
-                  "concept_description": "",
+                  "concept_description": "Find instances attributing a complex outcome to a single, isolated factor.",
                   "extraction_rule": "Extract the quote IF a highly complex outcome is attributed to a SINGLE cause.",
                   "anchor_target": "Find absolute causal words. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
@@ -2812,7 +2746,6 @@
                   "en": "Direction of Causality"
                 }
               },
-              "ai_description": "Identify if the text explicitly states the direction of influence between variables.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_728cd0dff7384300bc55622fa7dfffc0",
@@ -2835,7 +2768,6 @@
                   "en": "Anecdotal Causation"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Locate universal rules derived solely from a single personal anecdote.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_97ec90b4d90e4fee94b071f3e0007921",
@@ -2871,7 +2803,6 @@
                   "en": "Description of Causal Mechanism"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Extract causal claims that physically contain intermediary sequential steps between the initial cause and the final effect.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_c607024dbf524f7a9d68af443901c40e",
@@ -2895,7 +2826,6 @@
                   "en": "Identification of Confounders"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Locate explicit mentions of alternative variables that could explain the outcome.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_fda64d221181411fa70843a88689b27b",
@@ -2918,7 +2848,6 @@
                   "en": "Overgeneralization Fallacy"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): Identify if a causal mechanism found in one specific context is universally applied without constraints.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_01edff70b75047ec9f6df0c49745f46e",
@@ -2954,7 +2883,6 @@
                   "en": "Intervention Logic (Pearl's Rung 2)"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Extract explicit causal claims containing conditional intervention vocabulary and expected physical outcomes.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_7e0d493a62234375b180d942cb6e0bcd",
@@ -2978,7 +2906,6 @@
                   "en": "Controlled Isolation"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Locate statements indicating an external variable was deliberately held constant.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_41c34ee72a5e4afc9875d446b2e2dab4",
@@ -3001,7 +2928,6 @@
                   "en": "Boundary Definition"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Extract explicit constraint tokens that physically bound the scope of the causal claim without universal generalizations.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_b110906545324d1f80bf3ec3b81b2b05",
@@ -3038,7 +2964,6 @@
                   "en": "Counterfactual Testing (Pearl's Rung 3)"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Locate active simulations of an alternate timeline to prove necessary causation.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_6e53ee50b3524c70ba8b087abe8a0b05",
@@ -3061,7 +2986,6 @@
                   "en": "Formal Modeling / Do-Operator"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Find the use of a formal, structural model to map causality.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_38f7965197f842f1a793194ae818765a",
@@ -3084,7 +3008,6 @@
                   "en": "Theoretical Law Anchoring"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify where the specific causal mechanism is anchored to an established theoretical law.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_14ce2d7744ed49868250c6aaeaccdf97",
@@ -3195,7 +3118,6 @@
                   "en": "Ad-hoc Immunization"
                 }
               },
-              "ai_description": "LOCATE a sentence where the author dismisses a contrary observation by classifying it as an exception rather than adjusting their hypothesis.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_236ebf69629e41a58b0f13eb82b44875",
@@ -3224,7 +3146,6 @@
                   "en": "Zero Falsification"
                 }
               },
-              "ai_description": "EXTRACT a sentence where the author explicitly states that a premise requires no further testing or cannot be questioned.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_c7e3a26277674d2aa8ab38d1ee7afb05",
@@ -3266,7 +3187,6 @@
                   "en": "Straw-Man Critique"
                 }
               },
-              "ai_description": "LOCATE a sentence where the author presents a counter-argument lacking empirical data or citations, only to immediately dismiss it.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_873a1fab603544048f95e612773f0574",
@@ -3295,7 +3215,6 @@
                   "en": "Conditional Sycophancy"
                 }
               },
-              "ai_description": "LOCATE a sentence where a subordinate clause acknowledges a limitation, but the main clause confirms the original premise without altering its parameters.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a42e3168877240ad90ccd2abb37c4597",
@@ -3324,7 +3243,6 @@
                   "en": "Safe Questioning"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a rhetorical question posed by the author that is immediately answered in the affirmative without presenting new empirical evidence.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_ce2566987e8f44819102d6eb1d28857d",
@@ -3366,7 +3284,6 @@
                   "en": "Descriptive Interpretation"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND a sentence where the author describes an observation using only descriptive verbs without proposing a testable causal mechanism.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_3b951170f9f54f649b7da95fb9f121e6",
@@ -3395,7 +3312,6 @@
                   "en": "Passive Limitation Listing"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): LOCATE a sentence where the author lists methodological limitations but explicitly states no action was taken to test or mitigate them.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_611db266856848b68fda02dd9f602ce5",
@@ -3424,7 +3340,6 @@
                   "en": "Conflict Avoidance"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE (FATAL FLAW): EXTRACT a sentence where the author identifies two contradictory datasets but synthesizes them without a mathematical or logical resolution.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_0af46ca3de69431e8a3eea89df104507",
@@ -3466,7 +3381,6 @@
                   "en": "Active Boundary Testing"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE an explicit instance where the author defines the exact empirical conditions under which their claim would be proven false.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_52ffb15768ba4a62ac3a8be5824a8aa6",
@@ -3495,7 +3409,6 @@
                   "en": "Structural Self-Criticism"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT an explicit acknowledgment identifying a specific systemic variable or bias in the author's own testing methodology.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_43516f120e4a415bb0ee3a878a53a5bc",
@@ -3610,7 +3523,6 @@
                   "en": "Blind acceptance"
                 }
               },
-              "ai_description": "FIND evidence of 'Automation Complacency'. Extract a command where the user blindly accepts the AI's output without asking critical questions.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_282059a3bea94b6c94e5f290a9cb75a7",
@@ -3634,7 +3546,6 @@
                   "en": "Delegating decision authority"
                 }
               },
-              "ai_description": "FIND evidence of 'Automation Bias'. Extract a user command where the user explicitly asks the AI to make a final decision for them.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_d2e04ccdc7df428380b667e21217224a",
@@ -3658,7 +3569,6 @@
                   "en": "Ignoring errors"
                 }
               },
-              "ai_description": "FIND evidence of 'Rubber-Stamping'. Extract a user command where the user acknowledges a flaw but commands the AI to proceed anyway.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_2c3c394f7c07417c9754b54602bf1353",
@@ -3700,7 +3610,6 @@
                   "en": "Superficial tweaking"
                 }
               },
-              "ai_description": "FIND evidence of superficial tweaking. Extract a user command where the user only asks for mechanical changes instead of addressing core logic.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_46b1a8e3c2304438b82420fc40c3dbc1",
@@ -3729,7 +3638,6 @@
                   "en": "Reactive patching"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND a reactive prompt where the user adds a constraint only AFTER the AI has already failed.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_bb3511daf31f437f9be8f0abebd11c83",
@@ -3753,7 +3661,6 @@
                   "en": "Bypassing source material"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND evidence where the user asks the AI to summarize raw data without enforcing any specific extraction rules.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_fa4667af98f84790af9b9a12cd9d7bd0",
@@ -3795,7 +3702,6 @@
                   "en": "Setting constraints"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE a user command where specific, actionable constraints are set for the AI's output generation.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_10b1f2aff7b6426fb2e8e6002dbef2bc",
@@ -3824,7 +3730,6 @@
                   "en": "Defining background context"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT a user command where explicit background information, role, or target audience is provided.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_1897cd57db7c4e9b9ffc086ee544f643",
@@ -3848,7 +3753,6 @@
                   "en": "Reasoned feedback"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: LOCATE a user response where they correct the AI AND provide a logical reason for the correction.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_08c5a8eca0bb41a49d60b849503da2bb",
@@ -3890,7 +3794,6 @@
                   "en": "Forcing an analysis method"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND evidence where the user explicitly forces the AI to use a specific methodology, framework, or theoretical lens.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_6ecd649b48c24e68824e27e30ed8a63e",
@@ -3914,7 +3817,6 @@
                   "en": "Setting intermediate milestones"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT a user command that strictly breaks a complex task into discrete steps and prevents the AI from jumping to the conclusion.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_b4e82bca48654f9ab948d4b3004abf81",
@@ -3951,7 +3853,6 @@
                   "en": "Epistemic overriding"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: EXTRACT an execution where the user explicitly overrides the AI's internal logic with superior, externally verified reasoning.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_3a65513aa717469a8d2c3b821a69c4ab",
@@ -3980,7 +3881,6 @@
                   "en": "Forcing falsification"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: FIND evidence where the user actively forces the AI to attack, falsify, or critically audit its own generated output.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a9b23e07d30a4422bcc983f4308ad212",
@@ -4004,14 +3904,13 @@
                   "en": "Active Cross-Verification"
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively cross-checks the AI's generated output against target sources.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_3af2d6bfe99c4119a301706c63920524",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: IDENTIFY where the user actively cross-checks the AI's generated output against target sources.",
                   "anchor_target": "Find active verification markers comparing output against raw documents.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "The user actively flags discrepancies between AI claims and source materials. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema..",
@@ -4170,7 +4069,6 @@
                   "en": "Absence of facts and subjective hallucination."
                 }
               },
-              "ai_description": "EXTRACT a single instance where definitive conclusions are drawn using probabilistic assumptions presented as absolute truths.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_b120e2c0a40840358df1e64a4b788b30",
@@ -4207,7 +4105,6 @@
                   "en": "Unaddressed counterarguments."
                 }
               },
-              "ai_description": "LOCATE a single instance where the synthesis actively ignores or dismisses alternative hypotheses without evidence.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_353aa6c896db47fb9d29b06a69bf77d4",
@@ -4921,7 +4818,6 @@
                   "en": "The text shows blind trust in AI outputs without verification mechanisms."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify instances where the user or system accepts generative heuristics as absolute fact without verification.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_7577d7ee8a484c64ae3968aa4ec298dc",
@@ -4950,7 +4846,6 @@
                   "en": "The text contains hallucinations or fabricated information presented as truth."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify fabricated facts or hallucinatory content presented with high confidence.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_e0bf5617f4804a0d98a6b2d91dcd21ce",
@@ -4986,7 +4881,6 @@
                   "en": "Security is considered only after an issue arises."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify reactive security posturing.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_83c3a1f41fb94c8d802a60e00ad2550f",
@@ -5015,7 +4909,6 @@
                   "en": "Ethical risks are identified but not mitigated."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify unmitigated acknowledged risks.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_453ddf8b14a442e988836098e3c7b55c",
@@ -5057,7 +4950,6 @@
                   "en": "Inputs and outputs are checked according to basic rules."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify baseline input/output validation.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_c760c738451d4ca0af3bc507a2687e20",
@@ -5086,14 +4978,13 @@
                   "en": "The user is aware of AI limitations."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify awareness of system limitations.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_715eb98a6f4a4a1e944db99f5eaaded9",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Verify awareness of system limitations.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the user writes the reflection/limitation, or if the text just discusses external data errors, yo...",
@@ -5115,7 +5006,6 @@
                   "en": "Security practices are visible and mostly followed."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify adherence to visible security practices.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_793b7078035645f0a9df32e58b6de0b9",
@@ -5157,7 +5047,6 @@
                   "en": "Security and ethics are built into processes."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify that security is integrated by design.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_1c195553935e4b8aaa4ee2a86feda9e4",
@@ -5186,7 +5075,6 @@
                   "en": "The system tolerates invalid inputs (Fail-Safe)."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify Fail-Safe handling of edge cases.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_82f0d074668043b3a0a64aa9f8506ff2",
@@ -5228,7 +5116,6 @@
                   "en": "Inputs and outputs are handled with absolute neutrality and security (Zero-Trust)."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify perfect security hygiene. The interaction must inherently demonstrate zero-trust processing.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_131ffcb70bbc4c29bef079047002bc91",
@@ -5257,7 +5144,6 @@
                   "en": "Security decisions are fully justified and required cognitive friction is documented."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify the presence of absolute System 2 cognitive friction applied to security evaluations.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_76df73280fc943cc9434d44efc8116e8",
@@ -5286,7 +5172,6 @@
                   "en": "Security logic is step-by-step anchored to a recognized framework (e.g. OWASP)."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify that the security logic is grounded in established frameworks.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_65cb33b82c54425aa86df7e84b66ffde",
@@ -5499,14 +5384,13 @@
                   "en": "Guidance is post-hoc rationalized, without visible original intent."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Extract retrospective claims of intent where the originally claimed parameters are physically missing from the preceding instruction.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_1361cf5ec5b5420c905cd2a1f80893a7",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Extract retrospective claims of intent where the originally claimed parameters are physically missing from the preceding instruction.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the prior text ALREADY contains the requested parameters (i.e. the user did actually ask for it e...",
@@ -5528,7 +5412,6 @@
                   "en": "The value produced by AI was stochastic / coincidence."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify instances where the AI generated value independently without user causal direction.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_d262dd4421bd4af68191eb1f4d0faf26",
@@ -5578,7 +5461,6 @@
                   "en": "Guidance is superficial or vague."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify vague instructions lacking causal force.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_0b7512034e6f40db9b4ea46b64af4e0d",
@@ -5607,7 +5489,6 @@
                   "en": "Only successes are logged (Confirmation Bias)."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify confirmation bias.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_c512ea7305614bfabf468fe838420dda",
@@ -5653,14 +5534,13 @@
                   "en": "User provides direct instructions and logically verifies results."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify baseline causal alignment.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_1473cecaeb4c495c9bd0d28710e602b4",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Verify baseline causal alignment.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the subsequent user response lacks explicit verification of the previous constraints, or is just ...",
@@ -5682,7 +5562,6 @@
                   "en": "Basic alternatives have been considered."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify basic evaluation of alternatives.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_65541c8fa62649038b52553cad9eab8a",
@@ -5711,7 +5590,6 @@
                   "en": "Goal and outcome match objectively."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify objective matching of intent and result.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_e407bc0297324a5da95c9091d08b88bc",
@@ -5757,14 +5635,13 @@
                   "en": "Cognitive friction is surfaced before generation."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify pre-generation friction.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_049eb80a94164c519d5a322d55499707",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Verify pre-generation friction.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the friction marker is found ONLY in a post-generation reflection or retrospective analysis, you ...",
@@ -5786,7 +5663,6 @@
                   "en": "Causal relationship is consistently traceable."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify end-to-end causal traceability.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_86ccd40936bb4dfc9a6d1f532568c05c",
@@ -5832,14 +5708,13 @@
                   "en": "User has verifiably envisioned the solution and cognitive friction is explicitly articulated."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Extract physical architectural blueprints that include multi-variable constraints and explicit conflict terminology prior to the AI response.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_680dc2c703b3425fa0b0d943dbd5af16",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Extract physical architectural blueprints that include multi-variable constraints and explicit conflict terminology prior to the AI response.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If constraint vocabulary is missing from the paragraph containing the blueprint, you MUST return JSO...",
@@ -5861,7 +5736,6 @@
                   "en": "Counterarguments and alternative models have been systematically refuted."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify that the user acted as an antagonistic prosecutor, actively testing counterfactuals.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_9eff656db790437dafb7f75be5f64b0c",
@@ -5894,14 +5768,13 @@
                   "en": "The causal relationship is anchored to verifiable external expert sources."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify mandatory source anchoring.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_832ed2ffa597406e8606d2bbfda57e84",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Verify mandatory source anchoring.",
                   "anti_patterns": [
                     {
                       "pattern": "the framework is merely name-dropped without applying its rules",
@@ -6086,7 +5959,6 @@
                   "en": "Logic is completely hidden or opaque."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify instances where the system provides an answer without any explanation of how it was reached.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a935aa7d237849259142a2a8936bdec0",
@@ -6123,7 +5995,6 @@
                   "en": "Decisions are based on heuristics without justification."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify reliance on unstated rules or black-box heuristics.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_45885ef98e7d481084b4378d5b3f2f3f",
@@ -6169,7 +6040,6 @@
                   "en": "Explanations are vague or generic."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify generic or templated explanations.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_41c6b31cee074d05b3024bb3437bedc1",
@@ -6215,7 +6085,6 @@
                   "en": "The connection between input and output is visible."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify baseline causal linkage.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_18fd37ad3f1f4903a812c12346d0ca8e",
@@ -6248,7 +6117,6 @@
                   "en": "Used variables and weights are defined."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify explicit variable definition.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_44793a48813843f0b48364e890eeba1e",
@@ -6277,14 +6145,13 @@
                   "en": "Edge cases and constraints have been considered."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify acknowledgment of system limits.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_19e1957773db4cfd820cb167ae1d8ec3",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Verify acknowledgment of system limits.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the text only describes external problems or general crises, and does not explicitly limit its ow...",
@@ -6319,7 +6186,6 @@
                   "en": "Causal chain is documented step-by-step."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify end-to-end causal documentation.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_fcdde66df02c4edb9e090172c3e2b956",
@@ -6352,7 +6218,6 @@
                   "en": "Cognitive friction is visible before the final decision."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify System 2 friction in the explanation.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_ae5dd6ac930544f4abd77d3438c59ddd",
@@ -6381,7 +6246,6 @@
                   "en": "Model limitations are clearly communicated to the user."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify proactive communication of certainty boundaries.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_6f4f8fc663c241acad6da5bff5abe321",
@@ -6427,14 +6291,13 @@
                   "en": "Counterfactuals have been analyzed and refuted."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify flawless dialectical synthesis.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_6e904f7c369a410ab9988e49ca3213e0",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Verify flawless dialectical synthesis.",
                   "anti_patterns": [
                     {
                       "pattern": "it is merely mentioned without data-driven refutation",
@@ -6456,7 +6319,6 @@
                   "en": "Boundaries of certainty and cognitive friction are documented."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify absolute System 2 friction.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a18475703cc541fda2a9af6757b86005",
@@ -6489,14 +6351,13 @@
                   "en": "The logic is anchored to external expert sources."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify mandatory source anchoring.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_ac3b078498e048889ad3bc46b634c2ee",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Verify mandatory source anchoring.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the source is just named or referenced passively without actively applying its logic, you MUST re...",
@@ -7015,7 +6876,6 @@
                   "en": "The text presents things as absolute facts (Overconfidence)."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify explicitly absolute claims that bypass the WYSIATI limitation without empirical backing.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_92680081ffb244d8abbdc99120a3291f",
@@ -7044,14 +6904,13 @@
                   "en": "Limitations or uncertainties have not been identified."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify declarations of exhaustive or complete knowledge.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_003f932abb9642fc8c3147b04fac95c5",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Identify declarations of exhaustive or complete knowledge.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the text is just a selected summary or uses generic rhetorical exaggeration without claiming abso...",
@@ -7073,14 +6932,13 @@
                   "en": "Alternative perspectives are completely ignored."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify active dismissal of alternative perspectives without data.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_c2968c987f1a4ac5824f15653df3dc8f",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Identify active dismissal of alternative perspectives without data.",
                   "anchor_target": "Find dismissive markers towards alternatives.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "the dismissal occurs without citing an external verifiable source or empirical data.",
@@ -7109,14 +6967,13 @@
                   "en": "The text uses performative uncertainty."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify superficial performative hedging.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_00245380f839424abfe3d923c1ae322f",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Identify superficial performative hedging.",
                   "anti_patterns": [
                     {
                       "pattern": "it maintains nuance",
@@ -7138,14 +6995,13 @@
                   "en": "Only a marginal space is left for critique."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify immediate rationalization of constraints.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_84b7784951c84e948c131c189261f564",
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Identify immediate rationalization of constraints.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the transition word is missing, or if the text provides new empirical data to solve the limitatio...",
@@ -7167,7 +7023,6 @@
                   "en": "Alternative models are not systematically investigated."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify failure to explore named alternatives.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_72d297df24fb45c3a85dc0b8248b9188",
@@ -7204,7 +7059,6 @@
                   "en": "Things are presented straightforwardly without absoluteness."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify baseline neutral tone without absolute claims.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_cb7637a8eae04303ae9a3e8085b075b4",
@@ -7228,14 +7082,13 @@
                   "en": "Self-reflection is missing."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify purely passive informational delivery.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a946688e5f5549e8ac30584d1a02ad26",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Identify purely passive informational delivery.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If EVEN ONE first-person pronoun, possessive suffix, or self-reflective verb exists, the count is > ...",
@@ -7257,7 +7110,6 @@
                   "en": "The limitations of data sources have not been discussed."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Identify uncritical acceptance of data sources.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_ca74247488fe49d49c70e96cf74a31a7",
@@ -7294,14 +7146,13 @@
                   "en": "The text understands the limits of its own perspective."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify explicit boundary setting.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_f29c602444b446a3a6973aa9953a0b01",
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "",
+                  "concept_description": "CRITICAL DIRECTIVE: Verify explicit boundary setting.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If the text only describes general environments but does not use them to restrict a factual claim, y...",
@@ -7336,7 +7187,6 @@
                   "en": "Own limitations, data gaps, and assumptions are listed comprehensively."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify systemic self-scrutiny.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_c642cbc768fa4f54a8718452d779c607",
@@ -7365,7 +7215,6 @@
                   "en": "Risks and counterarguments are addressed proactively."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify thorough dismantling of counterarguments.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_fba3218b2c5443d89ad105d945f71255",
@@ -7389,7 +7238,6 @@
                   "en": "The decision-making process and cognitive friction are explicitly articulated."
                 }
               },
-              "ai_description": "CRITICAL DIRECTIVE: Verify mandatory source anchoring and visible cognitive friction.",
               "tda_assertions": [
                 {
                   "tda_id": "tda_a0cd26d7749c412d92aff072e34f512d",

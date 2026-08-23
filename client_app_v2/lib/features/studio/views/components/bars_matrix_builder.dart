@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -77,7 +78,7 @@ class BarsMatrixBuilder extends StatelessWidget {
         : '';
 
     return Card(
-      margin: const EdgeInsets.all(8.0),
+      margin: AppSpacing.p8,
       elevation: 0,
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
@@ -88,7 +89,7 @@ class BarsMatrixBuilder extends StatelessWidget {
         onTap: () => _editScale(context, scale),
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: AppSpacing.p12,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min, // To allow Row stretch gracefully
@@ -120,7 +121,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
-                  const SizedBox(width: 8),
+                  AppSpacing.w8,
                   IconButton(
                     icon: Icon(
                       Icons.delete,
@@ -145,20 +146,20 @@ class BarsMatrixBuilder extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                AppSpacing.h8,
               ],
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: scale.claims.length,
-                separatorBuilder: (context, _) => const SizedBox(height: 8),
+                separatorBuilder: (context, _) => AppSpacing.h8,
                 itemBuilder: (context, idx) {
                   final claim = scale.claims[idx];
                   final labelTrans =
                       claim.label.translations[claim.label.defaultLocale] ??
                       claim.label.defaultLocale;
                   return Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: AppSpacing.p8,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(4),
@@ -172,7 +173,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                           maxLines: 4,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        AppSpacing.h4,
                         Text(
                           claim.aiDescription,
                           style: TextStyle(
@@ -186,7 +187,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (claim.tdaAssertions.isNotEmpty) ...[
-                          const SizedBox(height: 4),
+                          AppSpacing.h4,
                           Wrap(
                             spacing: 4,
                             runSpacing: 4,
@@ -247,7 +248,9 @@ class BarsMatrixBuilder extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    "+ ${claim.tdaAssertions.length - 3} lisää",
+                                    l10n.barsMatrixMoreAssertions(
+                                      claim.tdaAssertions.length - 3,
+                                    ),
                                     style: TextStyle(
                                       fontSize: 9,
                                       color: Theme.of(

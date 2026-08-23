@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:uuid/uuid.dart';
 
 class ScaleEditorModal extends StatefulWidget {
   final MatrixScale initialScale;
@@ -55,7 +55,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
     final claims = _editableScale.claims;
 
     return Dialog(
-      insetPadding: const EdgeInsets.all(16),
+      insetPadding: AppSpacing.p16,
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.editDimension),
@@ -69,19 +69,19 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
               icon: const Icon(Icons.check),
               label: Text(l10n.save),
             ),
-            const SizedBox(width: 8),
+            AppSpacing.w8,
           ],
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppSpacing.p16,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextFormField(
                 initialValue: _editableScale.score.toString(),
-                decoration: const InputDecoration(
-                  labelText: 'Grade Score (int, e.g., 5)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.scaleGradeScoreLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (val) {
@@ -91,9 +91,9 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                   }
                 },
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               I18nTextField(
-                label: 'Grade Name (Optional, e.g. "Excellent")',
+                label: l10n.scaleGradeNameLabel,
                 initialData:
                     _editableScale.name ??
                     const I18nText(
@@ -104,23 +104,26 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                   _editableScale = _editableScale.copyWith(name: val);
                 },
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               TextFormField(
                 initialValue: _editableScale.aiLabel,
-                decoration: const InputDecoration(
-                  labelText: 'Grade AI Label (e.g. CATASTROPHIC FAILURE)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.scaleGradeAiLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 onChanged: (val) {
                   _editableScale = _editableScale.copyWith(aiLabel: val.trim());
                 },
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Claims (Evaluative Guidelines)',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              AppSpacing.h16,
+              Text(
+                l10n.scaleClaimsTitle,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(height: 8),
+              AppSpacing.h8,
               ...claims.asMap().entries.map((entry) {
                 final index = entry.key;
                 final claim = entry.value;
@@ -129,7 +132,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                   margin: const EdgeInsets.only(bottom: 16.0),
                   color: Theme.of(context).colorScheme.surface,
                   child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: AppSpacing.p12,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -137,7 +140,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Claim ${index + 1}',
+                              l10n.scaleClaimIndexTitle(index + 1),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -148,17 +151,16 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                 color: Theme.of(context).colorScheme.error,
                               ),
                               onPressed: () => _removeClaim(index),
-                              tooltip: 'Remove Claim',
+                              tooltip: l10n.scaleRemoveClaimTooltip,
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        AppSpacing.h8,
                         TextFormField(
                           initialValue: claim.aiDescription,
                           decoration: InputDecoration(
-                            labelText: 'Claim AI Rule (MANDATORY ENGLISH)',
-                            helperText:
-                                "MUST be in English. Use strict commanding language (e.g., 'CRITICAL EVALUATION DIRECTIVE:').",
+                            labelText: l10n.scaleClaimAiRuleLabel,
+                            helperText: l10n.scaleClaimAiRuleHelper,
                             helperStyle: TextStyle(
                               color: Theme.of(context).colorScheme.error,
                               fontWeight: FontWeight.bold,
@@ -181,10 +183,9 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                             });
                           },
                         ),
-                        const SizedBox(height: 16),
-                        const SizedBox(height: 16),
+                        AppSpacing.h16,
                         I18nTextField(
-                          label: 'Claim Translation (UI Screen/PDF)',
+                          label: l10n.scaleClaimTranslationLabel,
                           initialData: claim.label,
                           onChanged: (val) {
                             setState(() {
@@ -198,14 +199,14 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                             });
                           },
                         ),
-                        const SizedBox(height: 16),
+                        AppSpacing.h16,
                         const Divider(),
-                        const SizedBox(height: 8),
+                        AppSpacing.h8,
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Test-Driven Assertions (TDA) (${claim.tdaAssertions.length})',
+                              l10n.scaleTdaTitle(claim.tdaAssertions.length),
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -218,9 +219,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                     claim.tdaAssertions,
                                   );
                                   newTdas.add(
-                                    TDAAssertion(
-                                      tdaId:
-                                          'tda_${Uuid().v4().replaceAll('-', '')}',
+                                    TDAAssertion.create(
                                       conceptDescription: '',
                                       inverseEvidence: false,
                                       aggregationMode: AggregationMode.exists,
@@ -240,11 +239,11 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                 });
                               },
                               icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Add TDA'),
+                              label: Text(l10n.scaleAddTdaBtn),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        AppSpacing.h8,
                         ...claim.tdaAssertions.asMap().entries.map((tdaEntry) {
                           final tdaIdx = tdaEntry.key;
                           final tda = tdaEntry.value;
@@ -272,7 +271,10 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Assertion ${tdaIdx + 1} (${tda.tdaId})',
+                                        l10n.scaleAssertionIndexTitle(
+                                          tdaIdx + 1,
+                                          tda.tdaId,
+                                        ),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 12,
@@ -300,20 +302,21 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                                 .copyWith(claims: newClaims);
                                           });
                                         },
-                                        tooltip: 'Remove TDA Assertion',
+                                        tooltip: l10n.scaleRemoveTdaTooltip,
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   DropdownButtonFormField<EvaluationTrack>(
                                     initialValue: tda.evaluationTrack,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Evaluation Track',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
+                                    decoration: InputDecoration(
+                                      labelText: l10n.scaleEvaluationTrackLabel,
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
                                     ),
                                     items: EvaluationTrack.values.map((track) {
                                       return DropdownMenuItem<EvaluationTrack>(
@@ -322,8 +325,8 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                           track ==
                                                   EvaluationTrack
                                                       .extractiveSensor
-                                              ? 'EXTRACTIVE_SENSOR (Mechanical)'
-                                              : 'COGNITIVE_JUDGEMENT (Holistic)',
+                                              ? l10n.scaleTrackSensor
+                                              : l10n.scaleTrackJudgement,
                                         ),
                                       );
                                     }).toList(),
@@ -350,17 +353,18 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       }
                                     },
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   TextFormField(
                                     initialValue: tda.conceptDescription,
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText:
-                                          'Concept Description (Monolingual English)',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
+                                          l10n.scaleConceptDescriptionLabel,
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
                                     ),
                                     maxLines: 2,
                                     onChanged: (newDesc) {
@@ -383,7 +387,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       });
                                     },
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   TextFormField(
                                     initialValue: tda.anchorTarget,
                                     decoration: InputDecoration(
@@ -419,7 +423,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       });
                                     },
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   DropdownButtonFormField<String>(
                                     initialValue: tda.boundingBoxScope,
                                     decoration: InputDecoration(
@@ -472,7 +476,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       }
                                     },
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   TextFormField(
                                     initialValue: tda.extractionRule,
                                     decoration: InputDecoration(
@@ -509,20 +513,20 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       });
                                     },
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   TextFormField(
                                     initialValue: tda.antiPatterns
                                         .map((a) => a.pattern)
                                         .join('\n'),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Anti-Patterns (One per line)',
-                                      helperText:
-                                          'Exclusion conditions / NEGATIVE BOUNDARIES',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
+                                    decoration: InputDecoration(
+                                      labelText: l10n.scaleAntiPatternsLabel,
+                                      helperText: l10n.scaleAntiPatternsHelper,
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
                                     ),
                                     maxLines: 2,
                                     onChanged: (newAntiStr) {
@@ -556,19 +560,20 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       });
                                     },
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   TextFormField(
                                     initialValue: tda.contrastiveExample,
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText:
-                                          'Contrastive Example (Correct vs Incorrect)',
+                                          l10n.scaleContrastiveExampleLabel,
                                       helperText:
-                                          'Calibration examples: ACCEPTABLE: X affects Y. UNACCEPTABLE: X is associated with Y.',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
+                                          l10n.scaleContrastiveExampleHelper,
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
                                     ),
                                     maxLines: 2,
                                     onChanged: (newVal) {
@@ -594,19 +599,20 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       });
                                     },
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   TextFormField(
                                     initialValue: tda.acceptanceCriteria
                                         .map((a) => a.instruction)
                                         .join('\n'),
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText:
-                                          'Acceptance Criteria (One per line)',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
+                                          l10n.scaleAcceptanceCriteriaLabel,
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
                                     ),
                                     maxLines: 2,
                                     onChanged: (newAccStr) {
@@ -640,21 +646,22 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       });
                                     },
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   TextFormField(
                                     initialValue: tda.syntacticAnchors.join(
                                       ', ',
                                     ),
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText:
-                                          'Syntactic Anchors (Comma-separated list)',
+                                          l10n.scaleSyntacticAnchorsLabel,
                                       helperText:
-                                          'Required terminology (e.g. CSR, ESG)',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 8,
-                                      ),
+                                          l10n.scaleSyntacticAnchorsHelper,
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
                                     ),
                                     onChanged: (newAnchorsStr) {
                                       final parsed = newAnchorsStr
@@ -689,16 +696,16 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            const Text(
-                                              'Enforce Pre-Flight Checklist',
-                                              style: TextStyle(
+                                            Text(
+                                              l10n.scaleEnforcePreFlightTitle,
+                                              style: const TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              'Must pass explicit criteria checks before assertion evaluation.',
+                                              l10n.scaleEnforcePreFlightDesc,
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 color: Theme.of(
@@ -709,7 +716,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      AppSpacing.w8,
                                       Switch(
                                         value: tda.enforcePreFlight,
                                         onChanged: (newVal) {
@@ -735,7 +742,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
+                                  AppSpacing.h8,
                                   Row(
                                     children: [
                                       Expanded(
@@ -744,11 +751,13 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                               AggregationMode
                                             >(
                                               initialValue: tda.aggregationMode,
-                                              decoration: const InputDecoration(
-                                                labelText: 'Aggregation Mode',
-                                                border: OutlineInputBorder(),
+                                              decoration: InputDecoration(
+                                                labelText: l10n
+                                                    .scaleAggregationModeLabel,
+                                                border:
+                                                    const OutlineInputBorder(),
                                                 contentPadding:
-                                                    EdgeInsets.symmetric(
+                                                    const EdgeInsets.symmetric(
                                                       horizontal: 10,
                                                       vertical: 8,
                                                     ),
@@ -799,12 +808,14 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                               },
                                             ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      AppSpacing.w8,
                                       Row(
                                         children: [
-                                          const Text(
-                                            'Inverse:',
-                                            style: TextStyle(fontSize: 12),
+                                          Text(
+                                            l10n.scaleInverseLabel,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
                                           ),
                                           Switch(
                                             value: tda.inverseEvidence,
@@ -839,19 +850,18 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
 
                                   if (tda.evaluationTrack ==
                                       EvaluationTrack.extractiveSensor) ...[
-                                    const SizedBox(height: 8),
+                                    AppSpacing.h8,
                                     TextFormField(
                                       initialValue: tda.factsToFind.join(', '),
-                                      decoration: const InputDecoration(
-                                        labelText:
-                                            'Facts To Find (Comma-separated list)',
-                                        helperText:
-                                            'Define the facts to extract (e.g. fact_A, fact_B)',
-                                        border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 8,
-                                        ),
+                                      decoration: InputDecoration(
+                                        labelText: l10n.scaleFactsToFindLabel,
+                                        helperText: l10n.scaleFactsToFindHelper,
+                                        border: const OutlineInputBorder(),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
                                       ),
                                       onChanged: (newFactsStr) {
                                         final parsedFacts = newFactsStr
@@ -879,18 +889,20 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         });
                                       },
                                     ),
-                                    const SizedBox(height: 8),
+                                    AppSpacing.h8,
                                     TextFormField(
                                       initialValue: tda.logicalExpression,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Logical Expression',
+                                      decoration: InputDecoration(
+                                        labelText:
+                                            l10n.scaleLogicalExpressionLabel,
                                         helperText:
-                                            'AST evaluation logic (e.g. fact_A and not fact_B)',
-                                        border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 8,
-                                        ),
+                                            l10n.scaleLogicalExpressionHelper,
+                                        border: const OutlineInputBorder(),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 8,
+                                            ),
                                       ),
                                       onChanged: (newExpr) {
                                         setState(() {
@@ -927,7 +939,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                   ),
                 );
               }),
-              const SizedBox(height: 8),
+              AppSpacing.h8,
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(

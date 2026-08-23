@@ -6,6 +6,7 @@ import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:uuid/uuid.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
 import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
@@ -100,7 +101,14 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     MutationState<void> deleteMut,
   ) {
     final trans = payload.label.translations;
-    final nameToDisplay = trans['fi'] ?? trans['en'] ?? payload.id;
+    final currentLocale = Localizations.localeOf(context).languageCode;
+    final nameToDisplay = trans[currentLocale] ?? trans['en'];
+
+    if (nameToDisplay == null || nameToDisplay.trim().isEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: PromptBlock ${payload.id} lacks required localization for active language or English fallback.',
+      );
+    }
 
     showDialog(
       context: context,
@@ -226,9 +234,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
         return;
       }
 
-      final currentId = payload.id.isNotEmpty
-          ? payload.id
-          : 'blk_${DateTime.now().millisecondsSinceEpoch}';
+      final uuidHex = const Uuid().v4().replaceAll('-', '');
+      final currentId = payload.id.isNotEmpty ? payload.id : 'blk_$uuidHex';
 
       final savingPayload = payload.copyWith(id: currentId);
 
@@ -240,7 +247,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.promptBlockSavedSuccess),
-              backgroundColor: const Color(0xFF2E7D32),
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
             ),
           );
           context.pop();
@@ -262,7 +269,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back to Studio',
+            tooltip: l10n.backToStudioTooltip,
             onPressed: () => context.go('/admin'),
           ),
           title: Text(l10n.promptBlockEditTitle),
@@ -302,7 +309,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                       Icons.bug_report,
                       color: Theme.of(context).colorScheme.primary,
                     ),
-              tooltip: 'Simulate Prompt',
+              tooltip: l10n.simulatePromptTooltip,
             ),
             if (formState.isLoading)
               const Padding(
@@ -344,7 +351,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         if (payload.id.isNotEmpty == true) ...[
                           Text(
                             l10n.opaqueIdLabel(payload.id),
@@ -387,12 +394,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                           decoration: InputDecoration(
                             labelText: l10n.categoryLabel,
                             helperText: isMatrix
-                                ? (Localizations.localeOf(
-                                            context,
-                                          ).languageCode ==
-                                          'fi'
-                                      ? 'Arviointimatriisin kategoria on lukittu muodon säilyttämiseksi.'
-                                      : 'Evaluation matrix category is locked to preserve structure.')
+                                ? l10n.matrixCategoryLockedHelper
                                 : null,
                           ),
                           initialValue: PromptBlockCategory.fromId(

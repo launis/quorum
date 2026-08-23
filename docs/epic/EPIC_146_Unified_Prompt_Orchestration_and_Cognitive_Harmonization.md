@@ -33,7 +33,7 @@ Quorum's cognitive evaluation and prompt orchestration architecture undergoes a 
 | :--- | :--- | :--- |
 | `MatrixClaim.ai_description` | @[backend_v2/models/v2_core.py#L324-L341] | **INTENTIONALLY DROPPED** / Migrated to `TDAAssertion.concept_description` |
 | `MatrixClaim.aiDescription` | @[client_app_v2/lib/features/studio/models/prompt_block.dart] | **INTENTIONALLY DROPPED** / Bound to `TDAAssertion.conceptDescription` |
-| 152 `ai_description` keys | @[backend_v2/seed/seed_data.json] (claims) | ✅ **ALREADY DONE** — 0 instances remain in seed_data.json |
+| 152 `ai_description` keys | @[backend_v2/seed/seed_data.json] (claims) | **INTENTIONALLY DROPPED** / Migrated 70 missing to `TDAAssertion.concept_description` and eradicated in Phase 2 |
 | 27 redundant `system_rule` blocks | @[backend_v2/seed/seed_data.json] | ✅ **ALREADY DONE** — 0 matching block IDs remain in seed_data.json |
 | Monolithic flat `PromptBlock` model with optional fields | @[backend_v2/models/v2_core.py#L380-L544] | **INTENTIONALLY DROPPED** / Replaced by polymorphic `AnyPromptBlock` discriminated union in [NEW] @[backend_v2/models/domain/prompt_blocks.py] |
 | Flat `PromptBlock` Freezed class with optional fields | @[client_app_v2/lib/features/studio/models/prompt_block.dart] | **INTENTIONALLY DROPPED** / Replaced by sealed Freezed union class `PromptBlock` |
@@ -167,12 +167,15 @@ Quorum's cognitive evaluation and prompt orchestration architecture undergoes a 
     9. `test_ast_guardrail_catches_missing_string_constraints_negative`: Proves AST scanner detects violations by passing a mock AST node of `TDAAssertion` without `StringConstraints(min_length=10)`.
 
 #### Phase 2: Seed Data Migration & Vault Mutation
-> [!NOTE]
-> **Neuro-Symbolic Verification (Tier 0 Audit Result):** Codebase grep confirms `seed_data.json` already has 0 `ai_description` keys on claims and 0 redundant global mandate block IDs. Phase 2 scope is reduced to VERIFICATION-ONLY.
-
-- **Seed Verification Script**: Execute a read-only validation script from scratch/ to confirm:
-  - 0 `ai_description` keys remain on any `MatrixClaim` in `prompt_blocks`.
-  - All 152 `TDAAssertion` objects have non-empty `concept_description` (pre-min_length enforcement).
+- **Seed Vault Backup**: Create a timestamped backup copy of `seed_data.json` inside `backend_v2/seed/backups/` per `03_seed_vault.md` protocol.
+- **Seed Data Migration Script**: Execute a deterministic Python migration script from `scratch/` that:
+  - Iterates across all 13 matrix prompt blocks (`category_id == 'matrix'`) and their scales and claims.
+  - Copies `claim.ai_description` to `tda.concept_description` for the 70 assertions where `concept_description` is currently empty.
+  - Permanently eradicates the `ai_description` key from all 152 `MatrixClaim` objects.
+  - Saves `seed_data.json` in exact UTF-8 format.
+- **Seed Verification & AST Guardrails**:
+  - Execute read-only validation script from `scratch/` proving 0 `ai_description` keys remain on any `MatrixClaim` and all 152 `TDAAssertion` objects have valid `concept_description` with `len >= 10`.
+  - Un-skip and run seed tests in `backend_v2/tests/unit/test_ast_matrix_claim_guardrails.py` (`test_seed_claims_have_no_ai_description` and `test_seed_claims_all_tda_assertions_have_valid_concept_description`).
 - **Seed Integrity & Reseed**: Validate JSON parsing of @[backend_v2/seed/seed_data.json] and execute database re-seeding via `uv run python backend_v2/seed/run_seed.py local`.
 - **Checkpoint**: Atomic commit and session handover.
 

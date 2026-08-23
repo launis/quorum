@@ -7565,6 +7565,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Custom Scale Max must be strictly greater than Custom Scale Min.'**
   String get customScaleMaxMustBeGreater;
+
+  /// No description provided for @matrixCategoryLockedHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluation matrix category is locked to preserve structure.'**
+  String get matrixCategoryLockedHelper;
+
+  /// No description provided for @backToStudioTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Studio'**
+  String get backToStudioTooltip;
+
+  /// No description provided for @simulatePromptTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulate Prompt'**
+  String get simulatePromptTooltip;
+
+  /// No description provided for @scaleGradeScoreLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Grade Score (int, e.g., 5)'**
+  String get scaleGradeScoreLabel;
+
+  /// No description provided for @scaleGradeNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Grade Name (Optional, e.g. \"Excellent\")'**
+  String get scaleGradeNameLabel;
+
+  /// No description provided for @scaleGradeAiLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Grade AI Label (e.g. CATASTROPHIC FAILURE)'**
+  String get scaleGradeAiLabel;
+
+  /// No description provided for @scaleClaimsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Claims (Evaluative Guidelines)'**
+  String get scaleClaimsTitle;
+
+  /// No description provided for @scaleClaimIndexTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim {index}'**
+  String scaleClaimIndexTitle(int index);
+
+  /// No description provided for @scaleClaimAiRuleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim AI Rule (MANDATORY ENGLISH)'**
+  String get scaleClaimAiRuleLabel;
+
+  /// No description provided for @scaleClaimAiRuleHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'MUST be in English. Use strict commanding language (e.g., \'CRITICAL EVALUATION DIRECTIVE:\').'**
+  String get scaleClaimAiRuleHelper;
+
+  /// No description provided for @scaleClaimTranslationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim Translation (UI Screen/PDF)'**
+  String get scaleClaimTranslationLabel;
+
+  /// No description provided for @scaleTdaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Test-Driven Assertions (TDA) ({count})'**
+  String scaleTdaTitle(int count);
+
+  /// No description provided for @scaleAddTdaBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add TDA'**
+  String get scaleAddTdaBtn;
+
+  /// No description provided for @scaleAssertionIndexTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assertion {index} ({tdaId})'**
+  String scaleAssertionIndexTitle(int index, String tdaId);
+
+  /// No description provided for @scaleEvaluationTrackLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluation Track'**
+  String get scaleEvaluationTrackLabel;
+
+  /// No description provided for @scaleTrackSensor.
+  ///
+  /// In en, this message translates to:
+  /// **'EXTRACTIVE_SENSOR (Mechanical)'**
+  String get scaleTrackSensor;
+
+  /// No description provided for @scaleTrackJudgement.
+  ///
+  /// In en, this message translates to:
+  /// **'COGNITIVE_JUDGEMENT (Holistic)'**
+  String get scaleTrackJudgement;
+
+  /// No description provided for @scaleConceptDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Concept Description (Monolingual English)'**
+  String get scaleConceptDescriptionLabel;
+
+  /// No description provided for @scaleAntiPatternsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Anti-Patterns (One per line)'**
+  String get scaleAntiPatternsLabel;
+
+  /// No description provided for @scaleAntiPatternsHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Exclusion conditions / NEGATIVE BOUNDARIES'**
+  String get scaleAntiPatternsHelper;
+
+  /// No description provided for @scaleContrastiveExampleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contrastive Example (Correct vs Incorrect)'**
+  String get scaleContrastiveExampleLabel;
+
+  /// No description provided for @scaleContrastiveExampleHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Calibration examples: ACCEPTABLE: X affects Y. UNACCEPTABLE: X is associated with Y.'**
+  String get scaleContrastiveExampleHelper;
+
+  /// No description provided for @scaleAcceptanceCriteriaLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Acceptance Criteria (One per line)'**
+  String get scaleAcceptanceCriteriaLabel;
+
+  /// No description provided for @scaleSyntacticAnchorsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Syntactic Anchors (Comma-separated list)'**
+  String get scaleSyntacticAnchorsLabel;
+
+  /// No description provided for @scaleSyntacticAnchorsHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Required terminology (e.g. CSR, ESG)'**
+  String get scaleSyntacticAnchorsHelper;
+
+  /// No description provided for @scaleEnforcePreFlightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enforce Pre-Flight Checklist'**
+  String get scaleEnforcePreFlightTitle;
+
+  /// No description provided for @scaleEnforcePreFlightDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Must pass explicit criteria checks before assertion evaluation.'**
+  String get scaleEnforcePreFlightDesc;
+
+  /// No description provided for @scaleAggregationModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Aggregation Mode'**
+  String get scaleAggregationModeLabel;
+
+  /// No description provided for @scaleInverseLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Inverse:'**
+  String get scaleInverseLabel;
+
+  /// No description provided for @scaleFactsToFindLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Facts To Find (Comma-separated list)'**
+  String get scaleFactsToFindLabel;
+
+  /// No description provided for @scaleFactsToFindHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Define the facts to extract (e.g. fact_A, fact_B)'**
+  String get scaleFactsToFindHelper;
+
+  /// No description provided for @scaleLogicalExpressionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Logical Expression'**
+  String get scaleLogicalExpressionLabel;
+
+  /// No description provided for @scaleLogicalExpressionHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'AST evaluation logic (e.g. fact_A and not fact_B)'**
+  String get scaleLogicalExpressionHelper;
+
+  /// No description provided for @scaleRemoveClaimTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Claim'**
+  String get scaleRemoveClaimTooltip;
+
+  /// No description provided for @scaleRemoveTdaTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove TDA Assertion'**
+  String get scaleRemoveTdaTooltip;
+
+  /// No description provided for @rowEditorDefaultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Row/Column'**
+  String get rowEditorDefaultTitle;
+
+  /// No description provided for @rowAiRuleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Row AI Rule (MANDATORY ENGLISH)'**
+  String get rowAiRuleLabel;
+
+  /// No description provided for @rowAiRuleHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'MUST be in English. Use strict commanding language.'**
+  String get rowAiRuleHelper;
+
+  /// No description provided for @rowItemContentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Item Content (UI/PDF)'**
+  String get rowItemContentLabel;
+
+  /// No description provided for @rowItemContentSimpleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Item Content'**
+  String get rowItemContentSimpleLabel;
+
+  /// No description provided for @barsMatrixMoreAssertions.
+  ///
+  /// In en, this message translates to:
+  /// **'+ {count} more'**
+  String barsMatrixMoreAssertions(int count);
 }
 
 class _AppLocalizationsDelegate

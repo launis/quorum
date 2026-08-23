@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -7,14 +8,14 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 class RowEditorModal extends StatefulWidget {
   final MatrixRow? initialMatrixRow;
   final I18nText? initialI18nText;
-  final String title;
+  final String? title;
   final bool isMatrixRow;
 
   const RowEditorModal({
     super.key,
     this.initialMatrixRow,
     this.initialI18nText,
-    this.title = 'Edit Row/Column',
+    this.title,
     this.isMatrixRow = false,
   }) : assert(initialMatrixRow != null || initialI18nText != null);
 
@@ -45,10 +46,10 @@ class _RowEditorModalState extends State<RowEditorModal> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Dialog(
-      insetPadding: const EdgeInsets.all(16),
+      insetPadding: AppSpacing.p16,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.title),
+          title: Text(widget.title ?? l10n.rowEditorDefaultTitle),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
@@ -59,24 +60,21 @@ class _RowEditorModalState extends State<RowEditorModal> {
               icon: const Icon(Icons.check),
               label: Text(l10n.save),
             ),
-            const SizedBox(width: 8),
+            AppSpacing.w8,
           ],
         ),
         body: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppSpacing.p16,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // If isMatrixRow is true, 'initialRow' is actually a full MatrixRow object containing 'label' and 'ai_description'.
-              // Otherwise, it's just the translation map directly.
               if (widget.isMatrixRow && _editableMatrixRow != null) ...[
                 TextFormField(
                   initialValue: _editableMatrixRow!.aiDescription,
                   decoration: InputDecoration(
-                    labelText: 'Row AI Rule (MANDATORY ENGLISH)',
-                    helperText:
-                        "MUST be in English. Use strict commanding language.",
+                    labelText: l10n.rowAiRuleLabel,
+                    helperText: l10n.rowAiRuleHelper,
                     helperStyle: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                       fontWeight: FontWeight.bold,
@@ -93,9 +91,9 @@ class _RowEditorModalState extends State<RowEditorModal> {
                     });
                   },
                 ),
-                const SizedBox(height: 16),
+                AppSpacing.h16,
                 I18nTextField(
-                  label: 'Item Content (UI/PDF)',
+                  label: l10n.rowItemContentLabel,
                   initialData: _editableMatrixRow!.label,
                   onChanged: (val) {
                     setState(() {
@@ -107,7 +105,7 @@ class _RowEditorModalState extends State<RowEditorModal> {
                 ),
               ] else if (_editableI18nText != null) ...[
                 I18nTextField(
-                  label: 'Item Content',
+                  label: l10n.rowItemContentSimpleLabel,
                   initialData: _editableI18nText!,
                   onChanged: (val) {
                     setState(() {

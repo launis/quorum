@@ -135,9 +135,7 @@ class TraceEvent(V2CoreBase):
     content: dict[str, Any] = Field(default_factory=dict, description="Structured content of the event.")
     reasoning: ReasoningTrace | None = Field(default=None, description="Associated reasoning trace.")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata.")
-    mcp_audit_traces: list[MCPAuditTrace] = Field(
-        default_factory=list, description="Associated MCP tool audit traces."
-    )
+    mcp_audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Associated MCP tool audit traces.")
 
 
 class ErrorTraceEvent(TraceEvent):

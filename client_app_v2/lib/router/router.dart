@@ -228,7 +228,7 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
     TypedGoRoute<PromptBlockNewRoute>(path: 'prompt-block/new'),
     TypedGoRoute<PromptBlockEditRoute>(path: 'prompt-block/edit/:id/:slug'),
     TypedGoRoute<StepNewRoute>(path: 'step/new'),
-    TypedGoRoute<StepEditRoute>(path: 'step/edit'),
+    TypedGoRoute<StepEditRoute>(path: 'step/edit/:id'),
     TypedGoRoute<ProfileEditorRoute>(path: 'profiles/:workflowId'),
     TypedGoRoute<OutputProfileNewRoute>(path: 'output-profile/new'),
     TypedGoRoute<OutputProfileEditRoute>(path: 'output-profile/edit/:id'),
@@ -285,16 +285,16 @@ class StepNewRoute extends GoRouteData with $StepNewRoute {
   const StepNewRoute();
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const StepBuilderView(step: {});
+      const StepBuilderView(stepId: 'new');
 }
 
 class StepEditRoute extends GoRouteData with $StepEditRoute {
-  const StepEditRoute({this.$extra});
-  final Map<String, dynamic>? $extra;
+  const StepEditRoute({required this.id});
+  final String id;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      StepBuilderView(step: $extra ?? const {});
+      StepBuilderView(stepId: id);
 }
 
 class ProfileEditorRoute extends GoRouteData with $ProfileEditorRoute {
