@@ -10,7 +10,7 @@ import inspect
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 
 from fastapi import status
 from pydantic import Field
@@ -77,6 +77,7 @@ class HookResult(V2CoreBase):
 # It accepts HookState and HookDependencies, returning a HookResult State Delta
 # It can be either synchronous or asynchronous
 HookFunction = Callable[[HookState, HookDependencies], HookResult | Awaitable[HookResult]]
+F = TypeVar("F", bound=HookFunction)
 
 
 class HookRegistry:
@@ -91,7 +92,7 @@ class HookRegistry:
             cls._instance._hooks = {}
         return cls._instance
 
-    def register(self, name: str) -> Callable[[HookFunction], HookFunction]:
+    def register(self, name: str) -> Callable[[F], F]:
         """Decorator to register a function in the hook registry.
 
         Args:
@@ -104,7 +105,7 @@ class HookRegistry:
             AppException: If a hook with the given name is already registered.
         """
 
-        def decorator(func: HookFunction) -> HookFunction:
+        def decorator(func: F) -> F:
             if name in self._hooks:
                 msg = f"Hook with name '{name}' is already registered."
                 logger.error("[HookRegistry] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)

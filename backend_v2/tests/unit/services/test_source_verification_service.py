@@ -39,7 +39,7 @@ async def test_extract_source_claims_success(service: SourceVerificationService,
     )
     mock_task_executor.execute_structured_task.return_value = (mock_response, None)
 
-    claims = await service._extract_source_claims("Some text with claims")
+    claims = await service._extract_source_claims("Some document text with sufficient length to verify claims properly")
 
     assert len(claims) == 2
     assert claims[0].institution_name == "Test Inst"
@@ -47,10 +47,13 @@ async def test_extract_source_claims_success(service: SourceVerificationService,
 
 
 @pytest.mark.asyncio
-async def test_extract_source_claims_empty_text(service: SourceVerificationService) -> None:
-    """Tests that empty text returns empty list without calling LLM."""
-    claims = await service._extract_source_claims("   ")
-    assert claims == []
+async def test_extract_source_claims_empty_or_short_text(service: SourceVerificationService) -> None:
+    """Tests that empty or short text (< 15 chars) returns empty list without calling LLM."""
+    claims_empty = await service._extract_source_claims("   ")
+    assert claims_empty == []
+
+    claims_short = await service._extract_source_claims("short text")
+    assert claims_short == []
 
 
 @pytest.mark.asyncio
@@ -59,7 +62,7 @@ async def test_extract_source_claims_failure(service: SourceVerificationService,
     mock_task_executor.execute_structured_task.side_effect = Exception("LLM Error")
 
     with pytest.raises(AppException) as exc:
-        await service._extract_source_claims("Test text")
+        await service._extract_source_claims("This is a long enough text that will fail extraction")
 
     assert exc.value.status_code == 502
 
@@ -120,7 +123,7 @@ async def test_run_full_verification(
         None,
     )
 
-    # 2. Mock Search (called twice concurrently, we just return a static result)
+    # 2. Mock Search
     mock_tavily.return_value = TavilySearchResult(
         query="test", answer="answer", source_urls=[], raw_content="raw", duration_ms=10
     )
@@ -128,9 +131,75 @@ async def test_run_full_verification(
     # 3. Mock Evaluation (1 VERIFIED, 1 HALLUCINATION)
     mock_task_executor.execute_chat_task.side_effect = [("VERIFIED", None), ("HALLUCINATION", None)]
 
-    result = await service.run_full_verification("Some document")
+    result = await service.run_full_verification("This is a full document with sufficient length for testing.")
 
     assert result.total_claims == 2
     assert result.verified_count == 1
     assert result.hallucination_count == 1
     assert len(result.claims) == 2
+
+
+@pytest.mark.asyncio
+async def test_run_full_verification_short_text_returns_empty_envelope(service: SourceVerificationService) -> None:
+    """Tests that short or empty text returns a complete empty envelope without triggering LLM."""
+    result = await service.run_full_verification("short")
+
+    assert result.total_claims == 0
+    assert result.verified_count == 0
+    assert result.hallucination_count == 0
+    assert result.claims == []
+    assert result.verification_timestamp != ""
+
+
+@pytest.mark.asyncio
+async def test_verify_claims_empty(service: SourceVerificationService) -> None:
+    """Tests that verifying empty claims list returns empty list immediately."""
+    res = await service.verify_claims([])
+    assert res == []
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.source_verification_service.tavily_search")
+async def test_verify_single_claim_inconclusive_dict_response(
+    mock_tavily: AsyncMock, service: SourceVerificationService, mock_task_executor: AsyncMock
+) -> None:
+    """Tests that dict content response from execute_chat_task is correctly parsed."""
+    claim = SourceClaimDTO(claim_text="Test claim with dict response")
+    mock_tavily.return_value = TavilySearchResult(
+        query="test", answer="answer", source_urls=[], raw_content="raw", duration_ms=10
+    )
+    mock_task_executor.execute_chat_task.return_value = ({"content": "INCONCLUSIVE"}, None)
+
+    result = await service._verify_single_claim(claim)
+    assert result.status == SourceVerificationStatus.INCONCLUSIVE
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.source_verification_service.tavily_search")
+async def test_verify_single_claim_unknown_status_fallback(
+    mock_tavily: AsyncMock, service: SourceVerificationService, mock_task_executor: AsyncMock
+) -> None:
+    """Tests that unexpected text fallback defaults to INCONCLUSIVE."""
+    claim = SourceClaimDTO(claim_text="Test claim with random status")
+    mock_tavily.return_value = TavilySearchResult(
+        query="test", answer="answer", source_urls=[], raw_content="raw", duration_ms=10
+    )
+    mock_task_executor.execute_chat_task.return_value = ("UNKNOWN_STRING", None)
+
+    result = await service._verify_single_claim(claim)
+    assert result.status == SourceVerificationStatus.INCONCLUSIVE
+
+
+@pytest.mark.asyncio
+async def test_ensure_initialized_lazy_loading() -> None:
+    """Tests that _ensure_initialized creates clients when not injected."""
+    service = SourceVerificationService()
+    with patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_from_strategy:
+        mock_client = AsyncMock()
+        mock_from_strategy.return_value = mock_client
+
+        await service._ensure_initialized()
+
+        assert service.llm_client is mock_client
+        assert service.task_executor is not None
+        mock_from_strategy.assert_called_once_with("fast", repository=None)

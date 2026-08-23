@@ -1,15 +1,16 @@
 """Source Verification Service.
 
 Responsible for extracting source claims from text and verifying them via Tavily AI.
-Adheres strictly to the SRP God Method Mandate and Pydantic Strict Nirvana.
+Adheres strictly to the SRP God Method Mandate, Single Source of Truth, and Pydantic Strict Nirvana.
 """
 
 import asyncio
+import html
 import logging
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.mcp import TavilySearchResult
 from backend_v2.models.domain.source_verification import (
     SourceClaimDTO,
@@ -21,48 +22,77 @@ from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResp
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 
+if TYPE_CHECKING:
+    from backend_v2.repositories.interfaces import IComponentRepository
+
+    from backend_v2.llm.client import LLMClient
+
 logger = logging.getLogger(__name__)
 
+# Minimum character length required to consider a text snippet verifiable
+MIN_VERIFIABLE_TEXT_LENGTH: int = 15
+
 # Cut off text length to avoid token limit explosions in fast models
-MAX_EXTRACTION_CHARS = 30000
+MAX_EXTRACTION_CHARS: int = 30000
+
+# Static English XML system instructions for 100% prompt caching efficiency
+_EXTRACTION_SYSTEM_INSTRUCTION: str = (
+    "<system_directive>\n"
+    "<objective>Read the provided document and extract all explicit references to external sources, research, studies, guidelines, or institutions.</objective>\n"
+    "<role>Expert Fact-Checker</role>\n"
+    "<rules>\n"
+    "  <rule>Extract the exact claim being attributed to external entities.</rule>\n"
+    "  <rule>Do not include internal cross-references.</rule>\n"
+    "  <rule>Return an empty list if none are found.</rule>\n"
+    "</rules>\n"
+    "</system_directive>"
+)
+
+_VERIFICATION_SYSTEM_INSTRUCTION: str = (
+    "<system_directive>\n"
+    "<objective>Compare the original source claim against the search results provided.</objective>\n"
+    "<role>Expert Fact-Checker</role>\n"
+    "<rules>\n"
+    "  <rule>Determine if the claim is VERIFIED (supported by search), HALLUCINATION (contradicted or clearly fabricated), or INCONCLUSIVE (not enough info found).</rule>\n"
+    "  <rule>Return ONLY the exact word: VERIFIED, HALLUCINATION, or INCONCLUSIVE.</rule>\n"
+    "</rules>\n"
+    "</system_directive>"
+)
 
 
 class SourceVerificationService:
     """Service handling the extraction and verification of source claims."""
 
-    def __init__(self, llm_task_executor: LLMTaskExecutor | None = None) -> None:
+    def __init__(
+        self,
+        llm_task_executor: LLMTaskExecutor | None = None,
+        llm_client: LLMClient | None = None,
+        comp_repo: IComponentRepository | None = None,
+    ) -> None:
         """Initializes the service.
 
         Args:
-            llm_task_executor: Injected executor. If None, it initializes a fast strategy client locally.
+            llm_task_executor: Injected executor. If None, it initializes via LLMTaskExecutor.
+            llm_client: Injected LLM client. If None, it loads via strategy registry.
+            comp_repo: Optional component repository for strategy lookup.
         """
         self.task_executor: LLMTaskExecutor | None = llm_task_executor
-        from backend_v2.llm.client import LLMClient
-
-        self.llm_client: LLMClient | None = (
+        self.llm_client: LLMClient | None = llm_client or (
             getattr(llm_task_executor, "llm_client", None) if llm_task_executor else None
         )
+        self.comp_repo: IComponentRepository | None = comp_repo
 
     async def _ensure_initialized(self) -> None:
         if self.task_executor and self.llm_client:
             return
 
         from backend_v2.llm.client import LLMClient
-        from backend_v2.models.llm import LLMProviderConfig
         from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
-        config = LLMProviderConfig(
-            id="local_fast",
-            provider="litellm",
-            model_name="gemini/gemini-2.5-flash",
-            api_key="mock",
-            temperature=0.0,
-            tpm_limit=1000000,
-            rpm_limit=1000,
-            default_max_tokens=4096,
-        )
-        self.llm_client = LLMClient(config=config)
-        self.task_executor = LLMTaskExecutor(PromptCompiler())
+        if not self.llm_client:
+            self.llm_client = await LLMClient.from_strategy("fast", repository=self.comp_repo)
+        if not self.task_executor:
+            self.task_executor = LLMTaskExecutor(PromptCompiler())
 
     async def _extract_source_claims(self, text: str) -> list[SourceClaimDTO]:
         """Extracts source claims from text using structured LLM output.
@@ -76,29 +106,18 @@ class SourceVerificationService:
         Raises:
             AppException: If parsing fails or the LLM request crashes.
         """
-        if not text or not text.strip():
+        if not text or len(text.strip()) < MIN_VERIFIABLE_TEXT_LENGTH:
             return []
 
         await self._ensure_initialized()
 
-        # Safe truncation
-        safe_text = text[:MAX_EXTRACTION_CHARS]
-
-        system_prompt = build_system_directive(
-            objective="Read the provided document and extract all explicit references to external sources, research, studies, guidelines, or institutions.",
-            role="Expert Fact-Checker",
-            rules=[
-                "Extract the exact claim being attributed to them.",
-                "Do not include internal cross-references.",
-                "Return an empty list if none are found.",
-            ],
-        )
-
+        # Safe truncation and XML escaping
+        safe_text = html.escape(text[:MAX_EXTRACTION_CHARS].strip())
         user_message = f"<source_data>\n{safe_text}\n</source_data>"
 
         try:
             messages = [
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": _EXTRACTION_SYSTEM_INSTRUCTION},
                 {"role": "user", "content": user_message},
             ]
             if not self.llm_client or not self.task_executor:
@@ -141,27 +160,22 @@ class SourceVerificationService:
         try:
             search_res: TavilySearchResult = await tavily_search(query)
 
-            # Fast chat evaluation to determine status based on Tavily context
-            system_prompt = build_system_directive(
-                objective="Compare the original source claim against the search results provided.",
-                role="Expert Fact-Checker",
-                rules=[
-                    "Determine if the claim is VERIFIED (supported by search), HALLUCINATION (contradicted or clearly fabricated), or INCONCLUSIVE (not enough info found).",
-                    "Return ONLY the exact word: VERIFIED, HALLUCINATION, or INCONCLUSIVE.",
-                ],
-            )
+            escaped_claim = html.escape(claim.claim_text)
+            escaped_answer = html.escape(search_res.answer or "")
+            escaped_raw = html.escape(search_res.raw_content or "")
+
             user_msg = (
                 f"<source_data>\n"
-                f"  <claim>{claim.claim_text}</claim>\n"
+                f"  <claim>{escaped_claim}</claim>\n"
                 f"  <search_results>\n"
-                f"    <answer>{search_res.answer}</answer>\n"
-                f"    <raw_content>{search_res.raw_content}</raw_content>\n"
+                f"    <answer>{escaped_answer}</answer>\n"
+                f"    <raw_content>{escaped_raw}</raw_content>\n"
                 f"  </search_results>\n"
                 f"</source_data>"
             )
 
             messages = [
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": _VERIFICATION_SYSTEM_INSTRUCTION},
                 {"role": "user", "content": user_msg},
             ]
             if not self.llm_client or not self.task_executor:
@@ -189,8 +203,7 @@ class SourceVerificationService:
             )
 
         except Exception as e:
-            # According to the rules, if a single search crashes or fails (e.g. rate limit),
-            # we should mark it as INCONCLUSIVE and log it, rather than crashing the whole DAG.
+            # If search fails (e.g. rate limit), mark as INCONCLUSIVE and log
             logger.error(
                 f"Failed to verify claim '{claim.claim_text}': {e}",
                 exc_info=True,
@@ -240,6 +253,15 @@ class SourceVerificationService:
         Returns:
             The structured verification result.
         """
+        if not text or len(text.strip()) < MIN_VERIFIABLE_TEXT_LENGTH:
+            return SourceVerificationResultDTO(
+                claims=[],
+                verification_timestamp=datetime.now(UTC).isoformat(),
+                total_claims=0,
+                verified_count=0,
+                hallucination_count=0,
+            )
+
         extracted_claims = await self._extract_source_claims(text)
         verified_claims = await self.verify_claims(extracted_claims)
 

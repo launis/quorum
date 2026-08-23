@@ -10,6 +10,23 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend_v2.models.domain.source_verification import SourceClaimDTO
 
 
+class SourceVerificationInputsDTO(BaseModel):
+    """Data Transfer Object for validating inputs to the Source Verification Hook.
+
+    Attributes:
+        document_text: The main text content to verify for external source citations.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    document_text: Annotated[
+        str,
+        Field(
+            description="The raw document text to scan for external source citations.",
+        ),
+    ]
+
+
 class SourceExtractionResponseSchema(BaseModel):
     """Structured response schema for extracting claims from a document.
 
