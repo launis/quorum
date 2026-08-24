@@ -56,9 +56,7 @@ def base_engine_request(mock_compiler: MagicMock) -> EngineExecutionRequest:
 @patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
-@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")
 async def test_istqb_partition_1_happy_path_clean_short_circuit(
-    mock_get_settings: MagicMock,
     mock_projector: MagicMock,
     mock_dag_executor: MagicMock,
     mock_atomizer: MagicMock,
@@ -173,9 +171,7 @@ async def test_istqb_partition_1_happy_path_clean_short_circuit(
 @patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
-@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")
 async def test_istqb_partition_2_phantom_edge_isolation(
-    mock_get_settings: MagicMock,
     mock_projector: MagicMock,
     mock_dag_executor: MagicMock,
     mock_atomizer: MagicMock,
@@ -267,9 +263,7 @@ async def test_istqb_partition_2_phantom_edge_isolation(
 @patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
-@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")
 async def test_istqb_partition_3_cyclic_graph_isolation(
-    mock_get_settings: MagicMock,
     mock_projector: MagicMock,
     mock_dag_executor: MagicMock,
     mock_atomizer: MagicMock,
@@ -439,9 +433,7 @@ async def test_istqb_partition_4_data_starvation_propagates_depends_on(
 @patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
-@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")
 async def test_istqb_partition_5_multi_parent_conflicting_dependencies(
-    mock_get_settings: MagicMock,
     mock_projector: MagicMock,
     mock_dag_executor: MagicMock,
     mock_atomizer: MagicMock,

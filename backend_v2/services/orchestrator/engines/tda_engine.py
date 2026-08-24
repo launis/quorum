@@ -15,9 +15,7 @@ from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
 from backend_v2.services.orchestrator.result_projector import ResultProjector
-from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindowLinker
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
-from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 if TYPE_CHECKING:
@@ -31,8 +29,8 @@ _MATRIX_SOURCE_SENTINEL = "MATRIX_EVALUATION"
 class TDAEngine(ExecutionEngine):
     """Execution engine for Topological Data Analysis.
 
-    Executes the multi-pass atomizer, sliding window linker, and enriched
-    DAG execution over the extracted ontology atoms.
+    Executes ontology extraction and enriched DAG execution over
+    the pre-compiled matrix assertions (shuffled_atoms).
     """
 
     def __init__(self, prompt_compiler: Any) -> None:
@@ -44,7 +42,7 @@ class TDAEngine(ExecutionEngine):
         self._compiler = prompt_compiler
 
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
-        """Executes the TDA pipeline.
+        """Executes the TDA pipeline for matrix evaluations.
 
         Args:
             request: The EngineExecutionRequest containing runtime context.
@@ -53,10 +51,23 @@ class TDAEngine(ExecutionEngine):
             The EngineExecutionResult containing projected results and references.
 
         Raises:
-            AppException: If engine execution fails catastrophically.
+            AppException: If matrix assertions are missing or execution fails catastrophically.
         """
         if request.running_event:
             request.running_event.set()
+
+        # Fail-Fast: Zero-Fallback mandate. TDAEngine strictly requires pre-compiled matrix assertions.
+        if not request.shuffled_atoms:
+            logger.error(
+                "[TDAEngine] Step '%s' invoked without mandatory matrix assertions ('shuffled_atoms'). Fail-Fast.",
+                request.step.id,
+                extra={"error_code": "MISSING_MATRIX_ASSERTIONS"},
+            )
+            raise AppException(
+                message=f"Step '{request.step.id}' requires pre-compiled matrix assertions ('shuffled_atoms'). Free-form extraction fallback is prohibited.",
+                status_code=400,
+                details={"error_code": "MISSING_MATRIX_ASSERTIONS"},
+            )
 
         # Circuit Breaker: If preflight determined analytical data is starved, short-circuit immediately.
         raw_blackboard = request.context.context_variables.get("__GLOBAL_ATOM_BLACKBOARD__")
@@ -70,43 +81,34 @@ class TDAEngine(ExecutionEngine):
                 "[TDAEngine] Data starvation circuit breaker active for step %s. Short-circuiting LLM execution.",
                 request.step.id,
             )
-            if request.shuffled_atoms:
-                nodes = []
-                states = {}
-                for i, atom in enumerate(request.shuffled_atoms):
-                    extracted = ExtractedAtom(
-                        reasoning="Insufficient input data (Data Starvation).",
-                        resolved_claim=atom.question,
-                        is_logical_deduction=True,
-                        source_quote=None,
-                        tda_id=atom.atom_id,
-                        source_id=_MATRIX_SOURCE_SENTINEL,
-                        source_sequence_index=i,
-                    )
-                    nodes.append(LinkedAtomGraph(atom=extracted, depends_on=list(atom.depends_on)))
-                    states[atom.atom_id] = AtomExecutionState(
-                        tda_id=atom.atom_id,
-                        status=ExecutionStatus.FAILED,
-                        evaluation_reasoning="Insufficient input data (Data Starvation).",
-                        extensions={},
-                    )
+            nodes = []
+            states = {}
+            for i, atom in enumerate(request.shuffled_atoms):
+                extracted = ExtractedAtom(
+                    reasoning="Insufficient input data (Data Starvation).",
+                    resolved_claim=atom.question,
+                    is_logical_deduction=True,
+                    source_quote=None,
+                    tda_id=atom.atom_id,
+                    source_id=_MATRIX_SOURCE_SENTINEL,
+                    source_sequence_index=i,
+                )
+                nodes.append(LinkedAtomGraph(atom=extracted, depends_on=list(atom.depends_on)))
+                states[atom.atom_id] = AtomExecutionState(
+                    tda_id=atom.atom_id,
+                    status=ExecutionStatus.FAILED,
+                    evaluation_reasoning="Insufficient input data (Data Starvation).",
+                    extensions={},
+                )
 
-                results, hydrated_references = ResultProjector.project(nodes, states, matrix_id=request.matrix_block_id)
-                if request.progress_callback:
-                    await request.progress_callback(100, 100)
-                return EngineExecutionResult(
-                    results=results,
-                    hydrated_references=hydrated_references,
-                    usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-                )
-            else:
-                if request.progress_callback:
-                    await request.progress_callback(100, 100)
-                return EngineExecutionResult(
-                    results=[],
-                    hydrated_references={},
-                    usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-                )
+            results, hydrated_references = ResultProjector.project(nodes, states, matrix_id=request.matrix_block_id)
+            if request.progress_callback:
+                await request.progress_callback(100, 100)
+            return EngineExecutionResult(
+                results=results,
+                hydrated_references=hydrated_references,
+                usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            )
 
         try:
             llm_executor = LLMTaskExecutor(
@@ -117,10 +119,6 @@ class TDAEngine(ExecutionEngine):
                 },
             )
             atomizer = TwoPassAtomizer(llm_executor)
-            linker = SlidingWindowLinker(
-                window_size=get_settings().tda_linker_window_size,
-                overlap=get_settings().tda_linker_overlap,
-            )
             dag_executor = EnrichedDagExecutor(llm_executor, request.bound_client)
 
             global_source_text = request.global_source_text
@@ -133,105 +131,53 @@ class TDAEngine(ExecutionEngine):
                 numbered_lines.append(f"[{block_id}] {p}")
             hydrated_text = "\n\n".join(numbered_lines)
 
-            if request.shuffled_atoms:
+            async def phase_0_progress_matrix(completed: int, total: int) -> None:
+                if request.progress_callback:
+                    prog = int((completed / total) * 30)
+                    await request.progress_callback(prog, 100)
 
-                async def phase_0_progress_matrix(completed: int, total: int) -> None:
-                    if request.progress_callback:
-                        prog = int((completed / total) * 30)
-                        await request.progress_callback(prog, 100)
+            async def dag_progress_matrix(completed: int, total: int) -> None:
+                if request.progress_callback:
+                    prog = 30 + int((completed / total) * 70)
+                    await request.progress_callback(prog, 100)
 
-                async def dag_progress_matrix(completed: int, total: int) -> None:
-                    if request.progress_callback:
-                        prog = 30 + int((completed / total) * 70)
-                        await request.progress_callback(prog, 100)
+            ontology, usage_p0 = await atomizer.execute_phase_0(
+                request.bound_client,
+                hydrated_text,
+                progress_callback=phase_0_progress_matrix,
+                semaphore=request.semaphore,
+            )
 
-                ontology, usage_p0 = await atomizer.execute_phase_0(
-                    request.bound_client,
-                    hydrated_text,
-                    progress_callback=phase_0_progress_matrix,
-                    semaphore=request.semaphore,
+            evaluation_context = f"{hydrated_text}\n\n<ontology>\n{ontology}\n</ontology>"
+
+            nodes = []
+            for i, atom in enumerate(request.shuffled_atoms):
+                extracted = ExtractedAtom(
+                    reasoning="Matrix assertion provided by orchestrator.",
+                    resolved_claim=atom.question,
+                    is_logical_deduction=True,
+                    source_quote=None,
+                    tda_id=atom.atom_id,
+                    source_id=_MATRIX_SOURCE_SENTINEL,
+                    source_sequence_index=i,
                 )
+                nodes.append(LinkedAtomGraph(atom=extracted, depends_on=list(atom.depends_on)))
 
-                evaluation_context = f"{hydrated_text}\n\n<ontology>\n{ontology}\n</ontology>"
+            matrix_context = (
+                request.matrix_context.model_copy(update={"matrix_assertions": request.shuffled_atoms})
+                if request.matrix_context
+                else None
+            )
 
-                nodes = []
-                for i, atom in enumerate(request.shuffled_atoms):
-                    extracted = ExtractedAtom(
-                        reasoning="Matrix assertion provided by orchestrator.",
-                        resolved_claim=atom.question,
-                        is_logical_deduction=True,
-                        source_quote=None,
-                        tda_id=atom.atom_id,
-                        source_id=_MATRIX_SOURCE_SENTINEL,
-                        source_sequence_index=i,
-                    )
-                    nodes.append(LinkedAtomGraph(atom=extracted, depends_on=list(atom.depends_on)))
-
-                matrix_context = (
-                    request.matrix_context.model_copy(update={"matrix_assertions": request.shuffled_atoms})
-                    if request.matrix_context
-                    else None
-                )
-
-                states, usage_dag = await dag_executor.execute_graph(
-                    nodes,
-                    evaluation_context,
-                    request.target_locale,
-                    progress_callback=dag_progress_matrix,
-                    semaphore=request.semaphore,
-                    matrix_context=matrix_context,
-                )
-                total_usage = usage_p0 + usage_dag
-            else:
-
-                async def phase_0_progress(completed: int, total: int) -> None:
-                    if request.progress_callback:
-                        prog = int((completed / total) * 15)
-                        await request.progress_callback(prog, 100)
-
-                async def phase_1_progress(completed: int, total: int) -> None:
-                    if request.progress_callback:
-                        prog = 15 + int((completed / total) * 20)
-                        await request.progress_callback(prog, 100)
-
-                async def linker_progress(completed: int, total: int) -> None:
-                    if request.progress_callback:
-                        prog = 35 + int((completed / total) * 25)
-                        await request.progress_callback(prog, 100)
-
-                async def dag_progress(completed: int, total: int) -> None:
-                    if request.progress_callback:
-                        prog = 60 + int((completed / total) * 40)
-                        await request.progress_callback(prog, 100)
-
-                ontology, usage_p0 = await atomizer.execute_phase_0(
-                    request.bound_client, hydrated_text, progress_callback=phase_0_progress, semaphore=request.semaphore
-                )
-                atoms, usage_p1 = await atomizer.execute_phase_1(
-                    request.bound_client,
-                    hydrated_text,
-                    ontology,
-                    progress_callback=phase_1_progress,
-                    semaphore=request.semaphore,
-                )
-                atoms.sort(key=lambda x: x.source_sequence_index)
-                nodes, usage_linker = await linker.link_graph(
-                    llm_executor,
-                    request.bound_client,
-                    atoms,
-                    ontology,
-                    progress_callback=linker_progress,
-                    semaphore=request.semaphore,
-                )
-                states, usage_dag = await dag_executor.execute_graph(
-                    nodes,
-                    global_source_text,
-                    request.target_locale,
-                    progress_callback=dag_progress,
-                    semaphore=request.semaphore,
-                    matrix_context=request.matrix_context,
-                )
-                total_usage = usage_p0 + usage_p1 + usage_linker + usage_dag
+            states, usage_dag = await dag_executor.execute_graph(
+                nodes,
+                evaluation_context,
+                request.target_locale,
+                progress_callback=dag_progress_matrix,
+                semaphore=request.semaphore,
+                matrix_context=matrix_context,
+            )
+            total_usage = usage_p0 + usage_dag
 
             results_dto, hydrated_refs = ResultProjector.project(nodes, states, request.matrix_block_id)
 
