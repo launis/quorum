@@ -152,7 +152,8 @@ async def test_vertex_thundering_herd_protection() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": large_static},
+            {"role": "system", "content": "You are an analytical evaluator."},
+            {"role": "user", "content": large_static},
         ],
         dynamic_messages=[
             {"role": "user", "content": "Query"},
@@ -189,7 +190,8 @@ async def test_vertex_instant_exit_on_failed() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": large_static},
+            {"role": "system", "content": "You are an analytical evaluator."},
+            {"role": "user", "content": large_static},
         ],
         dynamic_messages=[
             {"role": "user", "content": "Query"},
@@ -221,7 +223,8 @@ async def test_vertex_fail_soft_gcp_error() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": large_static},
+            {"role": "system", "content": "You are an analytical evaluator."},
+            {"role": "user", "content": large_static},
         ],
         dynamic_messages=[
             {"role": "user", "content": "Query"},
@@ -261,8 +264,8 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": large_static},
-            {"role": "user", "content": "<source_data>Base document content</source_data>"},
+            {"role": "system", "content": "You are a system evaluator."},
+            {"role": "user", "content": f"<source_data>Base document content: {large_static}</source_data>"},
         ],
         dynamic_messages=[
             {"role": "user", "content": "<evaluation_criteria>Rubrics</evaluation_criteria>"},
@@ -297,12 +300,12 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     assert len(passed_contents) == 1
     assert passed_contents[0] == {
         "role": "user",
-        "parts": [{"text": "<source_data>Base document content</source_data>"}],
+        "parts": [{"text": f"<source_data>Base document content: {large_static}</source_data>"}],
     }
 
     # Verify system message was extracted to system_instruction
     assert "system_instruction" in kwargs
-    assert kwargs["system_instruction"] == large_static
+    assert kwargs["system_instruction"] == "You are a system evaluator."
 
 
 def test_vertex_token_usage_negative_savings_raises() -> None:
@@ -483,7 +486,10 @@ async def test_vertex_cache_immediate_hit_in_shared_ledger() -> None:
     adapter = VertexCacheAdapter()
     large_static = "A" * 150000
     prompt = CompiledPrompt(
-        static_messages=[{"role": "system", "content": large_static}],
+        static_messages=[
+            {"role": "system", "content": "You are an analytical evaluator."},
+            {"role": "user", "content": large_static},
+        ],
         dynamic_messages=[{"role": "user", "content": "Query"}],
     )
 
@@ -511,8 +517,8 @@ async def test_vertex_cache_assistant_role_and_unqualified_name() -> None:
     large_static = "A" * 150000
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": large_static},
-            {"role": "assistant", "content": "Previous assistant response in cache"},
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "assistant", "content": f"Previous assistant response in cache: {large_static}"},
         ],
         dynamic_messages=[],
     )
@@ -564,3 +570,33 @@ async def test_vertex_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyPatc
 
     assert extra_kwargs == {}
     assert len(flat_msgs) == 1
+
+
+@pytest.mark.asyncio
+async def test_vertex_adapter_bypasses_cache_when_contents_empty_or_system_only() -> None:
+    """Verify that VertexCacheAdapter bypasses caching if all static messages are 'system' role.
+
+    GCP Vertex AI CachedContent.create requires at least one turn in `contents` (> 1024 tokens).
+    When static messages contain ONLY system instructions (e.g. system text >= 8192 chars),
+    vertex_contents becomes empty (`[]`), causing GCP GAPIC RPC to fail with 400 InvalidArgument
+    'The cached content is of 1 tokens. The minimum token count to start explicit caching is 1024.'
+    """
+    adapter = VertexCacheAdapter()
+
+    large_system_instruction = "System Rule " * 1000  # ~12,000 chars > 2048 tokens
+
+    prompt = CompiledPrompt(
+        static_messages=[
+            {"role": "system", "content": large_system_instruction},
+        ],
+        dynamic_messages=[
+            {"role": "user", "content": "Per-chunk task payload"},
+        ],
+    )
+
+    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
+
+    # When vertex_contents is empty, caching MUST be bypassed to avoid GCP 1-token InvalidArgument error
+    assert extra_kwargs == {}
+    assert len(flat_msgs) == 2
+

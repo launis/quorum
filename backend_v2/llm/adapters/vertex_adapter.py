@@ -115,27 +115,37 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 - The list of flattened messages.
                 - A dictionary of extra keyword arguments containing the cache reference name.
         """
-        # Vertex AI context caching requires caching static messages only.
-        # Calculate the token estimate strictly from static_messages to prevent premature API calls.
-        total_static_chars = 0
+        # Vertex AI context caching requires caching conversational turns in `contents`.
+        # System instructions alone (`system_instruction`) cannot form an explicit cached resource in GCP without accompanying conversational content.
+        # Calculate the token estimate strictly from static non-system messages to prevent GCP 1-token / empty contents InvalidArgument errors.
+        total_content_chars = 0
+        has_non_system_static = False
         for msg in compiled_prompt.static_messages:
+            role = msg.get("role", "user")
+            if role == "system":
+                continue
+            has_non_system_static = True
             content = msg.get("content")
             if isinstance(content, str):
-                total_static_chars += len(content)
+                total_content_chars += len(content)
             elif isinstance(content, list):
                 for block in content:
                     if isinstance(block, dict) and block.get("type") == "text":
-                        total_static_chars += len(block.get("text", ""))
+                        total_content_chars += len(block.get("text", ""))
             elif content is not None:
-                total_static_chars += len(str(content))
-        static_token_count = total_static_chars // 4
+                total_content_chars += len(str(content))
+        static_content_token_count = total_content_chars // 4
 
         min_threshold = max(get_settings().context_cache_minimum_token_limit, 1024)
 
-        if get_settings().disable_vertex_cache or static_token_count < min_threshold:
+        if (
+            get_settings().disable_vertex_cache
+            or not has_non_system_static
+            or static_content_token_count < min_threshold
+        ):
             logger.info(
-                "Vertex AI caching bypassed: Static token count %d is below minimum threshold %d (or globally disabled).",
-                static_token_count,
+                "Vertex AI caching bypassed: Static conversational content token count %d is below minimum threshold %d (or static messages lack non-system turns or globally disabled).",
+                static_content_token_count,
                 min_threshold,
             )
             return compiled_prompt.to_flat_messages(), {}
