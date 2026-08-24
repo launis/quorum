@@ -242,4 +242,3 @@ class ChameleonModel(BaseModel):
                     found_new = True
 
     assert found_new, "AST scanner should have detected __new__ hijacking in mock class"
-

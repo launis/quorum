@@ -1,4 +1,3 @@
-from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 

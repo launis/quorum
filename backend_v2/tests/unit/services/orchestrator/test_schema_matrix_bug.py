@@ -16,7 +16,6 @@ def test_schema_matrix_bug_repro(schema_factory: SchemaFactory) -> None:
     """Reproduction test for Schema Factory bug where Matrix claims
     and Shuffled Atoms cause dynamic Pydantic schema validation failures.
     """
-
     # 1. Setup Mock Criteria using real seed data to avoid deep validation errors
     seed_path = Path("backend_v2/seed/seed_data.json")
     with open(seed_path, encoding="utf-8") as f:

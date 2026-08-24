@@ -142,11 +142,15 @@
 
 **Plan:** @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md]
 
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md] --phase=8`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md] --phase=8`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check — Verify Phase 7 domain models baseline
-  - [ ] Step 1: Polymorphic Compiler Dispatch Implementation — Update prompt_factory.py, localization_compiler.py, simulation_service.py, and matrix_sensor_prompt_builder.py to dispatch via pattern matching and assemble Zero-XML fields into XML tags
+  - [ ] Step 0: Strategic Alignment Check — Verify Phase 7 domain models baseline in `prompt_blocks.py` and `v2_core.py`
+  - [ ] Step 1: PromptFactory Polymorphic Assembly Modernization — Update `prompt_factory.py` to dispatch persona, role, and protocol blocks via `match block:` pattern matching and resolve `atom_to_block_ids` with `isinstance(block, MatrixPromptBlock)`
+  - [ ] Step 2: LocalizationCompiler Pattern Matching Dispatch — Update `localization_compiler.py` to dispatch static and dynamic instruction extraction via `match block:` on concrete sub-types
+  - [ ] Step 3: StudioSimulationService Zero-XML & Matrix Rendering — Update `simulation_service.py` to polymorphically match `data` and render Zero-XML fields and matrix scales without unvalidated property lookups
+  - [ ] Step 4: MatrixSensorPromptBuilder Ephemeral Instantiation & XML Assembly — Update `_create_ephemeral_block` to instantiate `SystemRulePromptBlock`, assemble Zero-XML rubric fields into XML tags, and wrap `theory_context`
+  - [ ] Step 5: Unit Test Modernization & ISTQB Negative Partition Coverage — Modernize `test_simulation_service.py`, `test_matrix_sensor_prompt_builder.py`, `test_localization_compiler.py`, and `test_prompt_factory.py` with concrete sub-model fixtures and negative partition tests
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md]`
 
@@ -404,6 +408,21 @@
   - Migrated all 11 downstream test consumer suites (30/30 unit tests passed), verified 100% backend coverage (0 mypy issues), and confirmed all 197 Flutter tests pass.
   - Executed and PASSED `/tier8-audit-plan` for Phase 7 with full verification matrix and audit artifact generated (`red_team_audit_phase7_polymorphic_prompt_blocks.md`).
 
+- **Phase 8 Plan (`08_placeholder_phase8_clean_stack_compiler_assembly.md`) Red-Teaming & Hardening Complete**:
+  - Executed System 2 Red-Teaming, First Principles analysis, and AST fidelity audit against parent Epic 146.
+  - Verified physical AST class boundaries across all 4 target compiler and service modules:
+    - `prompt_factory.py`: L42-L187
+    - `localization_compiler.py`: L23-L216
+    - `simulation_service.py`: L28-L270
+    - `matrix_sensor_prompt_builder.py`: L24-L232
+  - Hardened implementation plan with concrete Python 3.10+ `match block:` dispatching patterns for persona, role, and protocol blocks.
+  - Enforced `isinstance(block_model, MatrixPromptBlock)` narrowing on `block_model.scales` to prevent MyPy union attribute errors.
+  - Enforced `is_grounded_step = any(isinstance(b, MatrixPromptBlock) for b in criteria_blocks)` polymorphic checking.
+  - Tightened `resolve_i18n` in `localization_compiler.py` from broad `except Exception:` to strictly scoped `except (ValidationError, ValueError) as e:`.
+  - Enforced `SystemRulePromptBlock` concrete return type and instantiation in `MatrixSensorPromptBuilder._create_ephemeral_block`.
+  - Expanded Step 5 test specifications with explicit ISTQB negative partition tests across all 4 test suites (`test_prompt_factory.py`, `test_localization_compiler.py`, `test_simulation_service.py`, `test_matrix_sensor_prompt_builder.py`).
+  - Verified 100% compliance with `01-python-backend.md`, `05_llm_architecture.md`, `ki_polymorphic_rule_routing.md`, and `ki_god_code_prevention.md`.
+
 ## Learned
 - **Pure Pydantic V2 Discriminated Union Architecture**:
   - In Python 3.14 / Pydantic V2, polymorphism MUST be implemented strictly as `Annotated[Union, Field(discriminator="category_id")]` with `TypeAdapter(AnyPromptBlock)`. Faking union behavior via `__new__` hijacking or `model_construct` overrides (`# type: ignore[override]`) on `BaseModel` classes is a dangerous anti-pattern (Chameleon Class) that breaks Rust `pydantic-core` parsing, LSP attribute inference, and hides silent fallbacks.
@@ -411,50 +430,43 @@
   - Defense Layer 1 (Rules): `01-python-backend.md` explicitly bans Chameleon classes and unvalidated `model_construct` overrides.
   - Defense Layer 2 (AST Guardrails): `test_ast_prompt_xml_sovereignty.py` statically scans AST trees to reject any `__new__` or `model_construct` definitions on domain models.
   - Defense Layer 3 (Knowledge Item): `ki_polymorphic_rule_routing.md` provides explicit PRO-PATTERN vs ANTI-PATTERN code references for future agents.
+- **Polymorphic Type Narrowing & Pattern Matching**:
+  - When iterating over polymorphic `AnyPromptBlock` lists, checking `if isinstance(block_model, MatrixPromptBlock) and block_model.scales:` narrows the type for MyPy and guarantees safe attribute access without requiring duck-typing, `# type: ignore`, or Chameleon properties.
 - **Zero Legacy & SSOT Decoupling**:
   - In active development, keeping legacy re-exports or dynamic `__getattr__` loaders in God Models (`v2_core.py`) masks circular dependencies and creates shadow execution paths. Ruthlessly updating all consumers to import directly from domain SSOT modules enforces clean module boundaries.
 - **Fail-Fast Client Deserialization (`disallowUnrecognizedKeys: true`)**:
   - When backend models include derived/calculated fields (`computed_min`, `computed_max`) in API payloads, Flutter Freezed DTOs must explicitly declare these fields in factory constructors. Omitting them causes `json_serializable` to fail fast with `CheckedFromJsonException`.
-- **Freezed Sealed Union Pattern Matching**:
-  - Polymorphic Freezed sealed classes isolate domain-specific fields (e.g. `scales`, `rows`, `columns`, `allowContextualOverride` on `MatrixPromptBlock`). Builder UI components must pattern-match to the concrete subtype (`if (payload is MatrixPromptBlock)`) to access subtype-specific copyWith parameters.
 
 ## Active Context & Execution Status
-- **Current Milestone:** Phase 7 Complete, Audited & Hardened (Pure Discriminated Union + AST Guardrails + 100% Test Coverage).
-- **Next Milestone:** Phase 8: Clean Stack Compiler Layer Assembly (`08_placeholder_phase8_clean_stack_compiler_assembly.md`).
+- **Current Milestone:** Phase 8 Implementation Plan Red-Teaming Complete (`08_placeholder_phase8_clean_stack_compiler_assembly.md`).
+- **Next Milestone:** Phase 8 Execution (`/tier2-execute`).
 - **Parent Epic:** @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md]
 - **Task Directory:** @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization]
-- **Status:** READY FOR `/tier0-create-plan` (Phase 8)
+- **Status:** READY FOR `/tier2-execute` (Phase 8)
 
 ## Architectural Findings & Decision Log for Next Session
-1. **Polymorphic PromptBlock SSOT (`backend_v2/models/domain/prompt_blocks.py`)**:
-   - `AnyPromptBlock` discriminated union and `PromptBlockAdapter` are the single source of truth.
-   - `PROMPT_BLOCK_REGISTRY` provides enum-keyed concrete type mapping.
-   - `MatrixPromptBlock` derives `computed_min` and `computed_max` directly from `scales` via `@model_validator(mode="after")`.
-   - `v2_core.py` is completely decoupled with 0 legacy bridges.
-2. **Flutter Sealed Union Parity (`client_app_v2/lib/features/studio/models/prompt_block.dart`)**:
-   - Freezed sealed union with `unionKey: 'category_id'` generates 7 constructor variants with 0 analyzer issues.
-   - `PromptBlock.matrix` includes `computedMin` and `computedMax` JSON fields.
-   - `prompt_block_builder_view.dart` is fully aligned with concrete polymorphic constructors.
-3. **Quality Gates Passed**:
-   - 30 unit & AST tests passed in 1.42s with 100% coverage on `prompt_blocks.py`.
-   - 197 Flutter tests passed (0 failed).
-   - Global Flutter quality gate passed on all 291 source files.
-4. **Phase 8 Scope Note**:
-   - In Phase 8, `prompt_factory.py`, `localization_compiler.py`, `simulation_service.py`, `matrix_sensor_prompt_builder.py`, `scoring.py`, `atom_flattening.py`, `worker.py`, and `llm.py` will update consumer access from `PromptBlock.model_validate` to `PromptBlockAdapter.validate_python` and utilize Python 3.10+ pattern matching (`match block:`) for discrete instruction assembly.
+1. **Polymorphic PromptBlock Compiler Modernization (`backend_v2/services/orchestrator/`)**:
+   - `PromptFactory`, `LocalizationCompiler`, and `StudioSimulationService` dispatch prompt blocks via Python 3.10+ `match block:` pattern matching.
+   - `MatrixSensorPromptBuilder._create_ephemeral_block` instantiates concrete `SystemRulePromptBlock` models directly.
+   - `PromptBlockAdapter` handles polymorphic deserialization for all dictionary/JSON representations.
+2. **Zero-XML Field Assembly & Clean Fencing**:
+   - `MatrixPromptBlock` Zero-XML rubric fields (`objective`, `evaluation_rules`, `banned_concepts`) are assembled into strict XML tags by the compiler layer.
+   - `TheoryGrounding` citations are wrapped in `<theory_context>` while strictly omitting raw `source_url` strings.
 
 ## Remaining Phases
-- **Phase 7: Polymorphic PromptBlock Discriminated Union & AST Guardrails**:
-  - [x] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md] --phase=7`
-  - [x] Red-Team Phase 7 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [x] Execute Phase 7: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [x] Audit Phase 7: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
-- **Phases 8 through 11**:
-  - Phase 8 (Clean Stack Compiler) -> Phase 9 (Flutter Zero-XML UI) -> Phase 10 (Seed Vault Pruning & Reseed) -> Phase 11 (Live LLM E2E Gate & Knowledge Sync).
+- **Phase 8: Clean Stack Compiler Layer Assembly**:
+  - [x] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md] --phase=8`
+  - [x] Red-Team Phase 8 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [ ] Execute Phase 8: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [ ] Audit Phase 8: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs\epic\EPIC_146_tracker.md]`
+- **Phases 9 through 11**:
+  - Phase 9 (Flutter Zero-XML UI) -> Phase 10 (Seed Vault Pruning & Reseed) -> Phase 11 (Live LLM E2E Gate & Knowledge Sync).
 
 ## Resume Command
 ```
-/tier0-create-plan @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs/epic/EPIC_146_tracker.md] --phase=8
+/tier2-execute @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/08_placeholder_phase8_clean_stack_compiler_assembly.md] @[docs/epic/EPIC_146_tracker.md]
 ```
+
 
 
 

@@ -3,14 +3,12 @@
 import json
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.models.domain.prompt_blocks import (
     PROMPT_BLOCK_REGISTRY,
-    AnyPromptBlock,
     MatrixPromptBlock,
     PersonaPromptBlock,
-    PromptBlock,
     PromptBlockAdapter,
     ProtocolPromptBlock,
     SystemRulePromptBlock,
@@ -238,4 +236,3 @@ def test_prompt_block_json_deserialization(sample_i18n_text: I18nText) -> None:
     validated = PromptBlockAdapter.validate_json(raw_json)
     assert isinstance(validated, SystemRulePromptBlock)
     assert validated.id == "blk_0123456789abcdef0123456789abcdef"
-
