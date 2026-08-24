@@ -167,9 +167,9 @@ class StepOutputDTO(V2CoreBase):
     payload: Any = Field(description="The actual data payload.")
 
 
-# Resolve deferred annotations on ExecutionCoreFields (Pydantic V2 circular reference pattern).
+# Resolve deferred annotations on ExecutionCoreFields and ExecutionRecord (Pydantic V2 circular reference pattern).
 # execution_core.py uses TYPE_CHECKING for TraceEvent types → annotations are strings.
-from backend_v2.models.v2_core import MCPAuditTrace
+from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace
 
 _state_localns = {
     "MCPAuditTrace": MCPAuditTrace,
@@ -178,6 +178,7 @@ _state_localns = {
     "TombstoneEvent": TombstoneEvent,
 }
 ExecutionCoreFields.model_rebuild(_types_namespace=_state_localns)
+ExecutionRecord.model_rebuild(_types_namespace=_state_localns)
 
 
 class WorkflowState(ExecutionCoreFields):

@@ -10,7 +10,7 @@ import random
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.v2_core import (
     AtomResultDTO,
@@ -89,13 +89,13 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
         name=I18nText(default_locale="en", translations={"en": "Perfect Scale", "fi": "Perfect Scale"}),
         claims=[claim],
     )
-    criteria_block = PromptBlock(
+    criteria_block = MatrixPromptBlock(
         id="prb_e6f8a9b0c2d3e4f5",
         slug="chronomnesia_matrix",
         label=I18nText(default_locale="en", translations={"en": "Chronomnesia Matrix", "fi": "Chronomnesia Matrix"}),
         description=I18nText(default_locale="en", translations={"en": "Description", "fi": "Description"}),
         category_id=PromptBlockCategory.MATRIX,
-        type=BlockDataType.STRING,
+        type=BlockDataType.FLOAT,
         scales=[scale],
     )
 

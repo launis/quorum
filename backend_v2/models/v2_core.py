@@ -1631,7 +1631,6 @@ class BaseTDAExtraction(BaseModel):
 
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.dtos.trace import DataStarvationEvent
-from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.view.sdui import (
     SduiMatrixTableBlock,
     SduiMetrics1DBlock,
@@ -1641,7 +1640,6 @@ from backend_v2.models.view.sdui import (
 
 RenderedSynthesisCache.model_rebuild()
 ExecutionCreate.model_rebuild()
-ExecutionRecord.model_rebuild()
 
 _sdui_localns = {
     "I18nText": I18nText,

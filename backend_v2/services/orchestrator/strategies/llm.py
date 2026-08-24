@@ -22,7 +22,11 @@ from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PromptBlock,
+    PromptBlockAdapter,
+)
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import VirtualSystemStepID
@@ -603,7 +607,7 @@ class LLMNodeStrategy(NodeStrategy):
 
             from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
 
-            matrix_block = next((b for b in criteria_blocks if b.category_id == "matrix"), None)
+            matrix_block = next((b for b in criteria_blocks if isinstance(b, MatrixPromptBlock)), None)
             matrix_block_id = matrix_block.id if matrix_block else None
 
             matrix_context = None

@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.dtos.atom_evaluation import (
     ReasoningStepDTO,
 )
@@ -62,7 +62,7 @@ class MatrixDomainParser:
     def parse_matrices(
         results: list[Any],
         locale: str,
-        blocks_by_id: dict[str, PromptBlock],
+        blocks_by_id: dict[str, AnyPromptBlock],
         workflow_steps: dict[str, StepRule],
         profile: OutputProfile,
         row_explanations_cache: dict[str, str],
@@ -98,7 +98,7 @@ class MatrixDomainParser:
             A tuple of (evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms).
 
         Raises:
-            AppException: Triggered if strict matrix structure constraints are violated.
+            AppException: If validation or configuration constraints fail.
         """
         evaluative_matrices: list[MatrixScorecardRowDTO] = []
         informational_matrices: list[MatrixScorecardRowDTO] = []
@@ -120,7 +120,7 @@ class MatrixDomainParser:
             block_data = dto.payload
 
             pb_meta = blocks_by_id.get(b_id)
-            if not pb_meta or pb_meta.category_id != "matrix":
+            if not pb_meta or not isinstance(pb_meta, MatrixPromptBlock):
                 continue
 
             if not isinstance(block_data, dict):

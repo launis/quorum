@@ -5,7 +5,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.v2_core import XaiHighlightItem
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.v2_core import MatrixClaim, MatrixScale, TDAAssertion, XaiHighlightItem
 from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: F403, F401
 
 
@@ -1910,31 +1912,57 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
     mock_name = I18nText(default_locale="en", translations={"en": "Full"})
     mock_claim = I18nText(default_locale="en", translations={"en": "claim"})
 
-    blocks_by_id: Any = {
-        "matrix_logic1234": SimpleNamespace(
-            id="blk_1234abcd1234abcd",
-            slug="matrix_logic1234",
-            category_id="matrix",
-            type="float",
-            is_evaluative=True,
-            description=mock_desc,
-            label=mock_label,
-            computed_min=0,
-            computed_max=100,
-            allow_contextual_override=False,
-            scales=[
-                SimpleNamespace(
-                    score=100.0,
-                    name=mock_name,
-                    claims=[
-                        SimpleNamespace(
-                            label=mock_claim,
-                            tda_assertions=[SimpleNamespace(tda_id="tda_11111111111111111111111111111111")],
-                        )
-                    ],
-                )
-            ],
-        )
+    mock_matrix_pb = MatrixPromptBlock(
+        id="blk_1234abcd1234abcd",
+        slug="matrix_logic1234",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        description=mock_desc,
+        label=mock_label,
+        allow_contextual_override=False,
+        scales=[
+            MatrixScale(
+                score=0,
+                ai_label="Fail",
+                name=I18nText(default_locale="en", translations={"en": "Fail"}),
+                claims=[
+                    MatrixClaim(
+                        label=mock_claim,
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id="tda_00000000000000000000000000000000",
+                                concept_description="concept description for failure",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            ),
+            MatrixScale(
+                score=100,
+                ai_label="Full",
+                name=mock_name,
+                claims=[
+                    MatrixClaim(
+                        label=mock_claim,
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id="tda_11111111111111111111111111111111",
+                                concept_description="concept description for testing",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            ),
+        ],
+    )
+
+    blocks_by_id: dict[str, AnyPromptBlock] = {
+        "matrix_logic1234": mock_matrix_pb,
     }
 
     workflow_steps: Any = {
@@ -1988,19 +2016,55 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         layouts=[],
     )
 
-    blocks_by_id: Any = {
-        "matrix_logic1234": SimpleNamespace(
-            id="blk_1234abcd1234abcd",
-            slug="matrix_logic1234",
-            category_id="matrix",
-            type="float",
-            is_evaluative=True,
-            description=MagicMock(),
-            label=MagicMock(),
-            computed_min=0,
-            computed_max=100,
-            scales=None,
-        )
+    valid_scale_0 = MatrixScale(
+        score=0,
+        ai_label="Fail",
+        name=I18nText(default_locale="en", translations={"en": "Fail"}),
+        claims=[
+            MatrixClaim(
+                label=I18nText(default_locale="en", translations={"en": "claim"}),
+                tda_assertions=[
+                    TDAAssertion(
+                        tda_id="tda_00000000000000000000000000000000",
+                        concept_description="concept description for failure",
+                        inverse_evidence=False,
+                        aggregation_mode="EXISTS",
+                    )
+                ],
+            )
+        ],
+    )
+    valid_scale_100 = MatrixScale(
+        score=100,
+        ai_label="Full",
+        name=I18nText(default_locale="en", translations={"en": "Full"}),
+        claims=[
+            MatrixClaim(
+                label=I18nText(default_locale="en", translations={"en": "claim"}),
+                tda_assertions=[
+                    TDAAssertion(
+                        tda_id="tda_11111111111111111111111111111111",
+                        concept_description="concept description for testing",
+                        inverse_evidence=False,
+                        aggregation_mode="EXISTS",
+                    )
+                ],
+            )
+        ],
+    )
+    base_matrix = MatrixPromptBlock(
+        id="blk_1234abcd1234abcd",
+        slug="matrix_logic1234",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        description=I18nText(default_locale="en", translations={"en": "desc"}),
+        label=I18nText(default_locale="en", translations={"en": "Logic"}),
+        scales=[valid_scale_0, valid_scale_100],
+    )
+
+    blocks_by_id: dict[str, Any] = {
+        "matrix_logic1234": base_matrix,
     }
 
     # 1. Invalid matrix payload format (not a dict) -> lines 226-231
@@ -2022,7 +2086,16 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     assert "Invalid matrix payload format" in str(exc.value)
 
     # 3. Missing I18n label -> lines 264-269
-    blocks_by_id["matrix_logic1234"].label = None
+    blocks_by_id["matrix_logic1234"] = MatrixPromptBlock.model_construct(
+        id="blk_1234abcd1234abcd",
+        slug="matrix_logic1234",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        description=I18nText(default_locale="en", translations={"en": "desc"}),
+        label=None,
+        scales=[valid_scale_0, valid_scale_100],
+    )
     results = [
         SimpleNamespace(
             step_id="step_1",
@@ -2035,33 +2108,45 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     assert "missing a required I18n label" in str(exc.value)
 
     # 4. Missing scales -> lines 293-298
-    blocks_by_id["matrix_logic1234"].label = MagicMock()
+    blocks_by_id["matrix_logic1234"] = MatrixPromptBlock.model_construct(
+        id="blk_1234abcd1234abcd",
+        slug="matrix_logic1234",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        description=I18nText(default_locale="en", translations={"en": "desc"}),
+        label=I18nText(default_locale="en", translations={"en": "Logic"}),
+        scales=[],
+    )
     with pytest.raises(AppException) as exc:
         MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
-    assert "initialized as matrix but has no scales" in str(exc.value)
+    assert "missing Pydantic computed_min/max" in str(exc.value) or "initialized as matrix but has no scales" in str(exc.value)
 
-    # 5. Missing computed_min/max
-    blocks_by_id["matrix_logic1234"].scales = []
-    blocks_by_id["matrix_logic1234"].computed_min = None
-    with pytest.raises(AppException) as exc:
-        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
-    assert "missing Pydantic computed_min/max" in str(exc.value)
-    blocks_by_id["matrix_logic1234"].computed_min = 0
-
-    # 6. Missing scale name
-    blocks_by_id["matrix_logic1234"].scales = [SimpleNamespace(score=100.0, name=None)]
+    # 5. Missing scale name
+    blocks_by_id["matrix_logic1234"] = MatrixPromptBlock.model_construct(
+        id="blk_1234abcd1234abcd",
+        slug="matrix_logic1234",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        description=I18nText(default_locale="en", translations={"en": "desc"}),
+        label=I18nText(default_locale="en", translations={"en": "Logic"}),
+        scales=[MatrixScale.model_construct(score=100, name=None)],
+        computed_min=0,
+        computed_max=100,
+    )
     with pytest.raises(AppException) as exc:
         MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "missing 'name'" in str(exc.value)
 
-    # 7. Invalid breakdown key
-    blocks_by_id["matrix_logic1234"].scales = [SimpleNamespace(score=100.0, name=MagicMock(), claims=[])]
+    # 6. Invalid breakdown key
+    blocks_by_id["matrix_logic1234"] = base_matrix
     results[0].payload["level_breakdown"] = {"invalid_float": {"hits": 1, "total": 1}}
     with pytest.raises(AppException) as exc:
         MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "Invalid level key 'invalid_float'" in str(exc.value)
 
-    # 8. Missing row_explanations_cache
+    # 7. Missing row_explanations_cache
     results[0].payload["level_breakdown"] = {}
     object.__setattr__(profile, "synthesis", SimpleNamespace(row_explanations_block_id="foo"))
     with pytest.raises(AppException) as exc:

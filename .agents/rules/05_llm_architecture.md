@@ -178,5 +178,19 @@ trigger: always_on
         <banned_pattern>Attempting to debug token explosions, JSON schema extraction failures, or model hallucinations solely by guessing or staring at Logfire cloud traces without reviewing the exact constructed XML payload.</banned_pattern>
         <mandatory_pattern>In `development` environments, the backend automatically generates a comprehensive `llm_debug_prompts.md` for every execution step inside `data/files/executions/<execution_id>/`. When resolving LLM hallucination or latency (e.g. 50-second generation times) issues, you MUST proactively read this markdown file. To prevent Context Window Flooding, you MUST NEVER read the entire file blindly. You MUST first use `grep_search` to find the relevant sections, and then use `view_file` with STRICT `StartLine` and `EndLine` parameters. It contains the precise `Prompt Source Blocks` (e.g. `blk_...` IDs) and the exact `User Payload` (including payload size and expected Pydantic schema name) that caused the anomaly, allowing surgical database corrections rather than trial and error.</mandatory_pattern>
         <catastrophic_reason>Guessing LLM prompt errors without inspecting the raw injected XML payload leads to wild goose chases in Python code when the actual bug lies in a malformed database string.</catastrophic_reason>
+    <rule_block id="compiler_xml_sovereignty_mandate">
+        <banned_pattern>Authoring, editing, or storing raw XML tags (such as `<system_directive>`, `<guidelines>`, `<context>`) in seed data or UI prompt input fields.</banned_pattern>
+        <mandatory_pattern>All raw prompt blocks, system instructions, and persona texts MUST contain strictly unadorned natural language. Structural XML framing and hierarchy encapsulation MUST be generated exclusively just-in-time by the AST Prompt Compiler (`prompt_compiler.py`).</mandatory_pattern>
+        <catastrophic_reason>Hardcoding XML tags in prompt data creates tag collisions, duplicate framing, and breaks AST structural validation gates.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="four_layer_clean_stack_hierarchy">
+        <banned_pattern>Scattering dynamic variables across system prompt prefixes or mixing operational directives with theoretical grounding.</banned_pattern>
+        <mandatory_pattern>All LLM prompts MUST be compiled through the Four-Layer Clean Stack hierarchy:
+        1. **Layer 1: Static System Directives & Mandates** (Static prefix for context caching).
+        2. **Layer 2: Theory Grounding & Epistemic Context** (Pure academic references in `<theory_context>`).
+        3. **Layer 3: Matrix Objective & Extraction Protocol** (Step-level extraction behavior).
+        4. **Layer 4: Dynamic User Payload & Execution Variables** (Runtime text payloads, atom aliases, and dynamic inputs at the tail).</mandatory_pattern>
+        <catastrophic_reason>Disorganized prompt stacking invalidates 95%+ of foundational model context caching and causes severe Attention Dilution.</catastrophic_reason>
     </rule_block>
 </architectural_invariants>
