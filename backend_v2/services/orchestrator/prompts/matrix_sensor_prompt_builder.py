@@ -21,6 +21,8 @@ from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompi
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["MatrixSensorPromptBuilder"]
+
 
 class MatrixSensorPromptBuilder:
     """Builder for sensor prompt messages."""

@@ -350,4 +350,3 @@ async def test_atom_flattening_no_matching_matrix_blocks(base_hook_state: HookSt
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
     assert result.state_delta == {}
-

@@ -13,7 +13,7 @@ from backend_v2.api.dependencies import (
 )
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.domain.prompt_blocks import PromptBlock, SystemRulePromptBlock
+from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.models.v2_core import BlockDataType, I18nText
 

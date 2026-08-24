@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from backend_v2.models.domain.prompt_blocks import (
     PROMPT_BLOCK_REGISTRY,
     MatrixPromptBlock,
-    PersonaPromptBlock,
     PromptBlock,
     SystemRulePromptBlock,
 )

@@ -2120,7 +2120,9 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     )
     with pytest.raises(AppException) as exc:
         MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
-    assert "missing Pydantic computed_min/max" in str(exc.value) or "initialized as matrix but has no scales" in str(exc.value)
+    assert "missing Pydantic computed_min/max" in str(exc.value) or "initialized as matrix but has no scales" in str(
+        exc.value
+    )
 
     # 5. Missing scale name
     blocks_by_id["matrix_logic1234"] = MatrixPromptBlock.model_construct(

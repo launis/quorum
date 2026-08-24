@@ -5,7 +5,7 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.v2_core import Step, Workflow
 from backend_v2.services.studio import (
     StudioLexiconService,

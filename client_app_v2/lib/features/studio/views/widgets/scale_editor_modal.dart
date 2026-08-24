@@ -145,10 +145,13 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              l10n.scaleClaimIndexTitle(index + 1),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Text(
+                                l10n.scaleClaimIndexTitle(index + 1),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             IconButton(
@@ -183,11 +186,14 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              l10n.scaleTdaTitle(claim.tdaAssertions.length),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Text(
+                                l10n.scaleTdaTitle(claim.tdaAssertions.length),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             TextButton.icon(
@@ -248,14 +254,17 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        l10n.scaleAssertionIndexTitle(
-                                          tdaIdx + 1,
-                                          tda.tdaId,
-                                        ),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
+                                      Expanded(
+                                        child: Text(
+                                          l10n.scaleAssertionIndexTitle(
+                                            tdaIdx + 1,
+                                            tda.tdaId,
+                                          ),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                       IconButton(
@@ -286,6 +295,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                   ),
                                   AppSpacing.h8,
                                   DropdownButtonFormField<EvaluationTrack>(
+                                    isExpanded: true,
                                     initialValue: tda.evaluationTrack,
                                     decoration: InputDecoration(
                                       labelText: l10n.scaleEvaluationTrackLabel,
@@ -416,6 +426,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                   ),
                                   AppSpacing.h8,
                                   DropdownButtonFormField<String>(
+                                    isExpanded: true,
                                     initialValue: tda.boundingBoxScope,
                                     decoration: InputDecoration(
                                       labelText: l10n.tdaBoundingBox,
@@ -740,6 +751,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                             DropdownButtonFormField<
                                               AggregationMode
                                             >(
+                                              isExpanded: true,
                                               initialValue: tda.aggregationMode,
                                               decoration: InputDecoration(
                                                 labelText: l10n

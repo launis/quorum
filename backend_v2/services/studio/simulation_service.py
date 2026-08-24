@@ -24,6 +24,8 @@ from backend_v2.services.studio.prompt_block_service import StudioPromptBlockSer
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["StudioSimulationService"]
+
 
 class StudioSimulationService:
     """Domain Service for simulating Admin Studio configurations."""

@@ -11,7 +11,6 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
-    PromptBlock,
     PromptBlockAdapter,
 )
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO

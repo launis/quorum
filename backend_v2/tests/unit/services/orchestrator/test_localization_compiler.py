@@ -237,3 +237,33 @@ def test_compile_static_instructions_missing_instruction_text_raises_configurati
     )
     with pytest.raises(ConfigurationError):
         compiler.compile_static_instructions([mock_block], target_locale="en")
+
+
+def test_compile_dynamic_instructions_unsupported_locale_raises_app_exception() -> None:
+    """Anti-happy path: compile_dynamic_instructions raises AppException for unsupported locale."""
+    compiler = LocalizationCompiler()
+    with pytest.raises(AppException) as exc_info:
+        compiler.compile_dynamic_instructions([], target_locale="zh")
+    assert exc_info.value.status_code == 400
+    assert "Unsupported target locale 'zh'" in str(exc_info.value.message)
+
+
+def test_compile_dynamic_instructions_polymorphic_system_rule() -> None:
+    """Test compile_dynamic_instructions extracts instruction_text on SystemRulePromptBlock."""
+    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+    from backend_v2.models.v2_core import I18nText
+
+    compiler = LocalizationCompiler()
+    block = SystemRulePromptBlock(
+        id="blk_1111222233334444",
+        slug="dyn_sys",
+        label=I18nText(default_locale="en", translations={"en": "DynSys"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.RUNTIME_VARIABLES,
+        type=BlockDataType.INSTRUCTION,
+        instruction_text="Dynamic run on {CURRENT_DATE} in {TARGET_LANGUAGE}",
+    )
+    res = compiler.compile_dynamic_instructions([block], target_locale="fi")
+    assert "<DYNAMIC_INSTRUCTION" in res
+    assert "in Finnish" in res

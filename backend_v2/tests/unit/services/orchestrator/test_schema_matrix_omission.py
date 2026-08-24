@@ -1,4 +1,4 @@
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory

@@ -25,7 +25,6 @@ from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
-    PromptBlock,
     PromptBlockAdapter,
 )
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput

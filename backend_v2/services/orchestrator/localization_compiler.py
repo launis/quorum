@@ -25,6 +25,8 @@ from backend_v2.models.v2_core import I18nText
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["LANGUAGE_NAMES", "LocalizationCompiler"]
+
 # Standard language names for dynamic TARGET_LANGUAGE substitution
 LANGUAGE_NAMES = {"fi": "Finnish", "en": "English", "sv": "Swedish", "de": "German", "fr": "French", "es": "Spanish"}
 

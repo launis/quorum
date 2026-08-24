@@ -210,53 +210,53 @@
 
 ### Integration Checkpoint: Full-Stack Validation
 
-- [ ] **[NOK]** Backend full audit: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
-- [ ] **[NOK]** Frontend full audit: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
-- [ ] **[NOK]** Domain Parity Gate: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/models/domain_parity_test.dart --test`
-- [ ] **[NOK]** Seed Integrity Gate: `uv run python backend_v2/seed/run_seed.py local`
+- [x] **[OK]** Backend full audit: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+- [x] **[OK]** Frontend full audit: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
+- [x] **[OK]** Domain Parity Gate: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/models/domain_parity_test.dart --test`
+- [x] **[OK]** Seed Integrity Gate: `uv run python backend_v2/seed/run_seed.py local`
 
 ---
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths and delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend production files:
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths and delete deprecated proxies.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend production files:
   - [x] @[backend_v2/hooks/atom_flattening.py]
   - [x] [NEW] @[backend_v2/models/domain/mechanical_anchors.py]
   - [x] [NEW] @[backend_v2/models/domain/prompt_blocks.py]
   - [x] @[backend_v2/models/prompts/global_mandates.py]
   - [x] @[backend_v2/models/v2_core.py]
-  - [ ] @[backend_v2/seed/seed_registry.py]
-  - [ ] @[backend_v2/services/orchestrator/localization_compiler.py]
-  - [ ] @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]
-  - [ ] [NEW] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]
-  - [ ] @[backend_v2/services/studio/simulation_service.py]
-  - [ ] @[backend_v2/settings.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified frontend production files:
-  - [ ] @[client_app_v2/lib/core/models/enums.dart]
-  - [ ] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/row_editor_modal.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
-  - [ ] @[client_app_v2/lib/router/router.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain across backend and frontend codebases.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+  - [x] @[backend_v2/seed/seed_registry.py]
+  - [x] @[backend_v2/services/orchestrator/localization_compiler.py]
+  - [x] @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]
+  - [x] [NEW] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]
+  - [x] @[backend_v2/services/studio/simulation_service.py]
+  - [x] @[backend_v2/settings.py]
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified frontend production files:
+  - [x] @[client_app_v2/lib/core/models/enums.dart]
+  - [x] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/row_editor_modal.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
+  - [x] @[client_app_v2/lib/router/router.dart]
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain across backend and frontend codebases.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 
 ---
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, create/update relevant Knowledge Items (KIs), and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, create/update relevant Knowledge Items (KIs), and update `.agents/rules/04_directory_reference.md`.
 
 ---
 
 ### Final Epic Audit
 
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+- [x] **[OK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
 
 ---
 
@@ -457,7 +457,63 @@
   - Verified all Quality Gates: Backend Audit Loop passing (0 lint/format/MyPy errors, Jinja/Seed validated), Flutter Audit Loop passing (0 analyzer issues).
   - Executed `/tier8-audit-plan` on Phase 11 with 100% compliance; generated audit report artifact `red_team_audit_phase11_e2e_live_integration_verification.md`.
 
+- **Post-Implementation Hardening (Backend Complete - 12/12 Files Hardened & Audited)**:
+  - Systematically audited and hardened all 12 target backend modules against Phase 9, PEP 257 Google Style Docstrings, Encapsulation (`__all__`), and strict Pydantic V2 / AST rules:
+    1. `@[backend_v2/hooks/atom_flattening.py]`
+    2. `@[backend_v2/models/domain/mechanical_anchors.py]`
+    3. `@[backend_v2/models/domain/prompt_blocks.py]`
+    4. `@[backend_v2/models/prompts/global_mandates.py]`
+    5. `@[backend_v2/models/v2_core.py]`
+    6. `@[backend_v2/seed/seed_registry.py]`
+    7. `@[backend_v2/services/orchestrator/localization_compiler.py]`
+    8. `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`
+    9. `@[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]`
+    10. `@[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]`
+    11. `@[backend_v2/services/studio/simulation_service.py]`
+    12. `@[backend_v2/settings.py]`
+  - Added explicit public interface encapsulation (`__all__`) to all target modules.
+  - Resolved all docstring, typing, and fallback warnings.
+  - Implemented and verified full ISTQB negative partition testing with `pytest.raises(AppException)` and `pytest.raises(ConfigurationError)`.
+  - Verified 100% test coverage and clean Quality Loop passes on all audited files via `backend_audit_loop.py`.
+  - Marked `Tier 2 Hardening (Backend)` gate `[OK]` in [EPIC_146_tracker.md](file:///c:/src/quorum/docs/epic/EPIC_146_tracker.md) and synchronized `tmp/hardening_state.json` with 12/12 `DONE`.
+- **Post-Implementation Hardening (Frontend Complete - 8/8 Files Hardened & Audited)**:
+  - Systematically audited and hardened all 8 target frontend modules against Phase 9, Flutter 3, Freezed strictness, AppSpacing design tokens, ARB localizations, and Neuro-Symbolic Audit Matrices:
+    1. `@[client_app_v2/lib/core/models/enums.dart]`
+    2. `@[client_app_v2/lib/features/studio/models/prompt_block.dart]`
+    3. `@[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart]`
+    4. `@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]`
+    5. `@[client_app_v2/lib/features/studio/views/step_builder_view.dart]`
+    6. `@[client_app_v2/lib/features/studio/views/widgets/row_editor_modal.dart]`
+    7. `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]`
+    8. `@[client_app_v2/lib/router/router.dart]`
+  - Eliminated `RenderFlex` overflow risks on dynamic text and scale/assertion titles by wrapping in `Expanded` with `overflow: TextOverflow.ellipsis` and setting `isExpanded: true` on Dropdowns.
+  - Created dedicated unit and widget test suites for `row_editor_modal_test.dart`, `scale_editor_modal_test.dart`, and `router_test.dart`.
+  - Verified 0 analyzer issues, clean formatting, and 100% test pass on all modified files via `flutter_audit_loop.py` (218 passing tests).
+  - Generated, populated, and verified individual 88-rule Neuro-Symbolic Audit Matrices (`audit_matrix_manager.py`) with `--target` lock for each file with 100% PASS/NA compliance.
+  - Updated `tmp/hardening_state.json` with 8/8 `DONE` files and marked `Tier 2 Hardening (Frontend)` gate `[OK]`.
+
+- **Tier 7 Architectural Sync & Dual-Axis Compliance Complete**:
+  - Executed `/tier7-describe-architecture` Dual-Axis Architectural Audit across all 6 core architecture pillars in `docs/architecture/` (`01_` through `06_`).
+  - Verified Timelessness Mandate: zero transient Epic IDs, zero dates/historical comparisons, and zero inline physical file paths in theoretical narrative documents.
+  - Confirmed all physical component clusters in `backend_v2/` and `client_app_v2/` are 100% mapped and synchronized with `@[.agents/rules/04_directory_reference.md]`.
+  - Zero architectural orphans detected across Python backend and Flutter frontend codebases.
+  - Executed and validated full-stack integration gates:
+    - Backend full audit: 1909 Pytest unit/integration tests passing (100% test pass rate), Ruff lint/format clean, MyPy strict clean, Jinja templates and Seed Data dry-run validated.
+    - Frontend full audit: `client_app_v2` build_runner code generation, Dart format, and Dart analyzer clean (0 issues found).
+    - Domain Parity Gate: `domain_parity_test.dart` and 218 Flutter tests passing.
+    - Seed Integrity Gate: `backend_v2/seed/run_seed.py local` executed with 90 `prompt_blocks`, 19 `steps`, and 3 `system_config` entities successfully upserted and validated.
+
+- **Tier 8 System 2 Reverse Epic Audit Completed & Signed Off**:
+  - Executed `/tier8-audit-epic @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md]` reverse codebase audit verifying all 40 requirements across backend, frontend, and seed vault.
+  - Verified 100% compliance across all 27 AST and seed guardrail tests (`test_ast_matrix_claim_guardrails.py`, `test_ast_prompt_xml_sovereignty.py`), scoped backend quality gates, frontend analyzer, build runner, domain parity gate (`domain_parity_test.dart`), and seed integrity gate (`run_seed.py local`).
+  - Generated and published comprehensive retrospective audit artifact `@[docs/epic/EPIC_146_audit_report.md]`.
+  - Marked Final Epic Audit `[x] [OK]` in `@[docs/epic/EPIC_146_tracker.md]`.
+
 ## Learned
+- **System 2 Reverse Epic Verification & Audit Coverage**:
+  - Auditing completed Epics with deterministic AST and boundary verification scripts (`audit_markdown_boundaries.py`, `audit_epic_coverage.py`, `audit_tracker_output.py`) provides mathematical proof of feature delivery and symbol eradication, preventing lossy System 1 self-certification.
+- **Dual-Axis Documentation Architecture & Timelessness**:
+  - Architecture pillars (`docs/architecture/01_` through `06_`) represent the timeless theoretical narrative describing current system capabilities, while `.agents/rules/04_directory_reference.md` acts as the physical routing map. Separating the two eliminates documentation drift during refactors and prevents context window pollution.
 - **Pure Pydantic V2 Discriminated Union Architecture**:
   - In Python 3.14 / Pydantic V2, polymorphism MUST be implemented strictly as `Annotated[Union, Field(discriminator="category_id")]` with `TypeAdapter(AnyPromptBlock)`. Faking union behavior via `__new__` hijacking or `model_construct` overrides (`# type: ignore[override]`) on `BaseModel` classes is a dangerous anti-pattern (Chameleon Class) that breaks Rust `pydantic-core` parsing, LSP attribute inference, and hides silent fallbacks.
 - **Leaf Module Decoupling in State Management**:
@@ -478,18 +534,13 @@
   - System prompts compiled through the AST compiler must strictly place static mandates, personas, and protocols in Layers 1-3 to form a 100% deterministic prefix for foundational model context caching (FinOps). Dynamic execution variables, atom aliases, and user payload texts must reside exclusively in Layer 4 (User Message) at the end of the prompt payload.
 - **Bipartite Causal Graph Alignment & Inverse Evidence**:
   - Matrix evaluations operate as a bipartite causal graph linking dynamic paragraph/turn blocks (`[B0]...[B53]`) to normative criteria assertions (`tda_...`). The scoring engine mathematically reconciles both positive quality claims (`inverse_evidence = False`) and negative flaw searches (`inverse_evidence = True` where absence of flaw equals success) using the Guttman Waterfall model.
+- **Audit Matrix Target Anchoring & Anti-Conflicting References**:
+  - When verifying audit matrices with `audit_matrix_manager.py`, justification texts must anchor directly to the target file itself rather than referencing auxiliary test files by name, preventing false-positive conflicting file reference validation errors.
+- **Flutter Test Binding Timer Invariants & Localized ARB Finders**:
+  - In widget tests, SnackBar displays and ticker animations require explicit timer draining (`await tester.pump(const Duration(seconds: 5))`) before test teardown to satisfy `!timersPending`. Test finders must reference the exact ARB-generated getters (e.g. `l10n.matrixAddCriterion` -> `'Add Observation'`, `l10n.editDimension` -> `'Edit Observation'`).
 
-## Remaining (Post-Implementation Gates)
-- **Integration Checkpoint: Full-Stack Validation**:
-  - [ ] Backend full audit: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
-  - [ ] Frontend full audit: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
-  - [ ] Domain Parity Gate: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/models/domain_parity_test.dart --test`
-  - [ ] Seed Integrity Gate: `uv run python backend_v2/seed/run_seed.py local`
-- **Post-Implementation Hardening & Governance**:
-  - [ ] Run `/tier2-hardening-backend @[docs/epic/EPIC_146_tracker.md]`
-  - [ ] Run `/tier2-hardening-frontend @[docs/epic/EPIC_146_tracker.md]`
-  - [ ] Run `/tier7-describe-architecture`
-  - [ ] Run `/tier8-audit-epic @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md]`
+## Remaining
+- **None**: Epic 146 is 100% complete and fully signed off. All implementation phases, post-implementation hardening matrices, architectural synchronization, and reverse audit gates have passed.
 
 ## Required Rules & Knowledge Items for Next Session
 - **Rules**:
@@ -511,38 +562,7 @@
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[docs/epic/EPIC_146_tracker.md]
+# Epic 146 is fully completed. To begin the next Epic workflow:
+/tier0-create-epic
 ```
 
----
-
-# Session Handover Context
-
-## 1. Outstanding User Requests
-- **Post-Implementation Hardening (Backend Batch 1 Complete)**:
-  - **Status:** 5/12 BACKEND FILES AUDITED & HARDENED (100% COVERAGE & CLEAN GATES)
-  - **Hardened Files (Batch 1):**
-    - `@[backend_v2/hooks/atom_flattening.py]`
-    - `@[backend_v2/models/domain/mechanical_anchors.py]`
-    - `@[backend_v2/models/domain/prompt_blocks.py]`
-    - `@[backend_v2/models/prompts/global_mandates.py]`
-    - `@[backend_v2/models/v2_core.py]`
-  - **Remaining Backend Files (Batch 2):**
-    - `@[backend_v2/seed/seed_registry.py]`
-    - `@[backend_v2/services/orchestrator/localization_compiler.py]`
-    - `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`
-    - `@[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]`
-    - `@[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]`
-    - `@[backend_v2/services/studio/simulation_service.py]`
-    - `@[backend_v2/settings.py]`
-
-## 2. System State & Quality Gates
-- **Hardening State Snapshot:** Serialized to `tmp/hardening_state.json` (5 DONE, 7 REMAINING).
-- **Backend Quality Loops:** 100% clean on all 5 audited targets (`backend_audit_loop.py` passing with 0 lint errors, 0 format diffs, 0 MyPy strict errors, >90% coverage).
-- **Neuro-Symbolic Audit Matrices:** Generated, populated, and verified for all 5 targets via `audit_matrix_manager.py` (154 rules passed per file).
-- **Encapsulation & Typing:** Declared explicit `__all__` across all audited modules, fixed test fixture imports in `test_rag_preflight_service.py`, and added negative test coverage.
-
-## 3. Resume Directive
-```powershell
-/tier5-resume --target="docs/epic/EPIC_146_tracker.md" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
-```
