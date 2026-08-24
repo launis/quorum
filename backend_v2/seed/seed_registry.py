@@ -18,6 +18,8 @@ from backend_v2.models.v2_core import (
     Workflow,
 )
 
+__all__ = ["STANDARD_REGISTRY", "SystemConfigUnion"]
+
 
 def _system_config_discriminator(v: dict[str, Any] | Any) -> str:
     """Polymorphic Seeding: route by 'type' field.

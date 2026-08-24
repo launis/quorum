@@ -225,3 +225,129 @@ async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookSta
     # Semantic micro-batching requirement: ensure deterministic sorting based on atom_id
     sorted_ids = [item["atom_id"] for item in shuffled_atoms]
     assert sorted_ids == sorted(sorted_ids), "Atoms are not deterministically sorted by atom_id"
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_no_task_blueprint(base_hook_state: HookState) -> None:
+    """Test hook exits cleanly when no task_blueprint is set."""
+    state = base_hook_state.model_copy(update={"task_blueprint": None})
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    result = await process_matrix_flattening(state, deps)
+    assert result.success is True
+    assert result.state_delta == {}
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_missing_workflow_repo(base_hook_state: HookState) -> None:
+    """Test hook raises AppException if workflow_repo dependency is missing."""
+    state = base_hook_state
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=None,
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    with pytest.raises(AppException) as exc_info:
+        await process_matrix_flattening(state, deps)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.error_code == ErrorCodes.EXECUTION_NOT_FOUND.value
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_step_not_found(base_hook_state: HookState) -> None:
+    """Test hook returns empty state delta if step blueprint not found."""
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = None
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    result = await process_matrix_flattening(base_hook_state, deps)
+    assert result.success is True
+    assert result.state_delta == {}
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_empty_criteria_blocks(base_hook_state: HookState, mock_step: Step) -> None:
+    """Test hook returns empty state delta if step has no criteria blocks."""
+    step_no_blocks = mock_step.model_copy(update={"type": "logic", "hook": "some_hook", "criteria_block_ids": []})
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = step_no_blocks.model_dump(mode="json")
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    result = await process_matrix_flattening(base_hook_state, deps)
+    assert result.success is True
+    assert result.state_delta == {}
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_invalid_block_format_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
+    """Test hook raises VALIDATION_FAILED when raw block fails Pydantic validation."""
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
+    mock_comp_repo = AsyncMock()
+    mock_comp_repo.get_all_prompt_blocks.return_value = [{"invalid": "format_no_id"}]
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=mock_comp_repo,
+        prompt_block_repo=mock_comp_repo,
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    with pytest.raises(AppException) as exc_info:
+        await process_matrix_flattening(base_hook_state, deps)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_no_matching_matrix_blocks(base_hook_state: HookState, mock_step: Step) -> None:
+    """Test hook returns empty state delta if all_blocks has no matching IDs."""
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
+    mock_comp_repo = AsyncMock()
+    mock_comp_repo.get_all_prompt_blocks.return_value = []
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=mock_comp_repo,
+        prompt_block_repo=mock_comp_repo,
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+    result = await process_matrix_flattening(base_hook_state, deps)
+    assert result.success is True
+    assert result.state_delta == {}
+

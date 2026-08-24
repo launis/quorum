@@ -19,6 +19,19 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixRow, MatrixScale, TheoryGrounding
 
+__all__ = [
+    "AnyPromptBlock",
+    "MatrixPromptBlock",
+    "PersonaPromptBlock",
+    "PromptBlock",
+    "PromptBlockAdapter",
+    "PromptBlockBase",
+    "ProtocolPromptBlock",
+    "SystemRulePromptBlock",
+    "PROMPT_BLOCK_REGISTRY",
+    "StrictStr",
+]
+
 StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 

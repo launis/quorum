@@ -11,6 +11,8 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.performativity import PerformativePattern
 
+__all__ = ["MechanicalAnchorsPayload"]
+
 
 class MechanicalAnchorsPayload(V2CoreBase):
     """Encapsulates mechanical text metrics and detected patterns for LLM context."""

@@ -186,7 +186,7 @@
   - [x] Step 3: AST Seed Guardrail Test Suite Expansion — Add 4 AST/seed guardrails to test_ast_prompt_xml_sovereignty.py and run guardrails suite
   - [x] Step 4: Seed Integrity Validation & Database Reseeding — Reseed database via `run_seed.py local` and run backend audit loop
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\10_placeholder_phase10_seed_vault_pruning_and_reseeding.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\10_placeholder_phase10_seed_vault_pruning_and_reseeding.md] @[docs\epic\EPIC_146_tracker.md]`
 
 ---
 
@@ -204,7 +204,7 @@
   - [x] Step 4: Knowledge Item Synchronization (4-Layer Clean Stack & Zero-XML UI) — Update ki_llm_extraction_architecture.md
   - [x] Step 5: LLM Architecture Rule Synchronization (05_llm_architecture.md) — Synchronize XML compiler sovereignty and 4-layer clean stack rules
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\11_placeholder_phase11_e2e_live_integration_verification.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\11_placeholder_phase11_e2e_live_integration_verification.md] @[docs\epic\EPIC_146_tracker.md]`
 
 ---
 
@@ -222,11 +222,11 @@
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths and delete deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified backend production files:
-  - [ ] @[backend_v2/hooks/atom_flattening.py]
-  - [ ] [NEW] @[backend_v2/models/domain/mechanical_anchors.py]
-  - [ ] [NEW] @[backend_v2/models/domain/prompt_blocks.py]
-  - [ ] @[backend_v2/models/prompts/global_mandates.py]
-  - [ ] @[backend_v2/models/v2_core.py]
+  - [x] @[backend_v2/hooks/atom_flattening.py]
+  - [x] [NEW] @[backend_v2/models/domain/mechanical_anchors.py]
+  - [x] [NEW] @[backend_v2/models/domain/prompt_blocks.py]
+  - [x] @[backend_v2/models/prompts/global_mandates.py]
+  - [x] @[backend_v2/models/v2_core.py]
   - [ ] @[backend_v2/seed/seed_registry.py]
   - [ ] @[backend_v2/services/orchestrator/localization_compiler.py]
   - [ ] @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]
@@ -444,7 +444,7 @@
   - Reseeded database cleanly via `uv run python backend_v2/seed/run_seed.py local` (90 prompt blocks, 19 steps validated and upserted).
   - Executed `/tier8-audit-plan` on Phase 10 plan with 100% compliance; generated audit report artifact `red_team_audit_phase10_seed_vault_pruning_and_reseeding.md`.
 
-- **Phase 11 (End-to-End Live Integration Verification Gate & Knowledge Synchronization) Executed**:
+- **Phase 11 (End-to-End Live Integration Verification Gate & Knowledge Synchronization) Executed & Audited**:
   - Resolved circular dependency between `backend_v2/models/v2_core.py` and `backend_v2/models/state.py` by eliminating late event imports in `v2_core.py` and invoking `ExecutionRecord.model_rebuild(_types_namespace=_state_localns)` in `state.py`.
   - Modernized `BlueprintTransformer` (`backend_v2/services/blueprint.py`) and `MatrixDomainParser` (`backend_v2/services/matrix_domain_parser.py`) to parse prompt blocks polymorphically via `PromptBlockAdapter.validate_python(b_dict)` into `AnyPromptBlock`.
   - Modernized `backend_v2/services/orchestrator/strategies/llm.py`, `backend_v2/services/execution.py`, `backend_v2/services/orchestrator/matrix_explanation_service.py`, and `backend_v2/hooks/atom_flattening.py` to strictly narrow `isinstance(b, MatrixPromptBlock)` for MyPy strict and runtime compliance.
@@ -455,6 +455,7 @@
   - Synchronized Knowledge Items `ki_llm_extraction_architecture.md` and `ki_context_enriched_decompose_verify.md` with `zero_xml_ui_paradigm`, `four_layer_clean_stack_model`, `static_first_caching_topology`, and `bipartite_causal_graph_alignment`.
   - Synchronized `.agents/rules/05_llm_architecture.md` with `compiler_xml_sovereignty_mandate` and `four_layer_clean_stack_hierarchy`.
   - Verified all Quality Gates: Backend Audit Loop passing (0 lint/format/MyPy errors, Jinja/Seed validated), Flutter Audit Loop passing (0 analyzer issues).
+  - Executed `/tier8-audit-plan` on Phase 11 with 100% compliance; generated audit report artifact `red_team_audit_phase11_e2e_live_integration_verification.md`.
 
 ## Learned
 - **Pure Pydantic V2 Discriminated Union Architecture**:
@@ -478,21 +479,23 @@
 - **Bipartite Causal Graph Alignment & Inverse Evidence**:
   - Matrix evaluations operate as a bipartite causal graph linking dynamic paragraph/turn blocks (`[B0]...[B53]`) to normative criteria assertions (`tda_...`). The scoring engine mathematically reconciles both positive quality claims (`inverse_evidence = False`) and negative flaw searches (`inverse_evidence = True` where absence of flaw equals success) using the Guttman Waterfall model.
 
-## Remaining
-- **Phase 11: End-to-End Live Integration Verification Gate & Knowledge Synchronization**:
-  - [x] Create Plan: `/tier0-create-plan @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md] --phase=11`
-  - [x] Red-Team Phase 11 Plan: `/tier0-research-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
-  - [x] Execute Phase 11: `/tier2-execute @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
-  - [ ] Audit Phase 11: `/tier8-audit-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
-- **Post-Implementation & Final Integration Gates**:
-  - Full Backend & Frontend audit loops.
-  - Tier 2 Hardening (Backend & Frontend).
-  - Tier 7 Describe Architecture & Knowledge Item sync.
+## Remaining (Post-Implementation Gates)
+- **Integration Checkpoint: Full-Stack Validation**:
+  - [ ] Backend full audit: `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+  - [ ] Frontend full audit: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`
+  - [ ] Domain Parity Gate: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/models/domain_parity_test.dart --test`
+  - [ ] Seed Integrity Gate: `uv run python backend_v2/seed/run_seed.py local`
+- **Post-Implementation Hardening & Governance**:
+  - [ ] Run `/tier2-hardening-backend @[docs/epic/EPIC_146_tracker.md]`
+  - [ ] Run `/tier2-hardening-frontend @[docs/epic/EPIC_146_tracker.md]`
+  - [ ] Run `/tier7-describe-architecture`
+  - [ ] Run `/tier8-audit-epic @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md]`
 
 ## Required Rules & Knowledge Items for Next Session
 - **Rules**:
   - `@[.agents/rules/00-antigravity-core.md]`
   - `@[.agents/rules/01-python-backend.md]`
+  - `@[.agents/rules/02_flutter_desktop.md]`
   - `@[.agents/rules/03_seed_vault.md]`
   - `@[.agents/rules/04_directory_reference.md]`
   - `@[.agents/rules/05_llm_architecture.md]`
@@ -504,10 +507,11 @@
   - `@[ki_llm_extraction_architecture.md]`
   - `@[ki_polymorphic_rule_routing.md]`
   - `@[ki_context_enriched_decompose_verify.md]`
+  - `@[ki_deterministic_hardening_state.md]`
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]
+/tier2-hardening-backend @[docs/epic/EPIC_146_tracker.md]
 ```
 
 ---
@@ -515,20 +519,30 @@
 # Session Handover Context
 
 ## 1. Outstanding User Requests
-- **Execute Phase 11 Audit (`11_placeholder_phase11_e2e_live_integration_verification.md`)**
-  - **Status:** AUDIT PENDING
-  - **Next Directive:** `"/tier8-audit-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]"`
-  - **Scope:**
-    1. Verify Phase 11 implementation against plan specifications and Definition of Done (DoD).
-    2. Audit AST prompt XML sovereignty, circular import decoupling, and blueprint transformer adapter.
-    3. Verify live LLM execution trace results and Bipartite Causal Graph Alignment mechanics.
-    4. Generate red-team audit report artifact `red_team_audit_phase11_e2e_live_integration_verification.md`.
+- **Post-Implementation Hardening (Backend Batch 1 Complete)**:
+  - **Status:** 5/12 BACKEND FILES AUDITED & HARDENED (100% COVERAGE & CLEAN GATES)
+  - **Hardened Files (Batch 1):**
+    - `@[backend_v2/hooks/atom_flattening.py]`
+    - `@[backend_v2/models/domain/mechanical_anchors.py]`
+    - `@[backend_v2/models/domain/prompt_blocks.py]`
+    - `@[backend_v2/models/prompts/global_mandates.py]`
+    - `@[backend_v2/models/v2_core.py]`
+  - **Remaining Backend Files (Batch 2):**
+    - `@[backend_v2/seed/seed_registry.py]`
+    - `@[backend_v2/services/orchestrator/localization_compiler.py]`
+    - `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`
+    - `@[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]`
+    - `@[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]`
+    - `@[backend_v2/services/studio/simulation_service.py]`
+    - `@[backend_v2/settings.py]`
 
 ## 2. System State & Quality Gates
-- **Live LLM E2E Verification:** Passed 100% in 1938.9s (Execution ID `exe_1d123ba876b64dd0a26369df8a7b64e1`, generated [report.pdf](file:///c:/src/quorum/data/files/executions/exe_1d123ba876b64dd0a26369df8a7b64e1/report.pdf)).
-- **AST & Unit Tests:** 53/53 passed (`test_ast_prompt_xml_sovereignty.py`, `test_blueprint.py`, `test_epic_chain_e2e.py`, `test_lazy_llm_simulation.py`).
-- **Python Backend Quality Loop:** 100% clean (`scripts/backend_audit_loop.py` - 0 lint, 0 MyPy, Jinja/Seed OK).
-- **Flutter Client Quality Loop:** 100% clean (`scripts/flutter_audit_loop.py` - 0 issues).
-- **Knowledge Item Sync:** Synchronized `ki_llm_extraction_architecture.md` and `ki_context_enriched_decompose_verify.md`.
-- **Rules Sync:** Synchronized `.agents/rules/05_llm_architecture.md`.
-- **Architecture & Positioning Docs:** Created `docs/teoreettinen_ja_kaupallinen_positiointi.md` and indexed in `docs/index.md`.
+- **Hardening State Snapshot:** Serialized to `tmp/hardening_state.json` (5 DONE, 7 REMAINING).
+- **Backend Quality Loops:** 100% clean on all 5 audited targets (`backend_audit_loop.py` passing with 0 lint errors, 0 format diffs, 0 MyPy strict errors, >90% coverage).
+- **Neuro-Symbolic Audit Matrices:** Generated, populated, and verified for all 5 targets via `audit_matrix_manager.py` (154 rules passed per file).
+- **Encapsulation & Typing:** Declared explicit `__all__` across all audited modules, fixed test fixture imports in `test_rag_preflight_service.py`, and added negative test coverage.
+
+## 3. Resume Directive
+```powershell
+/tier5-resume --target="docs/epic/EPIC_146_tracker.md" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+```

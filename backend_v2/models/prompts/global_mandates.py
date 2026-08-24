@@ -4,6 +4,21 @@ This module acts as the Single Source of Truth (SSOT) for global LLM behavioral 
 ensuring strict DRY compliance across PromptCompiler, Synthesis Hooks, and MCP executions.
 """
 
+__all__ = [
+    "ANTI_ID_MANDATE",
+    "ANTI_SCORE_MANDATE",
+    "CONTEXT_SEGREGATION_MANDATE",
+    "EPISTEMIC_GLOSSARY_MANDATE",
+    "EXTENSION_ANCHORING_MANDATE",
+    "GLOBAL_MANDATES_XML",
+    "LANGUAGE_MANDATE",
+    "NULL_HYPOTHESIS_MANDATE",
+    "SCHEMA_PURITY_MANDATE",
+    "SEMANTIC_BLEED_MANDATE",
+    "TONE_MANDATE",
+    "VERBATIM_EXTRACTION_MANDATE",
+]
+
 LANGUAGE_MANDATE = (
     "<language_mandate>\n"
     "- CRITICAL LANGUAGE MANDATE: You must generate ALL string values in your JSON output "

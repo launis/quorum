@@ -8,7 +8,8 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
-from backend_v2.models.v2_core import ExecutionRecord, I18nText, Step, StepRule, TraceEvent, WorkflowInputs
+from backend_v2.models.state import TraceEvent
+from backend_v2.models.v2_core import ExecutionRecord, I18nText, Step, StepRule, WorkflowInputs
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 
 

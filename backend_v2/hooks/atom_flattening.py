@@ -19,6 +19,8 @@ from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["FlatteningHookOutput", "process_matrix_flattening"]
+
 
 class FlatteningHookOutput(BaseModel):
     """Strict Pydantic schema for the entire hook state delta payload.
@@ -48,7 +50,8 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         HookResult: Successful execution wrapper with shuffled atoms in state_delta.
 
     Raises:
-        AppException: If configuration is invalid or dependencies are missing.
+        AppException: If configuration is invalid (CONFIGURATION_ERROR), dependencies
+            are missing (EXECUTION_NOT_FOUND), or prompt block validation fails (VALIDATION_FAILED).
     """
     logger.info("[AtomFlatteningHook] Triggered for step '%s' (Execution: %s)", state.step_id, state.execution_id)
 
@@ -124,28 +127,16 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                     scale_atoms: list[tuple[str, str, str, str, bool]] = []
 
                     for claim in scale.claims:
-                        tda_assertions = claim.tda_assertions
-                        if tda_assertions and len(tda_assertions) > 0:
-                            for tda in tda_assertions:
-                                aid = str(tda.tda_id)
-                                scale_atoms.append(
-                                    (
-                                        aid,
-                                        tda.concept_description.strip(),
-                                        tda.extraction_rule.strip() if tda.extraction_rule else "",
-                                        tda.anchor_target.strip() if tda.anchor_target else "",
-                                        bool(tda.inverse_evidence),
-                                    )
+                        for tda in claim.tda_assertions:
+                            aid = str(tda.tda_id)
+                            scale_atoms.append(
+                                (
+                                    aid,
+                                    tda.concept_description.strip(),
+                                    tda.extraction_rule.strip() if tda.extraction_rule else "",
+                                    tda.anchor_target.strip() if tda.anchor_target else "",
+                                    bool(tda.inverse_evidence),
                                 )
-                        else:
-                            msg = (
-                                f"PromptBlock '{block.id}' claim is missing mandatory 'tda_assertions' during runtime."
-                            )
-                            logger.error("[%s] %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                            raise AppException(
-                                message=msg,
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
 
                     # Apply constraint securely using deterministic execution ID locking
