@@ -10,13 +10,13 @@ import random
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.v2_core import (
     AtomResultDTO,
     I18nText,
     MatrixClaim,
     MatrixScale,
-    PromptBlock,
     TDAAssertion,
 )
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder

@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from backend_v2.models.v2_core import OutputProfile, PromptBlock, Workflow
+from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.v2_core import OutputProfile, Workflow
 
 SEED_FILE = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
 

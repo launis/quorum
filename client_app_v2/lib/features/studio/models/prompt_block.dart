@@ -193,23 +193,23 @@ abstract class MatrixScale with _$MatrixScale {
       _$MatrixScaleFromJson(json);
 }
 
-/// V2 PromptBlock representation.
-/// Fuses legacy Components and Matrices into a unified directive model.
-@Freezed(equal: false)
-abstract class PromptBlock with _$PromptBlock {
+/// V2 PromptBlock polymorphic representation.
+/// Discriminated by 'category_id' with 1:1 backend parity.
+@Freezed(unionKey: 'category_id', equal: false)
+sealed class PromptBlock with _$PromptBlock {
   const PromptBlock._();
 
+  @FreezedUnionValue('matrix')
   @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory PromptBlock({
+  const factory PromptBlock.matrix({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
     String? organizationId,
     required I18nText label,
     required I18nText description,
     String? aiDescription,
-    @Default('system') String categoryId,
     @Default(true) bool isEvaluative,
-    @Default(BlockDataType.stringType) BlockDataType type,
+    @Default(BlockDataType.floatType) BlockDataType type,
     @Default(false) bool allowDecimals,
     @Default([]) List<String> outputExtensions,
     TheoryGrounding? theoryGrounding,
@@ -219,15 +219,159 @@ abstract class PromptBlock with _$PromptBlock {
     @JsonKey(name: 'is_lightweight_protocol')
     @Default(false)
     bool isLightweightProtocol,
-    @JsonKey(includeToJson: false) int? computedMin,
-    @JsonKey(includeToJson: false) int? computedMax,
-    List<MatrixScale>? scales,
+    required List<MatrixScale> scales,
     List<MatrixRow>? rows,
     List<I18nText>? columns,
-  }) = _PromptBlock;
+    @JsonKey(name: 'computed_min') int? computedMin,
+    @JsonKey(name: 'computed_max') int? computedMax,
+  }) = MatrixPromptBlock;
+
+  @FreezedUnionValue('system_rule')
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory PromptBlock.systemRule({
+    @StrictOpaqueIdConverter() required String id,
+    required String slug,
+    String? organizationId,
+    required I18nText label,
+    required I18nText description,
+    String? aiDescription,
+    @Default(false) bool isEvaluative,
+    @Default(BlockDataType.instruction) BlockDataType type,
+    @Default(false) bool allowDecimals,
+    @Default([]) List<String> outputExtensions,
+    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'is_lightweight_protocol')
+    @Default(false)
+    bool isLightweightProtocol,
+    String? instructionText,
+  }) = SystemRulePromptBlock;
+
+  @FreezedUnionValue('execution_persona')
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory PromptBlock.executionPersona({
+    @StrictOpaqueIdConverter() required String id,
+    required String slug,
+    String? organizationId,
+    required I18nText label,
+    required I18nText description,
+    String? aiDescription,
+    @Default(false) bool isEvaluative,
+    @Default(BlockDataType.instruction) BlockDataType type,
+    @Default(false) bool allowDecimals,
+    @Default([]) List<String> outputExtensions,
+    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'is_lightweight_protocol')
+    @Default(false)
+    bool isLightweightProtocol,
+    String? roleEnforcement,
+    @Default([]) List<String> toneDirectives,
+  }) = ExecutionPersonaPromptBlock;
+
+  @FreezedUnionValue('agent_role')
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory PromptBlock.agentRole({
+    @StrictOpaqueIdConverter() required String id,
+    required String slug,
+    String? organizationId,
+    required I18nText label,
+    required I18nText description,
+    String? aiDescription,
+    @Default(false) bool isEvaluative,
+    @Default(BlockDataType.instruction) BlockDataType type,
+    @Default(false) bool allowDecimals,
+    @Default([]) List<String> outputExtensions,
+    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'is_lightweight_protocol')
+    @Default(false)
+    bool isLightweightProtocol,
+    String? roleEnforcement,
+    @Default([]) List<String> toneDirectives,
+  }) = AgentRolePromptBlock;
+
+  @FreezedUnionValue('protocol')
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory PromptBlock.protocol({
+    @StrictOpaqueIdConverter() required String id,
+    required String slug,
+    String? organizationId,
+    required I18nText label,
+    required I18nText description,
+    String? aiDescription,
+    @Default(false) bool isEvaluative,
+    @Default(BlockDataType.instruction) BlockDataType type,
+    @Default(false) bool allowDecimals,
+    @Default([]) List<String> outputExtensions,
+    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'is_lightweight_protocol')
+    @Default(false)
+    bool isLightweightProtocol,
+    String? protocolInstructions,
+  }) = ProtocolPromptBlock;
+
+  @FreezedUnionValue('runtime_variables')
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory PromptBlock.runtimeVariables({
+    @StrictOpaqueIdConverter() required String id,
+    required String slug,
+    String? organizationId,
+    required I18nText label,
+    required I18nText description,
+    String? aiDescription,
+    @Default(false) bool isEvaluative,
+    @Default(BlockDataType.instruction) BlockDataType type,
+    @Default(false) bool allowDecimals,
+    @Default([]) List<String> outputExtensions,
+    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'is_lightweight_protocol')
+    @Default(false)
+    bool isLightweightProtocol,
+    String? instructionText,
+  }) = RuntimeVariablesPromptBlock;
+
+  @FreezedUnionValue('task_definition')
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory PromptBlock.taskDefinition({
+    @StrictOpaqueIdConverter() required String id,
+    required String slug,
+    String? organizationId,
+    required I18nText label,
+    required I18nText description,
+    String? aiDescription,
+    @Default(false) bool isEvaluative,
+    @Default(BlockDataType.instruction) BlockDataType type,
+    @Default(false) bool allowDecimals,
+    @Default([]) List<String> outputExtensions,
+    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'is_lightweight_protocol')
+    @Default(false)
+    bool isLightweightProtocol,
+    String? instructionText,
+  }) = TaskDefinitionPromptBlock;
 
   factory PromptBlock.fromJson(Map<String, dynamic> json) =>
       _$PromptBlockFromJson(json);
+
+  /// Absolute minimum score from backend MatrixPromptBlock
+  int? get computedMin => mapOrNull(matrix: (m) => m.computedMin);
+
+  /// Absolute maximum score from backend MatrixPromptBlock
+  int? get computedMax => mapOrNull(matrix: (m) => m.computedMax);
+
+  String get categoryId => map(
+    matrix: (_) => 'matrix',
+    systemRule: (_) => 'system_rule',
+    executionPersona: (_) => 'execution_persona',
+    agentRole: (_) => 'agent_role',
+    protocol: (_) => 'protocol',
+    runtimeVariables: (_) => 'runtime_variables',
+    taskDefinition: (_) => 'task_definition',
+  );
+
+  List<MatrixScale>? get scales => mapOrNull(matrix: (m) => m.scales);
+  List<MatrixRow>? get rows => mapOrNull(matrix: (m) => m.rows);
+  List<I18nText>? get columns => mapOrNull(matrix: (m) => m.columns);
+  bool get allowContextualOverride =>
+      mapOrNull(matrix: (m) => m.allowContextualOverride) ?? false;
 
   /// Parses raw JSON string to PromptBlock in a background isolate
   static Future<PromptBlock> parseInBackground(String rawJson) async {

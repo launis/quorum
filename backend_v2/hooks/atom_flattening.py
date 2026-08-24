@@ -13,8 +13,9 @@ from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.engine import FlattenedAtom
-from backend_v2.models.v2_core import PromptBlock, Step
+from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
 

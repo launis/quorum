@@ -12,13 +12,13 @@ from backend_v2.api.dependencies import (
     StudioPromptBlockServiceDep,
     StudioSimulationServiceDep,
 )
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.studio import (
     PromptBlockDeleteResponse,
     PromptBlockResponseDTO,
     PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
 )
-from backend_v2.models.v2_core import PromptBlock
 
 logger = logging.getLogger(__name__)
 

@@ -20,7 +20,7 @@ def mock_compiler() -> MagicMock:
 
 def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
     """Test successful compilation of PromptPayload."""
-    from backend_v2.models.v2_core import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
 
     criteria_blocks = [
         PromptBlock.model_validate(
@@ -29,7 +29,7 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
                 "slug": "test_slug",
                 "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
                 "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
-                "type": "string",
+                "type": "float",
                 "category_id": "matrix",
                 "scales": [
                     {
@@ -92,7 +92,8 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
 
 def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None:
     """Test Fail-Fast when tda_assertions are missing."""
-    from backend_v2.models.v2_core import MatrixClaim, MatrixScale, PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
+    from backend_v2.models.v2_core import MatrixClaim, MatrixScale
 
     criteria_blocks = [
         PromptBlock.model_construct(  # type: ignore[call-arg]
@@ -148,8 +149,8 @@ def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock) -> N
 
 def test_prompt_factory_prompt_purity_assertion(mock_compiler: MagicMock) -> None:
     """Test that mechanical_anchors are isolated in user_payload and not in base_system_prompt."""
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
     from backend_v2.models.enums import PromptBlockCategory
-    from backend_v2.models.v2_core import PromptBlock
 
     criteria_blocks = [
         PromptBlock.model_construct(  # type: ignore[call-arg]
@@ -187,8 +188,8 @@ def test_prompt_factory_prompt_purity_assertion(mock_compiler: MagicMock) -> Non
 
 def test_prompt_factory_missing_anchors_data(mock_compiler: MagicMock) -> None:
     """Test that missing anchor data defaults correctly and maintains prompt purity."""
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
     from backend_v2.models.enums import PromptBlockCategory
-    from backend_v2.models.v2_core import PromptBlock
 
     criteria_blocks = [
         PromptBlock.model_construct(  # type: ignore[call-arg]

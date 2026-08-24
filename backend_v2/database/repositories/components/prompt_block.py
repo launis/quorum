@@ -6,7 +6,7 @@ from typing import Any
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 
 logger = logging.getLogger(__name__)
 

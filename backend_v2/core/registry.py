@@ -15,6 +15,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.prompts.field_prompts import (
@@ -23,7 +24,6 @@ from backend_v2.models.prompts.field_prompts import (
     DESC_EXACT_QUOTES,
     DESC_REASONING_TRACE,
 )
-from backend_v2.models.v2_core import PromptBlock
 from backend_v2.models.view.sdui import HeroInsightBlock, MarkdownBlock
 from backend_v2.utils.alias_engine import AliasEngine
 
@@ -553,12 +553,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
             if crit.category_id == "matrix":
                 base_class = StrippedBaseMatrixXAI
             else:
-                rule_allows_override = bool(crit.allow_contextual_override)
-
-                if strictness_level >= 100 or not rule_allows_override:
-                    base_class = step_strict_class
-                else:
-                    base_class = step_semantic_class
+                base_class = step_strict_class
 
             label_str = self._resolve_i18n(crit.label, target_locale) if crit.label else ""
             cat_val = crit.category_id.value if isinstance(crit.category_id, Enum) else (crit.category_id or "criteria")

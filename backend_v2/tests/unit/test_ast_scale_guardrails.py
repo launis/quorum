@@ -21,12 +21,12 @@ def _get_class_node_from_file(file_path: Path, class_name: str) -> ast.ClassDef 
 
 
 def test_prompt_block_has_no_scale_min_or_max() -> None:
-    """AST Guardrail: PromptBlock in v2_core.py must NOT have scale_min or scale_max fields."""
-    v2_core_path = Path("backend_v2/models/v2_core.py")
-    assert v2_core_path.exists(), f"File {v2_core_path} does not exist"
+    """AST Guardrail: MatrixPromptBlock in prompt_blocks.py must NOT have scale_min or scale_max fields."""
+    pb_path = Path("backend_v2/models/domain/prompt_blocks.py")
+    assert pb_path.exists(), f"File {pb_path} does not exist"
 
-    class_node = _get_class_node_from_file(v2_core_path, "PromptBlock")
-    assert class_node is not None, "PromptBlock class not found in v2_core.py"
+    class_node = _get_class_node_from_file(pb_path, "MatrixPromptBlock")
+    assert class_node is not None, "MatrixPromptBlock class not found in prompt_blocks.py"
 
     field_names: set[str] = set()
     for stmt in class_node.body:
@@ -37,10 +37,10 @@ def test_prompt_block_has_no_scale_min_or_max() -> None:
                 if isinstance(target, ast.Name):
                     field_names.add(target.id)
 
-    assert "scale_min" not in field_names, "PromptBlock must NOT contain 'scale_min' field"
-    assert "scale_max" not in field_names, "PromptBlock must NOT contain 'scale_max' field"
-    assert "computed_min" in field_names, "PromptBlock must retain derived 'computed_min' field"
-    assert "computed_max" in field_names, "PromptBlock must retain derived 'computed_max' field"
+    assert "scale_min" not in field_names, "MatrixPromptBlock must NOT contain 'scale_min' field"
+    assert "scale_max" not in field_names, "MatrixPromptBlock must NOT contain 'scale_max' field"
+    assert "computed_min" in field_names, "MatrixPromptBlock must retain derived 'computed_min' field"
+    assert "computed_max" in field_names, "MatrixPromptBlock must retain derived 'computed_max' field"
 
 
 def test_output_profile_has_custom_scale_bounds() -> None:

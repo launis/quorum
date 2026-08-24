@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from backend_v2.database.interfaces import IPromptBlockRepository, ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,

@@ -34,10 +34,15 @@ Quorum's cognitive evaluation and prompt orchestration architecture undergoes a 
 | `MatrixClaim.ai_description` | @[backend_v2/models/v2_core.py#L324-L341] | **INTENTIONALLY DROPPED** / Migrated to `TDAAssertion.concept_description` |
 | `MatrixClaim.aiDescription` | @[client_app_v2/lib/features/studio/models/prompt_block.dart] | **INTENTIONALLY DROPPED** / Bound to `TDAAssertion.conceptDescription` |
 | 152 `ai_description` keys | @[backend_v2/seed/seed_data.json] (claims) | **INTENTIONALLY DROPPED** / Migrated 70 missing to `TDAAssertion.concept_description` and eradicated in Phase 2 |
-| 27 redundant `system_rule` blocks | @[backend_v2/seed/seed_data.json] | ✅ **ALREADY DONE** — 0 matching block IDs remain in seed_data.json |
-| Monolithic flat `PromptBlock` model with optional fields | @[backend_v2/models/v2_core.py#L380-L544] | **INTENTIONALLY DROPPED** / Replaced by polymorphic `AnyPromptBlock` discriminated union in [NEW] @[backend_v2/models/domain/prompt_blocks.py] |
-| Flat `PromptBlock` Freezed class with optional fields | @[client_app_v2/lib/features/studio/models/prompt_block.dart] | **INTENTIONALLY DROPPED** / Replaced by sealed Freezed union class `PromptBlock` |
-| Runtime duck-typing validator `pre_validate_block_consistency` | @[backend_v2/models/v2_core.py#L461-L544] | **INTENTIONALLY DROPPED** / Replaced by Pydantic Rust C-core parse-time validation on concrete sub-models |
+| 27 redundant `system_rule` blocks | @[backend_v2/seed/seed_data.json] | ✅ **ALREADY DONE** — 0 matching block IDs remain in seed_data |
+| Monolithic flat `PromptBlock` model with optional fields | @[backend_v2/models/v2_core.py#L381-L545] | **INTENTIONALLY DROPPED** / Replaced by polymorphic `AnyPromptBlock` discriminated union in [NEW] @[backend_v2/models/domain/prompt_blocks.py] |
+| Flat `MatrixClaim.ai_description` field | @[backend_v2/models/v2_core.py#L296-L321] | **INTENTIONALLY DROPPED** / Eradicated; `TDAAssertion.concept_description` is the sole SSOT |
+| Runtime duck-typing validator `pre_validate_block_consistency` | @[backend_v2/models/v2_core.py#L462-L545] | **INTENTIONALLY DROPPED** / Replaced by Pydantic Rust C-core parse-time validation on concrete sub-models |
+| Hardcoded UUID prefix truncation (`tda_${uuidHex.substring(0, 16)}`) | `client_app_v2/.../prompt_block.dart` | **INTENTIONALLY DROPPED** / Replaced by 32 hex chars `tda_$uuidHex` for 1:1 regex parity |
+| Form validation error string hardcoding in Dart | Studio modal widgets | **INTENTIONALLY DROPPED** / Replaced by `.arb` localized strings (`l10n.tdaConceptMinLengthError`) |
+| Redundant `const SizedBox(height: 16)` and spacing doubles in Studio | Studio modal widgets | **INTENTIONALLY DROPPED** / Cleaned and migrated to `AppSpacing` tokens |
+| Dynamic UI defaults / language-level fallback chains (`dict.get()`, `hasattr`, `getattr`) in compiler | `prompt_factory.py#L86-L132` | **INTENTIONALLY DROPPED** / Replaced by Fail-Fast domain models and `MechanicalAnchorsPayload` |
+| Finnish error messages in `v2_core.py` | @[backend_v2/models/v2_core.py#L296-L321] and @[backend_v2/models/v2_core.py#L462-L545] | **INTENTIONALLY DROPPED** / Translated to English |
 | Lax enum aliases `LaxPromptBlockCategory`, `LaxBlockDataType` | @[backend_v2/models/enums.py] / @[backend_v2/models/v2_core.py] | **INTENTIONALLY DROPPED** / Replaced by strict `PromptBlockCategory` and `BlockDataType` enums |
 | Duck typing `getattr(claim, 'ai_description', None)` | @[backend_v2/services/studio/simulation_service.py#L181] | **INTENTIONALLY DROPPED** / Direct iteration over `claim.tda_assertions` |
 | Lazy fallback `rendered = data.ai_description or ""` | @[backend_v2/services/studio/simulation_service.py#L159] | **INTENTIONALLY DROPPED** / Explicit `None` check |
@@ -45,7 +50,6 @@ Quorum's cognitive evaluation and prompt orchestration architecture undergoes a 
 | Hardcoded slug checks (`matrix_causal_analyst`) | @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py#L173] | **INTENTIONALLY DROPPED** / Replaced by `isinstance(block, MatrixPromptBlock)` check |
 | 7 `.get()` fallback chains for `execution_time` | @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py#L45-L290] | **INTENTIONALLY DROPPED** / Replaced by `ExecutionTimeResolver` pure function |
 | Lazy fallback `LANGUAGE_NAMES.get(..., "English")` | @[backend_v2/services/orchestrator/localization_compiler.py#L95] | **INTENTIONALLY DROPPED** / Replaced by Fail-Fast `AppException` |
-| Finnish error messages in `v2_core.py` | @[backend_v2/models/v2_core.py#L296-L321] and @[backend_v2/models/v2_core.py#L461-L544] | **INTENTIONALLY DROPPED** / Translated to English |
 | Historical comments violating present tense | @[backend_v2/models/v2_core.py#L268] | **INTENTIONALLY DROPPED** / Present tense description |
 | Manual string clipping `uuidHex.substring(0, 16)` | @[client_app_v2/lib/features/studio/models/prompt_block.dart#L136] | **INTENTIONALLY DROPPED** / Replaced by 32 hex char ID generation (`tda_$uuidHex`) in Phase 4 |
 | Duplicate UI widget `const SizedBox(height: 16)` | @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart] | **PURGED** (UI hygiene) |

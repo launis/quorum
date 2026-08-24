@@ -98,7 +98,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     }
 
     # Act
-    from backend_v2.models.v2_core import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
 
     DynamicSchema = compiler.build_dynamic_schema(
         schema_name="TestSchema", criteria=[PromptBlock.model_validate(mock_matrix_block)], strictness_level=50
@@ -160,7 +160,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         ],  # noqa: E501
     }
 
-    from backend_v2.models.v2_core import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
 
     DynamicSchema = compiler.build_dynamic_schema(
         "TestExtract", [PromptBlock.model_validate(mock_matrix)], strictness_level=50
@@ -271,8 +271,8 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
     täydellisinä dynamic schema -kenttien kuvauksissa ilman keinotekoista typistämistä.
     """
     compiler = PromptCompiler()
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
     from backend_v2.models.enums import BlockDataType
-    from backend_v2.models.v2_core import PromptBlock
 
     extreme_desc = "X" * 1000  # 1000 merkin pituinen ohjeistus
     mock_block = {
@@ -324,7 +324,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
 
 def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     compiler = PromptCompiler()
-    from backend_v2.models.v2_core import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
 
     mock_block = {
         "id": "blk_599645bd5baf44e2",

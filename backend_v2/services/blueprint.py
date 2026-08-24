@@ -20,13 +20,13 @@ from backend_v2.models.enums import (
     TargetBlockType,
     VirtualSystemStepID,
 )
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     AtomResultDTO,
     HydratedAtomDTO,
     MCPAuditTrace,
     OutputProfile,
-    PromptBlock,
     ReportDataDTO,
 )
 from backend_v2.models.view.sdui import (

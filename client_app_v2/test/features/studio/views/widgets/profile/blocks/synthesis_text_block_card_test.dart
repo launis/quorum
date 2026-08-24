@@ -23,18 +23,17 @@ void main() {
       synthesis: SynthesisConfigDTO(synthesisBlockId: 'block_1'),
     );
 
-    final mockPromptBlock = PromptBlock(
+    final mockPromptBlock = const PromptBlock.systemRule(
       id: 'block_1',
       slug: 'exec_summary',
-      label: const I18nText(
+      label: I18nText(
         defaultLocale: 'en',
         translations: {'en': 'Executive Summary'},
       ),
-      description: const I18nText(
+      description: I18nText(
         defaultLocale: 'en',
         translations: {'en': 'Exec summary block'},
       ),
-      categoryId: 'general',
     );
 
     await tester.pumpWidget(

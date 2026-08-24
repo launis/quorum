@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 
 
 def test_prompt_block_computed_min_max_float() -> None:
@@ -40,7 +40,7 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
         "ai_description": "AI prompt",
         "category_id": "matrix",
         "is_evaluative": True,
-        "type": "string",
+        "type": "float",
         # Notice: computed_min and computed_max are deliberately omitted
         "scales": [
             {

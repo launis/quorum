@@ -34,20 +34,18 @@ void main() {
       );
 
       final List<PromptBlock> mockPromptBlocks = [
-        const PromptBlock(
+        const PromptBlock.systemRule(
           id: 'block_a',
           slug: 'block_a',
-          categoryId: 'criteria',
           label: I18nText(defaultLocale: 'en', translations: {'en': 'Block A'}),
           description: I18nText(
             defaultLocale: 'en',
             translations: {'en': 'Desc A'},
           ),
         ),
-        const PromptBlock(
+        const PromptBlock.systemRule(
           id: 'block_b',
           slug: 'block_b',
-          categoryId: 'criteria',
           label: I18nText(defaultLocale: 'en', translations: {'en': 'Block B'}),
           description: I18nText(
             defaultLocale: 'en',
@@ -135,10 +133,9 @@ void main() {
         );
 
         final List<PromptBlock> mockPromptBlocks = [
-          const PromptBlock(
+          const PromptBlock.systemRule(
             id: 'block_a',
             slug: 'block_a',
-            categoryId: 'criteria',
             label: I18nText(
               defaultLocale: 'en',
               translations: {'en': 'Block A'},
@@ -148,11 +145,9 @@ void main() {
               translations: {'en': 'Desc A'},
             ),
           ),
-          const PromptBlock(
+          const PromptBlock.runtimeVariables(
             id: 'block_c',
             slug: 'block_c',
-            categoryId:
-                'context', // Context blocks are filtered out of criteria dropdown items
             label: I18nText(
               defaultLocale: 'en',
               translations: {'en': 'Block C'},

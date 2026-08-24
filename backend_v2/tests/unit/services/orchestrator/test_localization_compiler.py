@@ -1,7 +1,7 @@
 import pytest
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
 
 

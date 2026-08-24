@@ -40,6 +40,7 @@ from backend_v2.models.state import (
     TraceEvent,
     WorkflowState,  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
 )
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.v2_core import (
     ComponentType,
     DataDictionaryField,
@@ -51,7 +52,6 @@ from backend_v2.models.v2_core import (
     HumanOverrideDTO,
     HumanOverrideRequest,
     JobAcceptedDTO,
-    PromptBlock,
     ReportDataDTO,
     Step,
     Workflow,

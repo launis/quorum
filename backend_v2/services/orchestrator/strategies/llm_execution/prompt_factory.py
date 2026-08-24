@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Prompt Factory Service for Cognitive Quorum.
 
 This module orchestrates prompt compilation and builds the final PromptPayload.
@@ -7,16 +5,18 @@ It supports modern Python 3.14 syntax, PEP 695 generic parameters, strict
 pathlib integration, and adheres strictly to the architectural safety guidelines.
 """
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
-from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.strategies.llm_execution.execution_time_resolver import (
     ExecutionTimeResolver,
 )
@@ -68,6 +68,7 @@ class PromptFactory:
             compiler: The prompt compiler component instance.
             role_block: The block defining execution persona and guidelines.
             protocol_block: Standard parsing extraction guideline.
+            execution_persona_block: Optional execution persona block for tone guidance.
             criteria_blocks: Criteria blocks with evaluation scales.
             target_locale: Target localization code (e.g. 'fi' or 'en').
             effective_mcp_tools: Optional active MCP tools names list.

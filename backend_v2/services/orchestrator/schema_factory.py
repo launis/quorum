@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from backend_v2.core.registry import StrippedBaseTDAExtraction, get_schema_strategy
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 
 __all__ = ["SchemaFactory", "StrippedBaseTDAExtraction"]
 

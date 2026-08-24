@@ -122,8 +122,9 @@ def test_compress_synthesis_payload_compresses_anchors() -> None:
 
 
 def test_build_title_map_with_blocks_and_steps() -> None:
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
     from backend_v2.models.enums import HistoricalContextMode
-    from backend_v2.models.v2_core import ExpectedInput, I18nText, PromptBlock, Step, StepRule, Workflow
+    from backend_v2.models.v2_core import ExpectedInput, I18nText, Step, StepRule, Workflow
     from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
 
     blocks_by_id = {

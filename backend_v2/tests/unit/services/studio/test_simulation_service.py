@@ -7,13 +7,13 @@ import pytest
 
 from backend_v2.exceptions import ResourceNotFoundError
 from backend_v2.models.auth import TokenData
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import BlockDataType, HistoricalContextMode, PromptBlockCategory
 from backend_v2.models.v2_core import (
     ExpectedInput,
     I18nText,
     MatrixClaim,
     MatrixScale,
-    PromptBlock,
     Step,
     StepRule,
     TDAAssertion,
@@ -270,7 +270,7 @@ async def test_simulate_prompt_block_matrix_scales(
         label=I18nText(default_locale="en", translations={"en": "Matrix Block"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         category_id=PromptBlockCategory.MATRIX,
-        type=BlockDataType.STRING,
+        type=BlockDataType.FLOAT,
         ai_description="Perform matrix evaluation.",
         scales=[
             MatrixScale(

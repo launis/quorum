@@ -8,13 +8,14 @@ import logging
 
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.prompts.matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
-from backend_v2.models.v2_core import I18nText, PromptBlock
+from backend_v2.models.v2_core import I18nText
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 
 logger = logging.getLogger(__name__)

@@ -52,8 +52,9 @@ def _build_valid_pb_dict(
         "ai_description": "Test AI Desc",
         "type": pb_type,
         "category_id": category_id,
-        "allow_contextual_override": True,
     }
+    if category_id == "matrix":
+        pb["allow_contextual_override"] = True
     if scales:
         pb["scales"] = scales
     return pb
@@ -881,7 +882,7 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_empty_evaluations() -> None:
     from backend_v2.hooks.scoring import matrix_scoring_hook
-    from backend_v2.models.v2_core import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
 
     pb = _build_valid_pb_dict("blk_1111111111111111", [_build_valid_scale(1, ["atom_test"])])
     state = HookState(

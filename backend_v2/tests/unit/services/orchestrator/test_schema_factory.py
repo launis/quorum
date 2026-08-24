@@ -83,8 +83,9 @@ def test_normal_typo_still_rejected_by_extra_forbid() -> None:
 
 def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFactory) -> None:
     """Verify that build_dynamic_schema enforces dynamic Literal validation on source_document_ids."""
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText, PromptBlock
+    from backend_v2.models.v2_core import I18nText
 
     criteria = [
         PromptBlock(

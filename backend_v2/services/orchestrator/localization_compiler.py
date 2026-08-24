@@ -11,7 +11,8 @@ import logging
 from typing import Any
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
-from backend_v2.models.v2_core import I18nText, PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.v2_core import I18nText
 
 logger = logging.getLogger(__name__)
 

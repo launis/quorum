@@ -2,12 +2,45 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.llm.schema_builder import SchemaCompilerService
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory, XaiExtensionType
-from backend_v2.models.v2_core import I18nText, PromptBlock
+from backend_v2.models.v2_core import I18nText
 
 
 def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) -> PromptBlock:
     """Helper to create a valid V2 PromptBlock for schema testing."""
+    if btype in (BlockDataType.FLOAT, BlockDataType.INT):
+        from backend_v2.models.v2_core import MatrixClaim, MatrixScale, TDAAssertion
+
+        scale = MatrixScale(
+            score=1,
+            ai_label="TEST",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(default_locale="en", translations={"en": "Test"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            concept_description="Concept test",
+                            inverse_evidence=False,
+                            aggregation_mode="EXISTS",
+                        )
+                    ],
+                )
+            ],
+        )
+        return PromptBlock(
+            id="blk_1234567890abcdef1234567890abcdef",
+            slug=slug,
+            label=I18nText(default_locale="en", translations={"en": "Test Label", "fi": "Test Label"}),
+            description=I18nText(default_locale="en", translations={"en": "Test Desc", "fi": "Test Desc"}),
+            ai_description="Test AI instruction",
+            category_id=PromptBlockCategory.MATRIX,
+            is_evaluative=True,
+            type=btype,
+            allow_decimals=False,
+            output_extensions=extensions,
+            scales=[scale],
+        )
     return PromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug=slug,

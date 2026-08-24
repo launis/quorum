@@ -8,10 +8,11 @@ from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field
 
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
-from backend_v2.models.v2_core import PromptBlock, Step, Workflow
+from backend_v2.models.v2_core import Step, Workflow
 
 
 class WorkflowResponseDTO(BaseResponseDTO, Workflow):
@@ -48,18 +49,9 @@ class StepResponseDTO(BaseResponseDTO, Step):
     ]
 
 
-class PromptBlockResponseDTO(BaseResponseDTO, PromptBlock):
-    """API Response boundary for PromptBlock ensuring Data Sovereignty.
+# PromptBlockResponseDTO alias to AnyPromptBlock discriminated union
+PromptBlockResponseDTO = PromptBlock
 
-    Attributes:
-        organization_id: Explicitly exposed for Admin Studio UI routing.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    organization_id: Annotated[
-        str | None, Field(default=None, description="Explicitly exposed for Admin Studio UI routing.")
-    ]
 
 
 class MCPGatewayDeleteResponse(BaseResponseDTO):

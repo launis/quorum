@@ -18,7 +18,8 @@ from pydantic import BaseModel
 from backend_v2.core.registry import EvidenceType, StrippedBaseMatrixXAI
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import ExpectedInput, PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.v2_core import ExpectedInput
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 

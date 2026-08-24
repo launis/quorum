@@ -6,12 +6,12 @@ import pytest
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixClaim,
     MatrixScale,
-    PromptBlock,
     Step,
     TDAAssertion,
 )

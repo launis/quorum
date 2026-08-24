@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, cast  # noqa: F401
 
 if TYPE_CHECKING:
+    from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+    from backend_v2.models.dtos.trace import DataStarvationEvent
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 from fastapi import status
@@ -18,27 +20,21 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
-from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, QuoteEvidenceDTO
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
-from backend_v2.models.dtos.trace import DataStarvationEvent
 from backend_v2.models.enums import (
     BlockDataType,
     ComponentType,
     DisplayScale,
     ExecutionStatus,
-    LaxBlockDataType,
     LaxComponentType,
     LaxDisplayScale,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
-    LaxPromptBlockCategory,
     LaxScoringStrategy,
     LaxTargetBlockType,
     LaxXaiExtensionType,
-    PromptBlockCategory,
     ScoringStrategy,
     SDUIComponentType,
     StrictnessAnchor,
@@ -62,7 +58,6 @@ __all__ = [
     "LexiconSuggestionListDTO",
     "AllowedMCPTool",
     "MCPAuditTrace",
-    "MechanicalAnchorsPayload",
     "Step",
     "StepRule",
     "Role",
@@ -376,173 +371,6 @@ class MatrixScale(V2CoreBase):
     claims: list[MatrixClaim] = Field(
         default_factory=list, description="List of behavioral claims/criteria for this score."
     )
-
-
-class PromptBlock(V2CoreBase):
-    """V2 PromptBlock representation.
-    Fuses legacy Components and Matrices into a unified directive model.
-
-    Attributes:
-        id: Unique identifier for the prompt block.
-        slug: URL routing helper field.
-        organization_id: Tenant organization ID.
-        label: Localizable label for the UI.
-        description: Localizable description or help text for the UI.
-        ai_description: MANDATORY: English cognitive instructions for the LLM.
-        category_id: Categorization identifier.
-        is_evaluative: Whether this matrix is mathematically commensurate.
-        type: Data type of the expected extracted value.
-        allow_decimals: Whether float types allow decimals in validation.
-        output_extensions: List of requested XAI output extensions.
-        execution_persona: Defines the global system prompt rules applied to this block.
-        theory_grounding: Fetches and injects source theory as <theory_context>.
-        scales: BARS scale definitions with scores and localized claims.
-        rows: Optional rows for grid matrices.
-        columns: Optional columns for grid matrices.
-        computed_min: Dynamically computed absolute minimum score.
-        computed_max: Dynamically computed absolute maximum score.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    id: str = Field(
-        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
-        description=(
-            "Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID "
-            "to guarantee dynamic schema compilation."
-        ),
-    )
-    slug: str = Field(description="URL routing helper field. Strictly no data relation role.")
-    organization_id: str | None = Field(default=None, description="Tenant organization ID.")
-    label: I18nText = Field(description="Localizable label for the UI.")
-    description: I18nText = Field(description="Localizable description or help text for the UI.")
-    ai_description: str | None = Field(
-        default=None,
-        description=(
-            "MANDATORY: English cognitive instructions for the LLM. Completely isolates "
-            "AI prompt from UI localizations."
-        ),
-    )
-    category_id: LaxPromptBlockCategory = Field(
-        description="Categorization identifier (e.g. 'scientific_theory', 'system_rule')."
-    )
-    is_evaluative: bool = Field(
-        default=True,
-        description="Whether this matrix is mathematically commensurate and contributes to the global average score.",
-    )
-    type: LaxBlockDataType = Field(description="Data type of the expected extracted value.")
-    allow_decimals: bool = Field(default=False, description="Whether float types allow decimals in validation.")
-    output_extensions: list[str] = Field(
-        default_factory=list,
-        description="List of requested XAI output extensions (e.g. 'justification', 'risk_flag').",
-    )
-    # execution_persona field REMOVED. execution_persona_block_id now resides on the Step model.
-    theory_grounding: TheoryGrounding | None = Field(
-        default=None,
-        description="Fetches and injects source theory as <theory_context>.",
-    )
-    is_lightweight_protocol: bool = Field(
-        default=False,
-        description="If True, enables Best-of-Three ensemble evaluation routing.",
-    )
-    allow_contextual_override: bool = Field(
-        default=False,
-        description="If True, enables contextual override for ALL assertions in this matrix.",
-    )
-    scales: list[MatrixScale] | None = Field(
-        default=None,
-        description="BARS scale definitions with scores and localized claims. If provided, must not be empty.",
-    )
-    rows: list[MatrixRow] | None = Field(default=None, description="Optional rows for grid matrices.")
-    columns: list[I18nText] | None = Field(default=None, description="Optional columns for grid matrices.")
-
-    computed_min: int | None = Field(default=None, description="Dynamically computed absolute minimum score")
-    computed_max: int | None = Field(default=None, description="Dynamically computed absolute maximum score")
-
-    @model_validator(mode="before")
-    @classmethod
-    def pre_validate_block_consistency(cls, data: Any) -> Any:
-        """Strict validation for PromptBlock relations and logical constraints.
-
-        Args:
-            data: Unvalidated dictionary input mapping.
-
-        Raises:
-            AppException: If structure is malformed or internally inconsistent.
-
-        Returns:
-            The sanitized dictionary matching schema expectations.
-        """
-        if not isinstance(data, dict):
-            return data
-
-        new_min = None
-        new_max = None
-        scales = data.get("scales")
-        if scales and isinstance(scales, list) and len(scales) > 0:
-            scores = []
-            for s in scales:
-                if isinstance(s, dict) and "score" in s:
-                    scores.append(s["score"])
-                elif isinstance(s, MatrixScale):
-                    scores.append(s.score)
-            if scores:
-                new_min = min(scores)
-                new_max = max(scores)
-
-        allow_decimals = data.get("allow_decimals", False)
-        block_type = data.get("type")
-        block_id = data.get("id", "Unknown")
-
-        valid_numeric = ["float", "int", "string", BlockDataType.FLOAT, BlockDataType.INT, BlockDataType.STRING]
-        if allow_decimals and block_type not in valid_numeric:
-            msg = f"PromptBlock '{block_id}': allow_decimals is only valid for numeric logic."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise ValueError(msg)
-
-        if scales is not None:
-            if len(scales) == 0:
-                msg = (
-                    f"PromptBlock '{block_id}': Jos scales on valittu käyttöön, "
-                    "siellä on pakko olla vähintään yksi MatrixScale (len > 0)."
-                )
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise ValueError(msg)
-            for scale in scales:
-                claims = (
-                    scale.get("claims")
-                    if isinstance(scale, dict)
-                    else (scale.claims if isinstance(scale, MatrixScale) else None)
-                )
-                if not claims or len(claims) == 0:
-                    score_val = (
-                        scale.get("score")
-                        if isinstance(scale, dict)
-                        else (scale.score if isinstance(scale, MatrixScale) else None)
-                    )
-                    msg = (
-                        f"PromptBlock '{block_id}' / Scale '{score_val}': "
-                        "Jokaisella scorella pitää olla vähintään yksi claim."
-                    )
-                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                    raise ValueError(msg)
-
-        if new_min is not None:
-            data["computed_min"] = new_min
-        if new_max is not None:
-            data["computed_max"] = new_max
-
-        category_id = data.get("category_id")
-        if category_id in ("matrix", PromptBlockCategory.MATRIX):
-            if data.get("computed_min") is None or data.get("computed_max") is None:
-                msg = (
-                    f"PromptBlock '{block_id}': Kun category_id on 'matrix', "
-                    "computed_min ja computed_max on pakko pystyä laskemaan (scales-taulukosta)."
-                )
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise ValueError(msg)
-
-        return data
 
 
 class ChatMessageDTO(V2CoreBase):
@@ -1801,6 +1629,8 @@ class BaseTDAExtraction(BaseModel):
         return data
 
 
+from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+from backend_v2.models.dtos.trace import DataStarvationEvent
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.view.sdui import (
     SduiMatrixTableBlock,
@@ -1809,6 +1639,8 @@ from backend_v2.models.view.sdui import (
     SduiScatterPlotBlock,
 )
 
+RenderedSynthesisCache.model_rebuild()
+ExecutionCreate.model_rebuild()
 ExecutionRecord.model_rebuild()
 
 _sdui_localns = {

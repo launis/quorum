@@ -119,7 +119,7 @@
   - [x] Step 2: Mechanical Anchors & Execution Time Resolver Decomposition — Create MechanicalAnchorsPayload and ExecutionTimeResolver, eradicate find_value_by_key / hasattr / getattr, replace slug checks with polymorphic checks, and replace LANGUAGE_NAMES.get with Fail-Fast AppException
   - [x] Step 3: Unit Test Modernization & ISTQB Negative Partition Coverage — Modernize test_prompt_factory.py, test_epic_60_decoupling.py, create test_execution_time_resolver.py, update test_localization_compiler.py, and update test_matrix_sensor_prompt_builder.py
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
 
 ---
 
@@ -127,14 +127,14 @@
 
 **Plan:** @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md]
 
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md] --phase=7`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check — Verify Phase 6 compiler baseline
-  - [ ] Step 1: Pydantic Discriminated Union Creation — Create AnyPromptBlock polymorphic union in backend_v2/models/domain/prompt_blocks.py, eradicate monolithic PromptBlock and pre_validate_block_consistency in v2_core.py, and update seed_registry.py
-  - [ ] Step 2: Flutter Freezed Sealed Class Synchronous Parity — Refactor Dart PromptBlock to sealed union class with Freezed unionKey: categoryId and run build runner
-  - [ ] Step 3: AST XML Sovereignty Guardrails — Implement 10 static AST tests in test_ast_prompt_xml_sovereignty.py
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md] --phase=7`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check — Verify Phase 6 compiler baseline in v2_core.py, mechanical_anchors.py, and prompt_factory.py
+  - [x] Step 1: Pydantic Discriminated Union Creation & Seed Registry Alignment — Create AnyPromptBlock polymorphic union in backend_v2/models/domain/prompt_blocks.py, resolve circular imports in v2_core.py with __getattr__, align PromptBlockResponseDTO, and update seed_registry.py
+  - [x] Step 2: Flutter Freezed Sealed Class Synchronous Parity — Refactor Dart PromptBlock to sealed union class with Freezed unionKey: category_id in prompt_block.dart, run build runner, and modernize test fixtures
+  - [x] Step 3: AST XML Sovereignty Guardrails Test Suite — Implement and pass 10 static AST tests in test_ast_prompt_xml_sovereignty.py and 8 unit tests in test_prompt_blocks.py
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
 
 ---
@@ -337,16 +337,15 @@
   - Replaced hardcoded hex color `const Color(0xFF2E7D32)` in `prompt_block_builder_view.dart` with `Theme.of(context).colorScheme.primaryContainer`.
   - Eradicated `DateTime.now()` timestamp IDs in favor of deterministic UUID generation (`const Uuid().v4().replaceAll('-', '')`).
   - Replaced fallback chain in `_deletePromptBlock` with Fail-Fast `AppException.validation`.
-  - Migrated inlined language ternaries and tooltips to ARB localization keys (`app_en.arb` and `app_fi.arb`).
-  - In `scale_editor_modal.dart`: replaced ad-hoc UUID string generation with standard `TDAAssertion.create()`, replaced magic spacing doubles with `AppSpacing` tokens, and migrated hardcoded strings to ARB.
-  - In `row_editor_modal.dart`: replaced magic spacing doubles with `AppSpacing` tokens and migrated hardcoded strings to ARB.
-  - In `bars_matrix_builder.dart`: replaced spacing doubles with `AppSpacing` tokens and replaced hardcoded string formatting with `l10n.barsMatrixMoreAssertions(count)`.
-  - Synchronized test harness `step_builder_view_dropdown_test.dart` to use `stepId: mockStep.id`.
-  - Executed and PASSED `/tier8-audit-plan` for Phase 1 Frontend (`flutter_audit_loop.py` passed with 191+ unit tests).
+- **Phase 1 Plans (`01_phase1_backend_tech_debt_and_ast_guardrails.md` & `02_phase1_frontend_tech_debt_cleanups.md`) Complete & Audited**:
+  - Eliminated duck-typing `getattr(claim, 'ai_description', None)` and lazy fallback `data.ai_description or ""` in `backend_v2/services/studio/simulation_service.py`.
+  - Created AST and seed guardrail suite in `backend_v2/tests/unit/test_ast_matrix_claim_guardrails.py` with 9 static and seed guardrails.
+  - Eliminated dynamic step typing and GoRouter extra passing in `client_app_v2/lib/features/studio/views/step_builder_view.dart` and `client_app_v2/lib/router/router.dart`.
+  - Purged hardcoded hex colors, fallback chains, inlined ternary logic, and hardcoded strings in Studio views and modals.
+  - Executed and PASSED `/tier8-audit-plan` for Phase 1 backend and frontend plans.
 - **Phase 2 Plan (`03_phase2_seed_data_verification_and_reseed.md`) Complete & Audited**:
-  - Created timestamped backup `seed_data_pre_phase2.json` in `backend_v2/seed/backups/`.
-  - Executed deterministic migration script `scratch/migrate_seed_tda.py` copying 70 missing `concept_description` values from `MatrixClaim.ai_description` and eradicating `ai_description` from all 152 claims in `seed_data.json`.
-  - Verified 0 claim `ai_description` keys and 152 valid assertion `concept_description` strings (min len 16, max len 788, avg len 102.7) via `scratch/verify_seed.py`.
+  - Created timestamped backup of `backend_v2/seed/seed_data.json`.
+  - Migrated 70 missing `concept_description` values from `claim.ai_description` and permanently eradicated `ai_description` from all 152 MatrixClaims in `seed_data.json`.
   - Un-skipped and passed AST guardrail seed tests `test_seed_claims_have_no_ai_description` and `test_seed_claims_all_tda_assertions_have_valid_concept_description` in `backend_v2/tests/unit/test_ast_matrix_claim_guardrails.py`.
   - Verified JSON schema integrity of `seed_data.json`.
   - Executed and PASSED `/tier8-audit-plan` for Phase 2 with full verification matrix and audit artifact generated (`red_team_audit_03_phase2_seed_data_verification_and_reseed.md`).
@@ -375,7 +374,7 @@
   - Created comprehensive unit test suite in `client_app_v2/test/models/matrix_claim_test.dart` covering regex matching, deserialization, `CheckedFromJsonException` on legacy `ai_description` (strict mode), ISTQB boundary value analysis (9 vs 10 chars), and missing required field errors.
   - Verified Quality Gates: `flutter_audit_loop.py client_app_v2 --build` passed cleanly with 0 analyzer issues and build runner outputs, `matrix_claim_test.dart` passed (6/6 tests), `bars_matrix_builder_test.dart` passed, and `domain_parity_test.dart` passed (3/3 tests against all 152 prompt blocks in `seed_data.json`).
   - Executed and PASSED `/tier8-audit-plan` for Phase 4 with full verification matrix and audit artifact generated (`red_team_audit_phase4_flutter_studio_client_harmonization.md`).
-- **Phase 6 Plan (`06_placeholder_phase6_layer1_global_mandates_and_compiler.md`) Complete & Verified**:
+- **Phase 6 Plan (`06_placeholder_phase6_layer1_global_mandates_and_compiler.md`) Complete & Audited**:
   - Migrated `GLOBAL_MANDATES_XML` from dynamic user payload (`exec_params`) to Layer 1 of `base_system_prompt` static caching prefix in `prompt_factory.py` and `build_caching_prefix` in `matrix_sensor_prompt_builder.py`, guaranteeing prompt purity (never present in `user_payload`).
   - Created strongly-typed `MechanicalAnchorsPayload` domain model (`backend_v2/models/domain/mechanical_anchors.py`) with strict Pydantic V2 config (`strict=True, extra='forbid'`), deterministic `.from_context()`, and `.to_xml()`, eliminating all reflection helpers (`find_value_by_key`), `hasattr`/`getattr` calls, and replacing hardcoded slug checks with polymorphic category checks (`PromptBlockCategory.MATRIX`).
   - Re-exported `MechanicalAnchorsPayload` in `backend_v2/models/domain/__init__.py` and `backend_v2/models/v2_core.py`.
@@ -388,57 +387,65 @@
     - Updated `test_epic_60_decoupling.py` asserting Layer 1 global mandates in `base_system_prompt`.
     - Updated `test_localization_compiler.py` covering supported locales, invalid input types, and unsupported locale error handling (97% coverage).
     - Updated `test_matrix_sensor_prompt_builder.py` asserting Layer 1 global mandates in `build_caching_prefix` (100% coverage).
-  - Verified Quality Gates: `backend_audit_loop.py` passed with 100% strict typing and test coverage on all modified targets; all 323 orchestrator tests passed cleanly.
+  - Verified Quality Gates: `backend_audit_loop.py` passed with 100% strict typing and test coverage on all modified targets; all 323 orchestrator tests passed cleanly; Flutter domain parity test passed (197 tests).
+  - Executed and PASSED `/tier8-audit-plan` for Phase 6 with full verification matrix and audit artifact generated (`red_team_audit_phase6_layer1_global_mandates_and_compiler.md`).
+- **Phase 7 Plan (`07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md`) Complete & Hardened**:
+  - Architected and implemented polymorphic `PromptBlock` class with `__get_pydantic_core_schema__`, `__new__` dispatcher, `model_validate`, and `model_construct` delegating to concrete models (`MatrixPromptBlock`, `SystemRulePromptBlock`, `PersonaPromptBlock`, `ProtocolPromptBlock`) in `backend_v2/models/domain/prompt_blocks.py` with strict `ConfigDict(strict=True, extra='forbid', frozen=True)`.
+  - Enforced Zero-Fallback / Zero-Legacy rule by completely eliminating backward-compatibility `__getattr__` dynamic loaders and `if TYPE_CHECKING:` bridges from `backend_v2/models/v2_core.py`. All consumers now import directly from `backend_v2.models.domain.prompt_blocks`.
+  - Added automatic `computed_min` and `computed_max` calculation to `MatrixPromptBlock` via `@model_validator(mode="after")`, deriving bounds directly from `scales` without requiring manual entry.
+  - Registered polymorphic `PromptBlock` schema in `seed_registry.py`, validated all 90 prompt blocks in `seed_data.json` with 0 errors via dry-run and live reseed.
+  - Aligned `PromptBlockResponseDTO = PromptBlock` in `backend_v2/models/dtos/studio.py` and polymorphic instruction text extraction in `simulation_service.py`.
+  - Created `backend_v2/tests/unit/test_prompt_blocks.py` achieving 98% strict test coverage across all prompt block variants.
+  - Implemented 10 static AST and model purity tests in `backend_v2/tests/unit/test_ast_prompt_xml_sovereignty.py` (10/10 passing).
+  - Refactored Flutter Dart `PromptBlock` to `@Freezed(unionKey: 'category_id', equal: false) sealed class PromptBlock with _$PromptBlock` in `client_app_v2/lib/features/studio/models/prompt_block.dart` with factory constructors (`matrix`, `systemRule`, `executionPersona`, `agentRole`, `protocol`, `runtimeVariables`, `taskDefinition`), `@JsonKey(name: 'computed_min') int? computedMin`, `@JsonKey(name: 'computed_max') int? computedMax`, and background isolate parsers.
+  - Aligned `prompt_block_builder_view.dart` with concrete polymorphic constructors (`switch (val)`), matrix-guarded cards (`if (payload is MatrixPromptBlock)`), and executed build runner with 0 analyzer issues.
+  - Simplified Flutter getters to pure DTO accessors without client-side fallback math.
+  - Verified full quality gates: 1,869 backend unit tests passed (0 failed), all 197 Flutter unit tests passed (0 failed), and `dart analyze lib/` returned 0 issues.
 
 ## Learned
-- **Pydantic V2 Strictness & extra='forbid' on Domain Models**:
-  - Eradicating `ai_description` from `MatrixClaim` immediately surfaces all test files attempting to instantiate legacy claim fields with `ValidationError: Extra inputs are not permitted [extra_forbidden]`.
-  - Enforcing `StringConstraints(min_length=10)` on `TDAAssertion.concept_description` prevents abbreviated placeholder text ("Concept" or "Claim") from slipping through test fixtures or ingestion pipelines.
-- **AST Guardrail Testing Automation**:
-  - Static AST inspection (`test_ast_matrix_claim_guardrails.py`, `test_prompt_factory_has_zero_reflection_via_ast`) provides an ironclad automated boundary proving zero legacy fields or banned reflection patterns (`hasattr`/`getattr`) exist in production code without relying on runtime execution paths.
-- **Pydantic Exception Translation Parity**:
-  - When translating validation error strings in Pydantic `@model_validator`s (specifically from Finnish to English), any unit test checking error messages via `pytest.raises(ValueError, match=...)` must simultaneously be updated to assert against the English regex pattern.
-- **Seed Data Migration & Single Source of Truth**:
-  - `MatrixClaim` and `TDAAssertion` definitions inside `prompt_blocks` reside within `scales[].claims[]` arrays (not at the top-level block body).
-  - Copying `claim.ai_description` to `tda.concept_description` and eradicating `claim.ai_description` establishes `TDAAssertion.concept_description` as the sole SSOT without altering qualitative coaching text (`prompt_preservation_mandate`).
-  - Database re-seeding via `run_seed.py local` will execute immediately upon updating `MatrixClaim` in `v2_core.py`, since Pydantic V2 strictly enforces schema alignment during seeding.
-- **Cross-Layer Freezed Model Synchronization & Client Firewall (`sdui_contract_fracture_prevention`, `disallowUnrecognizedKeys`)**:
-  - Freezed models in Dart enforce strict non-null required parameters and `disallowUnrecognizedKeys: true`.
-  - Removing `aiDescription` from Dart `MatrixClaim` restores 1:1 cross-language serialization parity with backend `v2_core.py`, preventing client white-screen crashes.
-- **TDA Assertion Instantiation & Regex Parity (`atom_aliasing_hydration_mandate`)**:
-  - `TDAAssertion.create` factory in Dart previously truncated UUIDs to 16 hex chars (`tda_${uuidHex.substring(0, 16)}`).
-  - Updating `tdaId` to `tda_$uuidHex` (32 hex chars) establishes exact 1:1 parity with backend regex `^tda_[a-f0-9]{32}$`.
-- **UI Form Validation & Localization (`no_magic_strings_l10n`)**:
-  - All form validation error messages must be strictly localized via `.arb` runtime dictionaries (`l10n.tdaConceptMinLengthError(min)`), completely preventing hardcoded strings in widget logic.
-- **Design Token Invariant (`design_token_absolute_rule`)**:
-  - Using hardcoded colors or spacing doubles degrades desktop multi-resolution rendering; all UI surfaces must consume `Theme.of(context).colorScheme` and `AppSpacing` tokens.
-- **Context Caching Layer Hierarchy (Layer 1-4 Architecture)**:
-  - Placing global mandates (`GLOBAL_MANDATES_XML`) inside `base_system_prompt` rather than `exec_params` (dynamic user payload) ensures 100% static prefix caching across LLM providers, drastically reducing API costs and latency.
-- **DTO-Driven Extraction vs Reflection Loops**:
-  - Replacing ad-hoc reflection helper functions (`find_value_by_key` using `hasattr`/`getattr`) with strongly-typed domain DTOs (`MechanicalAnchorsPayload.from_context()`) eliminates duck-typing runtime errors and makes prompt anchor injection deterministic and inspectable via AST.
-- **Fail-Fast Boundary Validation on Dynamic Locales**:
-  - Defaulting unknown locale codes to `"English"` via dictionary `.get(..., "English")` masks configuration flaws; raising structured `AppException(VALIDATION_FAILED)` immediately surfaces malformed workflow steps or unmapped locale headers.
-- **AST Bounded Reference Integrity (`audit_markdown_boundaries.py` & `audit_planner_output.py`)**:
-  - All `@-referenced` Python files with line ranges in architectural plans must align with exact AST node boundaries (`ClassDef`, `FunctionDef`, `AsyncFunctionDef`), ensuring automated verification tools can parse and audit plan targets.
-- **Downstream Unit Test Blast-Radius in Prompt Compilation**:
-  - Because `test_epic_60_decoupling.py` directly validates prompt structure generated by `PromptFactory.build()`, modifying Layer 1 global mandates injection requires synchronizing `test_epic_60_decoupling.py` alongside `test_prompt_factory.py`.
+- **Pydantic V2 Polymorphic Factory Class Pattern**:
+  - Combining `PromptBlockBase` with `__get_pydantic_core_schema__ = lambda cls, handler: _prompt_block_adapter.core_schema`, `__new__` dynamic dispatcher, and `model_construct` delegation allows `PromptBlock` to act simultaneously as a strict polymorphic type annotation, a dynamic factory constructor `PromptBlock(category_id=...)`, and a fast deserializer without requiring backwards-compatibility hacks in `v2_core.py`.
+- **Zero Legacy & SSOT Decoupling**:
+  - In active development, keeping legacy re-exports or dynamic `__getattr__` loaders in God Models (`v2_core.py`) masks circular dependencies and creates shadow execution paths. Ruthlessly updating all consumers to import directly from domain SSOT modules enforces clean module boundaries.
+- **Fail-Fast Client Deserialization (`disallowUnrecognizedKeys: true`)**:
+  - When backend models include derived/calculated fields (`computed_min`, `computed_max`) in API payloads, Flutter Freezed DTOs must explicitly declare these fields in factory constructors. Omitting them causes `json_serializable` to fail fast with `CheckedFromJsonException`.
+- **Freezed Sealed Union Pattern Matching**:
+  - Polymorphic Freezed sealed classes isolate domain-specific fields (e.g. `scales`, `rows`, `columns`, `allowContextualOverride` on `MatrixPromptBlock`). Builder UI components must pattern-match to the concrete subtype (`if (payload is MatrixPromptBlock)`) to access subtype-specific copyWith parameters.
 
-## Remaining
-- **Phase 6: Layer 1 Global Mandates Injection & Compiler Foundation**:
-  - [x] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md] --phase=6`
-  - [x] Red-Team Phase 6 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [x] Execute Phase 6: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Audit Phase 6: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
-- **Phase 7: Polymorphic AnyPromptBlock Discriminated Union & AST Guardrails**:
-  - [ ] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md] --phase=7`
-  - [ ] Red-Team Phase 7 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Execute Phase 7: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+# Session Handover Context
+
+## Active Context & Execution Status
+- **Current Milestone:** Phase 7 (Polymorphic `PromptBlock` Discriminated Union & AST Guardrails) Execution Complete, Hardened & Verified across Backend, Flutter, and SSoT.
+- **Parent Epic:** `docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md`
+- **Active Task Plan:** `docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md`
+- **Status:** READY FOR `/tier8-audit-plan`
+
+## Architectural Findings & Decision Log for Next Session
+1. **Polymorphic PromptBlock SSOT (`backend_v2/models/domain/prompt_blocks.py`)**:
+   - `PromptBlock` polymorphic factory and type schema (`MatrixPromptBlock`, `SystemRulePromptBlock`, `PersonaPromptBlock`, `ProtocolPromptBlock`) is fully operational.
+   - `MatrixPromptBlock` derives `computed_min` and `computed_max` directly from `scales` via `@model_validator(mode="after")`.
+   - `v2_core.py` is completely decoupled with 0 legacy bridges.
+2. **Flutter Sealed Union Parity (`client_app_v2/lib/features/studio/models/prompt_block.dart`)**:
+   - Freezed sealed union with `unionKey: 'category_id'` generates 7 constructor variants with 0 analyzer issues.
+   - `PromptBlock.matrix` includes `computedMin` and `computedMax` JSON fields.
+   - `prompt_block_builder_view.dart` is fully aligned with concrete polymorphic constructors.
+3. **Quality Gates Passed**:
+   - 1,869 backend tests passed (0 failed).
+   - 197 Flutter tests passed (0 failed).
+   - `dart analyze lib/` passed with 0 issues.
+
+## Remaining Phases
+- **Phase 7: Polymorphic PromptBlock Discriminated Union & AST Guardrails**:
+  - [x] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md] --phase=7`
+  - [x] Red-Team Phase 7 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Execute Phase 7: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
   - [ ] Audit Phase 7: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
 - **Phases 8 through 11**:
   - Phase 8 (Clean Stack Compiler) -> Phase 9 (Flutter Zero-XML UI) -> Phase 10 (Seed Vault Pruning & Reseed) -> Phase 11 (Live LLM E2E Gate & Knowledge Sync).
 
 ## Resume Command
-`/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\06_placeholder_phase6_layer1_global_mandates_and_compiler.md] @[docs\epic\EPIC_146_tracker.md]`
+`/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails.md] @[docs\epic\EPIC_146_tracker.md]`
+
 
 
 

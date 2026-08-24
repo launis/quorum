@@ -200,15 +200,16 @@ def test_tda_assertion_validation_branches() -> None:
 
 
 def test_prompt_block_validator_branches() -> None:
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText, PromptBlock
+    from backend_v2.models.v2_core import I18nText
 
     label = I18nText(default_locale="en", translations={"en": "Scale Block"})
     desc = I18nText(default_locale="en", translations={"en": "Scale Desc"})
 
-    # Empty scales list raises ValueError
-    with pytest.raises(ValueError, match="vähintään yksi MatrixScale"):
-        PromptBlock.model_validate(
+    # Empty scales list raises ValidationError
+    with pytest.raises(ValidationError) as exc_info:
+        MatrixPromptBlock.model_validate(
             {
                 "id": "blk_1111111111111111",
                 "slug": "empty_scales",
@@ -219,24 +220,26 @@ def test_prompt_block_validator_branches() -> None:
                 "scales": [],
             }
         )
+    assert "List should have at least 1 item" in str(exc_info.value)
 
-    # Scale without claims raises ValueError
-    with pytest.raises(ValueError, match="vähintään yksi claim"):
-        PromptBlock.model_validate(
+    # Scale with invalid score type raises ValidationError
+    with pytest.raises(ValidationError) as exc_info:
+        MatrixPromptBlock.model_validate(
             {
                 "id": "blk_1111111111111111",
-                "slug": "scale_no_claims",
+                "slug": "scale_invalid_score",
                 "label": label,
                 "description": desc,
                 "category_id": PromptBlockCategory.MATRIX,
                 "type": BlockDataType.FLOAT,
-                "scales": [{"score": 1.0, "label": label, "description": desc, "claims": []}],
+                "scales": [{"score": "not_an_int", "ai_label": "Scale 1", "claims": []}],
             }
         )
+    assert "Input should be a valid integer" in str(exc_info.value)
 
     # Matrix category without computable scales
-    with pytest.raises(ValueError, match="computed_min ja computed_max on pakko pystyä laskemaan"):
-        PromptBlock.model_validate(
+    with pytest.raises(ValidationError) as exc_info:
+        MatrixPromptBlock.model_validate(
             {
                 "id": "blk_1111111111111111",
                 "slug": "matrix_no_scales",
@@ -247,6 +250,7 @@ def test_prompt_block_validator_branches() -> None:
                 "scales": None,
             }
         )
+    assert "Input should be a valid list" in str(exc_info.value)
 
 
 def test_step_and_step_rule_validation() -> None:

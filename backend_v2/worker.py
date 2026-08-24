@@ -49,6 +49,7 @@ from backend_v2.models.prompts import (
     SYNTHESIS_XAI_CURATION,
     build_linguistic_context,
 )
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     DataStarvationEvent,
@@ -56,7 +57,6 @@ from backend_v2.models.v2_core import (
     ExecutionStepState,
     ExtensionMetricsDTO,
     OutputProfile,
-    PromptBlock,
     RenderedSynthesisCache,
     Workflow,
     WorkflowInputs,
@@ -745,7 +745,7 @@ async def generate_profile_synthesis_and_pdf_task(
         blocks_meta = {}
         for rb in all_blocks_raw:
             pb = PromptBlock.model_validate(rb)
-            if pb.scales:
+            if isinstance(pb, MatrixPromptBlock) and pb.scales:
                 s_vals = [float(s.score) for s in pb.scales]
                 if s_vals:
                     blocks_meta[pb.id] = {"math_min": min(s_vals), "math_max": max(s_vals)}

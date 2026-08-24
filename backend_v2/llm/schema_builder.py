@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import BlockDataType, XaiExtensionType
 from backend_v2.models.prompts.field_prompts import (
     XAI_DESC_CITATION,
@@ -14,7 +15,6 @@ from backend_v2.models.prompts.field_prompts import (
     XAI_DESC_FALSIFICATION,
     XAI_DESC_JUSTIFICATION,
 )
-from backend_v2.models.v2_core import PromptBlock
 
 
 class SchemaCompilerService:

@@ -1,4 +1,5 @@
-from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock, TDAAssertion
+from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 
 
@@ -32,7 +33,7 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
         description=I18nText(default_locale="en", translations={"en": "test matrix block"}),
         category_id="matrix",
         scales=[scale],
-        type="instruction",
+        type="float",
         label=I18nText(default_locale="en", translations={"en": "Test Matrix"}),
     )
 

@@ -5,8 +5,9 @@ from pydantic import ValidationError
 
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.blackboard import LLMDraftAtom, LLMDraftAtomList
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
-from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, PromptBlock, TDAAssertion
+from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
@@ -73,7 +74,7 @@ async def test_atomizer_deterministic_mapping() -> None:
             "slug": "test_block",
             "label": {"default_locale": "en", "translations": {"en": "Test block", "fi": "Test block"}},
             "description": {"default_locale": "en", "translations": {"en": "Test desc", "fi": "Test desc"}},
-            "category_id": "system_rule",
+            "category_id": "matrix",
             "type": "int",
             "scales": [scale.model_dump()],
         }

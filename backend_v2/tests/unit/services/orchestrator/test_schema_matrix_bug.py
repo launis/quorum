@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 
 

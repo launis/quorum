@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import (
     BlockDataType,
     DisplayScale,
@@ -10,7 +11,7 @@ from backend_v2.models.enums import (
     LaxPromptBlockCategory,
     PromptBlockCategory,
 )
-from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, OutputProfile, PromptBlock, TDAAssertion
+from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, OutputProfile, TDAAssertion
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
 
@@ -70,14 +71,25 @@ def get_dummy_pb_5_scale() -> PromptBlock:
 
 
 def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) -> PromptBlock:
+    label = I18nText(default_locale="en", translations={"en": "test"})
+    desc = I18nText(default_locale="en", translations={"en": "test"})
+    if category != PromptBlockCategory.MATRIX:
+        return PromptBlock(
+            id="blk_1234567890abcdef1234567890abcdef",
+            slug="test",
+            category_id=category,
+            type=BlockDataType.INSTRUCTION,
+            label=label,
+            description=desc,
+        )
     return PromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug="test",
         category_id=category,
         type=BlockDataType.FLOAT,
         is_evaluative=True,
-        label=I18nText(default_locale="en", translations={"en": "test"}),
-        description=I18nText(default_locale="en", translations={"en": "test"}),
+        label=label,
+        description=desc,
         computed_min=0,
         computed_max=1,
         scales=[

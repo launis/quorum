@@ -385,7 +385,7 @@ async def test_llm_strategy_missing_atoms_crash(
             "id": "blk_1111111111111111",
             "slug": "matrix_block",
             "category_id": "matrix",
-            "type": "string",
+            "type": "float",
             "label": {"default_locale": "en", "translations": {"en": "Test"}},
             "description": {"default_locale": "en", "translations": {"en": "Test"}},
             "scales": [
@@ -496,7 +496,7 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
             "id": "blk_1111111111111111",
             "slug": "matrix_block",
             "category_id": "matrix",
-            "type": "string",
+            "type": "float",
             "label": {"default_locale": "en", "translations": {"en": "Test"}},
             "description": {"default_locale": "en", "translations": {"en": "Test"}},
             "scales": [

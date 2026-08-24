@@ -9,7 +9,8 @@ import logging
 from typing import Any
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.v2_core import OutputLayoutBlock, PromptBlock, Workflow
+from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.v2_core import OutputLayoutBlock, Workflow
 
 logger = logging.getLogger(__name__)
 

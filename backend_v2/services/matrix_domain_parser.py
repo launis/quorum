@@ -11,13 +11,13 @@ from backend_v2.models.dtos.atom_evaluation import (
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import DisplayScale, ExecutionStatus, VisualIntent
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.v2_core import (
     AtomResultDTO,
     I18nText,
     MatrixScorecardRowDTO,
     MCPAuditTrace,
     OutputProfile,
-    PromptBlock,
     ScorecardAtomDTO,
     StepRule,
 )

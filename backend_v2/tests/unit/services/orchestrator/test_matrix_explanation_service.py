@@ -4,13 +4,13 @@ Tests for matrix explanation context generation, Status-Aware Dual Reporting,
 and Ranked Round-Robin quote and unmet criteria curation.
 """
 
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixClaim,
     MatrixScale,
-    PromptBlock,
     SynthesisConfigDTO,
     TDAAssertion,
 )

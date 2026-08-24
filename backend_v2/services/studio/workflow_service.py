@@ -14,10 +14,10 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
 from backend_v2.models.v2_core import (
-    PromptBlock,
     Step,
     Workflow,
 )

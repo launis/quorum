@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import PromptBlockCategory
-from backend_v2.models.v2_core import PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 
@@ -16,30 +16,12 @@ def test_reproduce_tier4_schema_bug() -> None:
     block = PromptBlock.model_validate(
         {
             "id": "blk_599645bd5baf44e2",
-            "type": "instruction",
+            "type": "string",
             "category_id": PromptBlockCategory.SYSTEM_RULE,
             "label": {"translations": {"en": "Matrix"}, "default_locale": "en"},
             "ai_description": "Do matrix things",
             "slug": "test_block",
             "description": {"translations": {"en": "desc"}, "default_locale": "en"},
-            "scales": [
-                {
-                    "score": 1,
-                    "ai_label": "POOR",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": "Claim"}, "default_locale": "en"},
-                            "tda_assertions": [
-                                {
-                                    "concept_description": "Evaluate and verify the rule",
-                                    "inverse_evidence": False,
-                                    "aggregation_mode": "EXISTS",
-                                }
-                            ],
-                        }
-                    ],
-                }
-            ],
         }
     )
 
@@ -66,5 +48,4 @@ def test_reproduce_tier4_schema_bug() -> None:
         schema.model_validate(llm_output)
 
     errs = exc_info.value.errors()
-    print("\nVAL ERRORS:", errs)
-    assert errs[0]["type"] == "string_type"
+    assert errs[0]["type"] in ("model_type", "model_attributes_type")

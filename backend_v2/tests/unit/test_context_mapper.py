@@ -5,7 +5,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.context_mapper import ContextMapper
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 
 
 def test_context_mapper_empty_or_wildcard() -> None:

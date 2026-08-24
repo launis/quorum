@@ -7,10 +7,10 @@ from typing import Annotated, Any
 from pydantic import Discriminator, Tag, TypeAdapter
 
 from backend_v2.models.auth import Organization, User
-from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
 from backend_v2.models.v2_core import (
     ExecutionRecord,
-    PromptBlock,
+    OutputProfile,
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
@@ -43,7 +43,7 @@ SystemConfigUnion = Annotated[
 STANDARD_REGISTRY = {
     "system_config": {"table": "system_config", "model": TypeAdapter(SystemConfigUnion), "id_field": "id"},
     "workflows": {"table": "workflows", "model": TypeAdapter(Workflow), "id_field": "id"},
-    "prompt_blocks": {"table": "prompt_blocks", "model": TypeAdapter(PromptBlock), "id_field": "id"},
+    "prompt_blocks": {"table": "prompt_blocks", "model": TypeAdapter(AnyPromptBlock), "id_field": "id"},
     "steps": {"table": "steps", "model": TypeAdapter(Step), "id_field": "id"},
     "output_profiles": {"table": "output_profiles", "model": TypeAdapter(OutputProfile), "id_field": "id"},
     "executions": {"table": "executions", "model": TypeAdapter(ExecutionRecord), "id_field": "id"},

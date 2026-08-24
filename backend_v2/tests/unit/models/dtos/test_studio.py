@@ -1,5 +1,5 @@
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.models.dtos.studio import (
     MCPGatewayDeleteResponse,
@@ -106,7 +106,7 @@ def test_core_response_dto_strictness() -> None:
     )
     assert step.organization_id == valid_id_org
 
-    pb = PromptBlockResponseDTO.model_validate(
+    pb = TypeAdapter(PromptBlockResponseDTO).validate_python(
         {
             "id": valid_id_blk,
             "slug": "test-block",

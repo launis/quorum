@@ -3,7 +3,8 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.v2_core import I18nText, PromptBlock, Step
+from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.v2_core import I18nText, Step
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
 
 
@@ -78,7 +79,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
                 "description": {"default_locale": "en", "translations": {"en": "Criteria Desc", "fi": "Kuvaus"}},
                 "ai_description": "CRITERIA: Evaluate Toulmin logic.",
                 "category_id": "matrix",
-                "type": "string",
+                "type": "float",
                 "scales": [
                     {
                         "score": 1,

@@ -15,10 +15,10 @@ from backend_v2.api.dependencies import (
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import (
     I18nText,
-    PromptBlock,
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,

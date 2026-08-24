@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from backend_v2.models.v2_core import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlock
 
 from backend_v2.settings import get_settings
 

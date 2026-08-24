@@ -1,14 +1,15 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.enums import DisplayScale
 from backend_v2.models.state import WorkflowState  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
-from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace, OutputProfile, PromptBlock
+from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace, OutputProfile
 
 
 def test_prompt_block_fail_fast_on_corrupt_type() -> None:
     data = {
-        "id": "blk_testblock123",
+        "id": "blk_1111111111111111",
         "slug": "pb_1",
         "label": {"default_locale": "en", "translations": {"en": "T", "fi": "T"}},
         "description": {"default_locale": "en", "translations": {"en": "D", "fi": "D"}},
@@ -16,8 +17,8 @@ def test_prompt_block_fail_fast_on_corrupt_type() -> None:
         "type": "INVALID_TYPE",
     }
     with pytest.raises(ValidationError) as exc_info:
-        PromptBlock.model_validate(data)
-    assert "Input should be 'float'" in str(exc_info.value)
+        SystemRulePromptBlock.model_validate(data)
+    assert "INVALID_TYPE" in str(exc_info.value)
 
 
 def test_mcp_audit_trace_fail_fast_on_corrupt_timestamp() -> None:

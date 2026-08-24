@@ -23,18 +23,18 @@ void main() {
         layouts: [],
       );
 
-      final mockPromptBlock = PromptBlock(
+      final mockPromptBlock = const PromptBlock.matrix(
         id: 'block_1',
         slug: 'matrix_block_1',
-        label: const I18nText(
+        label: I18nText(
           defaultLocale: 'en',
           translations: {'en': 'Matrix Block 1'},
         ),
-        description: const I18nText(
+        description: I18nText(
           defaultLocale: 'en',
           translations: {'en': 'Matrix block description'},
         ),
-        categoryId: 'matrix',
+        scales: [],
       );
 
       await tester.pumpWidget(

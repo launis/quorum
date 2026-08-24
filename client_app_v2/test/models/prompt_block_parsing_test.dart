@@ -15,8 +15,9 @@ void main() {
           'default_locale': 'en',
           'translations': {'en': 'Test Desc', 'fi': 'Testi'},
         },
-        'category_id': 'system',
-        'allow_contextual_override': false,
+        'category_id': 'matrix',
+        'allow_contextual_override': true,
+        'scales': [],
       };
 
       // We expect it to parse successfully because allow_contextual_override is now in PromptBlock

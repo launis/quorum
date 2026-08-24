@@ -8,9 +8,15 @@ from typing import Any
 
 from backend_v2.exceptions import ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    PromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.v2_core import (
-    PromptBlock,
     Step,
     Workflow,
 )
@@ -156,7 +162,18 @@ class StudioSimulationService:
             AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): On core errors during simulation.
         """
         errors: list[str] = []
-        rendered = data.ai_description if data.ai_description is not None else ""
+        rendered = ""
+
+        # Extract base instruction text polymorphically
+        match data:
+            case MatrixPromptBlock():
+                rendered = data.ai_description or ""
+            case SystemRulePromptBlock():
+                rendered = data.instruction_text or data.ai_description or ""
+            case PersonaPromptBlock():
+                rendered = data.role_enforcement or data.ai_description or ""
+            case ProtocolPromptBlock():
+                rendered = data.protocol_instructions or data.ai_description or ""
 
         # 1. Base rendering using template syntax if needed
         if rendered and mock_inputs:
@@ -169,7 +186,7 @@ class StudioSimulationService:
                 rendered = rendered.format(**clean_mocks)
 
         # 2. Append Matrix Logic
-        if data.category_id == "matrix" and data.scales:
+        if isinstance(data, MatrixPromptBlock) and data.scales:
             rendered += "\n\n--- EVALUATION SCALES ---\n"
             for scale in data.scales:
                 rendered += f"\nScore {scale.score}:\n"

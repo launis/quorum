@@ -9,6 +9,7 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.falsifier import FalsifierData
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import (
@@ -23,7 +24,7 @@ from backend_v2.models.enums import (
     XaiExtensionType,
 )
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, PromptBlock, Step, Workflow
+from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, Step, Workflow
 from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 from backend_v2.settings import get_settings
 from backend_v2.utils.math_utils import normalize_score_to_100

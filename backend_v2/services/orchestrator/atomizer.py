@@ -10,7 +10,7 @@ from typing import Any
 from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class PromptAtomizer:
             AppException: VALIDATION_FAILED if validation or re-instantiation of Pydantic models fails.
         """
         try:
-            if not block.scales:
+            if not isinstance(block, MatrixPromptBlock) or not block.scales:
                 return block
 
             new_scales = []
