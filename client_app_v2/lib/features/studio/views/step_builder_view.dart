@@ -16,6 +16,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 
@@ -291,7 +292,7 @@ class StepBuilderView extends HookConsumerWidget {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back to Studio',
+            tooltip: l10n.backToStudioTooltip,
             onPressed: () => context.go('/admin'),
           ),
           title: Text(l10n.stepEditTitle),
@@ -371,7 +372,7 @@ class StepBuilderView extends HookConsumerWidget {
                               ),
                             ),
                             if (payload.isSystemCore) ...[
-                              const SizedBox(width: 8),
+                              AppSpacing.w8,
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
@@ -397,7 +398,7 @@ class StepBuilderView extends HookConsumerWidget {
                             ],
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        AppSpacing.h16,
                         TextFormField(
                           initialValue: payload.id,
                           decoration: InputDecoration(
@@ -411,7 +412,7 @@ class StepBuilderView extends HookConsumerWidget {
                                 .forceRebuild(payload.copyWith(id: val.trim()));
                           },
                         ),
-                        const SizedBox(height: 16),
+                        AppSpacing.h16,
                         TextFormField(
                           initialValue: payload.slug,
                           decoration: InputDecoration(
@@ -426,7 +427,7 @@ class StepBuilderView extends HookConsumerWidget {
                                 );
                           },
                         ),
-                        const SizedBox(height: 16),
+                        AppSpacing.h16,
                         I18nTextField(
                           label: l10n.nameLabel,
                           initialData: payload.name,
@@ -479,7 +480,7 @@ class StepBuilderView extends HookConsumerWidget {
 
                               if (modelKeys.isEmpty) {
                                 return Text(
-                                  'Warning: No models found.',
+                                  l10n.studioNoModelsWarning,
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.error,
                                   ),
@@ -497,10 +498,9 @@ class StepBuilderView extends HookConsumerWidget {
                                 key: ValueKey(modelKeys.length),
                                 isExpanded: true,
                                 initialValue: safeValue,
-                                decoration: const InputDecoration(
-                                  labelText:
-                                      'Model Strategy (Cost/Cognition Override)',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l10n.studioModelStrategyLabel,
+                                  border: const OutlineInputBorder(),
                                   isDense: true,
                                 ),
                                 items: modelKeys.map((key) {

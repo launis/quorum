@@ -1811,7 +1811,7 @@ abstract class AppLocalizations {
   /// No description provided for @studioSaveButton.
   ///
   /// In en, this message translates to:
-  /// **'Save Changes'**
+  /// **'Save'**
   String get studioSaveButton;
 
   /// No description provided for @studioUnsavedChanges.
@@ -7829,6 +7829,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Condition that must hold true within the bounding box'**
   String get tdaExtractionRuleHelper;
+
+  /// No description provided for @instructionTextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'System Instruction Text'**
+  String get instructionTextLabel;
+
+  /// No description provided for @instructionTextHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'English natural text instruction without XML tags. Tag wrapping is applied automatically by the prompt compiler.'**
+  String get instructionTextHelper;
+
+  /// No description provided for @roleEnforcementLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Role Enforcement Directive'**
+  String get roleEnforcementLabel;
+
+  /// No description provided for @roleEnforcementHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Defines persona constraints, background expertise, and behavioral posture.'**
+  String get roleEnforcementHelper;
+
+  /// No description provided for @protocolInstructionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol Execution Instructions'**
+  String get protocolInstructionsLabel;
+
+  /// No description provided for @protocolInstructionsHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Operational protocol steps and algorithmic directives for the model.'**
+  String get protocolInstructionsHelper;
+
+  /// No description provided for @toneDirectivesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tone Directives'**
+  String get toneDirectivesTitle;
+
+  /// No description provided for @toneDirectiveItemLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tone Directive {index}'**
+  String toneDirectiveItemLabel(int index);
+
+  /// No description provided for @addToneDirectiveBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Tone Directive'**
+  String get addToneDirectiveBtn;
+
+  /// No description provided for @compiledPromptPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Live Compiled Prompt Preview'**
+  String get compiledPromptPreviewTitle;
+
+  /// No description provided for @compiledPromptPreviewTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview the exact compiled XML prompt output sent to the foundational model'**
+  String get compiledPromptPreviewTooltip;
+
+  /// No description provided for @copyToClipboardBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy to Clipboard'**
+  String get copyToClipboardBtn;
+
+  /// No description provided for @promptCopiedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Compiled prompt copied to clipboard!'**
+  String get promptCopiedSnackbar;
+
+  /// No description provided for @noInstructionsDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'No instructions defined for this block yet.'**
+  String get noInstructionsDefined;
+
+  /// No description provided for @matrixPromptNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluation matrix guidelines and criteria are configured in the BARS Matrix scales below.'**
+  String get matrixPromptNotice;
+
+  /// No description provided for @studioModelStrategyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Strategy (Cost/Cognition Override)'**
+  String get studioModelStrategyLabel;
+
+  /// No description provided for @studioNoModelsWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: No models found in registry.'**
+  String get studioNoModelsWarning;
 }
 
 class _AppLocalizationsDelegate

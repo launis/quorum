@@ -943,7 +943,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studioAddStepButton => 'Add Step';
 
   @override
-  String get studioSaveButton => 'Save Changes';
+  String get studioSaveButton => 'Save';
 
   @override
   String get studioUnsavedChanges => 'Unsaved changes';
@@ -4324,4 +4324,64 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tdaExtractionRuleHelper =>
       'Condition that must hold true within the bounding box';
+
+  @override
+  String get instructionTextLabel => 'System Instruction Text';
+
+  @override
+  String get instructionTextHelper =>
+      'English natural text instruction without XML tags. Tag wrapping is applied automatically by the prompt compiler.';
+
+  @override
+  String get roleEnforcementLabel => 'Role Enforcement Directive';
+
+  @override
+  String get roleEnforcementHelper =>
+      'Defines persona constraints, background expertise, and behavioral posture.';
+
+  @override
+  String get protocolInstructionsLabel => 'Protocol Execution Instructions';
+
+  @override
+  String get protocolInstructionsHelper =>
+      'Operational protocol steps and algorithmic directives for the model.';
+
+  @override
+  String get toneDirectivesTitle => 'Tone Directives';
+
+  @override
+  String toneDirectiveItemLabel(int index) {
+    return 'Tone Directive $index';
+  }
+
+  @override
+  String get addToneDirectiveBtn => 'Add Tone Directive';
+
+  @override
+  String get compiledPromptPreviewTitle => 'Live Compiled Prompt Preview';
+
+  @override
+  String get compiledPromptPreviewTooltip =>
+      'Preview the exact compiled XML prompt output sent to the foundational model';
+
+  @override
+  String get copyToClipboardBtn => 'Copy to Clipboard';
+
+  @override
+  String get promptCopiedSnackbar => 'Compiled prompt copied to clipboard!';
+
+  @override
+  String get noInstructionsDefined =>
+      'No instructions defined for this block yet.';
+
+  @override
+  String get matrixPromptNotice =>
+      'Evaluation matrix guidelines and criteria are configured in the BARS Matrix scales below.';
+
+  @override
+  String get studioModelStrategyLabel =>
+      'Model Strategy (Cost/Cognition Override)';
+
+  @override
+  String get studioNoModelsWarning => 'Warning: No models found in registry.';
 }

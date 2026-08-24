@@ -1525,5 +1525,30 @@
   "barsMatrixMoreAssertions": "+ {count} lisää",
   "tdaConceptMinLengthError": "Käsitekuvauksen on oltava vähintään {min} merkkiä pitkä.",
   "tdaAnchorTargetHelper": "Tietty entiteetti, avainsana tai lause, johon kiinnitytään",
-  "tdaExtractionRuleHelper": "Ehto, jonka on pädettävä rajausalueella"
+  "tdaExtractionRuleHelper": "Ehto, jonka on pädettävä rajausalueella",
+  "instructionTextLabel": "Järjestelmän ohjeteksti",
+  "instructionTextHelper": "Englanninkielinen luonnollinen ohjeteksti ilman XML-tageja. Kehote-kääntäjä lisää tagit automaattisesti.",
+  "roleEnforcementLabel": "Rooliohjeistus (Role Enforcement)",
+  "roleEnforcementHelper": "Määrittelee persoonan rajat, asiantuntijuustaustan ja toimintamallin.",
+  "protocolInstructionsLabel": "Protokollan suoritusohjeet",
+  "protocolInstructionsHelper": "Toiminnalliset protokolla-askeleet ja algoritmiset ohjeet mallille.",
+  "toneDirectivesTitle": "Sävyohjeet (Tone Directives)",
+  "toneDirectiveItemLabel": "Sävyohje {index}",
+  "@toneDirectiveItemLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "addToneDirectiveBtn": "Lisää sävyohje",
+  "compiledPromptPreviewTitle": "Koostetun kehotteen esikatselu",
+  "compiledPromptPreviewTooltip": "Esikatsele mallille lähetettävä valmis XML-muotoiltu kehote",
+  "copyToClipboardBtn": "Kopioi leikepöydälle",
+  "promptCopiedSnackbar": "Koostettu kehote kopioitu leikepöydälle!",
+  "noInstructionsDefined": "Tälle lohkolle ei ole vielä määritelty ohjeita.",
+  "matrixPromptNotice": "Arviointimatriisin ohjeet ja kriteerit määritellään alla olevissa BARS-matriisin asteikoissa.",
+  "studioModelStrategyLabel": "Mallistrategia (Hinta/Kognitio-ohitus)",
+  "studioNoModelsWarning": "Varoitus: Mallirekisteristä ei löytynyt malleja.",
+  "studioSaveButton": "Tallenna"
 }

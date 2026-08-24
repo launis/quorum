@@ -947,7 +947,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get studioAddStepButton => 'Lisää Vaihe';
 
   @override
-  String get studioSaveButton => 'Tallenna Muutokset';
+  String get studioSaveButton => 'Tallenna';
 
   @override
   String get studioUnsavedChanges => 'Tallentamattomia muutoksia';
@@ -4357,4 +4357,65 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get tdaExtractionRuleHelper =>
       'Ehto, jonka on pädettävä rajausalueella';
+
+  @override
+  String get instructionTextLabel => 'Järjestelmän ohjeteksti';
+
+  @override
+  String get instructionTextHelper =>
+      'Englanninkielinen luonnollinen ohjeteksti ilman XML-tageja. Kehote-kääntäjä lisää tagit automaattisesti.';
+
+  @override
+  String get roleEnforcementLabel => 'Rooliohjeistus (Role Enforcement)';
+
+  @override
+  String get roleEnforcementHelper =>
+      'Määrittelee persoonan rajat, asiantuntijuustaustan ja toimintamallin.';
+
+  @override
+  String get protocolInstructionsLabel => 'Protokollan suoritusohjeet';
+
+  @override
+  String get protocolInstructionsHelper =>
+      'Toiminnalliset protokolla-askeleet ja algoritmiset ohjeet mallille.';
+
+  @override
+  String get toneDirectivesTitle => 'Sävyohjeet (Tone Directives)';
+
+  @override
+  String toneDirectiveItemLabel(int index) {
+    return 'Sävyohje $index';
+  }
+
+  @override
+  String get addToneDirectiveBtn => 'Lisää sävyohje';
+
+  @override
+  String get compiledPromptPreviewTitle => 'Koostetun kehotteen esikatselu';
+
+  @override
+  String get compiledPromptPreviewTooltip =>
+      'Esikatsele mallille lähetettävä valmis XML-muotoiltu kehote';
+
+  @override
+  String get copyToClipboardBtn => 'Kopioi leikepöydälle';
+
+  @override
+  String get promptCopiedSnackbar => 'Koostettu kehote kopioitu leikepöydälle!';
+
+  @override
+  String get noInstructionsDefined =>
+      'Tälle lohkolle ei ole vielä määritelty ohjeita.';
+
+  @override
+  String get matrixPromptNotice =>
+      'Arviointimatriisin ohjeet ja kriteerit määritellään alla olevissa BARS-matriisin asteikoissa.';
+
+  @override
+  String get studioModelStrategyLabel =>
+      'Mallistrategia (Hinta/Kognitio-ohitus)';
+
+  @override
+  String get studioNoModelsWarning =>
+      'Varoitus: Mallirekisteristä ei löytynyt malleja.';
 }

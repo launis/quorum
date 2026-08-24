@@ -2225,6 +2225,31 @@
     }
   },
   "tdaAnchorTargetHelper": "Specific entity, keyword, or sentence to anchor on",
-  "tdaExtractionRuleHelper": "Condition that must hold true within the bounding box"
+  "tdaExtractionRuleHelper": "Condition that must hold true within the bounding box",
+  "instructionTextLabel": "System Instruction Text",
+  "instructionTextHelper": "English natural text instruction without XML tags. Tag wrapping is applied automatically by the prompt compiler.",
+  "roleEnforcementLabel": "Role Enforcement Directive",
+  "roleEnforcementHelper": "Defines persona constraints, background expertise, and behavioral posture.",
+  "protocolInstructionsLabel": "Protocol Execution Instructions",
+  "protocolInstructionsHelper": "Operational protocol steps and algorithmic directives for the model.",
+  "toneDirectivesTitle": "Tone Directives",
+  "toneDirectiveItemLabel": "Tone Directive {index}",
+  "@toneDirectiveItemLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "addToneDirectiveBtn": "Add Tone Directive",
+  "compiledPromptPreviewTitle": "Live Compiled Prompt Preview",
+  "compiledPromptPreviewTooltip": "Preview the exact compiled XML prompt output sent to the foundational model",
+  "copyToClipboardBtn": "Copy to Clipboard",
+  "promptCopiedSnackbar": "Compiled prompt copied to clipboard!",
+  "noInstructionsDefined": "No instructions defined for this block yet.",
+  "matrixPromptNotice": "Evaluation matrix guidelines and criteria are configured in the BARS Matrix scales below.",
+  "studioModelStrategyLabel": "Model Strategy (Cost/Cognition Override)",
+  "studioNoModelsWarning": "Warning: No models found in registry.",
+  "studioSaveButton": "Save"
 }
 

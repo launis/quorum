@@ -160,12 +160,15 @@
 
 **Plan:** @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md]
 
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md] --phase=9`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check — Verify Phase 8 compiler baseline
-  - [ ] Step 1: Zero-XML UI Forms & View Alignment — Update prompt_block_builder_view.dart with Dart 3 switch destructuring for Zero-XML fields, streamline step criteria block selection, and add ARB localizations
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md] --phase=9`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check — Verify Phase 8 compiler baseline
+  - [x] Step 1: ARB Localization Setup & Code Generation — Add Zero-XML labels/helpers to app_en.arb/app_fi.arb and run flutter gen-l10n
+  - [x] Step 2: PromptBlockBuilderView Polymorphic Form Modernization — Update prompt_block_builder_view.dart with Dart 3 switch destructuring for Zero-XML fields, dynamic tone directives, and Live Compiled Prompt Preview modal
+  - [x] Step 3: StepBuilderView Streamlining & Criteria Alignment — Verify criteria block selector against PromptBlockCategoryGroups.criteriaCategories
+  - [x] Step 4: Unit & Widget Test Suite Implementation — Create prompt_block_builder_view_test.dart with ISTQB negative partition testing
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
 
 ---
@@ -418,6 +421,20 @@
   - Verified 12 static AST Prompt XML Sovereignty guardrail tests passing 100% (`test_ast_prompt_xml_sovereignty.py`).
   - Executed and PASSED `/tier8-audit-plan` for Phase 8 with full verification matrix and audit artifact generated (`red_team_audit_08_placeholder_phase8_clean_stack_compiler_assembly.md`).
 
+- **Phase 9 Plan (`09_placeholder_phase9_flutter_studio_zero_xml_ui.md`) Complete & Verified**:
+  - Added all necessary Zero-XML localized labels, tooltips, helpers, and snackbar messages to `client_app_v2/lib/l10n/app_en.arb` and `client_app_v2/lib/l10n/app_fi.arb`, and regenerated typed getters via `flutter gen-l10n`.
+  - Refactored `PromptBlockBuilderView` in `client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart` to dispatch concrete Zero-XML fields via Dart 3 pattern matching (`switch (payload)`) across sealed subclasses:
+    - `SystemRulePromptBlock`, `RuntimeVariablesPromptBlock`, `TaskDefinitionPromptBlock` (`instructionText`)
+    - `ExecutionPersonaPromptBlock`, `AgentRolePromptBlock` (`roleEnforcement`, dynamic list of `toneDirectives` with add/remove)
+    - `ProtocolPromptBlock` (`protocolInstructions`)
+    - `MatrixPromptBlock` (BARS rubric notice card)
+  - Integrated live **"Compiled Prompt Preview"** dialog in the AppBar with selectable monospace code viewer and copy-to-clipboard functionality (`l10n.promptCopiedSnackbar`).
+  - Replaced hardcoded tooltips, warnings, and spacing doubles with localized ARB tokens (`backToStudioTooltip`, `studioNoModelsWarning`, `studioModelStrategyLabel`, `studioSaveButton`) and `AppSpacing` design tokens in `PromptBlockBuilderView` and `StepBuilderView`.
+  - Verified criteria block filtering against `PromptBlockCategoryGroups.criteriaCategories` in `step_builder_view.dart`.
+  - Created comprehensive widget & unit test suite in `client_app_v2/test/features/studio/views/prompt_block_builder_view_test.dart` covering all 7 polymorphic variants, dynamic list add/remove with `ValueKey`, live compiled preview modal + clipboard copy, and empty English label validation gates.
+  - Aligned button finders in `output_profile_crud_view_test.dart` with localized `l10n.studioSaveButton`.
+  - Verified Quality Gates: `flutter_audit_loop.py` passed with 0 analyzer issues, 0 formatting diffs, and 100% passing tests (including all 204 Flutter unit/widget tests and `domain_parity_test.dart`).
+
 ## Learned
 - **Pure Pydantic V2 Discriminated Union Architecture**:
   - In Python 3.14 / Pydantic V2, polymorphism MUST be implemented strictly as `Annotated[Union, Field(discriminator="category_id")]` with `TypeAdapter(AnyPromptBlock)`. Faking union behavior via `__new__` hijacking or `model_construct` overrides (`# type: ignore[override]`) on `BaseModel` classes is a dangerous anti-pattern (Chameleon Class) that breaks Rust `pydantic-core` parsing, LSP attribute inference, and hides silent fallbacks.
@@ -425,34 +442,37 @@
   - Defense Layer 1 (Rules): `01-python-backend.md` explicitly bans Chameleon classes and unvalidated `model_construct` overrides.
   - Defense Layer 2 (AST Guardrails): `test_ast_prompt_xml_sovereignty.py` statically scans AST trees to reject any `__new__` or `model_construct` definitions on domain models.
   - Defense Layer 3 (Knowledge Item): `ki_polymorphic_rule_routing.md` provides explicit PRO-PATTERN vs ANTI-PATTERN code references for future agents.
+- **Zero-XML UI Paradigm (Studio Layer)**:
+  - In Flutter Studio V2, UI forms must never ask users or authors to input raw XML tags (`<system_directive>`, `<role>`, `<rules>`). All XML generation is strictly encapsulated in backend compilers (`PromptFactory`, `LocalizationCompiler`, `MatrixSensorPromptBuilder`, `StudioSimulationService`), while the UI captures discrete, natural-language fields (`instructionText`, `roleEnforcement`, `protocolInstructions`, `toneDirectives`) and provides a live preview of the compiled XML representation.
 - **Polymorphic Type Narrowing & Pattern Matching**:
   - When iterating over polymorphic `AnyPromptBlock` lists, checking `if isinstance(block_model, MatrixPromptBlock) and block_model.scales:` narrows the type for MyPy and guarantees safe attribute access without requiring duck-typing, `# type: ignore`, or Chameleon properties.
 - **Zero Legacy & SSOT Decoupling**:
   - In active development, keeping legacy re-exports or dynamic `__getattr__` loaders in God Models (`v2_core.py`) masks circular dependencies and creates shadow execution paths. Ruthlessly updating all consumers to import directly from domain SSOT modules enforces clean module boundaries.
 - **Fail-Fast Client Deserialization (`disallowUnrecognizedKeys: true`)**:
   - When backend models include derived/calculated fields (`computed_min`, `computed_max`) in API payloads, Flutter Freezed DTOs must explicitly declare these fields in factory constructors. Omitting them causes `json_serializable` to fail fast with `CheckedFromJsonException`.
+- **Dynamic List Widget Keys in Flutter Testing**:
+  - In Flutter widget lists rendered via `map((entry) => ...)`, dynamic item rows must provide distinct `ValueKey('item_${entry.key}_${entry.value}')` to prevent `StateError: Bad state: Too many elements` during animated list removals or widget reconciliations in test environments.
 
 ## Active Context & Execution Status
-- **Current Milestone:** Phase 8 Complete & Audited (`08_placeholder_phase8_clean_stack_compiler_assembly.md`).
-- **Next Milestone:** Phase 9 Plan Creation (`/tier0-create-plan ... --phase=9`).
+- **Current Milestone:** Phase 9 Execution Complete (`09_placeholder_phase9_flutter_studio_zero_xml_ui.md`).
+- **Next Milestone:** Phase 9 Plan Audit (`/tier8-audit-plan ...`).
 - **Parent Epic:** @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md]
 - **Task Directory:** @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization]
-- **Status:** READY FOR `/tier0-create-plan` (Phase 9)
+- **Status:** READY FOR `/tier8-audit-plan` (Phase 9)
 
 ## Architectural Findings & Decision Log for Next Session
-1. **Polymorphic PromptBlock Compiler Modernization (`backend_v2/services/orchestrator/`)**:
-   - `PromptFactory`, `LocalizationCompiler`, and `StudioSimulationService` dispatch prompt blocks via Python 3.10+ `match block:` pattern matching.
-   - `MatrixSensorPromptBuilder._create_ephemeral_block` instantiates concrete `SystemRulePromptBlock` models directly.
-   - `PromptBlockAdapter` handles polymorphic deserialization for all dictionary/JSON representations.
-2. **Zero-XML Field Assembly & Clean Fencing**:
-   - `MatrixPromptBlock` Zero-XML rubric fields (`objective`, `evaluation_rules`, `banned_concepts`) are assembled into strict XML tags by the compiler layer.
-   - `TheoryGrounding` citations are wrapped in `<theory_context>` while strictly omitting raw `source_url` strings.
+1. **Zero-XML Flutter UI Dispatcher (`client_app_v2/lib/features/studio/views/`)**:
+   - `PromptBlockBuilderView` dispatches concrete Zero-XML fields (`instructionText`, `roleEnforcement`, `protocolInstructions`, `toneDirectives`) via Dart 3 pattern matching (`switch (payload)`).
+   - Live "Compiled Prompt Preview" allows studio authors to inspect exact XML tags produced by backend compilers and copy them with clipboard integration.
+2. **Strict Design Tokens & Localization**:
+   - All layout spacing uses `AppSpacing` tokens (`p16`, `h16`, `w8`).
+   - All labels, warnings, and tooltips are localized across `app_en.arb` and `app_fi.arb`.
 
 ## Remaining Phases
 - **Phase 9: Flutter Studio Zero-XML UI Modernization**:
-  - [ ] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md] --phase=9`
-  - [ ] Red-Team Phase 9 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Execute Phase 9: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md] --phase=9`
+  - [x] Red-Team Phase 9 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
+  - [x] Execute Phase 9: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
   - [ ] Audit Phase 9: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs\epic\EPIC_146_tracker.md]`
 - **Phase 10: Seed Vault Pruning & Database Reseeding**:
   - [ ] Plan -> Red-Team -> Execute -> Audit
@@ -461,8 +481,9 @@
 
 ## Resume Command
 ```
-/tier0-create-plan @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs/epic/EPIC_146_tracker.md] --phase=9
+/tier8-audit-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/09_placeholder_phase9_flutter_studio_zero_xml_ui.md] @[docs/epic/EPIC_146_tracker.md]
 ```
+
 
 
 

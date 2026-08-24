@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
@@ -163,17 +164,29 @@ class PromptBlockBuilderView extends HookConsumerWidget {
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: Text(l10n.simulatorOutputTitle),
+              title: Text(l10n.compiledPromptPreviewTitle),
               content: SizedBox(
                 width: double.maxFinite,
                 child: SingleChildScrollView(
-                  child: Text(
-                    rendered,
+                  child: SelectableText(
+                    rendered.isNotEmpty ? rendered : l10n.noInstructionsDefined,
                     style: const TextStyle(fontFamily: 'monospace'),
                   ),
                 ),
               ),
               actions: [
+                TextButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: rendered));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.promptCopiedSnackbar)),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy),
+                  label: Text(l10n.copyToClipboardBtn),
+                ),
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
                   child: Text(l10n.closeModalBtn),
@@ -308,7 +321,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                       Icons.bug_report,
                       color: Theme.of(context).colorScheme.primary,
                     ),
-              tooltip: l10n.simulatePromptTooltip,
+              tooltip: l10n.compiledPromptPreviewTooltip,
             ),
             if (formState.isLoading)
               const Padding(
@@ -567,7 +580,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                 .forceRebuild(payload.copyWith(label: val));
                           },
                         ),
-                        const SizedBox(height: 16),
+                        AppSpacing.h16,
 
                         // Description (I18N) - Short UI Hint
                         I18nTextField(
@@ -581,50 +594,17 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                 );
                           },
                         ),
-                        const SizedBox(height: 16),
+                        AppSpacing.h16,
 
-                        // AI Description - Core LLM Prompt (English Only)
-                        TextFormField(
-                          initialValue: payload.aiDescription ?? '',
-                          decoration: InputDecoration(
-                            labelText: l10n.systemPromptMandatory,
-                            border: const OutlineInputBorder(),
-                          ),
-                          maxLines: 8,
-                          onChanged: (val) {
-                            // Rebuild normally.
-                            ref
-                                .read(promptBlockFormProvider(blockId).notifier)
-                                .forceRebuild(
-                                  payload.copyWith(aiDescription: val),
-                                );
-                          },
+                        // Zero-XML Polymorphic Form Sections
+                        _buildPolymorphicInstructionSection(
+                          context,
+                          ref,
+                          l10n,
+                          payload,
+                          blockId,
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            l10n.adminAiDescriptionHint,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            l10n.adminPromptBestPracticesHint,
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                              fontSize: 13,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
+                        AppSpacing.h16,
 
                         // XAI & Constraints Container
                         Container(
@@ -1346,6 +1326,332 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     .read(promptBlockFormProvider(blockId).notifier)
                     .forceRebuild(payload.copyWith(scales: newList));
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Dispatches the Zero-XML form sections based on the concrete polymorphic PromptBlock variant.
+  Widget _buildPolymorphicInstructionSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    PromptBlock payload,
+    String blockId,
+  ) {
+    return switch (payload) {
+      SystemRulePromptBlock(:final instructionText) => _buildSystemRuleSection(
+        context,
+        ref,
+        l10n,
+        payload,
+        blockId,
+        instructionText,
+      ),
+      ExecutionPersonaPromptBlock(
+        :final roleEnforcement,
+        :final toneDirectives,
+      ) =>
+        _buildPersonaSection(
+          context,
+          ref,
+          l10n,
+          payload,
+          blockId,
+          roleEnforcement,
+          toneDirectives,
+        ),
+      AgentRolePromptBlock(:final roleEnforcement, :final toneDirectives) =>
+        _buildPersonaSection(
+          context,
+          ref,
+          l10n,
+          payload,
+          blockId,
+          roleEnforcement,
+          toneDirectives,
+        ),
+      ProtocolPromptBlock(:final protocolInstructions) => _buildProtocolSection(
+        context,
+        ref,
+        l10n,
+        payload,
+        blockId,
+        protocolInstructions,
+      ),
+      RuntimeVariablesPromptBlock(:final instructionText) =>
+        _buildSystemRuleSection(
+          context,
+          ref,
+          l10n,
+          payload,
+          blockId,
+          instructionText,
+        ),
+      TaskDefinitionPromptBlock(:final instructionText) =>
+        _buildSystemRuleSection(
+          context,
+          ref,
+          l10n,
+          payload,
+          blockId,
+          instructionText,
+        ),
+      MatrixPromptBlock() => _buildMatrixNoticeSection(context, l10n),
+    };
+  }
+
+  Widget _buildSystemRuleSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    PromptBlock payload,
+    String blockId,
+    String? instructionText,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          initialValue: instructionText ?? '',
+          decoration: InputDecoration(
+            labelText: l10n.instructionTextLabel,
+            helperText: l10n.instructionTextHelper,
+            border: const OutlineInputBorder(),
+          ),
+          maxLines: 8,
+          onChanged: (val) {
+            final updated = switch (payload) {
+              SystemRulePromptBlock() => payload.copyWith(instructionText: val),
+              RuntimeVariablesPromptBlock() => payload.copyWith(
+                instructionText: val,
+              ),
+              TaskDefinitionPromptBlock() => payload.copyWith(
+                instructionText: val,
+              ),
+              _ => payload,
+            };
+            ref
+                .read(promptBlockFormProvider(blockId).notifier)
+                .forceRebuild(updated);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPersonaSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    PromptBlock payload,
+    String blockId,
+    String? roleEnforcement,
+    List<String> toneDirectives,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          initialValue: roleEnforcement ?? '',
+          decoration: InputDecoration(
+            labelText: l10n.roleEnforcementLabel,
+            helperText: l10n.roleEnforcementHelper,
+            border: const OutlineInputBorder(),
+          ),
+          maxLines: 6,
+          onChanged: (val) {
+            final updated = switch (payload) {
+              ExecutionPersonaPromptBlock() => payload.copyWith(
+                roleEnforcement: val,
+              ),
+              AgentRolePromptBlock() => payload.copyWith(roleEnforcement: val),
+              _ => payload,
+            };
+            ref
+                .read(promptBlockFormProvider(blockId).notifier)
+                .forceRebuild(updated);
+          },
+        ),
+        AppSpacing.h16,
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.toneDirectivesTitle,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        _addListItem<String>(
+                          ref,
+                          blockId,
+                          toneDirectives,
+                          '',
+                          (newList) => switch (payload) {
+                            ExecutionPersonaPromptBlock() => payload.copyWith(
+                              toneDirectives: newList,
+                            ),
+                            AgentRolePromptBlock() => payload.copyWith(
+                              toneDirectives: newList,
+                            ),
+                            _ => payload,
+                          },
+                        );
+                      },
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.addToneDirectiveBtn),
+                    ),
+                  ],
+                ),
+                if (toneDirectives.isNotEmpty) ...[
+                  AppSpacing.h16,
+                  ...toneDirectives.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final directive = entry.value;
+
+                    return Padding(
+                      key: ValueKey('tone_directive_${entry.key}_${entry.value}'),
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: directive,
+                              decoration: InputDecoration(
+                                labelText: l10n.toneDirectiveItemLabel(
+                                  index + 1,
+                                ),
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              onChanged: (val) {
+                                final updatedList = List<String>.from(
+                                  toneDirectives,
+                                );
+                                updatedList[index] = val;
+                                final updated = switch (payload) {
+                                  ExecutionPersonaPromptBlock() =>
+                                    payload.copyWith(
+                                      toneDirectives: updatedList,
+                                    ),
+                                  AgentRolePromptBlock() => payload.copyWith(
+                                    toneDirectives: updatedList,
+                                  ),
+                                  _ => payload,
+                                };
+                                ref
+                                    .read(
+                                      promptBlockFormProvider(blockId).notifier,
+                                    )
+                                    .forceRebuild(updated);
+                              },
+                            ),
+                          ),
+                          AppSpacing.w8,
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            onPressed: () {
+                              _removeListItem<String>(
+                                ref,
+                                blockId,
+                                toneDirectives,
+                                index,
+                                (newList) => switch (payload) {
+                                  ExecutionPersonaPromptBlock() =>
+                                    payload.copyWith(toneDirectives: newList),
+                                  AgentRolePromptBlock() => payload.copyWith(
+                                    toneDirectives: newList,
+                                  ),
+                                  _ => payload,
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProtocolSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    PromptBlock payload,
+    String blockId,
+    String? protocolInstructions,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          initialValue: protocolInstructions ?? '',
+          decoration: InputDecoration(
+            labelText: l10n.protocolInstructionsLabel,
+            helperText: l10n.protocolInstructionsHelper,
+            border: const OutlineInputBorder(),
+          ),
+          maxLines: 8,
+          onChanged: (val) {
+            final updated = switch (payload) {
+              ProtocolPromptBlock() => payload.copyWith(
+                protocolInstructions: val,
+              ),
+              _ => payload,
+            };
+            ref
+                .read(promptBlockFormProvider(blockId).notifier)
+                .forceRebuild(updated);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMatrixNoticeSection(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return Card(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            AppSpacing.w16,
+            Expanded(
+              child: Text(
+                l10n.matrixPromptNotice,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ],
         ),

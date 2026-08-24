@@ -503,7 +503,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap save button
-      final saveBtn = find.widgetWithText(TextButton, 'Save Changes');
+      final saveBtn = find.widgetWithText(TextButton, 'Save');
       await tester.tap(saveBtn);
       await tester.pumpAndSettle();
 
@@ -649,7 +649,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap save button
-      final saveBtn = find.widgetWithText(TextButton, 'Save Changes');
+      final saveBtn = find.widgetWithText(TextButton, 'Save');
       await tester.tap(saveBtn);
       await tester.pumpAndSettle();
 
@@ -693,7 +693,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap save button
-      final saveBtn = find.widgetWithText(TextButton, 'Save Changes');
+      final saveBtn = find.widgetWithText(TextButton, 'Save');
       await tester.tap(saveBtn);
       await tester.pumpAndSettle();
 
