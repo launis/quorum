@@ -92,6 +92,60 @@ Map<String, dynamic> _$AntiPatternToJson(_AntiPattern instance) =>
       'allows_contextual_excuse': instance.allowsContextualExcuse,
     };
 
+_CausalEdgeDTO _$CausalEdgeDTOFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_CausalEdgeDTO',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'edge_reasoning',
+            'tda_id',
+            'source_id',
+            'expected_status',
+          ],
+        );
+        final val = _CausalEdgeDTO(
+          edgeReasoning: $checkedConvert('edge_reasoning', (v) => v as String),
+          tdaId: $checkedConvert('tda_id', (v) => v as String),
+          sourceId: $checkedConvert('source_id', (v) => v as String),
+          expectedStatus: $checkedConvert(
+            'expected_status',
+            (v) =>
+                $enumDecodeNullable(_$ExecutionStatusEnumMap, v) ??
+                ExecutionStatus.passed,
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'edgeReasoning': 'edge_reasoning',
+        'tdaId': 'tda_id',
+        'sourceId': 'source_id',
+        'expectedStatus': 'expected_status',
+      },
+    );
+
+Map<String, dynamic> _$CausalEdgeDTOToJson(_CausalEdgeDTO instance) =>
+    <String, dynamic>{
+      'edge_reasoning': instance.edgeReasoning,
+      'tda_id': instance.tdaId,
+      'source_id': instance.sourceId,
+      'expected_status': _$ExecutionStatusEnumMap[instance.expectedStatus]!,
+    };
+
+const _$ExecutionStatusEnumMap = {
+  ExecutionStatus.passed: 'PASSED',
+  ExecutionStatus.failed: 'FAILED',
+  ExecutionStatus.nA: 'N_A',
+  ExecutionStatus.systemError: 'SYSTEM_ERROR',
+  ExecutionStatus.blocked: 'BLOCKED',
+  ExecutionStatus.pending: 'PENDING',
+  ExecutionStatus.running: 'RUNNING',
+  ExecutionStatus.queued: 'QUEUED',
+};
+
 _TDAAssertion _$TDAAssertionFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -108,6 +162,7 @@ _TDAAssertion _$TDAAssertionFromJson(
         'contrastive_example',
         'syntactic_anchors',
         'enforce_pre_flight',
+        'depends_on',
         'inverse_evidence',
         'aggregation_mode',
         'evaluation_track',
@@ -157,6 +212,14 @@ _TDAAssertion _$TDAAssertionFromJson(
         'enforce_pre_flight',
         (v) => v as bool? ?? false,
       ),
+      dependsOn: $checkedConvert(
+        'depends_on',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => CausalEdgeDTO.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
       inverseEvidence: $checkedConvert('inverse_evidence', (v) => v as bool),
       aggregationMode: $checkedConvert(
         'aggregation_mode',
@@ -195,6 +258,7 @@ _TDAAssertion _$TDAAssertionFromJson(
     'contrastiveExample': 'contrastive_example',
     'syntacticAnchors': 'syntactic_anchors',
     'enforcePreFlight': 'enforce_pre_flight',
+    'dependsOn': 'depends_on',
     'inverseEvidence': 'inverse_evidence',
     'aggregationMode': 'aggregation_mode',
     'evaluationTrack': 'evaluation_track',
@@ -218,6 +282,7 @@ Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
       'contrastive_example': instance.contrastiveExample,
       'syntactic_anchors': instance.syntacticAnchors,
       'enforce_pre_flight': instance.enforcePreFlight,
+      'depends_on': instance.dependsOn.map((e) => e.toJson()).toList(),
       'inverse_evidence': instance.inverseEvidence,
       'aggregation_mode': _$AggregationModeEnumMap[instance.aggregationMode]!,
       'evaluation_track': _$EvaluationTrackEnumMap[instance.evaluationTrack]!,

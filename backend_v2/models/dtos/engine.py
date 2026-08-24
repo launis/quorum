@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, StepRule, TheoryGrounding
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
@@ -28,6 +29,7 @@ class FlattenedAtom(BaseModel):
         extraction_rule: The specific validation rule.
         anchor_target: Semantic bounding box target.
         is_inverse: True if this is an inverse assertion.
+        depends_on: Causal dependencies attached to this atom.
     """
 
     atom_id: Annotated[str, Field(description="Opaque hashed ID for the extracted atom.")]
@@ -35,6 +37,13 @@ class FlattenedAtom(BaseModel):
     extraction_rule: Annotated[str, Field(default="", description="The specific validation rule.")]
     anchor_target: Annotated[str, Field(default="", description="Semantic bounding box target.")]
     is_inverse: Annotated[bool, Field(default=False, description="True if this is an inverse assertion.")]
+    depends_on: Annotated[
+        tuple[CausalEdge, ...],
+        Field(
+            default_factory=tuple,
+            description="Causal dependencies attached to this atom.",
+        ),
+    ]
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 

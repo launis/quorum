@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, cast  # noqa: F
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+    from backend_v2.models.dtos.dag_models import CausalEdge
     from backend_v2.models.dtos.trace import DataStarvationEvent
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
@@ -290,6 +291,13 @@ class TDAAssertion(V2CoreBase):
         default=False,
         description="If True, enables pre-flight validation before LLM evaluation.",
     )
+    depends_on: Annotated[
+        tuple[CausalEdge, ...],
+        Field(
+            default_factory=tuple,
+            description="Causal preconditions required for this assertion.",
+        ),
+    ]
 
     @model_validator(mode="after")
     def validate_math_logic(self) -> TDAAssertion:
@@ -1630,6 +1638,7 @@ class BaseTDAExtraction(BaseModel):
 
 
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.dtos.trace import DataStarvationEvent
 from backend_v2.models.view.sdui import (
     SduiMatrixTableBlock,
@@ -1640,6 +1649,7 @@ from backend_v2.models.view.sdui import (
 
 RenderedSynthesisCache.model_rebuild()
 ExecutionCreate.model_rebuild()
+TDAAssertion.model_rebuild(_types_namespace={"CausalEdge": CausalEdge})
 
 _sdui_localns = {
     "I18nText": I18nText,

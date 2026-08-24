@@ -88,6 +88,24 @@ abstract class AntiPattern with _$AntiPattern {
 }
 
 @Freezed(equal: false)
+abstract class CausalEdgeDTO with _$CausalEdgeDTO {
+  const CausalEdgeDTO._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory CausalEdgeDTO({
+    @JsonKey(name: 'edge_reasoning') required String edgeReasoning,
+    @JsonKey(name: 'tda_id') required String tdaId,
+    @JsonKey(name: 'source_id') required String sourceId,
+    @JsonKey(name: 'expected_status')
+    @Default(ExecutionStatus.passed)
+    ExecutionStatus expectedStatus,
+  }) = _CausalEdgeDTO;
+
+  factory CausalEdgeDTO.fromJson(Map<String, dynamic> json) =>
+      _$CausalEdgeDTOFromJson(json);
+}
+
+@Freezed(equal: false)
 abstract class TDAAssertion with _$TDAAssertion {
   const TDAAssertion._();
 
@@ -104,6 +122,7 @@ abstract class TDAAssertion with _$TDAAssertion {
     @Default([])
     List<String> syntacticAnchors,
     @JsonKey(name: 'enforce_pre_flight') @Default(false) bool enforcePreFlight,
+    @JsonKey(name: 'depends_on') @Default([]) List<CausalEdgeDTO> dependsOn,
     @JsonKey(name: 'inverse_evidence') required bool inverseEvidence,
     @JsonKey(name: 'aggregation_mode') required AggregationMode aggregationMode,
     @JsonKey(name: 'evaluation_track')
@@ -128,6 +147,7 @@ abstract class TDAAssertion with _$TDAAssertion {
     required bool inverseEvidence,
     required AggregationMode aggregationMode,
     EvaluationTrack evaluationTrack = EvaluationTrack.cognitiveJudgement,
+    List<CausalEdgeDTO> dependsOn = const [],
     List<String> factsToFind = const [],
     String? logicalExpression,
   }) {
@@ -138,6 +158,7 @@ abstract class TDAAssertion with _$TDAAssertion {
       inverseEvidence: inverseEvidence,
       aggregationMode: aggregationMode,
       evaluationTrack: evaluationTrack,
+      dependsOn: dependsOn,
       factsToFind: factsToFind,
       logicalExpression: logicalExpression,
       anchorTarget: null,

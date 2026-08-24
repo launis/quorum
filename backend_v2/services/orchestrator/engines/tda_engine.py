@@ -83,7 +83,7 @@ class TDAEngine(ExecutionEngine):
                         source_id=_MATRIX_SOURCE_SENTINEL,
                         source_sequence_index=i,
                     )
-                    nodes.append(LinkedAtomGraph(atom=extracted, depends_on=[]))
+                    nodes.append(LinkedAtomGraph(atom=extracted, depends_on=list(atom.depends_on)))
                     states[atom.atom_id] = AtomExecutionState(
                         tda_id=atom.atom_id,
                         status=ExecutionStatus.FAILED,
@@ -165,7 +165,7 @@ class TDAEngine(ExecutionEngine):
                         source_id=_MATRIX_SOURCE_SENTINEL,
                         source_sequence_index=i,
                     )
-                    nodes.append(LinkedAtomGraph(atom=extracted, depends_on=[]))
+                    nodes.append(LinkedAtomGraph(atom=extracted, depends_on=list(atom.depends_on)))
 
                 matrix_context = (
                     request.matrix_context.model_copy(update={"matrix_assertions": request.shuffled_atoms})

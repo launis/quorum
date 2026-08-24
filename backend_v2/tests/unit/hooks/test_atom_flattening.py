@@ -7,7 +7,8 @@ from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.dtos.dag_models import CausalEdge
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixClaim,
@@ -350,3 +351,166 @@ async def test_atom_flattening_no_matching_matrix_blocks(base_hook_state: HookSt
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
     assert result.state_delta == {}
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: HookState, mock_step: Step) -> None:
+    """Test that depends_on causal preconditions in TDAAssertion are preserved in FlattenedAtom."""
+    edge = CausalEdge(
+        edge_reasoning="Parent prerequisite must pass before child evaluation.",
+        tda_id="tda_00000000000000010000000000000000",
+        source_id="chk_source_1",
+        expected_status=ExecutionStatus.PASSED,
+    )
+    parent_tda = TDAAssertion(
+        tda_id="tda_00000000000000010000000000000000",
+        concept_description="Parent Root Assertion",
+        inverse_evidence=False,
+        aggregation_mode="EXISTS",
+    )
+    child_tda = TDAAssertion(
+        tda_id="tda_00000000000000010000000000000001",
+        concept_description="Child Dependent Assertion",
+        inverse_evidence=False,
+        aggregation_mode="EXISTS",
+        depends_on=(edge,),
+    )
+    claim = MatrixClaim(
+        label=I18nText(default_locale="en", translations={"en": "Claim With Deps", "fi": "Claim With Deps"}),
+        tda_assertions=[parent_tda, child_tda],
+    )
+    scale = MatrixScale(score=1, ai_label="Level 1", claims=[claim])
+    mock_block = MatrixPromptBlock(
+        id="blk_0123456789abcdef0123456789abcdef",
+        slug="slug-test-deps",
+        label=I18nText(default_locale="en", translations={"en": "Label", "fi": "Label"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        scales=[scale],
+    )
+
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
+    mock_comp_repo = AsyncMock()
+    mock_comp_repo.get_all_prompt_blocks.return_value = [mock_block.model_dump(mode="json")]
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=mock_comp_repo,
+        prompt_block_repo=mock_comp_repo,
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+
+    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 0}})
+    result = await process_matrix_flattening(state, deps)
+
+    assert result.success is True
+    shuffled = result.state_delta["shuffled_atoms"]
+    assert len(shuffled) == 2
+
+    child_atom = next(a for a in shuffled if a["atom_id"] == "tda_00000000000000010000000000000001")
+    assert "depends_on" in child_atom
+    assert len(child_atom["depends_on"]) == 1
+    assert child_atom["depends_on"][0]["tda_id"] == "tda_00000000000000010000000000000000"
+    assert child_atom["depends_on"][0]["expected_status"] == "PASSED"
+
+
+@pytest.mark.asyncio
+async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookState, mock_step: Step) -> None:
+    """Test that Stratified Sampling retains ancestor atoms via Transitive Causal Closure."""
+    # 3-tier causal chain: A -> B -> C
+    edge_a_to_b = CausalEdge(
+        edge_reasoning="A is precondition for B",
+        tda_id="tda_0000000000000001000000000000000a",
+        source_id="chk_1",
+        expected_status=ExecutionStatus.PASSED,
+    )
+    edge_b_to_c = CausalEdge(
+        edge_reasoning="B is precondition for C",
+        tda_id="tda_0000000000000001000000000000000b",
+        source_id="chk_1",
+        expected_status=ExecutionStatus.PASSED,
+    )
+
+    atom_a = TDAAssertion(
+        tda_id="tda_0000000000000001000000000000000a",
+        concept_description="Root Atom A",
+        inverse_evidence=False,
+        aggregation_mode="EXISTS",
+    )
+    atom_b = TDAAssertion(
+        tda_id="tda_0000000000000001000000000000000b",
+        concept_description="Middle Atom B",
+        inverse_evidence=False,
+        aggregation_mode="EXISTS",
+        depends_on=(edge_a_to_b,),
+    )
+    atom_c = TDAAssertion(
+        tda_id="tda_0000000000000001000000000000000c",
+        concept_description="Leaf Atom C",
+        inverse_evidence=False,
+        aggregation_mode="EXISTS",
+        depends_on=(edge_b_to_c,),
+    )
+
+    # Put all 3 atoms in scale 1 with 7 filler atoms (10 total)
+    fillers = [
+        TDAAssertion(
+            tda_id=f"tda_0000000000000001{i:016x}",
+            concept_description=f"Filler Atom {i}",
+            inverse_evidence=False,
+            aggregation_mode="EXISTS",
+        )
+        for i in range(1, 8)
+    ]
+    claim = MatrixClaim(
+        label=I18nText(default_locale="en", translations={"en": "Scale 1", "fi": "Scale 1"}),
+        tda_assertions=[atom_a, atom_b, atom_c, *fillers],
+    )
+    scale = MatrixScale(score=1, ai_label="Level 1", claims=[claim])
+    mock_block = MatrixPromptBlock(
+        id="blk_0123456789abcdef0123456789abcdef",
+        slug="slug-transitive",
+        label=I18nText(default_locale="en", translations={"en": "Label", "fi": "Label"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        scales=[scale],
+    )
+
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
+    mock_comp_repo = AsyncMock()
+    mock_comp_repo.get_all_prompt_blocks.return_value = [mock_block.model_dump(mode="json")]
+    deps = HookDependencies(
+        exec_repo=AsyncMock(),
+        workflow_repo=mock_workflow_repo,
+        comp_repo=mock_comp_repo,
+        prompt_block_repo=mock_comp_repo,
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        audit_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+    )
+
+    # Use sampling strategy 1 (select 1 atom initially)
+    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 1}})
+    result = await process_matrix_flattening(state, deps)
+
+    assert result.success is True
+    shuffled = result.state_delta["shuffled_atoms"]
+    atom_ids = {a["atom_id"] for a in shuffled}
+
+    # If atom_c was selected, atom_b and atom_a MUST also be in the output set
+    if "tda_0000000000000001000000000000000c" in atom_ids:
+        assert "tda_0000000000000001000000000000000b" in atom_ids
+        assert "tda_0000000000000001000000000000000a" in atom_ids
+
+    # If atom_b was selected, atom_a MUST also be in the output set
+    if "tda_0000000000000001000000000000000b" in atom_ids:
+        assert "tda_0000000000000001000000000000000a" in atom_ids
+
