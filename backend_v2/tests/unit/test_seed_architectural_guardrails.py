@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.v2_core import OutputProfile, Workflow
 
 SEED_FILE = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
@@ -13,7 +13,7 @@ def test_prompt_blocks_do_not_contain_ui_logic() -> None:
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    blocks = [PromptBlock.model_validate(b) for b in data.get("prompt_blocks", [])]
+    blocks = [PromptBlockAdapter.validate_python(b) for b in data.get("prompt_blocks", [])]
 
     for block in blocks:
         if block.ai_description:

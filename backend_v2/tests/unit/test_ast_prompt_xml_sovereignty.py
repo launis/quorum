@@ -204,3 +204,42 @@ class InvalidModel(BaseModel):
                                     has_valid_config = True
 
     assert not has_valid_config, "AST scanner should have flagged invalid model config as non-compliant"
+
+
+def test_ast_no_pydantic_new_or_construct_hijacking() -> None:
+    """AST Guardrail: Domain models must NOT override __new__ or model_construct (Chameleon Class ban)."""
+    tree = _load_ast("backend_v2/models/domain/prompt_blocks.py")
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef):
+                    assert item.name != "__new__", (
+                        f"Class '{node.name}' in prompt_blocks.py defines '__new__'. "
+                        "BaseModel classes must not hijack __new__ for polymorphism; "
+                        "use TypeAdapter(Annotated[Union, Field(discriminator=...)])"
+                    )
+                    assert item.name != "model_construct", (
+                        f"Class '{node.name}' in prompt_blocks.py overrides 'model_construct'. "
+                        "Use concrete subtype model_construct or a dedicated factory."
+                    )
+
+
+def test_ast_guardrail_catches_pydantic_new_hijacking_negative() -> None:
+    """Anti-happy path: Proves AST scanner detects __new__ hijacking in mock class definitions."""
+    bad_code = """
+class ChameleonModel(BaseModel):
+    def __new__(cls, *args, **kwargs):
+        return Subclass(*args, **kwargs)
+"""
+    mock_tree = ast.parse(bad_code)
+    found_new = False
+
+    for node in ast.walk(mock_tree):
+        if isinstance(node, ast.ClassDef):
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef) and item.name == "__new__":
+                    found_new = True
+
+    assert found_new, "AST scanner should have detected __new__ hijacking in mock class"
+

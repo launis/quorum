@@ -54,9 +54,11 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
         ],
     }
 
+    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+
     dynamic_schema = compiler.build_dynamic_schema(
         schema_name="Step_Test_Response",
-        criteria=[PromptBlock.model_validate(mock_matrix_block)],
+        criteria=[PromptBlockAdapter.validate_python(mock_matrix_block)],
         has_shuffled_atoms=True,
         target_locale="en",
         strictness_level=50,

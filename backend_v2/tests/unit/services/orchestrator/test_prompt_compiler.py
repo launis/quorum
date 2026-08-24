@@ -98,10 +98,10 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     }
 
     # Act
-    from backend_v2.models.domain.prompt_blocks import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 
     DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="TestSchema", criteria=[PromptBlock.model_validate(mock_matrix_block)], strictness_level=50
+        schema_name="TestSchema", criteria=[PromptBlockAdapter.validate_python(mock_matrix_block)], strictness_level=50
     )  # noqa: E501
 
     # Assert
@@ -160,10 +160,10 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         ],  # noqa: E501
     }
 
-    from backend_v2.models.domain.prompt_blocks import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 
     DynamicSchema = compiler.build_dynamic_schema(
-        "TestExtract", [PromptBlock.model_validate(mock_matrix)], strictness_level=50
+        "TestExtract", [PromptBlockAdapter.validate_python(mock_matrix)], strictness_level=50
     )
 
     # Simulate LLM Response parsing
@@ -271,7 +271,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
     täydellisinä dynamic schema -kenttien kuvauksissa ilman keinotekoista typistämistä.
     """
     compiler = PromptCompiler()
-    from backend_v2.models.domain.prompt_blocks import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
     from backend_v2.models.enums import BlockDataType
 
     extreme_desc = "X" * 1000  # 1000 merkin pituinen ohjeistus
@@ -309,7 +309,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
     }
 
     DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="ExtremeSchema", criteria=[PromptBlock.model_validate(mock_block)], strictness_level=50
+        schema_name="ExtremeSchema", criteria=[PromptBlockAdapter.validate_python(mock_block)], strictness_level=50
     )
 
     matrix_model = DynamicSchema.model_fields["global_matrices"].annotation
@@ -324,7 +324,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
 
 def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     compiler = PromptCompiler()
-    from backend_v2.models.domain.prompt_blocks import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 
     mock_block = {
         "id": "blk_599645bd5baf44e2",
@@ -340,7 +340,9 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     }
 
     DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="CustomInstructionSchema", criteria=[PromptBlock.model_validate(mock_block)], strictness_level=50
+        schema_name="CustomInstructionSchema",
+        criteria=[PromptBlockAdapter.validate_python(mock_block)],
+        strictness_level=50,
     )
 
     # The field type must be a simple string (str), NOT a nested Pydantic model class

@@ -1,13 +1,17 @@
 """Unit tests for polymorphic PromptBlock domain models."""
 
+import json
+
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.models.domain.prompt_blocks import (
+    PROMPT_BLOCK_REGISTRY,
     AnyPromptBlock,
     MatrixPromptBlock,
     PersonaPromptBlock,
     PromptBlock,
+    PromptBlockAdapter,
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
@@ -17,6 +21,7 @@ from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixRow, MatrixSc
 
 @pytest.fixture
 def sample_i18n_text() -> I18nText:
+    """Provides a sample I18nText fixture for testing."""
     return I18nText(
         default_locale="en",
         translations={"en": "Sample Label", "fi": "Esimerkki"},
@@ -25,6 +30,7 @@ def sample_i18n_text() -> I18nText:
 
 @pytest.fixture
 def sample_matrix_scale(sample_i18n_text: I18nText) -> MatrixScale:
+    """Provides a sample MatrixScale fixture with valid TDA assertions."""
     assertion = TDAAssertion(
         tda_id="tda_0123456789abcdef0123456789abcdef",
         concept_description="Critical directive requiring adherence to empirical evidence.",
@@ -46,6 +52,7 @@ def test_matrix_prompt_block_computed_min_max(
     sample_i18n_text: I18nText,
     sample_matrix_scale: MatrixScale,
 ) -> None:
+    """Tests automatic min/max score calculation on MatrixPromptBlock."""
     scale_1 = MatrixScale(
         score=1,
         ai_label="POOR",
@@ -73,6 +80,7 @@ def test_matrix_prompt_block_computed_min_max(
 
 
 def test_system_rule_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
+    """Tests direct instantiation and default fields of SystemRulePromptBlock."""
     block = SystemRulePromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-rule",
@@ -88,6 +96,7 @@ def test_system_rule_prompt_block_instantiation(sample_i18n_text: I18nText) -> N
 
 
 def test_persona_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
+    """Tests direct instantiation and fields of PersonaPromptBlock."""
     block = PersonaPromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-persona",
@@ -103,6 +112,7 @@ def test_persona_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
 
 
 def test_protocol_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
+    """Tests direct instantiation and fields of ProtocolPromptBlock."""
     block = ProtocolPromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-protocol",
@@ -116,8 +126,7 @@ def test_protocol_prompt_block_instantiation(sample_i18n_text: I18nText) -> None
 
 
 def test_discriminated_union_parsing(sample_i18n_text: I18nText, sample_matrix_scale: MatrixScale) -> None:
-    adapter = TypeAdapter(AnyPromptBlock)
-
+    """Tests polymorphic parsing via PromptBlockAdapter."""
     matrix_data = {
         "id": "blk_0123456789abcdef0123456789abcdef",
         "slug": "matrix-test",
@@ -126,7 +135,7 @@ def test_discriminated_union_parsing(sample_i18n_text: I18nText, sample_matrix_s
         "category_id": "matrix",
         "scales": [sample_matrix_scale.model_dump()],
     }
-    parsed_matrix = adapter.validate_python(matrix_data)
+    parsed_matrix = PromptBlockAdapter.validate_python(matrix_data)
     assert isinstance(parsed_matrix, MatrixPromptBlock)
     assert parsed_matrix.computed_min == 4
     assert parsed_matrix.computed_max == 4
@@ -139,7 +148,7 @@ def test_discriminated_union_parsing(sample_i18n_text: I18nText, sample_matrix_s
         "category_id": "system_rule",
         "instruction_text": "Strict rule",
     }
-    parsed_rule = adapter.validate_python(rule_data)
+    parsed_rule = PromptBlockAdapter.validate_python(rule_data)
     assert isinstance(parsed_rule, SystemRulePromptBlock)
 
     persona_data = {
@@ -150,7 +159,7 @@ def test_discriminated_union_parsing(sample_i18n_text: I18nText, sample_matrix_s
         "category_id": "execution_persona",
         "role_enforcement": "Role X",
     }
-    parsed_persona = adapter.validate_python(persona_data)
+    parsed_persona = PromptBlockAdapter.validate_python(persona_data)
     assert isinstance(parsed_persona, PersonaPromptBlock)
 
     protocol_data = {
@@ -161,11 +170,12 @@ def test_discriminated_union_parsing(sample_i18n_text: I18nText, sample_matrix_s
         "category_id": "protocol",
         "protocol_instructions": "Protocol Y",
     }
-    parsed_protocol = adapter.validate_python(protocol_data)
+    parsed_protocol = PromptBlockAdapter.validate_python(protocol_data)
     assert isinstance(parsed_protocol, ProtocolPromptBlock)
 
 
 def test_matrix_prompt_block_requires_scales(sample_i18n_text: I18nText) -> None:
+    """Tests that MatrixPromptBlock enforces min_length=1 on scales."""
     with pytest.raises(ValidationError):
         MatrixPromptBlock(
             id="blk_0123456789abcdef0123456789abcdef",
@@ -177,9 +187,9 @@ def test_matrix_prompt_block_requires_scales(sample_i18n_text: I18nText) -> None
 
 
 def test_prompt_block_extra_forbid(sample_i18n_text: I18nText) -> None:
-    adapter = TypeAdapter(AnyPromptBlock)
+    """Tests that extra forbidden attributes are rejected in strict mode."""
     with pytest.raises(ValidationError):
-        adapter.validate_python(
+        PromptBlockAdapter.validate_python(
             {
                 "id": "blk_0123456789abcdef0123456789abcdef",
                 "slug": "rule-test",
@@ -192,6 +202,7 @@ def test_prompt_block_extra_forbid(sample_i18n_text: I18nText) -> None:
 
 
 def test_prompt_block_frozen_immutability(sample_i18n_text: I18nText) -> None:
+    """Tests that all prompt block models are strictly frozen."""
     block = SystemRulePromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test-rule",
@@ -202,57 +213,19 @@ def test_prompt_block_frozen_immutability(sample_i18n_text: I18nText) -> None:
         block.slug = "mutated-slug"  # type: ignore[misc]
 
 
-def test_prompt_block_polymorphic_factory(
-    sample_i18n_text: I18nText,
-    sample_matrix_scale: MatrixScale,
-) -> None:
-    """Verify that PromptBlock(...) polymorphic constructor creates the exact subclass."""
-    # 1. Matrix block
-    mb = PromptBlock(
-        id="blk_0123456789abcdef0123456789abcdef",
-        slug="matrix-block",
-        label=sample_i18n_text,
-        description=sample_i18n_text,
-        category_id=PromptBlockCategory.MATRIX,
-        scales=[sample_matrix_scale],
-    )
-    assert isinstance(mb, MatrixPromptBlock)
-
-    # 2. System rule block
-    srb = PromptBlock(
-        id="blk_0123456789abcdef0123456789abcdef",
-        slug="rule-block",
-        label=sample_i18n_text,
-        description=sample_i18n_text,
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-    )
-    assert isinstance(srb, SystemRulePromptBlock)
-
-    # 3. Persona block
-    pb = PromptBlock(
-        id="blk_0123456789abcdef0123456789abcdef",
-        slug="persona-block",
-        label=sample_i18n_text,
-        description=sample_i18n_text,
-        category_id=PromptBlockCategory.EXECUTION_PERSONA,
-    )
-    assert isinstance(pb, PersonaPromptBlock)
-
-    # 4. Protocol block
-    prb = PromptBlock(
-        id="blk_0123456789abcdef0123456789abcdef",
-        slug="protocol-block",
-        label=sample_i18n_text,
-        description=sample_i18n_text,
-        category_id=PromptBlockCategory.PROTOCOL,
-    )
-    assert isinstance(prb, ProtocolPromptBlock)
+def test_prompt_block_registry_coverage() -> None:
+    """Tests that PROMPT_BLOCK_REGISTRY covers all categories and maps to valid subclasses."""
+    assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.MATRIX] is MatrixPromptBlock
+    assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.SYSTEM_RULE] is SystemRulePromptBlock
+    assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.RUNTIME_VARIABLES] is SystemRulePromptBlock
+    assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.TASK_DEFINITION] is SystemRulePromptBlock
+    assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.EXECUTION_PERSONA] is PersonaPromptBlock
+    assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.AGENT_ROLE] is PersonaPromptBlock
+    assert PROMPT_BLOCK_REGISTRY[PromptBlockCategory.PROTOCOL] is ProtocolPromptBlock
 
 
-def test_prompt_block_model_validate_and_json(sample_i18n_text: I18nText) -> None:
-    """Verify PromptBlock.model_validate and PromptBlock.model_validate_json."""
-    import json
-
+def test_prompt_block_json_deserialization(sample_i18n_text: I18nText) -> None:
+    """Tests JSON string deserialization via PromptBlockAdapter."""
     raw_dict = {
         "id": "blk_0123456789abcdef0123456789abcdef",
         "slug": "mv-test",
@@ -261,33 +234,8 @@ def test_prompt_block_model_validate_and_json(sample_i18n_text: I18nText) -> Non
         "category_id": "system_rule",
         "type": "string",
     }
-    validated_dict = PromptBlock.model_validate(raw_dict)
-    assert isinstance(validated_dict, SystemRulePromptBlock)
-
     raw_json = json.dumps(raw_dict)
-    validated_json = PromptBlock.model_validate_json(raw_json)
-    assert isinstance(validated_json, SystemRulePromptBlock)
-
-
-def test_prompt_block_model_construct() -> None:
-    """Verify PromptBlock.model_construct for all categories."""
-    m = PromptBlock.model_construct(category_id=PromptBlockCategory.MATRIX)
-    assert isinstance(m, MatrixPromptBlock)
-
-    sr = PromptBlock.model_construct(category_id=PromptBlockCategory.SYSTEM_RULE)
-    assert isinstance(sr, SystemRulePromptBlock)
-
-    p = PromptBlock.model_construct(category_id=PromptBlockCategory.EXECUTION_PERSONA)
-    assert isinstance(p, PersonaPromptBlock)
-
-    pr = PromptBlock.model_construct(category_id=PromptBlockCategory.PROTOCOL)
-    assert isinstance(pr, ProtocolPromptBlock)
-
-    d = PromptBlock.model_construct()
-    assert isinstance(d, SystemRulePromptBlock)
-
-    # Empty __new__ fallback
-    empty_block = PromptBlock.__new__(PromptBlock)
-    assert isinstance(empty_block, PromptBlock)
-
+    validated = PromptBlockAdapter.validate_json(raw_json)
+    assert isinstance(validated, SystemRulePromptBlock)
+    assert validated.id == "blk_0123456789abcdef0123456789abcdef"
 

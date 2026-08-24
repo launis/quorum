@@ -53,7 +53,6 @@ class StepResponseDTO(BaseResponseDTO, Step):
 PromptBlockResponseDTO = PromptBlock
 
 
-
 class MCPGatewayDeleteResponse(BaseResponseDTO):
     """API Response schema for deleting an MCP gateway.
 

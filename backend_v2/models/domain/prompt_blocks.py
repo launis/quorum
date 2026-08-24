@@ -5,17 +5,15 @@ Fuses legacy components and matrices into a strict Pydantic V2 discriminated uni
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     ConfigDict,
     Field,
-    GetCoreSchemaHandler,
     StringConstraints,
     TypeAdapter,
     model_validator,
 )
-from pydantic_core import core_schema
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
@@ -46,7 +44,10 @@ class PromptBlockBase(V2CoreBase):
     )
     ai_description: str | None = Field(
         default=None,
-        description="MANDATORY: English cognitive instructions for the LLM. Completely isolates AI prompt from UI localizations.",
+        description=(
+            "MANDATORY: English cognitive instructions for the LLM. "
+            "Completely isolates AI prompt from UI localizations."
+        ),
     )
     theory_grounding: TheoryGrounding | None = Field(
         default=None,
@@ -143,106 +144,15 @@ AnyPromptBlock = Annotated[
     Field(discriminator="category_id"),
 ]
 
-_prompt_block_adapter: TypeAdapter[AnyPromptBlock] = TypeAdapter(AnyPromptBlock)
+PromptBlock = AnyPromptBlock
+PromptBlockAdapter: TypeAdapter[AnyPromptBlock] = TypeAdapter(AnyPromptBlock)
 
-
-class PromptBlock(PromptBlockBase):
-    """Polymorphic PromptBlock domain model and factory.
-
-    Delegates schema generation to the AnyPromptBlock discriminated union
-    while providing native Python constructors and validation methods.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
-        """Returns the core schema of the AnyPromptBlock discriminated union."""
-        return _prompt_block_adapter.core_schema
-
-    @classmethod
-    def model_validate(  # type: ignore[override]
-        cls,
-        obj: Any,
-        *,
-        strict: bool | None = None,
-        from_attributes: bool | None = None,
-        context: Any = None,
-        by_alias: bool | None = None,
-        by_name: bool | None = None,
-        extra: Literal["allow", "ignore", "forbid"] | None = None,
-    ) -> AnyPromptBlock:
-        """Validates input object against the polymorphic AnyPromptBlock schema."""
-        return _prompt_block_adapter.validate_python(
-            obj,
-            strict=strict,
-            from_attributes=from_attributes,
-            context=context,
-            by_alias=by_alias,
-            by_name=by_name,
-            extra=extra,
-        )
-
-    @classmethod
-    def model_validate_json(  # type: ignore[override]
-        cls,
-        json_data: str | bytes | bytearray,
-        *,
-        strict: bool | None = None,
-        context: Any = None,
-        by_alias: bool | None = None,
-        by_name: bool | None = None,
-        extra: Literal["allow", "ignore", "forbid"] | None = None,
-    ) -> AnyPromptBlock:
-        """Validates JSON string or bytes against the polymorphic AnyPromptBlock schema."""
-        return _prompt_block_adapter.validate_json(
-            json_data,
-            strict=strict,
-            context=context,
-            by_alias=by_alias,
-            by_name=by_name,
-            extra=extra,
-        )
-
-    @classmethod
-    def model_construct(cls, _fields_set: set[str] | None = None, **values: Any) -> AnyPromptBlock:  # type: ignore[override]
-        """Constructs concrete PromptBlock subclass instance without validation."""
-        category_id = values.get("category_id")
-        if category_id == PromptBlockCategory.MATRIX or category_id == "matrix":
-            return MatrixPromptBlock.model_construct(_fields_set, **values)
-        elif category_id == PromptBlockCategory.SYSTEM_RULE or category_id == "system_rule":
-            return SystemRulePromptBlock.model_construct(_fields_set, **values)
-        elif category_id in (
-            PromptBlockCategory.EXECUTION_PERSONA,
-            PromptBlockCategory.AGENT_ROLE,
-            "execution_persona",
-            "agent_role",
-            "persona",
-        ):
-            return PersonaPromptBlock.model_construct(_fields_set, **values)
-        elif category_id == PromptBlockCategory.PROTOCOL or category_id == "protocol":
-            return ProtocolPromptBlock.model_construct(_fields_set, **values)
-        return SystemRulePromptBlock.model_construct(_fields_set, **values)
-
-    def __new__(cls, *args: Any, **kwargs: Any) -> Any:
-        """Polymorphically instantiates the concrete PromptBlock subclass based on category_id."""
-        if cls is not PromptBlock:
-            return super().__new__(cls)
-        if not kwargs and not args:
-            return super().__new__(cls)
-        category_id = kwargs.get("category_id")
-        if category_id == PromptBlockCategory.MATRIX or category_id == "matrix":
-            return MatrixPromptBlock(*args, **kwargs)
-        elif category_id == PromptBlockCategory.SYSTEM_RULE or category_id == "system_rule":
-            return SystemRulePromptBlock(*args, **kwargs)
-        elif category_id in (
-            PromptBlockCategory.EXECUTION_PERSONA,
-            PromptBlockCategory.AGENT_ROLE,
-            "execution_persona",
-            "agent_role",
-            "persona",
-        ):
-            return PersonaPromptBlock(*args, **kwargs)
-        elif category_id == PromptBlockCategory.PROTOCOL or category_id == "protocol":
-            return ProtocolPromptBlock(*args, **kwargs)
-        return _prompt_block_adapter.validate_python(kwargs)
+PROMPT_BLOCK_REGISTRY: dict[PromptBlockCategory, type[PromptBlockBase]] = {
+    PromptBlockCategory.MATRIX: MatrixPromptBlock,
+    PromptBlockCategory.SYSTEM_RULE: SystemRulePromptBlock,
+    PromptBlockCategory.RUNTIME_VARIABLES: SystemRulePromptBlock,
+    PromptBlockCategory.TASK_DEFINITION: SystemRulePromptBlock,
+    PromptBlockCategory.EXECUTION_PERSONA: PersonaPromptBlock,
+    PromptBlockCategory.AGENT_ROLE: PersonaPromptBlock,
+    PromptBlockCategory.PROTOCOL: ProtocolPromptBlock,
+}

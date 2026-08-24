@@ -22,9 +22,9 @@ from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
-from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import VirtualSystemStepID
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (

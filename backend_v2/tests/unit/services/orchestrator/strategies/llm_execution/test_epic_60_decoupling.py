@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.v2_core import I18nText, Step
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
 
@@ -46,7 +46,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
     compiler.generate_mcp_instruction.return_value = "MCP Instruction"
     compiler.build_xml_context.return_value = "<context></context>"
 
-    role_block = PromptBlock.model_validate(
+    role_block = PromptBlockAdapter.validate_python(
         {
             "id": "blk_1122334455667788",
             "slug": "role_critic",
@@ -58,7 +58,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
         }
     )
 
-    protocol_block = PromptBlock.model_validate(
+    protocol_block = PromptBlockAdapter.validate_python(
         {
             "id": "blk_9988776655443322",
             "slug": "extraction_protocol",
@@ -71,7 +71,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
     )
 
     criteria_blocks = [
-        PromptBlock.model_validate(
+        PromptBlockAdapter.validate_python(
             {
                 "id": "blk_12345678901234567890123456789012",
                 "slug": "criteria_matrix",

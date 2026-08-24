@@ -35,12 +35,12 @@ from backend_v2.exceptions import (
 )
 from backend_v2.hooks.scoring import recalculate
 from backend_v2.models.auth import SystemOrganizations, TokenData
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.state import (
     EvidenceOverrideDTO,
     TraceEvent,
     WorkflowState,  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
 )
-from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.v2_core import (
     ComponentType,
     DataDictionaryField,

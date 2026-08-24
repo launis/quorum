@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.blackboard import LLMDraftAtom, LLMDraftAtomList
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -68,7 +68,7 @@ async def test_atomizer_deterministic_mapping() -> None:
 
     scale = MatrixScale(score=1, ai_label="TEST", claims=[claim])
 
-    block = PromptBlock.model_validate(
+    block = PromptBlockAdapter.validate_python(
         {
             "id": "blk_1234567890abcdef",
             "slug": "test_block",

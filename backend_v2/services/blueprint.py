@@ -15,12 +15,12 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     TargetBlockType,
     VirtualSystemStepID,
 )
-from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     AtomResultDTO,

@@ -84,6 +84,16 @@ from backend_v2.models.domain.performativity import (
     PreMortemAnalysis,
 )
 from backend_v2.models.domain.profiler import ProfilerDTO, ProfilerInput, ProfilerOutput, TextMetrics
+from backend_v2.models.domain.prompt_blocks import (
+    AnyPromptBlock,
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    PromptBlock,
+    PromptBlockAdapter,
+    PromptBlockBase,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.domain.retrieval import RetrievalDTO, RetrievalInput, RetrievalOutput, RetrievedFact
 
 # 2. Agent Modules
@@ -128,6 +138,8 @@ DOMAIN_REGISTRY = {
     "InteractionInput": InteractionInput,
     "CoachInput": CoachInput,
     "XAIReporterInput": XAIReporterInput,
+    # Prompt Blocks
+    "AnyPromptBlock": AnyPromptBlock,
 }
 
 __all__ = [
@@ -214,4 +226,12 @@ __all__ = [
     "InteractionInput",
     "CoachInput",
     "XAIReporterInput",
+    "AnyPromptBlock",
+    "PromptBlock",
+    "PromptBlockAdapter",
+    "PromptBlockBase",
+    "MatrixPromptBlock",
+    "SystemRulePromptBlock",
+    "PersonaPromptBlock",
+    "ProtocolPromptBlock",
 ]

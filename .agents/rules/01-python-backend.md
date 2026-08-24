@@ -99,6 +99,17 @@
         If the runtime data is already structured, your fix MUST be strictly limited to surgical type hint correction (e.g. `dict[str, Any]` -> `dict[str, ExistingModel]`). You MUST NOT invent parallel models.</mandatory_pattern>
         <catastrophic_reason>Symptom-based remodeling (reacting to stale hints instead of tracking real data flow) causes agents to invent redundant, parallel architecture. This bloats the codebase, violates the SSOT principle, and destroys maintainability.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="pydantic_discriminated_union_mandate">
+        <banned_pattern>Creating "Chameleon / Pseudo-Classes" that inherit from BaseModel while attempting to act as a union via __new__ hijacking, overriding model_construct / model_validate with # type: ignore[override], using duplicated if-elif chains with raw string literals (e.g. "matrix", "persona"), or falling back silently to a default subclass.</banned_pattern>
+        <mandatory_pattern>All polymorphic schemas MUST be implemented strictly as Pydantic V2 Discriminated Unions:
+        1. Pure Type Alias: Define `AnyPromptBlock = Annotated[SubA | SubB, Field(discriminator="category_id")]` and alias `PromptBlock = AnyPromptBlock`. NEVER create a class named `PromptBlock(PromptBlockBase)` that fakes union behavior.
+        2. Centralized TypeAdapter: Use `TypeAdapter(AnyPromptBlock)` for all parsing, serialization, and JSON validation.
+        3. Strict Enum Registry: If dynamic/unvalidated instantiation is required (e.g. custom construct), route strictly through an Enum-keyed dictionary (`PROMPT_BLOCK_REGISTRY: dict[PromptBlockCategory, type[PromptBlockBase]]`).
+        4. Absolute Fail-Fast: If the discriminator is missing or invalid, raise an explicit AppException immediately. Zero silent fallbacks (e.g., returning SystemRulePromptBlock as default is strictly prohibited).
+        5. Concrete Instantiation: Business logic and fixtures must instantiate concrete subclasses directly (e.g., `MatrixPromptBlock(...)`).</mandatory_pattern>
+        <catastrophic_reason>Chameleon classes break MyPy/LSP static type analysis, cause false-positive attribute errors, bypass pydantic-core Rust optimizations, hide duct-tape fallbacks, and introduce un-auditable string branches.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

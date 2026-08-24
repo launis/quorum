@@ -3,7 +3,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 
@@ -13,70 +13,82 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
     """
     compiler = PromptCompiler()
 
-    # Load Causal Analyst block directly from seed_data.json
-    seed_path = Path("c:/src/quorum/backend_v2/seed/seed_data.json")
-    assert seed_path.exists(), "seed_data.json does not exist at expected path."
-
-    with open(seed_path, encoding="utf-8") as f:
-        seed_data = json.load(f)
-
-    # Locate Causal Analyst (normally under block with specific label/ai_description)
-    causal_block_data = None
-    for item in seed_data:
-        if isinstance(item, dict) and item.get("slug") == "causal_analyst":
-            causal_block_data = item
-            break
-        # Fallback to checking label translations for 'Causal Analyst'
-        if isinstance(item, dict) and "label" in item:
-            label_trans = item["label"].get("translations", {})
-            if label_trans == "Causal Analyst":
-                causal_block_data = item
-                break
-
-    # If not found directly, mock a robust, massive Causal Analyst block resembling seed data
-    if not causal_block_data:
-        causal_block_data = {
-            "id": "blk_1234567890abcdef",
-            "slug": "causal_analyst",
-            "category_id": "matrix",
-            "description": {
-                "default_locale": "en",
-                "translations": {"en": "Causal Analyst Evaluation", "fi": "Causal Analyst Evaluation"},
+    # Criteria block structure for Causal Analyst (mirroring actual production seed_data.json)
+    causal_block_data = {
+        "id": "blk_1a2b3c4d5e6f7a8b",
+        "slug": "matrix_causal_analyst",
+        "category_id": "matrix",
+        "label": {
+            "default_locale": "en",
+            "translations": {
+                "en": "Causal Depth & Counterfactual Rigor",
+                "fi": "Kausaalinen syvyys ja kontrafaktuaalinen tarkkuus",
             },
-            "type": "float",
-            "allow_decimals": True,
-            "label": {"default_locale": "en", "translations": {"en": "Causal Analyst", "fi": "Causal Analyst"}},
-            "ai_description": (
-                "<global_framework>\n"
-                "MORPHO-SYNTACTIC DETERMINISM: pattern-matching engine... "
-                "Concepts exist IF AND ONLY IF physically materialized... "
-                "</global_framework>\n\n"
-                "CORE MANDATE: Act as a Critical Causal Analyst enforcing Causal Impact Verification... "
-                "Require explicit Cognitive Friction (System 2 thinking)..."
-            ),
-            "scales": [
-                {
-                    "score": 1,
-                    "ai_label": "ONE",
-                    "claims": [
-                        {
-                            "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Claim 1"}},
-                            "tda_assertions": [
-                                {
-                                    "tda_id": "tda_11112222333344441111222233334444",
-                                    "concept_description": "Assertion rule causal details...",
-                                    "inverse_evidence": False,
-                                    "aggregation_mode": "ALL_MUST_COMPLY",
-                                }
-                            ],
-                        }
-                    ],
-                }
-            ],
-        }
+        },
+        "description": {
+            "default_locale": "en",
+            "translations": {
+                "en": "Evaluates causal inference depth and counterfactual verification.",
+                "fi": "Arvioi kausaalisen pttelyn syvyytt ja kontrafaktuaalista verifiointia.",
+            },
+        },
+        "ai_description": (
+            "MANDATORY: Evaluates causal inference depth and counterfactual verification. "
+            "Scores scale from 1 (Superficial/Correlational) to 5 (Deep Causal & Mechanism Verified)."
+        ),
+        "type": "float",
+        "scales": [
+            {
+                "score": 1,
+                "ai_label": "SUPERFICIAL CORRELATION",
+                "claims": [
+                    {
+                        "label": {
+                            "default_locale": "en",
+                            "translations": {
+                                "en": "Mistakes correlation for causation without mechanism analysis.",
+                                "fi": "Sekoittaa korrelaation kausaliteettiin ilman mekanismin analysointia.",
+                            },
+                        },
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_11111111111111111111111111111111",
+                                "concept_description": "Mistakes correlation for causation.",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                            }
+                        ],
+                    }
+                ],
+            },
+            {
+                "score": 5,
+                "ai_label": "DEEP CAUSAL MECHANISM",
+                "claims": [
+                    {
+                        "label": {
+                            "default_locale": "en",
+                            "translations": {
+                                "en": "Establishes full causal mechanism with counterfactual proofs.",
+                                "fi": "Määrittää täyden kausaalisen mekanismin kontrafaktuaalisin todistein.",
+                            },
+                        },
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_55555555555555555555555555555555",
+                                "concept_description": "Establishes full causal mechanism.",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                            }
+                        ],
+                    }
+                ],
+            },
+        ],
+    }
 
     # Validate against core Pydantic DTO (PromptBlock)
-    block = PromptBlock.model_validate(causal_block_data)
+    block = PromptBlockAdapter.validate_python(causal_block_data)
 
     # 1. Build dynamic schema (which contains the compiled Markdown rubric and schema keys)
     DynamicSchema = compiler.build_dynamic_schema(

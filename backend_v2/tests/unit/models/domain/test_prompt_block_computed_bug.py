@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 
 
 def test_prompt_block_computed_min_max_float() -> None:
@@ -23,7 +23,7 @@ def test_prompt_block_computed_min_max_float() -> None:
 
     # This should raise a ValidationError
     with pytest.raises(ValidationError) as exc_info:
-        PromptBlock.model_validate(payload)
+        PromptBlockAdapter.validate_python(payload)
 
     assert "Input should be a valid integer" in str(exc_info.value)
 
@@ -80,7 +80,8 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
         ],
     }
 
-    block = PromptBlock.model_validate(payload)
+    block = PromptBlockAdapter.validate_python(payload)
+    assert isinstance(block, MatrixPromptBlock)
     # Backend validator calculates these directly from the scales
     assert block.computed_min == 1
     assert block.computed_max == 5

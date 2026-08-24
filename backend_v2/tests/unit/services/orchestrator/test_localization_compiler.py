@@ -1,7 +1,11 @@
 import pytest
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    PromptBlockAdapter,
+    SystemRulePromptBlock,
+)
+from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
 
 
@@ -32,7 +36,7 @@ def test_compile_static_instructions_supported_locales() -> None:
             "ai_description": "Target language is {TARGET_LANGUAGE}",
         }
     ]
-    blocks = [PromptBlock.model_validate(c) for c in mock_criteria]
+    blocks = [PromptBlockAdapter.validate_python(c) for c in mock_criteria]
 
     expected = {
         "en": "English",
@@ -61,7 +65,7 @@ def test_compile_static_instructions_unsupported_locale_raises_app_exception() -
             "ai_description": "Test static instruction",
         }
     ]
-    blocks = [PromptBlock.model_validate(c) for c in mock_criteria]
+    blocks = [PromptBlockAdapter.validate_python(c) for c in mock_criteria]
 
     with pytest.raises(AppException) as exc_info:
         compiler.compile_static_instructions(blocks, target_locale="zh")
@@ -85,7 +89,7 @@ def test_compile_dynamic_instructions_supported_locales() -> None:
             "ai_description": "Today is {CURRENT_DATE} in {TARGET_LANGUAGE}",
         }
     ]
-    blocks = [PromptBlock.model_validate(c) for c in mock_criteria]
+    blocks = [PromptBlockAdapter.validate_python(c) for c in mock_criteria]
     result = compiler.compile_dynamic_instructions(blocks, target_locale="fi")
     assert "<DYNAMIC_INSTRUCTION" in result
     assert "{CURRENT_DATE}" not in result
@@ -98,9 +102,9 @@ def test_resolve_i18n_invalid_inputs() -> None:
 
     # Invalid dict
     with pytest.raises(ConfigurationError):
-        compiler.resolve_i18n({"invalid_key": 123}, "en")
+        compiler.resolve_i18n({"invalid": "format"}, "en")
 
-    # Invalid type (e.g. integer or legacy string)
+    # Non-dict
     with pytest.raises(ConfigurationError):
         compiler.resolve_i18n(12345, "en")
 
@@ -108,10 +112,10 @@ def test_resolve_i18n_invalid_inputs() -> None:
 def test_compile_static_instructions_missing_ai_description() -> None:
     """Test ConfigurationError when block is missing mandatory ai_description."""
     compiler = LocalizationCompiler()
-    mock_block = PromptBlock.model_construct(  # type: ignore[call-arg]
+    mock_block = SystemRulePromptBlock.model_construct(
         id="blk_nodesc",
         slug="no_desc",
-        category_id="system_rule",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
         label={"default_locale": "en", "translations": {"en": "Label"}},
         ai_description=None,
     )
@@ -122,10 +126,10 @@ def test_compile_static_instructions_missing_ai_description() -> None:
 def test_compile_dynamic_instructions_missing_ai_description() -> None:
     """Test ConfigurationError when runtime_variables block is missing ai_description."""
     compiler = LocalizationCompiler()
-    mock_block = PromptBlock.model_construct(  # type: ignore[call-arg]
+    mock_block = SystemRulePromptBlock.model_construct(
         id="blk_nodyn",
         slug="no_dyn",
-        category_id="runtime_variables",
+        category_id=PromptBlockCategory.RUNTIME_VARIABLES,
         label={"default_locale": "en", "translations": {"en": "Label"}},
         ai_description=None,
     )
@@ -149,7 +153,7 @@ def test_compile_dynamic_instructions_execution_time_types() -> None:
             "ai_description": "Date: {CURRENT_DATE} Time: {DYNAMIC_TIME}",
         }
     ]
-    blocks = [PromptBlock.model_validate(c) for c in mock_criteria]
+    blocks = [PromptBlockAdapter.validate_python(c) for c in mock_criteria]
 
     # ISO string
     res1 = compiler.compile_dynamic_instructions(blocks, target_locale="en", execution_time="2026-05-01T12:00:00Z")

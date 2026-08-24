@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
@@ -13,7 +13,7 @@ def test_reproduce_tier4_schema_bug() -> None:
     # We have a prompt block blk_599645bd5baf44e2
     # What was its type and category?
     # The error says field `blk_599645bd5baf44e2` was expected to be a string.
-    block = PromptBlock.model_validate(
+    block = PromptBlockAdapter.validate_python(
         {
             "id": "blk_599645bd5baf44e2",
             "type": "string",

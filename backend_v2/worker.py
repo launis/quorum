@@ -23,6 +23,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundErro
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -49,7 +50,6 @@ from backend_v2.models.prompts import (
     SYNTHESIS_XAI_CURATION,
     build_linguistic_context,
 )
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     DataStarvationEvent,
