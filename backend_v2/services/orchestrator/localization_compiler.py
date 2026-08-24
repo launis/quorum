@@ -10,8 +10,17 @@ import datetime
 import logging
 from typing import Any
 
+from pydantic import ValidationError
+
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    PromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
+from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.models.v2_core import I18nText
 
 logger = logging.getLogger(__name__)
@@ -52,7 +61,7 @@ class LocalizationCompiler:
         if isinstance(text_obj, dict):
             try:
                 text_obj = I18nText.model_validate(text_obj)
-            except Exception as e:
+            except (ValidationError, ValueError) as e:
                 msg = f"Failed to hydrate I18nText from dictionary: {e}"
                 logger.error("[LocalizationCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
@@ -80,7 +89,7 @@ class LocalizationCompiler:
     def compile_static_instructions(self, blocks: list[PromptBlock], target_locale: str) -> str:
         """Compile static instruction-type V2 PromptBlocks for the Cached System Prompt.
 
-        Extracts blocks where type == "instruction" AND category_id != "runtime_variables".
+        Extracts blocks where not MatrixPromptBlock AND category_id != RUNTIME_VARIABLES.
 
         Args:
             blocks: List of PromptBlock definitions.
@@ -91,7 +100,7 @@ class LocalizationCompiler:
 
         Raises:
             AppException: If target_locale is unsupported.
-            ConfigurationError: If a PromptBlock is missing mandatory ai_description.
+            ConfigurationError: If a PromptBlock is missing mandatory instruction text.
         """
         compiled_lines = []
         base_locale = target_locale.split("-")[0].lower()
@@ -106,14 +115,24 @@ class LocalizationCompiler:
         target_lang_name = LANGUAGE_NAMES[base_locale]
 
         for block in blocks:
-            if block.category_id != "matrix" and block.category_id != "runtime_variables":
+            if not isinstance(block, MatrixPromptBlock) and block.category_id != PromptBlockCategory.RUNTIME_VARIABLES:
                 label = self.resolve_i18n(block.label, "en")
-                desc = block.ai_description
+                desc = ""
+                match block:
+                    case SystemRulePromptBlock(instruction_text=text) if text:
+                        desc = text
+                    case PersonaPromptBlock(role_enforcement=text) if text:
+                        desc = text
+                    case ProtocolPromptBlock(protocol_instructions=text) if text:
+                        desc = text
+                    case _ if block.ai_description:
+                        desc = block.ai_description
+
                 if not desc:
                     block_id = block.id
-                    msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
+                    msg = f"PromptBlock '{block_id}' is missing mandatory instruction text."
                     logger.error(
-                        "PromptBlock is missing mandatory 'ai_description'.",
+                        "PromptBlock is missing mandatory instruction text.",
                         extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": block_id},
                     )
                     raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
@@ -133,7 +152,7 @@ class LocalizationCompiler:
     ) -> str:
         """Compile dynamic instruction-type V2 PromptBlocks for the Uncached User Tail.
 
-        Extracts blocks where type == "instruction" AND category_id == "runtime_variables",
+        Extracts blocks where category_id == RUNTIME_VARIABLES,
         and performs real-time variable substitutions (e.g. {CURRENT_DATE}).
 
         Args:
@@ -146,7 +165,7 @@ class LocalizationCompiler:
 
         Raises:
             AppException: If target_locale is unsupported or execution_time string cannot be parsed as ISO-8601.
-            ConfigurationError: If a runtime_variables block is missing mandatory ai_description.
+            ConfigurationError: If a runtime_variables block is missing mandatory instruction text.
         """
         now_utc = None
         if execution_time is not None:
@@ -193,14 +212,20 @@ class LocalizationCompiler:
 
         compiled_lines = []
         for block in blocks:
-            if block.category_id == "runtime_variables":
+            if block.category_id == PromptBlockCategory.RUNTIME_VARIABLES:
                 label = self.resolve_i18n(block.label, "en")
-                desc = block.ai_description
+                desc = ""
+                match block:
+                    case SystemRulePromptBlock(instruction_text=text) if text:
+                        desc = text
+                    case _ if block.ai_description:
+                        desc = block.ai_description
+
                 if not desc:
                     block_id = block.id
-                    msg = f"PromptBlock '{block_id}' is missing mandatory 'ai_description'."
+                    msg = f"PromptBlock '{block_id}' is missing mandatory 'instruction_text' or 'ai_description'."
                     logger.error(
-                        "PromptBlock is missing mandatory 'ai_description'.",
+                        "PromptBlock is missing mandatory instruction text.",
                         extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": block_id},
                     )
                     raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})

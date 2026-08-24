@@ -13,8 +13,13 @@ from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
-from backend_v2.models.domain.prompt_blocks import PromptBlock
-from backend_v2.models.enums import PromptBlockCategory
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    PromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
 from backend_v2.services.orchestrator.strategies.llm_execution.execution_time_resolver import (
@@ -100,7 +105,7 @@ class PromptFactory:
         mcp_instruction = compiler.generate_mcp_instruction(effective_mcp_tools)
 
         # Polymorphic check for grounded matrix blocks requiring mechanical anchors
-        is_grounded_step = any(b.category_id in ("matrix", PromptBlockCategory.MATRIX) for b in criteria_blocks)
+        is_grounded_step = any(isinstance(b, MatrixPromptBlock) for b in criteria_blocks)
 
         anchors_xml = ""
         if is_grounded_step:
@@ -110,20 +115,42 @@ class PromptFactory:
         # Layer 1: Global Mandates static caching prefix
         base_system_prompt = GLOBAL_MANDATES_XML.strip()
 
-        # Persona instruction or fallback base instruction
+        # Persona instruction or fallback base instruction (Phase 8 pattern matching)
         persona = "You are a highly accurate, structured evaluation assistant."
-        if execution_persona_block and execution_persona_block.ai_description:
-            persona = execution_persona_block.ai_description.strip()
+        if execution_persona_block:
+            match execution_persona_block:
+                case PersonaPromptBlock(role_enforcement=role_text) if role_text:
+                    persona = role_text.strip()
+                case SystemRulePromptBlock(instruction_text=text) if text:
+                    persona = text.strip()
+                case _ if execution_persona_block.ai_description:
+                    persona = execution_persona_block.ai_description.strip()
         base_system_prompt += f"\n\n{persona}"
 
-        # Layer 2: Role Directive & Protocols
-        if role_block and role_block.ai_description:
-            base_system_prompt += f"\n\n<ROLE_DIRECTIVE>\n{role_block.ai_description.strip()}\n</ROLE_DIRECTIVE>"
+        # Layer 2: Role Directive & Protocols (Phase 8 pattern matching)
+        if role_block:
+            role_text = ""
+            match role_block:
+                case PersonaPromptBlock(role_enforcement=text) if text:
+                    role_text = text.strip()
+                case SystemRulePromptBlock(instruction_text=text) if text:
+                    role_text = text.strip()
+                case _ if role_block.ai_description:
+                    role_text = role_block.ai_description.strip()
+            if role_text:
+                base_system_prompt += f"\n\n<ROLE_DIRECTIVE>\n{role_text}\n</ROLE_DIRECTIVE>"
 
-        if protocol_block and protocol_block.ai_description:
-            base_system_prompt += (
-                f"\n\n<EXTRACTION_PROTOCOL>\n{protocol_block.ai_description.strip()}\n</EXTRACTION_PROTOCOL>"
-            )
+        if protocol_block:
+            proto_text = ""
+            match protocol_block:
+                case ProtocolPromptBlock(protocol_instructions=text) if text:
+                    proto_text = text.strip()
+                case SystemRulePromptBlock(instruction_text=text) if text:
+                    proto_text = text.strip()
+                case _ if protocol_block.ai_description:
+                    proto_text = protocol_block.ai_description.strip()
+            if proto_text:
+                base_system_prompt += f"\n\n<EXTRACTION_PROTOCOL>\n{proto_text}\n</EXTRACTION_PROTOCOL>"
 
         # Layer 3: Criteria Guidelines & MCP Tools
         if static_instructions:
@@ -157,7 +184,7 @@ class PromptFactory:
 
         atom_to_block_ids: dict[str, set[str]] = {}
         for block_model in criteria_blocks:
-            if block_model.category_id in ("matrix", PromptBlockCategory.MATRIX) and block_model.scales:
+            if isinstance(block_model, MatrixPromptBlock) and block_model.scales:
                 b_id = block_model.id
                 if not b_id:
                     continue

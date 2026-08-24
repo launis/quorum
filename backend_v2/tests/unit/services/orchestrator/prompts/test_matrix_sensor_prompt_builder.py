@@ -204,6 +204,22 @@ def test_ephemeral_block_creation_strictness() -> None:
         )
 
 
+def test_create_ephemeral_block_returns_system_rule_prompt_block() -> None:
+    """Ensure _create_ephemeral_block returns a valid concrete SystemRulePromptBlock instance."""
+    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.enums import PromptBlockCategory
+
+    block = MatrixSensorPromptBuilder._create_ephemeral_block(
+        block_id="blk_1111111111111111",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        ai_desc="System rule instruction text.",
+    )
+    assert isinstance(block, SystemRulePromptBlock)
+    assert block.instruction_text == "System rule instruction text."
+    assert block.ai_description == "System rule instruction text."
+    assert block.category_id == PromptBlockCategory.SYSTEM_RULE
+
+
 def test_build_caching_prefix_contains_evaluation_directives() -> None:
     """Regression test (RED): Ensure static system prompt includes anti-repetition and concise reasoning directives."""
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Sample document", None)

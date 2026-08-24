@@ -173,3 +173,67 @@ def test_compile_dynamic_instructions_execution_time_types() -> None:
     with pytest.raises(AppException) as exc2:
         compiler.compile_dynamic_instructions(blocks, target_locale="en", execution_time=12345)  # type: ignore[arg-type]
     assert exc2.value.status_code == 400
+
+
+def test_compile_static_instructions_polymorphic_subtypes() -> None:
+    """Test compile_static_instructions extracts text correctly across Persona, Protocol, and SystemRule blocks."""
+    from backend_v2.models.domain.prompt_blocks import (
+        PersonaPromptBlock,
+        ProtocolPromptBlock,
+        SystemRulePromptBlock,
+    )
+    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+    from backend_v2.models.v2_core import I18nText
+
+    compiler = LocalizationCompiler()
+
+    persona = PersonaPromptBlock(
+        id="blk_1111111111111111",
+        slug="persona_block",
+        label=I18nText(default_locale="en", translations={"en": "Persona"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.EXECUTION_PERSONA,
+        type=BlockDataType.INSTRUCTION,
+        role_enforcement="Act as senior analyst in {TARGET_LANGUAGE}",
+    )
+    protocol = ProtocolPromptBlock(
+        id="blk_2222222222222222",
+        slug="protocol_block",
+        label=I18nText(default_locale="en", translations={"en": "Protocol"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.PROTOCOL,
+        type=BlockDataType.INSTRUCTION,
+        protocol_instructions="Extract exact quotes for {TARGET_LANGUAGE}",
+    )
+    system_rule = SystemRulePromptBlock(
+        id="blk_3333333333333333",
+        slug="system_rule_block",
+        label=I18nText(default_locale="en", translations={"en": "SystemRule"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.INSTRUCTION,
+        instruction_text="Enforce strict logic in {TARGET_LANGUAGE}",
+    )
+
+    compiled = compiler.compile_static_instructions([persona, protocol, system_rule], target_locale="fi")
+    assert "Act as senior analyst in Finnish" in compiled
+    assert "Extract exact quotes for Finnish" in compiled
+    assert "Enforce strict logic in Finnish" in compiled
+
+
+def test_compile_static_instructions_missing_instruction_text_raises_configuration_error() -> None:
+    """Anti-happy path: PromptBlock with missing instruction_text and ai_description raises ConfigurationError."""
+    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.enums import PromptBlockCategory
+
+    compiler = LocalizationCompiler()
+    mock_block = SystemRulePromptBlock.model_construct(
+        id="blk_nodesc_empty",
+        slug="no_desc_empty",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        label={"default_locale": "en", "translations": {"en": "Label"}},
+        instruction_text=None,
+        ai_description=None,
+    )
+    with pytest.raises(ConfigurationError):
+        compiler.compile_static_instructions([mock_block], target_locale="en")

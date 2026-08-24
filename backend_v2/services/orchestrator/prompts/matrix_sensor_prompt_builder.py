@@ -5,10 +5,11 @@ cacheable static system instructions from dynamic per-batch user claims.
 """
 
 import logging
+from typing import Literal
 
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
@@ -25,14 +26,23 @@ class MatrixSensorPromptBuilder:
     """Builder for sensor prompt messages."""
 
     @staticmethod
-    def _create_ephemeral_block(block_id: str, category_id: PromptBlockCategory, ai_desc: str) -> PromptBlock:
-        """Helper to create a valid PromptBlock for in-memory compilation."""
-        return PromptBlock(
+    def _create_ephemeral_block(
+        block_id: str,
+        category_id: Literal[
+            PromptBlockCategory.SYSTEM_RULE,
+            PromptBlockCategory.RUNTIME_VARIABLES,
+            PromptBlockCategory.TASK_DEFINITION,
+        ],
+        ai_desc: str,
+    ) -> SystemRulePromptBlock:
+        """Helper to create a valid SystemRulePromptBlock for in-memory compilation."""
+        return SystemRulePromptBlock(
             id=block_id,
             slug=block_id,
             organization_id="system",
             label=I18nText(default_locale="en", translations={"en": block_id}),
             description=I18nText(default_locale="en", translations={"en": block_id}),
+            instruction_text=ai_desc,
             ai_description=ai_desc,
             category_id=category_id,
             type=BlockDataType.INSTRUCTION,

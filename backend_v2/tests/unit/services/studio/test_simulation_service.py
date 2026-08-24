@@ -7,7 +7,12 @@ import pytest
 
 from backend_v2.exceptions import ResourceNotFoundError
 from backend_v2.models.auth import TokenData
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.enums import BlockDataType, HistoricalContextMode, PromptBlockCategory
 from backend_v2.models.v2_core import (
     ExpectedInput,
@@ -221,13 +226,14 @@ async def test_simulate_workflow_fatal_error(
 @pytest.mark.asyncio
 async def test_simulate_prompt_block_simple(simulation_service: StudioSimulationService, test_token: TokenData) -> None:
     """Test simple prompt block simulation with template formatting."""
-    block = PromptBlock(
+    block = SystemRulePromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="test_instruction",
         label=I18nText(default_locale="en", translations={"en": "Instruction"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
+        instruction_text="Analyze the document: {doc_title} and report.",
         ai_description="Analyze the document: {doc_title} and report.",
     )
 
@@ -243,14 +249,15 @@ async def test_simulate_prompt_block_simple(simulation_service: StudioSimulation
 async def test_simulate_prompt_block_none_ai_description(
     simulation_service: StudioSimulationService, test_token: TokenData
 ) -> None:
-    """Test prompt block simulation when ai_description is None."""
-    block = PromptBlock(
+    """Test prompt block simulation when ai_description and instruction_text are None."""
+    block = SystemRulePromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="test_none",
         label=I18nText(default_locale="en", translations={"en": "Instruction"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
+        instruction_text=None,
         ai_description=None,
     )
 
@@ -264,7 +271,7 @@ async def test_simulate_prompt_block_matrix_scales(
     simulation_service: StudioSimulationService, test_token: TokenData
 ) -> None:
     """Test matrix prompt block simulation rendering scales, claims, and TDA concept descriptions."""
-    block = PromptBlock(
+    block = MatrixPromptBlock(
         id="blk_22222222222222222222222222222222",
         slug="test_matrix",
         label=I18nText(default_locale="en", translations={"en": "Matrix Block"}),
@@ -301,6 +308,54 @@ async def test_simulate_prompt_block_matrix_scales(
     assert "Rule: Verify that evidence exists" in rendered
 
 
+@pytest.mark.asyncio
+async def test_simulate_prompt_block_polymorphic_subtypes(
+    simulation_service: StudioSimulationService, test_token: TokenData
+) -> None:
+    """Test rendering of all concrete polymorphic PromptBlock sub-types."""
+    # 1. PersonaPromptBlock with role_enforcement
+    persona_block = PersonaPromptBlock(
+        id="blk_11111111111111111111111111111111",
+        slug="persona_test",
+        label=I18nText(default_locale="en", translations={"en": "Persona"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.EXECUTION_PERSONA,
+        type=BlockDataType.INSTRUCTION,
+        role_enforcement="Act as an expert auditor.",
+    )
+    res_persona = await simulation_service.simulate_prompt_block(test_token, persona_block, mock_inputs={})
+    assert res_persona["valid"] is True
+    assert res_persona["rendered_prompt"] == "Act as an expert auditor."
+
+    # 2. ProtocolPromptBlock with protocol_instructions
+    protocol_block = ProtocolPromptBlock(
+        id="blk_22222222222222222222222222222222",
+        slug="protocol_test",
+        label=I18nText(default_locale="en", translations={"en": "Protocol"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.PROTOCOL,
+        type=BlockDataType.INSTRUCTION,
+        protocol_instructions="Extract exact quotes only.",
+    )
+    res_proto = await simulation_service.simulate_prompt_block(test_token, protocol_block, mock_inputs={})
+    assert res_proto["valid"] is True
+    assert res_proto["rendered_prompt"] == "Extract exact quotes only."
+
+    # 3. SystemRulePromptBlock with instruction_text
+    sys_block = SystemRulePromptBlock(
+        id="blk_33333333333333333333333333333333",
+        slug="sys_rule_test",
+        label=I18nText(default_locale="en", translations={"en": "System Rule"}),
+        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.INSTRUCTION,
+        instruction_text="Strict JSON only.",
+    )
+    res_sys = await simulation_service.simulate_prompt_block(test_token, sys_block, mock_inputs={})
+    assert res_sys["valid"] is True
+    assert res_sys["rendered_prompt"] == "Strict JSON only."
+
+
 # ---------------------------------------------------------------------------
 # Step Simulation Tests
 # ---------------------------------------------------------------------------
@@ -313,13 +368,14 @@ async def test_simulate_step_success(
     test_token: TokenData,
 ) -> None:
     """Test step simulation resolving role, protocol, and criteria blocks."""
-    mock_block = PromptBlock(
+    mock_block = PersonaPromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="role_block",
         label=I18nText(default_locale="en", translations={"en": "Role"}),
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         category_id=PromptBlockCategory.AGENT_ROLE,
         type=BlockDataType.STRING,
+        role_enforcement="You are a senior analyst.",
         ai_description="You are a senior analyst.",
     )
     mock_prompt_block_service.get_prompt_block.return_value = mock_block
