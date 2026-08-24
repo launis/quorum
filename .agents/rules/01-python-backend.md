@@ -336,6 +336,12 @@
         <catastrophic_reason>Overusing type ignores defeats the purpose of strict typing, allowing 'Any' or disjointed types to leak into the Fail-Fast domain logic, inevitably causing 500 Internals or UI rendering crashes downstream.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="explicit_reexport_mandate">
+        <banned_pattern>Performing implicit re-exports (e.g., `from module import Symbol`) in `__init__.py` or Strangler Fig proxy/facade files without explicit re-export declarations.</banned_pattern>
+        <mandatory_pattern>All re-exported symbols (classes, functions, constants, types) across `__init__.py` modules and Strangler Fig transition proxies MUST be explicitly declared to satisfy PEP 484 and `mypy --strict`. You MUST either declare symbols in `__all__ = ["Symbol", ...]` OR use redundant import aliases (`from module import Symbol as Symbol`). Implicit imports without re-export markers trigger MyPy `[attr-defined] / implicit re-export` errors and are strictly banned.</mandatory_pattern>
+        <catastrophic_reason>Implicit re-exports fail static type checking in CI/CD quality gates, causing downstream modules importing from the package/proxy to fail with MyPy errors and breaking automated refactoring workflows.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="execution_synthesis_tier_decoupling">
         <banned_pattern>Placing UI-formatting logic (e.g., "Output exactly ONE punchy sentence", 0-100 scales) in `PromptBlocks` or placing execution-tier directives (e.g., `ROLE: ANTAGONISTIC PROSECUTOR`, boolean hypothesis testing) in `OutputProfiles`.</banned_pattern>
         <mandatory_pattern>Strictly separate the Execution Phase from the Reporting Phase. `PromptBlocks` are EXCLUSIVELY for raw data evaluation (native scales like 1-5, ZERO-TRUST AUDITOR directives, atomic extraction) and MUST NOT contain UI formatting logic. `OutputProfiles` are EXCLUSIVELY for presentation and UI formatting (0-100 scales, brevity constraints, tone) and MUST NOT contain execution directives like hypothesis testing.</mandatory_pattern>

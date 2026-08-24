@@ -21,13 +21,13 @@ Source: @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmoniz
   </step>
 
   <dod_checklist>
-    - [ ] `prompt_factory.py` dispatches polymorphic blocks via `match block:` to extract discrete instruction fields (`role_enforcement`, `protocol_instructions`, `instruction_text`) without unvalidated property lookups.
-    - [ ] `prompt_factory.py` uses `isinstance(block_model, MatrixPromptBlock)` and checks `block_model.scales` safely for atom-to-block mapping without MyPy union attribute errors.
-    - [ ] `localization_compiler.py` dispatches polymorphic blocks via `match block:` to extract discrete instruction fields (`instruction_text`, `role_enforcement`, `protocol_instructions`, `objective`) and substitute `{TARGET_LANGUAGE}` and `{CURRENT_DATE}`.
-    - [ ] `simulation_service.py` dispatches polymorphic blocks via `match data:` to extract discrete instruction fields cleanly, rendering Zero-XML fields and matrix scales without accessing unvalidated properties.
-    - [ ] `matrix_sensor_prompt_builder.py` instantiates concrete `SystemRulePromptBlock` instances in `_create_ephemeral_block`, compiles Zero-XML fields (`objective`, `evaluation_rules`, `banned_concepts`) into XML tags, and formats `theory_context` without `source_url`.
-    - [ ] Unit test suites `test_prompt_factory.py`, `test_localization_compiler.py`, `test_simulation_service.py`, and `test_matrix_sensor_prompt_builder.py` pass 100% with ISTQB negative partition coverage.
-    - [ ] Quality gates pass: `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py --test` and `uv run python scripts/backend_audit_loop.py backend_v2/services/studio/simulation_service.py --test`.
+    - [x] `prompt_factory.py` dispatches polymorphic blocks via `match block:` to extract discrete instruction fields (`role_enforcement`, `protocol_instructions`, `instruction_text`) without unvalidated property lookups.
+    - [x] `prompt_factory.py` uses `isinstance(block_model, MatrixPromptBlock)` and checks `block_model.scales` safely for atom-to-block mapping without MyPy union attribute errors.
+    - [x] `localization_compiler.py` dispatches polymorphic blocks via `match block:` to extract discrete instruction fields (`instruction_text`, `role_enforcement`, `protocol_instructions`, `objective`) and substitute `{TARGET_LANGUAGE}` and `{CURRENT_DATE}`.
+    - [x] `simulation_service.py` dispatches polymorphic blocks via `match data:` to extract discrete instruction fields cleanly, rendering Zero-XML fields and matrix scales without accessing unvalidated properties.
+    - [x] `matrix_sensor_prompt_builder.py` instantiates concrete `SystemRulePromptBlock` instances in `_create_ephemeral_block`, compiles Zero-XML fields (`objective`, `evaluation_rules`, `banned_concepts`) into XML tags, and formats `theory_context` without `source_url`.
+    - [x] Unit test suites `test_prompt_factory.py`, `test_localization_compiler.py`, `test_simulation_service.py`, and `test_matrix_sensor_prompt_builder.py` pass 100% with ISTQB negative partition coverage.
+    - [x] Quality gates pass: `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py --test` and `uv run python scripts/backend_audit_loop.py backend_v2/services/studio/simulation_service.py --test`.
   </dod_checklist>
 
   <required_context_rules>
