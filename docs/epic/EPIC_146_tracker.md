@@ -444,14 +444,17 @@
   - Reseeded database cleanly via `uv run python backend_v2/seed/run_seed.py local` (90 prompt blocks, 19 steps validated and upserted).
   - Executed `/tier8-audit-plan` on Phase 10 plan with 100% compliance; generated audit report artifact `red_team_audit_phase10_seed_vault_pruning_and_reseeding.md`.
 
-- **Phase 11 (End-to-End Live Integration Verification Gate & Knowledge Synchronization) Red-Teamed & Refined**:
-  - Executed `/tier0-research-plan` System 2 Red-Team analysis on `docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md` with 100% markdown boundary pass (`audit_markdown_boundaries.py`).
-  - Identified and dry-run validated circular import resolution: eradicated late import `from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent` in `backend_v2/models/v2_core.py` and moved `ExecutionRecord.model_rebuild(_types_namespace=_state_localns)` into `backend_v2/models/state.py` alongside `ExecutionCoreFields`.
-  - Modernized `BlueprintTransformer` (`backend_v2/services/blueprint.py`) to use `PromptBlockAdapter.validate_python(b_dict)` for polymorphic prompt block deserialization, eliminating `AttributeError: 'typing.Union' object has no attribute 'model_validate'`.
-  - Modernized integration test mock fixtures (`mock_pb` in `test_epic_chain_e2e.py` and `test_lazy_llm_simulation.py`) to align with polymorphic `MatrixPromptBlock` schema.
-  - Specified 3 ISTQB negative test partitions (`NEG-01`: 404 on missing profile, `NEG-02`: 400 on missing locale, `NEG-03`: 500 on malformed matrix payload).
-  - Specified exact synchronization content for `ki_llm_extraction_architecture.md` (Zero-XML UI paradigm, 4-Layer Clean Stack Model, Static-First Caching Topology) and `.agents/rules/05_llm_architecture.md` (`compiler_xml_sovereignty_mandate`, `four_layer_clean_stack_hierarchy`).
-  - Validated dry-run execution with 2/2 tests passing in `test_epic_chain_e2e.py`.
+- **Phase 11 (End-to-End Live Integration Verification Gate & Knowledge Synchronization) Executed**:
+  - Resolved circular dependency between `backend_v2/models/v2_core.py` and `backend_v2/models/state.py` by eliminating late event imports in `v2_core.py` and invoking `ExecutionRecord.model_rebuild(_types_namespace=_state_localns)` in `state.py`.
+  - Modernized `BlueprintTransformer` (`backend_v2/services/blueprint.py`) and `MatrixDomainParser` (`backend_v2/services/matrix_domain_parser.py`) to parse prompt blocks polymorphically via `PromptBlockAdapter.validate_python(b_dict)` into `AnyPromptBlock`.
+  - Modernized `backend_v2/services/orchestrator/strategies/llm.py`, `backend_v2/services/execution.py`, `backend_v2/services/orchestrator/matrix_explanation_service.py`, and `backend_v2/hooks/atom_flattening.py` to strictly narrow `isinstance(b, MatrixPromptBlock)` for MyPy strict and runtime compliance.
+  - Modernized integration test mock fixtures in `test_epic_chain_e2e.py` and `test_lazy_llm_simulation.py` to adhere to pure string and strict `MatrixPromptBlock` schemas without legacy `ai_description`.
+  - Implemented 3 ISTQB negative tests in `test_epic_chain_e2e.py` (`NEG-01`: 404 `RESOURCE_NOT_FOUND`, `NEG-02`: 400 `VALIDATION_FAILED`, `NEG-03`: 500 `VALIDATION_FAILED`), with all 9 integration tests passing 100%.
+  - Executed and PASSED live LLM integration test gate on real PDFs via `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` (Full 12-step PDF execution completed to PASSED state in 1938.9s and generated SDUI report.pdf).
+  - Authored comprehensive comparative position paper `docs/teoreettinen_ja_kaupallinen_positiointi.md` benchmarking Quorum against SOTA research (FActScore, SAFE, GoT, CDM) and commercial coaching/evaluation platforms.
+  - Synchronized Knowledge Items `ki_llm_extraction_architecture.md` and `ki_context_enriched_decompose_verify.md` with `zero_xml_ui_paradigm`, `four_layer_clean_stack_model`, `static_first_caching_topology`, and `bipartite_causal_graph_alignment`.
+  - Synchronized `.agents/rules/05_llm_architecture.md` with `compiler_xml_sovereignty_mandate` and `four_layer_clean_stack_hierarchy`.
+  - Verified all Quality Gates: Backend Audit Loop passing (0 lint/format/MyPy errors, Jinja/Seed validated), Flutter Audit Loop passing (0 analyzer issues).
 
 ## Learned
 - **Pure Pydantic V2 Discriminated Union Architecture**:
@@ -470,14 +473,16 @@
   - When iterating over polymorphic `AnyPromptBlock` lists, checking `if isinstance(block_model, MatrixPromptBlock) and block_model.scales:` narrows the type for MyPy and guarantees safe attribute access without requiring duck-typing, `# type: ignore`, or Chameleon properties.
 - **Seed Data Redundancy Resolution**:
   - Individual step criteria blocks in `seed_data.json` historically duplicated global system rules (`block_headermandates`, `block_rule1`..`6`, `block_oprule1`..`3`, `block_instructionnohallucination`, `block_instructionlanguage_dynamic`, `block_headerinstructions`). With Layer 1 `GLOBAL_MANDATES_XML` statically compiling into all system prompts at the compiler level, retaining these blocks inside step criteria creates redundant prompt tokens and visual clutter in Studio without adding cognitive value.
-- **Mathematical Line Bounding for Seed Vault Mutations**:
-  - Vault mutations on large JSON files (specifically `seed_data.json` with 9,458 lines) must be performed with verified line boundaries (`#Lnn-mm`) to prevent LLM context saturation and parsing errors.
+- **Four-Layer Clean Stack & Static-First Caching Topology**:
+  - System prompts compiled through the AST compiler must strictly place static mandates, personas, and protocols in Layers 1-3 to form a 100% deterministic prefix for foundational model context caching (FinOps). Dynamic execution variables, atom aliases, and user payload texts must reside exclusively in Layer 4 (User Message) at the end of the prompt payload.
+- **Bipartite Causal Graph Alignment & Inverse Evidence**:
+  - Matrix evaluations operate as a bipartite causal graph linking dynamic paragraph/turn blocks (`[B0]...[B53]`) to normative criteria assertions (`tda_...`). The scoring engine mathematically reconciles both positive quality claims (`inverse_evidence = False`) and negative flaw searches (`inverse_evidence = True` where absence of flaw equals success) using the Guttman Waterfall model.
 
 ## Remaining
 - **Phase 11: End-to-End Live Integration Verification Gate & Knowledge Synchronization**:
   - [x] Create Plan: `/tier0-create-plan @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md] --phase=11`
   - [x] Red-Team Phase 11 Plan: `/tier0-research-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
-  - [ ] Execute Phase 11: `/tier2-execute @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
+  - [x] Execute Phase 11: `/tier2-execute @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
   - [ ] Audit Phase 11: `/tier8-audit-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
 - **Post-Implementation & Final Integration Gates**:
   - Full Backend & Frontend audit loops.
@@ -498,8 +503,32 @@
   - `@[ki_python_314_concurrency_strictness.md]`
   - `@[ki_llm_extraction_architecture.md]`
   - `@[ki_polymorphic_rule_routing.md]`
+  - `@[ki_context_enriched_decompose_verify.md]`
 
 ## Resume Command
 ```powershell
-/tier2-execute @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]
 ```
+
+---
+
+# Session Handover Context
+
+## 1. Outstanding User Requests
+- **Execute Phase 11 Audit (`11_placeholder_phase11_e2e_live_integration_verification.md`)**
+  - **Status:** AUDIT PENDING
+  - **Next Directive:** `"/tier8-audit-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]"`
+  - **Scope:**
+    1. Verify Phase 11 implementation against plan specifications and Definition of Done (DoD).
+    2. Audit AST prompt XML sovereignty, circular import decoupling, and blueprint transformer adapter.
+    3. Verify live LLM execution trace results and Bipartite Causal Graph Alignment mechanics.
+    4. Generate red-team audit report artifact `red_team_audit_phase11_e2e_live_integration_verification.md`.
+
+## 2. System State & Quality Gates
+- **Live LLM E2E Verification:** Passed 100% in 1938.9s (Execution ID `exe_1d123ba876b64dd0a26369df8a7b64e1`, generated [report.pdf](file:///c:/src/quorum/data/files/executions/exe_1d123ba876b64dd0a26369df8a7b64e1/report.pdf)).
+- **AST & Unit Tests:** 53/53 passed (`test_ast_prompt_xml_sovereignty.py`, `test_blueprint.py`, `test_epic_chain_e2e.py`, `test_lazy_llm_simulation.py`).
+- **Python Backend Quality Loop:** 100% clean (`scripts/backend_audit_loop.py` - 0 lint, 0 MyPy, Jinja/Seed OK).
+- **Flutter Client Quality Loop:** 100% clean (`scripts/flutter_audit_loop.py` - 0 issues).
+- **Knowledge Item Sync:** Synchronized `ki_llm_extraction_architecture.md` and `ki_context_enriched_decompose_verify.md`.
+- **Rules Sync:** Synchronized `.agents/rules/05_llm_architecture.md`.
+- **Architecture & Positioning Docs:** Created `docs/teoreettinen_ja_kaupallinen_positiointi.md` and indexed in `docs/index.md`.

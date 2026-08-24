@@ -35,7 +35,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.hooks.scoring import recalculate
 from backend_v2.models.auth import SystemOrganizations, TokenData
-from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.state import (
     EvidenceOverrideDTO,
     TraceEvent,
@@ -456,9 +456,11 @@ class ExecutionService:
 
                 dt = pb_obj.type
 
+                scales = pb_obj.scales if isinstance(pb_obj, MatrixPromptBlock) else None
+
                 # Define component defaults based on Strict Block Types
                 comp_type = ComponentType.HIDDEN
-                if dt in ["float", "int", "string"] and pb_obj.scales:
+                if dt in ["float", "int", "string"] and scales:
                     # Only numeric or scaled blocks map to sliders/gauges
                     comp_type = ComponentType.SLIDER
                 elif dt in ["float", "int"]:
@@ -467,9 +469,9 @@ class ExecutionService:
                     comp_type = ComponentType.DROPDOWN
 
                 max_val = None
-                if pb_obj.scales:
+                if scales:
                     try:
-                        scores = [float(s.score) for s in pb_obj.scales if hasattr(s, "score") and s.score is not None]
+                        scores = [float(s.score) for s in scales if hasattr(s, "score") and s.score is not None]
                         if scores:
                             max_val = float(max(scores))
                     except (ValueError, TypeError) as e:

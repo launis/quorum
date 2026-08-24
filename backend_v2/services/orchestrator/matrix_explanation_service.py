@@ -10,7 +10,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
@@ -126,7 +126,7 @@ class MatrixExplanationService:
             # Precompute claim labels and scale scores localized to target_locale
             tda_to_claim: dict[str, str] = {}
             tda_to_scale: dict[str, int] = {}
-            if pb.scales:
+            if isinstance(pb, MatrixPromptBlock) and pb.scales:
                 for scale in pb.scales:
                     if scale.claims:
                         for claim in scale.claims:

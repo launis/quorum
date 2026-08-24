@@ -30,6 +30,7 @@ Järjestelmä rakentuu särkymättömän ydinarkkitehtuurin (The Strict Executio
 Asiantuntijadokumentaatio siitä, kuinka tekoäly kytketään todellisuuteen, perustelee päätöksensä ja välttää hallusinaatiot.
 
 *   **[Holistinen Mestaruus](Holistinen%20Mestaruus.md)**: Järjestelmän filosofinen perusta asiantuntijoiden osaamisen skaalaamiseksi yli rutiinien.
+*   **[Teoreettinen ja Kaupallinen Positiointi (2024–2026)](teoreettinen_ja_kaupallinen_positiointi.md)**: Syvällinen vertailu kansainväliseen tekoälytutkimukseen (FActScore, SAFE, GoT, CDM) ja kaupallisiin AI Coaching/Evaluation -alustoihin.
 *   **[Agent Workflows Opas](Agent_Workflows_Opas.md)**: Alkuperäinen työnkulkujen ja orkestraation asiantuntijaopas.
 *   **[B2B SaaS IAM-arkkitehtuuri 2026](epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026.md)**: Control Plane documentation detailing Zero-Trust, Passkey-First Auth, Step-Up MFA, and the absolute Stripe Pattern (`org_[a-zA-Z0-9]{8}`).
 

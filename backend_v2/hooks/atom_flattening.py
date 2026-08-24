@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.dtos.engine import FlattenedAtom
 from backend_v2.models.v2_core import Step
 
@@ -109,7 +109,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
             ) from e
 
         if block.id in prompt_block_ids:
-            if block.category_id == "matrix":
+            if isinstance(block, MatrixPromptBlock):
                 assert block.scales is not None, "Matrix Block missing scales. Pydantic fail-fast bypassed."
 
                 logger.info(
