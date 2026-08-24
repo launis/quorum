@@ -882,7 +882,7 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_empty_evaluations() -> None:
     from backend_v2.hooks.scoring import matrix_scoring_hook
-    from backend_v2.models.domain.prompt_blocks import PromptBlock
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 
     pb = _build_valid_pb_dict("blk_1111111111111111", [_build_valid_scale(1, ["atom_test"])])
     state = HookState(
@@ -893,7 +893,7 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
         task_blueprint="sp_1",
         metadata={},
         global_context_vars={
-            "matrix_blocks": [("blk_1111111111111111", PromptBlock(**pb))],
+            "matrix_blocks": [("blk_1111111111111111", MatrixPromptBlock(**pb))],
             "scoring_profile": {"id": "prof_1", "scoring_strategy": "baseline", "strictness_level": "normal"},
         },
     )

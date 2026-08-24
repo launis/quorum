@@ -5,7 +5,7 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 from backend_v2.models.v2_core import Step, Workflow
 from backend_v2.services.studio import (
     StudioLexiconService,
@@ -315,6 +315,67 @@ async def test_list_prompt_blocks_empty(
     assert res == []
 
 
+async def test_list_prompt_blocks_success(
+    prompt_block_service: Any, root_token: Any, mock_seed_prompt_block_repo: Any
+) -> None:
+    blk_data = {
+        "id": "blk_1234567890abcdef12",
+        "slug": "blk_1",
+        "label": {"default_locale": "en", "translations": {"en": "Block"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "category_id": "agent_role",
+        "type": "string",
+        "organization_id": "org_123",
+    }
+    mock_seed_prompt_block_repo.get_all_prompt_blocks.return_value = [blk_data]
+    res = await prompt_block_service.list_prompt_blocks(root_token)
+    assert len(res) == 1
+    assert res[0].id == "blk_1234567890abcdef12"
+
+
+async def test_list_prompt_blocks_corrupt_data_raises_app_exception(
+    prompt_block_service: Any, root_token: Any, mock_seed_prompt_block_repo: Any
+) -> None:
+    # Invalid block data missing mandatory discriminator category_id
+    corrupt_data = {
+        "id": "blk_1234567890abcdef12",
+        "slug": "blk_1",
+        "label": {"default_locale": "en", "translations": {"en": "Block"}},
+    }
+    mock_seed_prompt_block_repo.get_all_prompt_blocks.return_value = [corrupt_data]
+    with pytest.raises(AppException) as exc_info:
+        await prompt_block_service.list_prompt_blocks(root_token)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR
+
+
+async def test_list_prompt_blocks_tenant_filtering(
+    prompt_block_service: Any, admin_token: Any, mock_seed_prompt_block_repo: Any
+) -> None:
+    blk_org = {
+        "id": "blk_1111222233334444",
+        "slug": "blk_org",
+        "label": {"default_locale": "en", "translations": {"en": "Org Block"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "category_id": "agent_role",
+        "type": "string",
+        "organization_id": "org_123",  # Matches admin_token
+    }
+    blk_other_org = {
+        "id": "blk_5555666677778888",
+        "slug": "blk_other",
+        "label": {"default_locale": "en", "translations": {"en": "Other Org Block"}},
+        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "category_id": "agent_role",
+        "type": "string",
+        "organization_id": "org_other_999",  # Different org
+    }
+    mock_seed_prompt_block_repo.get_all_prompt_blocks.return_value = [blk_org, blk_other_org]
+    res = await prompt_block_service.list_prompt_blocks(admin_token)
+    assert len(res) == 1
+    assert res[0].id == "blk_1111222233334444"
+
+
 async def test_get_prompt_block_not_found(
     prompt_block_service: Any, root_token: Any, mock_seed_prompt_block_repo: Any, caplog: Any
 ) -> None:
@@ -519,9 +580,60 @@ async def test_save_prompt_block(prompt_block_service: Any, admin_token: Any, mo
     mock_seed_prompt_block_repo.get_prompt_block_by_id.side_effect = None
     mock_seed_prompt_block_repo.get_prompt_block_by_id.return_value = blk_data
     res = await prompt_block_service.save_prompt_block(
-        admin_token, "blk_1234567890abcdef12", PromptBlock.model_validate(blk_data)
+        admin_token, "blk_1234567890abcdef12", PromptBlockAdapter.validate_python(blk_data)
     )
     assert res.id == "blk_1234567890abcdef12"
+
+
+async def test_create_prompt_block_draft(
+    prompt_block_service: Any, admin_token: Any, mock_seed_prompt_block_repo: Any
+) -> None:
+    stored: dict[str, Any] = {}
+
+    async def fake_create(data: dict[str, Any]) -> str:
+        stored[data["id"]] = data
+        return data["id"]
+
+    async def fake_get(block_id: str) -> dict[str, Any] | None:
+        return stored.get(block_id)
+
+    mock_seed_prompt_block_repo.create_prompt_block.side_effect = fake_create
+    mock_seed_prompt_block_repo.get_prompt_block_by_id.side_effect = fake_get
+
+    draft = await prompt_block_service.create_prompt_block_draft(admin_token)
+    assert draft.id.startswith("blk_")
+    assert draft.organization_id == "org_123"
+
+
+async def test_clone_prompt_block(
+    prompt_block_service: Any, admin_token: Any, mock_seed_prompt_block_repo: Any
+) -> None:
+    stored: dict[str, Any] = {
+        "blk_1234567890abcdef12": {
+            "id": "blk_1234567890abcdef12",
+            "slug": "blk_1",
+            "label": {"default_locale": "en", "translations": {"en": "Block"}},
+            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+            "category_id": "agent_role",
+            "type": "string",
+            "organization_id": "org_123",
+        }
+    }
+
+    async def fake_create(data: dict[str, Any]) -> str:
+        stored[data["id"]] = data
+        return data["id"]
+
+    async def fake_get(block_id: str) -> dict[str, Any] | None:
+        return stored.get(block_id)
+
+    mock_seed_prompt_block_repo.create_prompt_block.side_effect = fake_create
+    mock_seed_prompt_block_repo.get_prompt_block_by_id.side_effect = fake_get
+
+    cloned = await prompt_block_service.clone_prompt_block(admin_token, "blk_1234567890abcdef12")
+    assert cloned.id.startswith("blk_")
+    assert cloned.id != "blk_1234567890abcdef12"
+    assert cloned.label.translations["en"] == "Block (Copy)"
 
 
 from unittest.mock import patch

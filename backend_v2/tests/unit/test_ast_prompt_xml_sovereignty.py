@@ -19,6 +19,9 @@ def _load_ast(file_path: str) -> ast.AST:
     return ast.parse(source, filename=file_path)
 
 
+_ALL_PY_FILES = [str(p) for p in Path("backend_v2").rglob("*.py")]
+
+
 def test_ast_domain_models_strict_frozen_config() -> None:
     """Verifies that all prompt block classes define strict, forbidden, frozen ConfigDict."""
     tree = _load_ast("backend_v2/models/domain/prompt_blocks.py")
@@ -243,6 +246,47 @@ class ChameleonModel(BaseModel):
                     found_new = True
 
     assert found_new, "AST scanner should have detected __new__ hijacking in mock class"
+
+
+def test_ast_no_prompt_block_model_validate_calls() -> None:
+    """AST Guardrail: Ensure PromptBlock.model_validate is never called across backend_v2/ (Union alias ban)."""
+    violations: list[str] = []
+
+    for file_path in _ALL_PY_FILES:
+        try:
+            tree = _load_ast(file_path)
+        except Exception:
+            continue
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                if node.func.attr == "model_validate" and isinstance(node.func.value, ast.Name):
+                    if node.func.value.id == "PromptBlock":
+                        violations.append(f"{file_path}:{getattr(node, 'lineno', '?')}")
+
+    assert not violations, (
+        f"Found {len(violations)} illegal PromptBlock.model_validate call-sites. "
+        f"PromptBlock is a Discriminated Union alias and has no model_validate method. "
+        f"Use PromptBlockAdapter.validate_python instead: {violations}"
+    )
+
+
+def test_ast_guardrail_catches_prompt_block_model_validate_negative() -> None:
+    """Anti-happy path: Proves AST scanner flags PromptBlock.model_validate calls."""
+    bad_code = """
+def bad_function(data):
+    return PromptBlock.model_validate(data)
+"""
+    mock_tree = ast.parse(bad_code)
+    found_violation = False
+
+    for node in ast.walk(mock_tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr == "model_validate" and isinstance(node.func.value, ast.Name):
+                if node.func.value.id == "PromptBlock":
+                    found_violation = True
+
+    assert found_violation, "AST scanner should have detected PromptBlock.model_validate in mock code"
 
 
 # ---------------------------------------------------------------------------

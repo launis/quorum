@@ -5,7 +5,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.context_mapper import ContextMapper
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlockBase
 
 
 def test_context_mapper_empty_or_wildcard() -> None:
@@ -27,17 +27,17 @@ def test_context_mapper_fail_fast_on_dict() -> None:
 
 def test_context_mapper_valid_blocks() -> None:
     """Test that valid PromptBlock instances map correctly with extrema."""
-    b1 = MagicMock(spec=PromptBlock)
+    b1 = MagicMock(spec=PromptBlockBase)
     b1.id = "blk_1"
     b1.computed_min = 1.0
     b1.computed_max = 5.0
 
-    b2 = MagicMock(spec=PromptBlock)
+    b2 = MagicMock(spec=PromptBlockBase)
     b2.id = "blk_2"
     b2.computed_min = 0.0
     b2.computed_max = 10.0
 
-    b3 = MagicMock(spec=PromptBlock)
+    b3 = MagicMock(spec=PromptBlockBase)
     b3.id = "blk_3"
     b3.computed_min = None
     b3.computed_max = None

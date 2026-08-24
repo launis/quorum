@@ -1,4 +1,5 @@
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 
@@ -27,13 +28,13 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
         ai_label="Test Scale",
         claims=[claim],
     )
-    matrix = PromptBlock(
+    matrix = MatrixPromptBlock(
         id="blk_0123456789abcdef",
         slug="test-matrix-1",
         description=I18nText(default_locale="en", translations={"en": "test matrix block"}),
-        category_id="matrix",
+        category_id=PromptBlockCategory.MATRIX,
         scales=[scale],
-        type="float",
+        type=BlockDataType.FLOAT,
         label=I18nText(default_locale="en", translations={"en": "Test Matrix"}),
     )
 

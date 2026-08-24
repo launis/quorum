@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 from backend_v2.models.dtos.engine import FlattenedAtom
 from backend_v2.models.v2_core import Step
 
@@ -100,7 +100,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
     for raw_block in all_blocks:
         try:
-            block = PromptBlock.model_validate(raw_block)
+            block = PromptBlockAdapter.validate_python(raw_block, strict=False)
         except Exception as e:
             msg = f"Strict Fail-Fast Enforced: Invalid legacy block format: {e}"
             logger.error("[AtomFlatteningHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

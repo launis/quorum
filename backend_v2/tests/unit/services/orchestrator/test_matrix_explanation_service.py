@@ -4,7 +4,7 @@ Tests for matrix explanation context generation, Status-Aware Dual Reporting,
 and Ranked Round-Robin quote and unmet criteria curation.
 """
 
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import (
@@ -29,7 +29,7 @@ def _create_matrix_block(
                 ai_label="INITIAL",
                 claims=[
                     MatrixClaim(
-                        label=I18nText(default_locale="en", translations={"en": "Default Claim"}),
+                        label=I18nText(default_locale="en", translations={"en": "Claim Label", "fi": "Väite"}),
                         tda_assertions=[
                             TDAAssertion(
                                 tda_id="tda_00000000000000000000000000000001",
@@ -43,7 +43,7 @@ def _create_matrix_block(
             )
         ]
 
-    return PromptBlock(
+    return MatrixPromptBlock(
         id=block_id,
         slug=f"slug_{block_id}",
         label=I18nText(default_locale="en", translations={"en": "Matrix Label", "fi": "Matriisin Otsikko"}),

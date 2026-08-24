@@ -122,17 +122,17 @@ def test_compress_synthesis_payload_compresses_anchors() -> None:
 
 
 def test_build_title_map_with_blocks_and_steps() -> None:
-    from backend_v2.models.domain.prompt_blocks import PromptBlock
-    from backend_v2.models.enums import HistoricalContextMode
+    from backend_v2.models.domain.prompt_blocks import PromptBlock, SystemRulePromptBlock
+    from backend_v2.models.enums import BlockDataType, HistoricalContextMode, PromptBlockCategory
     from backend_v2.models.v2_core import ExpectedInput, I18nText, Step, StepRule, Workflow
     from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
 
     blocks_by_id = {
-        "blk_1234567890abcdef": PromptBlock(
+        "blk_1234567890abcdef": SystemRulePromptBlock(
             id="blk_1234567890abcdef",
             slug="test_block",
-            type="instruction",
-            category_id="system_rule",
+            type=BlockDataType.INSTRUCTION,
+            category_id=PromptBlockCategory.SYSTEM_RULE,
             label=I18nText(default_locale="en", translations={"en": "Block Label EN", "fi": "Lohkon nimi FI"}),
             description=I18nText(default_locale="en", translations={"en": "Desc"}),
         )

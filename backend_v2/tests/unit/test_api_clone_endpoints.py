@@ -15,7 +15,7 @@ from backend_v2.api.dependencies import (
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, SystemRulePromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import (
     I18nText,
@@ -69,7 +69,7 @@ def mock_studio_service() -> AsyncMock:
         extraction_protocol_block_id="blk_573802341db9d68c",
         criteria_block_ids=["blk_0123456789abcdef"],
     )
-    service.clone_prompt_block.return_value = PromptBlock(
+    service.clone_prompt_block.return_value = SystemRulePromptBlock(
         id="blk_1111111111111112",
         slug="test_block_clone",
         label=I18nText(default_locale="en", translations={"en": "Block (Copy)", "fi": "Block (Copy)"}),

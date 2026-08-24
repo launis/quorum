@@ -9,7 +9,11 @@ from backend_v2.core.hook_registry import HookDependencies, HookResult, HookStat
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.falsifier import FalsifierData
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PromptBlock,
+    PromptBlockAdapter,
+)
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import (
@@ -396,8 +400,8 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         for pb_id in prompt_block_ids:
             pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(pb_id)
             if pb_data:
-                pb_model = PromptBlock.model_validate(pb_data)
-                if pb_model.category_id == "matrix":
+                pb_model = PromptBlockAdapter.validate_python(pb_data, strict=False)
+                if isinstance(pb_model, MatrixPromptBlock):
                     scales = pb_model.scales
                     if not scales:
                         msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' has no scales."
@@ -573,8 +577,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(pb_id)
             if pb_data:
                 try:
-                    pb_model = PromptBlock.model_validate(pb_data)
-                    if pb_model.category_id == "matrix":
+                    pb_model = PromptBlockAdapter.validate_python(pb_data, strict=False)
+                    if isinstance(pb_model, MatrixPromptBlock):
                         matrix_blocks.append((pb_id, pb_model))
                 except ValidationError as e:
                     msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' validation failed."
@@ -1054,7 +1058,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 )
 
             try:
-                pb_model = PromptBlock.model_validate(pb_data)
+                pb_model = PromptBlockAdapter.validate_python(pb_data, strict=False)
             except ValidationError as e:
                 msg = f"Strict Fail-Fast Enforced: Invalid PromptBlock format for '{pb_id}': {e}"
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -1063,7 +1067,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 ) from e
 
             # Skip non-matrix blocks! They have different schemas (e.g. they include 'status' from ChunkWorker)
-            if pb_model.category_id != "matrix":
+            if not isinstance(pb_model, MatrixPromptBlock):
                 continue
 
             # The Anti-TDD Trap & Zero-Compromise Pledge: We intercept the payload with a strict Pydantic adapter
@@ -1221,8 +1225,8 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
             # Check if this is a matrix block
             pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(k)
             if pb_data:
-                pb_model = PromptBlock.model_validate(pb_data)
-                if pb_model.category_id == "matrix":
+                pb_model = PromptBlockAdapter.validate_python(pb_data, strict=False)
+                if isinstance(pb_model, MatrixPromptBlock):
                     try:
                         _ = LightweightMatrixOutput.model_validate(v)
                         matrix_keys.append(k)
@@ -1240,7 +1244,9 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
         pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(pb_id)
         if not pb_data:
             continue
-        pb_model = PromptBlock.model_validate(pb_data)
+        pb_model = PromptBlockAdapter.validate_python(pb_data, strict=False)
+        if not isinstance(pb_model, MatrixPromptBlock):
+            continue
 
         scales = pb_model.scales
         if not scales:

@@ -9,7 +9,7 @@ import logging
 from typing import Any
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockBase
 from backend_v2.models.v2_core import OutputLayoutBlock, Workflow
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class ContextMapper:
         for b_idx, block_id in enumerate(target_blocks):
             extrema_str = ""
             for b in all_blocks:
-                if not isinstance(b, PromptBlock):
+                if not isinstance(b, PromptBlockBase):
                     msg = (
                         "Fail-Fast violation: ContextMapper MUST receive strictly typed "
                         "PromptBlock models, not raw dictionaries."
@@ -58,8 +58,10 @@ class ContextMapper:
                     raise AppException(message="Internal compilation error.", status_code=500, details={})
 
                 if str(b.id) == str(block_id):
-                    if b.computed_min is not None and b.computed_max is not None:
-                        extrema_str = f" (Absolute Scale Limits: {b.computed_min} to {b.computed_max})"
+                    comp_min = getattr(b, "computed_min", None)
+                    comp_max = getattr(b, "computed_max", None)
+                    if comp_min is not None and comp_max is not None:
+                        extrema_str = f" (Absolute Scale Limits: {comp_min} to {comp_max})"
                     break
 
             instruction += f"  {b_idx + 1}. Target Data Element -> ID: {block_id}{extrema_str}\n"

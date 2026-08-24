@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.llm.schema_builder import SchemaCompilerService
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock, SystemRulePromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory, XaiExtensionType
 from backend_v2.models.v2_core import I18nText
 
@@ -28,7 +28,7 @@ def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) ->
                 )
             ],
         )
-        return PromptBlock(
+        return MatrixPromptBlock(
             id="blk_1234567890abcdef1234567890abcdef",
             slug=slug,
             label=I18nText(default_locale="en", translations={"en": "Test Label", "fi": "Test Label"}),
@@ -41,7 +41,7 @@ def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) ->
             output_extensions=extensions,
             scales=[scale],
         )
-    return PromptBlock(
+    return SystemRulePromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug=slug,
         label=I18nText(default_locale="en", translations={"en": "Test Label", "fi": "Test Label"}),

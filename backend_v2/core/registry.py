@@ -15,7 +15,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.prompts.field_prompts import (
@@ -409,7 +409,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
         def get_cat(c: PromptBlock) -> str:
             return str(c.category_id.value) if isinstance(c.category_id, Enum) else str(c.category_id or "criteria")
 
-        matrix_blocks = [c for c in criteria if get_cat(c) == "matrix"]
+        matrix_blocks = [c for c in criteria if isinstance(c, MatrixPromptBlock)]
         if matrix_blocks:
             global_matrices_fields: dict[str, Any] = {}
             for matrix in matrix_blocks:

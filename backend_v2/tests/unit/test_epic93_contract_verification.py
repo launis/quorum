@@ -313,7 +313,7 @@ class TestPhase2PipelineUnification:
                 },
             ),
         ]
-        from backend_v2.models.domain.prompt_blocks import PromptBlock
+        from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
         from backend_v2.models.enums import BlockDataType, PromptBlockCategory
         from backend_v2.models.v2_core import (
             I18nText,
@@ -323,7 +323,7 @@ class TestPhase2PipelineUnification:
         )
 
         def _make_pb(block_id: str, label_en: str) -> PromptBlock:
-            return PromptBlock(
+            return MatrixPromptBlock(
                 id=block_id,
                 slug=f"slug_{block_id}",
                 label=I18nText(default_locale="en", translations={"en": label_en}),

@@ -1,6 +1,6 @@
 import pytest
 
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, SystemRulePromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
@@ -19,7 +19,7 @@ async def test_tier4_reasoning_trace_truncation_bug() -> None:
     # 1. Create a dynamic schema using SchemaFactory
     factory = SchemaFactory(resolve_i18n_fn=lambda data, locale: data.translations.get(locale, ""))
     criteria = [
-        PromptBlock(
+        SystemRulePromptBlock(
             id="blk_0000000000000000",
             slug="test_slug",
             category_id=PromptBlockCategory.SYSTEM_RULE,

@@ -15,7 +15,7 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     TargetBlockType,
@@ -194,7 +194,7 @@ class BlueprintTransformer:
         all_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
         blocks_by_id: dict[str, PromptBlock] = {}
         for b_dict in all_blocks_raw:
-            b = PromptBlock.model_validate(b_dict, strict=False)
+            b = PromptBlockAdapter.validate_python(b_dict, strict=False)
             if b.id:
                 blocks_by_id[b.id] = b
 

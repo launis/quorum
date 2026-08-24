@@ -14,7 +14,10 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PromptBlockAdapter,
+)
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
 from backend_v2.models.v2_core import (
@@ -190,8 +193,8 @@ class StudioWorkflowService:
             try:
                 data = await self.prompt_block_repo.get_prompt_block_by_id(block_id)
                 if data:
-                    block = PromptBlock.model_validate(data, strict=False)
-                    if block.category_id == "matrix" and block.output_extensions:
+                    block = PromptBlockAdapter.validate_python(data, strict=False)
+                    if isinstance(block, MatrixPromptBlock) and block.output_extensions:
                         extensions.update(block.output_extensions)
             except Exception:
                 pass

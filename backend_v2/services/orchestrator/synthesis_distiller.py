@@ -13,7 +13,7 @@ from fastapi import status
 
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, Step, StepRule, Workflow
@@ -280,7 +280,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     all_steps = [Step.model_validate(rs) for rs in raw_steps]
 
     raw_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
-    blocks_by_id = {str(b["id"]): PromptBlock.model_validate(b) for b in raw_blocks if "id" in b}
+    blocks_by_id = {str(b["id"]): PromptBlockAdapter.validate_python(b, strict=False) for b in raw_blocks if "id" in b}
 
     title_map = _build_title_map(workflow_data, all_steps, target_locale, blocks_by_id=blocks_by_id)
 

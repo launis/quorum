@@ -35,7 +35,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.hooks.scoring import recalculate
 from backend_v2.models.auth import SystemOrganizations, TokenData
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 from backend_v2.models.state import (
     EvidenceOverrideDTO,
     TraceEvent,
@@ -446,7 +446,7 @@ class ExecutionService:
                     raise ConfigurationError(msg)
 
                 try:
-                    pb_obj = PromptBlock.model_validate(pb_dict)
+                    pb_obj = PromptBlockAdapter.validate_python(pb_dict, strict=False)
                 except Exception as e:
                     msg = f"Invalid PromptBlock format for '{pb_id}': {str(e)}"
                     logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -804,7 +804,7 @@ class ExecutionService:
         blocks_by_id = {}
         for b in components:
             try:
-                b_obj = PromptBlock.model_validate(b)
+                b_obj = PromptBlockAdapter.validate_python(b, strict=False)
                 blocks_by_id[b_obj.id] = b_obj
             except ValidationError as e:
                 msg = f"Strict Fail-Fast Enforced: Invalid PromptBlock '{b.get('id', 'unknown')}' in DB: {e}"

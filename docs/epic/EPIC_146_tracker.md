@@ -194,11 +194,15 @@
 
 **Plan:** @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\11_placeholder_phase11_e2e_live_integration_verification.md]
 
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\11_placeholder_phase11_e2e_live_integration_verification.md] @[docs\epic\EPIC_146_tracker.md] --phase=11`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\11_placeholder_phase11_e2e_live_integration_verification.md] @[docs\epic\EPIC_146_tracker.md]`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\11_placeholder_phase11_e2e_live_integration_verification.md] @[docs\epic\EPIC_146_tracker.md] --phase=11`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\11_placeholder_phase11_e2e_live_integration_verification.md] @[docs\epic\EPIC_146_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\11_placeholder_phase11_e2e_live_integration_verification.md] @[docs\epic\EPIC_146_tracker.md]`
   - [ ] Step 0: Strategic Alignment Check — Verify Phase 10 reseeded database baseline
-  - [ ] Step 1: Live LLM Verification & Knowledge Synchronization — Execute live LLM E2E integration test gate, update ki_llm_extraction_architecture.md, and synchronize 05_llm_architecture.md rules
+  - [ ] Step 1: Core Model Circular Import Decoupling & Blueprint Adapter Fix — Eliminate circular imports and use PromptBlockAdapter in BlueprintTransformer
+  - [ ] Step 2: Integration Test Suite Modernization & ISTQB Negative Partitions — Fix mock fixtures, add NEG-01/02/03 scenarios, and verify pytest passes
+  - [ ] Step 3: Live LLM E2E REST API Verification Gate — Execute live LLM E2E verification test gate via $env:RUN_LIVE_E2E="true"
+  - [ ] Step 4: Knowledge Item Synchronization (4-Layer Clean Stack & Zero-XML UI) — Update ki_llm_extraction_architecture.md
+  - [ ] Step 5: LLM Architecture Rule Synchronization (05_llm_architecture.md) — Synchronize XML compiler sovereignty and 4-layer clean stack rules
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\11_placeholder_phase11_e2e_live_integration_verification.md] @[docs\epic\EPIC_146_tracker.md]`
 
@@ -433,18 +437,29 @@
   - Verified Quality Gates: `flutter_audit_loop.py` passed with 0 analyzer issues, 0 formatting diffs, and 100% passing tests (including all 204 Flutter unit/widget tests and `domain_parity_test.dart`).
   - Executed and PASSED `/tier8-audit-plan` for Phase 9 with full verification matrix and audit artifact generated (`red_team_audit_09_placeholder_phase9_flutter_studio_zero_xml_ui.md`).
 
-- **Phase 10 Plan (`10_placeholder_phase10_seed_vault_pruning_and_reseeding.md`) Complete & Audited**:
-  - Executed timestamped backup of `backend_v2/seed/seed_data.json` to `backend_v2/seed/backups/`.
-  - Executed `scratch/verify_redundancy.py` proving mathematically that all 17 candidate global mandate blocks are 100% subsumed and covered by Layer 1 `GLOBAL_MANDATES_XML`.
-  - Surgically pruned 17 redundant global mandate block IDs (105 total references across 12 steps) from `criteria_block_ids` in `backend_v2/seed/seed_data.json` using exact line bounding while preserving all step-specific criteria, matrix blocks, heuristics, principles, and task definitions.
-  - Repaired corrupted HTML entity on line 6705 of `seed_data.json` from `&lt;mechanical_anchors&gt;` to `<mechanical_anchors>`.
-  - Verified JSON schema integrity of `seed_data.json` with 0 syntax errors or trailing commas.
-  - Added 4 new AST and Seed Guardrail test cases to `backend_v2/tests/unit/test_ast_prompt_xml_sovereignty.py` (2 positive seed tests + 2 negative mock AST/data tests), all 16 tests passing with 97% strict coverage.
-  - Executed clean-slate database reseeding via `uv run python backend_v2/seed/run_seed.py local` with 0 errors.
+- **Phase 10 (Seed Vault Pruning & Database Reseeding) Executed & Audited (`440128fc`)**:
+  - Pruned 17 redundant global mandate block IDs (105 total references across 12 steps) from `criteria_block_ids` in `backend_v2/seed/seed_data.json` while strictly preserving step-specific criteria, matrix blocks, heuristics, principles, and task definitions.
+  - Repaired corrupted HTML entity `&lt;mechanical_anchors&gt;` on line 6705 of `seed_data.json` to `<mechanical_anchors>`.
+  - Added 4 new AST and Seed Guardrail test cases to `backend_v2/tests/unit/test_ast_prompt_xml_sovereignty.py` (2 positive seed checks + 2 negative mock AST/data tests), with all 16 tests passing with 97% strict coverage.
+  - Reseeded database cleanly via `uv run python backend_v2/seed/run_seed.py local` (90 prompt blocks, 19 steps validated and upserted).
+  - Executed `/tier8-audit-plan` on Phase 10 plan with 100% compliance; generated audit report artifact `red_team_audit_phase10_seed_vault_pruning_and_reseeding.md`.
+
+- **Phase 11 (End-to-End Live Integration Verification Gate & Knowledge Synchronization) Red-Teamed & Refined**:
+  - Executed `/tier0-research-plan` System 2 Red-Team analysis on `docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md` with 100% markdown boundary pass (`audit_markdown_boundaries.py`).
+  - Identified and dry-run validated circular import resolution: eradicated late import `from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent` in `backend_v2/models/v2_core.py` and moved `ExecutionRecord.model_rebuild(_types_namespace=_state_localns)` into `backend_v2/models/state.py` alongside `ExecutionCoreFields`.
+  - Modernized `BlueprintTransformer` (`backend_v2/services/blueprint.py`) to use `PromptBlockAdapter.validate_python(b_dict)` for polymorphic prompt block deserialization, eliminating `AttributeError: 'typing.Union' object has no attribute 'model_validate'`.
+  - Modernized integration test mock fixtures (`mock_pb` in `test_epic_chain_e2e.py` and `test_lazy_llm_simulation.py`) to align with polymorphic `MatrixPromptBlock` schema.
+  - Specified 3 ISTQB negative test partitions (`NEG-01`: 404 on missing profile, `NEG-02`: 400 on missing locale, `NEG-03`: 500 on malformed matrix payload).
+  - Specified exact synchronization content for `ki_llm_extraction_architecture.md` (Zero-XML UI paradigm, 4-Layer Clean Stack Model, Static-First Caching Topology) and `.agents/rules/05_llm_architecture.md` (`compiler_xml_sovereignty_mandate`, `four_layer_clean_stack_hierarchy`).
+  - Validated dry-run execution with 2/2 tests passing in `test_epic_chain_e2e.py`.
 
 ## Learned
 - **Pure Pydantic V2 Discriminated Union Architecture**:
   - In Python 3.14 / Pydantic V2, polymorphism MUST be implemented strictly as `Annotated[Union, Field(discriminator="category_id")]` with `TypeAdapter(AnyPromptBlock)`. Faking union behavior via `__new__` hijacking or `model_construct` overrides (`# type: ignore[override]`) on `BaseModel` classes is a dangerous anti-pattern (Chameleon Class) that breaks Rust `pydantic-core` parsing, LSP attribute inference, and hides silent fallbacks.
+- **Leaf Module Decoupling in State Management**:
+  - When leaf modules (specifically `execution_core.py`) use `TYPE_CHECKING` for event models to break circular dependencies with `state.py`, persistent records (specifically `ExecutionRecord` in `v2_core.py`) must resolve deferred annotations via `model_rebuild(_types_namespace=_state_localns)` in `state.py` rather than attempting circular late imports in `v2_core.py`.
+- **Polymorphic TypeAdapter Usage in Transformers**:
+  - In Pydantic V2 / Python 3.14, discriminated unions typed with `Annotated[Union[...], Field(discriminator='category_id')]` cannot be validated with `.model_validate()`. All transformers and services MUST use `TypeAdapter(AnyPromptBlock).validate_python(data)`.
 - **3-Tier Architectural Defense**:
   - Defense Layer 1 (Rules): `01-python-backend.md` explicitly bans Chameleon classes and unvalidated `model_construct` overrides.
   - Defense Layer 2 (AST Guardrails): `test_ast_prompt_xml_sovereignty.py` statically scans AST trees to reject any `__new__` or `model_construct` definitions on domain models.
@@ -453,41 +468,38 @@
   - In Flutter Studio V2, UI forms must never ask users or authors to input raw XML tags (`<system_directive>`, `<role>`, `<rules>`). All XML generation is strictly encapsulated in backend compilers (`PromptFactory`, `LocalizationCompiler`, `MatrixSensorPromptBuilder`, `StudioSimulationService`), while the UI captures discrete, natural-language fields (`instructionText`, `roleEnforcement`, `protocolInstructions`, `toneDirectives`) and provides a live preview of the compiled XML representation.
 - **Polymorphic Type Narrowing & Pattern Matching**:
   - When iterating over polymorphic `AnyPromptBlock` lists, checking `if isinstance(block_model, MatrixPromptBlock) and block_model.scales:` narrows the type for MyPy and guarantees safe attribute access without requiring duck-typing, `# type: ignore`, or Chameleon properties.
-- **Zero Legacy & SSOT Decoupling**:
-  - In active development, keeping legacy re-exports or dynamic `__getattr__` loaders in God Models (`v2_core.py`) masks circular dependencies and creates shadow execution paths. Ruthlessly updating all consumers to import directly from domain SSOT modules enforces clean module boundaries.
-- **Fail-Fast Client Deserialization (`disallowUnrecognizedKeys: true`)**:
-  - When backend models include derived/calculated fields (`computed_min`, `computed_max`) in API payloads, Flutter Freezed DTOs must explicitly declare these fields in factory constructors. Omitting them causes `json_serializable` to fail fast with `CheckedFromJsonException`.
-- **Dynamic List Widget Keys in Flutter Testing**:
-  - In Flutter widget lists rendered via `map((entry) => ...)`, dynamic item rows must provide distinct `ValueKey('item_${entry.key}_${entry.value}')` to prevent `StateError: Bad state: Too many elements` during animated list removals or widget reconciliations in test environments.
 - **Seed Data Redundancy Resolution**:
   - Individual step criteria blocks in `seed_data.json` historically duplicated global system rules (`block_headermandates`, `block_rule1`..`6`, `block_oprule1`..`3`, `block_instructionnohallucination`, `block_instructionlanguage_dynamic`, `block_headerinstructions`). With Layer 1 `GLOBAL_MANDATES_XML` statically compiling into all system prompts at the compiler level, retaining these blocks inside step criteria creates redundant prompt tokens and visual clutter in Studio without adding cognitive value.
 - **Mathematical Line Bounding for Seed Vault Mutations**:
-  - Vault mutations on large JSON files (e.g. 9,458 lines) must be performed with verified line boundaries (`#Lnn-mm`) to prevent LLM context saturation and parsing errors.
+  - Vault mutations on large JSON files (specifically `seed_data.json` with 9,458 lines) must be performed with verified line boundaries (`#Lnn-mm`) to prevent LLM context saturation and parsing errors.
 
-## Active Context & Execution Status
-- **Current Milestone:** Phase 10 Execution Complete (`10_placeholder_phase10_seed_vault_pruning_and_reseeding.md`).
-- **Next Milestone:** Phase 10 Red-Team Audit (`/tier8-audit-plan`).
-- **Parent Epic:** @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md]
-- **Task Directory:** @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization]
-- **Status:** READY FOR `/tier8-audit-plan` (Phase 10)
-
-## Architectural Findings & Decision Log for Next Session
-1. **Seed Vault Pruning & Database Reseeding Execution (Phase 10)**:
-   - 17 redundant global mandate blocks were pruned from `criteria_block_ids` across 12 steps in `seed_data.json`.
-   - Corrupted HTML entity `&lt;mechanical_anchors&gt;` was repaired to `<mechanical_anchors>`.
-   - 4 new AST and Seed Guardrail test cases were implemented in `test_ast_prompt_xml_sovereignty.py` (25/25 AST guardrails passing).
-   - Clean-slate database reseeding was executed via `uv run python backend_v2/seed/run_seed.py local` and verified.
-
-## Remaining Phases
-- **Phase 10: Seed Vault Pruning & Database Reseeding**:
-  - [x] Create Plan: `/tier0-create-plan @[docs\epic\EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\10_placeholder_phase10_seed_vault_pruning_and_reseeding.md] @[docs\epic\EPIC_146_tracker.md] --phase=10`
-  - [x] Red-Team Phase 10 Plan: `/tier0-research-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\10_placeholder_phase10_seed_vault_pruning_and_reseeding.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [x] Execute Phase 10: `/tier2-execute @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\10_placeholder_phase10_seed_vault_pruning_and_reseeding.md] @[docs\epic\EPIC_146_tracker.md]`
-  - [ ] Audit Phase 10: `/tier8-audit-plan @[docs\epic\tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization\10_placeholder_phase10_seed_vault_pruning_and_reseeding.md] @[docs\epic\EPIC_146_tracker.md]`
+## Remaining
 - **Phase 11: End-to-End Live Integration Verification Gate & Knowledge Synchronization**:
-  - [ ] Create Plan -> Red-Team -> Execute -> Audit
+  - [x] Create Plan: `/tier0-create-plan @[docs/epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization.md] @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md] --phase=11`
+  - [x] Red-Team Phase 11 Plan: `/tier0-research-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
+  - [ ] Execute Phase 11: `/tier2-execute @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
+  - [ ] Audit Phase 11: `/tier8-audit-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]`
+- **Post-Implementation & Final Integration Gates**:
+  - Full Backend & Frontend audit loops.
+  - Tier 2 Hardening (Backend & Frontend).
+  - Tier 7 Describe Architecture & Knowledge Item sync.
+
+## Required Rules & Knowledge Items for Next Session
+- **Rules**:
+  - `@[.agents/rules/00-antigravity-core.md]`
+  - `@[.agents/rules/01-python-backend.md]`
+  - `@[.agents/rules/03_seed_vault.md]`
+  - `@[.agents/rules/04_directory_reference.md]`
+  - `@[.agents/rules/05_llm_architecture.md]`
+- **Knowledge Items**:
+  - `@[ki_god_code_prevention.md]`
+  - `@[ki_ast_guardrail_testing.md]`
+  - `@[ki_global_config_sovereignty.md]`
+  - `@[ki_python_314_concurrency_strictness.md]`
+  - `@[ki_llm_extraction_architecture.md]`
+  - `@[ki_polymorphic_rule_routing.md]`
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/10_placeholder_phase10_seed_vault_pruning_and_reseeding.md] @[docs/epic/EPIC_146_tracker.md]
+/tier2-execute @[docs/epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification.md] @[docs/epic/EPIC_146_tracker.md]
 ```

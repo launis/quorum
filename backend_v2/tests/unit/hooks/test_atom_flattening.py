@@ -6,7 +6,7 @@ import pytest
 from backend_v2.core.hook_registry import HookDependencies, HookState
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import (
     I18nText,
@@ -33,7 +33,7 @@ class MockRepository:
         return [b.model_dump() for b in self._blocks]
 
 
-def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptBlock:
+def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> MatrixPromptBlock:
     """Creates a mock matrix PromptBlock with specific scales for testing."""
     scales = []
     for score in [1, 5]:
@@ -59,7 +59,7 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> PromptB
             )
         )
 
-    return PromptBlock(
+    return MatrixPromptBlock(
         id=block_id,
         slug=f"slug-{block_id}",
         label=I18nText(default_locale="en", translations={"en": f"Label {block_id}", "fi": f"Label {block_id}"}),

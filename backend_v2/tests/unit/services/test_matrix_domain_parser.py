@@ -3,7 +3,13 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    PROMPT_BLOCK_REGISTRY,
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    PromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.enums import (
     BlockDataType,
     DisplayScale,
@@ -58,7 +64,7 @@ def get_dummy_pb_5_scale() -> PromptBlock:
         )
         for i in range(1, 6)
     ]
-    return PromptBlock(
+    return MatrixPromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug="test",
         category_id=PromptBlockCategory.MATRIX,
@@ -73,16 +79,18 @@ def get_dummy_pb_5_scale() -> PromptBlock:
 def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) -> PromptBlock:
     label = I18nText(default_locale="en", translations={"en": "test"})
     desc = I18nText(default_locale="en", translations={"en": "test"})
-    if category != PromptBlockCategory.MATRIX:
-        return PromptBlock(
+    cat_enum = PromptBlockCategory(category) if isinstance(category, str) else category
+    if cat_enum != PromptBlockCategory.MATRIX:
+        cls = PROMPT_BLOCK_REGISTRY.get(cat_enum, SystemRulePromptBlock)
+        return cls(  # type: ignore[call-arg]
             id="blk_1234567890abcdef1234567890abcdef",
             slug="test",
-            category_id=category,
+            category_id=cat_enum,
             type=BlockDataType.INSTRUCTION,
             label=label,
             description=desc,
         )
-    return PromptBlock(
+    return MatrixPromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug="test",
         category_id=category,

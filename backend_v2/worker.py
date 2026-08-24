@@ -23,7 +23,11 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundErro
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PromptBlock,
+    PromptBlockAdapter,
+)
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -744,7 +748,7 @@ async def generate_profile_synthesis_and_pdf_task(
         all_blocks_raw = await repo.get_all_prompt_blocks()
         blocks_meta = {}
         for rb in all_blocks_raw:
-            pb = PromptBlock.model_validate(rb)
+            pb = PromptBlockAdapter.validate_python(rb, strict=False)
             if isinstance(pb, MatrixPromptBlock) and pb.scales:
                 s_vals = [float(s.score) for s in pb.scales]
                 if s_vals:
@@ -890,7 +894,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                     )
 
-                pb = PromptBlock.model_validate(pb_dict, strict=False)
+                pb = PromptBlockAdapter.validate_python(pb_dict, strict=False)
                 # sys_prompt MUST remain 100% static for cache prefix survival
                 sys_prompt = pb.ai_description or ""
                 sys_prompt += f"\n\n{SYNTHESIS_SDUI_MANDATES}"
@@ -1053,7 +1057,7 @@ async def generate_profile_synthesis_and_pdf_task(
             if row_explanations_block_id and matrices_to_explain:
                 pb_dict = await repo.get_prompt_block(row_explanations_block_id)
                 if pb_dict:
-                    r_pb = PromptBlock.model_validate(pb_dict)
+                    r_pb = PromptBlockAdapter.validate_python(pb_dict, strict=False)
                     client = await LLMClient.from_strategy("strict", repository=repo)
                     # Session 1, Task 1-5: sys_prompt static, dynamic context in user message
                     row_sys_prompt = r_pb.ai_description or ""
@@ -1154,7 +1158,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
                     pb_var = await repo.get_prompt_block("blk_2d2344ab9d744163")
                     if pb_var:
-                        r_pb_var = PromptBlock.model_validate(pb_var)
+                        r_pb_var = PromptBlockAdapter.validate_python(pb_var, strict=False)
                         client_var = await LLMClient.from_strategy("strict", repository=repo)
                         var_sys_prompt = r_pb_var.ai_description or ""
 

@@ -6,7 +6,7 @@ from typing import Any
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         models = []
         for b in data:
             try:
-                models.append(PromptBlock.model_validate(b, strict=False))
+                models.append(PromptBlockAdapter.validate_python(b, strict=False))
             except Exception as e:
                 logger.error("Failed to parse PromptBlock %s: %s", b.get("id"), e, exc_info=True)
 

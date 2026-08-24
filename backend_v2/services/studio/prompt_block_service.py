@@ -9,7 +9,11 @@ from pydantic import ValidationError
 from backend_v2.database.interfaces import IPromptBlockRepository, ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    PromptBlock,
+    PromptBlockAdapter,
+)
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
@@ -50,10 +54,10 @@ class StudioPromptBlockService:
         """
         all_data = await self.prompt_block_repo.get_all_prompt_blocks()
 
-        blocks = []
+        blocks: list[PromptBlock] = []
         for x in all_data:
             try:
-                blocks.append(PromptBlock.model_validate(x, strict=False))
+                blocks.append(PromptBlockAdapter.validate_python(x, strict=False))
             except ValidationError as e:
                 logger.error(
                     "[StudioPromptBlockService] %s: PromptBlock %s failed hydration. DB is corrupt. Error: %s",
@@ -97,7 +101,7 @@ class StudioPromptBlockService:
             )
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        block = PromptBlock.model_validate(data, strict=False)
+        block = PromptBlockAdapter.validate_python(data, strict=False)
         enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
         return block
 
@@ -117,7 +121,7 @@ class StudioPromptBlockService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): On core errors.
         """
-        org_id = getattr(data, "organization_id", None)
+        org_id = data.organization_id
         enforce_modification_rights(initiator, org_id)
 
         try:
@@ -150,7 +154,7 @@ class StudioPromptBlockService:
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
-        return PromptBlock.model_validate(saved, strict=False)
+        return PromptBlockAdapter.validate_python(saved, strict=False)
 
     async def delete_prompt_block(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
         """Delete prompt block.
@@ -174,7 +178,7 @@ class StudioPromptBlockService:
             )
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        block = PromptBlock.model_validate(data, strict=False)
+        block = PromptBlockAdapter.validate_python(data, strict=False)
         enforce_modification_rights(initiator, block.organization_id)
         await self.prompt_block_repo.delete_prompt_block(id, force_delete=force_delete)
 
@@ -198,18 +202,14 @@ class StudioPromptBlockService:
             "label": {"default_locale": "en", "translations": {"en": "New Block", "fi": "Uusi lohko"}},
             "description": {"default_locale": "en", "translations": {"en": "Draft block", "fi": "Luonnos"}},
             "ai_description": "Initial AI logic draft.",
-            "category_id": "general",
-            "type": "string",
-            "allow_decimals": False,
+            "category_id": PromptBlockCategory.SYSTEM_RULE.value,
+            "type": BlockDataType.INSTRUCTION.value,
             "output_extensions": [],
-            "scales": None,
-            "rows": None,
-            "columns": None,
             "organization_id": (
                 SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
             ),
         }
-        draft = PromptBlock.model_validate(draft_dict, strict=False)
+        draft = PromptBlockAdapter.validate_python(draft_dict, strict=False)
         return await self.save_prompt_block(initiator, new_id, draft)
 
     async def clone_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
@@ -236,7 +236,7 @@ class StudioPromptBlockService:
             )
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        block = PromptBlock.model_validate(data, strict=False)
+        block = PromptBlockAdapter.validate_python(data, strict=False)
         enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
 
         new_id = f"blk_{uuid.uuid4().hex[:16]}"
@@ -253,5 +253,5 @@ class StudioPromptBlockService:
         elif "label" in cloned_data:
             cloned_data["label"] = str(cloned_data["label"]) + " (Copy)"
 
-        cloned_obj = PromptBlock.model_validate(cloned_data, strict=False)
+        cloned_obj = PromptBlockAdapter.validate_python(cloned_data, strict=False)
         return await self.save_prompt_block(initiator, new_id, cloned_obj)

@@ -22,7 +22,7 @@ from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import VirtualSystemStepID
@@ -220,11 +220,10 @@ class LLMNodeStrategy(NodeStrategy):
         # Single Source of Truth for all source aliasing (alias_engine_llm_isolation_mandate).
 
         all_prompt_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
-        print(f"DEBUG: all_prompt_blocks_raw = {all_prompt_blocks_raw}")
         all_prompt_blocks: list[PromptBlock] = []
         for raw in all_prompt_blocks_raw:
             try:
-                all_prompt_blocks.append(PromptBlock.model_validate(raw))
+                all_prompt_blocks.append(PromptBlockAdapter.validate_python(raw, strict=False))
             except Exception as e:
                 logger.error(
                     "[LLMStrategy] Malformed PromptBlock in DB — Fail-Fast.",

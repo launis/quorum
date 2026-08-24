@@ -1,4 +1,6 @@
-from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.prompt_blocks import PromptBlock, SystemRulePromptBlock
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.v2_core import I18nText
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 
 
@@ -6,13 +8,13 @@ def test_mcp_source_id_literal_validation() -> None:
     """Verify that a dynamically generated MCP tool result ID is accepted by the SchemaFactory union schema."""
     factory = SchemaFactory(resolve_i18n_fn=lambda t, locale: str(t) if t else "")
 
-    block = PromptBlock(
+    block = SystemRulePromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test",
-        description={"default_locale": "en", "translations": {"en": "test"}},
-        category_id="system_rule",
-        type="string",
-        label={"default_locale": "en", "translations": {"en": "test"}},
+        description=I18nText(default_locale="en", translations={"en": "test"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.STRING,
+        label=I18nText(default_locale="en", translations={"en": "test"}),
     )
 
     Schema = factory.build_dynamic_schema(
