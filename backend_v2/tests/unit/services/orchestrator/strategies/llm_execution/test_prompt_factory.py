@@ -352,7 +352,9 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
     )
     assert "Persona via instruction text." in payload1.base_system_prompt
     assert "<ROLE_DIRECTIVE>\nRole via instruction text.\n</ROLE_DIRECTIVE>" in payload1.base_system_prompt
-    assert "<EXTRACTION_PROTOCOL>\nProtocol via instruction text.\n</EXTRACTION_PROTOCOL>" in payload1.base_system_prompt
+    assert (
+        "<EXTRACTION_PROTOCOL>\nProtocol via instruction text.\n</EXTRACTION_PROTOCOL>" in payload1.base_system_prompt
+    )
 
     # 2. Fallback ai_description branches (where specific fields are None)
     persona_fallback = SystemRulePromptBlock(
@@ -402,5 +404,6 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
     assert "Persona fallback ai_description." in payload2.base_system_prompt
     assert "<ROLE_DIRECTIVE>\nRole fallback ai_description.\n</ROLE_DIRECTIVE>" in payload2.base_system_prompt
     assert (
-        "<EXTRACTION_PROTOCOL>\nProtocol fallback ai_description.\n</EXTRACTION_PROTOCOL>" in payload2.base_system_prompt
+        "<EXTRACTION_PROTOCOL>\nProtocol fallback ai_description.\n</EXTRACTION_PROTOCOL>"
+        in payload2.base_system_prompt
     )

@@ -8,6 +8,7 @@ Enforces static structural compliance across prompt builders and domain models:
 """
 
 import ast
+import json
 from pathlib import Path
 
 
@@ -242,3 +243,117 @@ class ChameleonModel(BaseModel):
                     found_new = True
 
     assert found_new, "AST scanner should have detected __new__ hijacking in mock class"
+
+
+# ---------------------------------------------------------------------------
+# Seed Vault Guardrail Test Suite (Phase 10)
+# ---------------------------------------------------------------------------
+
+REDUNDANT_GLOBAL_MANDATE_BLOCK_IDS = {
+    "blk_bd7c5a9f27504a2c",  # block_headermandates
+    "blk_9d68ceff695b4196",  # block_mandate2
+    "blk_23ca73cf267d4078",  # block_mandate3
+    "blk_2cbe96bffde04571",  # block_mandate5
+    "blk_f2cb51b5d074419a",  # block_headerrules
+    "blk_665b2e223f214564",  # block_rule1
+    "blk_78d110eb0bad4541",  # block_rule2
+    "blk_cc852aa44a1a464e",  # block_rule3
+    "blk_04544fa8b5ca408f",  # block_rule4
+    "blk_c1cc56f65f6a47e1",  # block_rule5
+    "blk_e71bcbeb90244b37",  # block_rule6
+    "blk_080a729c8b974492",  # block_oprule1
+    "blk_5b5f6faf0144401f",  # block_oprule2
+    "blk_6a02268ad79542de",  # block_oprule3
+    "blk_71b84ce7c6554639",  # block_instructionnohallucination
+    "blk_a5ce16009a514628",  # block_instructionlanguage_dynamic
+    "blk_091db241c5154336",  # block_headerinstructions
+}
+
+
+def find_redundant_criteria_in_steps(
+    steps: list[dict[str, object]],
+    candidate_ids: set[str] = REDUNDANT_GLOBAL_MANDATE_BLOCK_IDS,
+) -> list[tuple[str, str]]:
+    """Scan step definitions for any redundant global mandate block IDs in criteria_block_ids."""
+    violations: list[tuple[str, str]] = []
+    for step in steps:
+        step_id = str(step.get("id", "unknown"))
+        criteria = step.get("criteria_block_ids", [])
+        if isinstance(criteria, list):
+            for cid in criteria:
+                if isinstance(cid, str) and cid in candidate_ids:
+                    violations.append((step_id, cid))
+    return violations
+
+
+def find_escaped_xml_tags_in_prompt_blocks(
+    prompt_blocks: list[dict[str, object]],
+) -> list[tuple[str, str]]:
+    """Scan prompt block descriptions for escaped XML tags like &lt;tag&gt;."""
+    violations: list[tuple[str, str]] = []
+    for block in prompt_blocks:
+        block_id = str(block.get("id", "unknown"))
+        ai_desc = block.get("ai_description")
+        if isinstance(ai_desc, str) and ("&lt;" in ai_desc or "&gt;" in ai_desc):
+            violations.append((block_id, ai_desc))
+    return violations
+
+
+def test_seed_steps_criteria_blocks_have_no_redundant_mandates() -> None:
+    """Verifies that seed_data.json steps have 0 redundant global mandate block IDs in criteria_block_ids."""
+    seed_path = Path("backend_v2/seed/seed_data.json")
+    assert seed_path.exists(), "seed_data.json must exist"
+    with open(seed_path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    steps = data.get("steps", [])
+    violations = find_redundant_criteria_in_steps(steps)
+    assert len(violations) == 0, (
+        f"Found {len(violations)} redundant global mandate block IDs in step criteria: {violations}"
+    )
+
+
+def test_seed_prompt_blocks_zero_escaped_xml_tags() -> None:
+    """Verifies that seed_data.json prompt blocks have 0 escaped XML tags (&lt; or &gt;)."""
+    seed_path = Path("backend_v2/seed/seed_data.json")
+    assert seed_path.exists(), "seed_data.json must exist"
+    with open(seed_path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    prompt_blocks = data.get("prompt_blocks", [])
+    violations = find_escaped_xml_tags_in_prompt_blocks(prompt_blocks)
+    assert len(violations) == 0, f"Found {len(violations)} prompt blocks containing escaped XML tags: {violations}"
+
+
+def test_seed_guardrail_catches_redundant_criteria_in_step_negative() -> None:
+    """Anti-happy path: Proves guardrail scanner detects candidate redundant block IDs in mock steps."""
+    mock_steps: list[dict[str, object]] = [
+        {
+            "id": "mock_step_01",
+            "criteria_block_ids": ["blk_valid_01", "blk_bd7c5a9f27504a2c"],
+        },
+        {
+            "id": "mock_step_02",
+            "criteria_block_ids": ["blk_valid_02"],
+        },
+    ]
+    violations = find_redundant_criteria_in_steps(mock_steps)
+    assert len(violations) == 1
+    assert violations[0] == ("mock_step_01", "blk_bd7c5a9f27504a2c")
+
+
+def test_seed_guardrail_catches_escaped_html_entity_in_prompt_block_negative() -> None:
+    """Anti-happy path: Proves guardrail scanner detects escaped XML tags in mock prompt blocks."""
+    mock_blocks: list[dict[str, object]] = [
+        {
+            "id": "mock_block_01",
+            "ai_description": "Values provided in &lt;mechanical_anchors&gt; block",
+        },
+        {
+            "id": "mock_block_02",
+            "ai_description": "Values provided in <mechanical_anchors> block",
+        },
+    ]
+    violations = find_escaped_xml_tags_in_prompt_blocks(mock_blocks)
+    assert len(violations) == 1
+    assert violations[0][0] == "mock_block_01"

@@ -6702,7 +6702,7 @@
         "citation_reference": "Strathern, Marilyn 1997.",
         "source_url": "https://doi.org/10.1002/(SICI)1234-981X(199707)5:3<305::AID-EURO184>3.0.CO;2-4"
       },
-      "ai_description": "CORE MANDATE: Act as a Critical Illusion of Control Auditor enforcing the Task Performativity Audit, exhibiting Critical Neutrality. You are a precise and objective evaluator of directorial control—neither generating conversational filler nor indulging grandiose user self-evaluations. Assume all interactions require robust scrutiny to detect 'Illusion of Control' scenarios where the user's perceived input is superficial while the AI is the primary driver of content and structure. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere review of task completion is insufficient; you must systematically document the exact power dynamics and prompt effort (the 'how' and 'why') step-by-step. Identify and objectively isolate 'Lazy Prompts' (e.g., 'continue', 'more', 'go on') that feign directorial control. Implement strict Assumption Flagging: aggressively flag interactions as 'Performative' if the user's substantive intellectual contribution is negligible, yet their self-evaluation claims significant co-creation. Apply Goodhart's Law to aggressively scrutinize outputs for 'Suspicious Perfection'—instances where flawless AI compliance to a low-effort prompt indicates the completion metric has obscured true capability assessment. GROUNDED PERFORMATIVITY COGNITION: You MUST base your qualitative assessments and the Illusion of Control analysis on the values provided in the &lt;mechanical_anchors&gt; XML block (specifically comparing say_do_gap, automation_bias, and checking detected_performative_phrases count). Ground your evaluation strictly against these physical truth anchors. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All performativity flags must be demonstrably anchored to verbatim prompt inputs.   Return your complete analysis as cohesive markdown inside the evaluation notes. Any deviation, flattening of the structure, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of verified performativity.",
+      "ai_description": "CORE MANDATE: Act as a Critical Illusion of Control Auditor enforcing the Task Performativity Audit, exhibiting Critical Neutrality. You are a precise and objective evaluator of directorial control—neither generating conversational filler nor indulging grandiose user self-evaluations. Assume all interactions require robust scrutiny to detect 'Illusion of Control' scenarios where the user's perceived input is superficial while the AI is the primary driver of content and structure. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere review of task completion is insufficient; you must systematically document the exact power dynamics and prompt effort (the 'how' and 'why') step-by-step. Identify and objectively isolate 'Lazy Prompts' (e.g., 'continue', 'more', 'go on') that feign directorial control. Implement strict Assumption Flagging: aggressively flag interactions as 'Performative' if the user's substantive intellectual contribution is negligible, yet their self-evaluation claims significant co-creation. Apply Goodhart's Law to aggressively scrutinize outputs for 'Suspicious Perfection'—instances where flawless AI compliance to a low-effort prompt indicates the completion metric has obscured true capability assessment. GROUNDED PERFORMATIVITY COGNITION: You MUST base your qualitative assessments and the Illusion of Control analysis on the values provided in the <mechanical_anchors> XML block (specifically comparing say_do_gap, automation_bias, and checking detected_performative_phrases count). Ground your evaluation strictly against these physical truth anchors. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All performativity flags must be demonstrably anchored to verbatim prompt inputs.   Return your complete analysis as cohesive markdown inside the evaluation notes. Any deviation, flattening of the structure, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of verified performativity.",
       "slug": "block_taskperformativity",
       "output_extensions": [],
       "is_lightweight_protocol": true
@@ -7989,19 +7989,11 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_f2cb51b5d074419a",
-        "blk_665b2e223f214564",
-        "blk_78d110eb0bad4541",
-        "blk_6a02268ad79542de",
         "blk_f27f6d04c1f74257",
         "blk_44b0c6cc5ec24151",
         "blk_1ca6f187c5b04d2b",
         "blk_3cc672a8038144e0",
-        "blk_71b84ce7c6554639",
         "blk_280fd9eb2f2543f6",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_109dab5b6b3f403a"
       ]
     },
@@ -8048,13 +8040,6 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_2cbe96bffde04571",
-        "blk_f2cb51b5d074419a",
-        "blk_c1cc56f65f6a47e1",
-        "blk_71b84ce7c6554639",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_3744757fbff44175",
         "blk_f921c7c0989b47e8"
       ]
@@ -8103,14 +8088,7 @@
         "blk_3568312503964aec",
         "blk_cb6217bccc974cca",
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_2cbe96bffde04571",
-        "blk_f2cb51b5d074419a",
-        "blk_c1cc56f65f6a47e1",
         "blk_3cc672a8038144e0",
-        "blk_71b84ce7c6554639",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_43e297666d3b4359",
         "blk_c5804a9143c34cb1"
       ]
@@ -8157,27 +8135,11 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_9d68ceff695b4196",
-        "blk_23ca73cf267d4078",
-        "blk_2cbe96bffde04571",
-        "blk_f2cb51b5d074419a",
-        "blk_665b2e223f214564",
-        "blk_78d110eb0bad4541",
-        "blk_cc852aa44a1a464e",
-        "blk_04544fa8b5ca408f",
-        "blk_c1cc56f65f6a47e1",
-        "blk_e71bcbeb90244b37",
-        "blk_080a729c8b974492",
-        "blk_5b5f6faf0144401f",
-        "blk_6a02268ad79542de",
         "blk_2c13f67014094f3b",
         "blk_fb0b98da76e046dd",
         "blk_cb6217bccc974cca",
         "blk_3568312503964aec",
         "blk_8b6e5fba923642f2",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_5d26dff39e574d5f",
         "blk_2305f4ac865a4815",
         "blk_0217b0b725b54b10",
@@ -8226,14 +8188,7 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_2cbe96bffde04571",
-        "blk_f2cb51b5d074419a",
-        "blk_c1cc56f65f6a47e1",
         "blk_3cc672a8038144e0",
-        "blk_71b84ce7c6554639",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_b4912f9ff3a24b31",
         "blk_fb15f8dcf23f4865"
       ]
@@ -8282,17 +8237,9 @@
       "role_block_id": null,
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
-        "blk_04544fa8b5ca408f",
         "blk_ab65a936bca34bf1",
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_2cbe96bffde04571",
-        "blk_f2cb51b5d074419a",
-        "blk_c1cc56f65f6a47e1",
         "blk_3cc672a8038144e0",
-        "blk_71b84ce7c6554639",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_90d0dd098757433e",
         "blk_b476f89fb732448c"
       ]
@@ -8341,17 +8288,9 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_2cbe96bffde04571",
-        "blk_f2cb51b5d074419a",
-        "blk_665b2e223f214564",
-        "blk_78d110eb0bad4541",
-        "blk_5b5f6faf0144401f",
         "blk_f27f6d04c1f74257",
         "blk_6e08842eae9146a2",
         "blk_608ba7099d07428f",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_80732a33fe1947ee"
       ]
     },
@@ -8399,16 +8338,9 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_a93c517915f94e09",
-        "blk_6a02268ad79542de",
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_9d68ceff695b4196",
-        "blk_23ca73cf267d4078",
-        "blk_2cbe96bffde04571",
         "blk_2c13f67014094f3b",
         "blk_fb0b98da76e046dd",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_f971def5b3864ba4",
         "blk_2305f4ac865a4815",
         "blk_ff72c2d79edb4ebf"
@@ -8456,15 +8388,8 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_2cbe96bffde04571",
-        "blk_f2cb51b5d074419a",
-        "blk_cc852aa44a1a464e",
         "blk_3cc672a8038144e0",
-        "blk_71b84ce7c6554639",
         "blk_280fd9eb2f2543f6",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_652fce41dcb54793",
         "blk_2305f4ac865a4815",
         "blk_440a5fef9331451b"
@@ -8512,20 +8437,6 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_9d68ceff695b4196",
-        "blk_23ca73cf267d4078",
-        "blk_2cbe96bffde04571",
-        "blk_f2cb51b5d074419a",
-        "blk_665b2e223f214564",
-        "blk_78d110eb0bad4541",
-        "blk_cc852aa44a1a464e",
-        "blk_04544fa8b5ca408f",
-        "blk_c1cc56f65f6a47e1",
-        "blk_e71bcbeb90244b37",
-        "blk_080a729c8b974492",
-        "blk_5b5f6faf0144401f",
-        "blk_6a02268ad79542de",
         "blk_2c13f67014094f3b",
         "blk_fb0b98da76e046dd",
         "blk_cb6217bccc974cca",
@@ -8533,9 +8444,6 @@
         "blk_8b6e5fba923642f2",
         "blk_7260c1b6ac5648ca",
         "blk_3cc672a8038144e0",
-        "blk_71b84ce7c6554639",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_58f750206a4c4af0",
         "blk_f6e286f050c94d60"
       ]
@@ -8584,16 +8492,8 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_9d68ceff695b4196",
-        "blk_2cbe96bffde04571",
-        "blk_f2cb51b5d074419a",
-        "blk_c1cc56f65f6a47e1",
         "blk_3568312503964aec",
         "blk_3cc672a8038144e0",
-        "blk_71b84ce7c6554639",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_cb6217bccc974cca",
         "blk_9c0c7c46568648c4",
         "blk_c3bc5f3eb8e74110"
@@ -8638,13 +8538,8 @@
       "extraction_protocol_block_id": "blk_573802341db9d68c",
       "criteria_block_ids": [
         "blk_9e44687dff884ff6",
-        "blk_bd7c5a9f27504a2c",
-        "blk_9d68ceff695b4196",
-        "blk_23ca73cf267d4078",
         "blk_2c13f67014094f3b",
         "blk_fb0b98da76e046dd",
-        "blk_a5ce16009a514628",
-        "blk_091db241c5154336",
         "blk_6b8c766185294f7e"
       ]
     },

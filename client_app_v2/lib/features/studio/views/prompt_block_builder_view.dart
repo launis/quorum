@@ -1522,7 +1522,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     final directive = entry.value;
 
                     return Padding(
-                      key: ValueKey('tone_directive_${entry.key}_${entry.value}'),
+                      key: ValueKey(
+                        'tone_directive_${entry.key}_${entry.value}',
+                      ),
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: Row(
                         children: [
