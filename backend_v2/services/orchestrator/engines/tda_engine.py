@@ -7,6 +7,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import AtomExecutionState, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.enums import ExecutionStatus
@@ -96,6 +97,7 @@ class TDAEngine(ExecutionEngine):
                 return EngineExecutionResult(
                     results=results,
                     hydrated_references=hydrated_references,
+                    usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
                 )
             else:
                 if request.progress_callback:
@@ -103,6 +105,7 @@ class TDAEngine(ExecutionEngine):
                 return EngineExecutionResult(
                     results=[],
                     hydrated_references={},
+                    usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
                 )
 
         try:
@@ -142,7 +145,7 @@ class TDAEngine(ExecutionEngine):
                         prog = 30 + int((completed / total) * 70)
                         await request.progress_callback(prog, 100)
 
-                ontology = await atomizer.execute_phase_0(
+                ontology, usage_p0 = await atomizer.execute_phase_0(
                     request.bound_client,
                     hydrated_text,
                     progress_callback=phase_0_progress_matrix,
@@ -170,7 +173,7 @@ class TDAEngine(ExecutionEngine):
                     else None
                 )
 
-                states = await dag_executor.execute_graph(
+                states, usage_dag = await dag_executor.execute_graph(
                     nodes,
                     evaluation_context,
                     request.target_locale,
@@ -178,6 +181,7 @@ class TDAEngine(ExecutionEngine):
                     semaphore=request.semaphore,
                     matrix_context=matrix_context,
                 )
+                total_usage = usage_p0 + usage_dag
             else:
 
                 async def phase_0_progress(completed: int, total: int) -> None:
@@ -200,10 +204,10 @@ class TDAEngine(ExecutionEngine):
                         prog = 60 + int((completed / total) * 40)
                         await request.progress_callback(prog, 100)
 
-                ontology = await atomizer.execute_phase_0(
+                ontology, usage_p0 = await atomizer.execute_phase_0(
                     request.bound_client, hydrated_text, progress_callback=phase_0_progress, semaphore=request.semaphore
                 )
-                atoms = await atomizer.execute_phase_1(
+                atoms, usage_p1 = await atomizer.execute_phase_1(
                     request.bound_client,
                     hydrated_text,
                     ontology,
@@ -211,7 +215,7 @@ class TDAEngine(ExecutionEngine):
                     semaphore=request.semaphore,
                 )
                 atoms.sort(key=lambda x: x.source_sequence_index)
-                nodes = await linker.link_graph(
+                nodes, usage_linker = await linker.link_graph(
                     llm_executor,
                     request.bound_client,
                     atoms,
@@ -219,7 +223,7 @@ class TDAEngine(ExecutionEngine):
                     progress_callback=linker_progress,
                     semaphore=request.semaphore,
                 )
-                states = await dag_executor.execute_graph(
+                states, usage_dag = await dag_executor.execute_graph(
                     nodes,
                     global_source_text,
                     request.target_locale,
@@ -227,12 +231,14 @@ class TDAEngine(ExecutionEngine):
                     semaphore=request.semaphore,
                     matrix_context=request.matrix_context,
                 )
+                total_usage = usage_p0 + usage_p1 + usage_linker + usage_dag
 
             results_dto, hydrated_refs = ResultProjector.project(nodes, states, request.matrix_block_id)
 
             return EngineExecutionResult(
                 results=results_dto,
                 hydrated_references=hydrated_refs,
+                usage=total_usage,
             )
         except AppException:
             # Re-raise AppException directly to avoid double-wrapping

@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
@@ -50,7 +51,7 @@ class EnrichedDagExecutor:
         execution_id: str = "default_run",
         semaphore: asyncio.Semaphore | None = None,
         matrix_context: MatrixEvaluationContext | None = None,
-    ) -> dict[str, AtomExecutionState]:
+    ) -> tuple[dict[str, AtomExecutionState], TokenUsage]:
         """Executes the complete DAG of atoms.
 
         Args:
@@ -60,17 +61,20 @@ class EnrichedDagExecutor:
             progress_callback: Optional progress reporter callback function.
 
         Returns:
-            A dictionary mapping tda_id to its final AtomExecutionState.
+            A tuple of:
+            - A dictionary mapping tda_id to its final AtomExecutionState.
+            - Aggregated TokenUsage across all evaluated chunks.
         """
         total_atoms = len(nodes)
         completed_atoms = 0
         progress_lock = asyncio.Lock()
+        accumulated_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         async def process_chunk(
             chunk: list[LinkedAtomGraph],
             current_states: dict[str, AtomExecutionState],
         ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
-            nonlocal completed_atoms
+            nonlocal completed_atoms, accumulated_usage
             try:
                 allow_override = matrix_context.allow_contextual_override if matrix_context else False
                 pre_flight_results, undecided_nodes = await ExtractiveSensorService.batch_pre_evaluate(
@@ -85,7 +89,7 @@ class EnrichedDagExecutor:
                     return pre_flight_results
 
                 async with semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps):
-                    llm_results = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+                    llm_results, chunk_usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
                         nodes=undecided_nodes,
                         executor=self._llm_executor,
                         client=self._llm_client,
@@ -93,6 +97,7 @@ class EnrichedDagExecutor:
                         matrix_context=matrix_context,
                         current_states=current_states,
                     )
+                accumulated_usage = accumulated_usage + chunk_usage
                 res = {**pre_flight_results, **llm_results}
                 if progress_callback:
                     async with progress_lock:
@@ -169,7 +174,8 @@ class EnrichedDagExecutor:
 
             return merged_results
 
-        return await self._topological_evaluator.evaluate_graph(
+        states = await self._topological_evaluator.evaluate_graph(
             nodes=nodes,
             batch_evaluation_callback=batch_evaluation_callback,
         )
+        return states, accumulated_usage

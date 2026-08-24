@@ -13,6 +13,7 @@ from backend_v2.models.domain.blackboard import (
     DraftExtractedAtom,
     LLMDraftAtomList,
 )
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -59,7 +60,7 @@ class TwoPassAtomizer:
         hydrated_text: str,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         semaphore: asyncio.Semaphore | None = None,
-    ) -> GlobalOntologyMap:
+    ) -> tuple[GlobalOntologyMap, TokenUsage]:
         """Extracts and merges GlobalOntologyMap from all chunks.
 
         Args:
@@ -67,10 +68,11 @@ class TwoPassAtomizer:
             hydrated_text: Globally hydrated text with block IDs.
 
         Returns:
-            A merged GlobalOntologyMap containing entities and macro-rules.
+            A tuple of merged GlobalOntologyMap and aggregated TokenUsage.
         """
         all_entities = {}
         all_rules = set()
+        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         packets = self._calculate_packets(hydrated_text)
 
@@ -92,7 +94,7 @@ class TwoPassAtomizer:
                 tasks = []
                 completed = 0
 
-                async def track_task(start_b: str, end_b: str) -> GlobalOntologyMap:
+                async def track_task(start_b: str, end_b: str) -> tuple[GlobalOntologyMap, TokenUsage]:
                     nonlocal completed
                     res = await self._extract_ontology_from_chunk(client, compiled_prompt, start_b, end_b, sem)
                     completed += 1
@@ -104,7 +106,8 @@ class TwoPassAtomizer:
                     tasks.append(tg.create_task(track_task(start_b, end_b)))
 
             for task in tasks:
-                result = task.result()
+                result, chunk_usage = task.result()
+                total_usage = total_usage + chunk_usage
                 for entity in result.entities:
                     all_entities[entity.name] = entity
                 for rule in result.macro_rules:
@@ -113,11 +116,11 @@ class TwoPassAtomizer:
         finally:
             await LLMCachingService.teardown_workflow_caches(client.provider_name, "tda_phase_0")
 
-        return GlobalOntologyMap(entities=list(all_entities.values()), macro_rules=list(all_rules))
+        return GlobalOntologyMap(entities=list(all_entities.values()), macro_rules=list(all_rules)), total_usage
 
     async def _extract_ontology_from_chunk(
         self, client: LLMClient, compiled_prompt: CompiledPrompt, start_b: str, end_b: str, sem: asyncio.Semaphore
-    ) -> GlobalOntologyMap:
+    ) -> tuple[GlobalOntologyMap, TokenUsage]:
         async with sem:
             dynamic_instruction = (
                 f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
@@ -126,12 +129,12 @@ class TwoPassAtomizer:
                 static_messages=compiled_prompt.static_messages,
                 dynamic_messages=[{"role": "user", "content": dynamic_instruction}],
             )
-            result, _ = await self.executor.execute_structured_task(
+            result, usage = await self.executor.execute_structured_task(
                 client=client,
                 messages=chunk_prompt,
                 response_model=GlobalOntologyMap,
             )
-            return result
+            return result, usage
 
     async def execute_phase_1(
         self,
@@ -140,7 +143,7 @@ class TwoPassAtomizer:
         ontology: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         semaphore: asyncio.Semaphore | None = None,
-    ) -> list[ExtractedAtom]:
+    ) -> tuple[list[ExtractedAtom], TokenUsage]:
         """Extracts atomic claims from chunks utilizing the global ontology.
 
         Args:
@@ -149,7 +152,7 @@ class TwoPassAtomizer:
             ontology: The ontology map generated in Phase 0.
 
         Returns:
-            A list of ExtractedAtom objects with fully hydrated Opaque Stripe IDs.
+            A tuple of ExtractedAtom objects with fully hydrated Opaque Stripe IDs and aggregated TokenUsage.
         """
         ontology_json = ontology.model_dump_json()
         system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
@@ -169,13 +172,16 @@ class TwoPassAtomizer:
         )
 
         all_atoms = []
+        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         try:
             sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
                 tasks = []
                 completed = 0
 
-                async def track_task(start_b: str, end_b: str, packet_keys: list[str], idx: int) -> list[ExtractedAtom]:
+                async def track_task(
+                    start_b: str, end_b: str, packet_keys: list[str], idx: int
+                ) -> tuple[list[ExtractedAtom], TokenUsage]:
                     nonlocal completed
                     res = await self._extract_atoms_from_chunk(
                         client, compiled_prompt, start_b, end_b, packet_keys, idx, hydrated_text, sem
@@ -189,12 +195,14 @@ class TwoPassAtomizer:
                     tasks.append(tg.create_task(track_task(start_b, end_b, packet_keys, idx)))
 
             for task in tasks:
-                all_atoms.extend(task.result())
+                atoms, chunk_usage = task.result()
+                total_usage = total_usage + chunk_usage
+                all_atoms.extend(atoms)
 
         finally:
             await LLMCachingService.teardown_workflow_caches(client.provider_name, "tda_phase_1")
 
-        return all_atoms
+        return all_atoms, total_usage
 
     async def _extract_atoms_from_chunk(
         self,
@@ -206,7 +214,7 @@ class TwoPassAtomizer:
         chunk_index: int,
         hydrated_text: str,
         sem: asyncio.Semaphore,
-    ) -> list[ExtractedAtom]:
+    ) -> tuple[list[ExtractedAtom], TokenUsage]:
         async with sem:
             dynamic_instruction = (
                 f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
@@ -216,7 +224,7 @@ class TwoPassAtomizer:
                 dynamic_messages=[{"role": "user", "content": dynamic_instruction}],
             )
 
-            draft_result, _ = await self.executor.execute_structured_task(
+            draft_result, usage = await self.executor.execute_structured_task(
                 client=client,
                 messages=chunk_prompt,
                 response_model=LLMDraftAtomList,
@@ -271,7 +279,7 @@ class TwoPassAtomizer:
                         source_sequence_index=chunk_index,
                     )
                 )
-            return final_atoms
+            return final_atoms, usage
 
     async def execute_phase_1_drafts(
         self,
@@ -280,7 +288,7 @@ class TwoPassAtomizer:
         ontology: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         semaphore: asyncio.Semaphore | None = None,
-    ) -> DraftAtomList:
+    ) -> tuple[DraftAtomList, TokenUsage]:
         """Extracts atomic claims from chunks returning raw drafts and handling DLQ routing.
 
         Args:
@@ -289,7 +297,7 @@ class TwoPassAtomizer:
             ontology: The ontology map generated in Phase 0.
 
         Returns:
-            A DraftAtomList containing DraftExtractedAtom instances and potential dlq_status.
+            A tuple of DraftAtomList containing DraftExtractedAtom instances and aggregated TokenUsage.
         """
         ontology_json = ontology.model_dump_json()
         system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
@@ -309,6 +317,7 @@ class TwoPassAtomizer:
         )
 
         all_atoms = []
+        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         has_dlq = False
         try:
             sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
@@ -316,7 +325,9 @@ class TwoPassAtomizer:
                 tasks = []
                 completed = 0
 
-                async def track_task(start_b: str, end_b: str, packet_keys: list[str], idx: int) -> DraftAtomList:
+                async def track_task(
+                    start_b: str, end_b: str, packet_keys: list[str], idx: int
+                ) -> tuple[DraftAtomList, TokenUsage]:
                     nonlocal completed
                     res = await self._extract_drafts_from_chunk(
                         client, compiled_prompt, start_b, end_b, packet_keys, idx, hydrated_text, sem
@@ -330,7 +341,8 @@ class TwoPassAtomizer:
                     tasks.append(tg.create_task(track_task(start_b, end_b, packet_keys, idx)))
 
             for task in tasks:
-                result = task.result()
+                result, chunk_usage = task.result()
+                total_usage = total_usage + chunk_usage
                 if result.dlq_status:
                     has_dlq = True
                     logger.warning("dlq_chunk_detected", extra={"dlq_status": result.dlq_status})
@@ -339,7 +351,7 @@ class TwoPassAtomizer:
         finally:
             await LLMCachingService.teardown_workflow_caches(client.provider_name, "tda_phase_1_drafts")
 
-        return DraftAtomList(atoms=all_atoms, dlq_status="FAILED/DLQ" if has_dlq else None)
+        return DraftAtomList(atoms=all_atoms, dlq_status="FAILED/DLQ" if has_dlq else None), total_usage
 
     @retry(
         stop=stop_after_attempt(get_settings().llm_max_retries),
@@ -359,7 +371,7 @@ class TwoPassAtomizer:
         chunk_index: int,
         hydrated_text: str,
         sem: asyncio.Semaphore,
-    ) -> DraftAtomList:
+    ) -> tuple[DraftAtomList, TokenUsage]:
         async with sem:
             dynamic_instruction = (
                 f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
@@ -369,7 +381,7 @@ class TwoPassAtomizer:
                 dynamic_messages=[{"role": "user", "content": dynamic_instruction}],
             )
 
-            draft_result, _ = await self.executor.execute_structured_task(
+            draft_result, usage = await self.executor.execute_structured_task(
                 client=client,
                 messages=chunk_prompt,
                 response_model=LLMDraftAtomList,
@@ -441,7 +453,7 @@ class TwoPassAtomizer:
                     )
                 )
 
-            return DraftAtomList(atoms=final_drafts)
+            return DraftAtomList(atoms=final_drafts), usage
 
     async def _extract_drafts_from_chunk(
         self,
@@ -453,11 +465,13 @@ class TwoPassAtomizer:
         chunk_index: int,
         hydrated_text: str,
         sem: asyncio.Semaphore,
-    ) -> DraftAtomList:
+    ) -> tuple[DraftAtomList, TokenUsage]:
         try:
             return await self._extract_drafts_from_chunk_with_retry(
                 client, compiled_prompt, start_b, end_b, packet_keys, chunk_index, hydrated_text, sem
             )
         except Exception as e:
             logger.error(f"DLQ Worker Failed: {e}", exc_info=True)
-            return DraftAtomList(atoms=[], dlq_status="FAILED/DLQ")
+            return DraftAtomList(atoms=[], dlq_status="FAILED/DLQ"), TokenUsage(
+                prompt_tokens=0, completion_tokens=0, total_tokens=0
+            )

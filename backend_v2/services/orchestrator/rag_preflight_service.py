@@ -195,7 +195,9 @@ class RAGPreflightService:
                 prog = int(bp + ((completed / total) * 0.3 * ls))
                 await emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Mapping)", prog)
 
-            ontology = await atomizer.execute_phase_0(bound_client, hydrated_text, progress_callback=phase_0_progress)
+            ontology, _ = await atomizer.execute_phase_0(
+                bound_client, hydrated_text, progress_callback=phase_0_progress
+            )
 
             async def phase_1_progress(
                 completed: int,
@@ -208,7 +210,7 @@ class RAGPreflightService:
                 prog = int(bp + (0.3 * ls) + ((completed / total) * 0.7 * ls))
                 await emit_progress(f"Extracting knowledge from file {pf + 1}/{tf}... (Reducing)", prog)
 
-            draft_list = await atomizer.execute_phase_1_drafts(
+            draft_list, _ = await atomizer.execute_phase_1_drafts(
                 bound_client, hydrated_text, ontology, progress_callback=phase_1_progress
             )
 

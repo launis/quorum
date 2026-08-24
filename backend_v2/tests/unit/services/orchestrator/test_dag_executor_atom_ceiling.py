@@ -5,6 +5,7 @@ import pytest
 from backend_v2.core.hook_registry import HookResult
 from backend_v2.exceptions import WorkflowExecutionError
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.v2_core import (
     I18nText,
     ModelProfile,
@@ -126,7 +127,9 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         mock_settings.return_value.max_development_chunks = 0
 
         mock_atomizer = mock_atomizer_class.return_value
-        mock_atomizer.execute_phase_0 = AsyncMock()
+        mock_atomizer.execute_phase_0 = AsyncMock(
+            return_value=({}, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+        )
 
         atoms = [
             DraftExtractedAtom(
@@ -139,7 +142,12 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
                 reasoning="3", resolved_claim="3", draft_id="a3", is_logical_deduction=True, source_sequence_index=0
             ),
         ]
-        mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=atoms))
+        mock_atomizer.execute_phase_1_drafts = AsyncMock(
+            return_value=(
+                DraftAtomList(atoms=atoms),
+                TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30),
+            )
+        )
 
         with pytest.raises(WorkflowExecutionError) as exc_info:
             await executor.execute_workflow(

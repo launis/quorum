@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
@@ -264,7 +265,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
         MockResponse(
             results=[MockResult(alias="a1", reasoning="ok", is_true=True, contextual_override=True, coaching="tip")]
         ),
-        {"total_tokens": 10},
+        TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
     )
 
     with (
@@ -274,12 +275,13 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
             return_value="tda_11111111111111111111111111111111",
         ),
     ):
-        results = await ExtractiveSensorService.evaluate_atom_boolean_batch([node], executor, client, "context")
+        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch([node], executor, client, "context")
 
         assert "tda_11111111111111111111111111111111" in results
         assert results["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
         assert results["tda_11111111111111111111111111111111"][2]["coaching"] == "tip"
         assert results["tda_11111111111111111111111111111111"][2]["contextual_override"] == "True"
+        assert usage.total_tokens == 180
 
 
 def test_extractive_sensor_service_allow_contextual_override() -> None:
@@ -339,7 +341,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
 
     executor.execute_structured_task.return_value = (
         MockResponse(results=[MockResult(alias="a1", reasoning="ok", is_true=True)]),
-        {"total_tokens": 10},
+        TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
     )
 
     # Context without theory_grounding
@@ -354,9 +356,10 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
             return_value="tda_11111111111111111111111111111111",
         ),
     ):
-        results = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
             [node], executor, client, "context", matrix_context=matrix_context
         )
 
         assert "tda_11111111111111111111111111111111" in results
         assert results["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
+        assert usage.total_tokens == 180

@@ -1,5 +1,6 @@
 import pytest
 
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import ExtractedAtom
 from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindowLinker
 
@@ -263,12 +264,18 @@ async def test_link_graph_ignores_hallucinated_aliases(monkeypatch: pytest.Monke
     )
 
     mock_executor = AsyncMock()
-    mock_executor.execute_structured_task.return_value = (mock_response, {})
+    mock_executor.execute_structured_task.return_value = (
+        mock_response,
+        TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
+    )
     mock_client = AsyncMock()
 
-    results = await linker.link_graph(executor=mock_executor, client=mock_client, atoms=atoms, ontology_map=ontology)
+    results, usage = await linker.link_graph(
+        executor=mock_executor, client=mock_client, atoms=atoms, ontology_map=ontology
+    )
 
     assert len(results) == 2
+    assert usage.total_tokens == 60
     # Verify tda_00000000 has no dependencies
     node0 = next(n for n in results if n.atom.tda_id == "tda_00000000")
     assert len(node0.depends_on) == 0

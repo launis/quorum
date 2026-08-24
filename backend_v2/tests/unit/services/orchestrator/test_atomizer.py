@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.blackboard import LLMDraftAtom, LLMDraftAtomList
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -109,18 +110,22 @@ async def test_two_pass_atomizer_phase_0() -> None:
     mock_map = GlobalOntologyMap(
         entities=[OntologyEntity(name="System", description="The main system.")], macro_rules=["Rule 1"]
     )
-    mock_executor.execute_structured_task.return_value = (mock_map, None)
+    mock_executor.execute_structured_task.return_value = (
+        mock_map,
+        TokenUsage(prompt_tokens=40, completion_tokens=10, total_tokens=50),
+    )
 
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_client = AsyncMock(spec=LLMClient)
     mock_client.provider_name = "mock_llm_99"
     mock_client.model_name = "mock"
 
-    result = await atomizer.execute_phase_0(client=mock_client, hydrated_text="[B0] Chunk 1\n\n[B1] Chunk 2")
+    result, usage = await atomizer.execute_phase_0(client=mock_client, hydrated_text="[B0] Chunk 1\n\n[B1] Chunk 2")
 
     assert len(result.entities) == 1
     assert result.entities[0].name == "System"
     assert len(result.macro_rules) == 1
+    assert usage.total_tokens == 50
     assert mock_executor.execute_structured_task.call_count == 1
 
 
@@ -133,7 +138,10 @@ async def test_two_pass_atomizer_phase_1() -> None:
     mock_draft_list = LLMDraftAtomList(
         atoms=[LLMDraftAtom(reasoning="Test logic", resolved_claim="Test claim", source_block_id="B1", draft_id="a1")]
     )
-    mock_executor.execute_structured_task.return_value = (mock_draft_list, None)
+    mock_executor.execute_structured_task.return_value = (
+        mock_draft_list,
+        TokenUsage(prompt_tokens=60, completion_tokens=15, total_tokens=75),
+    )
 
     atomizer = TwoPassAtomizer(executor=mock_executor)
     mock_client = AsyncMock(spec=LLMClient)
@@ -141,7 +149,7 @@ async def test_two_pass_atomizer_phase_1() -> None:
     mock_client.model_name = "mock"
     mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
 
-    result = await atomizer.execute_phase_1(
+    result, usage = await atomizer.execute_phase_1(
         client=mock_client, hydrated_text="[B0] Chunk 1\n\n[B1] Chunk 2", ontology=mock_ontology
     )
 
@@ -150,4 +158,5 @@ async def test_two_pass_atomizer_phase_1() -> None:
     assert result[0].resolved_claim == "Test claim"
     assert result[0].tda_id.startswith("tda_")
     assert result[0].source_id == "chunk_0"
+    assert usage.total_tokens == 75
     assert mock_executor.execute_structured_task.call_count == 1

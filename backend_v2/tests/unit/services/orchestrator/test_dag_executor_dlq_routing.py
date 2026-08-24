@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from backend_v2.models.domain.blackboard import LLMDraftAtom, LLMDraftAtomList
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 
 
@@ -34,7 +35,12 @@ async def test_two_pass_atomizer_dlq_routing(mock_llm_executor: MagicMock, mock_
         ),
     ]
 
-    mock_llm_executor.execute_structured_task = AsyncMock(return_value=(LLMDraftAtomList(atoms=atoms), None))
+    mock_llm_executor.execute_structured_task = AsyncMock(
+        return_value=(
+            LLMDraftAtomList(atoms=atoms),
+            TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
+        )
+    )
 
     from backend_v2.models.prompt import CompiledPrompt
 
@@ -42,9 +48,10 @@ async def test_two_pass_atomizer_dlq_routing(mock_llm_executor: MagicMock, mock_
     sem = asyncio.Semaphore(1)
     compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
 
-    result = await atomizer._extract_drafts_from_chunk_with_retry(
+    result, usage = await atomizer._extract_drafts_from_chunk_with_retry(
         mock_client, compiled_prompt, "B0", "B99", ["B99"], 1, chunk, sem
     )
 
     assert len(result.atoms) == 2
     assert result.atoms[1].draft_id == "a3"
+    assert usage.total_tokens == 60

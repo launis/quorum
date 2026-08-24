@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
@@ -39,8 +40,9 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
         return dummy_result
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph):
-        result = await executor.execute_graph(nodes=[], source_text="test text")
+        result, usage = await executor.execute_graph(nodes=[], source_text="test text")
         assert result == dummy_result
+        assert usage.total_tokens == 0
 
     assert captured_callback is not None
 
@@ -72,7 +74,10 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
             new_callable=AsyncMock,
         ),
     ):
-        mock_sensor.return_value = {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})}
+        mock_sensor.return_value = (
+            {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})},
+            TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
+        )
         status_dict = await captured_callback([mock_node], {})
 
         assert status_dict["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
@@ -126,26 +131,6 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
     async def mock_progress(completed: int, total: int) -> None:
         progress_calls.append((completed, total))
 
-    with (
-        patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.ExtractiveSensorService.batch_pre_evaluate",
-            new_callable=AsyncMock,
-        ) as mock_pre_eval,
-        patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.pre_cache_document",
-            new_callable=AsyncMock,
-        ),
-        patch(
-            "backend_v2.services.orchestrator.enriched_dag_executor.LLMCachingService.teardown_workflow_caches",
-            new_callable=AsyncMock,
-        ),
-    ):
-        mock_pre_eval.return_value = ({"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})}, [])
-
-        # We need to test the progress_callback, but the callback is provided to execute_graph.
-        # So we have to re-invoke execute_graph, but patch evaluate_graph to actually run the callback.
-        pass
-
     # Let's do it properly by patching evaluate_graph to run the callback
     async def fake_evaluate_graph_exec(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
@@ -171,10 +156,11 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
                 {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})},
                 [],
             )
-            result = await executor.execute_graph(
+            result, usage = await executor.execute_graph(
                 nodes=[mock_node], source_text="test text", progress_callback=mock_progress
             )
             assert result["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
+            assert usage.total_tokens == 0
             assert progress_calls == [(1, 1)]
 
 
@@ -225,11 +211,12 @@ async def test_execute_graph_callback_persistent_error(
             ),
         ):
             mock_pre_eval.side_effect = ValueError("Some persistent validation error")
-            result = await executor.execute_graph(
+            result, usage = await executor.execute_graph(
                 nodes=[mock_node], source_text="test text", progress_callback=mock_progress
             )
             assert result["tda_11111111111111111111111111111111"][0] == ExecutionStatus.SYSTEM_ERROR
             assert "Some persistent validation error" in result["tda_11111111111111111111111111111111"][1]
+            assert usage.total_tokens == 0
             assert progress_calls == [(1, 1)]
 
 

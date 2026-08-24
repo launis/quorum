@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.v2_core import StepRule
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
@@ -79,7 +80,7 @@ async def test_tda_engine_execute_success(
         progress_cb = kwargs.get("progress_callback")
         if progress_cb:
             await progress_cb(1, 1)
-        return {"ontology": "mock"}
+        return {"ontology": "mock"}, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
 
     mock_atomizer_instance.execute_phase_0.side_effect = mock_execute_phase_0
 
@@ -89,7 +90,7 @@ async def test_tda_engine_execute_success(
             await progress_cb(1, 1)
         atom = MagicMock()
         atom.source_sequence_index = 0
-        return [atom]
+        return [atom], TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30)
 
     mock_atomizer_instance.execute_phase_1.side_effect = mock_execute_phase_1
 
@@ -97,7 +98,7 @@ async def test_tda_engine_execute_success(
         progress_cb = kwargs.get("progress_callback")
         if progress_cb:
             await progress_cb(1, 1)
-        return ["node1"]
+        return ["node1"], TokenUsage(prompt_tokens=15, completion_tokens=5, total_tokens=20)
 
     mock_linker_instance.link_graph.side_effect = mock_link_graph
 
@@ -105,7 +106,7 @@ async def test_tda_engine_execute_success(
         progress_cb = kwargs.get("progress_callback")
         if progress_cb:
             await progress_cb(1, 1)
-        return {"state": "done"}
+        return {"state": "done"}, TokenUsage(prompt_tokens=25, completion_tokens=10, total_tokens=35)
 
     mock_dag_executor_instance.execute_graph.side_effect = mock_execute_graph
 
@@ -117,6 +118,8 @@ async def test_tda_engine_execute_success(
     assert isinstance(result, EngineExecutionResult)
     assert result.results == []
     assert result.hydrated_references == {}
+    assert result.usage is not None
+    assert result.usage.total_tokens == (15 + 30 + 20 + 35)
 
     mock_atomizer_instance.execute_phase_0.assert_called_once()
     mock_atomizer_instance.execute_phase_1.assert_called_once()
@@ -173,7 +176,7 @@ async def test_tda_engine_matrix_path(
         progress_cb = kwargs.get("progress_callback")
         if progress_cb:
             await progress_cb(1, 1)
-        return "mock_ontology"
+        return "mock_ontology", TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
 
     mock_atomizer_instance.execute_phase_0.side_effect = mock_execute_phase_0
 
@@ -181,7 +184,7 @@ async def test_tda_engine_matrix_path(
         progress_cb = kwargs.get("progress_callback")
         if progress_cb:
             await progress_cb(1, 1)
-        return {"state": "done"}
+        return {"state": "done"}, TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30)
 
     mock_dag_executor_instance.execute_graph.side_effect = mock_execute_graph
 
@@ -191,6 +194,8 @@ async def test_tda_engine_matrix_path(
     result = await engine.execute(engine_request)
 
     assert isinstance(result, EngineExecutionResult)
+    assert result.usage is not None
+    assert result.usage.total_tokens == (15 + 30)
     mock_atomizer_instance.execute_phase_0.assert_called_once()
     # Phase 1 and Linker must be skipped for matrix
     assert not mock_atomizer_instance.execute_phase_1.called

@@ -4,6 +4,7 @@ import pytest
 
 import backend_v2.llm.client
 from backend_v2.core.hook_registry import HookResult
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.v2_core import ExecutionStatus, I18nText, Step, StepRule, Workflow, WorkflowInputs
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
@@ -331,8 +332,15 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
             return_value=(MagicMock(), {"completion_tokens": 0, "prompt_tokens": 0, "total_tokens": 0})
         )
         backend_v2.llm.client.LLMClient.from_strategy.return_value = mock_client
-        mock_atomizer.execute_phase_0 = AsyncMock(return_value={})
-        mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=[]))
+        mock_atomizer.execute_phase_0 = AsyncMock(
+            return_value=({}, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+        )
+        mock_atomizer.execute_phase_1_drafts = AsyncMock(
+            return_value=(
+                DraftAtomList(atoms=[]),
+                TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30),
+            )
+        )
 
         await executor.rag_preflight.execute(
             target_step=workflow.steps[0],
@@ -454,8 +462,15 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
         mock_client = AsyncMock()
         mock_client_factory.return_value = mock_client
         mock_atomizer = mock_atomizer_cls.return_value
-        mock_atomizer.execute_phase_0 = AsyncMock(return_value={})
-        mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=[]))
+        mock_atomizer.execute_phase_0 = AsyncMock(
+            return_value=({}, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+        )
+        mock_atomizer.execute_phase_1_drafts = AsyncMock(
+            return_value=(
+                DraftAtomList(atoms=[]),
+                TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30),
+            )
+        )
 
         result = await service.execute(
             target_step=step_rule,

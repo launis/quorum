@@ -697,7 +697,10 @@ class LLMNodeStrategy(NodeStrategy):
                 }
 
             latency_ms = int((time.time() - telemetry_start_time) * 1000)
-            usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            if engine_result.usage is not None:
+                usage_agg = engine_result.usage
+            else:
+                usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
             all_prompt_contexts: list[dict[str, Any]] = []
             safe_context: dict[str, Any] = {**hook_state.global_context_vars, "steps": projector.snapshot}
 
@@ -754,7 +757,8 @@ class LLMNodeStrategy(NodeStrategy):
 
         if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:
             meta = final_dict.setdefault("_step_metadata", {})
-            meta["token_usage"] = usage_agg.model_dump()
+            if "token_usage" not in meta:
+                meta["token_usage"] = usage_agg.model_dump()
             # Phase 1, Step 1.1: Ensure model_strategy is persisted in trace event metadata for execution fingerprinting
             meta["model_strategy"] = strategy_name
 

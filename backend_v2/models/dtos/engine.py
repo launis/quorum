@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, StepRule, TheoryGrounding
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
@@ -114,11 +115,15 @@ class EngineExecutionResult(BaseModel):
     Attributes:
         results: Projected atom results.
         hydrated_references: Hydrated atom references.
+        synthesis_output: Optional dictionary containing synthesis output.
+        trace_events: Trace events recorded during engine execution.
+        usage: Aggregated token usage for the engine execution.
     """
 
     results: list[AtomResultDTO]
     hydrated_references: dict[str, HydratedAtomDTO]
     synthesis_output: dict[str, Any] | None = None
     trace_events: list[TraceEvent] = Field(default_factory=list)
+    usage: TokenUsage | None = None
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)

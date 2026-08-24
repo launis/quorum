@@ -198,6 +198,7 @@ class SynthesisEngine:
                 hydrated_references={},
                 synthesis_output=output_dict,
                 trace_events=trace_events,
+                usage=usage,
             )
 
         except ValidationError as e:

@@ -8,6 +8,7 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, I18nText, Step, StepRule, WorkflowInputs
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
@@ -185,20 +186,20 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
 
         async def fake_phase_0(
             client: Any, text: str, progress_callback: Callable[[int, int], Awaitable[None]] | None = None
-        ) -> dict[str, Any]:
+        ) -> tuple[dict[str, Any], TokenUsage]:
             if progress_callback:
                 await progress_callback(50, 100)
-            return {"ontology": "valid"}
+            return {"ontology": "valid"}, TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60)
 
         async def fake_phase_1(
             client: Any,
             text: str,
             ontology: dict[str, Any],
             progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
-        ) -> DraftAtomList:
+        ) -> tuple[DraftAtomList, TokenUsage]:
             if progress_callback:
                 await progress_callback(50, 100)
-            return DraftAtomList(atoms=[atom])
+            return DraftAtomList(atoms=[atom]), TokenUsage(prompt_tokens=80, completion_tokens=20, total_tokens=100)
 
         mock_atomizer.execute_phase_0 = AsyncMock(side_effect=fake_phase_0)
         mock_atomizer.execute_phase_1_drafts = AsyncMock(side_effect=fake_phase_1)
@@ -248,8 +249,15 @@ async def test_rag_preflight_atom_ceiling_exceeded_crashes(
         mock_client = AsyncMock()
         mock_client_factory.return_value = mock_client
         mock_atomizer = mock_atomizer_cls.return_value
-        mock_atomizer.execute_phase_0 = AsyncMock(return_value={})
-        mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=[atom, atom, atom]))
+        mock_atomizer.execute_phase_0 = AsyncMock(
+            return_value=({}, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+        )
+        mock_atomizer.execute_phase_1_drafts = AsyncMock(
+            return_value=(
+                DraftAtomList(atoms=[atom, atom, atom]),
+                TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30),
+            )
+        )
 
         settings_mock = MagicMock()
         settings_mock.rag_preflight_min_input_chars = 50
@@ -389,8 +397,15 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
         mock_client = AsyncMock()
         mock_client_factory.return_value = mock_client
         mock_atomizer = mock_atomizer_cls.return_value
-        mock_atomizer.execute_phase_0 = AsyncMock(return_value={"ontology": "valid"})
-        mock_atomizer.execute_phase_1_drafts = AsyncMock(return_value=DraftAtomList(atoms=[atom]))
+        mock_atomizer.execute_phase_0 = AsyncMock(
+            return_value=({"ontology": "valid"}, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+        )
+        mock_atomizer.execute_phase_1_drafts = AsyncMock(
+            return_value=(
+                DraftAtomList(atoms=[atom]),
+                TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30),
+            )
+        )
 
         result = await preflight_service.execute(
             target_step=step_rule,

@@ -10,6 +10,7 @@ from rapidfuzz import fuzz
 from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import AtomExecutionState, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
@@ -305,7 +306,7 @@ class ExtractiveSensorService:
         context_text: str,
         matrix_context: MatrixEvaluationContext | None = None,
         current_states: dict[str, AtomExecutionState] | None = None,
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], TokenUsage]:
         """Evaluates a batch of atom claims against the source text using an LLM.
 
         Args:
@@ -315,7 +316,9 @@ class ExtractiveSensorService:
             context_text: The source document text.
 
         Returns:
-            A dictionary mapping tda_id to a tuple of ExecutionStatus, reasoning, and extensions.
+            A tuple of:
+            - A dictionary mapping tda_id to a tuple of ExecutionStatus, reasoning, and extensions.
+            - Aggregated TokenUsage across all ensemble calls.
 
         Raises:
             AgentExecutionError: If insufficient valid Bo3 results or LLM failure.
@@ -352,10 +355,12 @@ class ExtractiveSensorService:
 
         semaphore = asyncio.Semaphore(parallelism)
 
-        async def _single_ensemble_call() -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None:
+        async def _single_ensemble_call() -> tuple[
+            dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None, TokenUsage
+        ]:
             async with semaphore:
                 try:
-                    result, _ = await executor.execute_structured_task(
+                    result, usage = await executor.execute_structured_task(
                         client=client,
                         messages=compiled_prompt,
                         response_model=BatchEvaluationResponse,
@@ -387,21 +392,28 @@ class ExtractiveSensorService:
                         status = ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
                         call_results[call_tda_id] = (status, eval_result.reasoning, extensions)
 
-                    return call_results
+                    return call_results, usage
                 except Exception as e:
                     if isinstance(e, AgentExecutionError) or _is_transient_llm_error(e):
                         logger.warning("Transient error in Bo3 ensemble call: %s", e)
-                        return None
+                        return None, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
                     raise
 
-        results: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None] = []
+        task_outputs: list[tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None, TokenUsage]] = []
         try:
             async with asyncio.TaskGroup() as tg:
                 tasks = [tg.create_task(_single_ensemble_call()) for _ in range(parallelism)]
 
-            results = [t.result() for t in tasks]
+            task_outputs = [t.result() for t in tasks]
         except ExceptionGroup as eg:
             raise eg.exceptions[0] from eg
 
+        results: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None] = []
+        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        for res, usage in task_outputs:
+            results.append(res)
+            total_usage = total_usage + usage
+
         expected_tda_ids = [node.atom.tda_id for node in nodes]
-        return ExtractiveSensorService.resolve_majority_vote(expected_tda_ids, results)
+        majority_results = ExtractiveSensorService.resolve_majority_vote(expected_tda_ids, results)
+        return majority_results, total_usage

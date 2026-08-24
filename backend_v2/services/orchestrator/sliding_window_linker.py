@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import (
     CausalEdge,
     ExtractedAtom,
@@ -141,7 +142,7 @@ class SlidingWindowLinker:
         ontology_map: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         semaphore: asyncio.Semaphore | None = None,
-    ) -> list[LinkedAtomGraph]:
+    ) -> tuple[list[LinkedAtomGraph], TokenUsage]:
         """Link atoms together into a causal graph.
 
         Args:
@@ -152,13 +153,13 @@ class SlidingWindowLinker:
             progress_callback: Optional asynchronous callback for reporting progress.
 
         Returns:
-            A list of LinkedAtomGraph objects with populated depends_on.
+            A tuple of list[LinkedAtomGraph] objects with populated depends_on and aggregated TokenUsage.
 
         Raises:
             AppException: If LLM execution fails critically.
         """
         if not atoms:
-            return []
+            return [], TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         # 1. Group atoms by source_id (chunk_index) maintaining insertion order
         chunk_groups: dict[str, list[ExtractedAtom]] = defaultdict(list)
@@ -169,6 +170,7 @@ class SlidingWindowLinker:
         windows = self._get_sliding_windows(chunks)
 
         master_deps: dict[str, dict[str, CausalEdge]] = defaultdict(dict)
+        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         ontology_text = ontology_map.model_dump_json(indent=2)
 
@@ -209,11 +211,12 @@ class SlidingWindowLinker:
 
             try:
                 async with semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps):
-                    response, _ = await executor.execute_structured_task(
+                    response, usage = await executor.execute_structured_task(
                         client=client,
                         messages=compiled_prompt,
                         response_model=LinkerResponseDTO,
                     )
+                    total_usage = total_usage + usage
             except Exception as e:
                 # 01-python-backend.md: Zero-Compromise Pledge. No graceful degradation.
                 raise AppException(
@@ -271,4 +274,4 @@ class SlidingWindowLinker:
             deps_list = list(master_deps[atom.tda_id].values())
             results.append(LinkedAtomGraph(atom=atom, depends_on=deps_list))
 
-        return results
+        return results, total_usage
