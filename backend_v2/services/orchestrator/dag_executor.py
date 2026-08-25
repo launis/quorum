@@ -52,6 +52,8 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["DAGExecutor", "ExecutionCommitter", "NodeExecutor"]
+
 
 class ExecutionCommitter:
     """Handles Checkpointing of the Event Sourced Trace conforming to Phase 9 directives."""
@@ -398,7 +400,7 @@ class DAGExecutor:
         }
 
         if existing_record_dict:
-            exec_record = ExecutionRecord.model_validate(existing_record_dict)
+            exec_record = ExecutionRecord.model_validate(existing_record_dict, strict=False)
             exec_record = exec_record.model_copy(update={"status": ExecutionStatus.RUNNING})
             if not exec_record.step_states:
                 exec_record = exec_record.model_copy(update={"step_states": step_states})
