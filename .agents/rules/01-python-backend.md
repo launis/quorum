@@ -211,9 +211,11 @@
     </rule_block>
 
     <rule_block id="frozen_state_mutability">
-        <banned_pattern>Mutating domain objects in place (e.g., `event.status = 'done'`), OR using `event.model_copy(update={...})` which performs a shallow copy and silently bypasses Pydantic validation.</banned_pattern>
-        <mandatory_pattern>All Event Sourcing models, DTOs, and DAG nodes MUST be immutable using `ConfigDict(frozen=True)`. Transition states MUST be executed by re-validating the state via `EventModel.model_validate(event.model_dump() | {'status': 'done'})` to guarantee Fail-Fast type safety and deep-copy isolation for nested objects.</mandatory_pattern>
-        <catastrophic_reason>In-place mutation destroys the append-only state log. Using `model_copy(update=...)` silently bypasses validation, allowing invalid types to corrupt the system and shared nested lists to mutate original frozen instances, breaking the universal_fail_fast rule.</catastrophic_reason>
+        <banned_pattern>Mutating domain objects in place (e.g., `event.status = 'done'`), performing unsynchronized shallow mutations across parallel coroutines, OR using `model.model_validate(model.model_dump() | updates)` on massive object graphs (`ExecutionRecord`) during high-frequency DAG loops (Double-Serialization Anti-Pattern).</banned_pattern>
+        <mandatory_pattern>All Event Sourcing models, DTOs, and DAG nodes MUST be immutable using `ConfigDict(frozen=True)`.
+        1. **High-Frequency Execution State Loops (`DAGExecutor`)**: State transitions across parallel async tasks MUST execute strictly inside `async with _update_lock:`. To eliminate the CPU-heavy Double-Serialization overhead, use `.model_copy(update=...)` combined with shallow dict/list copying (e.g. `updates["step_states"] = {**exec_record.step_states, step_id: new_state}`) where updated entities (like `new_state: ExecutionStepState`) are already strictly typed Pydantic models.
+        2. **Untrusted Boundary Ingress & Schema Transitions**: Re-validating state via `EventModel.model_validate(...)` is strictly reserved for untrusted raw payloads and inter-layer boundary ingestion.</mandatory_pattern>
+        <catastrophic_reason>In-place mutation destroys the append-only state log. Conversely, running full `.model_validate(model.model_dump() | ...)` on massive execution trees in every DAG step triggers catastrophic CPU spikes, Event Loop starvation, and multi-megabyte memory re-allocation cycles without adding safety over atomic lock-guarded `model_copy`.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="polymorphic_routing_o1">
@@ -612,9 +614,11 @@
     </rule_block>
 
     <rule_block id="pydantic_validation_bypass_ban">
-        <banned_pattern>Using `dict(model)`, list comprehensions casting to raw dicts, manually reconstructing an existing model field-by-field (e.g. `Model(field=[dict(x) for x in old.field])`), or mutating objects via full serialization cycles (`type(model)(**model_dump())`) to bypass validation constraints. Furthermore, NEVER use `model.model_copy(update={...})` for validation-dependent state mutations.</banned_pattern>
-        <mandatory_pattern>ALWAYS use `Model.model_validate(model.model_dump() | update_dict)` to mutate models with guaranteed validation and deep copying.</mandatory_pattern>
-        <catastrophic_reason>Manual reconstruction is verbose and prone to omissions. Using `model_copy(update=...)` performs a shallow copy and bypasses validation entirely, leading to corrupted state.</catastrophic_reason>
+        <banned_pattern>Using `dict(model)`, list comprehensions casting to raw dicts, manually reconstructing an existing model field-by-field (e.g. `Model(field=[dict(x) for x in old.field])`), or mutating objects via full serialization cycles (`type(model)(**model_dump())`) to bypass validation constraints. Furthermore, NEVER use unsynchronized `model.model_copy(update={...})` with raw unstructured dictionaries when mutating state across concurrent coroutines.</banned_pattern>
+        <mandatory_pattern>For mutating frozen models:
+        1. **Domain DTOs & Boundary Objects**: Hydrate and validate untrusted inputs using `Model.model_validate(raw_data)`.
+        2. **Internal High-Throughput DAG State**: Use `model.model_copy(update=...)` with typed instances (e.g., `new_state: ExecutionStepState`) strictly inside `async with _update_lock:` to prevent catastrophic double-serialization bottlenecks.</mandatory_pattern>
+        <catastrophic_reason>Manual reconstruction is verbose and prone to omissions. Unsynchronized shallow copies cause race conditions, while recursive `model_dump() | update` cascades destroy performance in high-frequency execution pipelines.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="data_and_file_preservation_mandate">
