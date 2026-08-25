@@ -112,6 +112,26 @@ def test_settings_properties_and_computed_fields() -> None:
     assert "anthropic" in settings.enabled_providers
     assert "mock" in settings.enabled_providers
 
+    # Path properties
+    assert "backend_v2" in settings.base_dir
+    assert "data" in settings.data_dir
+    assert "files" in settings.files_dir
+    assert "docs" in settings.docs_dir
+    assert "database" in settings.db_dir
+    assert "scripts" in settings.scripts_dir
+    assert "db_v2.json" in settings.prod_db_path
+    assert "seed_data.json" in settings.seed_data_path
+    assert "mock_responses.json" in settings.mock_responses_path
+    assert settings.log_file_name in settings.log_file_path
+    assert len(settings.default_safety_settings) == 4
+
+
+def test_settings_service_account_auto_detection() -> None:
+    """Test auto-detection of service-account.json in root when credentials are not preset."""
+    with patch.dict(os.environ, clear=True), patch("pathlib.Path.exists", return_value=True):
+        settings = Settings(use_mock_llm=False)
+        assert os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") is not None
+
 
 def test_settings_storage_backend_fallback_and_invalid() -> None:
     """Test local storage backend fallback and invalid backend raising AppException."""
