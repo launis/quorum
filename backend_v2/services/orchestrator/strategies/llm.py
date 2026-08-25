@@ -14,6 +14,8 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, cast
 
+from pydantic import BaseModel
+
 if TYPE_CHECKING:
     from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 
@@ -194,24 +196,26 @@ class LLMNodeStrategy(NodeStrategy):
         # INSIDE the data. AliasEngine + prompt_compiler.build_xml_context() are the
         # Single Source of Truth for all source aliasing (alias_engine_llm_isolation_mandate).
 
-        all_prompt_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
-        all_prompt_blocks: list[PromptBlock] = []
-        for raw in all_prompt_blocks_raw:
-            try:
-                all_prompt_blocks.append(PromptBlockAdapter.validate_python(raw, strict=False))
-            except Exception as e:
-                logger.error(
-                    "[LLMStrategy] Malformed PromptBlock in DB — Fail-Fast.",
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-                )
-                raise AppException(
-                    message="Malformed PromptBlock in DB",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-
-        block_map = {b.id: b for b in all_prompt_blocks if b.id}
+        if isinstance(context.prompt_blocks, list) and context.prompt_blocks:
+            block_map = {b.id: b for b in context.prompt_blocks if b.id}
+        else:
+            all_prompt_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
+            all_prompt_blocks: list[PromptBlock] = []
+            for raw in all_prompt_blocks_raw:
+                try:
+                    all_prompt_blocks.append(PromptBlockAdapter.validate_python(raw, strict=False))
+                except Exception as e:
+                    logger.error(
+                        "[LLMStrategy] Malformed PromptBlock in DB — Fail-Fast.",
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                    )
+                    raise AppException(
+                        message="Malformed PromptBlock in DB",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
+            block_map = {b.id: b for b in all_prompt_blocks if b.id}
 
         if "profile_id" not in context.metadata or not context.metadata["profile_id"]:
             msg = f"Execution metadata missing mandatory 'profile_id' for workflow {context.workflow_id}."
@@ -597,6 +601,7 @@ class LLMNodeStrategy(NodeStrategy):
                 )
 
             is_synthesis_step = context.model_strategy == "synthesis"
+            dynamic_schema: type[BaseModel] | None = None
 
             if is_synthesis_step:
                 target_locale = str(context.metadata.get("target_locale", "en"))
@@ -644,6 +649,54 @@ class LLMNodeStrategy(NodeStrategy):
                     matrix_block_id=matrix_block_id,
                     matrix_context=matrix_context,
                 )
+            elif matrix_block is None:
+                target_locale = str(context.metadata.get("target_locale", "en"))
+                blackboard = hook_state.global_context_vars.get("__GLOBAL_ATOM_BLACKBOARD__", {})
+                doc_aliases = list(blackboard.get("atoms_by_input", {}).keys()) or ["N/A"]
+
+                dag_results = {}
+                for step_res in hook_state.inputs.values():
+                    if isinstance(step_res, dict) and "evaluations" in step_res:
+                        for ev in step_res["evaluations"]:
+                            a_id = ev.get("tda_id") or ev.get("atom_id")
+                            if a_id:
+                                dag_results[a_id] = ev
+
+                dynamic_schema = self.compiler.build_dynamic_schema(
+                    schema_name=f"Step_{step.id}_Response",
+                    criteria=criteria_blocks,
+                    has_shuffled_atoms=False,
+                    target_locale=target_locale,
+                    strictness_level=context.strictness_level,
+                    source_document_ids=doc_aliases,
+                    expected_sdui_type=getattr(step, "expected_sdui_type", "grid"),
+                    dag_results=dag_results,
+                )
+
+                static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
+                hydrated_messages = [
+                    {"role": "system", "content": static_instructions},
+                    {"role": "user", "content": user_payload},
+                ]
+
+                engine_request = EngineExecutionRequest(
+                    bound_client=bound_client,
+                    compiled_schema=dynamic_schema,
+                    hydrated_messages=hydrated_messages,
+                    system_prompt=user_payload,
+                    step=step,
+                    context=context,
+                    global_source_text=global_source_text,
+                    target_locale=target_locale,
+                    semaphore=semaphore,
+                    running_event=running_event,
+                    progress_callback=progress_callback,
+                    trace_callback=None,
+                    prompt_compiler=self.compiler,
+                    shuffled_atoms=hydrated_shuffled_atoms,
+                    matrix_block_id=matrix_block_id,
+                    matrix_context=matrix_context,
+                )
             else:
                 engine_request = EngineExecutionRequest(
                     bound_client=bound_client,
@@ -675,8 +728,13 @@ class LLMNodeStrategy(NodeStrategy):
 
             engine_result = await self._engine.execute(engine_request)
 
-            if is_synthesis_step and engine_result.synthesis_output is not None:
-                final_dict = engine_result.synthesis_output
+            if engine_result.synthesis_output is not None:
+                if isinstance(engine_result.synthesis_output, BaseModel):
+                    final_dict = engine_result.synthesis_output.model_dump()
+                elif isinstance(engine_result.synthesis_output, dict):
+                    final_dict = engine_result.synthesis_output
+                else:
+                    final_dict = {"output": engine_result.synthesis_output}
             else:
                 final_dict = {
                     "results": [r.model_dump() for r in engine_result.results],
@@ -749,6 +807,15 @@ class LLMNodeStrategy(NodeStrategy):
             # Phase 1, Step 1.1: Ensure model_strategy is persisted in trace event metadata for execution fingerprinting
             meta["model_strategy"] = strategy_name
 
+        metadata: dict[str, Any] = {
+            "latency_ms": latency_ms,
+            "chunk_size": len(chunks_list),
+            "context_char_length": context_char_length,
+            "prompt_contexts": all_prompt_contexts,
+        }
+        if dynamic_schema is not None:
+            metadata["generated_schema"] = dynamic_schema.model_json_schema()
+
         return (
             pre_events
             + post_events
@@ -757,12 +824,7 @@ class LLMNodeStrategy(NodeStrategy):
                     step_name=step.id,
                     event_type="output",
                     content=final_dict,
-                    metadata={
-                        "latency_ms": latency_ms,
-                        "chunk_size": len(chunks_list),
-                        "context_char_length": context_char_length,
-                        "prompt_contexts": all_prompt_contexts,
-                    },
+                    metadata=metadata,
                 )
             ]
         )

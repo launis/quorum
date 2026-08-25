@@ -5,6 +5,7 @@ God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
 """
 
 import asyncio
+import dataclasses
 import logging
 import uuid
 from collections.abc import Awaitable, Callable
@@ -25,7 +26,8 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.llm.provider import _is_transient_llm_error
-from backend_v2.models.enums import ScoringStrategy, StrictnessAnchor
+from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.enums import ScoringStrategy, StepType, StrictnessAnchor
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -41,11 +43,11 @@ from backend_v2.models.v2_core import (
 from backend_v2.services.execution import create_execution_record
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
-from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
-from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
-from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
+from backend_v2.services.orchestrator.strategies.base import StrategyContext, StrategyDependencies
+from backend_v2.services.orchestrator.strategies.registry import NodeStrategyFactory
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -117,36 +119,35 @@ class NodeExecutor:
 
     def __init__(
         self,
-        exec_repo: IExecutionRepository,
-        workflow_repo: IWorkflowRepository,
-        comp_repo: IComponentRepository,
-        prompt_block_repo: IPromptBlockRepository,
-        output_profile_repo: IOutputProfileRepository,
-        identity_repo: IIdentityRepository,
-        audit_repo: IAuditRepository,
-        system_repo: ISystemRepository,
-        prompt_compiler: Any,
+        deps: StrategyDependencies,
     ) -> None:
-        """Initialize NodeExecutor with required underlying storage abstractions.
+        """Initialize NodeExecutor with typed StrategyDependencies container.
 
         Args:
-            exec_repo: Database access boundary for state checkpointing.
-            workflow_repo: Source for static workflows configuration definitions.
-            comp_repo: UI Hints / Component configurations repository reference.
-            identity_repo: Authorization constraints database context.
-            audit_repo: Global tamper-proof log repository integration mapping.
-            system_repo: Configurations registry interface mapping.
-            prompt_compiler: Compiler engine dynamic handler.
+            deps: Immutable container holding repositories, compiler, and pools.
         """
-        self.exec_repo = exec_repo
-        self.workflow_repo = workflow_repo
-        self.comp_repo = comp_repo
-        self.prompt_block_repo = prompt_block_repo
-        self.output_profile_repo = output_profile_repo
-        self.identity_repo = identity_repo
-        self.audit_repo = audit_repo
-        self.system_repo = system_repo
-        self.compiler = prompt_compiler
+        self.deps = deps
+
+    def _resolve_execution_engine(self, step_def: Step, prompt_blocks: list[PromptBlock]) -> ExecutionEngine:
+        """Resolve ExecutionEngine orthogonally from model_strategy based on step prompt blocks."""
+        from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+        from backend_v2.models.enums import PromptBlockCategory
+        from backend_v2.services.llm_task_executor import LLMTaskExecutor
+        from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
+        from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
+        from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
+
+        criteria_blocks = [b for b in prompt_blocks if b.id in step_def.criteria_block_ids]
+
+        if any(
+            b.category_id == PromptBlockCategory.MATRIX or isinstance(b, MatrixPromptBlock) for b in criteria_blocks
+        ):
+            return TDAEngine(self.deps.prompt_compiler)
+
+        if any(getattr(b, "is_synthesis", False) for b in criteria_blocks) or step_def.model_strategy == "synthesis":
+            return SynthesisEngine(LLMTaskExecutor(self.deps.prompt_compiler))
+
+        return PromptEngine(LLMTaskExecutor(self.deps.prompt_compiler))
 
     async def execute(
         self,
@@ -183,6 +184,7 @@ class NodeExecutor:
             running_event: Coordinator signal emitter.
             context_variables: Execution level global variables.
             progress_callback: Optional progress reporter callback function.
+            step_def: Optional pre-loaded Step blueprint.
 
         Returns:
             List of events generated during step evaluation.
@@ -202,7 +204,7 @@ class NodeExecutor:
                 )
 
             if not step_def:
-                step_def_data = await self.workflow_repo.get_step_by_id(blueprint_id)
+                step_def_data = await self.deps.workflow_repo.get_step_by_id(blueprint_id)
                 if not step_def_data:
                     msg = f"Configuration error: Step '{blueprint_id}' not found."
                     logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
@@ -220,6 +222,29 @@ class NodeExecutor:
 
             step = step.model_copy(update={"input_mappings": normalized_mappings})
 
+            criteria_ids: list[str] = list(step_def.criteria_block_ids)
+            if step_def.role_block_id:
+                criteria_ids.append(step_def.role_block_id)
+            if step_def.extraction_protocol_block_id:
+                criteria_ids.append(step_def.extraction_protocol_block_id)
+            if step_def.execution_persona_block_id:
+                criteria_ids.append(step_def.execution_persona_block_id)
+
+            loaded_prompt_blocks = await self.deps.prompt_block_repo.get_prompt_blocks_by_ids(criteria_ids, strict=True)
+
+            engine = (
+                self._resolve_execution_engine(step_def, loaded_prompt_blocks)
+                if step_def.type == StepType.LLM
+                else None
+            )
+
+            effective_deps = dataclasses.replace(self.deps, arq_pool=arq_pool) if arq_pool else self.deps
+            strategy_impl = NodeStrategyFactory.create_strategy(
+                step_type=step_def.type,
+                deps=effective_deps,
+                engine=engine,
+            )
+
             context = StrategyContext(
                 execution_id=execution_id,
                 workflow_id=workflow_id,
@@ -229,74 +254,8 @@ class NodeExecutor:
                 strictness_level=strictness_level,
                 global_context_vars=metadata["global_context_vars"] if "global_context_vars" in metadata else {},
                 context_variables=context_variables or {},
+                prompt_blocks=loaded_prompt_blocks,
             )
-
-            strategy_impl: NodeStrategy
-
-            strategy_key: str
-            if step_def.type == "logic":
-                strategy_key = "logic"
-            elif step_def.model_strategy:
-                strategy_key = step_def.model_strategy
-            else:
-                strategy_key = "reasoning"
-
-            match strategy_key:
-                case "logic":
-                    strategy_impl = LogicNodeStrategy(
-                        self.exec_repo,
-                        self.workflow_repo,
-                        self.comp_repo,
-                        self.prompt_block_repo,
-                        self.output_profile_repo,
-                        self.identity_repo,
-                        self.audit_repo,
-                        self.system_repo,
-                        self.compiler,
-                        arq_pool=arq_pool,
-                    )
-                case "synthesis":
-                    from backend_v2.services.llm_task_executor import LLMTaskExecutor
-                    from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
-
-                    llm_executor = LLMTaskExecutor(self.compiler)
-                    strategy_impl = LLMNodeStrategy(
-                        self.exec_repo,
-                        self.workflow_repo,
-                        self.comp_repo,
-                        self.prompt_block_repo,
-                        self.output_profile_repo,
-                        self.identity_repo,
-                        self.audit_repo,
-                        self.system_repo,
-                        self.compiler,
-                        engine=SynthesisEngine(llm_executor),
-                        arq_pool=arq_pool,
-                    )
-                case "reasoning" | "fast":
-                    from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
-
-                    strategy_impl = LLMNodeStrategy(
-                        self.exec_repo,
-                        self.workflow_repo,
-                        self.comp_repo,
-                        self.prompt_block_repo,
-                        self.output_profile_repo,
-                        self.identity_repo,
-                        self.audit_repo,
-                        self.system_repo,
-                        self.compiler,
-                        engine=TDAEngine(self.compiler),
-                        arq_pool=arq_pool,
-                    )
-                case _:
-                    msg = f"Unknown strategy key '{strategy_key}' for step {step.id}."
-                    logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                    )
 
             org_id = metadata["organization_id"] if "organization_id" in metadata else None
             await strategy_impl.assert_quota(org_id=org_id)
@@ -363,7 +322,7 @@ class DAGExecutor:
         self.compiler = prompt_compiler
         self.rag_preflight = rag_preflight
         self.committer = ExecutionCommitter(exec_repo, "")
-        self.node_executor = NodeExecutor(
+        self.deps = StrategyDependencies(
             exec_repo=exec_repo,
             workflow_repo=workflow_repo,
             comp_repo=comp_repo,
@@ -374,6 +333,7 @@ class DAGExecutor:
             system_repo=system_repo,
             prompt_compiler=self.compiler,
         )
+        self.node_executor = NodeExecutor(deps=self.deps)
 
     async def execute_workflow(
         self,
@@ -692,6 +652,7 @@ class DAGExecutor:
                 has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
                 async with _update_lock:
                     step_mcp_traces: list[MCPAuditTrace] = []
+                    step_generated_schemas: dict[str, Any] = {}
                     new_cv = dict(exec_record.context_variables)
                     has_cv_updates = False
                     for evt in events:
@@ -708,21 +669,30 @@ class DAGExecutor:
                         match evt:
                             case TraceEvent() if evt.mcp_audit_traces:
                                 step_mcp_traces.extend(evt.mcp_audit_traces)
+                            case TraceEvent() if evt.metadata and "generated_schema" in evt.metadata:
+                                step_generated_schemas[evt.step_name] = evt.metadata["generated_schema"]
 
                     updates: dict[str, Any] = {}
                     if has_cv_updates:
                         updates["context_variables"] = new_cv
 
+                    fc_updates: dict[str, Any] = {}
                     if step_mcp_traces:
                         current_traces: list[MCPAuditTrace] = list(exec_record.frozen_context.mcp_tool_audit)
                         seen_ids: set[str] = {t.id for t in current_traces if t.id}
                         new_unique_traces: list[MCPAuditTrace] = [
                             t for t in step_mcp_traces if t.id is None or t.id not in seen_ids
                         ]
-                        merged_traces: list[MCPAuditTrace] = current_traces + new_unique_traces
-                        updates["frozen_context"] = exec_record.frozen_context.model_copy(
-                            update={"mcp_tool_audit": merged_traces}
-                        )
+                        if new_unique_traces:
+                            fc_updates["mcp_tool_audit"] = current_traces + new_unique_traces
+
+                    if step_generated_schemas:
+                        merged_schemas = {**exec_record.frozen_context.generated_schemas, **step_generated_schemas}
+                        fc_updates["generated_schemas"] = merged_schemas
+
+                    if fc_updates:
+                        new_fc = exec_record.frozen_context.model_copy(update=fc_updates)
+                        updates["frozen_context"] = new_fc
 
                     step_status = ExecutionStatus.FAILED if has_error_evt else ExecutionStatus.PASSED
                     new_state = exec_record.step_states[step_id].model_copy(update={"status": step_status})

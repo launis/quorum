@@ -122,6 +122,7 @@ async def test_synthesis_engine_happy_path(
     assert result.results == []
     assert result.hydrated_references == {}
     assert result.synthesis_output is not None
+    assert isinstance(result.synthesis_output, dict)
     assert result.synthesis_output["title"] == "Test"
     assert result.synthesis_output["content"] == "Data"
 
@@ -198,6 +199,7 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
 
     assert mock_executor.execute_structured_task.called is False
     assert result.synthesis_output is not None
+    assert isinstance(result.synthesis_output, dict)
     assert result.synthesis_output["event_type"] == "starvation"
     assert result.synthesis_output["total_atoms"] == 0
     assert "zero atoms extracted" in result.synthesis_output["reason"]
@@ -223,6 +225,7 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
 
     assert mock_executor.execute_structured_task.called is False
     assert result_sparse_noise.synthesis_output is not None
+    assert isinstance(result_sparse_noise.synthesis_output, dict)
     assert result_sparse_noise.synthesis_output["event_type"] == "starvation"
     assert result_sparse_noise.synthesis_output["total_atoms"] == 4
     assert "sparse atoms (4) yielded zero evaluative matrix evidence" in result_sparse_noise.synthesis_output["reason"]
@@ -231,7 +234,7 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
 @pytest.mark.asyncio
 async def test_synthesis_engine_sparse_data_rule_injected(
     engine: SynthesisEngine, mock_executor: AsyncMock, base_request: EngineExecutionRequest
-) -> None:
+):
     """Tests that 1-7 atoms with matrix evidence injects SPARSE_DATA_SYNTHESIS_MANDATE."""
     base_request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"] = {
         "atoms_by_input": {
@@ -260,6 +263,7 @@ async def test_synthesis_engine_sparse_data_rule_injected(
     user_message = messages[-1]
     assert user_message["role"] == "user"
     assert SPARSE_DATA_SYNTHESIS_MANDATE in user_message["content"]
+    assert isinstance(result.synthesis_output, dict)
     assert result.synthesis_output["title"] == "Sparse"
 
 
@@ -341,6 +345,7 @@ async def test_synthesis_engine_with_raw_extensions_and_progress(
 
     result = await engine.execute(req)
 
+    assert isinstance(result.synthesis_output, dict)
     assert result.synthesis_output["title"] == "ExtTest"
     assert progress_mock.call_count == 2
     progress_mock.assert_any_call(10, 100)

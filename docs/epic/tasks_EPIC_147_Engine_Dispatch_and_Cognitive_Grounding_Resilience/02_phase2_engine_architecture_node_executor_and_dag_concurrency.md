@@ -4,16 +4,16 @@
 **Target Files:**
 - `[NEW]` @[backend_v2/services/orchestrator/engines/prompt_engine.py]
 - `[MODIFY]` @[backend_v2/services/orchestrator/engines/__init__.py]
-- `[MODIFY]` @[backend_v2/models/dtos/engine.py]
+- `[MODIFY]` @[backend_v2/models/dtos/engine.py#L119-L138]
 - `[MODIFY]` @[backend_v2/core/hook_registry.py#L55-L66]
 - `[MODIFY]` @[backend_v2/core/hook_registry.py#L69-L73]
 - `[MODIFY]` @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L25-L219]
-- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]
+- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm.py#L56-L768]
 - `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L115-L324]
 - `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L560-L766]
 - `[MODIFY]` @[backend_v2/models/state.py#L115-L138]
-- `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L287-L346]
-- `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py#L69-L95]
+- `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L288-L346]
+- `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py#L74-L99]
 - `[NEW]` @[backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py]
 - `[NEW]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py]
 
@@ -27,9 +27,9 @@
   </step>
 
   <dod_checklist>
-    - [x] Strongly-typed payload and `EngineExecutionResult.synthesis_output` updated in @[backend_v2/models/dtos/engine.py] (typed as `BaseModel | None`) and adopted in `LLMNodeStrategy.execute()` to eliminate raw `final_dict` state passing and enforce In-Memory Purity with Zero Double-Serialization.
+    - [x] Strongly-typed payload and `EngineExecutionResult.synthesis_output` updated in @[backend_v2/models/dtos/engine.py#L119-L138] (typed as `BaseModel | None`) and adopted in `LLMNodeStrategy.execute()` to eliminate raw `final_dict` state passing and enforce In-Memory Purity with Zero Double-Serialization.
     - [x] `HookState` and `HookResult` updated in @[backend_v2/core/hook_registry.py#L55-L66] and @[backend_v2/core/hook_registry.py#L69-L73] to support `BaseModel | dict[str, Any]`, eliminating premature `.model_dump()` in hooks.
-    - [x] In-place `hook_state.metadata[...]` mutations in @[backend_v2/services/orchestrator/strategies/llm.py#L56-L781] eliminated and replaced with immutable state accumulation and `model_copy(update=...)`.
+    - [x] In-place `hook_state.metadata[...]` mutations in @[backend_v2/services/orchestrator/strategies/llm.py#L56-L768] eliminated and replaced with immutable state accumulation and `model_copy(update=...)`.
     - [x] `SynthesisEngine.execute()` updated in @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L25-L219] to preserve typed synthesis outputs without premature in-memory `.model_dump()` dict conversion.
     - [x] `PromptEngine` extracted in [NEW] @[backend_v2/services/orchestrator/engines/prompt_engine.py], exported in @[backend_v2/services/orchestrator/engines/__init__.py], and implementing `ExecutionEngine` protocol with Fail-Fast validations and native typed model returns.
     - [x] `NodeExecutor` decomposed into `_resolve_execution_engine` and `NodeStrategyFactory` dispatch in @[backend_v2/services/orchestrator/dag_executor.py#L115-L324]; prompt blocks single-fetched and injected via `StrategyContext(..., prompt_blocks=...)`, removing redundant caller-side adapter validation.
@@ -238,41 +238,42 @@ class PromptEngine(ExecutionEngine):
   </step>
 
   <step id="4" name="Refactor LLMNodeStrategy to Delegate to ExecutionEngine">
-    <action>In @[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]:
+    <action>In @[backend_v2/services/orchestrator/strategies/llm.py#L56-L768]:
       1. Update `__init__(self, deps: StrategyDependencies, engine: ExecutionEngine) -> None`: Store `self.deps = deps` and `self.engine = engine`.
       2. Consume `context.prompt_blocks`: Completely remove `await self.prompt_block_repo.get_all_prompt_blocks()`.
       3. Eliminate in-place `frozen_ctx.generated_schemas[step.id] = ...` mutation: propagate `generated_schema` via `TraceEvent(..., metadata={"generated_schema": compiled_schema.model_json_schema()})`.
       4. Delegate execution purely to `self.engine.execute(engine_req)`:
-         - Construct `engine_req = EngineExecutionRequest(client=client, step=step, context=context, compiled_schema=compiled_schema, hydrated_messages=hydrated_messages, criteria_blocks_models=criteria_blocks_models, criteria_blocks=criteria_blocks, matrix_context=matrix_context, semaphore_cm=semaphore_cm, running_event=running_event)`.
+         - Construct `engine_req = EngineExecutionRequest(bound_client=bound_client, step=step, context=context, compiled_schema=compiled_schema, hydrated_messages=hydrated_messages, global_source_text=global_source_text, target_locale=target_locale, semaphore=semaphore, running_event=running_event, progress_callback=progress_callback, trace_callback=None, prompt_compiler=self.deps.prompt_compiler, shuffled_atoms=hydrated_shuffled_atoms, matrix_block_id=matrix_block_id, matrix_context=matrix_context, system_prompt="")`.
          - Await `engine_result = await self.engine.execute(engine_req)`.
       5. Eliminate in-memory double-serialization and raw dictionary state passing:
-         - In @[backend_v2/models/dtos/engine.py]:
+         - In @[backend_v2/models/dtos/engine.py#L119-L138]:
 ```python
 class EngineExecutionResult(V2CoreBase):
     """Result payload returned by an ExecutionEngine."""
     results: list[AtomResultDTO]
     hydrated_references: dict[str, HydratedAtomDTO]
     synthesis_output: Annotated[BaseModel | None, Field(default=None, description="Typed structured synthesis DTO (specifically RenderedSynthesisCache).")] = None
+    trace_events: list[TraceEvent] = Field(default_factory=list)
     usage: TokenUsage | None = None
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 ```
          - Declare `EngineExecutionResult` with `synthesis_output: Annotated[BaseModel | None, Field(...)] = None` as strongly-typed engine output.
-         - Assemble payload model: `payload = EngineExecutionResult(results=engine_result.results, hydrated_references=engine_result.hydrated_references, synthesis_output=engine_result.synthesis_output, usage=engine_result.usage)`.
+         - Assemble payload model: `payload = EngineExecutionResult(results=engine_result.results, hydrated_references=engine_result.hydrated_references, synthesis_output=engine_result.synthesis_output, trace_events=engine_result.trace_events, usage=engine_result.usage)`.
          - Pass `payload` directly to `post_hook_state = hook_state.model_copy(update={"global_context_vars": safe_context, "inputs": payload})` for post-hooks (Zero Double-Serialization in memory).
          - Emit `TraceEvent(step_name=step.id, event_type="output", content=payload.model_dump(mode="python"), metadata=...)` strictly at the Event Sourcing persistence boundary.
     </action>
     <action>In @[backend_v2/core/hook_registry.py#L55-L66] and @[backend_v2/core/hook_registry.py#L69-L73]: Update `HookState.inputs: BaseModel | dict[str, Any]` and `HookResult.state_delta: BaseModel | dict[str, Any] | None`.</action>
     <action>In @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L25-L219]: Update `execute` to preserve typed validated models in `EngineExecutionResult.synthesis_output` without premature `.model_dump()`.</action>
-    <demolish>REMOVE: `get_all_prompt_blocks()` table scan in `LLMNodeStrategy.execute` at @[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]. REPLACE WITH: `context.prompt_blocks` single-fetch injection.</demolish>
-    <demolish>REMOVE: In-place `frozen_ctx.generated_schemas[step.id] = ...` mutation in `_execute_llm_internal` at @[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]. REPLACE WITH: `TraceEvent.metadata["generated_schema"]`.</demolish>
-    <demolish>REMOVE: Raw dict `final_dict` state passing at @[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]. REPLACE WITH: strongly-typed payload model.</demolish>
+    <demolish>REMOVE: `get_all_prompt_blocks()` table scan in `LLMNodeStrategy.execute` at @[backend_v2/services/orchestrator/strategies/llm.py#L56-L768]. REPLACE WITH: `context.prompt_blocks` single-fetch injection.</demolish>
+    <demolish>REMOVE: In-place `frozen_ctx.generated_schemas[step.id] = ...` mutation in `_execute_llm_internal` at @[backend_v2/services/orchestrator/strategies/llm.py#L56-L768]. REPLACE WITH: `TraceEvent.metadata["generated_schema"]`.</demolish>
+    <demolish>REMOVE: Raw dict `final_dict` state passing at @[backend_v2/services/orchestrator/strategies/llm.py#L56-L768]. REPLACE WITH: strongly-typed payload model.</demolish>
     <constraint invariant="the_zero_compromise_pledge">Pydantic models must be preserved strongly typed across in-memory boundaries.</constraint>
   </step>
 
   <step id="5" name="Atomic Unit Test Migration for NodeExecutor &amp; DAGExecutor">
-    <action>In @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L287-L346]: Update instantiations of `DAGExecutor` and `NodeExecutor` to pass `deps = StrategyDependencies(...)`, and update mock return values for repositories to typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`).</action>
-    <action>In @[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py#L69-L95]: Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models, test `PromptEngine` payload compilation.</action>
+    <action>In @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L288-L346]: Update instantiations of `DAGExecutor` and `NodeExecutor` to pass `deps = StrategyDependencies(...)`, and update mock return values for repositories to typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`).</action>
+    <action>In @[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py#L74-L99]: Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models, test `PromptEngine` payload compilation.</action>
     <action>In [NEW] @[backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py]: Implement ISTQB unit tests for `PromptEngine` covering successful structured task execution, Fail-Fast missing schema, Fail-Fast empty messages, exception re-raising, and semaphore context manager acquisition with running_event signaling.</action>
     <action>In [NEW] @[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py]: Implement multi-step concurrent `mcp_tool_audit` and `generated_schemas` accumulation tests under `_update_lock`.</action>
     <test_contracts>

@@ -102,10 +102,10 @@ class EngineExecutionRequest(BaseModel):
     context: StrategyContext
     global_source_text: str
     target_locale: str | None
-    semaphore: asyncio.Semaphore
-    running_event: asyncio.Event | None
-    progress_callback: Callable[[int, int], Awaitable[None]] | None
-    trace_callback: Callable[[TraceEvent], Awaitable[None]] | None
+    semaphore: asyncio.Semaphore | None = None
+    running_event: asyncio.Event | None = None
+    progress_callback: Callable[[int, int], Awaitable[None]] | None = None
+    trace_callback: Callable[[TraceEvent], Awaitable[None]] | None = None
     prompt_compiler: Any
     shuffled_atoms: list[FlattenedAtom] | None = None
     matrix_block_id: str | None = None
@@ -114,6 +114,13 @@ class EngineExecutionRequest(BaseModel):
     ] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, strict=True, extra="forbid", frozen=True)
+
+    @property
+    def semaphore_cm(self) -> Any:
+        """Context manager safely wrapping nullable semaphore with nullcontext."""
+        import contextlib
+
+        return self.semaphore if self.semaphore is not None else contextlib.nullcontext()
 
 
 class EngineExecutionResult(BaseModel):
@@ -124,15 +131,18 @@ class EngineExecutionResult(BaseModel):
     Attributes:
         results: Projected atom results.
         hydrated_references: Hydrated atom references.
-        synthesis_output: Optional dictionary containing synthesis output.
+        synthesis_output: Optional typed structured synthesis DTO or dictionary.
         trace_events: Trace events recorded during engine execution.
         usage: Aggregated token usage for the engine execution.
     """
 
     results: list[AtomResultDTO]
     hydrated_references: dict[str, HydratedAtomDTO]
-    synthesis_output: dict[str, Any] | None = None
+    synthesis_output: Annotated[
+        dict[str, Any] | BaseModel | None,
+        Field(default=None, description="Typed structured synthesis DTO or dictionary (specifically RenderedSynthesisCache)."),
+    ] = None
     trace_events: list[TraceEvent] = Field(default_factory=list)
     usage: TokenUsage | None = None
 
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, strict=True, extra="forbid", frozen=True)

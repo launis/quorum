@@ -286,23 +286,38 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
 
 @pytest.mark.asyncio
 async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compiler: Any) -> None:
-    """Verify that NodeExecutor match/case injects SynthesisEngine when override is SYNTHESIS."""
+    """Verify that NodeExecutor injects SynthesisEngine when criteria block is synthesis or model_strategy is synthesis."""
     import asyncio
 
-    from backend_v2.models.v2_core import StepRule
+    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.enums import PromptBlockCategory
+    from backend_v2.models.v2_core import I18nText, StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
+    from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    executor = NodeExecutor(
+    mock_prompt_block_repo = AsyncMock()
+    mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = [
+        SystemRulePromptBlock(
+            id="blk_1234567890abcdef",
+            slug="synthesis-rule",
+            label=I18nText(default_locale="en", translations={"en": "Synthesis Rule"}),
+            description=I18nText(default_locale="en", translations={"en": "Synthesis Rule Desc"}),
+            category_id=PromptBlockCategory.SYSTEM_RULE,
+        )
+    ]
+
+    deps = StrategyDependencies(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
+        prompt_block_repo=mock_prompt_block_repo,
         output_profile_repo=AsyncMock(),
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
     )
+    executor = NodeExecutor(deps=deps)
 
     step = StepRule(
         id="stp_1234567890abcdef",

@@ -156,7 +156,7 @@ class SynthesisEngine:
                 await request.progress_callback(10, 100)
 
             # Delegate to LLM executor under semaphore
-            async with request.semaphore:
+            async with request.semaphore_cm:
                 validated_model, usage = await self._executor.execute_structured_task(
                     client=request.bound_client,
                     messages=local_messages,
