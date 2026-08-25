@@ -286,6 +286,39 @@
         </code_example>
     </rule_block>
 
+    <rule_block id="typed_dependency_container_mandate">
+        <banned_pattern>Passing long, repetitive lists of repositories, compilers, or service dependencies (e.g. 5+ parameters) across multiple strategy, orchestrator, or worker constructors, using `**kwargs` dictionary unpacking to pass loose dependencies, or copy-pasting parameter lists across class hierarchies.</banned_pattern>
+        <mandatory_pattern>You MUST encapsulate multi-dependency groupings into a strictly typed, immutable dependency container using `@dataclass(frozen=True)` (e.g. `HookDependencies`, `StrategyDependencies`). Subclasses, strategies, and orchestrators MUST accept the container as a single typed parameter `deps: StrategyDependencies`. This eliminates parameter list duplication, guarantees 100% MyPy Strict type safety, prevents `**kwargs` dictionary degradation, and enables seamless dependency extension without breaking constructor signatures across the codebase.</mandatory_pattern>
+        <catastrophic_reason>Scattering 10+ repository arguments across constructors creates massive code duplication (God Code constructor bloat), breaks whenever a new dependency is introduced, and tempts developers to use untyped `**kwargs` hacks that destroy static analysis and forensic traceability.</catastrophic_reason>
+        <code_example>
+            <anti_pattern>
+                class LogicStrategy:
+                    def __init__(self, exec_repo, workflow_repo, comp_repo, prompt_block_repo, ...): ...
+                class LLMStrategy:
+                    def __init__(self, exec_repo, workflow_repo, comp_repo, prompt_block_repo, ..., engine): ...
+            </anti_pattern>
+            <pro_pattern>
+                @dataclass(frozen=True)
+                class StrategyDependencies:
+                    exec_repo: IExecutionRepository
+                    workflow_repo: IWorkflowRepository
+                    comp_repo: IComponentRepository
+                    prompt_block_repo: IPromptBlockRepository
+                    output_profile_repo: IOutputProfileRepository
+                    identity_repo: IIdentityRepository
+                    audit_repo: IAuditRepository
+                    system_repo: ISystemRepository
+                    prompt_compiler: Any
+                    arq_pool: Any | None = None
+
+                class LogicStrategy(NodeStrategy):
+                    def __init__(self, deps: StrategyDependencies) -> None: ...
+                class LLMStrategy(NodeStrategy):
+                    def __init__(self, deps: StrategyDependencies, engine: ExecutionEngine) -> None: ...
+            </pro_pattern>
+        </code_example>
+    </rule_block>
+
     <rule_block id="strict_configuration_segregation">
         <banned_pattern>Mixing global constraints, taxonomy values, and runtime instantiation into single files, or using magic numbers instead of global configurations.</banned_pattern>
         <mandatory_pattern>Enforce the Tripartite Configuration Architecture: 1) `enums.py` MUST contain ONLY finite string/int constants and taxonomy vocabulary (No logic, no environment variables). 2) `settings.py` MUST contain ALL global limits, bounds, and environment-dependent configuration. 3) DTOs (e.g., `models/llm.py`) MUST act as the blueprints that combine `enums.py` and `settings.py` during runtime execution. No "Magic Numbers" allowed in business logic.</mandatory_pattern>

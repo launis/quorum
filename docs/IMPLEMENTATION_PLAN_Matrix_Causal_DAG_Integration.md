@@ -170,8 +170,13 @@ Integrates Quorum's evaluation matrices (`tda_assertions` inside `MatrixPromptBl
         <step id="1.4">
             <action>Update client_app_v2/lib/features/studio/models/prompt_block.dart: Add CausalEdgeDTO model, add depends_on field to TDAAssertion Dart model, and update TDAAssertion.create factory constructor. Run build_runner to regenerate Freezed and JsonSerializable code.</action>
             <constraint invariant="cross_language_enum_parity">Enforce strict 1:1 cross-domain DTO parity between Python and Flutter Freezed models.</constraint>
+            <constraint invariant="dart_import_verification">CausalEdgeDTO uses ExecutionStatus enum. Verify that ExecutionStatus is importable in prompt_block.dart from client_app_v2/lib/core/models/enums.dart. If not already imported, add the import.</constraint>
         </step>
     </phase_1_tech_debt_and_models>
+
+    <session_handover_gate>
+        <instruction>After completing Phase 1 and passing the audit loop, perform an atomic git commit. Then execute /tier5-session-handover to start Phase 2 from a fresh context window. The 8+ files in this plan heavily saturate the context budget.</instruction>
+    </session_handover_gate>
 
     <phase_2_hooks_and_engine>
         <step id="2.1">
@@ -250,3 +255,21 @@ Integrates Quorum's evaluation matrices (`tda_assertions` inside `MatrixPromptBl
    uv run python scripts/backend_audit_loop.py backend_v2/models/v2_core.py backend_v2/models/dtos/engine.py backend_v2/hooks/atom_flattening.py backend_v2/services/orchestrator/engines/tda_engine.py --test
    ```
 
+---
+
+## Known Tech Debt (Out of Scope — Discovered During Research)
+
+> [!NOTE]
+> The following tech debt was discovered during Tier 0 analysis of touched files and their 1-hop dependencies. These items are **NOT blocking** this plan but should be tracked for a dedicated remediation task.
+
+1. **`tda_engine.py` L62–66: Naked Dict Blackboard Pattern**
+   - Uses `.get()` defaults and `isinstance(data, dict)` on `context_variables["__GLOBAL_ATOM_BLACKBOARD__"]`.
+   - Violates: `no_naked_dicts_in_state`, `the_duct_tape_ban`, `the_zero_compromise_pledge`.
+   - Root Cause: `StrategyContext.context_variables` is typed as `dict[str, Any]` — a broader architectural limitation.
+   - Remediation: Requires dedicated refactoring of the context variables system to use typed Pydantic DTOs.
+
+2. **`topological_evaluator.py`: `model_copy(update={...})` Pattern (7 call sites)**
+   - Uses `model_copy(update={...})` on `AtomExecutionState` instead of mandated `Model.model_validate(event.model_dump() | {...})`.
+   - Violates: `frozen_state_mutability`.
+   - Risk Assessment: Low — `AtomExecutionState` has only primitive/Enum fields, so shallow copy bypass is functionally equivalent.
+   - Remediation: Replace with `model_validate(state.model_dump() | {...})` pattern.
