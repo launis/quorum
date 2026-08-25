@@ -40,6 +40,19 @@ from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "ErrorTraceEvent",
+    "EvidenceOverrideDTO",
+    "ExecutionState",
+    "ReasoningTrace",
+    "StateProjector",
+    "StepExecutionEnvelope",
+    "StepOutputDTO",
+    "TombstoneEvent",
+    "TraceEvent",
+    "WorkflowState",
+]
+
 
 class StepExecutionEnvelope(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -391,7 +404,7 @@ class StateProjector:
             List of StepOutputDTOs.
 
         Raises:
-            AppException: If a legacy unstructured trace is detected.
+            AppException: If a legacy unstructured trace is detected (VALIDATION_FAILED).
         """
         output: list[StepOutputDTO] = []
         for step_id, step_output in self._snapshot.items():
@@ -401,10 +414,10 @@ class StateProjector:
                     f"Legacy flat trace detected for step '{step_id}'. "
                     "Zero-Compromise Pledge forbids unstructured data."
                 )
-                logger.error("[StateProjector] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error("[StateProjector] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
 
                 raise AppException(
-                    status_code=500, message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.name}
+                    status_code=500, message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                 )
 
             for block_id, payload in step_output.items():
