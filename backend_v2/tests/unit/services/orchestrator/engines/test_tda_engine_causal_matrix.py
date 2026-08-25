@@ -276,12 +276,22 @@ async def test_istqb_partition_3_cyclic_graph_isolation(
     id_b = "tda_0000000000000000000000000000000b"
     id_c = "tda_0000000000000000000000000000000c"
 
-    edge_b_to_a = CausalEdge(edge_reasoning="A depends on B", tda_id=id_b, source_id="src", expected_status=ExecutionStatus.PASSED)
-    edge_a_to_b = CausalEdge(edge_reasoning="B depends on A", tda_id=id_a, source_id="src", expected_status=ExecutionStatus.PASSED)
+    edge_b_to_a = CausalEdge(
+        edge_reasoning="A depends on B", tda_id=id_b, source_id="src", expected_status=ExecutionStatus.PASSED
+    )
+    edge_a_to_b = CausalEdge(
+        edge_reasoning="B depends on A", tda_id=id_a, source_id="src", expected_status=ExecutionStatus.PASSED
+    )
 
-    atom_a = FlattenedAtom(atom_id=id_a, question="A", extraction_rule="", anchor_target="", is_inverse=False, depends_on=(edge_b_to_a,))
-    atom_b = FlattenedAtom(atom_id=id_b, question="B", extraction_rule="", anchor_target="", is_inverse=False, depends_on=(edge_a_to_b,))
-    atom_c = FlattenedAtom(atom_id=id_c, question="Independent C", extraction_rule="", anchor_target="", is_inverse=False, depends_on=())
+    atom_a = FlattenedAtom(
+        atom_id=id_a, question="A", extraction_rule="", anchor_target="", is_inverse=False, depends_on=(edge_b_to_a,)
+    )
+    atom_b = FlattenedAtom(
+        atom_id=id_b, question="B", extraction_rule="", anchor_target="", is_inverse=False, depends_on=(edge_a_to_b,)
+    )
+    atom_c = FlattenedAtom(
+        atom_id=id_c, question="Independent C", extraction_rule="", anchor_target="", is_inverse=False, depends_on=()
+    )
 
     req = base_engine_request.model_copy(
         update={
@@ -395,8 +405,12 @@ async def test_istqb_partition_4_data_starvation_propagates_depends_on(
         expected_status=ExecutionStatus.PASSED,
     )
 
-    atom_parent = FlattenedAtom(atom_id=parent_id, question="A", extraction_rule="", anchor_target="", is_inverse=False, depends_on=())
-    atom_child = FlattenedAtom(atom_id=child_id, question="B", extraction_rule="", anchor_target="", is_inverse=False, depends_on=(edge,))
+    atom_parent = FlattenedAtom(
+        atom_id=parent_id, question="A", extraction_rule="", anchor_target="", is_inverse=False, depends_on=()
+    )
+    atom_child = FlattenedAtom(
+        atom_id=child_id, question="B", extraction_rule="", anchor_target="", is_inverse=False, depends_on=(edge,)
+    )
 
     req = base_engine_request.model_copy(
         update={
@@ -446,12 +460,22 @@ async def test_istqb_partition_5_multi_parent_conflicting_dependencies(
     id_b = "tda_0000000000000000000000000000000b"
     id_c = "tda_0000000000000000000000000000000c"
 
-    edge_a = CausalEdge(edge_reasoning="A must pass", tda_id=id_a, source_id="src", expected_status=ExecutionStatus.PASSED)
-    edge_b = CausalEdge(edge_reasoning="B must pass", tda_id=id_b, source_id="src", expected_status=ExecutionStatus.PASSED)
+    edge_a = CausalEdge(
+        edge_reasoning="A must pass", tda_id=id_a, source_id="src", expected_status=ExecutionStatus.PASSED
+    )
+    edge_b = CausalEdge(
+        edge_reasoning="B must pass", tda_id=id_b, source_id="src", expected_status=ExecutionStatus.PASSED
+    )
 
-    atom_a = FlattenedAtom(atom_id=id_a, question="A", extraction_rule="", anchor_target="", is_inverse=False, depends_on=())
-    atom_b = FlattenedAtom(atom_id=id_b, question="B", extraction_rule="", anchor_target="", is_inverse=False, depends_on=())
-    atom_c = FlattenedAtom(atom_id=id_c, question="C", extraction_rule="", anchor_target="", is_inverse=False, depends_on=(edge_a, edge_b))
+    atom_a = FlattenedAtom(
+        atom_id=id_a, question="A", extraction_rule="", anchor_target="", is_inverse=False, depends_on=()
+    )
+    atom_b = FlattenedAtom(
+        atom_id=id_b, question="B", extraction_rule="", anchor_target="", is_inverse=False, depends_on=()
+    )
+    atom_c = FlattenedAtom(
+        atom_id=id_c, question="C", extraction_rule="", anchor_target="", is_inverse=False, depends_on=(edge_a, edge_b)
+    )
 
     req = base_engine_request.model_copy(
         update={

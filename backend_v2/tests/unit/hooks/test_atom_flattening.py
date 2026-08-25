@@ -513,4 +513,3 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     # If atom_b was selected, atom_a MUST also be in the output set
     if "tda_0000000000000001000000000000000b" in atom_ids:
         assert "tda_0000000000000001000000000000000a" in atom_ids
-

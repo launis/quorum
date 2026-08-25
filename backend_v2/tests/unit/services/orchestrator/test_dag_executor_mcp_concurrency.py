@@ -8,10 +8,6 @@ import pytest
 
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ExecutionStatus,
-    ExecutionStepState,
-    FrozenContext,
     I18nText,
     MCPAuditTrace,
     StepRule,

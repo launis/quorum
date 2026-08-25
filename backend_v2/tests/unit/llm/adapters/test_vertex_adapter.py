@@ -599,4 +599,3 @@ async def test_vertex_adapter_bypasses_cache_when_contents_empty_or_system_only(
     # When vertex_contents is empty, caching MUST be bypassed to avoid GCP 1-token InvalidArgument error
     assert extra_kwargs == {}
     assert len(flat_msgs) == 2
-

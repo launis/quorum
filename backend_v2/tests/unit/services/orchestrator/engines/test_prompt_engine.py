@@ -1,7 +1,6 @@
 """Unit tests for PromptEngine execution and fail-fast validation."""
 
 import asyncio
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -63,7 +62,9 @@ def base_request() -> EngineExecutionRequest:
 
 
 @pytest.mark.asyncio
-async def test_prompt_engine_executes_successfully(mock_executor: MagicMock, base_request: EngineExecutionRequest) -> None:
+async def test_prompt_engine_executes_successfully(
+    mock_executor: MagicMock, base_request: EngineExecutionRequest
+) -> None:
     """Verify PromptEngine executes structured task and returns typed result."""
     expected_output = MockResponseModel(summary="Generated summary")
     expected_usage = TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
@@ -88,7 +89,9 @@ async def test_prompt_engine_executes_successfully(mock_executor: MagicMock, bas
 
 
 @pytest.mark.asyncio
-async def test_prompt_engine_fails_fast_when_schema_missing(mock_executor: MagicMock, base_request: EngineExecutionRequest) -> None:
+async def test_prompt_engine_fails_fast_when_schema_missing(
+    mock_executor: MagicMock, base_request: EngineExecutionRequest
+) -> None:
     """Verify PromptEngine raises AppException with PROMPT_ENGINE_ERROR if compiled_schema is None."""
     request = base_request.model_copy(update={"compiled_schema": None})
     engine = PromptEngine(task_executor=mock_executor)
@@ -102,7 +105,9 @@ async def test_prompt_engine_fails_fast_when_schema_missing(mock_executor: Magic
 
 
 @pytest.mark.asyncio
-async def test_prompt_engine_fails_fast_when_messages_empty(mock_executor: MagicMock, base_request: EngineExecutionRequest) -> None:
+async def test_prompt_engine_fails_fast_when_messages_empty(
+    mock_executor: MagicMock, base_request: EngineExecutionRequest
+) -> None:
     """Verify PromptEngine raises AppException with PROMPT_ENGINE_ERROR if hydrated_messages is empty."""
     request = base_request.model_copy(update={"hydrated_messages": []})
     engine = PromptEngine(task_executor=mock_executor)

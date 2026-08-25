@@ -286,9 +286,7 @@ async def test_source_verification_hook_dto_inputs_handled_safely(
     result = await source_verification_hook(state, mock_deps)
 
     assert result.success is True
-    mock_instance.run_full_verification.assert_called_once_with(
-        "Valid analytical text discussing scientific findings."
-    )
+    mock_instance.run_full_verification.assert_called_once_with("Valid analytical text discussing scientific findings.")
 
 
 @pytest.mark.asyncio
