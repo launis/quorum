@@ -81,6 +81,7 @@ class Settings(BaseSettings):
         metrics_automation_bias_ratio: Bias flag threshold.
         metrics_reflection_min_length: Minimum chars for analytical scans.
         metrics_mechanical_ratio: Target ratio signaling automation risk.
+        min_verifiable_text_length: Minimum text character length required to trigger source verification.
         max_precedent_scan_depth: Lookback limits for similar entries.
         max_precedent_return_count: Count bounds for retrieved precedents.
         redis_host: Target address of cache server.
@@ -200,6 +201,9 @@ class Settings(BaseSettings):
     tda_concept_min_length: Annotated[
         int, Field(description="Minimum character length for TDA assertion concept descriptions.")
     ] = 10
+    min_verifiable_text_length: Annotated[
+        int, Field(description="Minimum text character length required to trigger source verification.")
+    ] = 15
     schema_max_localized_anchors: Annotated[int, Field(description="Max localized anchors")] = 15
     schema_max_quotes_target: Annotated[int, Field(description="Target quotes count")] = 5
     schema_max_quote_length: Annotated[int, Field(description="Target quote length")] = 150

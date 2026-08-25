@@ -1,33 +1,42 @@
-"""Data Transfer Objects for LLM Source Extraction mapping.
-
-These schemas enforce structured JSON outputs from the LLM when extracting source claims.
-"""
-
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.source_verification import SourceClaimDTO
 
 
-class SourceVerificationInputsDTO(BaseModel):
+class SourceVerificationInputsDTO(V2CoreBase):
     """Data Transfer Object for validating inputs to the Source Verification Hook.
 
     Attributes:
         document_text: The main text content to verify for external source citations.
+        prior_analysis: Prior analysis output text from upstream steps.
+        text: Raw input text.
+        document: Document body text.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
     document_text: Annotated[
-        str,
-        Field(
-            description="The raw document text to scan for external source citations.",
-        ),
-    ]
+        str | None,
+        Field(default=None, description="The raw document text to scan for external source citations."),
+    ] = None
+    prior_analysis: Annotated[
+        str | None,
+        Field(default=None, description="Prior analysis output text from upstream steps."),
+    ] = None
+    text: Annotated[
+        str | None,
+        Field(default=None, description="Raw input text."),
+    ] = None
+    document: Annotated[
+        str | None,
+        Field(default=None, description="Document body text."),
+    ] = None
 
 
-class SourceExtractionResponseSchema(BaseModel):
+class SourceExtractionResponseSchema(V2CoreBase):
     """Structured response schema for extracting claims from a document.
 
     Attributes:

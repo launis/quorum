@@ -1,7 +1,13 @@
 """Tests for source_extraction_schema."""
 
+import pytest
+from pydantic import ValidationError
+
 from backend_v2.models.domain.source_verification import SourceClaimDTO
-from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
+from backend_v2.models.dtos.source_extraction_schema import (
+    SourceExtractionResponseSchema,
+    SourceVerificationInputsDTO,
+)
 
 
 def test_source_extraction_response_schema_valid() -> None:
@@ -16,3 +22,29 @@ def test_source_extraction_response_schema_defaults() -> None:
     """Test defaults for SourceExtractionResponseSchema."""
     dto = SourceExtractionResponseSchema()
     assert dto.claims == []
+
+
+def test_source_verification_inputs_dto_valid() -> None:
+    """Test valid instantiation and optional field defaults of SourceVerificationInputsDTO."""
+    dto_empty = SourceVerificationInputsDTO()
+    assert dto_empty.document_text is None
+    assert dto_empty.prior_analysis is None
+    assert dto_empty.text is None
+    assert dto_empty.document is None
+
+    dto_full = SourceVerificationInputsDTO(
+        document_text="Doc text",
+        prior_analysis="Prior analysis text",
+        text="Raw text",
+        document="Body text",
+    )
+    assert dto_full.document_text == "Doc text"
+    assert dto_full.prior_analysis == "Prior analysis text"
+    assert dto_full.text == "Raw text"
+    assert dto_full.document == "Body text"
+
+
+def test_source_verification_inputs_dto_extra_forbid() -> None:
+    """Test that SourceVerificationInputsDTO rejects undeclared fields."""
+    with pytest.raises(ValidationError):
+        SourceVerificationInputsDTO.model_validate({"document_text": "valid", "extra_field": "forbidden"})

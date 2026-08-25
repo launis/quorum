@@ -21,16 +21,13 @@ from backend_v2.models.domain.source_verification import (
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.tavily_search_client import tavily_search
+from backend_v2.settings import get_settings
 
 if TYPE_CHECKING:
-    from backend_v2.repositories.interfaces import IComponentRepository
-
+    from backend_v2.database.interfaces import IComponentRepository, ISystemRepository
     from backend_v2.llm.client import LLMClient
 
 logger = logging.getLogger(__name__)
-
-# Minimum character length required to consider a text snippet verifiable
-MIN_VERIFIABLE_TEXT_LENGTH: int = 15
 
 # Cut off text length to avoid token limit explosions in fast models
 MAX_EXTRACTION_CHARS: int = 30000
@@ -68,6 +65,7 @@ class SourceVerificationService:
         llm_task_executor: LLMTaskExecutor | None = None,
         llm_client: LLMClient | None = None,
         comp_repo: IComponentRepository | None = None,
+        system_repo: ISystemRepository | None = None,
     ) -> None:
         """Initializes the service.
 
@@ -75,12 +73,12 @@ class SourceVerificationService:
             llm_task_executor: Injected executor. If None, it initializes via LLMTaskExecutor.
             llm_client: Injected LLM client. If None, it loads via strategy registry.
             comp_repo: Optional component repository for strategy lookup.
+            system_repo: Optional system repository for strategy lookup.
         """
         self.task_executor: LLMTaskExecutor | None = llm_task_executor
-        self.llm_client: LLMClient | None = llm_client or (
-            getattr(llm_task_executor, "llm_client", None) if llm_task_executor else None
-        )
+        self.llm_client: LLMClient | None = llm_client
         self.comp_repo: IComponentRepository | None = comp_repo
+        self.system_repo: ISystemRepository | None = system_repo
 
     async def _ensure_initialized(self) -> None:
         if self.task_executor and self.llm_client:
@@ -90,7 +88,8 @@ class SourceVerificationService:
         from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
         if not self.llm_client:
-            self.llm_client = await LLMClient.from_strategy("fast", repository=self.comp_repo)
+            repo = self.system_repo or self.comp_repo
+            self.llm_client = await LLMClient.from_strategy("fast", repository=repo)
         if not self.task_executor:
             self.task_executor = LLMTaskExecutor(PromptCompiler())
 
@@ -106,7 +105,7 @@ class SourceVerificationService:
         Raises:
             AppException: If parsing fails or the LLM request crashes.
         """
-        if not text or len(text.strip()) < MIN_VERIFIABLE_TEXT_LENGTH:
+        if not text or len(text.strip()) < get_settings().min_verifiable_text_length:
             return []
 
         await self._ensure_initialized()
@@ -121,7 +120,11 @@ class SourceVerificationService:
                 {"role": "user", "content": user_message},
             ]
             if not self.llm_client or not self.task_executor:
-                raise AppException(message="Client not initialized", status_code=500)
+                raise AppException(
+                    message="Client not initialized",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+                )
 
             result, _usage = await self.task_executor.execute_structured_task(
                 client=self.llm_client,
@@ -131,7 +134,7 @@ class SourceVerificationService:
             return result.claims
         except Exception as e:
             msg = "Failed to extract source claims."
-            logger.error(f"{ErrorCodes.FETCH_FAILED.name}: {msg}", exc_info=True)
+            logger.error("%s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=502,
@@ -179,7 +182,11 @@ class SourceVerificationService:
                 {"role": "user", "content": user_msg},
             ]
             if not self.llm_client or not self.task_executor:
-                raise AppException(message="Client not initialized", status_code=500)
+                raise AppException(
+                    message="Client not initialized",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+                )
 
             eval_res_tuple = await self.task_executor.execute_chat_task(
                 client=self.llm_client,
@@ -205,7 +212,9 @@ class SourceVerificationService:
         except Exception as e:
             # If search fails (e.g. rate limit), mark as INCONCLUSIVE and log
             logger.error(
-                f"Failed to verify claim '{claim.claim_text}': {e}",
+                "Failed to verify claim '%s': %s",
+                claim.claim_text,
+                e,
                 exc_info=True,
             )
             return VerifiedSourceDTO(
@@ -235,7 +244,7 @@ class SourceVerificationService:
                 results.append(t.result())
         except* Exception as e:
             msg = "Parallel source verification failed fatally."
-            logger.error(f"{ErrorCodes.FETCH_FAILED.name}: {msg}", exc_info=True)
+            logger.error("%s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=502,
@@ -253,7 +262,7 @@ class SourceVerificationService:
         Returns:
             The structured verification result.
         """
-        if not text or len(text.strip()) < MIN_VERIFIABLE_TEXT_LENGTH:
+        if not text or len(text.strip()) < get_settings().min_verifiable_text_length:
             return SourceVerificationResultDTO(
                 claims=[],
                 verification_timestamp=datetime.now(UTC).isoformat(),
