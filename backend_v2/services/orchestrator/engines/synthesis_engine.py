@@ -21,6 +21,8 @@ from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["SynthesisEngine"]
+
 
 class SynthesisEngine:
     """Execution engine for LLM-driven synthesis.
