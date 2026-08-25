@@ -30,6 +30,15 @@ def mock_deps() -> HookDependencies:
     )
 
 
+import backend_v2.hooks.source_verification_hook as hook_module
+
+
+def test_source_verification_hook_exports() -> None:
+    """Verify that source_verification_hook exports expected symbols via __all__."""
+    assert hook_module.__all__ == ["source_verification_hook"]
+    assert hasattr(hook_module, "source_verification_hook")
+
+
 def test_source_verification_hook_registered_in_hook_registry() -> None:
     """TC-HOOK-00: Hook is properly registered in hook_registry."""
     hook_fn = hook_registry.get_hook("source_verification")

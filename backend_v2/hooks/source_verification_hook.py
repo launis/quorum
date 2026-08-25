@@ -18,6 +18,8 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["source_verification_hook"]
+
 
 def _create_empty_verification_result() -> SourceVerificationResultDTO:
     """Creates a fully valid typed empty SourceVerificationResultDTO."""
