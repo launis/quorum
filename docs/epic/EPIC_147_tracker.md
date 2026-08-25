@@ -93,7 +93,7 @@
   - [x] @[backend_v2/models/state.py]
   - [x] @[backend_v2/settings.py]
   - [x] @[backend_v2/models/dtos/source_extraction_schema.py]
-  - [ ] @[backend_v2/hooks/source_verification_hook.py]
+  - [x] @[backend_v2/hooks/source_verification_hook.py]
   - [ ] @[backend_v2/services/source_verification_service.py]
   - [ ] @[backend_v2/hooks/__init__.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` (No production Dart files modified in backend-focused Epic 147).
@@ -154,7 +154,7 @@
   - **Phase 2**: Decomposed NodeExecutor, extracted PromptEngine, refactored LLMNodeStrategy, and synchronized DAG concurrency (`02_phase2_engine_architecture_node_executor_and_dag_concurrency.md`).
   - **Phase 3**: Hardened SourceVerificationHook and Service, defined global config sovereignty (`min_verifiable_text_length`), eliminated ghost execution, and protected XML injection (`03_placeholder_phase3_ghost_execution_elimination_and_hook_hardening.md`).
   - **Phase 4**: Implemented AST Guardrails (`test_ast_engine_dispatch_guardrails.py`), verified 433 unit tests, and passed live E2E REST API integration test (`test_integration_real_llm.py`).
-- **Tier 2 Backend Hardening (14/20 Files Audited, Hardened & Verified with 100% Quality Loop & Commit Gates)**:
+- **Tier 2 Backend Hardening (18/20 Files Audited, Hardened & Verified with 100% Quality Loop & Commit Gates)**:
   1. `@[backend_v2/models/enums.py]`: Exported `__all__`, full L10n property coverage and StepType enum validation; 100% test coverage; full neuro-symbolic audit matrix PASS. Commit: `a7d2d385`.
   2. `@[backend_v2/models/v2_core.py]`: Exported `__all__`, strict Pydantic V2 Fail-Fast validation, `extra='forbid'`, `strict=True`, opaque ID regex compliance; 95% test coverage; full neuro-symbolic audit matrix PASS. Commit: `24b54e19`.
   3. `@[backend_v2/database/interfaces.py]`: Exported `__all__`, ISP protocol definitions; 100% test coverage; full neuro-symbolic audit matrix PASS. Commit: `c565a04e`.
@@ -172,6 +172,7 @@
   15. `@[backend_v2/models/state.py]`: Exported `__all__ = ["ErrorTraceEvent", "EvidenceOverrideDTO", "ExecutionState", "ReasoningTrace", "StateProjector", "StepExecutionEnvelope", "StepOutputDTO", "TombstoneEvent", "TraceEvent", "WorkflowState"]`, enhanced RFC 7807 dual logging in `StateProjector`, expanded unit tests in `test_state.py` covering token truncation, confidence bounds, legacy detection, and lazy property accessors reaching 100% line coverage; full neuro-symbolic audit matrix PASS across all 156 rules. Commit: `2634801f`.
   16. `@[backend_v2/settings.py]`: Verified public exports, global config sovereignty (`min_verifiable_text_length`, timeouts, concurrency limits), RFC 7807 logging, expanded unit tests in `test_settings.py` covering all path properties and service account auto-detection reaching 100% line coverage; full neuro-symbolic audit matrix PASS across all 156 rules. Commit: `663b3315`.
   17. `@[backend_v2/models/dtos/source_extraction_schema.py]`: Added PEP 257 module docstring, exported `__all__ = ["SourceExtractionResponseSchema", "SourceVerificationInputsDTO"]`, expanded unit tests in `test_source_extraction_schema.py` covering `__all__` and `extra="forbid"` strictness reaching 100% line coverage; full neuro-symbolic audit matrix PASS across all 156 rules. Commit: `90c58547`.
+  18. `@[backend_v2/hooks/source_verification_hook.py]`: Exported `__all__ = ["source_verification_hook"]`, verified RFC 7807 dual logging, empty result encapsulation, min text length cut-off, and input schema type validation, expanded unit tests in `test_source_verification_hook.py` reaching 100% line coverage; full neuro-symbolic audit matrix PASS across all 156 rules. Commit: `8f2ccf7d`.
 
 ## Learned
 - **Target Anchoring in Audit Matrices**: `audit_matrix_manager.py` enforces target anchoring: citations in justifications cannot mention other source files unless they are common systemic dependencies (`settings.py`, `enums.py`, `conftest.py`).
@@ -199,12 +200,12 @@
 - `AST Guardrail Suite`: `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L1-L318]`
 
 ## Remaining Targets in Tier 2 Hardening (Backend)
-- `@[backend_v2/hooks/source_verification_hook.py]`
 - `@[backend_v2/services/source_verification_service.py]`
 - `@[backend_v2/hooks/__init__.py]`
 
 ## Next Command
-`/tier5-resume --target="@[docs/epic/EPIC_147_tracker.md], backend_v2/hooks/source_verification_hook.py" --workflow=/tier2-hardening-backend`
+`/tier5-resume --target="@[docs/epic/EPIC_147_tracker.md], backend_v2/services/source_verification_service.py" --workflow=/tier2-hardening-backend`
+
 
 
 
