@@ -135,3 +135,26 @@ async def test_prompt_engine_respects_semaphore(mock_executor: MagicMock, base_r
 
     assert result.synthesis_output == expected_output
     assert semaphore._value == 1
+
+
+def test_engines_exports_all_symbols() -> None:
+    """Verify __all__ contains exactly the intended public engine symbols."""
+    import backend_v2.services.orchestrator.engines as engines_module
+    from backend_v2.services.orchestrator.engines import (
+        ExecutionEngine,
+        PromptEngine,
+        SynthesisEngine,
+        TDAEngine,
+    )
+
+    expected_symbols = {
+        "ExecutionEngine",
+        "PromptEngine",
+        "SynthesisEngine",
+        "TDAEngine",
+    }
+    assert set(engines_module.__all__) == expected_symbols
+    assert ExecutionEngine is not None
+    assert PromptEngine is not None
+    assert SynthesisEngine is not None
+    assert TDAEngine is not None

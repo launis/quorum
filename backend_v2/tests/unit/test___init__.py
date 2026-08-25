@@ -4,9 +4,16 @@
 def test_init_import() -> None:
     """Test that the module imports successfully."""
     import backend_v2
+    import backend_v2.hooks
     import backend_v2.llm
     import backend_v2.models.domain
+    import backend_v2.services.orchestrator.engines
 
     assert backend_v2 is not None
+    assert backend_v2.hooks is not None
     assert backend_v2.llm is not None
     assert backend_v2.models.domain is not None
+    assert backend_v2.services.orchestrator.engines.PromptEngine is not None
+    assert backend_v2.services.orchestrator.engines.ExecutionEngine is not None
+    assert backend_v2.services.orchestrator.engines.SynthesisEngine is not None
+    assert backend_v2.services.orchestrator.engines.TDAEngine is not None
