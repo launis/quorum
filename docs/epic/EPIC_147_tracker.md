@@ -149,18 +149,40 @@
 # Session Handover Context
 
 ## Achieved
-- **Hardening Batch 1 Completed (6 Files Validated & Verified)**:
+- **Phase 1-4 Complete, Validated & Hardened**:
+  - **Phase 1**: Implemented and committed StepType enum, prompt block batch resolution, StrategyDependencies, and static NodeStrategy registry (`01_phase1_tech_debt_dtos_repositories_and_strategy_registry.md`).
+  - **Phase 2**: Decomposed NodeExecutor, extracted PromptEngine, refactored LLMNodeStrategy, and synchronized DAG concurrency (`02_phase2_engine_architecture_node_executor_and_dag_concurrency.md`).
+  - **Phase 3**: Hardened SourceVerificationHook and Service, defined global config sovereignty (`min_verifiable_text_length`), eliminated ghost execution, and protected XML injection (`03_placeholder_phase3_ghost_execution_elimination_and_hook_hardening.md`).
+  - **Phase 4**: Implemented AST Guardrails (`test_ast_engine_dispatch_guardrails.py`), verified 433 unit tests, and passed live E2E REST API integration test (`test_integration_real_llm.py`).
+- **Tier 2 Backend Hardening (Batch 1 Complete - 6/20 Files Audited & Verified)**:
   1. `@[backend_v2/models/enums.py]`: Full L10n property coverage and StepType enum validation; 100% test coverage; strict neuro-symbolic audit matrix PASS.
   2. `@[backend_v2/models/v2_core.py]`: Strict Pydantic V2 Fail-Fast validation, `extra='forbid'`, `strict=True`, opaque ID regex compliance; 97% test coverage; strict audit matrix PASS.
   3. `@[backend_v2/database/interfaces.py]`: ISP protocol definitions; 100% test coverage; strict audit matrix PASS.
   4. `@[backend_v2/database/repositories/components/prompt_block.py]`: Set difference validation for batch prompt block retrieval, strict Fail-Fast on missing IDs; 100% test coverage; strict audit matrix PASS.
   5. `@[backend_v2/services/orchestrator/strategies/base.py]`: StrategyDependencies container, StrategyContext immutability, quota circuit breaker; 93% test coverage; strict audit matrix PASS.
   6. `@[backend_v2/services/orchestrator/strategies/logic.py]`: LogicNodeStrategy hook delegation, HookDependencies wiring, fail-fast on hook failure; 96% test coverage; strict audit matrix PASS.
-- **State Persistence Synchronized**: Updated `@[tmp/hardening_state.json]` and checked off completed items in `@[docs/epic/EPIC_147_tracker.md]`.
+- **Atomic Git Commit**: `e7dfcec5` — `chore(hardening): complete batch 1 backend hardening for enums, v2_core, interfaces, repositories and strategies`.
 
 ## Learned
-- `audit_matrix_manager.py` enforces target anchoring: citations in justifications cannot mention other source files unless they are common systemic dependencies (`settings.py`, `enums.py`, `conftest.py`).
-- Batching 5-6 files per hardening session ensures zero context amnesia while systematically completing post-implementation quality gates.
+- **Target Anchoring in Audit Matrices**: `audit_matrix_manager.py` enforces target anchoring: citations in justifications cannot mention other source files unless they are common systemic dependencies (`settings.py`, `enums.py`, `conftest.py`).
+- **Session Bounding for Strictness**: Limiting hardening sessions to 5-6 files prevents context amnesia, ensures deep verification of every invariant, and maintains deterministic state transitions via `@[tmp/hardening_state.json]`.
+- **L10n Property Completeness**: All enum `@property l10n_key` getters must be tested against both mapped and unmapped variants to reach 100% line coverage and guarantee frontend `.arb` parity.
+
+## Codebase Physical Anchor Reference Map
+- `NodeExecutor`: `@[backend_v2/services/orchestrator/dag_executor.py#L119-L285]`
+- `DAGExecutor`: `@[backend_v2/services/orchestrator/dag_executor.py#L287-L720]`
+- `PromptEngine`: `@[backend_v2/services/orchestrator/engines/prompt_engine.py#L1-L73]`
+- `SynthesisEngine`: `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L1-L220]`
+- `TDAEngine`: `@[backend_v2/services/orchestrator/engines/tda_engine.py#L1-L210]`
+- `LLMNodeStrategy`: `@[backend_v2/services/orchestrator/strategies/llm.py#L58-L830]`
+- `NodeStrategyFactory`: `@[backend_v2/services/orchestrator/strategies/registry.py#L1-L60]`
+- `EngineExecutionRequest` / `EngineExecutionResult`: `@[backend_v2/models/dtos/engine.py#L85-L149]`
+- `source_verification_hook`: `@[backend_v2/hooks/source_verification_hook.py#L1-L130]`
+- `SourceVerificationService`: `@[backend_v2/services/source_verification_service.py#L1-L288]`
+- `SourceVerificationInputsDTO`: `@[backend_v2/models/dtos/source_extraction_schema.py#L1-L37]`
+- `SourceVerificationResultDTO`: `@[backend_v2/models/domain/source_verification.py#L61-L79]`
+- `Settings.min_verifiable_text_length`: `@[backend_v2/settings.py#L204-L206]`
+- `AST Guardrail Suite`: `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L1-L318]`
 
 ## Remaining Targets in Tier 2 Hardening (Backend)
 - `@[backend_v2/services/orchestrator/strategies/llm.py]`
