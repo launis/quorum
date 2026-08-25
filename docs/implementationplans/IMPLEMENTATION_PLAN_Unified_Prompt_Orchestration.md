@@ -1,3 +1,5 @@
+> **STATUS: COMPLETED / VALMIS (Implemented in Epic 146)**
+
 # Architectural Implementation Plan: Zero-XML UI & Automated Prompt Assembly Pipeline
 
 ## 1. Executive Summary & First Principles

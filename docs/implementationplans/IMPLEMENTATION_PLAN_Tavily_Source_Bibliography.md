@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (EPIC 89 Hook Integration)**
+
 # Restore Tavily Search & Source Bibliography (MCP Tool Loop Re-Integration)
 
 > **SSOT Plan — Consolidates all planning from conversations `ba5e9168` (original audit), `55d4dd19` (initial plan), `da0f63a5` (Tier 0 Research Analysis), and `a103066d` (Tier 8 Feature & Scope Audit).**

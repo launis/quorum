@@ -1,3 +1,5 @@
+> **STATUS: COMPLETED / VALMIS (Implemented in Epic 141)**
+
 ```xml
 <required_context_rules>
     <rule>@[.agents/rules/00-antigravity-core.md]</rule>

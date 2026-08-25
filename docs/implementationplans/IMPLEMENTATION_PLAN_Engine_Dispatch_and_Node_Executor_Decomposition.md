@@ -1,3 +1,5 @@
+> **STATUS: CONSOLIDATED / YHDISTETTY (Merged into EPIC 147)**
+
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>

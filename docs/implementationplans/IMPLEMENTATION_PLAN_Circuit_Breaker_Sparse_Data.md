@@ -1,3 +1,5 @@
+> **STATUS: COMPLETED / VALMIS (Implemented in Epic 143/144)**
+
 # IMPLEMENTATION PLAN: Circuit Breaker & Sparse Data Synthesis Rule
 
 <required_context_rules>

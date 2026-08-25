@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (EPIC 89 Phase B)**
+
 # Wikipedia MCP Integration & Tool Protocol Standardization (Phase B)
 
 > **Implementation Plan for Phase B of MCP Standardization**

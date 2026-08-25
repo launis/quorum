@@ -1,3 +1,5 @@
+> **STATUS: COMPLETED / VALMIS (Implemented in Epic 146)**
+
 # Cognitive Instruction Harmonization: Single Source of Truth for TDA Assertions
 
 This implementation plan eliminates the historical migration debt between `MatrixClaim.ai_description` and `TDAAssertion.concept_description` across the database seed vault, Python backend models, Flutter studio client, and associated test suites.
