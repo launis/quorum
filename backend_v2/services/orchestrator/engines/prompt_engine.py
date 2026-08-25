@@ -12,6 +12,8 @@ from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["PromptEngine"]
+
 
 class PromptEngine(ExecutionEngine):
     """Engine executing structured non-matrix LLM prompt tasks."""

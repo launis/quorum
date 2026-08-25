@@ -60,6 +60,12 @@ class StrategyContext(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
 
 
+# Rebuild EngineExecutionRequest now that StrategyContext is defined
+from backend_v2.models.dtos.engine import EngineExecutionRequest
+
+EngineExecutionRequest.model_rebuild()
+
+
 @dataclass(frozen=True)
 class StrategyDependencies:
     """Immutable dependency container injected into execution strategies."""
