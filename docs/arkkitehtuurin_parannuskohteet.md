@@ -5,6 +5,8 @@ Tähän dokumenttiin kerätään järjestelmän koodikannassa, tietomalleissa ja
 ---
 
 ## Luku 1: Matriisikohtainen vs. Workflow-tason skaalaus (`scale_min` / `scale_max`)
+> **STATUS: VALMIS / TOTEUTETTU (Epic 135 / Epic 141)**  
+> *Selite: `scale_min` ja `scale_max` on poistettu `PromptBlock`-malleista ja korvattu dynaamisilla `computed_min`/`computed_max` -validaattoreilla ([prompt_blocks.py:85-98](file:///c:/src/quorum/backend_v2/models/domain/prompt_blocks.py#L85-L98)).*
 
 ### 1.1 Nykytilanne ja havaittu ongelma
 Tietokannassa ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)) ja domain-mallissa ([`backend_v2/models/v2_core.py:PromptBlock`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L376-L460)) matriiseille on määritelty staattiset kentät:
@@ -90,6 +92,8 @@ Lisäksi esityskerroksen profiilissa ([`OutputProfile`](file:///c:/src/quorum/ba
 ---
 
 ## Luku 2: Teoria-ankkurien kaksoissyöttö (`theory_grounding` vs. `ai_description`)
+> **STATUS: KONSOLIDOITU (EPIC 148)**  
+> *Selite: Sisältyy ja ratkaistaan suoraan [EPIC 148: Domain Model SSOT & Presentation Localization Modernization](file:///c:/src/quorum/docs/epic/EPIC_148_Domain_Model_SSOT_and_Localization_Modernization.md):ssa Phase 1:ssa (Theory Grounding & Epistemic Anchor Sanitization).*
 
 ### 2.1 Nykytilanne ja havaittu ongelma
 Tietokannassa ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)) kaikille 13 matriisille on määritelty rinnakkain kaksi kenttää:
@@ -179,6 +183,8 @@ ARMA International. 'Generally Accepted Recordkeeping Principles (The Principles
 ---
 
 ## Luku 3: `I18nText`-rakenteen `default_locale`-kentän redundanssi
+> **STATUS: KONSOLIDOITU (EPIC 148)**  
+> *Selite: Sisältyy ja ratkaistaan suoraan [EPIC 148: Domain Model SSOT & Presentation Localization Modernization](file:///c:/src/quorum/docs/epic/EPIC_148_Domain_Model_SSOT_and_Localization_Modernization.md):ssa Phase 2:ssa (`I18nText.default_locale` Eradication).*
 
 ### 3.1 Nykytilanne ja havaittu ongelma
 Tietokannassa ([`backend_v2/seed/seed_data.json`](file:///c:/src/quorum/backend_v2/seed/seed_data.json)) on tasan **500 kappaletta** `I18nText`-rakenteita ([`backend_v2/models/v2_core.py:I18nText`](file:///c:/src/quorum/backend_v2/models/v2_core.py#L97-L146)), joissa jokaisessa toistetaan eksplisiittisesti `default_locale`:
@@ -242,6 +248,8 @@ Samaan aikaan järjestelmän monikielisyysarkkitehtuurissa esityskieli määräy
 ---
 
 ## Luku 4: Atomin kognitiivisen ohjeistuksen hajautuminen (`MatrixClaim.ai_description` vs. `TDAAssertion.concept_description`)
+> **STATUS: VALMIS / TOTEUTETTU (Epic 146)**  
+> *Selite: `MatrixClaim.ai_description` on poistettu kokonaan ([v2_core.py:330-345](file:///c:/src/quorum/backend_v2/models/v2_core.py#L330-L345)), `TDAAssertion.concept_description` pakottaa `min_length=10` ([v2_core.py:267-270](file:///c:/src/quorum/backend_v2/models/v2_core.py#L267-L270)), ja `seed_data.json`:n 70 tyhjää ohjetta on migroitu.*
 
 ### 4.1 Nykytilanne ja havaittu ongelma
 Tietokannassa (@[backend_v2/seed/seed_data.json]) on 152 väitettä (@[backend_v2/models/v2_core.py#MatrixClaim]) ja tasan 152 TDA-assertiota (@[backend_v2/models/v2_core.py#TDAAssertion]). Jokainen väite sisältää 1:1 yhden TDA-assertion.
@@ -417,6 +425,8 @@ Target-tiedostoissa ja niiden välittömissä 1-hop riippuvuuksissa on havaittu 
 ---
 
 ## Luku 5: Esitysprofiilin jäänteet ja Dual-Axis Localization -päällekkäisyydet
+> **STATUS: KONSOLIDOITU (EPIC 148)**  
+> *Selite: Sisältyy ja ratkaistaan suoraan [EPIC 148: Domain Model SSOT & Presentation Localization Modernization](file:///c:/src/quorum/docs/epic/EPIC_148_Domain_Model_SSOT_and_Localization_Modernization.md):ssa Phase 3:ssa (`OutputProfile` Presentation Model & L10n SSOT).*
 
 ### 5.1 Nykytilanne ja havaittu ongelma
 Tietokannan raporttiprofiilissa ([`OutputProfile: prof_5d6e7f8091a2b3c4`](file:///c:/src/quorum/backend_v2/seed/seed_data.json#L9180-L9570)) esiintyy kaksi merkittävää arkkitehtuurista päällekkäisyyttä ja jännitettä:
@@ -485,6 +495,8 @@ Tietokannan raporttiprofiilissa ([`OutputProfile: prof_5d6e7f8091a2b3c4`](file:/
 ---
 
 ## Luku 6: Atomaarinen Data-, Testifikstuuri- ja Mallimigraatio (Atomic Migration Protocol)
+> **STATUS: PROSESSI-INVARIANTTI / AKTIIVINEN SÄÄNTÖPOHJA**  
+> *Selite: Toimii pysyvänä laadunvarmistusprotokollana kaikille tuleville Pydantic V2 / Freezed -mallien ja siemendatan muutoksille.*
 
 ### 6.1 Arkkitehtuurinen riski: `extra='forbid'` ja testifikstuurien laajuus
 Kaikki Quorumin Pydantic V2 -mallit ([`backend_v2/models/v2_core.py`](file:///c:/src/quorum/backend_v2/models/v2_core.py)) ajetaan tiukalla `ConfigDict(strict=True, extra='forbid')` -asetuksella. Samoin Flutterin Freezed-mallit vaativat 100 % vastaavuuden API-avainten kanssa ilman hiljaisia ohituksia.

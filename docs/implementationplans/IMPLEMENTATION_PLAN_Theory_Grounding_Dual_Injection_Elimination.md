@@ -1,3 +1,5 @@
+> **STATUS: CONSOLIDATED / YHDISTETTY (Engine Dispatch & Concurrency -> EPIC 147; Theory Grounding, I18n & Domain SSOT -> EPIC 148)**
+
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
