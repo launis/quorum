@@ -1,5 +1,3 @@
-from backend_v2.settings import get_settings
-
 """LLM Node Strategy for DAG-based workflow execution.
 
 Orchestrates AI/LLM step execution including dynamic schema compilation,
@@ -16,6 +14,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
 
+from backend_v2.settings import get_settings
+
 if TYPE_CHECKING:
     from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 
@@ -30,6 +30,7 @@ from backend_v2.models.domain.prompt_blocks import (
     PromptBlockAdapter,
 )
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import PromptBlockCategory, VirtualSystemStepID
 from backend_v2.models.state import StateProjector, TraceEvent
@@ -46,6 +47,8 @@ from backend_v2.services.orchestrator.strategies.llm_execution.context_builder i
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
 from backend_v2.utils.alias_engine import AliasEngine
 from backend_v2.utils.llm_debug_logger import write_debug_prompt_log
+
+__all__ = ["LLMNodeStrategy"]
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +101,7 @@ class LLMNodeStrategy(NodeStrategy):
             trace: List of chronological events.
             semaphore: Concurrency limiter for model executions.
             running_event: Cancellation trigger for async processes.
+            progress_callback: Optional async callback reporting processed and total item progress.
 
         Returns:
             List containing the computed outputs packed into structured TraceEvents.
@@ -596,7 +600,14 @@ class LLMNodeStrategy(NodeStrategy):
                 retry_count + 1,
             )
 
-            from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
+            if self._engine is None:
+                msg = "LLMNodeStrategy has no ExecutionEngine configured."
+                logger.error("[LLMStrategy] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
 
             matrix_block = next((b for b in criteria_blocks if isinstance(b, MatrixPromptBlock)), None)
             matrix_block_id = matrix_block.id if matrix_block else None
@@ -724,15 +735,6 @@ class LLMNodeStrategy(NodeStrategy):
                     shuffled_atoms=hydrated_shuffled_atoms,
                     matrix_block_id=matrix_block_id,
                     matrix_context=matrix_context,
-                )
-
-            if self._engine is None:
-                msg = "LLMNodeStrategy has no ExecutionEngine configured."
-                logger.error("[LLMStrategy] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
             engine_result = await self._engine.execute(engine_request)

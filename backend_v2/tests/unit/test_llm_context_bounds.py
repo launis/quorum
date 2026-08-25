@@ -160,7 +160,8 @@ async def test_context_window_exceeded_error_maps_critical(
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )
 
-            # Since ErrorTraceEvent was emitted, the step failed. The DAGExecutor wraps it in a WORKFLOW_EXECUTION_FAILED error code, but let's check the trace event to be strictly sure it was mapped properly.
+            # Since ErrorTraceEvent was emitted, the step failed. The DAGExecutor wraps it in a
+            # WORKFLOW_EXECUTION_FAILED error code, but let's check the trace event to be strictly sure.
             assert "Workflow completed with failed steps" in str(exc_info.value)
 
             calls = mock_repo.update_execution.call_args_list

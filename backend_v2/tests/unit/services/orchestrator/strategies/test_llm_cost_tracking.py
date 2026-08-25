@@ -13,7 +13,6 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.v2_core import StepRule
-from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 
@@ -118,6 +117,8 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
         shuffled_atoms=[shuffled_atom],
     )
 
+    from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
+
     engine = TDAEngine(prompt_compiler=mock_compiler)
     result = await engine.execute(engine_request)
 
@@ -221,7 +222,8 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
         patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
-        patch("backend_v2.models.dtos.engine.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
         mock_post_hook_state = MagicMock()
