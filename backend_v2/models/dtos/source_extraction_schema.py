@@ -1,9 +1,16 @@
+"""Source Extraction and Verification DTO Schemas."""
+
 from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.source_verification import SourceClaimDTO
+
+__all__ = [
+    "SourceExtractionResponseSchema",
+    "SourceVerificationInputsDTO",
+]
 
 
 class SourceVerificationInputsDTO(V2CoreBase):
