@@ -20,6 +20,13 @@ from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, StepRule, 
 if TYPE_CHECKING:
     from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
+__all__ = [
+    "EngineExecutionRequest",
+    "EngineExecutionResult",
+    "FlattenedAtom",
+    "MatrixEvaluationContext",
+]
+
 
 class FlattenedAtom(BaseModel):
     """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule).

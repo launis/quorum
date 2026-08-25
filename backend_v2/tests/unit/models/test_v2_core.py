@@ -510,3 +510,101 @@ def test_evaluated_atom_validation_branches() -> None:
                 "source_quote": None,
             }
         )
+
+
+def test_engine_dtos_validation_and_methods() -> None:
+    """Test strict validation and properties on Engine DTOs."""
+    import asyncio
+    from unittest.mock import MagicMock
+
+    from backend_v2.llm.client import LLMClient
+    from backend_v2.models.domain.usage import TokenUsage
+    from backend_v2.models.dtos.engine import (
+        EngineExecutionRequest,
+        EngineExecutionResult,
+        FlattenedAtom,
+        MatrixEvaluationContext,
+    )
+    from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, StepRule
+    from backend_v2.services.orchestrator.strategies.base import StrategyContext
+
+    # 1. FlattenedAtom
+    atom = FlattenedAtom(
+        atom_id="atm_123",
+        question="Question 1?",
+        extraction_rule="Rule 1",
+        anchor_target="Target 1",
+        is_inverse=True,
+    )
+    assert atom.atom_id == "atm_123"
+    assert atom.is_inverse is True
+    assert atom.depends_on == ()
+
+    # Extra fields forbidden on FlattenedAtom
+    with pytest.raises(ValidationError):
+        FlattenedAtom.model_validate({"atom_id": "a", "question": "q", "unexpected_field": 123})
+
+    # 2. MatrixEvaluationContext
+    matrix_ctx = MatrixEvaluationContext(
+        matrix_objective="Objective",
+        allow_contextual_override=True,
+        matrix_assertions=[atom],
+    )
+    assert matrix_ctx.allow_contextual_override is True
+    assert len(matrix_ctx.matrix_assertions) == 1
+
+    # 3. EngineExecutionRequest & semaphore_cm
+    step = StepRule(id="stp_1111111111111111", task_blueprint="bp_1")
+    context = StrategyContext(
+        execution_id="exe_1",
+        workflow_id="wf_1",
+        metadata={},
+        model_strategy="fast",
+    )
+    client = MagicMock(spec=LLMClient)
+
+    # Without semaphore -> nullcontext
+    req_no_sem = EngineExecutionRequest(
+        bound_client=client,
+        compiled_schema=None,
+        hydrated_messages=None,
+        system_prompt="System",
+        step=step,
+        context=context,
+        global_source_text="Source",
+        target_locale="en",
+        prompt_compiler=MagicMock(),
+    )
+    assert req_no_sem.semaphore_cm is not None
+
+    # With semaphore -> semaphore
+    sem = asyncio.Semaphore(2)
+    req_with_sem = req_no_sem.model_copy(update={"semaphore": sem})
+    assert req_with_sem.semaphore_cm is sem
+
+    # 4. EngineExecutionResult
+    result = EngineExecutionResult(
+        results=[
+            AtomResultDTO(
+                tda_id="tda_11111111111111111111111111111111",
+                status=ExecutionStatus.PASSED,
+                evaluation_reasoning="OK",
+                source_quote="Quote",
+            )
+        ],
+        hydrated_references={
+            "atm_1": HydratedAtomDTO(
+                sdui_component=SDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim 1",
+                source_quote="Quote 1",
+            )
+        },
+        synthesis_output={"summary": "Test"},
+        trace_events=[TraceEvent(step_name="step_1", event_type="decision", content={"info": "Obs"})],
+        usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+    assert len(result.results) == 1
+    assert result.usage.total_tokens == 15
+    assert len(result.trace_events) == 1

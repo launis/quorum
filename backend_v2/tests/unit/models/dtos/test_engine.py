@@ -77,3 +77,51 @@ def test_matrix_evaluation_context_invalid_types() -> None:
     """Test that invalid types trigger ValidationError."""
     with pytest.raises(ValidationError):
         MatrixEvaluationContext.model_validate({"allow_contextual_override": "not-a-bool"})
+
+
+def test_engine_execution_request_semaphore_cm_and_fields() -> None:
+    """Test EngineExecutionRequest semaphore_cm property with and without Semaphore."""
+    import asyncio
+    from unittest.mock import MagicMock
+
+    from backend_v2.llm.client import LLMClient
+    from backend_v2.models.dtos.dag_models import CausalEdge
+    from backend_v2.models.dtos.engine import EngineExecutionRequest
+    from backend_v2.models.v2_core import StepRule
+    from backend_v2.services.orchestrator.strategies.base import StrategyContext
+
+    edge = CausalEdge(
+        edge_reasoning="Causal relation between atoms",
+        tda_id="tda_11111111111111111111111111111111",
+        source_id="chk_01",
+    )
+    atom = FlattenedAtom(atom_id="atm_1", question="Q", depends_on=(edge,))
+    assert atom.depends_on[0].tda_id == "tda_11111111111111111111111111111111"
+
+    step = StepRule(id="stp_1111111111111111", task_blueprint="bp_1")
+    context = StrategyContext(
+        execution_id="exe_1",
+        workflow_id="wf_1",
+        metadata={},
+        model_strategy="fast",
+    )
+    client = MagicMock(spec=LLMClient)
+
+    # Without semaphore -> nullcontext
+    req = EngineExecutionRequest(
+        bound_client=client,
+        compiled_schema=None,
+        hydrated_messages=None,
+        system_prompt="System",
+        step=step,
+        context=context,
+        global_source_text="Source",
+        target_locale="en",
+        prompt_compiler=MagicMock(),
+    )
+    assert req.semaphore_cm is not None
+
+    # With semaphore -> semaphore
+    sem = asyncio.Semaphore(1)
+    req_sem = req.model_copy(update={"semaphore": sem})
+    assert req_sem.semaphore_cm is sem
