@@ -73,32 +73,15 @@ def mock_repo() -> Any:
 
 @pytest.fixture
 def mock_compiler() -> Any:
+    from pydantic import BaseModel, Field
+
+    class MockSchema(BaseModel):
+        blk_0123456789abcdef0123456789ab: Any = Field(default=None)
+
     compiler = MagicMock()
     compiler.build_xml_context.return_value = "<test>context</test>"
-    schema_mock = MagicMock()
-    schema_mock.__name__ = "MockSchema"
-    schema_mock.model_json_schema.return_value = {"type": "object"}
-
-    mock_validated = MagicMock()
-    mock_validated.model_dump.return_value = {
-        "blk_0123456789abcdef0123456789ab": {
-            "exact_quotes": [""],
-            "contextual_override": True,
-            "semantic_reasoning": "Because",
-            "localized_anchors_found": ["mock anchor"],
-            "status": "PASS",
-        }
-    }
-    mock_block = MagicMock()
-    mock_block.exact_quotes = ""
-    mock_block.contextual_override = True
-    mock_block.semantic_reasoning = "Because"
-    mock_block.model_copy.return_value = mock_block
-    mock_validated.blk_0123456789abcdef0123456789ab = mock_block
-    mock_validated.model_copy.return_value = mock_validated
-
-    schema_mock.model_validate.return_value = mock_validated
-    compiler.build_dynamic_schema.return_value = schema_mock
+    compiler.build_dynamic_schema.return_value = MockSchema
+    compiler.compile_static_instructions.return_value = "static instructions"
 
     return compiler
 
@@ -144,7 +127,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         from backend_v2.models.domain.usage import TokenUsage
 
         mock_bound_client.run_structured_task.return_value = (
-            MagicMock(),
+            {"blk_0123456789abcdef0123456789ab": "test"},
             TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
 
@@ -230,13 +213,8 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
     found = False
     for dto in results:
-        if dto.step_id == "step_1111111111111111" and dto.block_id == "results":
-            if isinstance(dto.payload, list) and len(dto.payload) > 0:
-                first_res = dto.payload[0]
-                if (
-                    first_res.get("tda_id") == "blk_0123456789abcdef0123456789ab"
-                    and first_res.get("contextual_override") is True
-                ):
-                    found = True
-                    break
+        if dto.step_id == "step_1111111111111111" and dto.block_id == "blk_0123456789abcdef0123456789ab":
+            if dto.payload == "test":
+                found = True
+                break
     assert found

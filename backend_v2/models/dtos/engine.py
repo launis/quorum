@@ -140,7 +140,10 @@ class EngineExecutionResult(BaseModel):
     hydrated_references: dict[str, HydratedAtomDTO]
     synthesis_output: Annotated[
         dict[str, Any] | BaseModel | None,
-        Field(default=None, description="Typed structured synthesis DTO or dictionary (specifically RenderedSynthesisCache)."),
+        Field(
+            default=None,
+            description="Typed structured synthesis DTO or dictionary (specifically RenderedSynthesisCache).",
+        ),
     ] = None
     trace_events: list[TraceEvent] = Field(default_factory=list)
     usage: TokenUsage | None = None

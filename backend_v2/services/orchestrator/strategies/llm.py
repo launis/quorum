@@ -275,13 +275,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         # Phase 4 Step 3: Wire Best-of-Three ensemble flag
         is_lightweight = any(block.is_lightweight_protocol for block in criteria_blocks_models)
-        if hook_state.metadata is None:
-            hook_state.metadata = {}
-
-        hook_state.metadata["execution_id"] = context.execution_id
-
+        initial_meta_updates: dict[str, Any] = {"execution_id": context.execution_id}
         if is_lightweight:
-            hook_state.metadata["is_lightweight_extraction"] = True
+            initial_meta_updates["is_lightweight_extraction"] = True
+        hook_state = hook_state.model_copy(update={"metadata": {**(hook_state.metadata or {}), **initial_meta_updates}})
 
         if "target_locale" not in context.metadata or not context.metadata["target_locale"]:
             msg = f"Execution metadata missing mandatory 'target_locale' for workflow {context.workflow_id}."
@@ -471,12 +468,12 @@ class LLMNodeStrategy(NodeStrategy):
         # Use the generated aliases directly instead of resolving real IDs
         source_doc_ids = alias_engine.source_document_aliases if alias_engine.source_document_aliases else ["N/A"]
 
-        if hook_state.metadata is None:
-            hook_state.metadata = {}
-        hook_state.metadata["source_document_ids"] = source_doc_ids
-        # Phase 2: Export full alias state for chunk_worker to reconstruct unified alias_map
-        hook_state.metadata["alias_manifest"] = alias_engine.to_manifest().model_dump(mode="json")
-        hook_state.metadata["allowed_dynamic_keys"] = list(input_mappings.keys())
+        alias_meta_updates: dict[str, Any] = {
+            "source_document_ids": source_doc_ids,
+            "alias_manifest": alias_engine.to_manifest().model_dump(mode="json"),
+            "allowed_dynamic_keys": list(input_mappings.keys()),
+        }
+        hook_state = hook_state.model_copy(update={"metadata": {**(hook_state.metadata or {}), **alias_meta_updates}})
 
         # Fetch execution record to build SourceDocumentContext for validation context
         execution_record_raw = None
@@ -518,7 +515,9 @@ class LLMNodeStrategy(NodeStrategy):
                             )
                             source_docs.append(doc_ctx.model_dump(mode="json"))
 
-                hook_state.metadata["source_documents"] = source_docs
+                hook_state = hook_state.model_copy(
+                    update={"metadata": {**(hook_state.metadata or {}), "source_documents": source_docs}}
+                )
             except Exception as e:
                 logger.error(
                     "[LLMStrategy] %s: Failed to construct source documents context from execution record '%s'",
@@ -532,17 +531,27 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
+        dynamic_schema: Any | None = None
         if frozen_ctx:
             allowed_dynamic_keys = [e.input_key for e in context.expected_inputs] if context.expected_inputs else []
             allowed_dynamic_keys.extend(input_mappings.keys())
             allowed_dynamic_keys = list(set(allowed_dynamic_keys))
-            hook_state.metadata["allowed_dynamic_keys"] = allowed_dynamic_keys
 
             # Extensibility for dynamic MCP providers
             mcp_prefixes = ["call_", "mcp_", "search_"]
             for tool_name in step_obj.allowed_mcp_tools:
                 mcp_prefixes.append(f"{tool_name}_")
-            hook_state.metadata["allowed_mcp_prefixes"] = list(set(mcp_prefixes))
+            allowed_mcp_prefixes = list(set(mcp_prefixes))
+
+            hook_state = hook_state.model_copy(
+                update={
+                    "metadata": {
+                        **(hook_state.metadata or {}),
+                        "allowed_dynamic_keys": allowed_dynamic_keys,
+                        "allowed_mcp_prefixes": allowed_mcp_prefixes,
+                    }
+                }
+            )
 
             global_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",
@@ -552,9 +561,9 @@ class LLMNodeStrategy(NodeStrategy):
                 strictness_level=context.strictness_level,
                 source_document_ids=source_doc_ids,
                 allowed_dynamic_keys=allowed_dynamic_keys,
-                allowed_mcp_prefixes=hook_state.metadata.get("allowed_mcp_prefixes", []),
+                allowed_mcp_prefixes=allowed_mcp_prefixes,
             )
-            frozen_ctx.generated_schemas[step.id] = global_schema.model_json_schema()
+            dynamic_schema = global_schema
 
         strategy_name = context.model_strategy
         if not strategy_name:
@@ -601,7 +610,7 @@ class LLMNodeStrategy(NodeStrategy):
                 )
 
             is_synthesis_step = context.model_strategy == "synthesis"
-            dynamic_schema: type[BaseModel] | None = None
+            dynamic_schema = None
 
             if is_synthesis_step:
                 target_locale = str(context.metadata.get("target_locale", "en"))

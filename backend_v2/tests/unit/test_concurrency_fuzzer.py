@@ -107,6 +107,7 @@ def mock_compiler() -> MagicMock:
 
     compiler = MagicMock()
     compiler.build_dynamic_schema.return_value = DummySchema
+    compiler.compile_static_instructions.return_value = "static instructions"
     return compiler
 
 

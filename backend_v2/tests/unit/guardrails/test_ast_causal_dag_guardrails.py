@@ -78,4 +78,4 @@ def test_ast_no_generic_exception_in_atom_flattening() -> None:
                     "Must catch specific exceptions (e.g. ValidationError, ValueError)."
                 )
             else:
-                assert False, f"Bare 'except:' found on line {node.lineno} in atom_flattening.py."
+                raise AssertionError(f"Bare 'except:' found on line {node.lineno} in atom_flattening.py.")
