@@ -84,11 +84,11 @@
   - [x] @[backend_v2/services/orchestrator/strategies/logic.py]
   - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [x] @[backend_v2/services/orchestrator/strategies/registry.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/prompt_engine.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/__init__.py]
-  - [ ] @[backend_v2/models/dtos/engine.py]
-  - [ ] @[backend_v2/core/hook_registry.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
+  - [x] @[backend_v2/services/orchestrator/engines/prompt_engine.py]
+  - [x] @[backend_v2/services/orchestrator/engines/__init__.py]
+  - [x] @[backend_v2/models/dtos/engine.py]
+  - [x] @[backend_v2/core/hook_registry.py]
+  - [x] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
   - [ ] @[backend_v2/models/state.py]
   - [ ] @[backend_v2/settings.py]
@@ -154,7 +154,7 @@
   - **Phase 2**: Decomposed NodeExecutor, extracted PromptEngine, refactored LLMNodeStrategy, and synchronized DAG concurrency (`02_phase2_engine_architecture_node_executor_and_dag_concurrency.md`).
   - **Phase 3**: Hardened SourceVerificationHook and Service, defined global config sovereignty (`min_verifiable_text_length`), eliminated ghost execution, and protected XML injection (`03_placeholder_phase3_ghost_execution_elimination_and_hook_hardening.md`).
   - **Phase 4**: Implemented AST Guardrails (`test_ast_engine_dispatch_guardrails.py`), verified 433 unit tests, and passed live E2E REST API integration test (`test_integration_real_llm.py`).
-- **Tier 2 Backend Hardening (Batch 1 & Batch 2 in Progress - 8/20 Files Audited & Verified)**:
+- **Tier 2 Backend Hardening (13/20 Files Audited, Hardened & Verified with 100% Quality Loop & Commit Gates)**:
   1. `@[backend_v2/models/enums.py]`: Full L10n property coverage and StepType enum validation; 100% test coverage; strict neuro-symbolic audit matrix PASS.
   2. `@[backend_v2/models/v2_core.py]`: Strict Pydantic V2 Fail-Fast validation, `extra='forbid'`, `strict=True`, opaque ID regex compliance; 97% test coverage; strict audit matrix PASS.
   3. `@[backend_v2/database/interfaces.py]`: ISP protocol definitions; 100% test coverage; strict audit matrix PASS.
@@ -163,13 +163,19 @@
   6. `@[backend_v2/services/orchestrator/strategies/logic.py]`: LogicNodeStrategy hook delegation, HookDependencies wiring, fail-fast on hook failure; 96% test coverage; strict audit matrix PASS.
   7. `@[backend_v2/services/orchestrator/strategies/llm.py]`: Encapsulation export (`__all__ = ["LLMNodeStrategy"]`), early `_engine is None` Fail-Fast guard, strict matrix scale schema alignment (`score`, `ai_label`, `claims`), `FlattenedAtom` typed DTO consumption, token counting isolated mocks; 90% test coverage across 25 comprehensive unit test cases; strict neuro-symbolic audit matrix PASS across all 156 rules. Commit: `3c7d9c76`.
   8. `@[backend_v2/services/orchestrator/strategies/registry.py]`: Explicit `__all__` exports, deferred `TYPE_CHECKING` imports in `engine.py` eliminating circular dependency with `strategies.base`, strict factory resolution for `StepType.LOGIC` and `StepType.LLM`; 100% test coverage across 5 unit test cases; strict neuro-symbolic audit matrix PASS across all 156 rules. Commit: `1f380663`.
+  9. `@[backend_v2/services/orchestrator/engines/prompt_engine.py]`: Added explicit `__all__ = ["PromptEngine"]`, resolved forward reference via `EngineExecutionRequest.model_rebuild()` in `strategies.base`, 100% unit test coverage in `test_prompt_engine.py`; strict neuro-symbolic audit matrix PASS across 156 rules. Commit: `3797d5ee`.
+  10. `@[backend_v2/services/orchestrator/engines/__init__.py]`: Verified clean `__all__` re-exports (`ExecutionEngine`, `PromptEngine`, `SynthesisEngine`, `TDAEngine`), added export verification in `test___init__.py` and `test_prompt_engine.py`; 100% coverage; strict audit matrix PASS. Commit: `6291e11b`.
+  11. `@[backend_v2/models/dtos/engine.py]`: Added explicit `__all__ = ["EngineExecutionRequest", "EngineExecutionResult", "FlattenedAtom", "MatrixEvaluationContext"]`, created dedicated test suite `backend_v2/tests/unit/models/dtos/test_engine.py` testing immutability, `extra="forbid"`, `semaphore_cm` context manager, and `CausalEdge` dependency assertions; 100% line coverage; strict neuro-symbolic audit matrix PASS across 156 rules. Commit: `a5d6c4ae`.
+  12. `@[backend_v2/core/hook_registry.py]`: Added explicit `__all__ = ["HookDependencies", "HookFunction", "HookRegistry", "HookResult", "HookState", "ISearchClient", "hook_registry"]`, expanded unit tests in `test_hook_registry.py` covering sync/async execution, duplicate registration handling, missing hook handling, invalid return type detection, and runtime exception wrapping; 100% line coverage; strict neuro-symbolic audit matrix PASS across 156 rules. Commit: `2de0efee`.
+  13. `@[backend_v2/services/orchestrator/engines/synthesis_engine.py]`: Added explicit `__all__ = ["SynthesisEngine"]`, verified unit tests in `test_synthesis_engine.py` testing data starvation circuit breaking, CDATA payload encapsulation, sparse data mandates, and exception handling; 100% line coverage; strict neuro-symbolic audit matrix PASS across 156 rules. Commit: `09e99ce3`.
 
 ## Learned
 - **Target Anchoring in Audit Matrices**: `audit_matrix_manager.py` enforces target anchoring: citations in justifications cannot mention other source files unless they are common systemic dependencies (`settings.py`, `enums.py`, `conftest.py`).
-- **Circular Import Elimination via `TYPE_CHECKING`**: Cross-module dependencies between `backend_v2.models.dtos.engine` and `backend_v2.services.orchestrator.strategies.base` must use `from __future__ import annotations` and `if TYPE_CHECKING:` guards to prevent partially initialized module import errors during pytest collection.
+- **Circular Import Elimination via `TYPE_CHECKING` & `model_rebuild()`**: Cross-module dependencies between `backend_v2.models.dtos.engine` and `backend_v2.services.orchestrator.strategies.base` require `from __future__ import annotations`, `if TYPE_CHECKING:` guards, and calling `EngineExecutionRequest.model_rebuild()` directly after `StrategyContext` definition in `base.py` to prevent `PydanticUserError` during runtime instantiation.
 - **Pydantic V2 Step & BARS Scale Schema Strictness**: `MatrixScale` requires `score`, `ai_label`, and `claims: list[MatrixClaim]`. Test fixtures must strictly honor `extra="forbid"` without legacy field names (`label`, `claim`).
-- **Session Bounding for Strictness**: Limiting hardening sessions to 5-6 files prevents context amnesia, ensures deep verification of every invariant, and maintains deterministic state transitions via `@[tmp/hardening_state.json]`.
+- **Session Bounding for Strictness**: Limiting hardening sessions to 3-5 files prevents context amnesia, ensures deep verification of every invariant, and maintains deterministic state transitions via `@[tmp/hardening_state.json]`.
 - **L10n Property Completeness**: All enum `@property l10n_key` getters must be tested against both mapped and unmapped variants to reach 100% line coverage and guarantee frontend `.arb` parity.
+- **DTO Immutability and Envelope Guarantees**: Enforcing `frozen=True` and `extra="forbid"` on engine and hook DTOs (`FlattenedAtom`, `MatrixEvaluationContext`, `EngineExecutionRequest`, `EngineExecutionResult`, `HookState`, `HookResult`) prevents subtle runtime mutations across asynchronous execution boundaries.
 
 ## Codebase Physical Anchor Reference Map
 - `NodeExecutor`: `@[backend_v2/services/orchestrator/dag_executor.py#L119-L285]`
@@ -180,6 +186,7 @@
 - `LLMNodeStrategy`: `@[backend_v2/services/orchestrator/strategies/llm.py#L58-L830]`
 - `NodeStrategyFactory`: `@[backend_v2/services/orchestrator/strategies/registry.py#L1-L60]`
 - `EngineExecutionRequest` / `EngineExecutionResult`: `@[backend_v2/models/dtos/engine.py#L85-L149]`
+- `HookRegistry` / `HookState` / `HookResult`: `@[backend_v2/core/hook_registry.py#L30-L217]`
 - `source_verification_hook`: `@[backend_v2/hooks/source_verification_hook.py#L1-L130]`
 - `SourceVerificationService`: `@[backend_v2/services/source_verification_service.py#L1-L288]`
 - `SourceVerificationInputsDTO`: `@[backend_v2/models/dtos/source_extraction_schema.py#L1-L37]`
@@ -188,11 +195,6 @@
 - `AST Guardrail Suite`: `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L1-L318]`
 
 ## Remaining Targets in Tier 2 Hardening (Backend)
-- `@[backend_v2/services/orchestrator/engines/prompt_engine.py]`
-- `@[backend_v2/services/orchestrator/engines/__init__.py]`
-- `@[backend_v2/models/dtos/engine.py]`
-- `@[backend_v2/core/hook_registry.py]`
-- `@[backend_v2/services/orchestrator/engines/synthesis_engine.py]`
 - `@[backend_v2/services/orchestrator/dag_executor.py]`
 - `@[backend_v2/models/state.py]`
 - `@[backend_v2/settings.py]`
@@ -202,4 +204,4 @@
 - `@[backend_v2/hooks/__init__.py]`
 
 ## Next Command
-`/tier5-resume --target="@[docs/epic/EPIC_147_tracker.md], backend_v2/services/orchestrator/engines/prompt_engine.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"`
+`/tier5-resume --target="@[docs/epic/EPIC_147_tracker.md], backend_v2/services/orchestrator/dag_executor.py" --workflow=/tier2-hardening-backend`
