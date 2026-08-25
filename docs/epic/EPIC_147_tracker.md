@@ -154,17 +154,20 @@
   - **Phase 2**: Decomposed NodeExecutor, extracted PromptEngine, refactored LLMNodeStrategy, and synchronized DAG concurrency (`02_phase2_engine_architecture_node_executor_and_dag_concurrency.md`).
   - **Phase 3**: Hardened SourceVerificationHook and Service, defined global config sovereignty (`min_verifiable_text_length`), eliminated ghost execution, and protected XML injection (`03_placeholder_phase3_ghost_execution_elimination_and_hook_hardening.md`).
   - **Phase 4**: Implemented AST Guardrails (`test_ast_engine_dispatch_guardrails.py`), verified 433 unit tests, and passed live E2E REST API integration test (`test_integration_real_llm.py`).
-- **Tier 2 Backend Hardening (Batch 1 Complete - 6/20 Files Audited & Verified)**:
+- **Tier 2 Backend Hardening (Batch 1 & Batch 2 in Progress - 8/20 Files Audited & Verified)**:
   1. `@[backend_v2/models/enums.py]`: Full L10n property coverage and StepType enum validation; 100% test coverage; strict neuro-symbolic audit matrix PASS.
   2. `@[backend_v2/models/v2_core.py]`: Strict Pydantic V2 Fail-Fast validation, `extra='forbid'`, `strict=True`, opaque ID regex compliance; 97% test coverage; strict audit matrix PASS.
   3. `@[backend_v2/database/interfaces.py]`: ISP protocol definitions; 100% test coverage; strict audit matrix PASS.
   4. `@[backend_v2/database/repositories/components/prompt_block.py]`: Set difference validation for batch prompt block retrieval, strict Fail-Fast on missing IDs; 100% test coverage; strict audit matrix PASS.
   5. `@[backend_v2/services/orchestrator/strategies/base.py]`: StrategyDependencies container, StrategyContext immutability, quota circuit breaker; 93% test coverage; strict audit matrix PASS.
   6. `@[backend_v2/services/orchestrator/strategies/logic.py]`: LogicNodeStrategy hook delegation, HookDependencies wiring, fail-fast on hook failure; 96% test coverage; strict audit matrix PASS.
-- **Atomic Git Commit**: `e7dfcec5` — `chore(hardening): complete batch 1 backend hardening for enums, v2_core, interfaces, repositories and strategies`.
+  7. `@[backend_v2/services/orchestrator/strategies/llm.py]`: Encapsulation export (`__all__ = ["LLMNodeStrategy"]`), early `_engine is None` Fail-Fast guard, strict matrix scale schema alignment (`score`, `ai_label`, `claims`), `FlattenedAtom` typed DTO consumption, token counting isolated mocks; 90% test coverage across 25 comprehensive unit test cases; strict neuro-symbolic audit matrix PASS across all 156 rules. Commit: `3c7d9c76`.
+  8. `@[backend_v2/services/orchestrator/strategies/registry.py]`: Explicit `__all__` exports, deferred `TYPE_CHECKING` imports in `engine.py` eliminating circular dependency with `strategies.base`, strict factory resolution for `StepType.LOGIC` and `StepType.LLM`; 100% test coverage across 5 unit test cases; strict neuro-symbolic audit matrix PASS across all 156 rules. Commit: `1f380663`.
 
 ## Learned
 - **Target Anchoring in Audit Matrices**: `audit_matrix_manager.py` enforces target anchoring: citations in justifications cannot mention other source files unless they are common systemic dependencies (`settings.py`, `enums.py`, `conftest.py`).
+- **Circular Import Elimination via `TYPE_CHECKING`**: Cross-module dependencies between `backend_v2.models.dtos.engine` and `backend_v2.services.orchestrator.strategies.base` must use `from __future__ import annotations` and `if TYPE_CHECKING:` guards to prevent partially initialized module import errors during pytest collection.
+- **Pydantic V2 Step & BARS Scale Schema Strictness**: `MatrixScale` requires `score`, `ai_label`, and `claims: list[MatrixClaim]`. Test fixtures must strictly honor `extra="forbid"` without legacy field names (`label`, `claim`).
 - **Session Bounding for Strictness**: Limiting hardening sessions to 5-6 files prevents context amnesia, ensures deep verification of every invariant, and maintains deterministic state transitions via `@[tmp/hardening_state.json]`.
 - **L10n Property Completeness**: All enum `@property l10n_key` getters must be tested against both mapped and unmapped variants to reach 100% line coverage and guarantee frontend `.arb` parity.
 
