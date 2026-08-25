@@ -12,6 +12,7 @@
   <knowledge_item>@[ki_ast_guardrail_testing.md]</knowledge_item>
   <knowledge_item>@[ki_ai_testing_standards.md]</knowledge_item>
   <knowledge_item>@[ki_llm_extraction_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
 </required_context_rules>
 
 # EPIC 147: Engine Dispatch, Cognitive Grounding Resilience & DAG Concurrency Hardening
@@ -22,7 +23,7 @@
 EPIC 147 establishes a robust, fail-fast, and decoupled execution and prompt architecture across the Quorum backend engine. The epic consolidates execution engine dispatch, extracts dedicated non-matrix execution pipelines into `PromptEngine`, eliminates prompt duplication and token bloat from dual theory grounding injections, hardens `DAGExecutor` against multi-task race conditions and in-place `FrozenContext` mutations, eliminates ghost tool executions in source verification hooks, enforces polymorphic static node strategy routing via `NODE_STRATEGY_REGISTRY`, implements fail-fast prompt block batch resolution with mathematical set parity, and encapsulates multi-dependency groupings into `StrategyDependencies`.
 
 ### 1.2 Problem Statement & Root Cause Analysis
-1. **Theory Grounding Dual Injection & Prompt Bloat**: In `@[backend_v2/seed/seed_data.json]`, epistemic and academic grounding anchors are duplicated across both `PromptBlock.ai_description` (as freeform `EPISTEMIC ANCHOR:` text blocks) and `PromptBlock.theory_grounding` (as structured `TheoryGrounding` DTOs). When `MatrixSensorPromptBuilder` compiles the prompt, it injects both the raw text description and the structured object with raw URLs (`source_url`), triggering prompt duplication, URL token bloat, XML syntax corruption risks, and Single Source of Truth (SSOT) drift.
+1. **Theory Grounding Dual Injection & Prompt Bloat**: In `@[backend_v2/seed/seed_data.json#L223-L7542]` (specifically matrix blocks `@[backend_v2/seed/seed_data.json#L336-L6900]`), epistemic and academic grounding anchors are duplicated across both `PromptBlock.ai_description` (as freeform `EPISTEMIC ANCHOR:` text blocks) and `PromptBlock.theory_grounding` (as structured `TheoryGrounding` DTOs). When `MatrixSensorPromptBuilder` compiles the prompt, it injects both the raw text description and the structured object with raw URLs (`source_url`), triggering prompt duplication, URL token bloat, XML syntax corruption risks, and Single Source of Truth (SSOT) drift.
 2. **Strategy Constructor Bloat & Parameter Anti-Pattern**: In `@[backend_v2/services/orchestrator/strategies/base.py]`, `@[backend_v2/services/orchestrator/strategies/llm.py]`, and `@[backend_v2/services/orchestrator/strategies/logic.py]`, strategy constructors accept 10–11 decoupled dependencies directly, creating brittle parameter coupling and violating typed dependency injection standards.
 3. **Execution Engine Monolith & Lack of Dedicated Prompt Engine**: `LLMNodeStrategy` historically contained branching logic for non-matrix prompt tasks (specifically `step_input_processing`), lacking an isolated `ExecutionEngine` protocol implementation comparable to `TDAEngine` and `SynthesisEngine`. Furthermore, `LLMNodeStrategy` executes full-table repository scans (`get_all_prompt_blocks()`) during node execution instead of receiving targeted prompt blocks resolved once by `NodeExecutor`.
 4. **DAG Executor Concurrency Race Conditions & FrozenContext Mutation**: In `@[backend_v2/services/orchestrator/dag_executor.py]`, parallel node execution tasks in `asyncio.TaskGroup` overwrite `mcp_tool_audit` metadata during non-synchronized `model_copy` operations. Concurrently, `LLMNodeStrategy` directly mutates `frozen_ctx.generated_schemas` in place, violating the immutability contract of Pydantic V2 `FrozenContext` (`frozen=True`) and creating transient race conditions during serialization (`_safe_commit()`). Trace events in the for-loop at L693-L703 are also appended to `exec_record.execution_trace` outside `_update_lock`.
@@ -48,7 +49,7 @@ EPIC 147 establishes a robust, fail-fast, and decoupled execution and prompt arc
 - `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor.py#L115-L375]` (Update `NodeExecutor.__init__(self, deps: StrategyDependencies)`, implement `_resolve_execution_engine`, single-fetch & inject hydrated prompt blocks, delegate to `NodeStrategyFactory.create_strategy`)
 - `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor.py#L690-L730]` (Atomic deduplicating accumulator for `mcp_tool_audit` and `generated_schemas` under `_update_lock`, move trace append loop inside `_update_lock`, validate state reconstruction via `model_validate`)
 - `[MODIFY]` `@[backend_v2/models/state.py#L110-L135]` (Verify/add `mcp_audit_traces: list[MCPAuditTrace]` to `TraceEvent`)
-- `[MODIFY]` `@[backend_v2/seed/seed_data.json]` (Sanitize all 13 matrices: remove `EPISTEMIC ANCHOR:` tails while preserving qualitative prompt definitions)
+- `[MODIFY]` `@[backend_v2/seed/seed_data.json#L336-L6900]` (Sanitize all 13 matrices: remove `EPISTEMIC ANCHOR:` tails while preserving qualitative prompt definitions)
 - `[MODIFY]` `@[backend_v2/settings.py]` (Define `MIN_VERIFIABLE_TEXT_LENGTH: int = 15` to preserve global config sovereignty)
 - `[MODIFY]` `@[backend_v2/hooks/source_verification_hook.py#L1-L47]` (Attach `@hook_registry.register(name="source_verification")`, parse `SourceVerificationInputsDTO`, short-circuit on empty/whitespace inputs returning complete zero-claims envelope)
 - `[MODIFY]` `@[backend_v2/services/source_verification_service.py#L1-L257]` (Consume `get_settings().MIN_VERIFIABLE_TEXT_LENGTH` threshold, static module constants `_EXTRACTION_SYSTEM_PROMPT` and `_VERIFICATION_SYSTEM_PROMPT`, dynamic `LLMClient.from_strategy`, `html.escape()` for XML injection defense)
@@ -85,7 +86,7 @@ EPIC 147 establishes a robust, fail-fast, and decoupled execution and prompt arc
 
 ## 3. Technical Debt Itemization & Pre-Implementation Remediation
 
-Specifically and exhaustively, the following 18 technical debt items and pre-flight architectural violations are identified for remediation across the execution phases:
+Specifically and exhaustively, the following 22 technical debt items and pre-flight architectural violations are identified for remediation across the execution phases:
 1. **Stale Mock Patch in `test_llm_cost_tracking.py`**: Line 60 contains `@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")`. `tda_engine` does not import `get_settings`, causing immediate `AttributeError` during test collection.
 2. **Raw JSON in System Prompt**: `MatrixSensorPromptBuilder.build_caching_prefix` calls `matrix_context.theory_grounding.model_dump_json()`, injecting unformatted JSON strings into static LLM system directives.
 3. **DAG Executor Concurrency Race Condition (`mcp_tool_audit`)**: `dag_executor.py` lacks atomic merging for `mcp_tool_audit` on `FrozenContext`. Concurrent steps in `TaskGroup` overwrite each other's traces during non-synchronized `model_copy`.
@@ -106,6 +107,8 @@ Specifically and exhaustively, the following 18 technical debt items and pre-fli
 18. **XML Injection Vulnerability & In-Method System Prompts**: `SourceVerificationService` interpolates unescaped text into `<source_data>` and `<claim>` blocks without `html.escape()`, and constructs system directives dynamically inside methods rather than using static module constants.
 19. **Dangling References in PromptBlock Batch Resolution**: SQL/NoSQL `IN` queries in `PromptBlockRepository` return partial lists when prompt block IDs are missing or deleted, silently corrupting downstream engine dispatch (`is_matrix_step`) and prompt compilation.
 20. **Testing Drift with Raw Dictionaries**: Test fixtures across `test_dag_executor.py`, `test_llm.py`, `test_logic.py`, and `test_llm_cost_tracking.py` use legacy raw dictionaries for repository mock return values rather than typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`).
+21. **`model_strategy` Semantic Conflation in Engine Resolution**: `dag_executor.py` lines 239-242 and `llm.py` line 621 used `step_def.model_strategy == "synthesis"` to branch to `SynthesisEngine`. In Quorum's Model Garden architecture, `model_strategy` (e.g., `"fast"`, `"reasoning"`) is purely the routing strategy key passed to `LLMClient.from_strategy()` and does NOT define the pipeline execution stage. Engine resolution must be driven purely by `PromptBlockCategory` (e.g., `MATRIX` -> `TDAEngine`, `SYNTHESIS` -> `SynthesisEngine`, generic non-matrix -> `PromptEngine`), freeing steps to execute synthesis with `"fast"` or `"reasoning"` models dynamically without engine dispatch collisions.
+22. **Atomic Test Migration Violation**: Postponing unit test mock and constructor updates to Phase 5 breaks the CI/CD audit loop (`backend_audit_loop.py`) when core constructors (`NodeStrategy`, `LogicNodeStrategy`, `LLMNodeStrategy`, `NodeExecutor`, `DAGExecutor`) are modified in Phases 2 and 3. All test fixtures and mocks must be migrated atomically within Phase 2 (Step 2.6) and Phase 3 (Step 3.5).
 
 ---
 
@@ -114,21 +117,22 @@ Specifically and exhaustively, the following 18 technical debt items and pre-fli
 ### 4.1 Deprecations & Sunset List (`What We Will REMOVE`)
 | Deprecated Symbol / Pattern | Location | Replacement / Disposition |
 | :--- | :--- | :--- |
-| `EPISTEMIC ANCHOR:` prompt tails | `@[backend_v2/seed/seed_data.json]` | **PURGED**. Retained exclusively in structured `theory_grounding` field. |
+| `EPISTEMIC ANCHOR:` prompt tails | `@[backend_v2/seed/seed_data.json#L336-L6900]` | **PURGED**. Retained exclusively in structured `theory_grounding` field. |
 | Raw `source_url` in LLM prompts | `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]` | **OMITTED** from LLM prompt payload; retained in DTOs for UI/PDF rendering. |
 | 10-argument constructors in strategies | `@[backend_v2/services/orchestrator/strategies/base.py]`, `@[backend_v2/services/orchestrator/strategies/llm.py]`, `@[backend_v2/services/orchestrator/strategies/logic.py]` | Replaced by `@dataclass(frozen=True) class StrategyDependencies`. |
 | `get_all_prompt_blocks()` table scan in strategy | `@[backend_v2/services/orchestrator/strategies/llm.py]` | Replaced by `StrategyContext.prompt_blocks` single-fetch injection from `NodeExecutor`. |
 | Procedural `if step_def.type == "logic"` branching | `@[backend_v2/services/orchestrator/dag_executor.py]` | Replaced by declarative `NodeStrategyFactory.create_strategy` and `NODE_STRATEGY_REGISTRY[step_def.type]`. |
+| Procedural `if step_def.model_strategy == "synthesis"` branching | `@[backend_v2/services/orchestrator/dag_executor.py]`, `@[backend_v2/services/orchestrator/strategies/llm.py]` | **PURGED**. Replaced by domain block category inspection in `NodeExecutor._resolve_execution_engine`. |
 | In-place `frozen_ctx.generated_schemas` mutation | `@[backend_v2/services/orchestrator/strategies/llm.py]` | Replaced by schema propagation via `TraceEvent.metadata["generated_schema"]` and atomic merge under `_update_lock`. |
 | Unsynchronized `mcp_tool_audit` updates | `@[backend_v2/services/orchestrator/dag_executor.py]` | Wrapped inside `async with _update_lock:` with atomic deduplication. |
 | Unsynchronized trace event appends | `@[backend_v2/services/orchestrator/dag_executor.py#L693-L703]` | Moved inside `async with _update_lock:`. |
 | Unregistered Source Verification Hook | `@[backend_v2/hooks/source_verification_hook.py]` | Registered via `@hook_registry.register("source_verification")` and exported in `hooks/__init__.py`. |
 | Hardcoded mock LLM in production path | `@[backend_v2/services/source_verification_service.py]` | Replaced with `await LLMClient.from_strategy("fast", repository=self.system_repo)`. |
 | Stale `@patch("...tda_engine.get_settings")` | `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py]` | **REMOVED**; updated to mock settings SSOT directly. |
-| Raw dictionary repository mocks | Test suites (`test_dag_executor.py`, `test_llm.py`, `test_logic.py`, `test_llm_cost_tracking.py`) | Migrated to strictly typed Pydantic V2 model instances (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`). |
+| Raw dictionary repository mocks | Test suites (`test_dag_executor.py`, `test_llm.py`, `test_logic.py`, `test_llm_cost_tracking.py`) | Migrated to strictly typed Pydantic V2 model instances (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`) atomically in Steps 2.6 and 3.5. |
 
 ### 4.2 Retained SSOT Invariants (`What We Will RETAIN`)
-1. **Qualitative Coaching Philosophy (`prompt_preservation_mandate`)**: Prompt texts in `@[backend_v2/seed/seed_data.json]` (specifically `OBJECTIVE:`, `ROLE:`, `TASK:`, `MANDATE:`, `<role_enforcement>`, and `<banned_concepts>` sections) are strictly preserved. Only duplicate `EPISTEMIC ANCHOR:` tails are pruned.
+1. **Qualitative Coaching Philosophy (`prompt_preservation_mandate`)**: Prompt texts in `@[backend_v2/seed/seed_data.json#L223-L7542]` (specifically `OBJECTIVE:`, `ROLE:`, `TASK:`, `MANDATE:`, `<role_enforcement>`, and `<banned_concepts>` sections) are strictly preserved. Only duplicate `EPISTEMIC ANCHOR:` tails are pruned.
 2. **Deterministic UI/PDF Provenance**: `PromptBlock.theory_grounding` retains full metadata (`theoretical_framework`, `academic_citation`, `grounding_type`, `source_url`) for Server-Driven UI (SDUI) and PDF report generation.
 3. **Pydantic V2 Strictness (`strict_pydantic_v2_rust`)**: All DTOs and models enforce `ConfigDict(strict=True, extra='forbid')`. `@property` methods on DTOs are strictly prohibited.
 4. **Python 3.14 Concurrency (`python_314_concurrency_strictness`)**: All parallel executions utilize `asyncio.TaskGroup` with non-blocking concurrency limiters and `contextlib.nullcontext` wrapping.
@@ -148,14 +152,15 @@ Specifically and exhaustively, the following 18 technical debt items and pre-fli
           ▼
    [NodeExecutor] (dag_executor.py)
           ├─► Resolves Engine: _resolve_execution_engine(step_def, loaded_blocks)
-          │       ├─► step.model_strategy == "synthesis" ──► SynthesisEngine
           │       ├─► criteria has PromptBlockCategory.MATRIX ──► TDAEngine
+          │       ├─► criteria has PromptBlockCategory.SYNTHESIS ──► SynthesisEngine
           │       └─► non-matrix structured step ──► PromptEngine
           ├─► Resolves Strategy: NodeStrategyFactory.create_strategy(step.type, deps, engine)
-          └─► Injects: StrategyContext(..., prompt_blocks=loaded_blocks)
+          └─► Injects: StrategyContext(..., prompt_blocks=loaded_blocks, model_strategy=step_def.model_strategy)
                    │
                    ▼
           [LLMNodeStrategy.execute()] (llm.py)
+                   ├─► Resolves Client: LLMClient.from_strategy(context.model_strategy, repo)
                    ├─► Consumes: context.prompt_blocks (0 redundant DB queries)
                    ├─► Compiles: dynamic schema & 4-layer cacheable envelope
                    ├─► Emits: TraceEvent.metadata["generated_schema"]
@@ -170,6 +175,53 @@ Specifically and exhaustively, the following 18 technical debt items and pre-fli
                             └─► Validated Immutable Reassignment: exec_record = exec_record.model_validate(...)
 ```
 
+### 4.4 Architectural SSOT: `NodeExecutor._resolve_execution_engine` and Decoupled Engine Resolution
+
+#### 4.4.1 Role & Responsibility
+`NodeExecutor._resolve_execution_engine` is the **Single Source of Truth for ExecutionEngine Resolution** in Quorum V2. It acts as an architectural boundary between the macro DAG orchestrator and specialized LLM compute engines.
+
+#### 4.4.2 Separation of Concerns: Compute Engine vs Model Garden Strategy
+1. **`ExecutionEngine` (Pipeline Stage & Structural Transform)**: Governed strictly by the Tripartite Pipeline Architecture (`@[ki_tripartite_pipeline_architecture.md]`). It defines *how data is structured and processed*:
+   - **`TDAEngine`**: Phase 1 heavy cognitive evaluation (LinkedAtomGraph, paragraph atomization `[B0]..[B53]`, Flash Best-of-3 majority consensus).
+   - **`SynthesisEngine`**: Phase 2 narrative reporting & SDUI synthesis (GlobalAtomBlackboard aggregation, section syntheses).
+   - **`PromptEngine`**: Phase 1 non-matrix structured JSON processing (e.g., `step_input_processing`, document sanitization).
+2. **`model_strategy` (Model Tier & FinOps Configuration)**: Governed strictly by the Model Registry (`@[05_llm_architecture.md]`). It defines *which LLM model and generation hyperparameters* are utilized (e.g., `"fast"` for Gemini Flash, `"reasoning"` for Gemini Pro).
+
+#### 4.4.3 Deterministic Engine Resolution Algorithm
+The engine is resolved purely via strongly-typed domain model inspection without procedural string branches:
+```python
+def _resolve_execution_engine(
+    self,
+    step_def: Step,
+    prompt_blocks: list[PromptBlock],
+) -> ExecutionEngine:
+    """Resolves the concrete ExecutionEngine based on domain ontology and block categories.
+
+    Note: step_def.model_strategy is purely a model/finops routing key for LLMClient
+    and has ZERO role in engine dispatch.
+    """
+    criteria_blocks = [b for b in prompt_blocks if b.id in step_def.criteria_block_ids]
+
+    # 1. Matrix evaluation -> TDAEngine
+    has_matrix = any(
+        b.category_id == PromptBlockCategory.MATRIX or isinstance(b, MatrixPromptBlock)
+        for b in criteria_blocks
+    )
+    if has_matrix:
+        return TDAEngine(self.deps.prompt_compiler)
+
+    # 2. Synthesis reporting -> SynthesisEngine
+    has_synthesis = any(
+        b.category_id == PromptBlockCategory.SYNTHESIS or getattr(b, "is_synthesis", False)
+        for b in criteria_blocks
+    )
+    if has_synthesis:
+        return SynthesisEngine(LLMTaskExecutor(self.deps.prompt_compiler))
+
+    # 3. Non-matrix structured LLM step -> PromptEngine
+    return PromptEngine(LLMTaskExecutor(self.deps.prompt_compiler))
+```
+
 ---
 
 ## 5. Phased Implementation Plan
@@ -181,7 +233,7 @@ Ensure directory `backend_v2/seed/backups/` exists and execute backup command:
 `New-Item -ItemType Directory -Force -Path backend_v2/seed/backups; Copy-Item backend_v2/seed/seed_data.json -Destination backend_v2/seed/backups/seed_data_pre_theory_grounding_cleanup.json`
 
 #### Step 1.2: Deterministic Seed Vault Sanitization across all 13 Matrix Blocks
-Surgically sanitize the `ai_description` field across specifically and exhaustively all 13 matrices in `@[backend_v2/seed/seed_data.json]`:
+Surgically sanitize the `ai_description` field across specifically and exhaustively all 13 matrices in `@[backend_v2/seed/seed_data.json#L336-L6900]`:
 1. `blk_440a5fef9331451b` (matrix_toulmin): Remove `EPISTEMIC ANCHOR:\nToulmin, S. E. (2003)...`
 2. `blk_f921c7c0989b47e8` (matrix_bloom): Remove `EPISTEMIC ANCHOR:\nAnderson, L. W., & Krathwohl...`
 3. `blk_109dab5b6b3f403a` (matrix_kahneman): Remove `EPISTEMIC ANCHOR:\nKahneman, D. (2011)...`
@@ -284,6 +336,10 @@ Run: `uv run python backend_v2/seed/run_seed.py local`
    - Add `prompt_blocks: list[PromptBlock] = Field(default_factory=list)` to `StrategyContext`.
    - Define `@dataclass(frozen=True) class StrategyDependencies`:
      ```python
+     from arq.connections import ArqRedis
+     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+     from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
+
      @dataclass(frozen=True)
      class StrategyDependencies:
          """Immutable container encapsulating all repositories and compiler dependencies for strategies."""
@@ -295,8 +351,8 @@ Run: `uv run python backend_v2/seed/run_seed.py local`
          identity_repo: IIdentityRepository
          audit_repo: IAuditRepository
          system_repo: ISystemRepository
-         prompt_compiler: Any
-         arq_pool: Any | None = None
+         prompt_compiler: PromptCompiler | PromptCompilerAdapter
+         arq_pool: ArqRedis | None = None
      ```
    - Update `NodeStrategy.__init__(self, deps: StrategyDependencies)` to unpack `self.deps = deps` and assign attributes cleanly.
 2. In `@[backend_v2/services/orchestrator/strategies/logic.py#L19-L50]`: Update constructor to accept `deps: StrategyDependencies`.
@@ -381,6 +437,14 @@ class NodeStrategyFactory:
         return builder(deps=deps, engine=engine)
 ```
 
+#### Step 2.6: Atomic Unit Test Migration for Strategy Constructors
+Immediately upon refactoring `LogicNodeStrategy` and `LLMNodeStrategy` constructors to accept `StrategyDependencies` (and `engine: ExecutionEngine` for `LLMNodeStrategy`), update their corresponding unit test suites to enforce atomic checkpoints:
+1. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_logic.py]` and `@[backend_v2/tests/unit/test_logic.py]`: Update fixtures and test instantiations to construct `deps = StrategyDependencies(...)` and pass `LogicNodeStrategy(deps=deps)`.
+2. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py]`: Update fixtures to construct `deps = StrategyDependencies(...)`, create `mock_engine = AsyncMock(spec=ExecutionEngine)`, and pass `LLMNodeStrategy(deps=deps, engine=mock_engine)`. Update mock return values to typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`).
+3. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py]`: Remove line 60 stale mock `@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")`. Update `LLMNodeStrategy` instantiation to pass `deps=deps, engine=mock_engine`.
+4. In [NEW] `@[backend_v2/tests/unit/services/orchestrator/strategies/test_node_strategy_registry.py]`: Add unit tests for `NODE_STRATEGY_REGISTRY` and `NodeStrategyFactory.create_strategy` verifying logic resolution, LLM resolution with engine, missing engine Fail-Fast (`CONFIGURATION_ERROR`), and unregistered step type Fail-Fast.
+5. Run atomic quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator/strategies backend_v2/tests/unit/test_logic.py --test`.
+
 ---
 
 ### Phase 3: Engine Architecture, NodeExecutor Decomposition, Single-Fetch DI & DAG Concurrency Hardening
@@ -390,17 +454,17 @@ In `@[backend_v2/services/orchestrator/dag_executor.py#L115-L375]`:
 1. Update `NodeExecutor.__init__(self, deps: StrategyDependencies) -> None: self.deps = deps`.
 2. Update `DAGExecutor.__init__` to instantiate `self.deps = StrategyDependencies(...)` and pass `self.node_executor = NodeExecutor(deps=self.deps)`.
 3. Add helper method `def _resolve_execution_engine(self, step_def: Step, prompt_blocks: list[PromptBlock]) -> ExecutionEngine`:
-   - If `step_def.model_strategy == "synthesis"` (or step contains synthesis prompt blocks): return `SynthesisEngine(LLMTaskExecutor(self.deps.prompt_compiler))`.
    - Filter criteria blocks from already-injected `prompt_blocks`: `criteria_blocks = [b for b in prompt_blocks if b.id in step_def.criteria_block_ids]`.
-   - Check block categories using strict enum comparisons: `is_matrix_step = any(b.category_id == PromptBlockCategory.MATRIX or isinstance(b, MatrixPromptBlock) for b in criteria_blocks)`.
-   - If `is_matrix_step`: return `TDAEngine(self.deps.prompt_compiler)`.
+   - Check if criteria contains `PromptBlockCategory.MATRIX` (or `isinstance(b, MatrixPromptBlock)`): return `TDAEngine(self.deps.prompt_compiler)`.
+   - Check if criteria contains `PromptBlockCategory.SYNTHESIS` (or `getattr(b, "is_synthesis", False)`): return `SynthesisEngine(LLMTaskExecutor(self.deps.prompt_compiler))`.
    - Else (non-matrix structured prompt step): return `PromptEngine(LLMTaskExecutor(self.deps.prompt_compiler))`.
+   - **Critical Architecture Boundary**: `step_def.model_strategy` is passed to `StrategyContext.model_strategy` and used purely for `LLMClient.from_strategy(context.model_strategy, repo)`. It is NOT used as an engine dispatch discriminator.
 4. In `NodeExecutor.execute()`:
    - Collect all required prompt block IDs: `all_required_block_ids = list(dict.fromkeys([b_id for b_id in (step_def.role_block_id, step_def.extraction_protocol_block_id, step_def.execution_persona_block_id, *step_def.criteria_block_ids) if b_id]))`.
    - Fetch with strict set parity: `loaded_prompt_blocks = await self.deps.prompt_block_repo.get_prompt_blocks_by_ids(all_required_block_ids, strict=True)`.
    - Resolve engine: `engine = self._resolve_execution_engine(step_def, loaded_prompt_blocks) if step_def.type == StepType.LLM else None`.
    - Create strategy via factory: `strategy_impl = NodeStrategyFactory.create_strategy(step_type=step_def.type, deps=dataclasses.replace(self.deps, arq_pool=arq_pool) if arq_pool else self.deps, engine=engine)`.
-   - Inject `loaded_prompt_blocks` into `StrategyContext(..., prompt_blocks=loaded_prompt_blocks)`.
+   - Inject `loaded_prompt_blocks` into `StrategyContext(..., prompt_blocks=loaded_prompt_blocks, model_strategy=step_def.model_strategy)`.
    - Execute quota and strategy: `await strategy_impl.assert_quota(org_id=org_id); return await strategy_impl.execute(...)`.
 
 #### Step 3.2: Atomic Deduplicating State Accumulation under `_update_lock` in `DAGExecutor`
@@ -512,6 +576,13 @@ if matrix_context and matrix_context.theory_grounding and matrix_context.theory_
         )
 ```
 
+#### Step 3.5: Atomic Unit Test Migration for NodeExecutor, DAGExecutor & Prompt Builder
+Immediately upon refactoring `NodeExecutor` and `DAGExecutor` constructors, single-fetch DI, `_resolve_execution_engine`, and `MatrixSensorPromptBuilder.build_caching_prefix`, update their unit test suites:
+1. In `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py]`: Update instantiations of `DAGExecutor` and `NodeExecutor` to pass `deps = StrategyDependencies(...)`, and update mock return values for repositories to typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`).
+2. In `@[backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py]` and `@[backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py]`: Update test assertions to verify `<theory_context>\n{citation}\n</theory_context>` pure citation XML structure without raw URLs.
+3. In [NEW] `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py]`: Implement multi-step concurrent `mcp_tool_audit` and `generated_schemas` accumulation tests under `_update_lock`.
+4. Run atomic quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py --test`.
+
 ---
 
 ### Phase 4: Ghost Execution Elimination & Source Verification Hook Hardening
@@ -548,7 +619,16 @@ if matrix_context and matrix_context.theory_grounding and matrix_context.theory_
 
 #### Step 4.3: Service Logic Hardening
 1. In `@[backend_v2/services/source_verification_service.py#L1-L257]`:
-   - Add `system_repo: ISystemRepository | None = None` and `llm_task_executor: LLMTaskExecutor | None = None` parameters to `SourceVerificationService.__init__(self, system_repo: ISystemRepository | None = None, llm_task_executor: LLMTaskExecutor | None = None) -> None`.
+   - Enforce mandatory Fail-Fast DI: `system_repo: ISystemRepository` is required (no default `None`), while `llm_task_executor: LLMTaskExecutor | None = None` remains optional:
+     ```python
+     def __init__(
+         self,
+         system_repo: ISystemRepository,
+         llm_task_executor: LLMTaskExecutor | None = None,
+     ) -> None:
+         self.system_repo = system_repo
+         self.task_executor = llm_task_executor
+     ```
    - Define static module-level system directives `_EXTRACTION_SYSTEM_PROMPT` and `_VERIFICATION_SYSTEM_PROMPT` to enable 100% Google Gemini Context Caching.
    - Replace hardcoded `LLMProviderConfig(api_key="mock", ...)` with `await LLMClient.from_strategy("fast", repository=self.system_repo)` and `LLMTaskExecutor(PromptCompiler(), client=self.llm_client)` in `_ensure_initialized()`.
    - In `_extract_source_claims` and `_verify_single_claim`, wrap untrusted content inside `<source_data>` and `<claim>` with `html.escape()` to eliminate XML injection vulnerabilities.
@@ -560,7 +640,7 @@ if matrix_context and matrix_context.theory_grounding and matrix_context.theory_
 
 #### Step 5.1: Create AST Guardrail Suite (`test_ast_theory_grounding_guardrails.py`)
 Create [NEW] `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]` locking all 8 architectural invariants:
-1. `test_seed_matrices_have_no_epistemic_anchor_in_ai_description`: Parses `backend_v2/seed/seed_data.json` and asserts that 0 matrix blocks contain `"EPISTEMIC ANCHOR:"` in `ai_description`.
+1. `test_seed_matrices_have_no_epistemic_anchor_in_ai_description`: Parses `@[backend_v2/seed/seed_data.json#L336-L6900]` and asserts that 0 matrix blocks contain `"EPISTEMIC ANCHOR:"` in `ai_description`.
 2. `test_seed_matrices_have_valid_theory_grounding`: Asserts that all 13 matrix blocks have non-null `theory_grounding` with non-empty `source_url` and `citation_reference`.
 3. `test_matrix_sensor_prompt_builder_ast_uses_pure_theory_citation`: Inspects the AST of `MatrixSensorPromptBuilder.build_caching_prefix` to verify that `<theory_context>` is constructed with pure `citation_reference` and `model_dump_json` is not called on `theory_grounding`.
 4. `test_matrix_sensor_prompt_builder_ast_has_no_xml_string_slicing`: Inspects the AST of `MatrixSensorPromptBuilder` to verify that no raw string slicing `[:` is performed on assembled XML prompt messages.
@@ -569,13 +649,11 @@ Create [NEW] `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]` 
 7. `test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation`: Inspects AST of `backend_v2/services/orchestrator/strategies/llm.py` to assert that zero in-place mutations of `frozen_ctx.generated_schemas` exist.
 8. `test_prompt_block_repo_ast_strict_missing_parity`: Inspects AST of `backend_v2/database/repositories/components/prompt_block.py` to verify that `get_prompt_blocks_by_ids` performs mathematical set difference validation (`unique_requested - found_ids`) and raises `AppException(RESOURCE_NOT_FOUND)` when `missing_ids` is non-empty.
 
-#### Step 5.2: Unit Test Suites & Typed Mock Migration
+#### Step 5.2: Unit Test Suites & Integration Verification
 1. In [NEW] `@[backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py]`: Positive structured task verification, Fail-Fast missing schema, missing messages, empty messages, exception re-raising, semaphore acquisition and `running_event.set()`.
-2. In [NEW] `@[backend_v2/tests/unit/services/orchestrator/strategies/test_node_strategy_registry.py]`: Logic strategy resolution, LLM strategy resolution with engine, LLM missing engine Fail-Fast (`CONFIGURATION_ERROR`), unregistered step type Fail-Fast (`CONFIGURATION_ERROR`).
-3. In [NEW] `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py]`: Parallel steps `MCPAuditTrace` accumulation, schema accumulation, trace ID deduplication, and immutable `_safe_commit()`.
-4. In `@[backend_v2/tests/unit/database/repositories/components/test_prompt_block.py]`: Batch query success, empty input fast-path, duplicate ID deduplication, strict single missing Fail-Fast, strict all missing Fail-Fast, and non-strict partial return.
-5. In `@[backend_v2/tests/unit/services/test_source_verification_service.py]` and [NEW] `@[backend_v2/tests/unit/hooks/test_source_verification_hook.py]`: Empty prior analysis zero-claims envelope, whitespace prior analysis, sub-threshold text length, non-string payload safety, XML injection escaping, and hook registry discovery.
-6. Across `test_dag_executor.py`, `test_llm.py`, `test_logic.py`, and `test_llm_cost_tracking.py`: Migrate all `AsyncMock` return values from raw dictionaries to typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`), and update fixtures to pass `StrategyDependencies`.
+2. In `@[backend_v2/tests/unit/database/repositories/components/test_prompt_block.py]`: Batch query success, empty input fast-path, duplicate ID deduplication, strict single missing Fail-Fast, strict all missing Fail-Fast, and non-strict partial return.
+3. In `@[backend_v2/tests/unit/services/test_source_verification_service.py]` and [NEW] `@[backend_v2/tests/unit/hooks/test_source_verification_hook.py]`: Empty prior analysis zero-claims envelope, whitespace prior analysis, sub-threshold text length, non-string payload safety, XML injection escaping, and hook registry discovery.
+4. Verify that all atomic mock migrations completed in Step 2.6 (`test_logic.py`, `test_llm.py`, `test_node_strategy_registry.py`) and Step 3.5 (`test_dag_executor.py`, `test_llm_cost_tracking.py`, `test_dag_executor_mcp_concurrency.py`) pass without deprecation warnings or raw dictionary usage.
 
 ---
 
@@ -631,6 +709,7 @@ Create [NEW] `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]` 
 - [ ] `PromptEngine` extracted in `prompt_engine.py`, exported in `engines/__init__.py`, and implementing `ExecutionEngine` protocol with Fail-Fast validations and native typed model returns.
 - [ ] Static `NODE_STRATEGY_REGISTRY` and `NodeStrategyFactory.create_strategy` implemented in `registry.py`.
 - [ ] `NodeExecutor` decomposed into `_resolve_execution_engine` and `NodeStrategyFactory` dispatch; prompt blocks single-fetched and injected via `StrategyContext(..., prompt_blocks=...)`.
+- [ ] Decoupled `_resolve_execution_engine` from `model_strategy == "synthesis"`, determining engine dispatch purely via `PromptBlockCategory` (`MATRIX` -> `TDAEngine`, `SYNTHESIS` -> `SynthesisEngine`, other -> `PromptEngine`).
 - [ ] Full-table scan `get_all_prompt_blocks()` completely eliminated from `NodeExecutor` and `LLMNodeStrategy`.
 - [ ] `DAGExecutor.run_step_wrapper` executes all state mutations, trace appends, `mcp_tool_audit` merging, and `generated_schemas` merging inside `async with _update_lock:` with strict Pydantic model validation.
 - [ ] In-place mutation of `frozen_ctx.generated_schemas` in `LLMNodeStrategy` completely eliminated; schemas propagated via `TraceEvent.metadata["generated_schema"]`.
@@ -640,8 +719,8 @@ Create [NEW] `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]` 
 - [ ] `source_verification_hook.py` registered with `@hook_registry.register("source_verification")` and exported in `hooks/__init__.py`.
 - [ ] `SourceVerificationService` consumes `get_settings().MIN_VERIFIABLE_TEXT_LENGTH`, static module prompt constants, `LLMClient.from_strategy("fast", repository=self.system_repo)`, and `html.escape()` XML sanitization.
 - [ ] All 8 AST guardrails implemented and passing in `test_ast_theory_grounding_guardrails.py`.
+- [ ] Atomic unit test and mock migrations completed in Step 2.6 (`test_logic.py`, `test_llm.py`, `test_node_strategy_registry.py`) and Step 3.5 (`test_dag_executor.py`, `test_llm_cost_tracking.py`, `test_dag_executor_mcp_concurrency.py`).
 - [ ] Comprehensive unit test suites created/updated for `PromptEngine`, `NodeStrategyFactory`, `test_dag_executor_mcp_concurrency.py`, `test_prompt_block.py`, and `test_source_verification_hook.py`.
-- [ ] All repository mock return values across unit test suites migrated from legacy raw dictionaries to strict Pydantic V2 model instances (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`).
 - [ ] Full backend audit loop passes: `uv run python scripts/backend_audit_loop.py backend_v2 --test`.
 - [ ] Live E2E verification passes: `RUN_LIVE_E2E=true uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
 
