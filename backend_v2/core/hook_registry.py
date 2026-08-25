@@ -30,6 +30,16 @@ from backend_v2.models.core_base import V2CoreBase
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "HookDependencies",
+    "HookFunction",
+    "HookRegistry",
+    "HookResult",
+    "HookState",
+    "ISearchClient",
+    "hook_registry",
+]
+
 
 class ISearchClient(Protocol):
     """Protocol for abstracting search client I/O from hook execution."""
