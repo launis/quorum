@@ -302,37 +302,47 @@ def _resolve_execution_engine(
 1. In `@[backend_v2/services/orchestrator/strategies/base.py#L31-L54]`:
    - Update `StrategyContext`:
      ```python
-     @dataclass
-     class StrategyContext:
-         """Context passed into node execution strategies."""
-         exec_record: ExecutionRecord
-         global_context_vars: dict[str, Any]
-         step_metadata: StepMetadataDTO
+     class StrategyContext(BaseModel):
+         """Immutable context wrapper enforcing strict typing and Single Responsibility for node execution.
+
+         Follows the V2 Architecture Service Boundary Doctrine: Strict IN -> Strict OUT.
+         """
+
          execution_id: str
-         org_id: str
-         model_strategy: str
-         expected_inputs: dict[str, Any] | None = None
-         prompt_blocks: list[PromptBlock] = field(default_factory=list)
+         workflow_id: str
+         metadata: dict[str, Any]
+         expected_inputs: list[ExpectedInput] | None = None
+         model_strategy: str | None = None
+         strictness_level: int = StrictnessAnchor.STANDARD.value
+         global_context_vars: dict[str, Any] = Field(default_factory=dict)
+         context_variables: dict[str, Any] = Field(default_factory=dict)
+         prompt_blocks: list[PromptBlock] = Field(default_factory=list)
+
+         model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
      ```
    - Define `StrategyDependencies`:
      ```python
      @dataclass(frozen=True)
      class StrategyDependencies:
          """Immutable dependency container injected into execution strategies."""
-         step_repo: IStepRepository
-         prompt_block_repo: IPromptBlockRepository
+         exec_repo: IExecutionRepository
          workflow_repo: IWorkflowRepository
+         comp_repo: IComponentRepository
+         prompt_block_repo: IPromptBlockRepository
          output_profile_repo: IOutputProfileRepository
-         prompt_compiler: PromptCompilerAdapter
-         system_repo: ISystemSettingsRepository | None = None
-         arq_pool: ArqRedis | None = None
-         run_repo: IExecutionRecordRepository | None = None
-         mcp_hub: MCPServiceHub | None = None
+         identity_repo: IIdentityRepository
+         audit_repo: IAuditRepository
+         system_repo: ISystemRepository
+         prompt_compiler: Any
+         arq_pool: Any | None = None
      ```
    - Update `NodeStrategy.__init__(self, deps: StrategyDependencies) -> None: self.deps = deps`.
+   - Update helper methods `assert_quota`, `run_pre_hooks`, `run_post_hooks` to reference `self.deps.*`.
 2. In `@[backend_v2/services/orchestrator/strategies/logic.py#L19-L176]`:
    - Update `LogicNodeStrategy.__init__(self, deps: StrategyDependencies) -> None: super().__init__(deps=deps)`.
-   - Update references `self.step_repo` -> `self.deps.step_repo`, `self.workflow_repo` -> `self.deps.workflow_repo`, `self.output_profile_repo` -> `self.deps.output_profile_repo`, and `self.prompt_compiler` -> `self.deps.prompt_compiler`.
+   - Update references `self.exec_repo` -> `self.deps.exec_repo`, `self.workflow_repo` -> `self.deps.workflow_repo`, `self.comp_repo` -> `self.deps.comp_repo`, `self.prompt_block_repo` -> `self.deps.prompt_block_repo`, `self.output_profile_repo` -> `self.deps.output_profile_repo`, `self.identity_repo` -> `self.deps.identity_repo`, `self.audit_repo` -> `self.deps.audit_repo`, `self.system_repo` -> `self.deps.system_repo`, `self.compiler` -> `self.deps.prompt_compiler`.
+3. In `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]`:
+   - Update `LLMNodeStrategy.__init__(self, deps: StrategyDependencies, engine: ExecutionEngine | None = None) -> None: super().__init__(deps=deps); self._engine = engine`.
 
 #### Step 1.5: Static `NODE_STRATEGY_REGISTRY` & `NodeStrategyFactory`
 Create [NEW] `@[backend_v2/services/orchestrator/strategies/registry.py]`:
