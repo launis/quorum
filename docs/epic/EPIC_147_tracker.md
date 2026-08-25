@@ -90,7 +90,7 @@
   - [x] @[backend_v2/core/hook_registry.py]
   - [x] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor.py]
-  - [ ] @[backend_v2/models/state.py]
+  - [x] @[backend_v2/models/state.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[backend_v2/models/dtos/source_extraction_schema.py]
   - [ ] @[backend_v2/hooks/source_verification_hook.py]
@@ -169,6 +169,7 @@
   12. `@[backend_v2/core/hook_registry.py]`: Exported `__all__ = ["HookDependencies", "HookFunction", "HookRegistry", "HookResult", "HookState", "ISearchClient", "hook_registry"]`, expanded unit tests in `test_hook_registry.py` covering sync/async execution, duplicate registration handling, missing hook handling, invalid return type detection, and runtime exception wrapping; 94% line coverage; full neuro-symbolic audit matrix PASS across 156 rules. Commit: `a2fa364e`.
   13. `@[backend_v2/services/orchestrator/engines/synthesis_engine.py]`: Exported `__all__ = ["SynthesisEngine"]`, verified unit tests in `test_synthesis_engine.py` testing data starvation circuit breaking, CDATA payload encapsulation, sparse data mandates, and exception handling; 100% line coverage; full neuro-symbolic audit matrix PASS across 156 rules. Commit: `09e99ce3`.
   14. `@[backend_v2/services/orchestrator/dag_executor.py]`: Exported `__all__ = ["DAGExecutor", "ExecutionCommitter", "NodeExecutor"]`, expanded unit tests covering committer failure, RAG preflight failure, matrix reducer failure, and progress callback branches reaching 90% line coverage; full neuro-symbolic audit matrix PASS across all 156 rules. Commit: `17c3c031`.
+  15. `@[backend_v2/models/state.py]`: Exported `__all__ = ["ErrorTraceEvent", "EvidenceOverrideDTO", "ExecutionState", "ReasoningTrace", "StateProjector", "StepExecutionEnvelope", "StepOutputDTO", "TombstoneEvent", "TraceEvent", "WorkflowState"]`, enhanced RFC 7807 dual logging in `StateProjector`, expanded unit tests in `test_state.py` covering token truncation, confidence bounds, legacy detection, and lazy property accessors reaching 100% line coverage; full neuro-symbolic audit matrix PASS across all 156 rules. Commit: `2634801f`.
 
 ## Learned
 - **Target Anchoring in Audit Matrices**: `audit_matrix_manager.py` enforces target anchoring: citations in justifications cannot mention other source files unless they are common systemic dependencies (`settings.py`, `enums.py`, `conftest.py`).
@@ -196,7 +197,6 @@
 - `AST Guardrail Suite`: `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L1-L318]`
 
 ## Remaining Targets in Tier 2 Hardening (Backend)
-- `@[backend_v2/models/state.py]`
 - `@[backend_v2/settings.py]`
 - `@[backend_v2/models/dtos/source_extraction_schema.py]`
 - `@[backend_v2/hooks/source_verification_hook.py]`
@@ -204,4 +204,5 @@
 - `@[backend_v2/hooks/__init__.py]`
 
 ## Next Command
-`/tier5-resume --target="@[docs/epic/EPIC_147_tracker.md], backend_v2/models/state.py" --workflow=/tier2-hardening-backend`
+`/tier5-resume --target="@[docs/epic/EPIC_147_tracker.md], backend_v2/settings.py" --workflow=/tier2-hardening-backend`
+
