@@ -122,6 +122,7 @@ Source: Clean Stack 2026 Model, Polymorphic Rule Routing (@[ki_polymorphic_rule_
     <constraint invariant="typed_dependency_container_mandate">Encapsulate multi-dependency groupings into StrategyDependencies container.</constraint>
     <constraint invariant="targeted_prompt_block_fetching_and_di">MANDATORY SINGLE-FETCH DI: NodeExecutor fetches targeted prompt blocks via `get_prompt_blocks_by_ids()` exactly ONCE and injects them into `_resolve_execution_engine()` and `StrategyContext.prompt_blocks`. Zero redundant DB round-trips allowed.</constraint>
     <constraint invariant="zero_service_layer_fallbacks">Ban .get() on domain models; query typed PromptBlock domain models directly and access .id to ensure Fail-Fast key validation.</constraint>
+    <constraint invariant="executor_taxonomy_decoupling">Enforce strict decoupling between macro workflow orchestration (`DAGExecutor` / `NodeExecutor` / `NodeStrategyFactory`) and downstream atom graph evaluation (`EnrichedDagExecutor`). `EnrichedDagExecutor` is instantiated solely by `TDAEngine(llm_executor, client)` and MUST NOT be coupled to `StrategyDependencies` or `NodeExecutor`.</constraint>
   </step>
 
   <step id="4" name="ALIGN LLM NODE STRATEGY PAYLOAD COMPILATION &amp; CONSUME INJECTED BLOCKS">
@@ -129,7 +130,7 @@ Source: Clean Stack 2026 Model, Polymorphic Rule Routing (@[ki_polymorphic_rule_
       1. Eliminate duplicate DB fetch: Replace `all_prompt_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()` with direct consumption of injected prompt blocks:
          `block_map = {b.id: b for b in context.prompt_blocks if b.id}`.
       2. Validate that all required step prompt blocks (`role_block_id`, `extraction_protocol_block_id`, `execution_persona_block_id`, `criteria_block_ids`) exist in `block_map`; raise Fail-Fast `ConfigurationError` / `AppException(VALIDATION_FAILED)` if any are missing.
-      3. Ensure `global_schema` is unconditionally compiled for non-matrix steps even when `frozen_ctx` is None or schema caching is active, so `compiled_schema` is guaranteed non-None for `PromptEngine`. If `frozen_ctx` is present, populate `frozen_ctx.generated_schemas[step.id] = global_schema.model_json_schema()`.
+      3. Ensure `global_schema` is unconditionally compiled for non-matrix steps even when `frozen_ctx` is None or schema caching is active, so `compiled_schema` is guaranteed non-None for `PromptEngine`. Attach the compiled JSON schema to `TraceEvent.metadata["generated_schema"] = global_schema.model_json_schema()` to avoid in-place shared dictionary mutation across concurrent tasks; `DAGExecutor` will merge it atomically under `_update_lock`.
       4. When preparing `EngineExecutionRequest`:
          - For `is_synthesis_step`: pass `compiled_schema=dynamic_schema`, `hydrated_messages=[static_msg]`, `system_prompt=""`.
          - For `is_matrix_step`: pass `compiled_schema=None`, `hydrated_messages=None`, `system_prompt=user_payload`, `shuffled_atoms=hydrated_shuffled_atoms`.

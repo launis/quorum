@@ -37,8 +37,8 @@ Furthermore, a second critical disconnection was discovered during the Tier 8 au
 ### Root Cause Chain & Architecture Context
 
 1. **Tool Execution Disconnection**: `chunk_worker.py` (deleted 2026-07-16) previously executed the tool loop. `TDAEngine` + `EnrichedDagExecutor` replaced it for atom-level matrix calculations, leaving tool dispatch orphaned.
-2. **Missing Hook Registration**: `source_verification_hook.py` exists but was never decorated with `@hook_registry.register` or imported into `backend_v2/hooks/__init__.py`.
-3. **Broken Two-Stage Verification Pipeline**: In the original design, Guard analyzed raw texts, and Faktantarkistaja received Guard's summary as `prior_analysis`, extracted verifiable claims (`blk_033180746a954415`), ran web searches (`TavilyTool`), and scored Epistemic Humility (`blk_22e3598e06414409`). The missing `input_mappings` entry broke this chain.
+2. **Hook Implementation & Discovery State**: `source_verification_hook.py` is registered with `@hook_registry.register("source_verification")` and imported in `backend_v2/hooks/__init__.py`. However, it currently uses loose dictionary serialization (`"verified_sources": _create_empty_verification_result()`) rather than returning standard Event Sourcing envelopes (`metadata: {"mcp_audit_traces": [...]}` and `global_context_vars: {"external_evidence": "..."}`), and `SourceVerificationService` has not been connected to `ToolDispatcher` or cleaned of legacy anti-patterns.
+3. **Broken Two-Stage Verification Pipeline**: In the original design, Guard analyzed raw texts, and Faktantarkistaja received Guard's summary as `prior_analysis`, extracted verifiable claims (`blk_033180746a954415`), ran web searches (`TavilyTool`), and scored Epistemic Humility (`blk_22e3598e06414409`). The missing `input_mappings` entry in workflow DAG node `sr_02b7cc1e7c2a4a62` broke this chain.
 4. **Studio UI Terminology Gap — "Kontekstiankkurointi" (Context Anchoring)**: In Studio's `WorkflowStepCard`, the control enabling `$steps.*` forwarding was named *"Edeltävien askeleiden tekstiyhteenvedot"*, which is passive and misses the cognitive reality. The refined term **"Kontekstiankkurointi" (Context Anchoring)** communicates the exact psychological and agentic mechanism: anchoring an agent's reasoning framework to a prior specialist's findings for cross-examination, falsification, and peer-review (versus unanchored independent assessment).
 
 ### Architecture Decision
@@ -116,21 +116,21 @@ sequenceDiagram
 
 ## Target Files and Modification Categories
 
-- **[MODIFY]** @[backend_v2/services/source_verification_service.py#L30-L256]
-- **[MODIFY]** @[backend_v2/models/domain/source_verification.py#L61-L78]
-- **[MODIFY]** @[backend_v2/hooks/source_verification_hook.py#L15-L46]
-- **[MODIFY]** @[backend_v2/hooks/__init__.py]
-- **[MODIFY]** @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py#L39-L290]
-- **[MODIFY]** @[backend_v2/services/orchestrator/strategies/base.py#L186-L210]
-- **[MODIFY]** @[backend_v2/services/orchestrator/strategies/llm.py#L52-L774]
-- **[MODIFY]** @[backend_v2/services/orchestrator/dag_executor.py#L326-L902]
-- **[MODIFY]** @[backend_v2/seed/seed_data.json#L7846-L7850] & @[backend_v2/seed/seed_data.json#L8411-L8414] & @[backend_v2/seed/seed_data.json#L8821-L8824]
+- **[MODIFY]** @[backend_v2/services/source_verification_service.py#L30-L279]
+- **[MODIFY]** @[backend_v2/models/domain/source_verification.py#L61-L79]
+- **[MODIFY]** @[backend_v2/hooks/source_verification_hook.py#L1-L86]
+- **[MODIFY]** @[backend_v2/hooks/__init__.py#L22-L42]
+- **[MODIFY]** @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py#L56-L216]
+- **[MODIFY]** @[backend_v2/services/orchestrator/strategies/base.py#L180-L210]
+- **[MODIFY]** @[backend_v2/services/orchestrator/strategies/llm.py#L107-L781]
+- **[MODIFY]** @[backend_v2/services/orchestrator/dag_executor.py#L560-L766]
+- **[MODIFY]** @[backend_v2/seed/seed_data.json#L7694-L7698] & @[backend_v2/seed/seed_data.json#L8214-L8217] & @[backend_v2/seed/seed_data.json#L8564-L8567]
 - **[MODIFY]** @[client_app_v2/lib/l10n/app_fi.arb#L1458-L1459]
 - **[MODIFY]** @[client_app_v2/lib/l10n/app_en.arb#L2120-L2121]
 - **[MODIFY]** @[client_app_v2/test/features/studio/views/widgets/workflow/workflow_step_card_test.dart#L237-L239]
-- **[MODIFY]** @[backend_v2/settings.py]
+- **[MODIFY]** @[backend_v2/settings.py#L140-L230]
 - **[MODIFY]** @[backend_v2/tests/unit/services/test_source_verification_service.py]
-- **[NEW]** @[backend_v2/tests/unit/hooks/test_source_verification_hook.py]
+- **[MODIFY]** @[backend_v2/tests/unit/hooks/test_source_verification_hook.py]
 - **[NEW]** @[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_audit.py]
 
 ---
@@ -206,21 +206,21 @@ sequenceDiagram
 
     <step id="1.6" target="backend_v2/services/orchestrator/strategies/llm.py">
       <description>1-Hop Scoped Boy Scout Cleanups: Clean all 7 anti-patterns in LLMNodeStrategy.execute, directly pass hook_state.global_context_vars to PromptFactory.build() without PromptCompiler indirection.</description>
-      <constraint invariant="ast_boundary_verification_mandate">Verify line boundaries of LLMNodeStrategy.execute (L103-L774) using ast.parse before editing.</constraint>
-      <constraint invariant="touched_scope_tech_debt_mandate">Remove L223 debug print statement.</constraint>
-      <constraint invariant="frozen_state_mutability">Refactor L300-307 metadata mutation to clean dictionary initialization.</constraint>
+      <constraint invariant="ast_boundary_verification_mandate">Verify line boundaries of LLMNodeStrategy.execute (L107-L781) using ast.parse before editing.</constraint>
+      <constraint invariant="touched_scope_tech_debt_mandate">Remove L223 debug print statement if present / ensure zero print statements in module.</constraint>
+      <constraint invariant="frozen_state_mutability">Refactor L300-307 metadata mutation to clean dictionary initialization (avoid mutating hook_state.metadata in place).</constraint>
       <constraint invariant="the_duct_tape_ban">Replace L524-539 loose parsing and silent except Exception: pass with typed extraction from projector.snapshot and structured error logging.</constraint>
-      <constraint invariant="the_zero_compromise_pledge">Replace BOTH instances of getattr(step, 'input_mappings', None): at L501-L503 (allowed_dynamic_keys) and at L543 (allowed_dynamic_keys extension) with step.input_mappings.keys().</constraint>
-      <constraint invariant="the_no_legacy_mandate">Delete dead L548-558 getattr(step, 'mcp_tools', None) duck-typing loops. Derive mcp_prefixes from step_obj.allowed_mcp_tools.</constraint>
-      <constraint invariant="zero_service_layer_fallbacks">Replace L569 hook_state.metadata.get() and L570 getattr(step, 'expected_sdui_type') with direct access.</constraint>
+      <constraint invariant="the_zero_compromise_pledge">Replace BOTH instances of getattr(step, 'input_mappings', None): at L505 (allowed_dynamic_keys) and at L546 (allowed_dynamic_keys extension) with step.input_mappings.keys().</constraint>
+      <constraint invariant="the_no_legacy_mandate">Delete dead L551-563 getattr(step, 'mcp_tools', None) duck-typing loops. Derive mcp_prefixes from step_obj.allowed_mcp_tools.</constraint>
+      <constraint invariant="zero_service_layer_fallbacks">Replace L569 hook_state.metadata.get() and L573/L644 getattr(step, 'expected_sdui_type') with direct step.expected_sdui_type access.</constraint>
       <constraint invariant="zero_coupling_mandate">Do NOT perform direct subscripting or extraction on hook_state.metadata["mcp_audit_traces"] in LLMNodeStrategy.execute. Pre-events from run_pre_hooks already contain the emitted TraceEvent.</constraint>
-      <constraint invariant="pure_prompt_architecture">Pass hook_state.global_context_vars directly to PromptFactory.build(..., global_context_vars=hook_state.global_context_vars) at L417-L431 (eliminating any PromptCompiler.compile proxy method).</constraint>
+      <constraint invariant="pure_prompt_architecture">Pass hook_state.global_context_vars directly to PromptFactory.build(..., global_context_vars=hook_state.global_context_vars) at L420-L435 (eliminating any PromptCompiler.compile proxy method).</constraint>
     </step>
 
     <step id="1.7" target="backend_v2/services/orchestrator/dag_executor.py">
       <description>Strict Fail-Fast validation and thread-safe accumulation of MCP audit traces in run_step_wrapper under _update_lock, consolidating the entire unsynchronized event loop inside _update_lock.</description>
-      <constraint invariant="ast_boundary_verification_mandate">Verify line boundaries of DAGExecutor.run_step_wrapper (L559-L752) using ast.parse before editing.</constraint>
-      <constraint invariant="concurrency_lock_mandate">Move the formerly unsynchronized for-loop at L693-L703 (exec_record.execution_trace.append, projector.apply_delta, context_variables update) INSIDE `async with _update_lock:`. Merge the context variable update and MCP trace accumulation into this single critical section to eliminate race conditions and avoid double-locking overhead.</constraint>
+      <constraint invariant="ast_boundary_verification_mandate">Verify line boundaries of DAGExecutor.run_step_wrapper (L560-L766) using ast.parse before editing.</constraint>
+      <constraint invariant="concurrency_lock_mandate">Move the formerly unsynchronized for-loop at L693-L711 (exec_record.execution_trace.append, projector.apply_delta, context_variables update) INSIDE `async with _update_lock:`. Merge the context variable update and MCP trace accumulation into this single critical section to eliminate race conditions and avoid double-locking overhead.</constraint>
       <constraint invariant="deterministic_membership_guard">Check `if evt.event_type == "decision" and evt.metadata and "mcp_audit_traces" in evt.metadata and evt.metadata["mcp_audit_traces"]:` before accessing traces.</constraint>
       <constraint invariant="strict_pydantic_v2_rust">Explicitly validate all raw traces from evt.metadata['mcp_audit_traces'] via MCPAuditTrace.model_validate(raw).</constraint>
       <constraint invariant="rfc7807_dual_reporting_mandate">Catch pydantic.ValidationError during trace parsing, log logger.error with ErrorCodes.VALIDATION_FAILED, and raise AppException(message=f"Failed to validate MCP audit traces for step '{step_id}': {val_err}", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "step_id": step_id, "validation_errors": val_err.errors()}) to enforce Universal Fail-Fast.</constraint>
@@ -230,13 +230,13 @@ sequenceDiagram
 
   <phase id="2" name="Seed Data Wiring (Hooks &amp; prior_analysis Data Pipe)">
     <step id="2.1" target="backend_v2/seed/seed_data.json">
-      <description>Add source_verification_hook to pre_hooks of Faktantarkistaja (sp_76eedbc020274f66) and Falsifier (sp_6f40b964895c426b).</description>
-      <constraint invariant="bounded_mutation_protocol">Execute timestamped backup before edit. multi_replace_file_content at lines L8411-L8414 and L8821-L8824.</constraint>
+      <description>Add source_verification_hook to pre_hooks of Falsifier (sp_6f40b964895c426b) and Faktantarkistaja (sp_76eedbc020274f66).</description>
+      <constraint invariant="bounded_mutation_protocol">Execute timestamped backup before edit. multi_replace_file_content at lines L8214-L8217 and L8564-L8567.</constraint>
     </step>
 
     <step id="2.2" target="backend_v2/seed/seed_data.json">
       <description>Restore prior_analysis input_mapping in workflow DAG node sr_02b7cc1e7c2a4a62.</description>
-      <constraint invariant="bounded_mutation_protocol">Insert "prior_analysis": "$steps.sr_0f7947ec7007498c" into input_mappings at L7846-L7850.</constraint>
+      <constraint invariant="bounded_mutation_protocol">Insert "prior_analysis": "$steps.sr_0f7947ec7007498c" into input_mappings at L7694-L7698.</constraint>
     </step>
   </phase>
 
