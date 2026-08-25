@@ -65,6 +65,67 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         """
         return await self.driver.query("prompt_blocks")
 
+    async def get_prompt_blocks_by_ids(
+        self,
+        block_ids: list[str],
+        strict: bool = True,
+    ) -> list[PromptBlock]:
+        """Batch resolve prompt blocks by ID with mathematical set validation.
+
+        Args:
+            block_ids: List of prompt block IDs to retrieve.
+            strict: If True, raises AppException when any requested ID is missing.
+
+        Returns:
+            List of hydrated PromptBlock models.
+
+        Raises:
+            AppException: If strict=True and one or more block IDs are not found in DB.
+        """
+        if not block_ids:
+            return []
+
+        unique_ids = list(dict.fromkeys(block_ids))
+        results: list[PromptBlock] = []
+
+        for bid in unique_ids:
+            doc = await self.get_prompt_block_by_id(bid)
+            if doc:
+                try:
+                    results.append(PromptBlockAdapter.validate_python(doc, strict=False))
+                except Exception as e:
+                    logger.error("Failed to parse PromptBlock %s: %s", bid, e, exc_info=True)
+                    raise AppException(
+                        message=f"Failed to parse PromptBlock {bid} from database",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
+
+        found_ids = {b.id for b in results}
+        missing_ids = [bid for bid in unique_ids if bid not in found_ids]
+
+        if strict and missing_ids:
+            msg = f"Failed to batch resolve prompt blocks. Missing block IDs: {missing_ids}"
+            logger.error(
+                "[PromptBlockRepo] %s: %s",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                msg,
+                extra={
+                    "error_code": ErrorCodes.RESOURCE_NOT_FOUND.name,
+                    "missing_ids": missing_ids,
+                },
+            )
+            raise AppException(
+                message=msg,
+                status_code=404,
+                details={
+                    "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
+                    "missing_ids": missing_ids,
+                },
+            )
+
+        return results
+
     async def get_all_prompt_blocks_models(self) -> list[PromptBlock]:
         """Retrieves all prompt blocks and maps them to Pydantic models.
 

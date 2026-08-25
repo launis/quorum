@@ -34,10 +34,12 @@ from backend_v2.models.enums import (
     LaxExecutionStatus,
     LaxHistoricalContextMode,
     LaxScoringStrategy,
+    LaxStepType,
     LaxTargetBlockType,
     LaxXaiExtensionType,
     ScoringStrategy,
     SDUIComponentType,
+    StepType,
     StrictnessAnchor,
     TargetBlockType,
     VisualIntent,
@@ -549,7 +551,7 @@ class Step(V2CoreBase):
     organization_id: str | None = Field(default=None, description="Tenant organization ID.")
     name: I18nText = Field(description="Localized step name")
     description: I18nText | None = Field(default=None, description="Detailed step context")
-    type: Literal["llm", "logic"] = Field(default="llm", description="Step execution type (llm or native logic)")
+    type: LaxStepType = Field(default=StepType.LLM, description="Step execution type (llm or native logic)")
     hook: str | None = Field(default=None, description="Native Python hook to execute if type is 'logic'")
     role_block_id: str | None = Field(
         default=None,

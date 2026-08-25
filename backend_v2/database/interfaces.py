@@ -8,6 +8,7 @@ from typing import Any, Protocol
 
 from backend_v2.models.auth import Organization
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.models.v2_core import Workflow as WorkflowDefinition
 
@@ -717,6 +718,25 @@ class IPromptBlockRepository(Protocol):
 
         Raises:
             AppException: If the operation fails.
+        """
+        ...
+
+    async def get_prompt_blocks_by_ids(
+        self,
+        block_ids: list[str],
+        strict: bool = True,
+    ) -> list[PromptBlock]:
+        """Batch resolve prompt blocks by ID with mathematical set validation.
+
+        Args:
+            block_ids: List of prompt block IDs to retrieve.
+            strict: If True, raises AppException when any requested ID is missing.
+
+        Returns:
+            List of hydrated PromptBlock models.
+
+        Raises:
+            AppException: If strict=True and one or more block IDs are not found in DB.
         """
         ...
 

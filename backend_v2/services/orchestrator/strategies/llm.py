@@ -29,7 +29,7 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
-from backend_v2.models.enums import VirtualSystemStepID
+from backend_v2.models.enums import PromptBlockCategory, VirtualSystemStepID
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -39,7 +39,7 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
-from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
+from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
 from backend_v2.utils.alias_engine import AliasEngine
@@ -63,45 +63,16 @@ class LLMNodeStrategy(NodeStrategy):
 
     def __init__(
         self,
-        exec_repo: Any,
-        workflow_repo: Any,
-        comp_repo: Any,
-        prompt_block_repo: Any,
-        output_profile_repo: Any,
-        identity_repo: Any,
-        audit_repo: Any,
-        system_repo: Any,
-        prompt_compiler: Any,
-        engine: ExecutionEngine,
-        arq_pool: Any | None = None,
+        deps: StrategyDependencies,
+        engine: ExecutionEngine | None = None,
     ) -> None:
-        """Initialize the LLM strategy with a mandatory execution engine.
+        """Initialize the LLM strategy with StrategyDependencies and optional engine.
 
         Args:
-            exec_repo: Execution repository.
-            workflow_repo: Workflow repository.
-            comp_repo: Component repository.
-            prompt_block_repo: Prompt block repository.
-            output_profile_repo: Output profile repository.
-            identity_repo: Identity repository.
-            audit_repo: Audit repository.
-            system_repo: System repository.
-            prompt_compiler: Prompt compiler.
-            engine: Mandatory execution engine instance.
-            arq_pool: Optional arq pool.
+            deps: Immutable container holding repositories, compiler, and pools.
+            engine: Optional execution engine instance.
         """
-        super().__init__(
-            exec_repo,
-            workflow_repo,
-            comp_repo,
-            prompt_block_repo,
-            output_profile_repo,
-            identity_repo,
-            audit_repo,
-            system_repo,
-            prompt_compiler,
-            arq_pool,
-        )
+        super().__init__(deps=deps)
         self._engine = engine
 
     async def execute(
@@ -358,7 +329,7 @@ class LLMNodeStrategy(NodeStrategy):
                     for m_id in all_bp_blocks:
                         b = block_map[m_id] if m_id in block_map else None
                         if b:
-                            if b.category_id == "matrix":
+                            if b.category_id == PromptBlockCategory.MATRIX:
                                 is_matrix = True
                                 schema_map[m_id] = _SCHEMA_BLOCK_MATRIX
                             else:
@@ -390,7 +361,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         has_shuffled_atoms = False
         hydrated_shuffled_atoms = None
-        is_matrix_step = any(b.category_id == "matrix" for b in criteria_blocks_models)
+        is_matrix_step = any(b.category_id == PromptBlockCategory.MATRIX for b in criteria_blocks_models)
         if is_matrix_step:
             try:
                 raw_atoms = state_data["shuffled_atoms"]
@@ -501,9 +472,7 @@ class LLMNodeStrategy(NodeStrategy):
         hook_state.metadata["source_document_ids"] = source_doc_ids
         # Phase 2: Export full alias state for chunk_worker to reconstruct unified alias_map
         hook_state.metadata["alias_manifest"] = alias_engine.to_manifest().model_dump(mode="json")
-        hook_state.metadata["allowed_dynamic_keys"] = (
-            list(step.input_mappings.keys()) if getattr(step, "input_mappings", None) else []
-        )
+        hook_state.metadata["allowed_dynamic_keys"] = list(input_mappings.keys())
 
         # Fetch execution record to build SourceDocumentContext for validation context
         execution_record_raw = None
@@ -513,8 +482,18 @@ class LLMNodeStrategy(NodeStrategy):
                 execution_record_raw = await res
             else:
                 execution_record_raw = res
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(
+                "[LLMStrategy] %s: Failed to fetch execution record '%s'",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                context.execution_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.name, "execution_id": context.execution_id},
+            )
+            raise AppException(
+                message=f"Execution record '{context.execution_id}' not found.",
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            ) from e
 
         if execution_record_raw:
             try:
@@ -536,29 +515,29 @@ class LLMNodeStrategy(NodeStrategy):
                             source_docs.append(doc_ctx.model_dump(mode="json"))
 
                 hook_state.metadata["source_documents"] = source_docs
-            except Exception:
-                pass
-
-        pass
+            except Exception as e:
+                logger.error(
+                    "[LLMStrategy] %s: Failed to construct source documents context from execution record '%s'",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    context.execution_id,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "execution_id": context.execution_id},
+                )
+                raise AppException(
+                    message="Failed to parse execution record for source documents context.",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
         if frozen_ctx:
             allowed_dynamic_keys = [e.input_key for e in context.expected_inputs] if context.expected_inputs else []
-            if getattr(step, "input_mappings", None):
-                allowed_dynamic_keys.extend(step.input_mappings.keys())
+            allowed_dynamic_keys.extend(input_mappings.keys())
             allowed_dynamic_keys = list(set(allowed_dynamic_keys))
             hook_state.metadata["allowed_dynamic_keys"] = allowed_dynamic_keys
 
             # Extensibility for dynamic MCP providers
             mcp_prefixes = ["call_", "mcp_", "search_"]
-            mcp_tools_list = getattr(step, "mcp_tools", None)
-            if mcp_tools_list:
-                for tool in mcp_tools_list:
-                    if isinstance(tool, dict):
-                        func = tool.get("function", {})
-                        if isinstance(func, dict) and func.get("name"):
-                            mcp_prefixes.append(f"{func['name']}_")
-                    elif hasattr(tool, "function") and hasattr(tool.function, "name"):
-                        mcp_prefixes.append(f"{tool.function.name}_")
+            for tool_name in step_obj.allowed_mcp_tools:
+                mcp_prefixes.append(f"{tool_name}_")
             hook_state.metadata["allowed_mcp_prefixes"] = list(set(mcp_prefixes))
 
             global_schema = self.compiler.build_dynamic_schema(
@@ -570,7 +549,6 @@ class LLMNodeStrategy(NodeStrategy):
                 source_document_ids=source_doc_ids,
                 allowed_dynamic_keys=allowed_dynamic_keys,
                 allowed_mcp_prefixes=hook_state.metadata.get("allowed_mcp_prefixes", []),
-                expected_sdui_type=getattr(step, "expected_sdui_type", "grid"),
             )
             frozen_ctx.generated_schemas[step.id] = global_schema.model_json_schema()
 
@@ -684,6 +662,15 @@ class LLMNodeStrategy(NodeStrategy):
                     shuffled_atoms=hydrated_shuffled_atoms,
                     matrix_block_id=matrix_block_id,
                     matrix_context=matrix_context,
+                )
+
+            if self._engine is None:
+                msg = "LLMNodeStrategy has no ExecutionEngine configured."
+                logger.error("[LLMStrategy] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
             engine_result = await self._engine.execute(engine_request)

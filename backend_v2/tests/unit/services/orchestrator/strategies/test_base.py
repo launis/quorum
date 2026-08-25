@@ -6,7 +6,7 @@ import pytest
 from backend_v2.core.hook_registry import HookState
 from backend_v2.exceptions import AppException
 from backend_v2.models.v2_core import Step as V2Step
-from backend_v2.services.orchestrator.strategies.base import NodeStrategy
+from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyDependencies
 
 
 class DummyStrategy(NodeStrategy):
@@ -16,7 +16,7 @@ class DummyStrategy(NodeStrategy):
 
 @pytest.fixture
 def dummy_strategy() -> DummyStrategy:
-    return DummyStrategy(
+    deps = StrategyDependencies(
         exec_repo=AsyncMock(),
         workflow_repo=AsyncMock(),
         comp_repo=AsyncMock(),
@@ -27,6 +27,7 @@ def dummy_strategy() -> DummyStrategy:
         system_repo=AsyncMock(),
         prompt_compiler=AsyncMock(),
     )
+    return DummyStrategy(deps=deps)
 
 
 @pytest.mark.asyncio

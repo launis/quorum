@@ -35,6 +35,7 @@ def mock_repo() -> MagicMock:
             "steps": [],
         }
     )
+    repo.get_execution = AsyncMock(return_value=None)
     return repo
 
 
@@ -50,9 +51,12 @@ def mock_engine() -> MagicMock:
     return engine
 
 
+from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
+
+
 @pytest.fixture
 def llm_strategy(mock_repo: MagicMock, mock_compiler: MagicMock, mock_engine: MagicMock) -> LLMNodeStrategy:
-    return LLMNodeStrategy(
+    deps = StrategyDependencies(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -62,8 +66,8 @@ def llm_strategy(mock_repo: MagicMock, mock_compiler: MagicMock, mock_engine: Ma
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        engine=mock_engine,
-    )  # noqa: E501
+    )
+    return LLMNodeStrategy(deps=deps, engine=mock_engine)
 
 
 @pytest.mark.asyncio
@@ -606,11 +610,8 @@ def test_configure_llm_context_hook_success() -> None:
                 }
             },
         }
-        from typing import cast
 
-        from backend_v2.core.hook_registry import HookResult
-
-        result = cast(HookResult, configure_llm_context_hook(state, deps))
+        result = configure_llm_context_hook(state, deps)
 
         assert result.success is True
         assert result.state_delta is not None
@@ -622,23 +623,20 @@ def test_configure_llm_context_hook_empty_state() -> None:
     from typing import cast
     from unittest.mock import MagicMock
 
-    from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+    from backend_v2.core.hook_registry import HookDependencies, HookState
     from backend_v2.hooks.llm import configure_llm_context_hook
 
-    result = cast(
-        HookResult,
-        configure_llm_context_hook(
-            cast(HookState, None),
-            HookDependencies(
-                exec_repo=MagicMock(),
-                workflow_repo=MagicMock(),
-                comp_repo=MagicMock(),
-                prompt_block_repo=AsyncMock(),
-                output_profile_repo=AsyncMock(),
-                identity_repo=MagicMock(),
-                audit_repo=MagicMock(),
-                system_repo=MagicMock(),
-            ),
+    result = configure_llm_context_hook(
+        cast(HookState, None),
+        HookDependencies(
+            exec_repo=MagicMock(),
+            workflow_repo=MagicMock(),
+            comp_repo=MagicMock(),
+            prompt_block_repo=AsyncMock(),
+            output_profile_repo=AsyncMock(),
+            identity_repo=MagicMock(),
+            audit_repo=MagicMock(),
+            system_repo=MagicMock(),
         ),
     )
     assert result.success is True

@@ -2,6 +2,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,6 +19,7 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import StrictnessAnchor
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import ExpectedInput, FrozenContext, StepRule
@@ -40,6 +42,9 @@ class StrategyContext(BaseModel):
         expected_inputs: Optional expected inputs definition.
         model_strategy: Optional strategy profile.
         strictness_level: Int representing strictness level.
+        global_context_vars: Global context variables.
+        context_variables: Local context variables.
+        prompt_blocks: Hydrated prompt blocks for execution.
     """
 
     execution_id: str
@@ -50,8 +55,25 @@ class StrategyContext(BaseModel):
     strictness_level: int = StrictnessAnchor.STANDARD.value
     global_context_vars: dict[str, Any] = Field(default_factory=dict)
     context_variables: dict[str, Any] = Field(default_factory=dict)
+    prompt_blocks: list[PromptBlock] = Field(default_factory=list)
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+
+
+@dataclass(frozen=True)
+class StrategyDependencies:
+    """Immutable dependency container injected into execution strategies."""
+
+    exec_repo: IExecutionRepository
+    workflow_repo: IWorkflowRepository
+    comp_repo: IComponentRepository
+    prompt_block_repo: IPromptBlockRepository
+    output_profile_repo: IOutputProfileRepository
+    identity_repo: IIdentityRepository
+    audit_repo: IAuditRepository
+    system_repo: ISystemRepository
+    prompt_compiler: Any
+    arq_pool: Any | None = None
 
 
 class NodeStrategy(ABC):
@@ -61,43 +83,53 @@ class NodeStrategy(ABC):
     by emitting immutable `TraceEvent` objects rather than mutating dictionaries in place.
     """
 
-    def __init__(
-        self,
-        exec_repo: IExecutionRepository,
-        workflow_repo: IWorkflowRepository,
-        comp_repo: IComponentRepository,
-        prompt_block_repo: IPromptBlockRepository,
-        output_profile_repo: IOutputProfileRepository,
-        identity_repo: IIdentityRepository,
-        audit_repo: IAuditRepository,
-        system_repo: ISystemRepository,
-        prompt_compiler: Any,
-        arq_pool: Any | None = None,
-    ) -> None:
-        """Initialize the NodeStrategy with required repositories and compiler.
+    def __init__(self, deps: StrategyDependencies) -> None:
+        """Initialize the NodeStrategy with the typed StrategyDependencies container.
 
         Args:
-            exec_repo: Execution repository.
-            workflow_repo: Workflow repository.
-            comp_repo: Component repository.
-            identity_repo: Identity repository.
-            audit_repo: Audit repository.
-            system_repo: System repository.
-            prompt_compiler: Injected compiler for prompts.
-            arq_pool: Optional Arq redis pool.
+            deps: Immutable container holding repositories, compiler, and pools.
         """
-        self.exec_repo = exec_repo
-        self.workflow_repo = workflow_repo
-        self.comp_repo = comp_repo
-        self.prompt_block_repo = prompt_block_repo
-        self.output_profile_repo = output_profile_repo
-        self.identity_repo = identity_repo
-        self.audit_repo = audit_repo
-        self.system_repo = system_repo
-        # Compiler is intentionally Any right now to avoid circular dependencies with heavy modules.
-        # It's injected from the DAGExecutor.
-        self.compiler = prompt_compiler
-        self.arq_pool = arq_pool
+        self.deps = deps
+
+    @property
+    def exec_repo(self) -> IExecutionRepository:
+        return self.deps.exec_repo
+
+    @property
+    def workflow_repo(self) -> IWorkflowRepository:
+        return self.deps.workflow_repo
+
+    @property
+    def comp_repo(self) -> IComponentRepository:
+        return self.deps.comp_repo
+
+    @property
+    def prompt_block_repo(self) -> IPromptBlockRepository:
+        return self.deps.prompt_block_repo
+
+    @property
+    def output_profile_repo(self) -> IOutputProfileRepository:
+        return self.deps.output_profile_repo
+
+    @property
+    def identity_repo(self) -> IIdentityRepository:
+        return self.deps.identity_repo
+
+    @property
+    def audit_repo(self) -> IAuditRepository:
+        return self.deps.audit_repo
+
+    @property
+    def system_repo(self) -> ISystemRepository:
+        return self.deps.system_repo
+
+    @property
+    def compiler(self) -> Any:
+        return self.deps.prompt_compiler
+
+    @property
+    def arq_pool(self) -> Any | None:
+        return self.deps.arq_pool
 
     @abstractmethod
     async def execute(

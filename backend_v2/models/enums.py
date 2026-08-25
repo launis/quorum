@@ -54,6 +54,7 @@ __all__ = [
     "LaxRoleClassification",
     "LaxScoringStrategy",
     "LaxSearchStatus",
+    "LaxStepType",
     "LaxSimulationType",
     "LaxStrategicDepth",
     "LaxTargetBlockType",
@@ -78,6 +79,7 @@ __all__ = [
     "SimulationType",
     "SourceSufficiencyThreshold",
     "SpecialAliasChoices",
+    "StepType",
     "StrategicDepth",
     "StrictnessAnchor",
     "SystemConfigID",
@@ -93,6 +95,13 @@ __all__ = [
     "XaiExtensionScope",
     "XaiExtensionType",
 ]
+
+
+class StepType(StrEnum):
+    """Execution taxonomy for workflow steps."""
+
+    LLM = "llm"
+    LOGIC = "logic"
 
 
 class EvaluationMandate(StrEnum):
@@ -720,6 +729,7 @@ LaxXaiExtensionType = Annotated[XaiExtensionType, Field(strict=False)]
 LaxAuthenticityLevel = Annotated[AuthenticityLevel, Field(strict=False)]
 LaxBloomLevel = Annotated[BloomLevel, Field(strict=False)]
 LaxStrategicDepth = Annotated[StrategicDepth, Field(strict=False)]
+LaxStepType = Annotated[StepType, Field(strict=False)]
 LaxVerificationResult = Annotated[VerificationResult, Field(strict=False)]
 LaxEthicalSeverity = Annotated[EthicalSeverity, Field(strict=False)]
 LaxExecutionStatus = Annotated[ExecutionStatus, Field(strict=False)]

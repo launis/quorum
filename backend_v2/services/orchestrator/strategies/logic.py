@@ -10,7 +10,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import FrozenContext, StepRule
 from backend_v2.models.v2_core import Step as V2Step
-from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext
+from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 from backend_v2.utils.dict_utils import deep_merge_dicts
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,14 @@ logger = logging.getLogger(__name__)
 
 class LogicNodeStrategy(NodeStrategy):
     """Executes a Native/Logic Step, delegating CPU-bound work to the Hook Registry."""
+
+    def __init__(self, deps: StrategyDependencies) -> None:
+        """Initialize LogicNodeStrategy with StrategyDependencies container.
+
+        Args:
+            deps: Immutable dependency container.
+        """
+        super().__init__(deps=deps)
 
     async def execute(
         self,

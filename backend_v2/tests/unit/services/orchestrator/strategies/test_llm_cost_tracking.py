@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.v2_core import StepRule
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
@@ -58,56 +58,26 @@ def mock_repo() -> MagicMock:
 @pytest.mark.asyncio
 @patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
-@patch("backend_v2.services.orchestrator.engines.tda_engine.SlidingWindowLinker")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
 @patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
-@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")
 async def test_tda_engine_aggregates_token_usage_and_cost(
-    mock_get_settings: MagicMock,
     mock_projector: MagicMock,
     mock_dag_executor: MagicMock,
-    mock_linker: MagicMock,
     mock_atomizer: MagicMock,
     mock_task_executor: MagicMock,
     mock_compiler: MagicMock,
 ) -> None:
     """Reproduction Test 1: TDAEngine MUST return aggregated TokenUsage including cost_usd."""
     from backend_v2.llm.client import LLMClient
-
-    settings = mock_get_settings.return_value
-    settings.tda_linker_window_size = 4
-    settings.tda_linker_overlap = 2
-    settings.rag_preflight_chunk_size = 1000
+    from backend_v2.models.dtos.engine import FlattenedAtom
 
     mock_atomizer_instance = mock_atomizer.return_value
-    mock_linker_instance = mock_linker.return_value
     mock_dag_executor_instance = mock_dag_executor.return_value
 
     mock_atomizer_instance.execute_phase_0 = AsyncMock(
         return_value=(
             GlobalOntologyMap(entities=[], macro_rules=[]),
             TokenUsage(prompt_tokens=100, completion_tokens=20, total_tokens=120, cost_usd=0.005),
-        )
-    )
-    atom = ExtractedAtom(
-        reasoning="Test",
-        resolved_claim="Claim",
-        is_logical_deduction=False,
-        source_quote="Quote",
-        tda_id="tda_12345678",
-        source_id="src_1",
-        source_sequence_index=0,
-    )
-    mock_atomizer_instance.execute_phase_1 = AsyncMock(
-        return_value=(
-            [atom],
-            TokenUsage(prompt_tokens=200, completion_tokens=40, total_tokens=240, cost_usd=0.010),
-        )
-    )
-    mock_linker_instance.link_graph = AsyncMock(
-        return_value=(
-            [LinkedAtomGraph(atom=atom, depends_on=[])],
-            TokenUsage(prompt_tokens=150, completion_tokens=30, total_tokens=180, cost_usd=0.008),
         )
     )
     mock_dag_executor_instance.execute_graph = AsyncMock(
@@ -117,6 +87,15 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
         )
     )
     mock_projector.project.return_value = ([], {})
+
+    shuffled_atom = FlattenedAtom(
+        atom_id="tda_12345678",
+        question="Is this claim valid?",
+        extraction_rule="Test rule",
+        anchor_target="target_1",
+        is_inverse=False,
+        depends_on=(),
+    )
 
     engine_request = EngineExecutionRequest(
         bound_client=MagicMock(spec=LLMClient),
@@ -136,6 +115,7 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
         progress_callback=AsyncMock(),
         trace_callback=AsyncMock(),
         prompt_compiler=mock_compiler,
+        shuffled_atoms=[shuffled_atom],
     )
 
     engine = TDAEngine(prompt_compiler=mock_compiler)
@@ -143,9 +123,9 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
 
     assert isinstance(result, EngineExecutionResult)
     # The result MUST carry the aggregated usage
-    assert getattr(result, "usage", None) is not None
-    assert result.usage.total_tokens == (120 + 240 + 180 + 360)
-    assert abs(result.usage.cost_usd - (0.005 + 0.010 + 0.008 + 0.015)) < 1e-6
+    assert result.usage is not None
+    assert result.usage.total_tokens == (120 + 360)
+    assert abs(result.usage.cost_usd - (0.005 + 0.015)) < 1e-6
 
 
 @pytest.mark.asyncio
@@ -154,7 +134,9 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
 ) -> None:
     """Reproduction Test 2: LLMStrategy MUST propagate EngineExecutionResult.usage to TraceEvent._step_metadata."""
     mock_engine = MagicMock()
-    llm_strategy = LLMNodeStrategy(
+    from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
+
+    deps = StrategyDependencies(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -164,8 +146,8 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        engine=mock_engine,
     )
+    llm_strategy = LLMNodeStrategy(deps=deps, engine=mock_engine)
 
     step = MagicMock()
     step.id = "step_test_cost"

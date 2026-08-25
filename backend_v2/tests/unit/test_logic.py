@@ -4,40 +4,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
-
-
-@pytest.mark.asyncio
-async def _test_logic_strategy_missing_blueprint() -> None:
-    repo = MagicMock()
-    compiler = MagicMock()
-    _strategy = LogicNodeStrategy(
-        exec_repo=repo,
-        workflow_repo=repo,
-        comp_repo=repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo,
-        audit_repo=repo,
-        system_repo=repo,
-        prompt_compiler=compiler,
-    )  # noqa: E501
-
-    step = MagicMock()
-    step.task_blueprint = None
-    step.id = "step_123"
-
-    projector = MagicMock()
-    projector.snapshot = {}
-
-    _context = MagicMock()
 
 
 @pytest.mark.asyncio
 async def test_logic_strategy_missing_blueprint() -> None:
     repo = MagicMock()
     compiler = MagicMock()
-    strategy = LogicNodeStrategy(
+    deps = StrategyDependencies(
         exec_repo=repo,
         workflow_repo=repo,
         comp_repo=repo,
@@ -47,7 +22,8 @@ async def test_logic_strategy_missing_blueprint() -> None:
         audit_repo=repo,
         system_repo=repo,
         prompt_compiler=compiler,
-    )  # noqa: E501
+    )
+    strategy = LogicNodeStrategy(deps=deps)
 
     step = MagicMock()
     step.task_blueprint = None
@@ -74,7 +50,7 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     repo.get_step_by_id.return_value = {"id": "st_1234567890123456"}
 
     compiler = MagicMock()
-    strategy = LogicNodeStrategy(
+    deps = StrategyDependencies(
         exec_repo=repo,
         workflow_repo=repo,
         comp_repo=repo,
@@ -85,6 +61,7 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
         system_repo=repo,
         prompt_compiler=compiler,
     )
+    strategy = LogicNodeStrategy(deps=deps)
 
     step = MagicMock()
     step.id = "step_123"
@@ -138,7 +115,7 @@ async def test_logic_strategy_signature_parity() -> None:
     repo.get_step_by_id.return_value = None
 
     compiler = MagicMock()
-    strategy = LogicNodeStrategy(
+    deps = StrategyDependencies(
         exec_repo=repo,
         workflow_repo=repo,
         comp_repo=repo,
@@ -149,6 +126,7 @@ async def test_logic_strategy_signature_parity() -> None:
         system_repo=repo,
         prompt_compiler=compiler,
     )
+    strategy = LogicNodeStrategy(deps=deps)
 
     step = MagicMock()
     step.id = "step_123"
