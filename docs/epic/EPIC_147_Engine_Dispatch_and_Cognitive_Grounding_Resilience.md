@@ -36,51 +36,52 @@ EPIC 147 establishes a robust, fail-fast, and decoupled execution and prompt arc
 
 ### 2.1 TARGET Files (Editable)
 - `[MODIFY]` `@[backend_v2/models/enums.py]` (Declare canonical `StepType(StrEnum)`: `LLM = "llm"`, `LOGIC = "logic"` and export in `__all__`)
-- `[MODIFY]` `@[backend_v2/models/v2_core.py#L540-L585]` (Update `Step.type: StepType = Field(default=StepType.LLM)`)
-- `[MODIFY]` `@[backend_v2/database/interfaces.py#L677-L740]` (Add `get_prompt_blocks_by_ids(block_ids: list[str], strict: bool = True) -> list[PromptBlock]` to `IPromptBlockRepository`)
-- `[MODIFY]` `@[backend_v2/database/repositories/components/prompt_block.py#L50-L115]` (Implement `get_prompt_blocks_by_ids` with strict mathematical set parity `unique_requested - found_ids` returning hydrated `list[PromptBlock]`, raising `AppException(RESOURCE_NOT_FOUND, missing_ids=...)`)
-- `[MODIFY]` `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L36-L88]` (Format `<theory_context>\n{citation}\n</theory_context>` in ephemeral system rule block, omitting raw URLs)
+- `[MODIFY]` `@[backend_v2/models/v2_core.py#L540-L634]` (Update `Step.type: StepType = Field(default=StepType.LLM)`)
+- `[MODIFY]` `@[backend_v2/database/interfaces.py#L677-L766]` (Add `get_prompt_blocks_by_ids(block_ids: list[str], strict: bool = True) -> list[PromptBlock]` to `IPromptBlockRepository`)
+- `[MODIFY]` `@[backend_v2/database/repositories/components/prompt_block.py#L14-L174]` (Implement `get_prompt_blocks_by_ids` with strict mathematical set parity `unique_requested - found_ids` returning hydrated `list[PromptBlock]`, raising `AppException(RESOURCE_NOT_FOUND, missing_ids=...)`)
+- `[MODIFY]` `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L54-L112]` (Format `<theory_context>\n{citation}\n</theory_context>` in ephemeral system rule block, omitting raw URLs)
 - `[NEW]` `@[backend_v2/services/orchestrator/engines/prompt_engine.py]` (Extract `PromptEngine` implementing `ExecutionEngine` protocol for structured non-matrix LLM tasks)
-- `[MODIFY]` `@[backend_v2/services/orchestrator/engines/__init__.py#L1-L15]` (Re-export `PromptEngine` in `__all__ = ["ExecutionEngine", "TDAEngine", "SynthesisEngine", "PromptEngine"]`)
-- `[MODIFY]` `@[backend_v2/services/orchestrator/strategies/base.py#L50-L105]` (Add `prompt_blocks: list[PromptBlock]` to `StrategyContext`, define `StrategyDependencies` dataclass, update `NodeStrategy.__init__`)
-- `[MODIFY]` `@[backend_v2/services/orchestrator/strategies/logic.py#L19-L50]` (Update `LogicNodeStrategy.__init__(self, deps: StrategyDependencies)`)
-- `[MODIFY]` `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L782]` (Update `LLMNodeStrategy.__init__(self, deps: StrategyDependencies, engine: ExecutionEngine)`, consume injected `context.prompt_blocks`, eliminate `get_all_prompt_blocks()`, eliminate in-place `frozen_ctx.generated_schemas` mutation, clean scoped technical debt)
+- `[MODIFY]` `@[backend_v2/services/orchestrator/engines/__init__.py]` (Re-export `PromptEngine` in `__all__ = ["ExecutionEngine", "TDAEngine", "SynthesisEngine", "PromptEngine"]`)
+- `[MODIFY]` `@[backend_v2/services/orchestrator/strategies/base.py#L31-L54]` (Add `prompt_blocks: list[PromptBlock]` to `StrategyContext`, define `StrategyDependencies` dataclass, update `NodeStrategy.__init__`)
+- `[MODIFY]` `@[backend_v2/services/orchestrator/strategies/logic.py#L19-L176]` (Update `LogicNodeStrategy.__init__(self, deps: StrategyDependencies)`)
+- `[MODIFY]` `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]` (Update `LLMNodeStrategy.__init__(self, deps: StrategyDependencies, engine: ExecutionEngine)`, consume injected `context.prompt_blocks`, eliminate `get_all_prompt_blocks()`, eliminate in-place `frozen_ctx.generated_schemas` mutation, clean scoped technical debt)
 - `[NEW]` `@[backend_v2/services/orchestrator/strategies/registry.py]` (Declare `StrategyBuilder` Protocol, static `NODE_STRATEGY_REGISTRY`, and `NodeStrategyFactory.create_strategy`)
-- `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor.py#L115-L375]` (Update `NodeExecutor.__init__(self, deps: StrategyDependencies)`, implement `_resolve_execution_engine`, single-fetch & inject hydrated prompt blocks, delegate to `NodeStrategyFactory.create_strategy`)
-- `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor.py#L690-L730]` (Atomic deduplicating accumulator for `mcp_tool_audit` and `generated_schemas` under `_update_lock`, move trace append loop inside `_update_lock`, validate state reconstruction via `model_validate`)
-- `[MODIFY]` `@[backend_v2/models/state.py#L110-L135]` (Verify/add `mcp_audit_traces: list[MCPAuditTrace]` to `TraceEvent`)
+- `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor.py#L115-L324]` (Update `NodeExecutor.__init__(self, deps: StrategyDependencies)`, implement `_resolve_execution_engine`, single-fetch & inject hydrated prompt blocks, delegate to `NodeStrategyFactory.create_strategy`)
+- `[MODIFY]` `@[backend_v2/services/orchestrator/dag_executor.py#L560-L766]` (Atomic deduplicating accumulator for `mcp_tool_audit` and `generated_schemas` under `_update_lock`, move trace append loop inside `_update_lock`, validate state reconstruction via `model_validate`)
+- `[MODIFY]` `@[backend_v2/models/state.py#L115-L138]` (Verify/add `mcp_audit_traces: list[MCPAuditTrace]` to `TraceEvent`)
 - `[MODIFY]` `@[backend_v2/seed/seed_data.json#L336-L6900]` (Sanitize all 13 matrices: remove `EPISTEMIC ANCHOR:` tails while preserving qualitative prompt definitions)
-- `[MODIFY]` `@[backend_v2/settings.py]` (Define `MIN_VERIFIABLE_TEXT_LENGTH: int = 15` to preserve global config sovereignty)
-- `[MODIFY]` `@[backend_v2/hooks/source_verification_hook.py#L1-L47]` (Attach `@hook_registry.register(name="source_verification")`, parse `SourceVerificationInputsDTO`, short-circuit on empty/whitespace inputs returning complete zero-claims envelope)
-- `[MODIFY]` `@[backend_v2/services/source_verification_service.py#L1-L257]` (Consume `get_settings().MIN_VERIFIABLE_TEXT_LENGTH` threshold, static module constants `_EXTRACTION_SYSTEM_PROMPT` and `_VERIFICATION_SYSTEM_PROMPT`, dynamic `LLMClient.from_strategy`, `html.escape()` for XML injection defense)
-- `[MODIFY]` `@[backend_v2/models/dtos/source_extraction_schema.py#L1-L25]` (Declare `SourceVerificationInputsDTO` with `strict=True`, `extra="forbid"`, strictly no `@property`)
-- `[MODIFY]` `@[backend_v2/hooks/__init__.py#L7-L42]` (Import and export `source_verification_hook` in `__all__`)
-- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py#L58-L266]` (Remove stale mock `@patch("...tda_engine.get_settings")`, update to `StrategyDependencies` and typed models)
+- `[MODIFY]` `@[backend_v2/settings.py]` (Define `min_verifiable_text_length: int = 15` to preserve global config sovereignty)
+- `[MODIFY]` `@[backend_v2/hooks/source_verification_hook.py#L34-L85]` (Attach `@hook_registry.register(name="source_verification")`, parse `SourceVerificationInputsDTO`, short-circuit on empty/whitespace inputs returning complete zero-claims envelope)
+- `[MODIFY]` `@[backend_v2/services/source_verification_service.py#L63-L278]` (Consume `get_settings().min_verifiable_text_length` threshold, static module constants `_EXTRACTION_SYSTEM_INSTRUCTION` and `_VERIFICATION_SYSTEM_INSTRUCTION`, dynamic `LLMClient.from_strategy`, `html.escape()` for XML injection defense)
+- `[MODIFY]` `@[backend_v2/models/dtos/source_extraction_schema.py#L13-L27]` (Declare `SourceVerificationInputsDTO` with `strict=True`, `extra="forbid"`, strictly no `@property`)
+- `[MODIFY]` `@[backend_v2/hooks/__init__.py]` (Import and export `source_verification_hook` in `__all__`)
+- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py#L58-L148]` (Remove stale mock `@patch("...tda_engine.get_settings")`, update to `StrategyDependencies` and typed models)
 - `[NEW]` `@[backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py]` (Comprehensive ISTQB unit test suite for `PromptEngine`)
-- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py#L12-L38]` (Update test assertions to verify pure `<theory_context>` XML formatting and raw URL omission)
-- `[MODIFY]` `@[backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py#L32-L50]` (Update root prompt builder tests to match pure `<theory_context>` structure)
-- `[MODIFY]` `@[backend_v2/tests/unit/services/test_source_verification_service.py#L1-L137]` (Add tests for empty, whitespace, sub-threshold, and escaped XML inputs)
-- `[MODIFY]` `@[backend_v2/tests/unit/database/repositories/components/test_prompt_block.py]` (Add unit tests for `get_prompt_blocks_by_ids` success, empty, duplicate, strict missing single/all, and non-strict)
-- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L287-L347]` (Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models, test engine injection)
-- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py#L1-L564]` (Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models, test `PromptEngine` payload compilation)
-- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/strategies/test_logic.py#L1-L100]` (Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models)
-- `[MODIFY]` `@[backend_v2/tests/unit/test_logic.py#L1-L177]` (Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models)
+- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py#L12-L39]` (Update test assertions to verify pure `<theory_context>` XML formatting and raw URL omission)
+- `[MODIFY]` `@[backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py#L32-L48]` (Update root prompt builder tests to match pure `<theory_context>` structure)
+- `[MODIFY]` `@[backend_v2/tests/unit/services/test_source_verification_service.py#L109-L139]` (Add tests for empty, whitespace, sub-threshold, and escaped XML inputs)
+- `[MODIFY]` `@[backend_v2/tests/unit/database/repositories/components/test_prompt_block.py#L25-L35]` (Add unit tests for `get_prompt_blocks_by_ids` success, empty, duplicate, strict missing single/all, and non-strict)
+- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L287-L346]` (Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models, test engine injection)
+- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py#L69-L95]` (Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models, test `PromptEngine` payload compilation)
+- `[MODIFY]` `@[backend_v2/tests/unit/services/orchestrator/strategies/test_logic.py#L64-L99]` (Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models)
+- `[MODIFY]` `@[backend_v2/tests/unit/test_logic.py#L36-L64]` (Update fixtures to `StrategyDependencies`, migrate mocks to typed Pydantic models)
 - `[NEW]` `@[backend_v2/tests/unit/hooks/test_source_verification_hook.py]` (Unit tests for hook registration, empty/whitespace short-circuits, zero-claims envelope parity)
 - `[NEW]` `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]` (Comprehensive AST guardrail suite locking all 8 architectural invariants)
 - `[NEW]` `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py]` (Concurrency tests for `mcp_tool_audit` and `generated_schemas` atomic accumulation)
 - `[NEW]` `@[backend_v2/tests/unit/services/orchestrator/strategies/test_node_strategy_registry.py]` (Unit tests for static strategy registry and factory dispatch)
 
 ### 2.2 CONTEXT Files (Read-Only)
-- `@[backend_v2/models/v2_core.py#L194-L208]` (`TheoryGrounding` schema SSOT)
-- `@[backend_v2/models/v2_core.py#L635-L657]` (`MCPAuditTrace` schema SSOT)
-- `@[backend_v2/models/v2_core.py#L1563-L1700]` (`FrozenContext`, `ExecutionRecord` schemas)
-- `@[backend_v2/models/domain/source_verification.py#L1-L79]` (`SourceClaimDTO`, `VerifiedSourceDTO`, `SourceVerificationResultDTO`)
-- `@[backend_v2/models/dtos/engine.py#L41-L63]` (`MatrixEvaluationContext` DTO)
-- `@[backend_v2/services/orchestrator/prompt_compiler_adapter.py#L10-L140]` (`PromptCompilerAdapter`)
-- `@[backend_v2/core/hook_registry.py#L1-L216]` (`HookRegistry`, `HookState`, `HookDependencies`, `HookResult`)
-- `@[backend_v2/services/mcp/tavily_search_client.py#L1-L333]` (`tavily_search`, `batch_tavily_search`)
-- `@[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L219]` (`TDAEngine`)
-- `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L25-L220]` (`SynthesisEngine`)
+- `@[backend_v2/models/v2_core.py#L192-L205]` (`TheoryGrounding` schema SSOT)
+- `@[backend_v2/models/v2_core.py#L637-L674]` (`StepRule` schema SSOT)
+- `@[backend_v2/models/v2_core.py#L1400-L1412]` (`FrozenContext` schema SSOT)
+- `@[backend_v2/models/v2_core.py#L1492-L1550]` (`ExecutionRecord` schema SSOT)
+- `@[backend_v2/models/domain/source_verification.py#L61-L78]` (`SourceVerificationResultDTO`)
+- `@[backend_v2/models/dtos/engine.py#L51-L71]` (`MatrixEvaluationContext` DTO)
+- `@[backend_v2/services/orchestrator/prompt_compiler_adapter.py#L10-L139]` (`PromptCompilerAdapter`)
+- `@[backend_v2/core/hook_registry.py#L83-L212]` (`HookRegistry`, `HookState`, `HookDependencies`, `HookResult`)
+- `@[backend_v2/services/mcp/tavily_search_client.py#L47-L184]` (`tavily_search`, `batch_tavily_search`)
+- `@[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L218]` (`TDAEngine`)
+- `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L25-L219]` (`SynthesisEngine`)
 
 ---
 
@@ -107,7 +108,7 @@ Specifically and exhaustively, the following 22 technical debt items and pre-fli
 18. **XML Injection Vulnerability & In-Method System Prompts**: `SourceVerificationService` interpolates unescaped text into `<source_data>` and `<claim>` blocks without `html.escape()`, and constructs system directives dynamically inside methods rather than using static module constants.
 19. **Dangling References in PromptBlock Batch Resolution**: SQL/NoSQL `IN` queries in `PromptBlockRepository` return partial lists when prompt block IDs are missing or deleted, silently corrupting downstream engine dispatch (`is_matrix_step`) and prompt compilation.
 20. **Testing Drift with Raw Dictionaries**: Test fixtures across `test_dag_executor.py`, `test_llm.py`, `test_logic.py`, and `test_llm_cost_tracking.py` use legacy raw dictionaries for repository mock return values rather than typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`).
-21. **`model_strategy` Semantic Conflation in Engine Resolution**: `dag_executor.py` lines 239-242 and `llm.py` line 621 used `step_def.model_strategy == "synthesis"` to branch to `SynthesisEngine`. In Quorum's Model Garden architecture, `model_strategy` (e.g., `"fast"`, `"reasoning"`) is purely the routing strategy key passed to `LLMClient.from_strategy()` and does NOT define the pipeline execution stage. Engine resolution must be driven purely by `PromptBlockCategory` (e.g., `MATRIX` -> `TDAEngine`, `SYNTHESIS` -> `SynthesisEngine`, generic non-matrix -> `PromptEngine`), freeing steps to execute synthesis with `"fast"` or `"reasoning"` models dynamically without engine dispatch collisions.
+21. **`model_strategy` Semantic Conflation in Engine Resolution**: `dag_executor.py` lines 239-242 and `llm.py` line 621 used `step_def.model_strategy == "synthesis"` to branch to `SynthesisEngine`. In Quorum's Model Garden architecture, `model_strategy` (specifically `"fast"`, `"reasoning"`) is purely the routing strategy key passed to `LLMClient.from_strategy()` and does NOT define the pipeline execution stage. Engine resolution must be driven purely by `PromptBlockCategory` (specifically `PromptBlockCategory.MATRIX` -> `TDAEngine`, `PromptBlockCategory.SYNTHESIS` -> `SynthesisEngine`, generic non-matrix -> `PromptEngine`), freeing steps to execute synthesis with `"fast"` or `"reasoning"` models dynamically without engine dispatch collisions.
 22. **Atomic Test Migration Violation**: Postponing unit test mock and constructor updates to Phase 5 breaks the CI/CD audit loop (`backend_audit_loop.py`) when core constructors (`NodeStrategy`, `LogicNodeStrategy`, `LLMNodeStrategy`, `NodeExecutor`, `DAGExecutor`) are modified in Phases 2 and 3. All test fixtures and mocks must be migrated atomically within Phase 2 (Step 2.6) and Phase 3 (Step 3.5).
 
 ---
@@ -118,17 +119,17 @@ Specifically and exhaustively, the following 22 technical debt items and pre-fli
 | Deprecated Symbol / Pattern | Location | Replacement / Disposition |
 | :--- | :--- | :--- |
 | `EPISTEMIC ANCHOR:` prompt tails | `@[backend_v2/seed/seed_data.json#L336-L6900]` | **PURGED**. Retained exclusively in structured `theory_grounding` field. |
-| Raw `source_url` in LLM prompts | `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]` | **OMITTED** from LLM prompt payload; retained in DTOs for UI/PDF rendering. |
-| 10-argument constructors in strategies | `@[backend_v2/services/orchestrator/strategies/base.py]`, `@[backend_v2/services/orchestrator/strategies/llm.py]`, `@[backend_v2/services/orchestrator/strategies/logic.py]` | Replaced by `@dataclass(frozen=True) class StrategyDependencies`. |
-| `get_all_prompt_blocks()` table scan in strategy | `@[backend_v2/services/orchestrator/strategies/llm.py]` | Replaced by `StrategyContext.prompt_blocks` single-fetch injection from `NodeExecutor`. |
-| Procedural `if step_def.type == "logic"` branching | `@[backend_v2/services/orchestrator/dag_executor.py]` | Replaced by declarative `NodeStrategyFactory.create_strategy` and `NODE_STRATEGY_REGISTRY[step_def.type]`. |
-| Procedural `if step_def.model_strategy == "synthesis"` branching | `@[backend_v2/services/orchestrator/dag_executor.py]`, `@[backend_v2/services/orchestrator/strategies/llm.py]` | **PURGED**. Replaced by domain block category inspection in `NodeExecutor._resolve_execution_engine`. |
-| In-place `frozen_ctx.generated_schemas` mutation | `@[backend_v2/services/orchestrator/strategies/llm.py]` | Replaced by schema propagation via `TraceEvent.metadata["generated_schema"]` and atomic merge under `_update_lock`. |
-| Unsynchronized `mcp_tool_audit` updates | `@[backend_v2/services/orchestrator/dag_executor.py]` | Wrapped inside `async with _update_lock:` with atomic deduplication. |
-| Unsynchronized trace event appends | `@[backend_v2/services/orchestrator/dag_executor.py#L693-L703]` | Moved inside `async with _update_lock:`. |
-| Unregistered Source Verification Hook | `@[backend_v2/hooks/source_verification_hook.py]` | Registered via `@hook_registry.register("source_verification")` and exported in `hooks/__init__.py`. |
-| Hardcoded mock LLM in production path | `@[backend_v2/services/source_verification_service.py]` | Replaced with `await LLMClient.from_strategy("fast", repository=self.system_repo)`. |
-| Stale `@patch("...tda_engine.get_settings")` | `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py]` | **REMOVED**; updated to mock settings SSOT directly. |
+| Raw `source_url` in LLM prompts | `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L54-L112]` | **OMITTED** from LLM prompt payload; retained in DTOs for UI/PDF rendering. |
+| 10-argument constructors in strategies | `@[backend_v2/services/orchestrator/strategies/base.py#L57-L283]`, `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]`, `@[backend_v2/services/orchestrator/strategies/logic.py#L19-L176]` | Replaced by `@dataclass(frozen=True) class StrategyDependencies`. |
+| `get_all_prompt_blocks()` table scan in strategy | `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]` | Replaced by `StrategyContext.prompt_blocks` single-fetch injection from `NodeExecutor`. |
+| Procedural `if step_def.type == "logic"` branching | `@[backend_v2/services/orchestrator/dag_executor.py#L115-L324]` | Replaced by declarative `NodeStrategyFactory.create_strategy` and `NODE_STRATEGY_REGISTRY[step_def.type]`. |
+| Procedural `if step_def.model_strategy == "synthesis"` branching | `@[backend_v2/services/orchestrator/dag_executor.py#L115-L324]`, `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]` | **PURGED**. Replaced by domain block category inspection in `NodeExecutor._resolve_execution_engine`. |
+| In-place `frozen_ctx.generated_schemas` mutation | `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]` | Replaced by schema propagation via `TraceEvent.metadata["generated_schema"]` and atomic merge under `_update_lock`. |
+| Unsynchronized `mcp_tool_audit` updates | `@[backend_v2/services/orchestrator/dag_executor.py#L560-L766]` | Wrapped inside `async with _update_lock:` with atomic deduplication. |
+| Unsynchronized trace event appends | `@[backend_v2/services/orchestrator/dag_executor.py#L560-L766]` | Moved inside `async with _update_lock:`. |
+| Unregistered Source Verification Hook | `@[backend_v2/hooks/source_verification_hook.py#L34-L85]` | Registered via `@hook_registry.register("source_verification")` and exported in `hooks/__init__.py`. |
+| Hardcoded mock LLM in production path | `@[backend_v2/services/source_verification_service.py#L63-L278]` | Replaced with `await LLMClient.from_strategy("fast", repository=self.system_repo)`. |
+| Stale `@patch("...tda_engine.get_settings")` | `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py#L58-L148]` | **REMOVED**; updated to mock settings SSOT directly. |
 | Raw dictionary repository mocks | Test suites (`test_dag_executor.py`, `test_llm.py`, `test_logic.py`, `test_llm_cost_tracking.py`) | Migrated to strictly typed Pydantic V2 model instances (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`) atomically in Steps 2.6 and 3.5. |
 
 ### 4.2 Retained SSOT Invariants (`What We Will RETAIN`)
@@ -137,8 +138,8 @@ Specifically and exhaustively, the following 22 technical debt items and pre-fli
 3. **Pydantic V2 Strictness (`strict_pydantic_v2_rust`)**: All DTOs and models enforce `ConfigDict(strict=True, extra='forbid')`. `@property` methods on DTOs are strictly prohibited.
 4. **Python 3.14 Concurrency (`python_314_concurrency_strictness`)**: All parallel executions utilize `asyncio.TaskGroup` with non-blocking concurrency limiters and `contextlib.nullcontext` wrapping.
 5. **Executor Taxonomy & Decoupling Invariant (`DAGExecutor` vs `NodeExecutor` vs `EnrichedDagExecutor`)**:
-   - `DAGExecutor` (`@[backend_v2/services/orchestrator/dag_executor.py]`): The workflow macro-orchestrator executing the top-level `StepRule` DAG pipeline. It instantiates `NodeExecutor(deps=self.deps)`.
-   - `NodeExecutor` (`@[backend_v2/services/orchestrator/dag_executor.py]`): The step-level dispatcher executing a single `StepRule` via `NodeStrategyFactory` and `StrategyDependencies`.
+   - `DAGExecutor` (`@[backend_v2/services/orchestrator/dag_executor.py#L327-L916]`): The workflow macro-orchestrator executing the top-level `StepRule` DAG pipeline. It instantiates `NodeExecutor(deps=self.deps)`.
+   - `NodeExecutor` (`@[backend_v2/services/orchestrator/dag_executor.py#L115-L324]`): The step-level dispatcher executing a single `StepRule` via `NodeStrategyFactory` and `StrategyDependencies`.
    - `EnrichedDagExecutor` (`@[backend_v2/services/orchestrator/enriched_dag_executor.py]`): Downstream leaf atom-graph evaluator inside `TDAEngine` evaluating `LinkedAtomGraph` cognitive atom waves. It is instantiated solely by `TDAEngine(llm_executor, client)` and is completely decoupled from `StrategyDependencies` refactoring.
 
 ### 4.3 Producer-Consumer Integration Architecture
@@ -184,8 +185,8 @@ Specifically and exhaustively, the following 22 technical debt items and pre-fli
 1. **`ExecutionEngine` (Pipeline Stage & Structural Transform)**: Governed strictly by the Tripartite Pipeline Architecture (`@[ki_tripartite_pipeline_architecture.md]`). It defines *how data is structured and processed*:
    - **`TDAEngine`**: Phase 1 heavy cognitive evaluation (LinkedAtomGraph, paragraph atomization `[B0]..[B53]`, Flash Best-of-3 majority consensus).
    - **`SynthesisEngine`**: Phase 2 narrative reporting & SDUI synthesis (GlobalAtomBlackboard aggregation, section syntheses).
-   - **`PromptEngine`**: Phase 1 non-matrix structured JSON processing (e.g., `step_input_processing`, document sanitization).
-2. **`model_strategy` (Model Tier & FinOps Configuration)**: Governed strictly by the Model Registry (`@[05_llm_architecture.md]`). It defines *which LLM model and generation hyperparameters* are utilized (e.g., `"fast"` for Gemini Flash, `"reasoning"` for Gemini Pro).
+   - **`PromptEngine`**: Phase 1 non-matrix structured JSON processing (specifically `step_input_processing`, document sanitization).
+2. **`model_strategy` (Model Tier & FinOps Configuration)**: Governed strictly by the Model Registry (`@[.agents/rules/05_llm_architecture.md]`). It defines *which LLM model and generation hyperparameters* are utilized (specifically `"fast"` for Gemini Flash, `"reasoning"` for Gemini Pro).
 
 #### 4.4.3 Deterministic Engine Resolution Algorithm
 The engine is resolved purely via strongly-typed domain model inspection without procedural string branches:
@@ -256,12 +257,12 @@ Run: `uv run python backend_v2/seed/run_seed.py local`
 
 #### Step 1.4: Scoped Technical Debt Cleanup in `test_llm_cost_tracking.py` & `llm.py`
 1. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py#L58-L148]`: Remove outdated mock `@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")` at line 60.
-2. In `@[backend_v2/services/orchestrator/strategies/llm.py#L361-L644]`:
+2. In `@[backend_v2/services/orchestrator/strategies/llm.py#L107-L781]`:
    - Replace raw string comparison `b.category_id == "matrix"` with `b.category_id == PromptBlockCategory.MATRIX` and `any(b.category_id == PromptBlockCategory.MATRIX for b in criteria_blocks_models)`.
-   - Replace silent `except Exception: pass` blocks (L516-517, L539-540) with Fail-Fast `AppException` propagation or structured logging when retrieving execution records.
-   - Eliminate `getattr(step, "input_mappings", None)` duck-typing (L505, L546). Resolve allowed dynamic keys directly from `input_mappings` argument combined with `context.expected_inputs`.
-   - Eliminate `getattr(step, "mcp_tools", None)` and `hasattr(tool, "function")` (L553-L560). Iterate directly over `step.allowed_mcp_tools` (`list[str]`) from the `Step` model.
-   - Eliminate `getattr(step, "expected_sdui_type", "grid")` (L573, L644).
+   - Replace silent `except Exception: pass` blocks with Fail-Fast `AppException` propagation or structured logging when retrieving execution records.
+   - Eliminate `getattr(step, "input_mappings", None)` duck-typing. Resolve allowed dynamic keys directly from `input_mappings` argument combined with `context.expected_inputs`.
+   - Eliminate `getattr(step, "mcp_tools", None)` and `hasattr(tool, "function")`. Iterate directly over `step.allowed_mcp_tools` (`list[str]`) from the `Step` model.
+   - Eliminate `getattr(step, "expected_sdui_type", "grid")`.
 
 ---
 
@@ -275,13 +276,13 @@ Run: `uv run python backend_v2/seed/run_seed.py local`
        LLM = "llm"
        LOGIC = "logic"
    ```
-2. In `@[backend_v2/models/v2_core.py#L540-L585]`, update `Step.type`:
+2. In `@[backend_v2/models/v2_core.py#L540-L634]`, update `Step.type`:
    ```python
    type: StepType = Field(default=StepType.LLM, description="Step execution type (llm or native logic)")
    ```
 
 #### Step 2.2: Fail-Fast PromptBlock Batch Resolution in Repository
-1. In `@[backend_v2/database/interfaces.py#L677-L740]`: Add `get_prompt_blocks_by_ids` to `IPromptBlockRepository`:
+1. In `@[backend_v2/database/interfaces.py#L677-L766]`: Add `get_prompt_blocks_by_ids` to `IPromptBlockRepository`:
    ```python
    async def get_prompt_blocks_by_ids(
        self,
@@ -289,7 +290,7 @@ Run: `uv run python backend_v2/seed/run_seed.py local`
        strict: bool = True,
    ) -> list[PromptBlock]: ...
    ```
-2. In `@[backend_v2/database/repositories/components/prompt_block.py#L50-L115]`: Implement `get_prompt_blocks_by_ids` with strict mathematical set parity returning hydrated `list[PromptBlock]`:
+2. In `@[backend_v2/database/repositories/components/prompt_block.py#L14-L174]`: Implement `get_prompt_blocks_by_ids` with strict mathematical set parity returning hydrated `list[PromptBlock]`:
    ```python
    async def get_prompt_blocks_by_ids(
        self,
@@ -332,9 +333,9 @@ Run: `uv run python backend_v2/seed/run_seed.py local`
    ```
 
 #### Step 2.3: Declare `StrategyDependencies` Container & Context Injection
-1. In `@[backend_v2/services/orchestrator/strategies/base.py#L50-L105]`:
+1. In `@[backend_v2/services/orchestrator/strategies/base.py#L31-L54]`:
    - Add `prompt_blocks: list[PromptBlock] = Field(default_factory=list)` to `StrategyContext`.
-   - Define `@dataclass(frozen=True) class StrategyDependencies`:
+   - In `@[backend_v2/services/orchestrator/strategies/base.py#L57-L283]`, define `@dataclass(frozen=True) class StrategyDependencies`:
      ```python
      from arq.connections import ArqRedis
      from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -355,8 +356,8 @@ Run: `uv run python backend_v2/seed/run_seed.py local`
          arq_pool: ArqRedis | None = None
      ```
    - Update `NodeStrategy.__init__(self, deps: StrategyDependencies)` to unpack `self.deps = deps` and assign attributes cleanly.
-2. In `@[backend_v2/services/orchestrator/strategies/logic.py#L19-L50]`: Update constructor to accept `deps: StrategyDependencies`.
-3. In `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L110]`: Update constructor to accept `deps: StrategyDependencies` and `engine: ExecutionEngine`.
+2. In `@[backend_v2/services/orchestrator/strategies/logic.py#L19-L176]`: Update constructor to accept `deps: StrategyDependencies`.
+3. In `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]`: Update constructor to accept `deps: StrategyDependencies` and `engine: ExecutionEngine`.
 
 #### Step 2.4: Extract `PromptEngine` for Structured Tasks
 Create [NEW] `@[backend_v2/services/orchestrator/engines/prompt_engine.py]` implementing `ExecutionEngine`:
@@ -439,9 +440,9 @@ class NodeStrategyFactory:
 
 #### Step 2.6: Atomic Unit Test Migration for Strategy Constructors
 Immediately upon refactoring `LogicNodeStrategy` and `LLMNodeStrategy` constructors to accept `StrategyDependencies` (and `engine: ExecutionEngine` for `LLMNodeStrategy`), update their corresponding unit test suites to enforce atomic checkpoints:
-1. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_logic.py]` and `@[backend_v2/tests/unit/test_logic.py]`: Update fixtures and test instantiations to construct `deps = StrategyDependencies(...)` and pass `LogicNodeStrategy(deps=deps)`.
-2. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py]`: Update fixtures to construct `deps = StrategyDependencies(...)`, create `mock_engine = AsyncMock(spec=ExecutionEngine)`, and pass `LLMNodeStrategy(deps=deps, engine=mock_engine)`. Update mock return values to typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`).
-3. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py]`: Remove line 60 stale mock `@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")`. Update `LLMNodeStrategy` instantiation to pass `deps=deps, engine=mock_engine`.
+1. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_logic.py#L64-L99]` and `@[backend_v2/tests/unit/test_logic.py#L36-L64]`: Update fixtures and test instantiations to construct `deps = StrategyDependencies(...)` and pass `LogicNodeStrategy(deps=deps)`.
+2. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py#L69-L95]`: Update fixtures to construct `deps = StrategyDependencies(...)`, create `mock_engine = AsyncMock(spec=ExecutionEngine)`, and pass `LLMNodeStrategy(deps=deps, engine=mock_engine)`. Update mock return values to typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`).
+3. In `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py#L58-L148]`: Remove line 60 stale mock `@patch("backend_v2.services.orchestrator.engines.tda_engine.get_settings")`. Update `LLMNodeStrategy` instantiation to pass `deps=deps, engine=mock_engine`.
 4. In [NEW] `@[backend_v2/tests/unit/services/orchestrator/strategies/test_node_strategy_registry.py]`: Add unit tests for `NODE_STRATEGY_REGISTRY` and `NodeStrategyFactory.create_strategy` verifying logic resolution, LLM resolution with engine, missing engine Fail-Fast (`CONFIGURATION_ERROR`), and unregistered step type Fail-Fast.
 5. Run atomic quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator/strategies backend_v2/tests/unit/test_logic.py --test`.
 
@@ -450,9 +451,9 @@ Immediately upon refactoring `LogicNodeStrategy` and `LLMNodeStrategy` construct
 ### Phase 3: Engine Architecture, NodeExecutor Decomposition, Single-Fetch DI & DAG Concurrency Hardening
 
 #### Step 3.1: Decompose `NodeExecutor` & Single-Fetch DI in `dag_executor.py`
-In `@[backend_v2/services/orchestrator/dag_executor.py#L115-L375]`:
+In `@[backend_v2/services/orchestrator/dag_executor.py#L115-L324]`:
 1. Update `NodeExecutor.__init__(self, deps: StrategyDependencies) -> None: self.deps = deps`.
-2. Update `DAGExecutor.__init__` to instantiate `self.deps = StrategyDependencies(...)` and pass `self.node_executor = NodeExecutor(deps=self.deps)`.
+2. Update `DAGExecutor.__init__` in `@[backend_v2/services/orchestrator/dag_executor.py#L327-L916]` to instantiate `self.deps = StrategyDependencies(...)` and pass `self.node_executor = NodeExecutor(deps=self.deps)`.
 3. Add helper method `def _resolve_execution_engine(self, step_def: Step, prompt_blocks: list[PromptBlock]) -> ExecutionEngine`:
    - Filter criteria blocks from already-injected `prompt_blocks`: `criteria_blocks = [b for b in prompt_blocks if b.id in step_def.criteria_block_ids]`.
    - Check if criteria contains `PromptBlockCategory.MATRIX` (or `isinstance(b, MatrixPromptBlock)`): return `TDAEngine(self.deps.prompt_compiler)`.
@@ -468,8 +469,8 @@ In `@[backend_v2/services/orchestrator/dag_executor.py#L115-L375]`:
    - Execute quota and strategy: `await strategy_impl.assert_quota(org_id=org_id); return await strategy_impl.execute(...)`.
 
 #### Step 3.2: Atomic Deduplicating State Accumulation under `_update_lock` in `DAGExecutor`
-In `@[backend_v2/services/orchestrator/dag_executor.py#L690-L730]`:
-Move unsynchronized trace append for-loop at L693-L703 inside `_update_lock`, and implement atomic deduplicating accumulation of both `MCPAuditTrace` into `exec_record.frozen_context.mcp_tool_audit` AND `generated_schemas` into `exec_record.frozen_context.generated_schemas` under `_update_lock` with strict Pydantic validation:
+In `@[backend_v2/services/orchestrator/dag_executor.py#L560-L766]`:
+Move unsynchronized trace append for-loop inside `_update_lock`, and implement atomic deduplicating accumulation of both `MCPAuditTrace` into `exec_record.frozen_context.mcp_tool_audit` AND `generated_schemas` into `exec_record.frozen_context.generated_schemas` under `_update_lock` with strict Pydantic validation:
 ```python
 has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
 async with _update_lock:
@@ -542,7 +543,7 @@ await _safe_commit()
 ```
 
 #### Step 3.3: Consume Injected Prompt Blocks & Schema Propagation in `LLMNodeStrategy`
-In `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L782]`:
+In `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]`:
 1. Eliminate duplicate DB fetch: Replace `all_prompt_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()` with direct consumption of injected prompt blocks:
    `block_map = {b.id: b for b in context.prompt_blocks if b.id}`.
 2. Validate that all required step prompt blocks (`role_block_id`, `extraction_protocol_block_id`, `execution_persona_block_id`, `criteria_block_ids`) exist in `block_map`; raise Fail-Fast `ConfigurationError` / `AppException(VALIDATION_FAILED)` if any are missing.
@@ -559,7 +560,7 @@ In `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L782]`:
    - Else: assign `final_dict = {"results": engine_result.results, "hydrated_references": engine_result.hydrated_references}` (passing native typed domain objects).
 
 #### Step 3.4: Format Pure `<theory_context>` in `MatrixSensorPromptBuilder`
-In `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L36-L88]`:
+In `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L54-L112]`:
 Refactor theory_grounding injection in `MatrixSensorPromptBuilder.build_caching_prefix`:
 Replace `ai_desc=matrix_context.theory_grounding.model_dump_json()` with pure citation XML formatting (excluding URL token bloat and preventing unclosed XML tags):
 ```python
@@ -578,8 +579,8 @@ if matrix_context and matrix_context.theory_grounding and matrix_context.theory_
 
 #### Step 3.5: Atomic Unit Test Migration for NodeExecutor, DAGExecutor & Prompt Builder
 Immediately upon refactoring `NodeExecutor` and `DAGExecutor` constructors, single-fetch DI, `_resolve_execution_engine`, and `MatrixSensorPromptBuilder.build_caching_prefix`, update their unit test suites:
-1. In `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py]`: Update instantiations of `DAGExecutor` and `NodeExecutor` to pass `deps = StrategyDependencies(...)`, and update mock return values for repositories to typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`).
-2. In `@[backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py]` and `@[backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py]`: Update test assertions to verify `<theory_context>\n{citation}\n</theory_context>` pure citation XML structure without raw URLs.
+1. In `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L287-L346]`: Update instantiations of `DAGExecutor` and `NodeExecutor` to pass `deps = StrategyDependencies(...)`, and update mock return values for repositories to typed Pydantic V2 models (`Step`, `PromptBlock`, `Workflow`, `OutputProfile`).
+2. In `@[backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py#L12-L39]` and `@[backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py#L32-L48]`: Update test assertions to verify `<theory_context>\n{citation}\n</theory_context>` pure citation XML structure without raw URLs.
 3. In [NEW] `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py]`: Implement multi-step concurrent `mcp_tool_audit` and `generated_schemas` accumulation tests under `_update_lock`.
 4. Run atomic quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py --test`.
 
@@ -588,8 +589,8 @@ Immediately upon refactoring `NodeExecutor` and `DAGExecutor` constructors, sing
 ### Phase 4: Ghost Execution Elimination & Source Verification Hook Hardening
 
 #### Step 4.1: Source Extraction Schema & Global Config Sovereignty
-1. In `@[backend_v2/settings.py]`, define `MIN_VERIFIABLE_TEXT_LENGTH: int = 15` to preserve global config sovereignty.
-2. In `@[backend_v2/models/dtos/source_extraction_schema.py#L1-L25]`, declare `SourceVerificationInputsDTO`:
+1. In `@[backend_v2/settings.py]`, define `min_verifiable_text_length: int = 15` to preserve global config sovereignty.
+2. In `@[backend_v2/models/dtos/source_extraction_schema.py#L13-L27]`, declare `SourceVerificationInputsDTO`:
    ```python
    class SourceVerificationInputsDTO(V2CoreBase):
        """Strict inputs schema for source verification hook."""
@@ -607,18 +608,18 @@ Immediately upon refactoring `NodeExecutor` and `DAGExecutor` constructors, sing
    ```
 
 #### Step 4.2: Hook Defensive Guard & Registry Export
-1. In `@[backend_v2/hooks/source_verification_hook.py#L1-L47]`:
+1. In `@[backend_v2/hooks/source_verification_hook.py#L34-L85]`:
    - Decorate hook with `@hook_registry.register(name="source_verification")`.
    - Parse inputs through `SourceVerificationInputsDTO.model_validate(state.inputs)`.
    - Compute consolidated text as a local variable.
-   - If inputs are missing, empty, whitespace-only, or `len(text_content) < get_settings().MIN_VERIFIABLE_TEXT_LENGTH`, return a fully initialized `SourceVerificationResultDTO` with zero claims in `state_delta={"verified_sources": empty_result}` to preserve state schema parity and prevent double serialization.
+   - If inputs are missing, empty, whitespace-only, or `len(text_content) < get_settings().min_verifiable_text_length`, return a fully initialized `SourceVerificationResultDTO` with zero claims in `state_delta={"verified_sources": empty_result}` to preserve state schema parity and prevent double serialization.
    - Pass `system_repo=deps.system_repo` to `SourceVerificationService(system_repo=deps.system_repo)`.
    - Wrap errors in RFC 7807 `AppException` with `ErrorCodes.AGENT_EXECUTION_CRITICAL`.
-2. In `@[backend_v2/hooks/__init__.py#L7-L42]`:
+2. In `@[backend_v2/hooks/__init__.py]`:
    - Import `source_verification_hook` and add `"source_verification_hook"` to `__all__`.
 
 #### Step 4.3: Service Logic Hardening
-1. In `@[backend_v2/services/source_verification_service.py#L1-L257]`:
+1. In `@[backend_v2/services/source_verification_service.py#L63-L278]`:
    - Enforce mandatory Fail-Fast DI: `system_repo: ISystemRepository` is required (no default `None`), while `llm_task_executor: LLMTaskExecutor | None = None` remains optional:
      ```python
      def __init__(
@@ -629,10 +630,10 @@ Immediately upon refactoring `NodeExecutor` and `DAGExecutor` constructors, sing
          self.system_repo = system_repo
          self.task_executor = llm_task_executor
      ```
-   - Define static module-level system directives `_EXTRACTION_SYSTEM_PROMPT` and `_VERIFICATION_SYSTEM_PROMPT` to enable 100% Google Gemini Context Caching.
+   - Define static module-level system directives `_EXTRACTION_SYSTEM_INSTRUCTION` and `_VERIFICATION_SYSTEM_INSTRUCTION` to enable 100% Google Gemini Context Caching.
    - Replace hardcoded `LLMProviderConfig(api_key="mock", ...)` with `await LLMClient.from_strategy("fast", repository=self.system_repo)` and `LLMTaskExecutor(PromptCompiler(), client=self.llm_client)` in `_ensure_initialized()`.
    - In `_extract_source_claims` and `_verify_single_claim`, wrap untrusted content inside `<source_data>` and `<claim>` with `html.escape()` to eliminate XML injection vulnerabilities.
-   - Enforce minimum character threshold `len(text.strip()) < get_settings().MIN_VERIFIABLE_TEXT_LENGTH` in `run_full_verification` to short-circuit ghost executions before initializing the LLM client.
+   - Enforce minimum character threshold `len(text.strip()) < get_settings().min_verifiable_text_length` in `run_full_verification` to short-circuit ghost executions before initializing the LLM client.
 
 ---
 
@@ -642,17 +643,17 @@ Immediately upon refactoring `NodeExecutor` and `DAGExecutor` constructors, sing
 Create [NEW] `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]` locking all 8 architectural invariants:
 1. `test_seed_matrices_have_no_epistemic_anchor_in_ai_description`: Parses `@[backend_v2/seed/seed_data.json#L336-L6900]` and asserts that 0 matrix blocks contain `"EPISTEMIC ANCHOR:"` in `ai_description`.
 2. `test_seed_matrices_have_valid_theory_grounding`: Asserts that all 13 matrix blocks have non-null `theory_grounding` with non-empty `source_url` and `citation_reference`.
-3. `test_matrix_sensor_prompt_builder_ast_uses_pure_theory_citation`: Inspects the AST of `MatrixSensorPromptBuilder.build_caching_prefix` to verify that `<theory_context>` is constructed with pure `citation_reference` and `model_dump_json` is not called on `theory_grounding`.
-4. `test_matrix_sensor_prompt_builder_ast_has_no_xml_string_slicing`: Inspects the AST of `MatrixSensorPromptBuilder` to verify that no raw string slicing `[:` is performed on assembled XML prompt messages.
-5. `test_source_verification_hook_registered_and_safe`: Inspects AST of `source_verification_hook.py` to verify `@hook_registry.register` is attached and no hardcoded mock API keys exist.
-6. `test_node_strategy_registry_ast_has_no_procedural_string_routing`: Inspects AST of `dag_executor.py` and `registry.py` to assert that no raw string comparisons `step_def.type == "logic"` exist and routing strictly utilizes `StepType` enum keys in `NODE_STRATEGY_REGISTRY`.
-7. `test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation`: Inspects AST of `backend_v2/services/orchestrator/strategies/llm.py` to assert that zero in-place mutations of `frozen_ctx.generated_schemas` exist.
-8. `test_prompt_block_repo_ast_strict_missing_parity`: Inspects AST of `backend_v2/database/repositories/components/prompt_block.py` to verify that `get_prompt_blocks_by_ids` performs mathematical set difference validation (`unique_requested - found_ids`) and raises `AppException(RESOURCE_NOT_FOUND)` when `missing_ids` is non-empty.
+3. `test_matrix_sensor_prompt_builder_ast_uses_pure_theory_citation`: Inspects the AST of `MatrixSensorPromptBuilder.build_caching_prefix` in `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L54-L112]` to verify that `<theory_context>` is constructed with pure `citation_reference` and `model_dump_json` is not called on `theory_grounding`.
+4. `test_matrix_sensor_prompt_builder_ast_has_no_xml_string_slicing`: Inspects the AST of `MatrixSensorPromptBuilder` in `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L27-L244]` to verify that no raw string slicing `[:` is performed on assembled XML prompt messages.
+5. `test_source_verification_hook_registered_and_safe`: Inspects AST of `source_verification_hook.py` in `@[backend_v2/hooks/source_verification_hook.py#L34-L85]` to verify `@hook_registry.register` is attached and no hardcoded mock API keys exist.
+6. `test_node_strategy_registry_ast_has_no_procedural_string_routing`: Inspects AST of `dag_executor.py` in `@[backend_v2/services/orchestrator/dag_executor.py#L115-L324]` to assert that no raw string comparisons `step_def.type == "logic"` exist and routing strictly utilizes `StepType` enum keys in `NODE_STRATEGY_REGISTRY`.
+7. `test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation`: Inspects AST of `backend_v2/services/orchestrator/strategies/llm.py` in `@[backend_v2/services/orchestrator/strategies/llm.py#L56-L781]` to assert that zero in-place mutations of `frozen_ctx.generated_schemas` exist.
+8. `test_prompt_block_repo_ast_strict_missing_parity`: Inspects AST of `backend_v2/database/repositories/components/prompt_block.py` in `@[backend_v2/database/repositories/components/prompt_block.py#L14-L174]` to verify that `get_prompt_blocks_by_ids` performs mathematical set difference validation (`unique_requested - found_ids`) and raises `AppException(RESOURCE_NOT_FOUND)` when `missing_ids` is non-empty.
 
 #### Step 5.2: Unit Test Suites & Integration Verification
 1. In [NEW] `@[backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py]`: Positive structured task verification, Fail-Fast missing schema, missing messages, empty messages, exception re-raising, semaphore acquisition and `running_event.set()`.
-2. In `@[backend_v2/tests/unit/database/repositories/components/test_prompt_block.py]`: Batch query success, empty input fast-path, duplicate ID deduplication, strict single missing Fail-Fast, strict all missing Fail-Fast, and non-strict partial return.
-3. In `@[backend_v2/tests/unit/services/test_source_verification_service.py]` and [NEW] `@[backend_v2/tests/unit/hooks/test_source_verification_hook.py]`: Empty prior analysis zero-claims envelope, whitespace prior analysis, sub-threshold text length, non-string payload safety, XML injection escaping, and hook registry discovery.
+2. In `@[backend_v2/tests/unit/database/repositories/components/test_prompt_block.py#L25-L35]`: Batch query success, empty input fast-path, duplicate ID deduplication, strict single missing Fail-Fast, strict all missing Fail-Fast, and non-strict partial return.
+3. In `@[backend_v2/tests/unit/services/test_source_verification_service.py#L109-L139]` and [NEW] `@[backend_v2/tests/unit/hooks/test_source_verification_hook.py]`: Empty prior analysis zero-claims envelope, whitespace prior analysis, sub-threshold text length, non-string payload safety, XML injection escaping, and hook registry discovery.
 4. Verify that all atomic mock migrations completed in Step 2.6 (`test_logic.py`, `test_llm.py`, `test_node_strategy_registry.py`) and Step 3.5 (`test_dag_executor.py`, `test_llm_cost_tracking.py`, `test_dag_executor_mcp_concurrency.py`) pass without deprecation warnings or raw dictionary usage.
 
 ---
@@ -676,9 +677,9 @@ Create [NEW] `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]` 
 | **TC-MCP-03** (Immutability: State Persistence) | `test_dag_executor_frozen_context_immutability_and_commit` | Parallel steps mutating state | `_safe_commit()` commits complete merged `FrozenContext` to repository without corruption |
 | **TC-FC-01** (Concurrency: Schema Accumulation) | `test_dag_executor_concurrent_steps_accumulate_generated_schemas` | 4 concurrent steps generating dynamic JSON schemas | All 4 step schemas safely accumulated into `exec_record.frozen_context.generated_schemas` under `_update_lock` |
 | **TC-AST-08** (AST Guardrail: FrozenContext Schema Immutability) | `test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation` | `llm.py` | AST confirms zero in-place mutations on `frozen_ctx.generated_schemas` |
-| **TC-REG-01** (Registry: Logic Node Resolution) | `test_node_strategy_registry_resolves_logic_strategy` | `StepType.LOGIC` | `NODE_STRATEGY_REGISTRY` returns `LogicNodeStrategy` instance |
-| **TC-REG-02** (Registry: LLM Node Resolution) | `test_node_strategy_registry_resolves_llm_strategy` | `StepType.LLM` + non-null `ExecutionEngine` | `NODE_STRATEGY_REGISTRY` returns `LLMNodeStrategy` instance |
-| **TC-REG-03** (Boundary: LLM Missing Engine) | `test_node_strategy_registry_llm_without_engine_raises_app_exception` | `StepType.LLM` + `engine=None` | Raises `AppException(ErrorCodes.CONFIGURATION_ERROR)` at factory boundary |
+| **TC-REG-01** (Registry: Logic Node Resolution) | `test_node_strategy_registry_resolves_logic_strategy` | StepType.LOGIC | `NODE_STRATEGY_REGISTRY` returns `LogicNodeStrategy` instance |
+| **TC-REG-02** (Registry: LLM Node Resolution) | `test_node_strategy_registry_resolves_llm_strategy` | StepType.LLM with non-null `ExecutionEngine` | `NODE_STRATEGY_REGISTRY` returns `LLMNodeStrategy` instance |
+| **TC-REG-03** (Boundary: LLM Missing Engine) | `test_node_strategy_registry_llm_without_engine_raises_app_exception` | StepType.LLM with `engine=None` | Raises `AppException(ErrorCodes.CONFIGURATION_ERROR)` at factory boundary |
 | **TC-REG-04** (Boundary: Unregistered StepType) | `test_node_strategy_registry_unregistered_type_raises_app_exception` | Unregistered / invalid StepType | Raises `AppException(ErrorCodes.CONFIGURATION_ERROR)` immediately |
 | **TC-PB-01** (Repo: Batch Resolution Success) | `test_get_prompt_blocks_by_ids_success` | `["blk_1", "blk_2"]` in DB | Returns `list[PromptBlock]` containing all requested block domain models |
 | **TC-PB-02** (Boundary: Empty Input List) | `test_get_prompt_blocks_by_ids_empty_list` | `[]` | Fast-paths immediately to `[]` with 0 database queries |
