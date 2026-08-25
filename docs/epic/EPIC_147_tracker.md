@@ -83,7 +83,7 @@
   - [x] @[backend_v2/services/orchestrator/strategies/base.py]
   - [x] @[backend_v2/services/orchestrator/strategies/logic.py]
   - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/registry.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/registry.py]
   - [ ] @[backend_v2/services/orchestrator/engines/prompt_engine.py]
   - [ ] @[backend_v2/services/orchestrator/engines/__init__.py]
   - [ ] @[backend_v2/models/dtos/engine.py]
@@ -185,7 +185,6 @@
 - `AST Guardrail Suite`: `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L1-L318]`
 
 ## Remaining Targets in Tier 2 Hardening (Backend)
-- `@[backend_v2/services/orchestrator/strategies/registry.py]`
 - `@[backend_v2/services/orchestrator/engines/prompt_engine.py]`
 - `@[backend_v2/services/orchestrator/engines/__init__.py]`
 - `@[backend_v2/models/dtos/engine.py]`
@@ -200,4 +199,4 @@
 - `@[backend_v2/hooks/__init__.py]`
 
 ## Next Command
-`/tier5-resume --target="@[docs/epic/EPIC_147_tracker.md], backend_v2/services/orchestrator/strategies/registry.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"`
+`/tier5-resume --target="@[docs/epic/EPIC_147_tracker.md], backend_v2/services/orchestrator/engines/prompt_engine.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"`

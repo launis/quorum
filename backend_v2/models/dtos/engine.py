@@ -3,6 +3,8 @@
 Provides the strict Pydantic V2 schemas for engine execution.
 """
 
+from __future__ import annotations
+
 import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Annotated, Any
@@ -14,10 +16,9 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, StepRule, TheoryGrounding
-from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
 if TYPE_CHECKING:
-    pass
+    from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
 
 class FlattenedAtom(BaseModel):

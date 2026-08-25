@@ -1,3 +1,5 @@
+"""Node strategy static registry and factory resolution."""
+
 import logging
 from typing import Protocol
 
@@ -10,6 +12,12 @@ from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "NODE_STRATEGY_REGISTRY",
+    "NodeStrategyFactory",
+    "StrategyBuilder",
+]
+
 
 class StrategyBuilder(Protocol):
     """Protocol for building node strategy instances."""
@@ -18,7 +26,9 @@ class StrategyBuilder(Protocol):
         self,
         deps: StrategyDependencies,
         engine: ExecutionEngine | None = None,
-    ) -> NodeStrategy: ...
+    ) -> NodeStrategy:
+        """Instantiate a NodeStrategy using injected dependencies and optional engine."""
+        ...
 
 
 def _build_logic_strategy(
