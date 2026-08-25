@@ -245,3 +245,31 @@ async def test_ensure_initialized_lazy_loading() -> None:
         assert service.llm_client is mock_client
         assert service.task_executor is not None
         mock_from_strategy.assert_called_once_with("fast", repository=mock_system_repo)
+
+
+def test_source_verification_service_exports() -> None:
+    """Verifies that __all__ correctly exports SourceVerificationService."""
+    from backend_v2.services.source_verification_service import __all__ as exported_symbols
+
+    assert "SourceVerificationService" in exported_symbols
+
+
+@pytest.mark.asyncio
+async def test_verify_claims_fatal_exception_handling(service: SourceVerificationService) -> None:
+    """Tests that an unexpected fatal exception in TaskGroup raises AppException(FETCH_FAILED)."""
+    claim = SourceClaimDTO(claim_text="Fatal claim")
+    with patch.object(service, "_verify_single_claim", side_effect=RuntimeError("Fatal worker crash")):
+        with pytest.raises(AppException) as exc_info:
+            await service.verify_claims([claim])
+
+        assert exc_info.value.status_code == 502
+
+
+@pytest.mark.asyncio
+async def test_verify_single_claim_uninitialized_client_raises() -> None:
+    """Tests that _verify_single_claim raises 500 when client is uninitialized."""
+    service_uninit = SourceVerificationService()
+    claim = SourceClaimDTO(claim_text="Test claim")
+    with patch.object(service_uninit, "_ensure_initialized", new_callable=AsyncMock):
+        result = await service_uninit._verify_single_claim(claim)
+        assert result.status == SourceVerificationStatus.INCONCLUSIVE

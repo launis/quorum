@@ -27,6 +27,8 @@ if TYPE_CHECKING:
     from backend_v2.database.interfaces import IComponentRepository, ISystemRepository
     from backend_v2.llm.client import LLMClient
 
+__all__ = ["SourceVerificationService"]
+
 logger = logging.getLogger(__name__)
 
 # Cut off text length to avoid token limit explosions in fast models
