@@ -446,21 +446,43 @@ class TestFixtureModel(BaseModel):
 # ==============================================================================
 
 
-def test_inline_suppression_single_line() -> None:
-    code = "val = getattr(obj, 'attr', None)  # noqa: QGR001\n"
+def test_inline_suppression_single_line_with_valid_reason() -> None:
+    code = "val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: Third-party LiteLLM model attribute]\n"
     violations = _scan_snippet(code)
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
     assert violations[0].is_suppressed is True
 
 
-def test_multiline_suppression_call_span() -> None:
+def test_inline_suppression_missing_reason_fails_fatal() -> None:
+    code = "val = getattr(obj, 'attr', None)  # noqa: QGR001\n"
+    violations = _scan_snippet(code)
+    assert len(violations) == 2
+    # First violation is QGR000 FATAL for missing reason
+    qgr000 = next(v for v in violations if v.rule_code == "QGR000")
+    assert qgr000.severity == GuardrailSeverity.FATAL
+    assert "Missing or insufficient '[REASON:" in qgr000.message
+    # Original violation is NOT suppressed
+    qgr001 = next(v for v in violations if v.rule_code == "QGR001")
+    assert qgr001.is_suppressed is False
+
+
+def test_inline_suppression_placeholder_reason_fails_fatal() -> None:
+    for placeholder in ["test", "n/a", "ok", "todo", "short"]:
+        code = f"val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: {placeholder}]\n"
+        violations = _scan_snippet(code)
+        qgr000 = next((v for v in violations if v.rule_code == "QGR000"), None)
+        assert qgr000 is not None, f"Expected QGR000 for placeholder '{placeholder}'"
+        assert qgr000.severity == GuardrailSeverity.FATAL
+
+
+def test_multiline_suppression_call_span_with_reason() -> None:
     code = """
 val = getattr(
     obj,
     'attr',
     None,
-)  # noqa: QGR001
+)  # noqa: QGR001 [REASON: Dynamic model attribute access required]
 """
     violations = _scan_snippet(code)
     assert len(violations) == 1
@@ -468,14 +490,14 @@ val = getattr(
     assert violations[0].is_suppressed is True
 
 
-def test_multiline_suppression_except_span() -> None:
+def test_multiline_suppression_except_span_with_reason() -> None:
     code = """
 try:
     do_something()
 except (
     Exception,
     BaseException,
-):  # noqa: QGR003
+):  # noqa: QGR003 [REASON: Outer crash boundary for background worker]
     return {}
 """
     violations = _scan_snippet(code)
@@ -484,14 +506,14 @@ except (
     assert violations[0].is_suppressed is True
 
 
-def test_inline_suppression_all_rules() -> None:
+def test_inline_suppression_all_rules_with_reasons() -> None:
     code = """
-r1 = await asyncio.gather(t1(), t2())  # noqa: QGR006
-class LooseDTO(BaseModel):  # noqa: QGR007
+r1 = await asyncio.gather(t1(), t2())  # noqa: QGR006 [REASON: Legacy migration in-flight step]
+class LooseDTO(BaseModel):  # noqa: QGR007 [REASON: External third-party payload DTO]
     x: int
-await asyncio.sleep(10)  # noqa: QGR008
-raise AppException("raw")  # noqa: QGR009
-t = datetime.now()  # noqa: QGR010
+await asyncio.sleep(10)  # noqa: QGR008 [REASON: Polling backoff retry loop]
+raise AppException("raw")  # noqa: QGR009 [REASON: Legacy translation bridge error]
+t = datetime.now()  # noqa: QGR010 [REASON: Local timezone formatting]
 """
     violations = _scan_snippet(code, filepath="backend_v2/services/worker.py")
     assert len(violations) == 5

@@ -49,11 +49,29 @@ class GuardrailViolation(BaseModel):
     is_suppressed: Annotated[bool, Field(description="Whether violation is suppressed via inline comment")]
 
 
-class CommentSuppressor:
-    """Parses inline comment suppressions (# noqa: QGRxxx) across physical source lines."""
+BANNED_REASON_PLACEHOLDERS: set[str] = {
+    "n/a",
+    "na",
+    "ok",
+    "none",
+    "test",
+    "todo",
+    "fix",
+    "pass",
+    "fail",
+    "temporary",
+    "temp",
+    "",
+}
 
-    def __init__(self, source_bytes: bytes) -> None:
+
+class CommentSuppressor:
+    """Parses inline comment suppressions (# noqa: QGRxxx [REASON: ...]) across physical source lines."""
+
+    def __init__(self, source_bytes: bytes, filepath: str = "unknown") -> None:
+        self.filepath = filepath
         self.suppressions: dict[int, set[str]] = {}
+        self.invalid_suppressions: list[GuardrailViolation] = []
         self._parse_comments(source_bytes)
 
     def _parse_comments(self, source_bytes: bytes) -> None:
@@ -62,14 +80,45 @@ class CommentSuppressor:
             for tok in tokens:
                 if tok.type == tokenize.COMMENT:
                     text = tok.string
-                    match = re.search(r"#\s*noqa(?::\s*([A-Za-z0-9_,\s]+))?", text, re.IGNORECASE)
+                    match = re.search(
+                        r"#\s*noqa(?::\s*([A-Za-z0-9_,\s]+))?(?:\s*\[(?:REASON|reason):\s*([^\]]+)\])?",
+                        text,
+                        re.IGNORECASE,
+                    )
                     if match:
                         rules_str = match.group(1)
+                        raw_reason = match.group(2)
                         line_num = tok.start[0]
+                        col_offset = tok.start[1]
                         if rules_str:
                             rule_codes = {r.strip().upper() for r in rules_str.split(",") if r.strip()}
                         else:
                             rule_codes = {"*"}
+
+                        qgr_rules = [r for r in rule_codes if r.startswith("QGR") or r == "*"]
+                        if qgr_rules:
+                            cleaned_reason = raw_reason.strip() if raw_reason else ""
+                            if (
+                                not cleaned_reason
+                                or len(cleaned_reason) < 10
+                                or cleaned_reason.lower() in BANNED_REASON_PLACEHOLDERS
+                            ):
+                                self.invalid_suppressions.append(
+                                    GuardrailViolation(
+                                        filepath=self.filepath,
+                                        lineno=line_num,
+                                        col_offset=col_offset,
+                                        rule_code="QGR000",
+                                        message=(
+                                            f"Unjustified # noqa suppression for rule(s) '{', '.join(sorted(rule_codes))}': "
+                                            f"Missing or insufficient '[REASON: <substantive justification>]' block (minimum 10 characters)."
+                                        ),
+                                        remediation="Append an explicit reason block to your suppression comment, e.g., '# noqa: QGR001 [REASON: Third-party LiteLLM model attribute]'.",
+                                        severity=GuardrailSeverity.FATAL,
+                                        is_suppressed=False,
+                                    )
+                                )
+                                continue
 
                         if line_num not in self.suppressions:
                             self.suppressions[line_num] = set()
@@ -491,7 +540,7 @@ def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[
 
     # 2. Check for tokenization errors and parse comments
     try:
-        suppressor = CommentSuppressor(source_bytes)
+        suppressor = CommentSuppressor(source_bytes, filepath=filepath)
         list(tokenize.tokenize(io.BytesIO(source_bytes).readline))
     except (tokenize.TokenError, IndentationError, SyntaxError) as exc:
         return [
@@ -525,7 +574,7 @@ def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[
             )
         ]
 
-    return visitor.violations
+    return suppressor.invalid_suppressions + visitor.violations
 
 
 def scan_file_for_guardrails(filepath: str | Path) -> list[GuardrailViolation]:
