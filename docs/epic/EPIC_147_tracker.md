@@ -186,6 +186,7 @@
   - Tier 2 Hardening (Frontend): `[OK]` (Verified cross-domain parity)
   - Pre-Delete Audit: `[OK]`
   - Semantic Coverage & Zero-Loss Audit: `[OK]` (All modules $\ge 90\%$ line coverage)
+  - As-Built Architectural Sync (Tier 7): `[OK]` (Pillars 3 & 5 + Directory Reference synchronized)
 
 ## Learned
 - **Target Anchoring in Audit Matrices**: `audit_matrix_manager.py` enforces target anchoring: citations in justifications cannot mention other source files unless they are common systemic dependencies (`settings.py`, `enums.py`, `conftest.py`).
@@ -194,6 +195,7 @@
 - **Session Bounding for Strictness**: Limiting hardening sessions to 3-5 files prevents context amnesia, ensures deep verification of every invariant, and maintains deterministic state transitions via `@[tmp/hardening_state.json]`.
 - **L10n Property Completeness**: All enum `@property l10n_key` getters must be tested against both mapped and unmapped variants to reach 100% line coverage and guarantee frontend `.arb` parity.
 - **DTO Immutability and Envelope Guarantees**: Enforcing `frozen=True` and `extra="forbid"` on engine and hook DTOs (`FlattenedAtom`, `MatrixEvaluationContext`, `EngineExecutionRequest`, `EngineExecutionResult`, `HookState`, `HookResult`) prevents subtle runtime mutations across asynchronous execution boundaries.
+- **Dual-Axis Architectural Synchronization**: The Tier 7 workflow mathematically decouples narrative capability documentation in `docs/architecture/` (timeless, present tense, zero file paths) from the physical routing laws in `.agents/rules/04_directory_reference.md`, preserving single-source truth while providing clear mental models.
 
 ## Codebase Physical Anchor Reference Map
 - `NodeExecutor`: `@[backend_v2/services/orchestrator/dag_executor.py#L119-L285]`
@@ -211,6 +213,9 @@
 - `SourceVerificationResultDTO`: `@[backend_v2/models/domain/source_verification.py#L61-L79]`
 - `Settings.min_verifiable_text_length`: `@[backend_v2/settings.py#L204-L206]`
 - `AST Guardrail Suite`: `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L1-L318]`
+- `Pillar 3 Architecture (Cognitive Orchestration)`: `@[docs/architecture/03_cognitive_orchestration_engine.md#L42-L46]`
+- `Pillar 5 Architecture (Resilience & Observability)`: `@[docs/architecture/05_resilience_and_observability.md#L30-L34]`
+- `Directory Reference SSOT`: `@[.agents/rules/04_directory_reference.md#L68-L72]`
 
 ## Remaining Targets in Post-Implementation Gates
 - Final Epic Audit: `/tier8-audit-epic @[docs/epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience.md]`
