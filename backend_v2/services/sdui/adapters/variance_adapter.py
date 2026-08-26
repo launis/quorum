@@ -8,6 +8,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.v2_core import MatrixScorecardRowDTO
 from backend_v2.models.view.sdui import (
@@ -18,6 +19,7 @@ from backend_v2.models.view.sdui import (
     SduiGridBlock,
     SduiMetrics1DBlock,
 )
+from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
@@ -138,29 +140,17 @@ class VarianceAdapter:
         authenticity_score = metrics.authenticity_score
         performative_phrases_count = metrics.performative_phrases_count
 
-        def get_metric_label(key: str) -> str:
-            lbl = context.profile.metric_mappings.get(key)
-            if not lbl:
-                msg = f"Strict Fail-Fast: Missing metric_mappings translation for '{key}'."
-                logger.error("[VarianceAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-            return lbl.resolve(context.locale)
-
-        lbl_mech = get_metric_label("variance_mechanical")
-        lbl_cog = get_metric_label("variance_cognitive")
-        lbl_var = get_metric_label("variance_total")
-        lbl_align = get_metric_label("alignment_verdict")
+        lbl_mech = LocalizationService.translate("variance_mechanical", context.locale)
+        lbl_cog = LocalizationService.translate("variance_cognitive", context.locale)
+        lbl_var = LocalizationService.translate("variance_total", context.locale)
+        lbl_align = LocalizationService.translate("alignment_verdict", context.locale)
 
         auth_score_rounded = float(f"{float(authenticity_score):.2f}")
         var_score_rounded = float(f"{float(metrics.variance_score):.2f}")
         is_aligned = str(metrics.alignment_verdict) == "ALIGNED"
 
         lvl_key = "aligned" if is_aligned else "misaligned"
-        align_val = get_metric_label(f"alignment_{lvl_key}")
+        align_val = LocalizationService.translate(f"alignment_{lvl_key}", context.locale)
 
         # 2. TRANSFORM: Iterate, look up visual rules, assemble blocks
         try:
@@ -195,19 +185,18 @@ class VarianceAdapter:
             llm_explanation = context.profile_cache.row_explanations.get("variance_validation", "")
 
         if not llm_explanation:
-            fallback_template = get_metric_label("variance_fallback_explanation")
+            fallback_template = LocalizationService.translate("variance_fallback_explanation", context.locale)
             llm_explanation = fallback_template.format(performative_phrases_count, auth_score_rounded)
 
-        variance_label = context.profile.extension_labels.get(XaiExtensionType.VARIANCE_VALIDATION)
-        if not variance_label:
-            msg = f"Strict Fail-Fast: Missing extension_labels mapping for {XaiExtensionType.VARIANCE_VALIDATION.value} in OutputProfile."
-            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-        title_str = variance_label.resolve(context.locale)
+        title_str = LocalizationService.translate(
+            f"xai_ext_{XaiExtensionType.VARIANCE_VALIDATION.value}", context.locale
+        )
+        variance_label = I18nText(
+            translations={
+                "fi": LocalizationService.translate(f"xai_ext_{XaiExtensionType.VARIANCE_VALIDATION.value}", "fi"),
+                "en": LocalizationService.translate(f"xai_ext_{XaiExtensionType.VARIANCE_VALIDATION.value}", "en"),
+            }
+        )
 
         variance_kwargs = {
             "block_id": "variance_metrics_row",

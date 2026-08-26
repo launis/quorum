@@ -211,6 +211,8 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
     }
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
@@ -483,6 +485,8 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_synthesis_block()
                 "synthesis": {
                     "synthesis_block_id": "",
                 },
+                "matrix_synthesis_groups": [],
+                "target_block_order": [],
             }
             mock_repo.get_workflow_by_id.return_value = {
                 "id": "wf_1234567890123456",
@@ -531,6 +535,8 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 },
                 "visible_workflow_extensions": ["authenticity_evaluation"],
                 "max_extension_items": None,
+                "matrix_synthesis_groups": [],
+                "target_block_order": [],
             }
             mock_repo.get_prompt_block.return_value = {
                 "id": "blk_1111222233334444",
@@ -616,16 +622,16 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                         "translations": {"en": "Direct tone", "fi": "Suora sävy"},
                     },
                 },
-                "layouts": [
+                "matrix_synthesis_groups": [
                     {
-                        "preset_view": "2d_compare",
+                        "id": "grp_1",
                         "title": {
                             "translations": {"en": "Matrix Section", "fi": "Matriisiosio"},
                         },
-                        "is_synthesis_enabled": True,
                         "target_blocks": ["blk_1111222233334444"],
                     }
                 ],
+                "target_block_order": ["matrix_graphs_block"],
                 "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
                 "max_extension_items": 3,
                 "performativity_detector_step_id": "step_perf",
@@ -749,6 +755,8 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
     }
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
@@ -830,6 +838,8 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "strictness_level": 85,
                 "scoring_strategy": "AVERAGE",
                 "display_scale": "original",
+                "matrix_synthesis_groups": [],
+                "target_block_order": [],
             }
 
             mock_repo.get_workflow_by_id.return_value = {

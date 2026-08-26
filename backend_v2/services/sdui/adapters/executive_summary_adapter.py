@@ -10,6 +10,7 @@ import logging
 from backend_v2.exceptions import AppException
 from backend_v2.models.enums import RoleClassification, TargetBlockType
 from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
+from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 __all__ = ["EXECUTIVE_SUMMARY_RULES", "ExecutiveSummaryAdapter"]
@@ -111,28 +112,13 @@ class ExecutiveSummaryAdapter:
                 ) from e
 
             # 3. ASSEMBLE: Resolve translation and construct role badge block
-            try:
-                role_val_i18n = profile.user_role_mappings[parsed_role.value]
-                role_val = role_val_i18n.resolve(locale)
-            except KeyError as e:
-                msg = f"Missing user_role_mappings for role '{parsed_role.value}'"
-                logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": "VALIDATION_FAILED"},
-                ) from e
+            role_key = parsed_role.value.lower()
+            role_val = LocalizationService.translate(role_key, locale)
 
-            if not profile.user_role_label:
-                msg = "Missing user_role_label in profile"
-                logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": "VALIDATION_FAILED"},
-                )
-
-            prefix = profile.user_role_label.resolve(locale)
+            if profile.user_role_label:
+                prefix = profile.user_role_label.resolve(locale)
+            else:
+                prefix = LocalizationService.translate("user_role_label", locale)
 
             blocks.append(
                 ParagraphBlock(

@@ -5,15 +5,13 @@ Visual rules are co-located as a module-level MATRIX_SUMMARY_RULES dictionary to
 """
 
 import logging
-from typing import Any
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
-    MarkdownBlock,
-    ParagraphBlock,
     SduiMatrixTableBlock,
 )
+from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
@@ -21,14 +19,19 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
-# All visual layout requirements for matrix summary table blocks are defined here.
-# Minimum axes is strictly enforced per KI: Adapters MUST NOT fallback
-# if structurally incompatible.
-# ============================================================================
 
-MATRIX_SUMMARY_RULES: dict[str, dict[str, Any]] = {
+MATRIX_SUMMARY_RULES: dict[str, dict[str, int]] = {
     "matrix_summary": {"min_axes": 1},
 }
+
+STANDARD_COLUMNS: list[str] = [
+    "label",
+    "distribution",
+    "row_explanation",
+    "quotes",
+    "normalized_score",
+    "score",
+]
 
 
 # ============================================================================
@@ -51,84 +54,34 @@ class MatrixSummaryTableAdapter:
 
         Returns:
             Ordered list of polymorphic SDUI blocks ready for rendering.
-
-        Raises:
-            AppException: If domain validation fails (e.g. incompatible axes count).
         """
         blocks: list[AnySduiBlock] = []
 
-        if context.is_data_starved or not context.profile.layouts:
+        if context.is_data_starved or not context.parsed_matrices:
             return blocks
 
-        locale = context.locale
-        all_parsed_matrices = context.parsed_matrices
-        section_syntheses = context.profile_cache.section_syntheses if context.profile_cache else {}
+        axes = list(context.parsed_matrices.values())
 
-        for idx, layout_def in enumerate(context.profile.layouts):
-            preset_view = layout_def.preset_view
+        visible_columns = STANDARD_COLUMNS
 
-            if preset_view not in MATRIX_SUMMARY_RULES:
-                continue
+        col_labels: dict[str, I18nText] = {}
+        for col in visible_columns:
+            key = f"matrix_col_{col}"
+            col_labels[col] = I18nText(
+                translations={
+                    "fi": LocalizationService.translate(key, "fi"),
+                    "en": LocalizationService.translate(key, "en"),
+                }
+            )
 
-            try:
-                rule = MATRIX_SUMMARY_RULES[preset_view]
-            except KeyError as e:
-                msg = f"Missing rule mapping for preset_view: {preset_view}"
-                logger.error("[MatrixSummaryTableAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": "CONFIGURATION_ERROR"},
-                ) from e
-
-            target_blocks = layout_def.target_blocks
-            axes = []
-            if target_blocks and "*" not in target_blocks:
-                for target_k in target_blocks:
-                    matched = next((axis for axis in all_parsed_matrices.values() if axis.block_id == target_k), None)
-                    if matched:
-                        axes.append(matched)
-            else:
-                axes = list(all_parsed_matrices.values())
-
-            # Fail-fast structural validation
-            if len(axes) < rule["min_axes"]:
-                msg = f"Structurally incompatible: layout '{preset_view}' requires at least {rule['min_axes']} axes, found {len(axes)}."
-                logger.error(
-                    "[MatrixSummaryTableAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-            if axes or layout_def.is_synthesis_enabled:
-                layout_id = f"layout_{idx}_{preset_view}"
-
-                section_blocks: list[AnySduiBlock] | None = None
-                if layout_def.is_synthesis_enabled and layout_id in section_syntheses:
-                    section_blocks = list(section_syntheses[layout_id])
-
-                if layout_def.title:
-                    blocks.append(MarkdownBlock(text=f"### {layout_def.title.resolve(locale)}"))
-
-                if layout_def.description:
-                    blocks.append(
-                        ParagraphBlock(text=layout_def.description.resolve(locale), exact_quotes=[], citations=[])
-                    )
-
-                if section_blocks:
-                    blocks.extend(section_blocks)
-
-                blocks.append(
-                    SduiMatrixTableBlock(
-                        title=None,
-                        axes=axes,
-                        matrix_column_labels=layout_def.matrix_column_labels,
-                        matrix_visible_columns=layout_def.matrix_visible_columns,
-                        extension_labels=context.profile.extension_labels,
-                    )
-                )
+        blocks.append(
+            SduiMatrixTableBlock(
+                title=None,
+                axes=axes,
+                matrix_column_labels=col_labels,
+                matrix_visible_columns=visible_columns,
+                extension_labels={},
+            )
+        )
 
         return blocks

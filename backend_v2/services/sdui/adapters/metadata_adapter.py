@@ -7,8 +7,8 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.view.sdui import AnySduiBlock, SduiMetadataBlock
+from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 __all__ = ["METADATA_RULES", "MetadataAdapter"]
@@ -47,23 +47,11 @@ class MetadataAdapter:
             Ordered list of polymorphic SDUI blocks ready for rendering.
 
         Raises:
-            AppException: If profile, profile name, or metric mapping is missing.
+            AppException: If profile or profile name is missing.
         """
         blocks: list[AnySduiBlock] = []
 
         title = context.profile.name.resolve(context.locale)
-
-        def get_metadata_label(key: str) -> str:
-            lbl = context.profile.metric_mappings.get(key)
-            if not lbl:
-                msg = f"Strict Fail-Fast: Missing metric_mappings translation for '{key}'."
-                logger.error("[MetadataAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-            return lbl.resolve(context.locale)
 
         metadata_lines: list[str] = []
         costs_val: str | None = None
@@ -73,24 +61,24 @@ class MetadataAdapter:
 
         for field in visible_fields:
             if field == "user" and context.user_name:
-                lbl = get_metadata_label("metadata_user")
+                lbl = LocalizationService.translate("metadata_user", context.locale)
                 metadata_lines.append(f"{lbl}: {context.user_name}")
             elif field == "organization" and context.org_name:
-                lbl = get_metadata_label("metadata_organization")
+                lbl = LocalizationService.translate("metadata_organization", context.locale)
                 metadata_lines.append(f"{lbl}: {context.org_name}")
             elif field == "date" and context.execution:
                 if context.local_time_str:
                     metadata_lines.append(context.local_time_str)
                 elif context.execution.created_at:
-                    metadata_lines.append(context.execution.created_at.strftime("%d.%m.%Y %H:%M"))
+                    metadata_lines.append(LocalizationService.format_date(context.execution.created_at, context.locale))
             elif field == "scoring_engine" and context.scoring_engine:
-                lbl = get_metadata_label("metadata_scoring_engine")
+                lbl = LocalizationService.translate("metadata_scoring_engine", context.locale)
                 metadata_lines.append(f"{lbl}: {context.scoring_engine}")
             elif field == "strictness" and context.profile.strictness_level is not None:
-                lbl = get_metadata_label("metadata_strictness")
+                lbl = LocalizationService.translate("metadata_strictness", context.locale)
                 metadata_lines.append(f"{lbl}: {context.profile.strictness_level}")
             elif field == "cost" and context.cost is not None:
-                costs_val = f"${context.cost:.2f}"
+                costs_val = LocalizationService.format_cost(context.cost, context.locale)
             elif field == "tokens" and context.tokens is not None:
                 tokens_val = {"total": str(context.tokens)}
 

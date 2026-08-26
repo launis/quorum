@@ -433,14 +433,15 @@ class LLMNodeStrategy(NodeStrategy):
                 tone = output_profile.tone_instruction.get(target_locale, output_profile.tone_instruction.get("en", ""))
                 if tone:
                     exec_params.append(f"  <tone_instruction>{tone}</tone_instruction>")
-            if output_profile.layouts:
+            if output_profile.matrix_synthesis_groups:
                 try:
-                    layouts_json = json.dumps(
-                        [layout.model_dump(mode="json") for layout in output_profile.layouts], ensure_ascii=False
+                    groups_json = json.dumps(
+                        [grp.model_dump(mode="json") for grp in output_profile.matrix_synthesis_groups],
+                        ensure_ascii=False,
                     )
-                    exec_params.append(f"  <layouts>{layouts_json}</layouts>")
+                    exec_params.append(f"  <matrix_synthesis_groups>{groups_json}</matrix_synthesis_groups>")
                 except Exception as e:
-                    logger.warning(f"Failed to serialize layouts for prompt injection: {e}")
+                    logger.warning(f"Failed to serialize matrix_synthesis_groups for prompt injection: {e}")
             exec_params.append("</execution_parameters>")
 
             if len(exec_params) > 2:

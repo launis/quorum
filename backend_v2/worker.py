@@ -43,10 +43,7 @@ from backend_v2.models.prompts import (
     EXECUTIVE_SUMMARY_DIRECTIVE,
     EXECUTIVE_SUMMARY_SECTION_ID,
     GLOBAL_MANDATES_XML,
-    MATRIX_1D_SYNTHESIS_DIRECTIVE,
     MATRIX_2D_SYNTHESIS_DIRECTIVE,
-    MATRIX_3D_SYNTHESIS_DIRECTIVE,
-    MATRIX_TEXT_SYNTHESIS_DIRECTIVE,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SECTION_RULES_PREFIX,
@@ -952,63 +949,51 @@ async def generate_profile_synthesis_and_pdf_task(
                     )
                 )
 
-                # 2. Dedicated Matrix Layout Sections tasks
-                if active_profile_dto and active_profile_dto.layouts:
+                # 2. Dedicated Matrix Synthesis Groups tasks
+                if active_profile_dto and active_profile_dto.matrix_synthesis_groups:
                     language = distilled_data.get("language", "en")
                     title_map = distilled_data.get("title_map", {})
 
-                    for i, lay in enumerate(active_profile_dto.layouts):
-                        if not lay.is_synthesis_enabled:
-                            continue
-
-                        lay_id = f"layout_{i}_{lay.preset_view}"
-                        lay_title = lay.title.resolve(language) if lay.title else lay_id
+                    for grp in active_profile_dto.matrix_synthesis_groups:
+                        grp_id = grp.id
+                        grp_title = grp.title.resolve(language) if grp.title else grp_id
 
                         target_titles = []
-                        if lay.target_blocks:
-                            for tb in lay.target_blocks:
+                        if grp.target_blocks:
+                            for tb in grp.target_blocks:
                                 if tb.lower() in title_map:
                                     target_titles.append(title_map[tb.lower()])
                         target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
 
-                        directive_content = ""
-                        if lay.preset_view in ("1d_metrics", "1d"):
-                            directive_content = MATRIX_1D_SYNTHESIS_DIRECTIVE
-                        elif lay.preset_view in ("2d_compare", "2d"):
-                            directive_content = MATRIX_2D_SYNTHESIS_DIRECTIVE
-                        elif lay.preset_view in ("3d_matrix", "3d"):
-                            directive_content = MATRIX_3D_SYNTHESIS_DIRECTIVE
-                        elif lay.preset_view in ("text_only", "text"):
-                            directive_content = MATRIX_TEXT_SYNTHESIS_DIRECTIVE
+                        directive_content = grp.synthesis_directive or MATRIX_2D_SYNTHESIS_DIRECTIVE
 
-                        if directive_content:
-                            lay_dynamic_parts = list(base_dynamic_parts)
-                            lay_section_rule = (
-                                f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{lay_id}" title="{lay_title}"{target_str}>\n'
-                                f"{directive_content}\n"
-                                f"</section_instruction>\n\n{SECTION_SYNTHESIS_DIRECTIVE_BLOCK}"
-                            )
-                            lay_dynamic_parts.append(lay_section_rule)
-                            lay_dynamic_context = "\n\n".join(lay_dynamic_parts)
+                        grp_dynamic_parts = list(base_dynamic_parts)
+                        grp_section_rule = (
+                            f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{grp_id}" title="{grp_title}"{target_str}>\n'
+                            f"{directive_content}\n"
+                            f"</section_instruction>\n\n{SECTION_SYNTHESIS_DIRECTIVE_BLOCK}"
+                        )
+                        grp_dynamic_parts.append(grp_section_rule)
+                        grp_dynamic_context = "\n\n".join(grp_dynamic_parts)
 
-                            lay_messages: list[dict[str, Any]] = [
-                                {"role": "system", "content": sys_prompt},
-                                {
-                                    "role": "user",
-                                    "content": (
-                                        f"<dynamic_context>\n{lay_dynamic_context}\n</dynamic_context>"
-                                        f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
-                                    ),
-                                },
-                            ]
-                            task_handle = tg.create_task(
-                                client.run_structured_task(
-                                    messages=lay_messages,
-                                    response_model=MatrixSectionSynthesesResult,
-                                    mock_identity=f"MatrixSectionTask_{lay_id}",
-                                )
+                        grp_messages: list[dict[str, Any]] = [
+                            {"role": "system", "content": sys_prompt},
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"<dynamic_context>\n{grp_dynamic_context}\n</dynamic_context>"
+                                    f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
+                                ),
+                            },
+                        ]
+                        task_handle = tg.create_task(
+                            client.run_structured_task(
+                                messages=grp_messages,
+                                response_model=MatrixSectionSynthesesResult,
+                                mock_identity=f"MatrixSectionTask_{grp_id}",
                             )
-                            t_matrix_sections.append((lay_id, task_handle))
+                        )
+                        t_matrix_sections.append((grp_id, task_handle))
 
                 # 3. Dedicated XAI Highlights task
                 if active_profile_dto and (

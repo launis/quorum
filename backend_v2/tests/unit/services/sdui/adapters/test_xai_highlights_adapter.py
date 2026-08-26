@@ -22,13 +22,7 @@ def valid_output_profile_fixture() -> OutputProfile:
         slug="test-profile",
         workflow_id="wfw_test",
         name=I18nText(translations={"en": "Test Profile"}),
-        layouts=[],
         target_block_order=[],
-        extension_labels={
-            XaiExtensionType.COACHING: I18nText(translations={"en": "Coaching"}),
-            XaiExtensionType.FALSIFICATION: I18nText(translations={"en": "Falsification"}),
-            XaiExtensionType.REMEDIATION_STEPS: I18nText(translations={"en": "Remediation"}),
-        },
         visible_block_extensions=[
             XaiExtensionType.COACHING,
             XaiExtensionType.FALSIFICATION,
@@ -258,7 +252,7 @@ def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: Out
 
     coaching_block = next(b for b in blocks if isinstance(b, AccordionBlock) and b.title == "Coaching")
     falsification_block = next(b for b in blocks if isinstance(b, AccordionBlock) and b.title == "Falsification")
-    remediation_block = next(b for b in blocks if isinstance(b, AccordionBlock) and b.title == "Remediation")
+    remediation_block = next(b for b in blocks if isinstance(b, AccordionBlock) and b.title == "Remediation Steps")
 
     # Each accordion should receive exactly max_extension_items (2) items
     assert len(coaching_block.children) == 2
@@ -324,36 +318,7 @@ def test_build_malformed_highlight_item_skipped(
     )
 
 
-def test_build_missing_extension_label_raises_configuration_error(
-    valid_output_profile_fixture: OutputProfile,
-) -> None:
-    """Error path: missing extension label in profile SSOT raises ConfigurationError."""
-    from backend_v2.exceptions import ConfigurationError
-    from backend_v2.models.dtos.synthesis import XaiHighlightItem
 
-    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
-    profile_without_labels = valid_output_profile_fixture.model_copy(update={"extension_labels": {}})
-
-    context = AdapterContext(
-        execution=execution,
-        locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
-        profile=profile_without_labels,
-        profile_cache=RenderedSynthesisCache(
-            section_syntheses={},
-            cited_sources=[],
-            xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Valid insight.")],
-        ),
-        user_name=None,
-        org_name=None,
-    )
-
-    with pytest.raises(ConfigurationError) as exc_info:
-        XaiHighlightsAdapter.build(context)
-
-    assert "Missing extension label configuration for coaching in profile SSOT" in str(exc_info.value)
 
 
 def test_build_missing_aesthetics_rule_raises_app_exception(

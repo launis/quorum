@@ -456,3 +456,12 @@ class ExecutionState(V2CoreBase):
         default_factory=list, description="Selected quotes to support the findings."
     )
     urgency_level: int = Field(description="Urgency or severity level.")
+
+
+_state_types = {
+    "ErrorTraceEvent": ErrorTraceEvent,
+    "TombstoneEvent": TombstoneEvent,
+    "TraceEvent": TraceEvent,
+}
+ExecutionCoreFields.model_rebuild(_types_namespace=_state_types)
+

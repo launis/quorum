@@ -8,6 +8,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.v2_core import MatrixScorecardRowDTO
 from backend_v2.models.view.sdui import (
@@ -18,6 +19,7 @@ from backend_v2.models.view.sdui import (
     SduiGridBlock,
     SduiMetrics1DBlock,
 )
+from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.settings import get_settings
 
@@ -136,20 +138,8 @@ class AuthenticityAdapter:
 
         auth_score_rounded = float(f"{float(authenticity_score):.2f}")
 
-        def get_metric_label(key: str) -> str:
-            lbl = context.profile.metric_mappings.get(key)
-            if not lbl:
-                msg = f"Strict Fail-Fast: Missing metric_mappings translation for '{key}'."
-                logger.error("[AuthenticityAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-            return lbl.resolve(context.locale)
-
-        lbl_jargon = get_metric_label("jargon_score")
-        lbl_auth_level = get_metric_label("authenticity_level")
+        lbl_jargon = LocalizationService.translate("jargon_score", context.locale)
+        lbl_auth_level = LocalizationService.translate("authenticity_level", context.locale)
 
         grid_block = SduiGridBlock(
             items=[
@@ -182,7 +172,7 @@ class AuthenticityAdapter:
             ) from e
 
         alert_severity = aesthetics["severity"]
-        lbl_lvl = get_metric_label(lvl_key)
+        lbl_lvl = LocalizationService.translate(lvl_key, context.locale)
 
         alert_block = AlertBlock(
             severity=alert_severity,
@@ -196,20 +186,18 @@ class AuthenticityAdapter:
             llm_explanation = context.profile_cache.row_explanations.get("authenticity_evaluation", "")
 
         if not llm_explanation:
-            fallback_template = get_metric_label("authenticity_fallback_explanation")
+            fallback_template = LocalizationService.translate("authenticity_fallback_explanation", context.locale)
             llm_explanation = fallback_template.format(auth_score_rounded)
 
-        auth_label = context.profile.extension_labels.get(XaiExtensionType.AUTHENTICITY_EVALUATION)
-        if not auth_label:
-            msg = f"Strict Fail-Fast: Missing extension_labels mapping for {XaiExtensionType.AUTHENTICITY_EVALUATION.value} in OutputProfile."
-            logger.error("[AuthenticityAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-
-        title_str = auth_label.resolve(context.locale)
+        title_str = LocalizationService.translate(
+            f"xai_ext_{XaiExtensionType.AUTHENTICITY_EVALUATION.value}", context.locale
+        )
+        auth_label = I18nText(
+            translations={
+                "fi": LocalizationService.translate(f"xai_ext_{XaiExtensionType.AUTHENTICITY_EVALUATION.value}", "fi"),
+                "en": LocalizationService.translate(f"xai_ext_{XaiExtensionType.AUTHENTICITY_EVALUATION.value}", "en"),
+            }
+        )
 
         auth_kwargs = {
             "block_id": "authenticity_metrics_row",

@@ -19,7 +19,6 @@ def base_output_profile() -> OutputProfile:
         slug="test-profile",
         workflow_id="wfw_test",
         name=I18nText(translations={"en": "Test Profile"}),
-        layouts=[],
         target_block_order=[],
     )
 

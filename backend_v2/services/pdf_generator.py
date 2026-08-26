@@ -81,6 +81,18 @@ class PdfReportService:
         self.env.filters["md"] = md_filter
         self.env.filters["group_atoms_by_level"] = group_atoms_by_level
 
+        def raise_unrecognized_sdui_block(block_type: str) -> None:
+            """Strict fail-fast hook for unrecognized SDUI blocks in Jinja2."""
+            msg = f"Strict Fail-Fast: Unrecognized SDUI block_type '{block_type}' encountered during PDF rendering."
+            logger.error("[PdfReportService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "block_type": block_type},
+            )
+
+        self.env.globals["raise_unrecognized_sdui_block"] = raise_unrecognized_sdui_block
+
     async def generate_execution_html(
         self, execution_id: str, report_dto: ReportDataDTO, locale: str | None = None
     ) -> str:

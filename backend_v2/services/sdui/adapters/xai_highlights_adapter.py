@@ -8,9 +8,10 @@ XAI_AESTHETICS_RULES dictionary to enforce separation of presentation from logic
 import logging
 from typing import Any, Literal, cast
 
-from backend_v2.exceptions import AppException, ConfigurationError
+from backend_v2.exceptions import AppException
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.view.sdui import AccordionBlock, AlertBlock, AnySduiBlock
+from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.utils.ranked_round_robin import ranked_round_robin_select
 
@@ -55,27 +56,46 @@ class XaiHighlightsAdapter:
             Ordered list of polymorphic SDUI blocks ready for rendering.
 
         Raises:
-            AppException: If missing rule mapping in XAI_AESTHETICS_RULES.
-            ConfigurationError: If missing extension label configuration in profile SSOT.
+            KeyError: If an unmapped key is encountered in XAI_AESTHETICS_RULES.
+                This is intentional Fail-Fast behavior indicating incomplete
+                rules configuration.
+            AppException: If domain validation fails.
         """
         blocks: list[AnySduiBlock] = []
 
-        if context.is_data_starved or not context.profile_cache or not context.profile_cache.xai_highlights:
-            return blocks
-
+        profile_cache = context.profile_cache
         profile = context.profile
         locale = context.locale
 
-        # Graceful UI degradation: return empty list if extensions disabled or max items zero
-        if not profile.visible_block_extensions or not profile.max_extension_items:
+        if context.is_data_starved or not profile_cache or not profile_cache.xai_highlights:
             return blocks
 
-        valid_highlights = [h for h in context.profile_cache.xai_highlights if h.extension_type and h.content]
+        if profile.max_extension_items == 0:
+            return blocks
+
+        if not profile.visible_block_extensions:
+            return blocks
+
+        highlights = profile_cache.xai_highlights
+        valid_highlights = []
+        for h in highlights:
+            if not h.extension_type or not h.content:
+                continue
+            try:
+                ext_enum = XaiExtensionType(h.extension_type)
+                if profile.visible_block_extensions and ext_enum in profile.visible_block_extensions:
+                    valid_highlights.append(h)
+            except ValueError:
+                logger.warning("[XaiHighlightsAdapter] LLM hallucinated extension type: %s", h.extension_type)
+                continue
 
         if not valid_highlights:
             return blocks
 
-        max_total_items = len(profile.visible_block_extensions) * profile.max_extension_items
+        max_lines_per_type = profile.max_extension_items if profile.max_extension_items is not None else 3
+        num_visible_types = len(profile.visible_block_extensions) if profile.visible_block_extensions else 1
+        max_total_items = max_lines_per_type * num_visible_types
+
         curated_highlights = ranked_round_robin_select(
             items=valid_highlights,
             group_key=lambda h: h.extension_type,
@@ -111,18 +131,9 @@ class XaiHighlightsAdapter:
                     details={"error_code": "CONFIGURATION_ERROR"},
                 ) from e
 
-            label_obj = profile.extension_labels.get(ext_enum) if profile.extension_labels else None
-            if not label_obj:
-                msg = f"Missing extension label configuration for {ext_type_str} in profile SSOT"
-                logger.error("[XaiHighlightsAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
-                raise ConfigurationError(
-                    msg,
-                    details={"extension_key": ext_type_str},
-                )
+            label_str = LocalizationService.translate(f"xai_ext_{ext_type_str}", locale)
 
             if profile.visible_block_extensions and ext_enum in profile.visible_block_extensions:
-                label_str = label_obj.resolve(locale)
-
                 acc_severity = aesthetics["severity"]
                 acc_icon = aesthetics["icon_name"]
 
@@ -131,7 +142,7 @@ class XaiHighlightsAdapter:
                     acc_severity.value,
                 )
 
-                max_lines = profile.max_extension_items
+                max_lines = profile.max_extension_items or 3
 
                 accordion = next(
                     (b for b in global_exts if b.title == label_str),

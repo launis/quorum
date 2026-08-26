@@ -275,3 +275,48 @@ async def test_pdf_generator_filters_and_matrix_summary() -> None:
     html = await svc.generate_execution_html(execution_id="exe_matrix33333333", report_dto=dto, locale="fi")
     assert "Test Axis" in html
     assert "Testiprofiili" in html
+
+
+def test_pdf_generator_raise_unrecognized_sdui_block() -> None:
+    svc = PdfReportService()
+    fn = svc.env.globals["raise_unrecognized_sdui_block"]
+    with pytest.raises(AppException) as exc_info:
+        fn("unknown_custom_block")
+    assert exc_info.value.status_code == 500
+    assert "Unrecognized SDUI block_type 'unknown_custom_block'" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_pdf_generator_render_html_unexpected_exception() -> None:
+    svc = PdfReportService()
+    dto = ReportDataDTO(
+        execution_id="exe_matrix44444444",
+        strictness_level=85,
+        workflow_id="test_wf",
+        profile_id="prf_test",
+        profile_name=I18nText(translations={"en": "Test Profile"}),
+        inner_sdui_blocks=[],
+    )
+    with patch.object(svc.env, "get_template", side_effect=RuntimeError("disk error")):
+        with pytest.raises(AppException) as exc_info:
+            await svc.generate_execution_html(execution_id="exe_matrix44444444", report_dto=dto, locale="en")
+        assert exc_info.value.status_code == 500
+        assert "HTML generation failed" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_pdf_generator_render_pdf_unexpected_exception() -> None:
+    svc = PdfReportService()
+    dto = ReportDataDTO(
+        execution_id="exe_matrix55555555",
+        strictness_level=85,
+        workflow_id="test_wf",
+        profile_id="prf_test",
+        profile_name=I18nText(translations={"en": "Test Profile"}),
+        inner_sdui_blocks=[],
+    )
+    with patch("weasyprint.HTML", side_effect=RuntimeError("weasyprint crash")):
+        with pytest.raises(AppException) as exc_info:
+            await svc.generate_execution_pdf(execution_id="exe_matrix55555555", report_dto=dto, locale="en")
+        assert exc_info.value.status_code == 500
+        assert "PDF generation failed" in exc_info.value.message

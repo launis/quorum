@@ -1393,7 +1393,6 @@ from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngres
 from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.dtos.trace import DataStarvationEvent
 from backend_v2.models.execution_core import ExecutionCoreFields
-from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.view.sdui import AnySduiBlock
 
 _sdui_localns = {
@@ -1407,14 +1406,6 @@ sdui_mod.SduiScatterPlotBlock.model_rebuild(_types_namespace=_sdui_localns)
 sdui_mod.SduiMatrixTableBlock.model_rebuild(_types_namespace=_sdui_localns)
 sdui_mod.SduiMetrics1DBlock.model_rebuild(_types_namespace=_sdui_localns)
 sdui_mod.SduiGridBlock.model_rebuild(_types_namespace=_sdui_localns)
-
-_state_types = {
-    "ErrorTraceEvent": ErrorTraceEvent,
-    "TombstoneEvent": TombstoneEvent,
-    "TraceEvent": TraceEvent,
-}
-ExecutionCoreFields.model_rebuild(_types_namespace=_state_types)
-ExecutionRecord.model_rebuild(_types_namespace=_state_types)
 
 RenderedSynthesisCache.model_rebuild(
     _types_namespace={

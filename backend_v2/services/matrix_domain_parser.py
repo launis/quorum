@@ -108,11 +108,6 @@ class MatrixDomainParser:
         # Safe attribute access using V2 Models
         display_scale = profile.display_scale
         matrix_visible_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
-        if profile.layouts:
-            for lay in profile.layouts:
-                if lay.preset_view == "3d_matrix" and lay.matrix_visible_columns:
-                    matrix_visible_cols = lay.matrix_visible_columns
-                    break
 
         for dto in results:
             step_id = dto.step_id

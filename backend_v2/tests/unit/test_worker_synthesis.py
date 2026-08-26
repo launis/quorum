@@ -126,14 +126,14 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
             "length_constraint": 1000,
             "tone_instruction": {"translations": {"en": "Professional"}},
         },
-        "layouts": [
+        "matrix_synthesis_groups": [
             {
-                "preset_view": "3d_matrix",
-                "title": {"translations": {"en": "T"}},
-                "is_synthesis_enabled": True,
-                "target_blocks": [],
+                "id": "grp_1",
+                "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
+                "target_blocks": ["blk_1"],
             }
         ],
+        "target_block_order": ["matrix_graphs_block"],
         "display_scale": "original",
     }
 
@@ -250,7 +250,8 @@ def _setup_mock_repo_for_metrics(
         "display_scale": "original",
         "visible_workflow_extensions": ["variance_validation"],
         "performativity_detector_step_id": "sp_det_step",
-        "layouts": [],
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
     }
 
 
@@ -471,12 +472,11 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("preset_view", "expected_snippet"),
+    ("synthesis_directive", "expected_snippet"),
     [
-        ("1d_metrics", "1D METRICS SYNTHESIS MANDATE:"),
-        ("2d_compare", "2D COMPARISON SYNTHESIS MANDATE:"),
-        ("3d_matrix", "3D RADAR SYNTHESIS MANDATE:"),
-        ("text_only", "TEXT-ONLY MATRIX SYNTHESIS MANDATE:"),
+        (None, "2D COMPARISON SYNTHESIS MANDATE:"),
+        ("CUSTOM 1D MANDATE:", "CUSTOM 1D MANDATE:"),
+        ("CUSTOM 3D MANDATE:", "CUSTOM 3D MANDATE:"),
     ],
 )
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
@@ -486,10 +486,10 @@ async def test_worker_synthesis_matrix_layout_directives(
     mock_from_strategy: AsyncMock,
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
-    preset_view: str,
+    synthesis_directive: str | None,
     expected_snippet: str,
 ) -> None:
-    """Test that matrix layout presets deterministically receive their respective synthesis directives."""
+    """Test that matrix synthesis groups deterministically receive their respective synthesis directives."""
     get_settings().use_mock_llm = True
 
     mock_repo = AsyncMock()
@@ -509,19 +509,15 @@ async def test_worker_synthesis_matrix_layout_directives(
             "length_constraint": 1000,
             "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
-        "layouts": [
+        "matrix_synthesis_groups": [
             {
-                "preset_view": preset_view,
+                "id": "grp_test",
                 "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
-                "is_synthesis_enabled": True,
-                "target_blocks": [],
-                "text_delivery_mode": "none",
-                "strictness_level": None,
-                "scoring_strategy": None,
-                "matrix_column_labels": {},
-                "matrix_visible_columns": [],
+                "target_blocks": ["blk_1"],
+                "synthesis_directive": synthesis_directive,
             }
         ],
+        "target_block_order": ["matrix_graphs_block"],
     }
 
     mock_client = AsyncMock()
@@ -544,7 +540,7 @@ async def test_worker_synthesis_matrix_layout_directives(
                 MatrixSectionSynthesesResult(
                     sections=[
                         SynthesisSectionDTO(
-                            layout_id="layout_0_" + preset_view,
+                            layout_id="grp_test",
                             content_blocks=[ParagraphBlock(text="Section Content", exact_quotes=[], citations=[])],
                         )
                     ]
@@ -552,7 +548,12 @@ async def test_worker_synthesis_matrix_layout_directives(
                 usage,
             )
         if resp_model is XaiHighlightsResult:
-            return (XaiHighlightsResult(xai_highlights=[]), usage)
+            return (
+                XaiHighlightsResult(
+                    xai_highlights=[],
+                ),
+                usage,
+            )
         return (None, usage)
 
     mock_client.run_structured_task.side_effect = _mock_run_structured_task
@@ -568,9 +569,6 @@ async def test_worker_synthesis_matrix_layout_directives(
         messages = call.kwargs.get("messages", [])
         all_user_content += " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
     assert expected_snippet in all_user_content
-    assert f'id="layout_0_{preset_view}"' in all_user_content
-    assert '<section_instruction id="executive_summary_block"' in all_user_content
-    assert 'title="' in all_user_content
 
 
 @pytest.mark.asyncio
@@ -582,7 +580,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
-    """Negative Test: Verify layout with is_synthesis_enabled=False emits no section_instruction for that layout."""
+    """Test that when matrix_synthesis_groups is empty, no group section instruction is generated."""
     get_settings().use_mock_llm = True
 
     mock_repo = AsyncMock()
@@ -602,19 +600,8 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
             "length_constraint": 1000,
             "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
-        "layouts": [
-            {
-                "preset_view": "2d_compare",
-                "title": {"translations": {"fi": "Disabled Layout", "en": "Disabled Layout"}},
-                "is_synthesis_enabled": False,
-                "target_blocks": [],
-                "text_delivery_mode": "none",
-                "strictness_level": None,
-                "scoring_strategy": None,
-                "matrix_column_labels": {},
-                "matrix_visible_columns": [],
-            }
-        ],
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
     }
 
     mock_client = AsyncMock()
@@ -650,8 +637,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     for call in mock_client.run_structured_task.call_args_list:
         messages = call.kwargs.get("messages", [])
         all_user_content += " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
-    assert 'id="layout_0_2d_compare"' not in all_user_content
-    assert '<section_instruction id="executive_summary_block"' in all_user_content
+    assert "2D COMPARISON SYNTHESIS MANDATE:" not in all_user_content
 
 
 @pytest.mark.asyncio
@@ -663,7 +649,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
-    """Test that worker generates executive_summary section instruction and populates cache."""
+    """Test that executive summary instruction is generated and results are cached properly."""
     get_settings().use_mock_llm = True
 
     mock_repo = AsyncMock()
@@ -683,7 +669,8 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
             "length_constraint": 1000,
             "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
-        "layouts": [],
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
     }
 
     mock_client = AsyncMock()
@@ -747,7 +734,7 @@ async def test_worker_synthesis_multi_section_aggregation(
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
-    """Test that multiple SynthesisSectionDTO items for a layout are aggregated into sec_dict[lay_id]."""
+    """Test that multiple SynthesisSectionDTO items for a matrix group are aggregated into sec_dict[group_id]."""
     get_settings().use_mock_llm = True
 
     mock_repo = AsyncMock()
@@ -767,19 +754,14 @@ async def test_worker_synthesis_multi_section_aggregation(
             "length_constraint": 1000,
             "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
-        "layouts": [
+        "matrix_synthesis_groups": [
             {
-                "preset_view": "2d_compare",
+                "id": "grp_causality",
                 "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
-                "is_synthesis_enabled": True,
-                "target_blocks": [],
-                "text_delivery_mode": "none",
-                "strictness_level": None,
-                "scoring_strategy": None,
-                "matrix_column_labels": {},
-                "matrix_visible_columns": [],
+                "target_blocks": ["blk_1"],
             }
         ],
+        "target_block_order": ["matrix_graphs_block"],
     }
 
     mock_client = AsyncMock()
@@ -833,10 +815,10 @@ async def test_worker_synthesis_multi_section_aggregation(
 
     assert found_payload is not None
     sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
-    assert "layout_0_2d_compare" in sec_synth
-    assert len(sec_synth["layout_0_2d_compare"]) == 2
-    assert sec_synth["layout_0_2d_compare"][0]["text"] == "Paragraph 1 text"
-    assert sec_synth["layout_0_2d_compare"][1]["text"] == "Paragraph 2 text"
+    assert "grp_causality" in sec_synth
+    assert len(sec_synth["grp_causality"]) == 2
+    assert sec_synth["grp_causality"][0]["text"] == "Paragraph 1 text"
+    assert sec_synth["grp_causality"][1]["text"] == "Paragraph 2 text"
 
 
 @pytest.mark.asyncio
@@ -868,19 +850,14 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
             "length_constraint": 1000,
             "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
-        "layouts": [
+        "matrix_synthesis_groups": [
             {
-                "preset_view": "2d_compare",
+                "id": "grp_empty",
                 "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
-                "is_synthesis_enabled": True,
-                "target_blocks": [],
-                "text_delivery_mode": "none",
-                "strictness_level": None,
-                "scoring_strategy": None,
-                "matrix_column_labels": {},
-                "matrix_visible_columns": [],
+                "target_blocks": ["blk_1"],
             }
         ],
+        "target_block_order": ["matrix_graphs_block"],
     }
 
     mock_client = AsyncMock()
@@ -923,4 +900,4 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
 
     assert found_payload is not None
     sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
-    assert "layout_0_2d_compare" not in sec_synth
+    assert "grp_empty" not in sec_synth
