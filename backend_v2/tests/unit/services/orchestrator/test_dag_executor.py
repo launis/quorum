@@ -365,6 +365,7 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
 async def test_node_executor_blueprint_missing_error(mock_repo: Any, mock_compiler: Any) -> None:
     """Test NodeExecutor fails fast when step has no task_blueprint."""
     import asyncio
+
     from backend_v2.exceptions import ErrorCodes
     from backend_v2.models.v2_core import StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
@@ -403,6 +404,7 @@ async def test_node_executor_blueprint_missing_error(mock_repo: Any, mock_compil
 async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compiler: Any) -> None:
     """Test NodeExecutor fails fast when step definition is not found in repository."""
     import asyncio
+
     from backend_v2.exceptions import ErrorCodes
     from backend_v2.models.v2_core import StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
@@ -518,9 +520,12 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
 
 
 @pytest.mark.asyncio
-async def test_node_executor_normalizes_input_mappings_and_handles_exception(mock_repo: Any, mock_compiler: Any) -> None:
+async def test_node_executor_normalizes_input_mappings_and_handles_exception(
+    mock_repo: Any, mock_compiler: Any
+) -> None:
     """Test NodeExecutor input_mappings normalization and error trace event returning on generic exception."""
     import asyncio
+
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.enums import PromptBlockCategory
     from backend_v2.models.state import ErrorTraceEvent, StepOutputDTO
@@ -565,10 +570,14 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(moc
         "description": {"default_locale": "en", "translations": {"en": "en"}},
     }
     projector = MagicMock()
-    projector.snapshot = [StepOutputDTO(step_id="step1", block_id="b1", data_type="text", payload={"text_field": "hello"})]
+    projector.snapshot = [
+        StepOutputDTO(step_id="step1", block_id="b1", data_type="text", payload={"text_field": "hello"})
+    ]
     semaphore = asyncio.Semaphore(1)
 
-    with patch("backend_v2.services.orchestrator.strategies.registry.NodeStrategyFactory.create_strategy") as mock_factory:
+    with patch(
+        "backend_v2.services.orchestrator.strategies.registry.NodeStrategyFactory.create_strategy"
+    ) as mock_factory:
         mock_strat = MagicMock(spec=NodeStrategy)
         mock_strat.assert_quota = AsyncMock(side_effect=Exception("Generic Strategy Failure"))
         mock_factory.return_value = mock_strat
@@ -617,7 +626,9 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
         description=I18nText(default_locale="en", translations={"en": "Desc"}),
         steps=[
             StepRule(id="stp_1111222233334444", task_blueprint="bp_1111222233334444", depends_on=[]),
-            StepRule(id="stp_5555666677778888", task_blueprint="bp_5555666677778888", depends_on=["stp_1111222233334444"]),
+            StepRule(
+                id="stp_5555666677778888", task_blueprint="bp_5555666677778888", depends_on=["stp_1111222233334444"]
+            ),
         ],
     )
     mock_repo.get_execution.return_value = None
@@ -713,7 +724,9 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         step_states={
-            "stp_1111222233334444": ExecutionStepState(id="stp_1111222233334444", label="Step 1", status=ExecutionStatus.FAILED)
+            "stp_1111222233334444": ExecutionStepState(
+                id="stp_1111222233334444", label="Step 1", status=ExecutionStatus.FAILED
+            )
         },
         execution_trace=[TraceEvent(step_name="raw_inputs", event_type="input", content={})],
     )

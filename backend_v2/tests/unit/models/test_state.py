@@ -18,7 +18,6 @@ from backend_v2.models.state import (
     ReasoningTrace,
     StateProjector,
     StepExecutionEnvelope,
-    StepOutputDTO,
     TombstoneEvent,
     TraceEvent,
     WorkflowState,

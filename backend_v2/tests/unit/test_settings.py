@@ -130,6 +130,7 @@ def test_settings_service_account_auto_detection() -> None:
     """Test auto-detection of service-account.json in root when credentials are not preset."""
     with patch.dict(os.environ, clear=True), patch("pathlib.Path.exists", return_value=True):
         settings = Settings(use_mock_llm=False)
+        assert settings.use_mock_llm is False
         assert os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") is not None
 
 

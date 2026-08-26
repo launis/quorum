@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -468,8 +469,6 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
     llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
 ) -> None:
     """Test that a matrix step with invalid shuffled_atoms raises a ValidationError."""
-    from pydantic import ValidationError
-
     step = MagicMock()
     step.id = "step_invalid_atoms"
     step.task_blueprint = "bp_success"
@@ -549,6 +548,8 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
             "description": {"default_locale": "en", "translations": {"en": "Test"}},
         },
     ]
+
+
 @pytest.mark.asyncio
 async def test_execute_with_role_and_persona_and_protocol(
     llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
@@ -563,7 +564,9 @@ async def test_execute_with_role_and_persona_and_protocol(
     projector = MagicMock()
     from backend_v2.models.state import StepOutputDTO
 
-    projector.snapshot = [StepOutputDTO(step_id="inputs", block_id="doc", data_type="text", payload="Sample text for extraction")]
+    projector.snapshot = [
+        StepOutputDTO(step_id="inputs", block_id="doc", data_type="text", payload="Sample text for extraction")
+    ]
 
     context = MagicMock()
     context.execution_id = "exec_1"
@@ -659,7 +662,9 @@ async def test_execute_with_role_and_persona_and_protocol(
 
     mock_engine = llm_strategy._engine
     mock_engine.execute.return_value = EngineExecutionResult(  # type: ignore
-        results=[], hydrated_references={}, usage=TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150, cost_usd=0.001)
+        results=[],
+        hydrated_references={},
+        usage=TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150, cost_usd=0.001),
     )
 
     mock_hook_state = MagicMock()
@@ -712,9 +717,7 @@ async def test_execute_synthesis_engine_path(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {
-        "__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_1": []}}
-    }
+    context.global_context_vars = {"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_1": []}}}
     context.metadata = {"profile_id": "prof_123", "target_locale": "en"}
     context.model_strategy = "synthesis"
     context.expected_inputs = []
@@ -753,9 +756,7 @@ async def test_execute_synthesis_engine_path(
     ]
 
     mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {
-        "prev_step": {"evaluations": [{"tda_id": "tda_123", "score": 4.0}]}
-    }
+    mock_hook_state.inputs = {"prev_step": {"evaluations": [{"tda_id": "tda_123", "score": 4.0}]}}
     mock_hook_state.global_context_vars = context.global_context_vars
 
     from pydantic import BaseModel
@@ -878,7 +879,7 @@ async def test_execute_anomaly_retry_flow(
     mock_hook_state.inputs = {}
     mock_hook_state.global_context_vars = {}
 
-    from unittest.mock import AsyncMock, patch
+    from unittest.mock import AsyncMock
 
     call_count = 0
 
@@ -916,9 +917,7 @@ async def test_execute_anomaly_retry_flow(
 
 
 @pytest.mark.asyncio
-async def test_execute_fails_fast_on_missing_role_block(
-    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock
-) -> None:
+async def test_execute_fails_fast_on_missing_role_block(llm_strategy: LLMNodeStrategy, mock_repo: MagicMock) -> None:
     """Test fail-fast when configured role block is missing in database."""
     step = MagicMock()
     step.id = "step_1"
@@ -968,9 +967,7 @@ async def test_execute_fails_fast_on_missing_role_block(
 
 
 @pytest.mark.asyncio
-async def test_execute_fails_fast_on_missing_persona_block(
-    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock
-) -> None:
+async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNodeStrategy, mock_repo: MagicMock) -> None:
     """Test fail-fast when configured execution persona block is missing in database."""
     step = MagicMock()
     step.id = "step_1"
@@ -1101,9 +1098,7 @@ async def test_execute_fails_fast_on_missing_output_profile(
 
 
 @pytest.mark.asyncio
-async def test_execute_fails_fast_on_no_engine_configured(
-    mock_repo: MagicMock, mock_compiler: MagicMock
-) -> None:
+async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
     """Test fail-fast when LLMNodeStrategy has no ExecutionEngine configured."""
     deps = StrategyDependencies(
         exec_repo=mock_repo,
@@ -1297,9 +1292,7 @@ def test_configure_llm_context_hook_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_execute_fails_fast_on_missing_target_locale(
-    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock
-) -> None:
+async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNodeStrategy, mock_repo: MagicMock) -> None:
     """Test fail-fast when execution metadata is missing target_locale."""
     from backend_v2.exceptions import ConfigurationError
 
@@ -1448,7 +1441,6 @@ async def test_execute_matrix_chunking_flow(
     """Test full matrix execution with chunking and tone instruction."""
     from unittest.mock import AsyncMock, patch
 
-    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
     step = MagicMock()
@@ -1703,9 +1695,7 @@ async def test_execute_fails_fast_on_corrupted_prompt_block_in_db(
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
     }
-    mock_repo.get_all_prompt_blocks.return_value = [
-        {"invalid_field": "corrupted_payload"}
-    ]
+    mock_repo.get_all_prompt_blocks.return_value = [{"invalid_field": "corrupted_payload"}]
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}

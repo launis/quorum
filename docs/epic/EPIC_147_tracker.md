@@ -104,7 +104,8 @@
 - [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, create/update relevant Knowledge Items (KIs), and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+- [x] **[OK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+
 
 ## Instructions for the Execution Agent
 1. **Atomic Commits**: After ANY successful run of the `universal_quality_gate` audit script that passes, you MUST instruct the user to perform an atomic `git commit` before proceeding to the next file or logic block. Git commit messages MUST ALWAYS be written in English.
@@ -179,14 +180,13 @@
   - `@[docs/architecture/03_cognitive_orchestration_engine.md]`: Anchored section 2.10 *ExecutionEngine Protocol & Strategy Dispatch Decoupling* (standalone engines `PromptEngine`, `SynthesisEngine`, `TDAEngine`, `StepType` factory routing via `NODE_STRATEGY_REGISTRY`, null-safe semaphore context managers, isolated telemetry event signaling).
   - `@[docs/architecture/05_resilience_and_observability.md]`: Anchored section 2.6 *AST Guardrails & Forensic Verification* (static AST verification of structural boundaries, cognitive grounding validation, `str.find` lexical evidence matching, XML injection escaping).
   - `@[.agents/rules/04_directory_reference.md]`: Updated master system index to anchor `engine.py`, `source_extraction_schema.py`, and `source_verification_service.py`. Commit: `d9205ac0`.
-- **Post-Implementation Quality Gates Fully Passed**:
-  - Golden Master & Test Restoration Audit: `[OK]`
-  - Proxy Sunset & Consumer Migration: `[OK]`
-  - Tier 2 Hardening (Backend): `[OK]` (20/20 files completed)
-  - Tier 2 Hardening (Frontend): `[OK]` (Verified cross-domain parity)
-  - Pre-Delete Audit: `[OK]`
-  - Semantic Coverage & Zero-Loss Audit: `[OK]` (All modules $\ge 90\%$ line coverage)
-  - As-Built Architectural Sync (Tier 7): `[OK]` (Pillars 3 & 5 + Directory Reference synchronized)
+- **Final Epic Audit (Tier 8 Reverse Epic Analysis) - PASSED (100% Complete)**:
+  - Generated audit report: `@[docs/epic/EPIC_147_audit_report.md]`.
+  - Requirements Verified: 24/24 Requirements (REQ-147-01 .. REQ-147-24) passing with 100% traceability.
+  - AST Guardrails: 10/10 Invariant Tests passing in `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py]`.
+  - Dedicated Test Suites: 51/51 EPIC 147 Unit Tests passing with zero warnings.
+  - Global Backend Quality Loop: 2018 tests passed, 0 failures, strict 90% coverage target met under `scripts/backend_audit_loop.py`.
+  - Symbol Eradication: 12/12 deprecated patterns and symbols completely eliminated from codebase.
 
 ## Learned
 - **Target Anchoring in Audit Matrices**: `audit_matrix_manager.py` enforces target anchoring: citations in justifications cannot mention other source files unless they are common systemic dependencies (`settings.py`, `enums.py`, `conftest.py`).
@@ -196,6 +196,7 @@
 - **L10n Property Completeness**: All enum `@property l10n_key` getters must be tested against both mapped and unmapped variants to reach 100% line coverage and guarantee frontend `.arb` parity.
 - **DTO Immutability and Envelope Guarantees**: Enforcing `frozen=True` and `extra="forbid"` on engine and hook DTOs (`FlattenedAtom`, `MatrixEvaluationContext`, `EngineExecutionRequest`, `EngineExecutionResult`, `HookState`, `HookResult`) prevents subtle runtime mutations across asynchronous execution boundaries.
 - **Dual-Axis Architectural Synchronization**: The Tier 7 workflow mathematically decouples narrative capability documentation in `docs/architecture/` (timeless, present tense, zero file paths) from the physical routing laws in `.agents/rules/04_directory_reference.md`, preserving single-source truth while providing clear mental models.
+- **Isolated Hook Registry Testing**: Tests exercising singleton state modifications (like `hook_registry.clear()`) must save and restore `hook_registry._hooks` in a `try...finally` block to prevent downstream test isolation leakage.
 
 ## Codebase Physical Anchor Reference Map
 - `NodeExecutor`: `@[backend_v2/services/orchestrator/dag_executor.py#L119-L285]`
@@ -216,12 +217,15 @@
 - `Pillar 3 Architecture (Cognitive Orchestration)`: `@[docs/architecture/03_cognitive_orchestration_engine.md#L42-L46]`
 - `Pillar 5 Architecture (Resilience & Observability)`: `@[docs/architecture/05_resilience_and_observability.md#L30-L34]`
 - `Directory Reference SSOT`: `@[.agents/rules/04_directory_reference.md#L68-L72]`
+- `Epic 147 Final Audit Report`: `@[docs/epic/EPIC_147_audit_report.md]`
 
-## Remaining Targets in Post-Implementation Gates
-- Final Epic Audit: `/tier8-audit-epic @[docs/epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience.md]`
+## Remaining
+- None. EPIC 147 is 100% complete, hardened, synchronized, and audited.
 
-## Next Command
-`/tier8-audit-epic @[docs/epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience.md]`
+## Status
+**EPIC 147 COMPLETE & AUDITED (PASSED)**
+
+
 
 
 
