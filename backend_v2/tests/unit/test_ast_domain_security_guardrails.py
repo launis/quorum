@@ -17,15 +17,17 @@ class DomainSecurityVisitor(ast.NodeVisitor):
         self.pydantic_classes: list[tuple[str, bool, bool]] = []
 
     def visit_Call(self, node: ast.Call) -> None:
-        if getattr(node.func, "id", "") == "hasattr":
-            self.found_hasattr = True
-        elif isinstance(node.func, ast.Attribute):
-            if node.func.attr == "from_strategy" and getattr(node.func.value, "id", "") == "LLMClient":
+        match node.func:
+            case ast.Name(id="hasattr"):
+                self.found_hasattr = True
+            case ast.Attribute(value=ast.Name(id="LLMClient"), attr="from_strategy"):
                 self.found_llmclient_strategy = True
-            if node.func.attr == "run_chat":
+            case ast.Attribute(attr="run_chat"):
                 self.found_run_chat = True
-            if node.func.attr == "escape" and getattr(node.func.value, "id", "") == "html":
+            case ast.Attribute(value=ast.Name(id="html"), attr="escape"):
                 self.found_html_escape = True
+            case _:
+                pass
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
@@ -52,17 +54,19 @@ class DomainSecurityVisitor(ast.NodeVisitor):
         is_enum = False
         is_model = False
         for base in node.bases:
-            base_id = getattr(base, "id", "")
-            if base_id in ("Enum", "StrEnum", "IntEnum"):
-                is_enum = True
-            if isinstance(base, ast.Attribute) and base.attr in ("Enum", "StrEnum", "IntEnum"):
-                is_enum = True
-            if (
-                base_id in ("BaseModel", "BaseResponseDTO", "RootModel", "SduiBlockDTO")
-                or base_id.endswith("DTO")
-                or base_id.endswith("Model")
-            ):
-                is_model = True
+            match base:
+                case ast.Name(id="Enum" | "StrEnum" | "IntEnum"):
+                    is_enum = True
+                case ast.Attribute(attr="Enum" | "StrEnum" | "IntEnum"):
+                    is_enum = True
+                case ast.Name(id=base_id) if (
+                    base_id in ("BaseModel", "BaseResponseDTO", "RootModel", "SduiBlockDTO")
+                    or base_id.endswith("DTO")
+                    or base_id.endswith("Model")
+                ):
+                    is_model = True
+                case _:
+                    pass
 
         if not is_enum and (is_model or node.name.endswith("DTO") or node.name.endswith("Model")):
             has_strict = False
@@ -70,20 +74,25 @@ class DomainSecurityVisitor(ast.NodeVisitor):
             for stmt in node.body:
                 if isinstance(stmt, ast.Assign):
                     for target in stmt.targets:
-                        if getattr(target, "id", "") == "model_config":
-                            if isinstance(stmt.value, ast.Call) and getattr(stmt.value.func, "id", "") == "ConfigDict":
-                                allowed_exceptions = {"SystemWarningsStateDTO"}
-                                for kw in stmt.value.keywords:
-                                    if kw.arg == "strict" and getattr(kw.value, "value", None) is True:
-                                        has_strict = True
-                                    if kw.arg == "extra" and (
-                                        getattr(kw.value, "value", None) == "forbid"
-                                        or (
-                                            node.name in allowed_exceptions
-                                            and getattr(kw.value, "value", None) == "ignore"
-                                        )
-                                    ):
-                                        has_forbid = True
+                        if isinstance(target, ast.Name) and target.id == "model_config":
+                            if isinstance(stmt.value, ast.Call):
+                                match stmt.value.func:
+                                    case ast.Name(id="ConfigDict"):
+                                        allowed_exceptions = {"SystemWarningsStateDTO"}
+                                        for kw in stmt.value.keywords:
+                                            if (
+                                                kw.arg == "strict"
+                                                and isinstance(kw.value, ast.Constant)
+                                                and kw.value.value is True
+                                            ):
+                                                has_strict = True
+                                            if kw.arg == "extra" and isinstance(kw.value, ast.Constant):
+                                                if kw.value.value == "forbid" or (
+                                                    node.name in allowed_exceptions and kw.value.value == "ignore"
+                                                ):
+                                                    has_forbid = True
+                                    case _:
+                                        pass
             self.pydantic_classes.append((node.name, has_strict, has_forbid))
 
         self.generic_visit(node)

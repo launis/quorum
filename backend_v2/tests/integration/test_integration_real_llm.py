@@ -21,7 +21,7 @@ from backend_v2.models.enums import ExecutionStatus
 logger = logging.getLogger(__name__)
 
 # Paths
-WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
 BACKEND_LOG_FILE = os.path.join(WORKSPACE_ROOT, "backend_debug.log")
 TESTILYHYT_DIR = os.path.join(WORKSPACE_ROOT, "docs", "testilyhyt")
 
