@@ -103,9 +103,9 @@ trigger: always_on
         <mandatory_pattern>You MUST be surgical. Truncation is an act of data destruction. Provide the ENTIRE compilable structural block or use precise search-and-replace tools. If `multi_replace_file_content` fails due to matching errors, you MUST fallback to `view_file` to verify the exact structural state, OR use a full file overwrite (`write_to_file`) to break the retry loop.</mandatory_pattern>
     </rule_block>
     <rule_block id="temporary_workspace_sandbox">
-        <banned_pattern>Creating scratch scripts, temporary data dumps, or one-off debugging programs in the repository root, core architectural directories (`backend_v2`, `client_app_v2`), or the legacy `tmp\` folder.</banned_pattern>
-        <mandatory_pattern>All temporary files, debugging scripts, and ad-hoc execution programs MUST be written to and executed EXCLUSIVELY from the system-injected artifact scratch directory (`<appDataDir>\brain\<conversation-id>/scratch/`).</mandatory_pattern>
-        <catastrophic_reason>Using a hardcoded `tmp\` directory conflicts with the native IDE artifact system, causing lost execution traces and polluting the workspace state.</catastrophic_reason>
+        <banned_pattern>Creating scratch scripts, temporary data dumps, or one-off debugging programs in the repository root, core architectural directories (`backend_v2`, `client_app_v2`), or the legacy `tmp\` folder. Listing ephemeral scratch scripts as `[NEW]` files in Epics or implementation plans.</banned_pattern>
+        <mandatory_pattern>All temporary files, debugging scripts, and ad-hoc migration programs MUST be written to and executed EXCLUSIVELY from the system-injected artifact scratch directory (`<appDataDir>\brain\<conversation-id>/scratch/`). Epics and Implementation Plans MUST NOT include scratch scripts in their `TARGET Files` boundary list; scratch operations are described purely as inline execution steps.</mandatory_pattern>
+        <catastrophic_reason>Using a hardcoded `tmp\` directory conflicts with the native IDE artifact system, causing lost execution traces and polluting the workspace state. Listing scratch files in Epics causes Markdown boundary validation failures and confuses version control.</catastrophic_reason>
     </rule_block>
     <rule_block id="logfire_delegation_mandate">
         <banned_pattern>Attempting to debug LLM token anomalies, performance latency bottlenecks, or "hallucination" issues purely by guessing, or reading massive trace files without line limits.</banned_pattern>

@@ -16,6 +16,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
+from _ast_guardrails import scan_source_code_for_guardrails
 from pydantic import BaseModel, ConfigDict, Field
 
 # Force UTF-8 encoding for stdout on Windows without reflection
@@ -45,7 +46,7 @@ class MarkdownAuditFinding(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     line_number: Annotated[int, Field(ge=0, description="1-indexed line number where violation occurred")]
-    rule_code: Annotated[str, Field(pattern=r"^MBD\d{3}$", description="Rule code e.g. MBD001")]
+    rule_code: Annotated[str, Field(pattern=r"^(MBD|QGR)\d{3}$", description="Rule code e.g. MBD001 or QGR001")]
     category: Annotated[str, Field(description="Category of finding")]
     message: Annotated[str, Field(description="Descriptive message")]
     severity: Annotated[GuardrailSeverity, Field(description="Severity tier")]
@@ -126,6 +127,7 @@ class MarkdownAuditor:
         self.check_class_hallucinations()
         self.check_settings_validation()
         self.check_enum_validation()
+        self.check_embedded_python_code_blocks()
 
         if exit_on_completion:
             if self.findings:
@@ -437,6 +439,35 @@ class MarkdownAuditor:
                     message=f"Enum Hallucination: '{enum_ref}' used as an Enum but not found in SSOT enum files.",
                     severity=GuardrailSeverity.WARNING,
                     remediation=f"Ensure '{enum_ref}' is defined in backend_v2/models/enums.py or client_app_v2/lib/core/models/enums.dart.",
+                )
+
+    def check_embedded_python_code_blocks(self) -> None:
+        """Scan embedded Python code blocks for codebase architectural violations (QGR000-QGR010)."""
+        import textwrap
+
+        code_block_pattern = re.compile(r"```python\s*\n([\s\S]*?)```")
+        for match in code_block_pattern.finditer(self.content):
+            code_text = match.group(1)
+            # Find the 1-indexed line number in Markdown where the python block starts
+            start_pos = match.start()
+            start_line = self.content[:start_pos].count("\n") + 2  # +1 for next line after ```python
+
+            # Dedent embedded snippets so method/class fragments without top-level wrapper parse cleanly in AST
+            dedented_code = textwrap.dedent(code_text)
+            violations = scan_source_code_for_guardrails(self.file_path, dedented_code.encode("utf-8"))
+            for v in violations:
+                if v.is_suppressed:
+                    continue
+                # Offset the violation line by the markdown block's starting line
+                md_line = start_line + (v.lineno - 1)
+                severity = GuardrailSeverity.FATAL if v.severity.value == "FATAL" else GuardrailSeverity.WARNING
+                self._add_finding(
+                    line_number=md_line,
+                    rule_code=v.rule_code,
+                    category="Codeblock Guardrail",
+                    message=f"Embedded Python codeblock violation: {v.message}",
+                    severity=severity,
+                    remediation=v.remediation,
                 )
 
 

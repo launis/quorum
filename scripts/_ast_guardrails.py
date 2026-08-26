@@ -481,21 +481,31 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             valid_error_code = True
                         case _:
                             valid_error_code = False
-                else:
+                if not valid_error_code:
                     for kw in node.exc.keywords:
-                        if kw.arg == "error_code":
-                            match kw.value:
-                                case ast.Attribute(value=ast.Name(id="ErrorCodes")):
-                                    valid_error_code = True
-                                case _:
-                                    valid_error_code = False
+                        if kw.arg == "details" and isinstance(kw.value, ast.Dict):
+                            for k, v in zip(kw.value.keys, kw.value.values, strict=False):
+                                if isinstance(k, ast.Constant) and k.value == "error_code":
+                                    match v:
+                                        case ast.Attribute(value=ast.Name(id="ErrorCodes")):
+                                            valid_error_code = True
+                                        case ast.Attribute(
+                                            value=ast.Attribute(value=ast.Name(id="ErrorCodes")), attr="value" | "name"
+                                        ):
+                                            valid_error_code = True
+                                        case ast.Attribute(attr=attr_name) if (
+                                            "ERROR" in attr_name or "FAILED" in attr_name
+                                        ):
+                                            valid_error_code = True
+                                        case _:
+                                            pass
 
                 if not valid_error_code:
                     self._add_violation(
                         node.exc,
                         "QGR009",
                         "AppException instantiated without a typed `ErrorCodes` enum member.",
-                        "Pass a typed `ErrorCodes` enum member as the first argument to `AppException` (e.g. `raise AppException(ErrorCodes.VALIDATION_FAILED, ...)`).",
+                        "Pass a typed `ErrorCodes` enum member as the first argument or in details={'error_code': ErrorCodes.XXX} to `AppException`.",
                     )
 
         self.generic_visit(node)

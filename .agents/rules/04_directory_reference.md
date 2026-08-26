@@ -25,8 +25,8 @@
     </rule_block>
 
     <rule_block id="ephemeral_storage_mandate">
-        <banned_pattern>Creating ad-hoc testing scripts, JSON data dumps, or Python debug runners randomly in the root folder, source folders, or a local `./scratch` folder.</banned_pattern>
-        <mandatory_pattern>All AI-generated temporary sandbox files, debugging scripts, and scratchpads MUST be written exclusively to the IDE's conversation artifact directory: `<appDataDir>\brain\<conversation-id>\scratch\`.</mandatory_pattern>
+        <banned_pattern>Creating ad-hoc testing scripts, JSON data dumps, or Python debug runners randomly in the root folder, source folders, or the legacy `tmp\` folder. Listing ephemeral scratch scripts in Epics or plans as `TARGET Files`.</banned_pattern>
+        <mandatory_pattern>All AI-generated temporary sandbox files, debugging scripts, and scratchpads MUST be written exclusively to the IDE's conversation artifact directory: `<appDataDir>\brain\<conversation-id>\scratch\`. Epics and Implementation Plans MUST NOT list scratch files in their Target boundaries.</mandatory_pattern>
         <catastrophic_reason>Dumping scratch files across the workspace pollutes the Git repository, confuses human developers, and breaks automated quality gate scanning.</catastrophic_reason>
     </rule_block>
 
