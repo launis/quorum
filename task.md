@@ -15,24 +15,24 @@
 ## Milestone A: Core Engine & Gatekeeper (Phases 1–4)
 
 ### Phase 1: Pre-requisite Gatekeeper Cleanup & Core AST Guardrail Engine
-- [x] **Step 1.1**: Refactor `@[scripts/backend_audit_loop.py]` to eradicate all existing technical debt per `touched_scope_tech_debt_mandate`
-- [x] **Step 1.2**: Implement `GuardrailSeverity`, `GuardrailViolation` DTO, `CommentSuppressor`, and `QuorumGuardrailVisitor` in `@[scripts/_ast_guardrails.py]`
-- [x] **Step 1.3**: Implement `scan_files_for_guardrails` CLI engine in `@[scripts/_ast_guardrails.py]`
+- [x] (c81ff6da) **Step 1.1**: Refactor `@[scripts/backend_audit_loop.py]` to eradicate all existing technical debt per `touched_scope_tech_debt_mandate`
+- [x] (c81ff6da) **Step 1.2**: Implement `GuardrailSeverity`, `GuardrailViolation` DTO, `CommentSuppressor`, and `QuorumGuardrailVisitor` in `@[scripts/_ast_guardrails.py]`
+- [x] (c81ff6da) **Step 1.3**: Implement `scan_files_for_guardrails` CLI engine in `@[scripts/_ast_guardrails.py]`
 
 ### Phase 2: ISTQB Unit Testing & Isolated Scanner Verification (TDD First)
-- [x] **Step 2.1**: Implement ISTQB unit tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]` covering 33+ partitions
-- [x] **Step 2.2**: Refactor `DomainSecurityVisitor` in `@[backend_v2/tests/unit/test_ast_domain_security_guardrails.py]` to eliminate legacy `getattr()` calls
-- [x] **Step 2.3**: Execute isolated Pytest run verifying 100% test pass and >90% coverage on `@[scripts/_ast_guardrails.py]`
+- [x] (c81ff6da) **Step 2.1**: Implement ISTQB unit tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]` covering 33+ partitions
+- [x] (c81ff6da) **Step 2.2**: Refactor `DomainSecurityVisitor` in `@[backend_v2/tests/unit/test_ast_domain_security_guardrails.py]` to eliminate legacy `getattr()` calls
+- [x] (c81ff6da) **Step 2.3**: Execute isolated Pytest run verifying 100% test pass and >90% coverage on `@[scripts/_ast_guardrails.py]`
 
 ### Phase 3: Backend Audit Loop Quality Gate Integration, CLI Testing & Self-Audit
-- [x] **Step 3.1**: Integrate AST check into `@[scripts/backend_audit_loop.py]` main() as Step 4 with `--ast-strict` CLI flag support
-- [x] **Step 3.2**: Implement hermetically isolated unit tests in `@[backend_v2/tests/unit/scripts/test_backend_audit_loop.py]`
-- [x] **Step 3.3**: Execute Strict Self-Audit with `backend_audit_loop.py` on gatekeeper files with `--ast-strict`
+- [x] (c81ff6da) **Step 3.1**: Integrate AST check into `@[scripts/backend_audit_loop.py]` main() as Step 4 with `--ast-strict` CLI flag support
+- [x] (c81ff6da) **Step 3.2**: Implement hermetically isolated unit tests in `@[backend_v2/tests/unit/scripts/test_backend_audit_loop.py]`
+- [x] (c81ff6da) **Step 3.3**: Execute Strict Self-Audit with `backend_audit_loop.py` on gatekeeper files with `--ast-strict`
 
 ### Phase 4: Knowledge Item Governance & Live E2E Verification
-- [x] **Step 4.1**: Create Knowledge Item `@[ki_ast_guardrail_engine.md]` in `<appDataDir>\knowledge\ast_guardrail_engine\`
-- [x] **Step 4.2**: Execute Final Live E2E REST API Verification Gate on `@[backend_v2/tests/integration/test_integration_real_llm.py]` with `RUN_LIVE_E2E="true"`
-- [x] **Step 4.3**: Context Flush Checkpoint 1 (Mandatory Session Handover)
+- [x] (c81ff6da) **Step 4.1**: Create Knowledge Item `@[ki_ast_guardrail_engine.md]` in `<appDataDir>\knowledge\ast_guardrail_engine\`
+- [x] (c81ff6da) **Step 4.2**: Execute Final Live E2E REST API Verification Gate on `@[backend_v2/tests/integration/test_integration_real_llm.py]` with `RUN_LIVE_E2E="true"`
+- [x] (c81ff6da) **Step 4.3**: Context Flush Checkpoint 1 (Mandatory Session Handover)
 
 ---
 
@@ -62,6 +62,6 @@
 ---
 
 ## Session Handover Context
-- **Achieved**: Completed Milestone A (Phases 1–4). Implemented `scripts/_ast_guardrails.py` (QGR000–QGR010), refactored `scripts/backend_audit_loop.py` to integrate the AST gate with `--ast-strict`, implemented comprehensive unit tests with >90% coverage across all files, created Knowledge Item `ki_ast_guardrail_engine.md`, and passed full quality gate suites.
+- **Achieved**: Completed Milestone A (Phases 1–4, commits `c81ff6da`, `1e65aa35`). Implemented `scripts/_ast_guardrails.py` (QGR000–QGR010), refactored `scripts/backend_audit_loop.py` to integrate the AST gate with `--ast-strict`, implemented comprehensive unit tests with >90% coverage across all files, created Knowledge Item `ki_ast_guardrail_engine.md`, created `scripts/__init__.py`, and passed all 6 stages of the quality gate.
 - **Learned**: AST comment suppression parsing directly via `tokenize` and structural pattern matching (`match/case`) avoids the Python `ast.NodeVisitor` reflection paradox. Gatekeepers achieve 100% self-compliance with 0 violations and 0 suppressions.
-- **Remaining**: Milestone B: Shared AST Utilities & Immediate Consumers (Phase 5), Milestone C: Standalone Diagnostics & Neuro-Symbolic Matrix (Phases 6–7).
+- **Remaining**: Milestone B: Shared AST Utilities, Immediate Consumers & DTO Parity (Phase 5), Milestone C: Standalone Diagnostics & Neuro-Symbolic Matrix (Phases 6–7).
