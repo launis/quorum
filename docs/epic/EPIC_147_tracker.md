@@ -175,6 +175,10 @@
   18. `@[backend_v2/hooks/source_verification_hook.py]`: Exported `__all__ = ["source_verification_hook"]`, verified RFC 7807 dual logging, empty result encapsulation, min text length cut-off, and input schema type validation, expanded unit tests in `test_source_verification_hook.py` reaching 100% line coverage; full neuro-symbolic audit matrix PASS across all 156 rules. Commit: `8f2ccf7d`.
   19. `@[backend_v2/services/source_verification_service.py]`: Exported `__all__ = ["SourceVerificationService"]`, verified TaskGroup parallel verification, XML escaping, RFC 7807 dual error logging, expanded unit tests in `test_source_verification_service.py` reaching 99% line coverage; full neuro-symbolic audit matrix PASS across all 156 rules. Commit: `da440046`.
   20. `@[backend_v2/hooks/__init__.py]`: Verified `__all__` re-exports for all active and legacy hooks including `source_verification_hook`, validated imports and test suite `test___init__.py` reaching 100% line coverage; full neuro-symbolic audit matrix PASS across all 156 rules. Commit: `6f03bac9`.
+- **As-Built Architectural Sync (Tier 7) Fully Completed**:
+  - `@[docs/architecture/03_cognitive_orchestration_engine.md]`: Anchored section 2.10 *ExecutionEngine Protocol & Strategy Dispatch Decoupling* (standalone engines `PromptEngine`, `SynthesisEngine`, `TDAEngine`, `StepType` factory routing via `NODE_STRATEGY_REGISTRY`, null-safe semaphore context managers, isolated telemetry event signaling).
+  - `@[docs/architecture/05_resilience_and_observability.md]`: Anchored section 2.6 *AST Guardrails & Forensic Verification* (static AST verification of structural boundaries, cognitive grounding validation, `str.find` lexical evidence matching, XML injection escaping).
+  - `@[.agents/rules/04_directory_reference.md]`: Updated master system index to anchor `engine.py`, `source_extraction_schema.py`, and `source_verification_service.py`. Commit: `d9205ac0`.
 - **Post-Implementation Quality Gates Fully Passed**:
   - Golden Master & Test Restoration Audit: `[OK]`
   - Proxy Sunset & Consumer Migration: `[OK]`
