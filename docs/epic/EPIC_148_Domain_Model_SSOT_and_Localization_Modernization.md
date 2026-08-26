@@ -23,17 +23,17 @@
 ## 1. Goal Description & Background (Objective & Problem Statement)
 
 ### 1.1 Objective
-EPIC 148 standardizes and modernizes Quorum's domain data models and localization architecture across Python backend services, the SQLite/JSON seed vault, and the Flutter desktop client. The epic consolidates Chapters 2, 3, 5, and 6 of `docs/arkkitehtuurin_parannuskohteet.md` to:
+EPIC 148 standardizes and modernizes Quorum's domain data models and localization architecture across Python backend services, the SQLite/JSON seed vault, and the Flutter desktop client. The epic establishes four core capabilities:
 1. Establish the **Epistemic Separation Paradigm** for theory grounding: prune redundant `EPISTEMIC ANCHOR:` prompt tails across all 13 matrix blocks in `seed_data.json`, format pure `<theory_context>` XML citations without raw URL token leakage during prompt compilation, and preserve structured `TheoryGrounding` metadata exclusively for UI/PDF presentation.
 2. Eradicate redundant `default_locale` attributes across backend and frontend `I18nText` data models and 500 instances in `seed_data.json`, shifting language fallback resolution dynamically to execution context parameters (`target_locale`, with global fallback `"en"`).
 3. Modernize `OutputProfile` and Server-Driven UI (SDUI) localization by migrating static UI dictionaries (`metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`) out of the backend database into frontend `.arb` resource files, transforming `MetadataAdapter` into structured key-value envelopes, and replacing legacy V1 `layouts` arrays with strongly-typed `matrix_synthesis_groups`.
 4. Execute the 5-phase **Atomic Migration Protocol** to ensure strict Pydantic V2 (`extra="forbid"`) and Flutter Freezed compatibility without silent fallbacks, duct-tape validators, or broken test fixtures.
 
 ### 1.2 Problem Statement & Root Cause Analysis
-1. **Theory Grounding Dual Injection & Prompt Bloat (Luku 2)**: In `@[backend_v2/seed/seed_data.json#L336-L6900]`, epistemic and academic grounding anchors are duplicated across both `PromptBlock.ai_description` (as freeform `EPISTEMIC ANCHOR:` text blocks) and `PromptBlock.theory_grounding` (as structured `TheoryGrounding` DTOs). When `MatrixSensorPromptBuilder` compiles prompts, it injects both the raw text description and the structured object with raw URLs (`source_url`), triggering prompt duplication, URL token bloat, XML syntax corruption risks, and Single Source of Truth (SSOT) drift.
-2. **`I18nText.default_locale` Redundancy (Luku 3)**: In `@[backend_v2/models/v2_core.py#L99-L189]`, `@[client_app_v2/lib/shared/models/i18n_text.dart]`, and across 500 records in `seed_data.json`, every `I18nText` object hardcodes `"default_locale": "fi"`. This conflates static dictionary storage with dynamic runtime resolution, creates internal validation contradictions with the global `"en"` fallback rule, and bloats database payloads across 1300+ test fixtures.
-3. **`OutputProfile` Presentation Drift & Dual-Axis Localization Conflicts (Luku 5)**: In `@[backend_v2/seed/seed_data.json#L9180-L9570]`, `OutputProfile` persists hundreds of lines of static UI label translations in backend dictionaries (`metric_mappings`, `matrix_column_labels`, `user_role_mappings`). `MetadataAdapter` concatenates labels with values in Python strings, violating the "Dumb Painter" principle and creating localization drift against Flutter `.arb` files. Furthermore, `OutputProfile.layouts` retains obsolete V1 fields (`preset_view`, `text_delivery_mode`, `steps: []`) rather than declaring clean matrix synthesis groups.
-4. **Fragility Under `extra="forbid"` (Luku 6)**: Pydantic V2 models enforce `strict=True` and `extra="forbid"`. Removing fields without an atomic multi-step migration script immediately causes cascading `ValidationError` failures across 1300+ test fixtures and corrupts local database state (`db_v2.json`).
+1. **Theory Grounding Dual Injection & Prompt Bloat (Chapter 2)**: In `@[backend_v2/seed/seed_data.json#L336-L6900]`, epistemic and academic grounding anchors are duplicated across both `PromptBlock.ai_description` (as freeform `EPISTEMIC ANCHOR:` text blocks) and `PromptBlock.theory_grounding` (as structured `TheoryGrounding` DTOs). When `MatrixSensorPromptBuilder` compiles prompts, it injects both the raw text description and the structured object with raw URLs (`source_url`), triggering prompt duplication, URL token bloat, XML syntax corruption risks, and Single Source of Truth (SSOT) drift.
+2. **`I18nText.default_locale` Redundancy (Chapter 3)**: In `@[backend_v2/models/v2_core.py#L101-L191]`, `@[client_app_v2/lib/shared/models/i18n_text.dart]`, and across 500 records in `seed_data.json`, every `I18nText` object hardcodes `"default_locale": "fi"`. This conflates static dictionary storage with dynamic runtime resolution, creates internal validation contradictions with the global `"en"` fallback rule, and bloats database payloads across 1300+ test fixtures.
+3. **`OutputProfile` Presentation Drift & Dual-Axis Localization Conflicts (Chapter 5)**: In `@[backend_v2/seed/seed_data.json#L9180-L9570]`, `OutputProfile` persists hundreds of lines of static UI label translations in backend dictionaries (`metric_mappings`, `matrix_column_labels`, `user_role_mappings`). `MetadataAdapter` concatenates labels with values in Python strings, violating the "Dumb Painter" principle and creating localization drift against Flutter `.arb` files. Furthermore, `OutputProfile.layouts` retains obsolete V1 fields (`preset_view`, `text_delivery_mode`, `steps: []`) rather than declaring clean matrix synthesis groups.
+4. **Fragility Under `extra="forbid"` (Chapter 6)**: Pydantic V2 models enforce `strict=True` and `extra="forbid"`. Removing fields without an atomic multi-step migration script immediately causes cascading `ValidationError` failures across 1300+ test fixtures and corrupts local database state (`db_v2.json`).
 
 ---
 
@@ -41,7 +41,7 @@ EPIC 148 standardizes and modernizes Quorum's domain data models and localizatio
 
 ### 2.1 TARGET Files (Editable)
 - `[MODIFY]` `@[backend_v2/seed/seed_data.json]` (Sanitize all 13 matrices by removing `EPISTEMIC ANCHOR:` tails; prune 500 instances of `default_locale`; prune `metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels` from `OutputProfile`; replace `layouts` with `matrix_synthesis_groups`)
-- `[MODIFY]` `@[backend_v2/models/v2_core.py#L99-L189]` and `@[backend_v2/models/v2_core.py#L1146-L1267]` (Remove `default_locale` from `I18nText` and update `resolve()`; remove legacy `layouts` and dictionary mappings from `OutputProfile` and define `MatrixSynthesisGroup` domain model)
+- `[MODIFY]` `@[backend_v2/models/v2_core.py#L101-L191]` and `@[backend_v2/models/v2_core.py#L1148-L1269]` (Remove `default_locale` from `I18nText` and update `resolve()`; remove legacy `layouts` and dictionary mappings from `OutputProfile` and define `MatrixSynthesisGroup` domain model)
 - `[MODIFY]` `@[backend_v2/models/dtos/output_profile.py]` (Remove `metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`, and `layouts`; add `matrix_synthesis_groups`)
 - `[MODIFY]` `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L54-L112]` (Format pure `<theory_context>\n{citation}\n</theory_context>` XML block, omitting raw URLs)
 - `[MODIFY]` `@[client_app_v2/lib/shared/models/i18n_text.dart]` and generated `.freezed.dart` / `.g.dart` (Remove `defaultLocale` from Freezed model; add `isEmpty`, `isNotEmpty`, `has(langCode)` helpers; update `get(String? langCode, {String fallback = 'en'})` method with Fail-Fast `AppException.validation`)
@@ -68,25 +68,24 @@ EPIC 148 standardizes and modernizes Quorum's domain data models and localizatio
 - `[MODIFY]` `@[client_app_v2/test/features/studio/views/widgets/profile/tabs/profile_layouts_tab_test.dart]` and `@[client_app_v2/test/]` fixtures (Update Flutter widget test suite and mock `I18nText` instances to match new schemas and non-empty translations)
 
 ### 2.2 CONTEXT Files (Read-Only)
-- `@[backend_v2/models/v2_core.py#L192-L205]` (`TheoryGrounding` schema SSOT)
+- `@[backend_v2/models/v2_core.py#L194-L207]` (`TheoryGrounding` schema SSOT)
 - `@[backend_v2/settings.py]` (Backend global configuration SSOT)
-- `@[docs/arkkitehtuurin_parannuskohteet.md]` (Architectural Improvement Roadmap Reference)
 
 ---
 
 ## 3. Technical Debt Itemization & Pre-Implementation Remediation
 
 Specifically and exhaustively, the following 14 technical debt items are identified for remediation:
-1. **Duplicate Theory Anchors in Seed Vault**: All 13 matrix blocks in `seed_data.json` duplicate bibliographic text in `ai_description`, creating token bloat and risk of semantic drift.
+1. **Duplicate Theory Anchors in Seed Vault (Chapter 2)**: All 13 matrix blocks in `seed_data.json` duplicate bibliographic text in `ai_description`, creating token bloat and risk of semantic drift.
 2. **Raw JSON Injected in Static System Prompts**: `MatrixSensorPromptBuilder` calls `theory_grounding.model_dump_json()`, injecting raw JSON into system rule blocks.
 3. **URL Token Bloat & Prompt Leakage**: Raw `source_url` strings are emitted in LLM prompt payloads rather than reserved exclusively for client UI rendering and PDF reports.
-4. **Redundant `default_locale` in `I18nText`**: 500 `I18nText` blocks in `seed_data.json` declare `"default_locale": "fi"`, conflicting with runtime context-driven language selection.
-5. **Static UI Dictionaries in Database**: `OutputProfile` contains `metric_mappings`, `matrix_column_labels`, `user_role_mappings`, and `extension_labels` in backend persistence, violating Dual-Axis Localization.
+4. **Redundant `default_locale` in `I18nText` (Chapter 3)**: 500 `I18nText` blocks in `seed_data.json` declare `"default_locale": "fi"`, conflicting with runtime context-driven language selection.
+5. **Static UI Dictionaries in Database (Chapter 5)**: `OutputProfile` contains `metric_mappings`, `matrix_column_labels`, `user_role_mappings`, and `extension_labels` in backend persistence, violating Dual-Axis Localization.
 6. **Backend String Concatenation in `MetadataAdapter`**: `MetadataAdapter` combines translated labels with values in Python strings, breaking the Dumb Painter paradigm.
 7. **Obsolete V1 `layouts` Arrays**: `OutputProfile.layouts` retains deprecated fields (`preset_view`, `text_delivery_mode`, `steps: []`) instead of a focused `matrix_synthesis_groups` structure.
 8. **Worker Couplings on `layouts`**: `worker.py` and SDUI adapters depend on `profile.layouts` for synthesis loop routing.
 9. **Flutter Freezed Schema Drift**: `i18n_text.dart` and `output_profile.dart` Freezed models reflect deprecated fields, requiring regeneration via `build_runner`.
-10. **Test Fixture Schema Drift**: 1300+ test assertions in `backend_v2/tests/` hardcode `default_locale` or legacy profile layout keys.
+10. **Test Fixture Schema Drift (Chapter 6)**: 1300+ test assertions in `backend_v2/tests/` hardcode `default_locale` or legacy profile layout keys.
 11. **Missing AST Guardrails for Seed Vault Purity**: The test suite lacks static AST assertions preventing re-introduction of `default_locale` or `EPISTEMIC ANCHOR:` tails.
 12. **Unsynchronized Local Database State**: `db_v2.json` must be re-seeded atomically after `seed_data.json` mutations.
 13. **Flutter `I18nText` Silent Fallback & Widget Ternary Drift**: `i18n_text.dart` returns `''` on missing translations instead of throwing `AppException.validation`, while `atom_matrix_table_widget.dart` and `matrix_row_item_widget.dart` hardcode `locale == 'fi' ? get('fi') : get('en')` instead of delegating directly to `get(locale)`.
@@ -118,7 +117,7 @@ Specifically and exhaustively, the following 14 technical debt items are identif
 
 ## 5. Phased Implementation Plan
 
-### Phase 1: Theory Grounding & Epistemic Anchor Sanitization (Luku 2)
+### Phase 1: Theory Grounding & Epistemic Anchor Sanitization (Chapter 2)
 
 #### Step 1.1: Backup Seed Vault (`vault_mutation_protocol`)
 Ensure directory `backend_v2/seed/backups/` exists and execute backup command:
@@ -182,10 +181,10 @@ if matrix_context:
 
 ---
 
-### Phase 2: `I18nText.default_locale` Eradication (Luku 3)
+### Phase 2: `I18nText.default_locale` Eradication (Chapter 3)
 
 #### Step 2.1: Python Domain Model Update (`v2_core.py`)
-In `@[backend_v2/models/v2_core.py#L99-L189]`:
+In `@[backend_v2/models/v2_core.py#L101-L191]`:
 1. Remove `default_locale` field from `I18nText`.
 2. Refactor `resolve()` method to enforce the Universal Fail-Fast mandate (`the_duct_tape_ban` & `dynamic_translation_fail_fast`):
    ```python
@@ -193,7 +192,7 @@ In `@[backend_v2/models/v2_core.py#L99-L189]`:
        """Strictly typed Fail-Fast resolution of localized text.
 
        Args:
-           target_locale: The requested locale code (e.g., 'fi', 'fi-FI', 'sv').
+           target_locale: The requested locale code (specifically: 'fi', 'fi-FI', 'sv').
            fallback_locale: The baseline fallback locale (defaults to 'en').
 
        Returns:
@@ -275,7 +274,7 @@ In `@[backend_v2/models/v2_core.py#L99-L189]`:
    - In `@[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart#L52-L54]`: Replace ternary `locale == 'fi' ? matrix.labelI18n.get('fi') : matrix.labelI18n.get('en')` with `matrix.labelI18n.get(locale)`.
    - In `@[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]`: Remove `defaultLocale` state tracking and bind text editing directly to `translations` map.
    - In `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart#L239-L260]`: Replace local `isEmptyI18n(text)` with `text?.isEmpty ?? true`.
-3. Create unit test suite `@[client_app_v2/test/shared/models/i18n_text_test.dart]` testing:
+3. Create unit test suite `[NEW]` `@[client_app_v2/test/shared/models/i18n_text_test.dart]` testing:
    - Target match resolution (`get('fi')` -> `'Käyttäjä'`).
    - Lingua franca fallback resolution (`get('sv', fallback: 'en')` -> `'User'`).
    - Fail-Fast `AppException.validation` on missing target and fallback translations.
@@ -294,37 +293,37 @@ Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/
 
 ---
 
-### Phase 3: Backend PDF Localization Parity, SDUI Adapters & OutputProfile Modernization (Luku 5)
+### Phase 3: Backend PDF Localization Parity, SDUI Adapters & OutputProfile Modernization (Chapter 5)
 
 #### Step 3.1: Backend Static L10n Dictionaries & LocalizationService Formatting
-1. **Täydennä Backendin staattiset käännöstiedostot (`@[backend_v2/l10n/en.json]` ja `@[backend_v2/l10n/fi.json]`)**:
-   - Lisää kaikki 17 `metric_mappings`-avainta (`metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`, `variance_mechanical`, `variance_cognitive`, `variance_total`, `variance_fallback_explanation`, `alignment_verdict`, `alignment_aligned`, `alignment_misaligned`, `jargon_score`, `authenticity_level`, `level_high`, `level_medium`, `level_low`, `authenticity_fallback_explanation`).
-   - Lisää `user_role_mappings`-avaimet (`role_passenger`, `role_navigator`, `role_driver`, `role_architect`).
-   - Lisää `matrix_column_labels`-avaimet (`col_label`, `col_distribution`, `col_row_explanation`, `col_quotes`, `col_normalized_score`, `col_score`).
-   - Lisää `extension_labels`-avaimet (`ext_variance_validation`, `ext_authenticity_evaluation`).
-2. **Laajenna `LocalizationService` (`@[backend_v2/services/localization.py]`) Formatting-apureilla**:
+1. **Complete Backend Static Translation Tables (`@[backend_v2/l10n/en.json]` and `@[backend_v2/l10n/fi.json]`)**:
+   - Add all 17 `metric_mappings` keys (`metadata_user`, `metadata_organization`, `metadata_scoring_engine`, `metadata_strictness`, `variance_mechanical`, `variance_cognitive`, `variance_total`, `variance_fallback_explanation`, `alignment_verdict`, `alignment_aligned`, `alignment_misaligned`, `jargon_score`, `authenticity_level`, `level_high`, `level_medium`, `level_low`, `authenticity_fallback_explanation`).
+   - Add `user_role_mappings` keys (`role_passenger`, `role_navigator`, `role_driver`, `role_architect`).
+   - Add `matrix_column_labels` keys (`col_label`, `col_distribution`, `col_row_explanation`, `col_quotes`, `col_normalized_score`, `col_score`).
+   - Add `extension_labels` keys (`ext_variance_validation`, `ext_authenticity_evaluation`).
+2. **Extend `LocalizationService` (`@[backend_v2/services/localization.py]`) with Formatting Helpers**:
    - `format_date(dt: datetime, locale: str) -> str`: fi: `26.08.2026 klo 06:44`, en: `2026-08-26 06:44`.
    - `format_score(value: float, locale: str) -> str`: fi: `3,50`, en: `3.50`.
    - `format_percent(ratio: float, locale: str) -> str`: fi: `85,2 %`, en: `85.2%`.
-   - `format_cost(amount: float, locale: str) -> str`: fi: `0,04 $` (tai `0,04 €`), en: `$0.04`.
-3. **Luo Yksikkötestit `@[backend_v2/tests/unit/services/test_localization_service.py]`**:
-   - Varmistaa käännöshaut, puuttuvien avainten Fail-Fast `AppException(VALIDATION_FAILED)` -käyttäytymisen sekä `format_date`, `format_score`, `format_percent` ja `format_cost` -muotoilujen oikeellisuuden eri lokaaleilla (`fi`, `en`).
+   - `format_cost(amount: float, locale: str) -> str`: fi: `0,04 $` (or `0,04 €`), en: `$0.04`.
+3. **Create Unit Tests `[NEW]` `@[backend_v2/tests/unit/services/test_localization_service.py]`**:
+   - Verify translation lookups, missing key Fail-Fast `AppException(VALIDATION_FAILED)` behavior, and `format_date`, `format_score`, `format_percent`, `format_cost` formatting correctness across locales (`fi`, `en`).
 
 #### Step 3.2: Refactor SDUI Adapters, Worker & Jinja2 PDF Template (Dumb Painters)
-1. **Refaktoroi SDUI-adapterit Pre-Lokalisoitujen DTO-lohkojen tuottamiseen**:
-   - In `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`: Tuottaa valmiiksi lokalisoidut `metadata_lines`- ja `costs`/`tokens`-merkkijonot käyttäen `LocalizationService.translate()` ja `format_cost()` / `format_date()` -funktioita.
-   - In `@[backend_v2/services/sdui/adapters/variance_adapter.py]`, `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`, `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`: Eristetään täysin `profile.metric_mappings` / `user_role_mappings` -tietokantakentistä. Käytetään `LocalizationService`-palvelua otsikoille ja luvuille.
-   - In `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]` ja `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`: Kulutetaan `profile.matrix_synthesis_groups` `layouts`-rakenteen sijaan. Sarakeotsikot ratkaistaan backendissä valmiiksi `LocalizationService`:n kautta.
-2. **Jinja2 / WeasyPrint (PDF) & Flutter Client Pariteetti (Dumb Painters)**:
-   - `@[backend_v2/templates/report_template.jinja2]` piirtää valmiiksi lokalisoidun `ReportDataDTO`:n suoraan ilman erillistä sanakirjatulkkausta.
-   - Flutterin `sdui_blocks_renderer.dart` piirtää valmiiksi lokalisoidut `AnySduiBlock`-lohkot suoraan. Flutterin `app_en.arb` ja `app_fi.arb` säilytetään puhtaina vain UI Chromelle (painikkeet, dialogit, teemat).
-3. **Päivitä Taustatyö & Flutter Studio View**:
-   - In `@[backend_v2/worker.py#L591-L1359]`: Iteroi `profile.matrix_synthesis_groups` -ryhmien yli matriisisynteesien generoinnissa.
-   - In `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`: Bindaus `matrixSynthesisGroups`-malliin.
+1. **Refactor SDUI Adapters to Produce Pre-Localized DTO Blocks**:
+   - In `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`: Produce pre-localized `metadata_lines` and `costs`/`tokens` strings using `LocalizationService.translate()` and `format_cost()` / `format_date()` functions.
+   - In `@[backend_v2/services/sdui/adapters/variance_adapter.py]`, `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`, `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`: Decouple completely from `profile.metric_mappings` / `user_role_mappings` database fields. Resolve titles, labels, and numbers via `LocalizationService`.
+   - In `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]` and `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`: Consume `profile.matrix_synthesis_groups` instead of the legacy `layouts` structure. Resolve column headers strictly via `LocalizationService`.
+2. **Jinja2 / WeasyPrint (PDF) & Flutter Client Parity (Dumb Painters)**:
+   - `@[backend_v2/templates/report_template.jinja2]` renders pre-localized `ReportDataDTO` directly without separate dictionary lookup.
+   - Flutter's `sdui_blocks_renderer.dart` renders pre-localized `AnySduiBlock` elements directly. Flutter's `app_en.arb` and `app_fi.arb` are reserved strictly for UI Chrome (buttons, dialogs, themes).
+3. **Update Background Worker & Flutter Studio View**:
+   - In `@[backend_v2/worker.py#L591-L1359]`: Iterate over `profile.matrix_synthesis_groups` for matrix synthesis generation.
+   - In `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`: Bind to `matrixSynthesisGroups` model.
 
 #### Step 3.3: Modernize `OutputProfile` & DTO Schemas (Backend & Frontend)
 1. **Backend Domain & DTOs (`v2_core.py` & `models/dtos/output_profile.py`)**:
-   - In `@[backend_v2/models/v2_core.py#L1146-L1267]`:
+   - In `@[backend_v2/models/v2_core.py#L1148-L1269]`:
      ```python
      class MatrixSynthesisGroup(V2CoreBase):
          """Logical group of matrices synthesized together into 2D visualizations or narratives."""
@@ -333,44 +332,44 @@ Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/
          target_blocks: list[str] = Field(default_factory=list, description="Target matrix block IDs")
          synthesis_directive: str | None = Field(default=None, description="Optional synthesis directive override")
      ```
-   - In `OutputProfile` (`v2_core.py` ja `models/dtos/output_profile.py`):
-     - Poista `metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`, ja `layouts`.
-     - Lisää `matrix_synthesis_groups: list[MatrixSynthesisGroup] = Field(default_factory=list)`.
+   - In `OutputProfile` (`v2_core.py` and `models/dtos/output_profile.py`):
+     - Remove `metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`, and `layouts`.
+     - Add `matrix_synthesis_groups: list[MatrixSynthesisGroup] = Field(default_factory=list)`.
 2. **Flutter Freezed Model (`output_profile.dart`)**:
    - In `@[client_app_v2/lib/features/studio/models/output_profile.dart]`:
-     - Deklaroi `MatrixSynthesisGroup` Freezed model.
-     - Päivitä `OutputProfile` Freezed model vastaamaan backendin skeemaa.
-   - Aja Flutter build runner: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build`.
+     - Declare `MatrixSynthesisGroup` Freezed model.
+     - Update `OutputProfile` Freezed model to match backend schema.
+   - Run Flutter build runner: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build`.
 
 #### Step 3.4: Seed Vault `OutputProfile` Migration
-Päivitä `OutputProfile`-tietueet tiedostossa `@[backend_v2/seed/seed_data.json#L9180-L9570]` poistamalla legacy-sanakirjakentät ja muuttamalla `layouts` muotoon `matrix_synthesis_groups`.
+Update `OutputProfile` records in `@[backend_v2/seed/seed_data.json#L9180-L9570]` by removing legacy dictionary fields and converting `layouts` to `matrix_synthesis_groups`.
 
 ---
 
-### Phase 4: Atomic Fixture Migration, Seed Re-seeding & AST Guardrails (Luku 6)
+### Phase 4: Atomic Fixture Migration, Seed Re-seeding & AST Guardrails (Chapter 6)
 
 #### Step 4.1: Deterministic Test Fixtures Migration across 1300+ Test Cases
-Suorita atominen AST-/Regex-migraatioskripti `scratch/migrate_seed_and_fixtures.py` poistamaan `default_locale`-, `metric_mappings`- ja vanhat `layouts`-kentät kaikista `backend_v2/tests/` -tiedostoista (mukaan lukien `test_blueprint.py`, `test_worker_synthesis.py`, `test_variance_adapter.py`).
+Execute the atomic AST/regex migration script `scratch/migrate_seed_and_fixtures.py` to remove `default_locale`, `metric_mappings`, and legacy `layouts` fields from all `backend_v2/tests/` files (including `test_blueprint.py`, `test_worker_synthesis.py`, and `test_variance_adapter.py`).
 
 #### Step 4.2: Re-seed Local Database
-Varmista JSON-integriteetti ja aja paikallinen uudelleensiemennys:
+Verify JSON syntax integrity and execute local re-seeding:
 `uv run python backend_v2/seed/run_seed.py local`.
 
 #### Step 4.3: Create AST Guardrail & L10n Parity Suites
-1. Luo [NEW] `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]`:
-   - `test_seed_matrices_have_no_epistemic_anchor_in_ai_description`: 0 matriisilohkolla on `"EPISTEMIC ANCHOR:"`.
-   - `test_seed_matrices_have_valid_theory_grounding`: Kaikilla 13 matriisilohkolla on ei-null `theory_grounding`.
-   - `test_matrix_sensor_prompt_builder_ast_uses_pure_theory_citation`: AST varmistaa, ettei `theory_grounding`-oliosta kutsuta `model_dump_json()`.
-2. Luo [NEW] `@[backend_v2/tests/unit/test_seed_architectural_guardrails.py]`:
-   - `test_seed_has_no_default_locale`: 0 esiintymää sanasta `"default_locale"` koko `seed_data.json`-tiedostossa.
-   - `test_seed_output_profile_has_no_legacy_dictionaries`: 0 esiintymää kentistä `metric_mappings`, `matrix_column_labels`, `user_role_mappings` `OutputProfile`-tietueissa.
-   - `test_seed_output_profile_uses_matrix_synthesis_groups`: Varmistaa, että `matrix_synthesis_groups` on olemassa ja ei-tyhjä.
-3. Luo [NEW] `@[backend_v2/tests/unit/test_l10n_backend_flutter_parity.py]`:
-   - `test_backend_json_matches_flutter_arb_keys`: Varmistaa 1:1 avainpariteetin `backend_v2/l10n/*.json` ja `client_app_v2/lib/l10n/*.arb` välillä.
+1. Create [NEW] `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]`:
+   - `test_seed_matrices_have_no_epistemic_anchor_in_ai_description`: Assert 0 matrix blocks contain `"EPISTEMIC ANCHOR:"`.
+   - `test_seed_matrices_have_valid_theory_grounding`: Assert all 13 matrix blocks have non-null `theory_grounding`.
+   - `test_matrix_sensor_prompt_builder_ast_uses_pure_theory_citation`: AST asserts `model_dump_json()` is not called on `theory_grounding`.
+2. Create [NEW] `@[backend_v2/tests/unit/test_seed_architectural_guardrails.py]`:
+   - `test_seed_has_no_default_locale`: Assert 0 occurrences of `"default_locale"` across the entire `seed_data.json` file.
+   - `test_seed_output_profile_has_no_legacy_dictionaries`: Assert 0 occurrences of `metric_mappings`, `matrix_column_labels`, and `user_role_mappings` in `OutputProfile` records.
+   - `test_seed_output_profile_uses_matrix_synthesis_groups`: Assert `matrix_synthesis_groups` is present and non-empty.
+3. Create [NEW] `@[backend_v2/tests/unit/test_l10n_backend_flutter_parity.py]`:
+   - `test_backend_json_matches_flutter_arb_keys`: Assert 1:1 key parity between `backend_v2/l10n/*.json` and `client_app_v2/lib/l10n/*.arb`.
 
 #### Step 4.4: Full Audit Gate Verification
-1. Aja backendin laatuportti: `uv run python scripts/backend_audit_loop.py backend_v2 --test`.
-2. Aja Flutterin laatuportti: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`.
+1. Run backend quality gate: `uv run python scripts/backend_audit_loop.py backend_v2 --test`.
+2. Run Flutter quality gate: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`.
 
 ---
 
@@ -395,7 +394,7 @@ Varmista JSON-integriteetti ja aja paikallinen uudelleensiemennys:
 | **TC-I18N-FLUTTER-05** (Flutter: Helpers isEmpty & isNotEmpty) | `test_i18n_text_is_empty_helpers` | `I18nText(translations: {})`, `I18nText(translations: {'en': '  '})` | `isEmpty == true`, `isNotEmpty == false`, `has('en') == false` |
 | **TC-SDUI-01** (Metadata: Key-Value Output) | `test_metadata_adapter_emits_structured_keys` | Context with `user_name="Matti Meikäläinen"` | SDUI payload contains `{key: "user", value: "Matti Meikäläinen"}` without hardcoded Finnish label |
 | **TC-SDUI-02** (Synthesis Groups: Group Dispatch) | `test_worker_iterates_matrix_synthesis_groups` | Profile with 2 `MatrixSynthesisGroup` objects | Emits 2 discrete synthesis tasks targeted at group member matrices |
-| **TC-L10N-01** (Localization Service: Lookups & Fail-Fast) | `test_localization_service_translate_and_formatting` | `LocalizationService.translate("metadata_user", "fi")`, `format_cost(12.5, "fi")` | Returns `"Käyttäjä"` ja `"12,50 $"`; missing key raises `AppException(VALIDATION_FAILED)` |
+| **TC-L10N-01** (Localization Service: Lookups & Fail-Fast) | `test_localization_service_translate_and_formatting` | `LocalizationService.translate("metadata_user", "fi")`, `format_cost(12.5, "fi")` | Returns `"Käyttäjä"` and `"12,50 $"`; missing key raises `AppException(VALIDATION_FAILED)` |
 | **TC-L10N-02** (L10n Parity: Backend JSON vs Flutter ARB) | `test_backend_json_matches_flutter_arb_keys` | `backend_v2/l10n/*.json` vs `client_app_v2/lib/l10n/*.arb` | 1:1 key parity between Backend and Flutter static translation keys |
 | **TC-AST-10** (AST Guardrail: Epistemic Anchor Purge) | `test_seed_matrices_have_no_epistemic_anchor_in_ai_description` | `seed_data.json` | 0 occurrences of `EPISTEMIC ANCHOR:` across all 13 matrices |
 | **TC-AST-11** (AST Guardrail: Default Locale Purge) | `test_seed_has_no_default_locale` | `seed_data.json` | 0 occurrences of `"default_locale"` across entire seed vault |
