@@ -4,58 +4,38 @@ import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/core/models/enums.dart';
 
 void main() {
-  group('OutputLayoutBlock JSON Parsing', () {
-    test('Should parse OutputLayoutBlock with valid enums and fields', () {
+  group('MatrixSynthesisGroup JSON Parsing', () {
+    test('Should parse MatrixSynthesisGroup with valid fields', () {
       final jsonPayload = {
-        'preset_view': 'default',
+        'id': 'grp_1',
         'title': {
           'translations': {'fi': 'Otsikko', 'en': 'Title'},
         },
-        'text_delivery_mode': 'full',
-        'is_synthesis_enabled': true,
+        'target_blocks': ['blk_1', 'blk_2'],
+        'synthesis_directive': 'Focus on logic',
       };
 
-      final block = OutputLayoutBlock.fromJson(jsonPayload);
+      final group = MatrixSynthesisGroup.fromJson(jsonPayload);
 
-      expect(block, isNotNull);
-      expect(block.presetView, PresetView.defaultView);
-      expect(block.textDeliveryMode, TextDeliveryMode.full);
-      expect(block.isSynthesisEnabled, isTrue);
+      expect(group, isNotNull);
+      expect(group.id, 'grp_1');
+      expect(group.title.translations['en'], 'Title');
+      expect(group.targetBlocks, ['blk_1', 'blk_2']);
+      expect(group.synthesisDirective, 'Focus on logic');
     });
 
-    test('Should parse empty JSON and default maps to {}', () {
-      final jsonPayload = <String, dynamic>{};
-
-      final block = OutputLayoutBlock.fromJson(jsonPayload);
-
-      expect(block, isNotNull);
-      expect(block.presetView, PresetView.defaultView);
-      expect(block.textDeliveryMode, TextDeliveryMode.full);
-      expect(block.matrixColumnLabels, isEmpty);
-    });
-
-    // Contract: test_output_layout_block_unknown_preset_view_throws
-    test('test_output_layout_block_unknown_preset_view_throws', () {
+    test('Should throw on unrecognized keys in MatrixSynthesisGroup', () {
       final jsonPayload = {
-        'preset_view': 'unknown_preset',
-        'text_delivery_mode': 'full',
+        'id': 'grp_1',
+        'title': {
+          'translations': {'en': 'Title'},
+        },
+        'target_blocks': ['blk_1'],
+        'extra_field': 'forbidden',
       };
 
       expect(
-        () => OutputLayoutBlock.fromJson(jsonPayload),
-        throwsA(isA<CheckedFromJsonException>()),
-      );
-    });
-
-    // Contract: test_output_layout_block_unknown_text_delivery_mode_throws
-    test('test_output_layout_block_unknown_text_delivery_mode_throws', () {
-      final jsonPayload = {
-        'preset_view': 'default',
-        'text_delivery_mode': 'invalid_mode',
-      };
-
-      expect(
-        () => OutputLayoutBlock.fromJson(jsonPayload),
+        () => MatrixSynthesisGroup.fromJson(jsonPayload),
         throwsA(isA<CheckedFromJsonException>()),
       );
     });
@@ -95,7 +75,6 @@ void main() {
       },
     );
 
-    // Contract: test_synthesis_config_dto_purged_enable_pii_masking_throws
     test('test_synthesis_config_dto_purged_enable_pii_masking_throws', () {
       final jsonPayload = {'enable_pii_masking': false};
 
@@ -105,9 +84,10 @@ void main() {
       );
     });
 
-    // Contract: test_synthesis_config_dto_purged_historical_context_mode_throws
-    test('test_synthesis_config_dto_purged_historical_context_mode_throws', () {
-      final jsonPayload = {'historical_context_mode': 'DISABLED'};
+    test('test_synthesis_config_dto_purged_allowed_exports_throws', () {
+      final jsonPayload = {
+        'allowed_exports': ['PDF'],
+      };
 
       expect(
         () => SynthesisConfigDTO.fromJson(jsonPayload),
@@ -115,11 +95,37 @@ void main() {
       );
     });
 
-    // Contract: test_synthesis_config_dto_purged_allowed_exports_throws
-    test('test_synthesis_config_dto_purged_allowed_exports_throws', () {
+    test('test_synthesis_config_dto_purged_allowed_mcp_tools_throws', () {
       final jsonPayload = {
-        'allowed_exports': ['pdf'],
+        'allowed_mcp_tools': ['search'],
       };
+
+      expect(
+        () => SynthesisConfigDTO.fromJson(jsonPayload),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    test('test_synthesis_config_dto_purged_historical_context_mode_throws', () {
+      final jsonPayload = {'historical_context_mode': 'enabled'};
+
+      expect(
+        () => SynthesisConfigDTO.fromJson(jsonPayload),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    test('test_synthesis_config_dto_purged_model_strategy_throws', () {
+      final jsonPayload = {'model_strategy': 'fast'};
+
+      expect(
+        () => SynthesisConfigDTO.fromJson(jsonPayload),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    test('test_synthesis_config_dto_purged_omit_empty_sections_throws', () {
+      final jsonPayload = {'omit_empty_sections': true};
 
       expect(
         () => SynthesisConfigDTO.fromJson(jsonPayload),
@@ -129,103 +135,44 @@ void main() {
   });
 
   group('OutputProfile JSON Parsing', () {
-    test('Should parse strict ID for system workflows and valid language', () {
-      final jsonPayload = {
-        'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_9d68c573802341db',
-        'name': {
-          'translations': {'en': 'Test Profile'},
-        },
-        'language': 'fi',
-        'content_blocks': [
-          {'id': 'blk_123', 'block_type': 'markdown', 'text': 'test'},
-        ],
-      };
-
-      final profile = OutputProfile.fromJson(jsonPayload);
-      expect(profile.workflowId, 'wf_9d68c573802341db');
-      expect(profile.language, 'fi');
-      expect(profile.displayScale, DisplayScale.original);
-      expect(profile.maxExtensionItems, 3);
-    });
-
-    test('Should parse OutputProfile with synthesis object', () {
-      final jsonPayload = {
-        'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_9d68c573802341db',
-        'name': {
-          'translations': {'en': 'Test Profile'},
-        },
-        'synthesis': {
-          'synthesis_block_id': 'blk_1a2b3c4d5e6f7a8b',
-          'row_explanations_block_id': 'blk_row_explanation_rules',
-          'length_constraint': 250,
-        },
-      };
-
-      final profile = OutputProfile.fromJson(jsonPayload);
-      expect(profile.synthesis, isNotNull);
-      expect(profile.synthesis?.synthesisBlockId, 'blk_1a2b3c4d5e6f7a8b');
-      expect(
-        profile.synthesis?.rowExplanationsBlockId,
-        'blk_row_explanation_rules',
-      );
-      expect(profile.synthesis?.lengthConstraint, 250);
-    });
-
-    // Contract: test_output_profile_valid_deserialization
-    test('test_output_profile_valid_deserialization', () {
+    test('Should parse fully populated OutputProfile with all fields', () {
       final jsonPayload = {
         'id': 'op_1234567890abcdef',
         'slug': 'test-profile',
         'workflow_id': 'wf_9d68c573802341db',
         'organization_id': 'org_123',
         'name': {
-          'translations': {'en': 'Complete Valid Profile'},
+          'translations': {'en': 'Test Profile'},
         },
         'description': {
-          'translations': {'en': 'Valid Description'},
+          'translations': {'en': 'Description'},
         },
         'user_role_label': {
-          'translations': {'en': 'Lead'},
+          'translations': {'en': 'Role'},
         },
         'custom_preface': {
           'translations': {'en': 'Preface'},
         },
-        'visible_metadata': ['date', 'organization'],
+        'visible_metadata': ['date', 'user'],
         'visible_block_extensions': ['citation', 'coaching'],
         'visible_workflow_extensions': ['risk_flag'],
         'max_extension_items': 5,
         'display_scale': 'custom',
+        'custom_scale_min': 0.0,
+        'custom_scale_max': 100.0,
         'strictness_level': 85,
         'scoring_strategy': 'WATERFALL',
         'tone_instruction': {
           'translations': {'en': 'Formal'},
         },
         'language': 'en',
-        'user_role_mappings': {
-          'role_1': {
-            'translations': {'en': 'Role One'},
-          },
-        },
-        'extension_labels': {
-          'ext_1': {
-            'translations': {'en': 'Extension One'},
-          },
-        },
-        'metric_mappings': {
-          'metric_1': {
-            'translations': {'en': 'Metric One'},
-          },
-        },
-        'layouts': [
+        'matrix_synthesis_groups': [
           {
-            'preset_view': '1d_metrics',
+            'id': 'grp_1',
             'title': {
-              'translations': {'en': 'Layout 1'},
+              'translations': {'en': 'Group 1'},
             },
-            'text_delivery_mode': 'titles_only',
-            'is_synthesis_enabled': true,
+            'target_blocks': ['blk_1', 'blk_2'],
           },
         ],
         'content_blocks': [
@@ -260,11 +207,8 @@ void main() {
       expect(profile.targetBlockOrder.length, 12);
       expect(profile.targetBlockOrder.first, TargetBlockType.metadataBlock);
       expect(profile.targetBlockOrder.last, TargetBlockType.auditTrailBlock);
-      expect(profile.layouts.first.presetView, PresetView.metrics1d);
-      expect(
-        profile.layouts.first.textDeliveryMode,
-        TextDeliveryMode.titlesOnly,
-      );
+      expect(profile.matrixSynthesisGroups.length, 1);
+      expect(profile.matrixSynthesisGroups.first.id, 'grp_1');
       expect(profile.synthesis?.synthesisBlockId, 'blk_syn_1');
       expect(profile.synthesis?.lengthConstraint, 300);
       expect(profile.visibleBlockExtensions, [
@@ -274,7 +218,6 @@ void main() {
       expect(profile.visibleWorkflowExtensions, [XaiExtensionType.riskFlag]);
     });
 
-    // Contract: test_output_profile_unknown_display_scale_throws
     test('test_output_profile_unknown_display_scale_throws', () {
       final jsonPayload = {
         'id': 'op_1234567890abcdef',
@@ -291,7 +234,6 @@ void main() {
       );
     });
 
-    // Contract: test_output_profile_unknown_target_block_type_throws
     test('test_output_profile_unknown_target_block_type_throws', () {
       final jsonPayload = {
         'id': 'op_1234567890abcdef',
@@ -308,7 +250,6 @@ void main() {
       );
     });
 
-    // Contract: test_output_profile_extra_root_key_throws
     test('test_output_profile_extra_root_key_throws', () {
       final jsonPayload = {
         'id': 'op_1234567890abcdef',
@@ -325,15 +266,14 @@ void main() {
       );
     });
 
-    // Contract: test_output_profile_extra_key_in_synthesis_config_throws
-    test('test_output_profile_extra_key_in_synthesis_config_throws', () {
+    test('test_output_profile_purged_layouts_key_throws', () {
       final jsonPayload = {
         'id': 'op_1234567890abcdef',
         'workflow_id': 'wf_9d68c573802341db',
         'name': {
           'translations': {'en': 'Test Profile'},
         },
-        'synthesis': {'synthesis_block_id': 'blk_syn_1', 'ghost_key': true},
+        'layouts': [],
       };
 
       expect(
@@ -342,17 +282,14 @@ void main() {
       );
     });
 
-    // Contract: test_output_profile_extra_key_in_layout_throws
-    test('test_output_profile_extra_key_in_layout_throws', () {
+    test('test_output_profile_purged_metric_mappings_key_throws', () {
       final jsonPayload = {
         'id': 'op_1234567890abcdef',
         'workflow_id': 'wf_9d68c573802341db',
         'name': {
           'translations': {'en': 'Test Profile'},
         },
-        'layouts': [
-          {'preset_view': 'default', 'ghost_key': true},
-        ],
+        'metric_mappings': {},
       };
 
       expect(

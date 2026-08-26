@@ -39,20 +39,11 @@ void main() {
           toneInstruction: emptyI18n,
           maxExtensionItems: 3,
           displayScale: DisplayScale.original,
-          extensionLabels: {'ext1': emptyI18n},
           synthesis: SynthesisConfigDTO(
             preambleText: emptyI18n,
             toneInstruction: emptyI18n,
           ),
-          layouts: [
-            OutputLayoutBlock(
-              title: emptyI18n,
-              description: emptyI18n,
-              presetView: PresetView.defaultView,
-              textDeliveryMode: TextDeliveryMode.full,
-              matrixColumnLabels: {'col1': emptyI18n},
-            ),
-          ],
+          matrixSynthesisGroups: const [],
         );
 
         final formProvider = outputProfileFormProvider('test_id');
@@ -81,11 +72,6 @@ void main() {
           reason: 'toneInstruction should be sanitized',
         );
         expect(
-          sanitized.extensionLabels,
-          isEmpty,
-          reason: 'profile.extensionLabels should be sanitized to empty map',
-        );
-        expect(
           sanitized.synthesis?.preambleText,
           isNull,
           reason: 'profile.synthesis.preambleText should be sanitized',
@@ -104,23 +90,6 @@ void main() {
           sanitized.displayScale,
           DisplayScale.original,
           reason: 'displayScale should be preserved as original',
-        );
-
-        final layout = sanitized.layouts.first;
-        expect(
-          layout.title,
-          isNull,
-          reason: 'layout.title should be sanitized',
-        );
-        expect(
-          layout.description,
-          isNull,
-          reason: 'layout.description should be sanitized',
-        );
-        expect(
-          layout.matrixColumnLabels,
-          isEmpty,
-          reason: 'layout.matrixColumnLabels should be sanitized to empty map',
         );
       },
     );

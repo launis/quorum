@@ -6,10 +6,10 @@ import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart';
-
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
-/// Collection Builder card for matrix graph entries in payload.layouts.
+/// Collection Builder card for matrix synthesis group entries in payload.matrixSynthesisGroups.
 class MatrixGraphsBlockCard extends StatelessWidget {
   final OutputProfile payload;
   final void Function(OutputProfile) updatePayload;
@@ -33,9 +33,7 @@ class MatrixGraphsBlockCard extends StatelessWidget {
       TargetBlockType.matrixGraphsBlock,
     );
 
-    final graphLayouts = payload.layouts
-        .where((l) => l.presetView != PresetView.matrixSummary)
-        .toList();
+    final groups = payload.matrixSynthesisGroups;
 
     return BaseBlockCard(
       blockType: TargetBlockType.matrixGraphsBlock,
@@ -58,7 +56,7 @@ class MatrixGraphsBlockCard extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (graphLayouts.isEmpty)
+          if (groups.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.s12),
               child: Text(
@@ -67,32 +65,36 @@ class MatrixGraphsBlockCard extends StatelessWidget {
               ),
             )
           else
-            ...graphLayouts.asMap().entries.map((entry) {
+            ...groups.asMap().entries.map((entry) {
               final idx = entry.key;
-              final layout = entry.value;
+              final group = entry.value;
 
               return MatrixGraphItemEditor(
-                key: ValueKey('graph_item_${idx}_${layout.presetView.name}'),
+                key: ValueKey('matrix_group_${idx}_${group.id}'),
                 index: idx,
-                layout: layout,
+                group: group,
                 allowedBlockIds: allowedBlockIds,
                 promptBlocksState: promptBlocksState,
-                onUpdate: (updatedLayout) {
-                  final newLayouts = List<OutputLayoutBlock>.from(
-                    payload.layouts,
+                onUpdate: (updatedGroup) {
+                  final newGroups = List<MatrixSynthesisGroup>.from(
+                    payload.matrixSynthesisGroups,
                   );
-                  final targetIdx = newLayouts.indexOf(layout);
+                  final targetIdx = newGroups.indexOf(group);
                   if (targetIdx >= 0) {
-                    newLayouts[targetIdx] = updatedLayout;
+                    newGroups[targetIdx] = updatedGroup;
                   }
-                  updatePayload(payload.copyWith(layouts: newLayouts));
+                  updatePayload(
+                    payload.copyWith(matrixSynthesisGroups: newGroups),
+                  );
                 },
                 onDelete: () {
-                  final newLayouts = List<OutputLayoutBlock>.from(
-                    payload.layouts,
+                  final newGroups = List<MatrixSynthesisGroup>.from(
+                    payload.matrixSynthesisGroups,
                   );
-                  newLayouts.remove(layout);
-                  updatePayload(payload.copyWith(layouts: newLayouts));
+                  newGroups.remove(group);
+                  updatePayload(
+                    payload.copyWith(matrixSynthesisGroups: newGroups),
+                  );
                 },
               );
             }),
@@ -101,16 +103,25 @@ class MatrixGraphsBlockCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: FilledButton.tonalIcon(
               onPressed: () {
-                final newLayouts = List<OutputLayoutBlock>.from(
-                  payload.layouts,
+                final newGroups = List<MatrixSynthesisGroup>.from(
+                  payload.matrixSynthesisGroups,
                 );
-                newLayouts.add(
-                  const OutputLayoutBlock(
-                    presetView: PresetView.metrics1d,
-                    targetBlocks: [],
+                final newIndex = newGroups.length + 1;
+                newGroups.add(
+                  MatrixSynthesisGroup(
+                    id: 'grp_${DateTime.now().millisecondsSinceEpoch}',
+                    title: I18nText(
+                      translations: {
+                        'en': 'Group $newIndex',
+                        'fi': 'Ryhmä $newIndex',
+                      },
+                    ),
+                    targetBlocks: const [],
                   ),
                 );
-                updatePayload(payload.copyWith(layouts: newLayouts));
+                updatePayload(
+                  payload.copyWith(matrixSynthesisGroups: newGroups),
+                );
               },
               icon: const Icon(Icons.add),
               label: Text(l10n.addGraphButton),

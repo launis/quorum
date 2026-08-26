@@ -74,7 +74,7 @@ class OutputProfileListView extends ConsumerWidget {
                   itemCount: profiles.length,
                   itemBuilder: (context, index) {
                     final profile = profiles[index];
-                    final layouts = profile.layouts;
+                    final groups = profile.matrixSynthesisGroups;
 
                     final currentLocale = Localizations.localeOf(
                       context,
@@ -98,7 +98,7 @@ class OutputProfileListView extends ConsumerWidget {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          '${l10n.studioViewsSlugSubtitle(profile.slug)}\n${l10n.studioViewsProfileListSubtitle(profile.id, profile.workflowId.isEmpty ? l10n.studioViewsNone : profile.workflowId, layouts.length)}',
+                          '${l10n.studioViewsSlugSubtitle(profile.slug)}\n${l10n.studioViewsProfileListSubtitle(profile.id, profile.workflowId.isEmpty ? l10n.studioViewsNone : profile.workflowId, groups.length)}',
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,

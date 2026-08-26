@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
-
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
-/// Single item editor within MatrixGraphsBlockCard for configuring a single graph layout.
+/// Single item editor within MatrixGraphsBlockCard for configuring a MatrixSynthesisGroup.
 class MatrixGraphItemEditor extends StatelessWidget {
   final int index;
-  final OutputLayoutBlock layout;
-  final ValueChanged<OutputLayoutBlock> onUpdate;
+  final MatrixSynthesisGroup group;
+  final ValueChanged<MatrixSynthesisGroup> onUpdate;
   final VoidCallback onDelete;
   final Set<String> allowedBlockIds;
   final AsyncValue<List<PromptBlock>> promptBlocksState;
@@ -20,7 +18,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
   const MatrixGraphItemEditor({
     super.key,
     required this.index,
-    required this.layout,
+    required this.group,
     required this.onUpdate,
     required this.onDelete,
     required this.allowedBlockIds,
@@ -37,8 +35,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
         ? blocks
         : blocks.where((b) => allowedBlockIds.contains(b.id)).toList();
 
-    final targetBlocks = List<String>.from(layout.targetBlocks);
-    final requiredAxes = _requiredAxesCount(layout.presetView);
+    final targetBlocks = List<String>.from(group.targetBlocks);
 
     return Card(
       elevation: 0,
@@ -54,9 +51,9 @@ class MatrixGraphItemEditor extends StatelessWidget {
           child: Text('${index + 1}', style: const TextStyle(fontSize: 11)),
         ),
         title: Text(
-          layout.title?.translations['en'] ??
-              layout.title?.translations.values.firstOrNull ??
-              l10n.graphTitleDefault(index + 1, layout.presetView.name),
+          group.title.translations['en'] ??
+              group.title.translations.values.firstOrNull ??
+              'Group ${index + 1}',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         trailing: IconButton(
@@ -65,143 +62,63 @@ class MatrixGraphItemEditor extends StatelessWidget {
         ),
         childrenPadding: AppSpacing.p12,
         children: [
-          SegmentedButton<PresetView>(
-            segments: [
-              ButtonSegment(
-                value: PresetView.metrics1d,
-                label: Text(l10n.presetView1d, overflow: TextOverflow.ellipsis),
-              ),
-              ButtonSegment(
-                value: PresetView.compare2d,
-                label: Text(l10n.presetView2d, overflow: TextOverflow.ellipsis),
-              ),
-              ButtonSegment(
-                value: PresetView.matrix3d,
-                label: Text(l10n.presetView3d, overflow: TextOverflow.ellipsis),
-              ),
-              ButtonSegment(
-                value: PresetView.textOnly,
-                label: Text(
-                  l10n.presetViewTextOnly,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-            selected: {
-              [
-                    PresetView.metrics1d,
-                    PresetView.compare2d,
-                    PresetView.matrix3d,
-                    PresetView.textOnly,
-                  ].contains(layout.presetView)
-                  ? layout.presetView
-                  : PresetView.metrics1d,
-            },
-            onSelectionChanged: (selected) {
-              onUpdate(layout.copyWith(presetView: selected.first));
+          I18nTextField(
+            label: l10n.graphTitleLabel,
+            initialData: group.title,
+            onChanged: (val) {
+              onUpdate(group.copyWith(title: val));
             },
           ),
           const SizedBox(height: AppSpacing.s12),
-          I18nTextField(
-            label: l10n.graphTitleLabel,
-            initialData: layout.title,
+          Text(
+            l10n.selectBlockHint,
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Wrap(
+            spacing: AppSpacing.s8,
+            runSpacing: AppSpacing.s4,
+            children: selectableBlocks.map((block) {
+              final isSelected = targetBlocks.contains(block.id);
+              final label = block.label.translations['en'] ?? block.slug;
+              return FilterChip(
+                label: Text('$label (${block.id})'),
+                selected: isSelected,
+                onSelected: (selected) {
+                  final newTargets = List<String>.from(targetBlocks);
+                  if (selected) {
+                    if (!newTargets.contains(block.id)) {
+                      newTargets.add(block.id);
+                    }
+                  } else {
+                    newTargets.remove(block.id);
+                  }
+                  onUpdate(group.copyWith(targetBlocks: newTargets));
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          TextFormField(
+            initialValue: group.synthesisDirective ?? '',
+            decoration: const InputDecoration(
+              labelText: 'Synthesis Directive (Optional)',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            maxLines: 2,
             onChanged: (val) {
               onUpdate(
-                layout.copyWith(title: val.translations.isEmpty ? null : val),
+                group.copyWith(
+                  synthesisDirective: val.trim().isEmpty ? null : val.trim(),
+                ),
               );
             },
           ),
-          if (requiredAxes > 0) ...[
-            const SizedBox(height: AppSpacing.s12),
-            for (int axisIdx = 0; axisIdx < requiredAxes; axisIdx++) ...[
-              _buildAxisDropdown(
-                context,
-                l10n: l10n,
-                axisIdx: axisIdx,
-                targetBlocks: targetBlocks,
-                selectableBlocks: selectableBlocks,
-              ),
-              const SizedBox(height: AppSpacing.s8),
-            ],
-          ],
         ],
       ),
-    );
-  }
-
-  int _requiredAxesCount(PresetView preset) {
-    return switch (preset) {
-      PresetView.metrics1d => 1,
-      PresetView.compare2d => 2,
-      PresetView.matrix3d => 3,
-      PresetView.textOnly => 0,
-      _ => 1,
-    };
-  }
-
-  Widget _buildAxisDropdown(
-    BuildContext context, {
-    required AppLocalizations l10n,
-    required int axisIdx,
-    required List<String> targetBlocks,
-    required List<PromptBlock> selectableBlocks,
-  }) {
-    final axisLabels = [
-      l10n.axisXPrimary,
-      l10n.axisYComparison,
-      l10n.axisZDepth,
-    ];
-    final currentVal = axisIdx < targetBlocks.length
-        ? targetBlocks[axisIdx]
-        : null;
-    final otherSelected = List<String>.from(targetBlocks)..remove(currentVal);
-
-    return DropdownButtonFormField<String?>(
-      initialValue: currentVal,
-      isExpanded: true,
-      decoration: InputDecoration(
-        labelText: axisLabels[axisIdx],
-        border: const OutlineInputBorder(),
-        isDense: true,
-      ),
-      items: [
-        DropdownMenuItem<String?>(
-          value: null,
-          child: Text(l10n.selectBlockHint),
-        ),
-        ...selectableBlocks.map((block) {
-          final isDuplicate = otherSelected.contains(block.id);
-          final label = block.label.translations['en'] ?? block.slug;
-          return DropdownMenuItem<String?>(
-            value: block.id,
-            enabled: !isDuplicate,
-            child: Text(
-              isDuplicate
-                  ? l10n.alreadySelectedOnOtherAxis(label)
-                  : '$label (${block.id})',
-              style: TextStyle(
-                color: isDuplicate ? Theme.of(context).disabledColor : null,
-              ),
-            ),
-          );
-        }),
-      ],
-      onChanged: (val) {
-        final newTargets = List<String>.from(targetBlocks);
-        while (newTargets.length <= axisIdx) {
-          newTargets.add('');
-        }
-        if (val != null && val.isNotEmpty) {
-          newTargets[axisIdx] = val;
-        } else {
-          newTargets.removeAt(axisIdx);
-        }
-        onUpdate(
-          layout.copyWith(
-            targetBlocks: newTargets.where((s) => s.isNotEmpty).toList(),
-          ),
-        );
-      },
     );
   }
 }

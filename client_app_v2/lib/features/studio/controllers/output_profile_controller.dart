@@ -241,14 +241,6 @@ class OutputProfileForm extends _$OutputProfileForm {
         );
       }
 
-      Map<String, I18nText> sanitizeMap(Map<String, I18nText> map) {
-        final sanitizedMap = <String, I18nText>{};
-        map.forEach((k, v) {
-          if (v.isNotEmpty) sanitizedMap[k] = v;
-        });
-        return sanitizedMap;
-      }
-
       final sanitized = profileWithId.copyWith(
         description: (profileWithId.description?.isEmpty ?? true)
             ? null
@@ -262,8 +254,6 @@ class OutputProfileForm extends _$OutputProfileForm {
         toneInstruction: (profileWithId.toneInstruction?.isEmpty ?? true)
             ? null
             : profileWithId.toneInstruction,
-        userRoleMappings: sanitizeMap(profileWithId.userRoleMappings),
-        extensionLabels: sanitizeMap(profileWithId.extensionLabels),
         synthesis: profileWithId.synthesis == null
             ? null
             : profileWithId.synthesis!.copyWith(
@@ -276,15 +266,6 @@ class OutputProfileForm extends _$OutputProfileForm {
                     ? null
                     : profileWithId.synthesis!.toneInstruction,
               ),
-        layouts: profileWithId.layouts.map((l) {
-          return l.copyWith(
-            title: (l.title?.isEmpty ?? true) ? null : l.title,
-            description: (l.description?.isEmpty ?? true)
-                ? null
-                : l.description,
-            matrixColumnLabels: sanitizeMap(l.matrixColumnLabels),
-          );
-        }).toList(),
       );
 
       await ref

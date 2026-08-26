@@ -104,14 +104,7 @@ class ProfileEditorView extends HookConsumerWidget {
             ),
             visibleBlockExtensions: const [],
             visibleWorkflowExtensions: const [],
-            layouts: const [
-              OutputLayoutBlock(
-                presetView: PresetView.metrics1d,
-                title: I18nText(translations: {'en': 'Metrics 1D'}),
-                textDeliveryMode: TextDeliveryMode.full,
-                targetBlocks: [],
-              ),
-            ],
+            matrixSynthesisGroups: const [],
           );
           ref
               .read(workflowFormProvider(workflowId).notifier)
@@ -186,7 +179,7 @@ class ProfileEditorView extends HookConsumerWidget {
                   ),
                   visibleBlockExtensions: const [],
                   visibleWorkflowExtensions: const [],
-                  layouts: const [],
+                  matrixSynthesisGroups: const [],
                 );
 
                 ref
@@ -280,7 +273,9 @@ class ProfileEditorView extends HookConsumerWidget {
     AsyncValue<List<dynamic>> promptBlocksState,
     AsyncValue<List<String>> availableExtensionsState,
   ) {
-    final layouts = List<OutputLayoutBlock>.from(profileDef.layouts);
+    final groups = List<MatrixSynthesisGroup>.from(
+      profileDef.matrixSynthesisGroups,
+    );
 
     void rebuildProfile(OutputProfile updatedProfile) {
       final newProfiles = Map<String, OutputProfile>.from(
@@ -661,9 +656,11 @@ class ProfileEditorView extends HookConsumerWidget {
                       padding: const EdgeInsets.all(AppSpacing.s8),
                       children: [
                         LayoutEditorCard(
-                          layouts: layouts,
+                          groups: groups,
                           onChanged: (val) {
-                            rebuildProfile(profileDef.copyWith(layouts: val));
+                            rebuildProfile(
+                              profileDef.copyWith(matrixSynthesisGroups: val),
+                            );
                           },
                           allowedBlockIds: allowedBlockIds,
                           promptBlocksState: promptBlocksState,

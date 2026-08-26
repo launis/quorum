@@ -6,138 +6,51 @@ part of 'output_profile.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_OutputLayoutBlock _$OutputLayoutBlockFromJson(
+_MatrixSynthesisGroup _$MatrixSynthesisGroupFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
-  '_OutputLayoutBlock',
+  '_MatrixSynthesisGroup',
   json,
   ($checkedConvert) {
     $checkKeys(
       json,
       allowedKeys: const [
-        'preset_view',
+        'id',
         'title',
-        'description',
-        'steps',
         'target_blocks',
-        'text_delivery_mode',
-        'is_synthesis_enabled',
-        'strictness_level',
-        'scoring_strategy',
-        'matrix_column_labels',
-        'matrix_visible_columns',
+        'synthesis_directive',
       ],
     );
-    final val = _OutputLayoutBlock(
-      presetView: $checkedConvert(
-        'preset_view',
-        (v) =>
-            $enumDecodeNullable(_$PresetViewEnumMap, v) ??
-            PresetView.defaultView,
-      ),
+    final val = _MatrixSynthesisGroup(
+      id: $checkedConvert('id', (v) => v as String),
       title: $checkedConvert(
         'title',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      description: $checkedConvert(
-        'description',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      steps: $checkedConvert(
-        'steps',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+        (v) => I18nText.fromJson(v as Map<String, dynamic>),
       ),
       targetBlocks: $checkedConvert(
         'target_blocks',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+        (v) => (v as List<dynamic>).map((e) => e as String).toList(),
       ),
-      textDeliveryMode: $checkedConvert(
-        'text_delivery_mode',
-        (v) =>
-            $enumDecodeNullable(_$TextDeliveryModeEnumMap, v) ??
-            TextDeliveryMode.full,
-      ),
-      isSynthesisEnabled: $checkedConvert(
-        'is_synthesis_enabled',
-        (v) => v as bool? ?? true,
-      ),
-      strictnessLevel: $checkedConvert(
-        'strictness_level',
-        (v) => (v as num?)?.toInt(),
-      ),
-      scoringStrategy: $checkedConvert(
-        'scoring_strategy',
-        (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
-      ),
-      matrixColumnLabels: $checkedConvert(
-        'matrix_column_labels',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) =>
-                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-            ) ??
-            const {},
-      ),
-      matrixVisibleColumns: $checkedConvert(
-        'matrix_visible_columns',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      synthesisDirective: $checkedConvert(
+        'synthesis_directive',
+        (v) => v as String?,
       ),
     );
     return val;
   },
   fieldKeyMap: const {
-    'presetView': 'preset_view',
     'targetBlocks': 'target_blocks',
-    'textDeliveryMode': 'text_delivery_mode',
-    'isSynthesisEnabled': 'is_synthesis_enabled',
-    'strictnessLevel': 'strictness_level',
-    'scoringStrategy': 'scoring_strategy',
-    'matrixColumnLabels': 'matrix_column_labels',
-    'matrixVisibleColumns': 'matrix_visible_columns',
+    'synthesisDirective': 'synthesis_directive',
   },
 );
 
-Map<String, dynamic> _$OutputLayoutBlockToJson(
-  _OutputLayoutBlock instance,
+Map<String, dynamic> _$MatrixSynthesisGroupToJson(
+  _MatrixSynthesisGroup instance,
 ) => <String, dynamic>{
-  'preset_view': _$PresetViewEnumMap[instance.presetView]!,
-  'title': instance.title?.toJson(),
-  'description': instance.description?.toJson(),
-  'steps': instance.steps,
+  'id': instance.id,
+  'title': instance.title.toJson(),
   'target_blocks': instance.targetBlocks,
-  'text_delivery_mode': _$TextDeliveryModeEnumMap[instance.textDeliveryMode]!,
-  'is_synthesis_enabled': instance.isSynthesisEnabled,
-  'strictness_level': instance.strictnessLevel,
-  'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
-  'matrix_column_labels': instance.matrixColumnLabels.map(
-    (k, e) => MapEntry(k, e.toJson()),
-  ),
-  'matrix_visible_columns': instance.matrixVisibleColumns,
-};
-
-const _$PresetViewEnumMap = {
-  PresetView.metrics1d: '1d_metrics',
-  PresetView.compare2d: '2d_compare',
-  PresetView.matrix3d: '3d_matrix',
-  PresetView.textOnly: 'text_only',
-  PresetView.defaultView: 'default',
-  PresetView.matrixSummary: 'matrix_summary',
-};
-
-const _$TextDeliveryModeEnumMap = {
-  TextDeliveryMode.full: 'full',
-  TextDeliveryMode.titlesOnly: 'titles_only',
-  TextDeliveryMode.none: 'none',
-};
-
-const _$ScoringStrategyEnumMap = {
-  ScoringStrategy.waterfall: 'WATERFALL',
-  ScoringStrategy.average: 'AVERAGE',
-  ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
-  ScoringStrategy.pureMath: 'PURE_MATH',
+  'synthesis_directive': instance.synthesisDirective,
 };
 
 _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
@@ -245,10 +158,7 @@ _OutputProfile _$OutputProfileFromJson(
         'scoring_strategy',
         'tone_instruction',
         'language',
-        'user_role_mappings',
-        'extension_labels',
-        'metric_mappings',
-        'layouts',
+        'matrix_synthesis_groups',
         'content_blocks',
         'target_block_order',
         'synthesis',
@@ -335,39 +245,13 @@ _OutputProfile _$OutputProfileFromJson(
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
       language: $checkedConvert('language', (v) => v as String?),
-      userRoleMappings: $checkedConvert(
-        'user_role_mappings',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) =>
-                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-            ) ??
-            const {},
-      ),
-      extensionLabels: $checkedConvert(
-        'extension_labels',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) =>
-                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-            ) ??
-            const {},
-      ),
-      metricMappings: $checkedConvert(
-        'metric_mappings',
-        (v) =>
-            (v as Map<String, dynamic>?)?.map(
-              (k, e) =>
-                  MapEntry(k, I18nText.fromJson(e as Map<String, dynamic>)),
-            ) ??
-            const {},
-      ),
-      layouts: $checkedConvert(
-        'layouts',
+      matrixSynthesisGroups: $checkedConvert(
+        'matrix_synthesis_groups',
         (v) =>
             (v as List<dynamic>?)
                 ?.map(
-                  (e) => OutputLayoutBlock.fromJson(e as Map<String, dynamic>),
+                  (e) =>
+                      MatrixSynthesisGroup.fromJson(e as Map<String, dynamic>),
                 )
                 .toList() ??
             const [],
@@ -429,9 +313,7 @@ _OutputProfile _$OutputProfileFromJson(
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
     'toneInstruction': 'tone_instruction',
-    'userRoleMappings': 'user_role_mappings',
-    'extensionLabels': 'extension_labels',
-    'metricMappings': 'metric_mappings',
+    'matrixSynthesisGroups': 'matrix_synthesis_groups',
     'contentBlocks': 'content_blocks',
     'targetBlockOrder': 'target_block_order',
     'performativityDetectorStepId': 'performativity_detector_step_id',
@@ -464,16 +346,9 @@ Map<String, dynamic> _$OutputProfileToJson(
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
-  'user_role_mappings': instance.userRoleMappings.map(
-    (k, e) => MapEntry(k, e.toJson()),
-  ),
-  'extension_labels': instance.extensionLabels.map(
-    (k, e) => MapEntry(k, e.toJson()),
-  ),
-  'metric_mappings': instance.metricMappings.map(
-    (k, e) => MapEntry(k, e.toJson()),
-  ),
-  'layouts': instance.layouts.map((e) => e.toJson()).toList(),
+  'matrix_synthesis_groups': instance.matrixSynthesisGroups
+      .map((e) => e.toJson())
+      .toList(),
   'content_blocks': instance.contentBlocks.map((e) => e.toJson()).toList(),
   'target_block_order': instance.targetBlockOrder
       .map((e) => _$TargetBlockTypeEnumMap[e]!)
@@ -503,6 +378,13 @@ const _$DisplayScaleEnumMap = {
   DisplayScale.original: 'original',
   DisplayScale.custom: 'custom',
   DisplayScale.normalized100: 'normalized_100',
+};
+
+const _$ScoringStrategyEnumMap = {
+  ScoringStrategy.waterfall: 'WATERFALL',
+  ScoringStrategy.average: 'AVERAGE',
+  ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
+  ScoringStrategy.pureMath: 'PURE_MATH',
 };
 
 const _$TargetBlockTypeEnumMap = {

@@ -3,19 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/features/studio/views/widgets/profile/layout_editor_card.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
-import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
   group('LayoutEditorCard Tests', () {
     testWidgets(
-      'LayoutEditorCard renders matrixSummary PresetView without crashing',
+      'LayoutEditorCard renders MatrixSynthesisGroup without crashing',
       (WidgetTester tester) async {
-        final layout = const OutputLayoutBlock(
-          presetView: PresetView.matrixSummary,
-          title: I18nText(translations: {'en': 'Matrix Summary'}),
-          textDeliveryMode: TextDeliveryMode.full,
+        final group = const MatrixSynthesisGroup(
+          id: 'grp_1',
+          title: I18nText(translations: {'en': 'Matrix Synthesis Group 1'}),
           targetBlocks: [],
         );
 
@@ -27,7 +25,7 @@ void main() {
               home: Scaffold(
                 body: SingleChildScrollView(
                   child: LayoutEditorCard(
-                    layouts: [layout],
+                    groups: [group],
                     onChanged: (_) {},
                     allowedBlockIds: const {},
                     promptBlocksState: const AsyncValue.data([]),
@@ -44,9 +42,9 @@ void main() {
     );
 
     testWidgets(
-      'LayoutEditorCard adds and deletes layout blocks via callbacks',
+      'LayoutEditorCard adds and deletes matrix synthesis groups via callbacks',
       (WidgetTester tester) async {
-        List<OutputLayoutBlock> currentLayouts = [];
+        List<MatrixSynthesisGroup> currentGroups = [];
 
         await tester.pumpWidget(
           ProviderScope(
@@ -58,10 +56,10 @@ void main() {
                   child: StatefulBuilder(
                     builder: (context, setState) {
                       return LayoutEditorCard(
-                        layouts: currentLayouts,
+                        groups: currentGroups,
                         onChanged: (newList) {
                           setState(() {
-                            currentLayouts = newList;
+                            currentGroups = newList;
                           });
                         },
                         allowedBlockIds: const {},
@@ -82,15 +80,15 @@ void main() {
         await tester.tap(addButton);
         await tester.pumpAndSettle();
 
-        expect(currentLayouts.length, equals(1));
+        expect(currentGroups.length, equals(1));
 
         // Delete button
-        final deleteButton = find.byIcon(Icons.delete_outline);
+        final deleteButton = find.byIcon(Icons.delete_outline).first;
         expect(deleteButton, findsOneWidget);
         await tester.tap(deleteButton);
         await tester.pumpAndSettle();
 
-        expect(currentLayouts.isEmpty, isTrue);
+        expect(currentGroups.isEmpty, isTrue);
       },
     );
   });

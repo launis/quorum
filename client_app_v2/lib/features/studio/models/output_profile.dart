@@ -9,36 +9,19 @@ part 'output_profile.freezed.dart';
 part 'output_profile.g.dart';
 
 @Freezed(equal: false)
-abstract class OutputLayoutBlock with _$OutputLayoutBlock {
-  const OutputLayoutBlock._();
+abstract class MatrixSynthesisGroup with _$MatrixSynthesisGroup {
+  const MatrixSynthesisGroup._();
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory OutputLayoutBlock({
-    @Default(PresetView.defaultView)
-    @JsonKey(name: 'preset_view')
-    PresetView presetView,
-    I18nText? title,
-    I18nText? description,
-    @Default([]) List<String> steps,
-    @Default([]) List<String> targetBlocks,
-    @Default(TextDeliveryMode.full)
-    @JsonKey(name: 'text_delivery_mode')
-    TextDeliveryMode textDeliveryMode,
-    @JsonKey(name: 'is_synthesis_enabled')
-    @Default(true)
-    bool isSynthesisEnabled,
-    @JsonKey(name: 'strictness_level') int? strictnessLevel,
-    @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
-    @JsonKey(name: 'matrix_column_labels')
-    @Default({})
-    Map<String, I18nText> matrixColumnLabels,
-    @JsonKey(name: 'matrix_visible_columns')
-    @Default([])
-    List<String> matrixVisibleColumns,
-  }) = _OutputLayoutBlock;
+  const factory MatrixSynthesisGroup({
+    required String id,
+    required I18nText title,
+    @JsonKey(name: 'target_blocks') required List<String> targetBlocks,
+    @JsonKey(name: 'synthesis_directive') String? synthesisDirective,
+  }) = _MatrixSynthesisGroup;
 
-  factory OutputLayoutBlock.fromJson(Map<String, dynamic> json) =>
-      _$OutputLayoutBlockFromJson(json);
+  factory MatrixSynthesisGroup.fromJson(Map<String, dynamic> json) =>
+      _$MatrixSynthesisGroupFromJson(json);
 }
 
 @Freezed(equal: false)
@@ -88,16 +71,9 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
     String? language,
-    @JsonKey(name: 'user_role_mappings')
-    @Default({})
-    Map<String, I18nText> userRoleMappings,
-    @JsonKey(name: 'extension_labels')
-    @Default({})
-    Map<String, I18nText> extensionLabels,
-    @JsonKey(name: 'metric_mappings')
-    @Default({})
-    Map<String, I18nText> metricMappings,
-    @Default([]) List<OutputLayoutBlock> layouts,
+    @JsonKey(name: 'matrix_synthesis_groups')
+    @Default([])
+    List<MatrixSynthesisGroup> matrixSynthesisGroups,
     @JsonKey(name: 'content_blocks')
     @Default([])
     List<SduiBlockDTO> contentBlocks,

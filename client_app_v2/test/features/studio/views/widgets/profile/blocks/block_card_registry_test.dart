@@ -18,7 +18,7 @@ void main() {
   OutputProfile createTestProfile({
     List<TargetBlockType>? targetBlockOrder,
     int maxExtensionItems = 3,
-    List<OutputLayoutBlock> layouts = const [],
+    List<MatrixSynthesisGroup> matrixSynthesisGroups = const [],
     List<String> visibleMetadata = const ['date', 'organization'],
   }) {
     return OutputProfile(
@@ -26,7 +26,7 @@ void main() {
       workflowId: 'wf_test',
       name: const I18nText(translations: {'en': 'Test Profile'}),
       maxExtensionItems: maxExtensionItems,
-      layouts: layouts,
+      matrixSynthesisGroups: matrixSynthesisGroups,
       visibleMetadata: visibleMetadata,
       targetBlockOrder: targetBlockOrder ?? TargetBlockType.values,
     );
@@ -221,56 +221,47 @@ void main() {
   });
 
   group('MatrixGraphsBlockCard Collection Builder', () {
-    testWidgets('adds new graph layout to payload.layouts on button tap', (
-      tester,
-    ) async {
-      final profile = createTestProfile(
-        targetBlockOrder: [TargetBlockType.matrixGraphsBlock],
-        layouts: [],
-      );
-      OutputProfile? updatedProfile;
+    testWidgets(
+      'adds new matrix synthesis group to payload.matrixSynthesisGroups on button tap',
+      (tester) async {
+        final profile = createTestProfile(
+          targetBlockOrder: [TargetBlockType.matrixGraphsBlock],
+          matrixSynthesisGroups: [],
+        );
+        OutputProfile? updatedProfile;
 
-      await tester.pumpWidget(
-        createTestWidget(
-          child: Builder(
-            builder: (context) {
-              return MatrixGraphsBlockCard(
-                payload: profile,
-                updatePayload: (p) => updatedProfile = p,
-                allowedBlockIds: {},
-                promptBlocksState: const AsyncData([]),
-              );
-            },
+        await tester.pumpWidget(
+          createTestWidget(
+            child: Builder(
+              builder: (context) {
+                return MatrixGraphsBlockCard(
+                  payload: profile,
+                  updatePayload: (p) => updatedProfile = p,
+                  allowedBlockIds: {},
+                  promptBlocksState: const AsyncData([]),
+                );
+              },
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      final addBtnFinder = find.text('Add Graph');
-      expect(addBtnFinder, findsOneWidget);
+        final addBtnFinder = find.text('Add Graph');
+        expect(addBtnFinder, findsOneWidget);
 
-      await tester.tap(addBtnFinder);
-      await tester.pumpAndSettle();
+        await tester.tap(addBtnFinder);
+        await tester.pumpAndSettle();
 
-      expect(updatedProfile, isNotNull);
-      expect(updatedProfile!.layouts.length, equals(1));
-      expect(
-        updatedProfile!.layouts.first.presetView,
-        equals(PresetView.metrics1d),
-      );
-    });
+        expect(updatedProfile, isNotNull);
+        expect(updatedProfile!.matrixSynthesisGroups.length, equals(1));
+      },
+    );
   });
 
   group('MatrixSummaryTableCard Configuration', () {
-    testWidgets('toggles column visibility chip', (tester) async {
+    testWidgets('renders matrix summary card', (tester) async {
       final profile = createTestProfile(
         targetBlockOrder: [TargetBlockType.matrixSummaryTableBlock],
-        layouts: [
-          const OutputLayoutBlock(
-            presetView: PresetView.matrixSummary,
-            matrixVisibleColumns: ['label'],
-          ),
-        ],
       );
       OutputProfile? updatedProfile;
 
@@ -288,17 +279,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final scoreChipFinder = find.widgetWithText(FilterChip, 'score');
-      expect(scoreChipFinder, findsOneWidget);
-
-      await tester.tap(scoreChipFinder);
-      await tester.pumpAndSettle();
-
-      expect(updatedProfile, isNotNull);
-      final summaryLayout = updatedProfile!.layouts.firstWhere(
-        (l) => l.presetView == PresetView.matrixSummary,
-      );
-      expect(summaryLayout.matrixVisibleColumns, contains('score'));
+      expect(find.byType(MatrixSummaryTableCard), findsOneWidget);
     });
   });
 }

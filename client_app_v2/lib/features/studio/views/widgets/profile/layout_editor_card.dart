@@ -3,33 +3,34 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
-import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 
-/// Legacy LayoutEditorCard preserved for backward compatibility and compact layout list editing.
+/// LayoutEditorCard for configuring matrix synthesis groups.
 class LayoutEditorCard extends ConsumerWidget {
-  final List<OutputLayoutBlock> layouts;
-  final Function(List<OutputLayoutBlock>) onChanged;
+  final List<MatrixSynthesisGroup> groups;
+  final Function(List<MatrixSynthesisGroup>) onChanged;
   final Set<String> allowedBlockIds;
   final AsyncValue<List<dynamic>> promptBlocksState;
 
   const LayoutEditorCard({
     super.key,
-    required this.layouts,
+    required this.groups,
     required this.onChanged,
     required this.allowedBlockIds,
     required this.promptBlocksState,
   });
 
-  void _addLayout() {
-    final newList = List<OutputLayoutBlock>.from(layouts);
+  void _addGroup() {
+    final newList = List<MatrixSynthesisGroup>.from(groups);
+    final nextIdx = newList.length + 1;
     newList.add(
-      const OutputLayoutBlock(
-        presetView: PresetView.metrics1d,
-        title: I18nText(translations: {'en': 'Metrics 1D'}),
-        textDeliveryMode: TextDeliveryMode.full,
-        targetBlocks: [],
+      MatrixSynthesisGroup(
+        id: 'grp_${DateTime.now().millisecondsSinceEpoch}',
+        title: I18nText(
+          translations: {'en': 'Group $nextIdx', 'fi': 'Ryhmä $nextIdx'},
+        ),
+        targetBlocks: const [],
       ),
     );
     onChanged(newList);
@@ -50,14 +51,14 @@ class LayoutEditorCard extends ConsumerWidget {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             FilledButton.icon(
-              onPressed: _addLayout,
+              onPressed: _addGroup,
               icon: const Icon(Icons.add_box),
               label: Text(l10n.addLayoutBlockBtn),
             ),
           ],
         ),
         const Divider(),
-        if (layouts.isEmpty)
+        if (groups.isEmpty)
           Padding(
             padding: AppSpacing.p16,
             child: Text(l10n.noLayoutBlocksDefined),
@@ -66,18 +67,18 @@ class LayoutEditorCard extends ConsumerWidget {
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: layouts.length,
+            itemCount: groups.length,
             itemBuilder: (context, index) {
-              return _CompactLayoutBlockItem(
+              return _CompactMatrixGroupItem(
                 index: index,
-                layout: layouts[index],
+                group: groups[index],
                 onUpdate: (updated) {
-                  final newList = List<OutputLayoutBlock>.from(layouts);
+                  final newList = List<MatrixSynthesisGroup>.from(groups);
                   newList[index] = updated;
                   onChanged(newList);
                 },
                 onDelete: () {
-                  final newList = List<OutputLayoutBlock>.from(layouts);
+                  final newList = List<MatrixSynthesisGroup>.from(groups);
                   newList.removeAt(index);
                   onChanged(newList);
                 },
@@ -89,15 +90,15 @@ class LayoutEditorCard extends ConsumerWidget {
   }
 }
 
-class _CompactLayoutBlockItem extends StatelessWidget {
+class _CompactMatrixGroupItem extends StatelessWidget {
   final int index;
-  final OutputLayoutBlock layout;
-  final ValueChanged<OutputLayoutBlock> onUpdate;
+  final MatrixSynthesisGroup group;
+  final ValueChanged<MatrixSynthesisGroup> onUpdate;
   final VoidCallback onDelete;
 
-  const _CompactLayoutBlockItem({
+  const _CompactMatrixGroupItem({
     required this.index,
-    required this.layout,
+    required this.group,
     required this.onUpdate,
     required this.onDelete,
   });
@@ -120,9 +121,9 @@ class _CompactLayoutBlockItem extends StatelessWidget {
           child: Text('${index + 1}', style: const TextStyle(fontSize: 11)),
         ),
         title: Text(
-          layout.title?.translations['en'] ??
-              layout.title?.translations.values.firstOrNull ??
-              'Layout #${index + 1} (${layout.presetView.name})',
+          group.title.translations['en'] ??
+              group.title.translations.values.firstOrNull ??
+              'Group #${index + 1}',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         trailing: IconButton(
@@ -131,31 +132,11 @@ class _CompactLayoutBlockItem extends StatelessWidget {
         ),
         childrenPadding: AppSpacing.p12,
         children: [
-          DropdownButtonFormField<PresetView>(
-            initialValue: layout.presetView,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Preset View',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            items: PresetView.values.map((pv) {
-              return DropdownMenuItem(value: pv, child: Text(pv.name));
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) {
-                onUpdate(layout.copyWith(presetView: val));
-              }
-            },
-          ),
-          const SizedBox(height: AppSpacing.s12),
           I18nTextField(
-            label: 'Layout Title',
-            initialData: layout.title,
+            label: 'Group Title',
+            initialData: group.title,
             onChanged: (val) {
-              onUpdate(
-                layout.copyWith(title: val.translations.isEmpty ? null : val),
-              );
+              onUpdate(group.copyWith(title: val));
             },
           ),
         ],

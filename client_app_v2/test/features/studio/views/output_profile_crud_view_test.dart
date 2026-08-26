@@ -120,7 +120,7 @@ void main() {
     List<XaiExtensionType> visibleWorkflowExtensions = const [
       XaiExtensionType.varianceValidation,
     ],
-    List<OutputLayoutBlock> layouts = const [],
+    List<MatrixSynthesisGroup> matrixSynthesisGroups = const [],
     List<TargetBlockType> targetBlockOrder = const [
       TargetBlockType.metadataBlock,
     ],
@@ -139,7 +139,7 @@ void main() {
       maxExtensionItems: maxExtensionItems,
       visibleBlockExtensions: visibleBlockExtensions,
       visibleWorkflowExtensions: visibleWorkflowExtensions,
-      layouts: layouts,
+      matrixSynthesisGroups: matrixSynthesisGroups,
       targetBlockOrder: targetBlockOrder,
     );
   }

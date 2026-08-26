@@ -10,14 +10,14 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
   testWidgets(
-    'MatrixGraphsBlockCard renders graph collection and handles add button',
+    'MatrixGraphsBlockCard renders group collection and handles add button',
     (WidgetTester tester) async {
       OutputProfile payload = const OutputProfile(
         id: 'profile_1',
         workflowId: 'wf_1',
         name: I18nText(translations: {'en': 'Test Profile'}),
         targetBlockOrder: [TargetBlockType.matrixGraphsBlock],
-        layouts: [],
+        matrixSynthesisGroups: [],
       );
 
       final mockPromptBlock = const PromptBlock.matrix(
@@ -54,8 +54,7 @@ void main() {
       await tester.tap(find.byType(FilledButton));
       await tester.pumpAndSettle();
 
-      expect(payload.layouts.length, equals(1));
-      expect(payload.layouts.first.presetView, equals(PresetView.metrics1d));
+      expect(payload.matrixSynthesisGroups.length, equals(1));
     },
   );
 }
