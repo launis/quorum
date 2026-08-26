@@ -76,11 +76,15 @@ class ScorecardAtomDTO(V2CoreBase):
 
 
 class TDAPending(V2CoreBase):
+    """Represents a pending TDA evaluation state."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
     runtimeType: Literal["pending"] = Field(default="pending")
 
 
 class TDAEvaluated(V2CoreBase):
+    """Represents a completed TDA evaluation state with quote evidence."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
     runtimeType: Literal["evaluated"] = Field(default="evaluated")
     passed: bool
@@ -89,6 +93,8 @@ class TDAEvaluated(V2CoreBase):
 
 
 class TDADlq(V2CoreBase):
+    """Represents a failed or dead-letter-queued TDA evaluation state."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
     runtimeType: Literal["dlq"] = Field(default="dlq")
     user_reason: str

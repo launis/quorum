@@ -1,6 +1,7 @@
 import json
 import logging
 from contextvars import ContextVar
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -125,14 +126,15 @@ class LocalizationService:
 
         # Fallback logic: "fi-FI" -> "fi"
         lang_simple = lang.split("-")[0].lower()
-        target_dict = cls._translations.get(lang_simple, {})
+        target_dict = cls._translations[lang_simple] if lang_simple in cls._translations else {}
 
         # 1. Try exact match in target language
-        val = target_dict.get(key)
+        val = target_dict[key] if key in target_dict else None
 
         # 2. Try Fallback to English
         if val is None and lang_simple != "en":
-            val = cls._translations.get("en", {}).get(key)
+            en_dict = cls._translations["en"] if "en" in cls._translations else {}
+            val = en_dict[key] if key in en_dict else None
             if val is not None:
                 logger.warning(
                     "BFF Translation Fallback: Key '%s' missing in '%s', falling back to English.", key, lang_simple
@@ -176,11 +178,93 @@ class LocalizationService:
         """Class method alias for translate. (Hardcoded defaults purged).
 
         Args:
-            key (str): The translation key.
-            lang (str | None): The target language code (e.g., 'fi'). If None, uses Context.
-            **kwargs (Any): Arguments for string interpolation.
+            key: The translation key.
+            lang: The target language code (e.g., 'fi'). If None, uses Context.
+            **kwargs: Arguments for string interpolation.
 
         Returns:
-            str: The translated string.
+            The translated string.
         """
         return cls.translate(key, lang, **kwargs)
+
+    @classmethod
+    def format_date(cls, dt: datetime, locale: str = "en") -> str:
+        """Formats a datetime object according to locale conventions.
+
+        Args:
+            dt: The datetime to format.
+            locale: Target locale code (e.g., 'fi' or 'en').
+
+        Returns:
+            Localized formatted date and time string.
+        """
+        lang_simple = locale.split("-")[0].lower()
+        if lang_simple == "fi":
+            return f"{dt.strftime('%d.%m.%Y')} klo {dt.strftime('%H:%M')}"
+        return dt.strftime("%Y-%m-%d %H:%M")
+
+    @classmethod
+    def format_decimal(cls, value: float, locale: str = "en", decimals: int = 2) -> str:
+        """Formats a floating-point number with localized decimal separator.
+
+        Args:
+            value: Number to format.
+            locale: Target locale code (e.g., 'fi' or 'en').
+            decimals: Number of decimal digits.
+
+        Returns:
+            Localized formatted decimal number string.
+        """
+        formatted = f"{value:.{decimals}f}"
+        lang_simple = locale.split("-")[0].lower()
+        if lang_simple == "fi":
+            return formatted.replace(".", ",")
+        return formatted
+
+    @classmethod
+    def format_score(cls, value: float, locale: str = "en") -> str:
+        """Formats an evaluative or normalized score.
+
+        Args:
+            value: Score number to format.
+            locale: Target locale code (e.g., 'fi' or 'en').
+
+        Returns:
+            Localized score string formatted to two decimals.
+        """
+        return cls.format_decimal(value, locale, decimals=2)
+
+    @classmethod
+    def format_percent(cls, ratio: float, locale: str = "en", decimals: int = 1) -> str:
+        """Formats a percentage ratio with localized punctuation and spacing.
+
+        Args:
+            ratio: Percentage value (e.g., 85.2).
+            locale: Target locale code (e.g., 'fi' or 'en').
+            decimals: Number of decimal digits.
+
+        Returns:
+            Localized percentage string (e.g. '85,2 %' in fi, '85.2%' in en).
+        """
+        formatted = cls.format_decimal(ratio, locale, decimals=decimals)
+        lang_simple = locale.split("-")[0].lower()
+        if lang_simple == "fi":
+            return f"{formatted} %"
+        return f"{formatted}%"
+
+    @classmethod
+    def format_cost(cls, amount: float, locale: str = "en") -> str:
+        """Formats a USD monetary amount with localized decimal and currency symbol positioning.
+
+        Args:
+            amount: Cost amount in USD.
+            locale: Target locale code (e.g., 'fi' or 'en').
+
+        Returns:
+            Localized cost string (e.g. '12,50 $' or '0,04 $' in fi, '$12.50' or '$0.04' in en).
+        """
+        formatted = cls.format_decimal(amount, locale, decimals=2)
+        lang_simple = locale.split("-")[0].lower()
+        if lang_simple == "fi":
+            return f"{formatted} $"
+        return f"${formatted}"

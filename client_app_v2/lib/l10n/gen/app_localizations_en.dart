@@ -4433,4 +4433,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutMetricTitle => 'About Metric';
+
+  @override
+  String get workflowIdMissingError => 'Workflow ID is missing';
 }

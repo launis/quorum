@@ -4467,4 +4467,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get aboutMetricTitle => 'Tietoa Mittarista';
+
+  @override
+  String get workflowIdMissingError => 'Työnkulun ID puuttuu';
 }

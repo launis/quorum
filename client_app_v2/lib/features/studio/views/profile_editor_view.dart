@@ -10,6 +10,7 @@ import 'package:client_app/features/studio/views/widgets/profile/layout_editor_c
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -121,7 +122,9 @@ class ProfileEditorView extends HookConsumerWidget {
 
     Future<void> saveWorkflow() async {
       try {
-        if (payload.id.isEmpty) throw Exception("Workflow ID is missing");
+        if (payload.id.isEmpty) {
+          throw AppException.validation(l10n.workflowIdMissingError);
+        }
 
         await ref
             .read(workflowFormProvider(workflowId).notifier)
@@ -131,7 +134,7 @@ class ProfileEditorView extends HookConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.studioSaveButton),
-              backgroundColor: const Color(0xFF2E7D32),
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
           );
           context.pop();

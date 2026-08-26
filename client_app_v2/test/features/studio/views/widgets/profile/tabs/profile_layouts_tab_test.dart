@@ -93,8 +93,9 @@ void main() {
           id: 'wf_test',
           slug: 'wf-test',
           name: const I18nText(translations: {'en': 'Test Flow'}),
-          description:
-              const I18nText(translations: {'en': 'Test Flow Description'}),
+          description: const I18nText(
+            translations: {'en': 'Test Flow Description'},
+          ),
           steps: [],
         );
 

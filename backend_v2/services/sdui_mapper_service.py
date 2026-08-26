@@ -72,9 +72,7 @@ class SduiMapperService:
         # Phase 3a: Map N_A outcomes to SDUI N_A Cards
         na_blocks = []
 
-        na_default_msg = I18nText(
-            translations={"fi": "Ei sovelleta (N/A)", "en": "Not applicable (N/A)"}
-        ).resolve(lang)
+        na_default_msg = I18nText(translations={"fi": "Ei sovelleta (N/A)", "en": "Not applicable (N/A)"}).resolve(lang)
         na_rule_prefix = I18nText(
             translations={"fi": "Ohitettu säännön perusteella:", "en": "Skipped based on rule:"}
         ).resolve(lang)
@@ -95,9 +93,9 @@ class SduiMapperService:
                 )
 
         if na_blocks:
-            title_na = I18nText(
-                translations={"fi": "Ohitetut Osiot (N/A)", "en": "Skipped Sections (N/A)"}
-            ).resolve(lang)
+            title_na = I18nText(translations={"fi": "Ohitetut Osiot (N/A)", "en": "Skipped Sections (N/A)"}).resolve(
+                lang
+            )
             sections.append(
                 UiSection(
                     id="na_outcomes",

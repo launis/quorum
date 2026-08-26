@@ -8021,6 +8021,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'About Metric'**
   String get aboutMetricTitle;
+
+  /// No description provided for @workflowIdMissingError.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow ID is missing'**
+  String get workflowIdMissingError;
 }
 
 class _AppLocalizationsDelegate

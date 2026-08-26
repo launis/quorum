@@ -1579,5 +1579,6 @@
   "humanOverrideExpertNote": "Asiantuntijan vahvistama huomio",
   "downloadFrozenContextTooltip": "Lataa Frozen Context",
   "downloadExcelBtn": "Lataa Excel",
-  "aboutMetricTitle": "Tietoa Mittarista"
+  "aboutMetricTitle": "Tietoa Mittarista",
+  "workflowIdMissingError": "Työnkulun ID puuttuu"
 }

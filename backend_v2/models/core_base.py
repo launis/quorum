@@ -36,7 +36,9 @@ class I18nText(V2CoreBase):
     translations: Annotated[
         dict[str, str],
         Field(
-            description="Dictionary mapping locale code to translated string, specifically: {'fi': 'Teksti', 'en': 'Text'}."
+            description=(
+                "Dictionary mapping locale code to translated string, specifically: {'fi': 'Teksti', 'en': 'Text'}."
+            )
         ),
     ]
 

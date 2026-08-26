@@ -140,3 +140,40 @@ def test_get_alias(tmp_path: Path) -> None:
 
     LocalizationService.L10N_DIR = l10n_dir
     assert LocalizationService.get("greeting", lang="en") == "Hello"
+
+
+def test_localization_service_translate_and_formatting() -> None:
+    # Use real repository l10n files
+    LocalizationService.L10N_DIR = Path(__file__).parent.parent.parent / "l10n"
+    LocalizationService.load_if_needed()
+
+    assert LocalizationService.translate("metadata_user", "fi") == "Käyttäjä"
+    assert LocalizationService.translate("metadata_user", "en") == "User"
+    assert LocalizationService.translate("role_architect", "fi") == "Arkkitehti"
+    assert LocalizationService.translate("role_architect", "en") == "Architect"
+    assert LocalizationService.translate("col_quotes", "fi") == "Lainaukset"
+    assert LocalizationService.translate("col_quotes", "en") == "Quotes"
+    assert LocalizationService.translate("ext_variance_validation", "fi") == "Varianssin validointi"
+    assert LocalizationService.translate("ext_variance_validation", "en") == "Variance Validation"
+
+    # Formatting helpers
+    from datetime import datetime
+
+    dt = datetime(2026, 8, 26, 6, 44)
+    assert LocalizationService.format_date(dt, "fi") == "26.08.2026 klo 06:44"
+    assert LocalizationService.format_date(dt, "en") == "2026-08-26 06:44"
+
+    assert LocalizationService.format_decimal(3.5, "fi") == "3,50"
+    assert LocalizationService.format_decimal(3.5, "en") == "3.50"
+    assert LocalizationService.format_decimal(3.546, "fi", decimals=1) == "3,5"
+
+    assert LocalizationService.format_score(3.5, "fi") == "3,50"
+    assert LocalizationService.format_score(3.5, "en") == "3.50"
+
+    assert LocalizationService.format_percent(85.2, "fi") == "85,2 %"
+    assert LocalizationService.format_percent(85.2, "en") == "85.2%"
+
+    assert LocalizationService.format_cost(12.5, "fi") == "12,50 $"
+    assert LocalizationService.format_cost(12.5, "en") == "$12.50"
+    assert LocalizationService.format_cost(0.04, "fi") == "0,04 $"
+    assert LocalizationService.format_cost(0.04, "en") == "$0.04"

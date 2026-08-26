@@ -2279,6 +2279,7 @@
   "humanOverrideExpertNote": "Expert-confirmed observation",
   "downloadFrozenContextTooltip": "Download Frozen Context",
   "downloadExcelBtn": "Download Excel",
-  "aboutMetricTitle": "About Metric"
+  "aboutMetricTitle": "About Metric",
+  "workflowIdMissingError": "Workflow ID is missing"
 }
 

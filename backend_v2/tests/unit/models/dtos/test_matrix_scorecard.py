@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import pytest
-from pydantic import ValidationError
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
