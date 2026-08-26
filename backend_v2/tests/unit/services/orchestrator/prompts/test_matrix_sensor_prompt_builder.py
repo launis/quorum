@@ -1,5 +1,4 @@
 import pytest
-from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.dag_models import CausalEdge, ExtractedAtom, LinkedAtomGraph
@@ -96,18 +95,21 @@ def test_build_caching_prefix_theory_grounding_omits_raw_urls() -> None:
     assert "https://secret-internal-domain.org" not in prompt.static_messages[0]["content"]
 
 
-def test_build_caching_prefix_theory_grounding_xml_special_chars() -> None:
-    """Edge test: citation containing special characters renders cleanly."""
+def test_build_caching_prefix_theory_grounding_xml_injection_shield() -> None:
+    """Security/Error-path test: citation containing XML tags and CDATA breakout sequences is shielded."""
     theory_grounding = TheoryGrounding(
-        source_url="https://arma.org/guidelines",
-        citation_reference="Author & Co. (2020) <Principles>",
+        source_url="https://secret-domain.org/doc",
+        citation_reference="Author (2020) <tag> & ]]> </theory_context><injected>",
     )
     matrix_context = MatrixEvaluationContext(
         theory_grounding=theory_grounding,
     )
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
-    assert "<theory_context>" in prompt.static_messages[0]["content"]
-    assert "Author & Co. (2020) <Principles>" in prompt.static_messages[0]["content"]
+    system_content = prompt.static_messages[0]["content"]
+
+    assert "<theory_context>" in system_content
+    assert "<![CDATA[Author (2020) <tag> & ]]]]><![CDATA[> </theory_context><injected>]]>" in system_content
+    assert "https://secret-domain.org" not in system_content
 
 
 def test_build_caching_prefix_without_context() -> None:
@@ -132,6 +134,7 @@ def test_build_compiled_prompt_with_assertions() -> None:
             extraction_rule="Check for blue.",
             anchor_target="blue section",
             is_inverse=False,
+            depends_on=(),
         )
     ]
     matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)
@@ -193,33 +196,6 @@ def test_build_compiled_prompt_fallback_claim() -> None:
     assert "<question>" not in content
 
 
-def test_ephemeral_block_creation_strictness() -> None:
-    """Anti-happy path: Ensure creating an ephemeral block throws error on invalid parameters."""
-    with pytest.raises(ValidationError):
-        # Invalid block ID should trigger regex validation error
-        MatrixSensorPromptBuilder._create_ephemeral_block(
-            block_id="invalid_id",  # Needs to match ^[a-z]{2,5}_[a-fA-F0-9]{16,32}$
-            category_id="NOT_AN_ENUM",  # type: ignore
-            ai_desc="Something",
-        )
-
-
-def test_create_ephemeral_block_returns_system_rule_prompt_block() -> None:
-    """Ensure _create_ephemeral_block returns a valid concrete SystemRulePromptBlock instance."""
-    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
-    from backend_v2.models.enums import PromptBlockCategory
-
-    block = MatrixSensorPromptBuilder._create_ephemeral_block(
-        block_id="blk_1111111111111111",
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        ai_desc="System rule instruction text.",
-    )
-    assert isinstance(block, SystemRulePromptBlock)
-    assert block.instruction_text == "System rule instruction text."
-    assert block.ai_description == "System rule instruction text."
-    assert block.category_id == PromptBlockCategory.SYSTEM_RULE
-
-
 def test_build_caching_prefix_contains_evaluation_directives() -> None:
     """Regression test (RED): Ensure static system prompt includes anti-repetition and concise reasoning directives."""
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Sample document", None)
@@ -265,6 +241,7 @@ def test_build_compiled_prompt_with_inverse_assertion() -> None:
             extraction_rule="Check absence.",
             anchor_target="target",
             is_inverse=True,
+            depends_on=(),
         )
     ]
     matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)
@@ -346,6 +323,7 @@ def test_build_compiled_prompt_empty_assertion_question_raises_app_exception() -
             extraction_rule="Extract rule",
             anchor_target="Anchor",
             is_inverse=False,
+            depends_on=(),
         )
     ]
     matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)

@@ -5,19 +5,15 @@ cacheable static system instructions from dynamic per-batch user claims.
 """
 
 import logging
-from typing import Literal
 
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
-from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.prompts.matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
-from backend_v2.models.v2_core import I18nText
-from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -26,30 +22,6 @@ __all__ = ["MatrixSensorPromptBuilder"]
 
 class MatrixSensorPromptBuilder:
     """Builder for sensor prompt messages."""
-
-    @staticmethod
-    def _create_ephemeral_block(
-        block_id: str,
-        category_id: Literal[
-            PromptBlockCategory.SYSTEM_RULE,
-            PromptBlockCategory.RUNTIME_VARIABLES,
-            PromptBlockCategory.TASK_DEFINITION,
-        ],
-        ai_desc: str,
-    ) -> SystemRulePromptBlock:
-        """Helper to create a valid SystemRulePromptBlock for in-memory compilation."""
-        return SystemRulePromptBlock(
-            id=block_id,
-            slug=block_id,
-            organization_id="system",
-            label=I18nText(default_locale="en", translations={"en": block_id}),
-            description=I18nText(default_locale="en", translations={"en": block_id}),
-            instruction_text=ai_desc,
-            ai_description=ai_desc,
-            category_id=category_id,
-            type=BlockDataType.INSTRUCTION,
-            output_extensions=[],
-        )
 
     @staticmethod
     def build_caching_prefix(
@@ -65,42 +37,33 @@ class MatrixSensorPromptBuilder:
         Returns:
             CompiledPrompt with static system instructions and source text context.
         """
-        # 1. Compile 100% Static System Instructions using PromptBlock Assembly
-        blocks = [
-            MatrixSensorPromptBuilder._create_ephemeral_block(
-                block_id="blk_1111111111111111",
-                category_id=PromptBlockCategory.SYSTEM_RULE,
-                ai_desc=MATRIX_SENSOR_SYSTEM_PROMPT,
-            )
+        # 1. Compile 100% Static System Instructions using Direct TemplateProcessor Assembly
+        sections: list[str] = [
+            GLOBAL_MANDATES_XML.strip(),
+            MATRIX_SENSOR_SYSTEM_PROMPT.strip(),
         ]
 
         if matrix_context:
-            if matrix_context.matrix_objective:
-                blocks.append(
-                    MatrixSensorPromptBuilder._create_ephemeral_block(
-                        block_id="blk_2222222222222222",
-                        category_id=PromptBlockCategory.SYSTEM_RULE,
-                        ai_desc=matrix_context.matrix_objective,
+            if matrix_context.matrix_objective and matrix_context.matrix_objective.strip():
+                objective_clean = matrix_context.matrix_objective.strip()
+                sections.append(
+                    TemplateProcessor.safe_interpolate(
+                        "<matrix_objective>\n{o}\n</matrix_objective>",
+                        o=objective_clean,
                     )
                 )
+
             if matrix_context.theory_grounding and matrix_context.theory_grounding.citation_reference:
-                citation = matrix_context.theory_grounding.citation_reference.strip()
-                if citation:
-                    theory_desc = f"<theory_context>\n{citation}\n</theory_context>"
-                    blocks.append(
-                        MatrixSensorPromptBuilder._create_ephemeral_block(
-                            block_id="blk_3333333333333333",
-                            category_id=PromptBlockCategory.SYSTEM_RULE,
-                            ai_desc=theory_desc,
+                citation_clean = matrix_context.theory_grounding.citation_reference.strip()
+                if citation_clean:
+                    sections.append(
+                        TemplateProcessor.safe_interpolate(
+                            "<theory_context>\n{c}\n</theory_context>",
+                            c=citation_clean,
                         )
                     )
 
-        compiler = PromptCompilerAdapter()
-        compiled_instructions = compiler.compile_static_instructions(blocks, target_locale="en")
-
-        # Prepend Layer 1 Global Mandates to static prefix
-        system_content = f"{GLOBAL_MANDATES_XML.strip()}\n\n{compiled_instructions}"
-
+        system_content = "\n\n".join(sections)
         context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_text)
 
         return CompiledPrompt(
@@ -203,7 +166,7 @@ class MatrixSensorPromptBuilder:
                     if atom_status_map and dep.tda_id in atom_status_map:
                         actual_status = atom_status_map[dep.tda_id]
 
-                    dep_alias = tda_id_to_alias.get(dep.tda_id, dep.tda_id)
+                    dep_alias = tda_id_to_alias[dep.tda_id] if dep.tda_id in tda_id_to_alias else dep.tda_id
 
                     status_cdata = TemplateProcessor.encapsulate_payload(actual_status.value)
                     expected_cdata = TemplateProcessor.encapsulate_payload(dep.expected_status.value)

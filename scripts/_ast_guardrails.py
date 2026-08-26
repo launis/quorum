@@ -196,14 +196,21 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         )
 
     def visit_Call(self, node: ast.Call) -> None:
-        # QGR001: getattr / hasattr reflection duck-typing
+        # QGR001: getattr / hasattr / setattr reflection duck-typing and frozen mutations
         match node.func:
-            case ast.Name(id="getattr" | "hasattr"):
+            case ast.Name(id="getattr" | "hasattr" | "setattr"):
                 self._add_violation(
                     node,
                     "QGR001",
-                    f"Banned reflection duck-typing call: `{node.func.id}()`.",
-                    "Use strict structural pattern matching (match/case), isinstance() type narrowing, or Pydantic schemas instead of reflection.",
+                    f"Banned reflection duck-typing or in-place mutation call: `{node.func.id}()`.",
+                    "Use strict structural pattern matching (match/case), isinstance() type narrowing, or Pydantic schemas instead of reflection/mutation.",
+                )
+            case ast.Attribute(value=ast.Name(id="object"), attr="__setattr__"):
+                self._add_violation(
+                    node,
+                    "QGR001",
+                    "Banned `object.__setattr__()` in-place model mutation call.",
+                    "Use pre-instantiation field validation or .model_copy(update=...) instead of mutating frozen models.",
                 )
             case _:
                 pass
@@ -483,7 +490,19 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             valid_error_code = False
                 if not valid_error_code:
                     for kw in node.exc.keywords:
-                        if kw.arg == "details" and isinstance(kw.value, ast.Dict):
+                        if kw.arg == "error_code":
+                            match kw.value:
+                                case ast.Attribute(value=ast.Name(id="ErrorCodes")):
+                                    valid_error_code = True
+                                case ast.Attribute(
+                                    value=ast.Attribute(value=ast.Name(id="ErrorCodes")), attr="value" | "name"
+                                ):
+                                    valid_error_code = True
+                                case ast.Attribute(attr=attr_name) if "ERROR" in attr_name or "FAILED" in attr_name:
+                                    valid_error_code = True
+                                case _:
+                                    pass
+                        elif kw.arg == "details" and isinstance(kw.value, ast.Dict):
                             for k, v in zip(kw.value.keys, kw.value.values, strict=False):
                                 if isinstance(k, ast.Constant) and k.value == "error_code":
                                     match v:

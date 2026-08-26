@@ -125,6 +125,24 @@ def test_qgr001_hasattr_detection() -> None:
     assert "hasattr" in unsuppressed[0].message
 
 
+def test_qgr001_setattr_detection() -> None:
+    code = "setattr(obj, 'attr', 42)\n"
+    violations = _scan_snippet(code)
+    unsuppressed = [v for v in violations if not v.is_suppressed]
+    assert len(unsuppressed) == 1
+    assert unsuppressed[0].rule_code == "QGR001"
+    assert "setattr" in unsuppressed[0].message
+
+
+def test_qgr001_object_setattr_detection() -> None:
+    code = "object.__setattr__(obj, 'attr', 42)\n"
+    violations = _scan_snippet(code)
+    unsuppressed = [v for v in violations if not v.is_suppressed]
+    assert len(unsuppressed) == 1
+    assert unsuppressed[0].rule_code == "QGR001"
+    assert "object.__setattr__" in unsuppressed[0].message
+
+
 # ==============================================================================
 # Partition 8: QGR002 Lazy .get(key, default) Fallback
 # ==============================================================================

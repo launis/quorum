@@ -20,11 +20,12 @@
   </step>
 
   <dod_checklist>
+    - [x] Pre-implementation technical debt cleanups executed: `FlattenedAtom` instantiations in @[backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py] updated with `depends_on=()` to satisfy strict MyPy typing.
     - [x] Seed vault backup created in `backend_v2/seed/backups/seed_data_pre_epic148_cleanup.json` prior to any modifications.
     - [x] All 13 matrix blocks in @[backend_v2/seed/seed_data.json#L336-L6900] sanitized by removing duplicate `EPISTEMIC ANCHOR:` tails; qualitative prompt definitions preserved verbatim per `prompt_preservation_mandate`.
     - [x] `_create_ephemeral_block` helper and fake IDs (`blk_1111...`, `blk_2222...`, `blk_3333...`) eradicated in @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L30-L52].
     - [x] `MatrixSensorPromptBuilder.build_caching_prefix` refactored in @[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L54-L112] to format pure `<theory_context>` and `<matrix_objective>` XML blocks via direct `TemplateProcessor.safe_interpolate()` with CDATA Breakout Shielding, omitting raw URLs from LLM prompt payloads.
-    - [x] Rule `QGR001` in @[scripts/_ast_guardrails.py] extended to detect and ban `setattr(...)` and `object.__setattr__(...)` in-place model mutations across the codebase.
+    - [x] Rule `QGR001` in @[scripts/_ast_guardrails.py] extended to detect and ban `setattr(...)` and `object.__setattr__(...)` in-place model mutations across domain code (excluding test suites and necessary Pydantic root/after validators).
     - [x] `frozen_state_mutability` rule block in @[.agents/rules/01-python-backend.md] updated to explicitly ban `setattr(...)`, `object.__setattr__(...)`, and `__setattr__()` mutations on Pydantic models and frozen entities.
     - [x] Unit test assertions in @[backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py] and @[backend_v2/tests/unit/test_matrix_sensor_prompt_builder.py] updated and passing with clean CDATA formatting and XML injection protection (TC-TG-01 through TC-TG-06).
     - [x] Backend quality gate passes: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py --test`.
@@ -97,7 +98,8 @@
   </test_contracts>
 
   <step id="1" name="Pre-Implementation Technical Debt Sweeps &amp; AST Guardrail Extension">
-    <action>In @[scripts/_ast_guardrails.py]: Extend rule `QGR001` in `QuorumGuardrailVisitor.visit_Call` to detect and fail fast on `ast.Name(id="getattr" | "hasattr" | "setattr")` and `ast.Attribute(value=ast.Name(id="object"), attr="__setattr__")`, preventing frozen mutation anti-patterns across the codebase.</action>
+    <action>In @[backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py]: Clean technical debt on lines 129, 262, and 343 by supplying `depends_on=()` to `FlattenedAtom` constructors to satisfy strict MyPy typing.</action>
+    <action>In @[scripts/_ast_guardrails.py]: Extend rule `QGR001` in `QuorumGuardrailVisitor.visit_Call` to detect and fail fast on `ast.Name(id="getattr" | "hasattr" | "setattr")` and `ast.Attribute(value=ast.Name(id="object"), attr="__setattr__")` in non-test files, preventing frozen mutation anti-patterns across domain code.</action>
     <action>In @[.agents/rules/01-python-backend.md]: Update `frozen_state_mutability` rule block to explicitly ban in-place model mutations using `setattr(...)`, `object.__setattr__(...)`, or `__setattr__()` on Pydantic models or frozen domain entities, mandating pre-instantiation `@field_validator` data sanitization and `.model_copy(update=...)` for state transitions.</action>
     <constraint invariant="touched_scope_tech_debt_mandate">All pre-existing technical debt in touched backend files and AST guardrail definitions must be locked in Phase 1 before domain model mutations.</constraint>
   </step>
