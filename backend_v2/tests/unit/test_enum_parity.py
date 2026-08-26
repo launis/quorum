@@ -83,21 +83,6 @@ def assert_enum_parity(dart_code: str, python_code: str, enum_name: str) -> None
     assert not missing_in_python, f"Missing in Python {enum_name}: {missing_in_python}"
 
 
-def test_preset_view_parity() -> None:
-    """Verify PresetView members match between Python and Dart."""
-    dart_code = read_file(DART_ENUM_PATH)
-    py_core_code = read_file(PYTHON_V2_CORE_PATH)
-
-    dart_values = extract_dart_enum_json_values(dart_code, "PresetView")
-    py_values = extract_python_literal_values_ast(py_core_code, "OutputLayoutBlock", "preset_view")
-
-    missing_in_dart = py_values - dart_values
-    missing_in_python = dart_values - py_values
-
-    assert not missing_in_dart, f"Missing in Dart PresetView: {missing_in_dart}"
-    assert not missing_in_python, f"Missing in Python OutputLayoutBlock.preset_view: {missing_in_python}"
-
-
 def test_scoring_strategy_parity() -> None:
     """Verify ScoringStrategy members match between Python and Dart."""
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "ScoringStrategy")
@@ -116,21 +101,6 @@ def test_visual_intent_parity() -> None:
 def test_execution_status_parity() -> None:
     """Verify ExecutionStatus members match between Python and Dart."""
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "ExecutionStatus")
-
-
-def test_text_delivery_mode_parity() -> None:
-    """Verify TextDeliveryMode members match between Python and Dart."""
-    dart_code = read_file(DART_ENUM_PATH)
-    py_core_code = read_file(PYTHON_V2_CORE_PATH)
-
-    dart_values = extract_dart_enum_json_values(dart_code, "TextDeliveryMode")
-    py_values = extract_python_literal_values_ast(py_core_code, "OutputLayoutBlock", "text_delivery_mode")
-
-    missing_in_dart = py_values - dart_values
-    missing_in_python = dart_values - py_values
-
-    assert not missing_in_dart, f"Missing in Dart TextDeliveryMode: {missing_in_dart}"
-    assert not missing_in_python, f"Missing in Python OutputLayoutBlock.text_delivery_mode: {missing_in_python}"
 
 
 def test_historical_context_mode_parity() -> None:

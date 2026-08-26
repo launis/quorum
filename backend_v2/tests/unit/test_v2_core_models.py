@@ -50,7 +50,8 @@ def test_embedded_output_profile_description_parsing() -> None:
             "translations": {"en": "A valid description", "fi": "A valid description"},
         },
         "display_scale": DisplayScale.ORIGINAL,
-        "layouts": [],
+        "target_block_order": ["metadata_block", "executive_summary_block"],
+        "matrix_synthesis_groups": [],
     }
     profile_success = OutputProfile.model_validate(valid_data)
     assert profile_success.description is not None
@@ -175,4 +176,101 @@ def test_synthesis_config_dto_rejects_purged_dead_weight_fields(dead_weight_fiel
     }
     with pytest.raises(ValidationError) as exc_info:
         SynthesisConfigDTO.model_validate(payload)
+    assert "Extra inputs are not permitted" in str(exc_info.value)
+
+
+def test_matrix_synthesis_group_validation() -> None:
+    """Test MatrixSynthesisGroup strict validation and fields."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.v2_core import MatrixSynthesisGroup
+
+    # Valid group
+    group = MatrixSynthesisGroup(
+        id="group_1",
+        title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
+        target_blocks=["blk_1", "blk_2"],
+        synthesis_directive="Custom directive",
+    )
+    assert group.id == "group_1"
+    assert group.target_blocks == ["blk_1", "blk_2"]
+    assert group.synthesis_directive == "Custom directive"
+
+    # Invalid id pattern
+    with pytest.raises(ValidationError):
+        MatrixSynthesisGroup(
+            id="invalid id with spaces!",
+            title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
+            target_blocks=["blk_1"],
+        )
+
+    # Empty target_blocks
+    with pytest.raises(ValidationError):
+        MatrixSynthesisGroup(
+            id="group_1",
+            title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
+            target_blocks=[],
+        )
+
+
+def test_output_profile_validate_matrix_graphs_coherence() -> None:
+    """Test OutputProfile cross-field validation for MATRIX_GRAPHS_BLOCK and matrix_synthesis_groups."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.enums import TargetBlockType
+    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
+
+    group = MatrixSynthesisGroup(
+        id="grp_1",
+        title=I18nText(translations={"en": "Grp", "fi": "Ryhmä"}),
+        target_blocks=["blk_1"],
+    )
+
+    # Valid: matrix_graphs_block with at least 1 synthesis group
+    profile = OutputProfile(
+        id="prf_1234567890123456",
+        slug="test-profile",
+        workflow_id="wf_1234567890123456",
+        name=I18nText(translations={"en": "Name", "fi": "Nimi"}),
+        target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
+        matrix_synthesis_groups=[group],
+    )
+    assert len(profile.matrix_synthesis_groups) == 1
+
+    # Invalid: matrix_graphs_block with empty matrix_synthesis_groups raises ValueError
+    with pytest.raises(ValidationError) as exc_info:
+        OutputProfile(
+            id="prf_1234567890123456",
+            slug="test-profile",
+            workflow_id="wf_1234567890123456",
+            name=I18nText(translations={"en": "Name", "fi": "Nimi"}),
+            target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
+            matrix_synthesis_groups=[],
+        )
+    assert "MATRIX_GRAPHS_BLOCK is present in target_block_order but matrix_synthesis_groups is empty" in str(
+        exc_info.value
+    )
+
+
+@pytest.mark.parametrize(
+    "purged_field",
+    [
+        "layouts",
+        "metric_mappings",
+        "user_role_mappings",
+        "extension_labels",
+    ],
+)
+def test_output_profile_rejects_purged_legacy_fields(purged_field: str) -> None:
+    """Negative test: OutputProfile rejects purged legacy fields under extra='forbid'."""
+    from backend_v2.models.v2_core import OutputProfile
+
+    payload = {
+        "id": "prf_1234567890123456",
+        "slug": "test-profile",
+        "workflow_id": "wf_1234567890123456",
+        "name": {"translations": {"en": "Name", "fi": "Nimi"}},
+        "target_block_order": ["metadata_block"],
+        purged_field: [],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        OutputProfile.model_validate(payload)
     assert "Extra inputs are not permitted" in str(exc_info.value)

@@ -10,7 +10,7 @@ from typing import Any
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.prompt_blocks import PromptBlockBase
-from backend_v2.models.v2_core import OutputLayoutBlock, Workflow
+from backend_v2.models.v2_core import MatrixSynthesisGroup, Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ class ContextMapper:
     @staticmethod
     def build_global_mapping(
         workflow_data: Workflow | None = None,
-        selected_layouts: list[OutputLayoutBlock] | None = None,
+        selected_groups: list[MatrixSynthesisGroup] | None = None,
         execution_id: str | None = None,
     ) -> str:
         """Builds a global mapping cheatsheet across the entire workflow if needed.
@@ -89,7 +89,7 @@ class ContextMapper:
 
         Args:
             workflow_data: The full workflow graph definition.
-            selected_layouts: Target output formats selected for the report.
+            selected_groups: Target output synthesis groups for the report.
             execution_id: Identifier of the current execution.
 
         Returns:

@@ -15,6 +15,7 @@ _VALID_CREATE_PAYLOAD: dict[str, Any] = {
     "slug": "my-profile",
     "workflow_id": "wf_123",
     "name": {"translations": {"en": "Name", "fi": "Name"}},
+    "target_block_order": [TargetBlockType.METADATA_BLOCK],
 }
 
 
@@ -159,7 +160,7 @@ def test_output_profile_response_dto_strictness() -> None:
             "slug": "my-profile",
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Name", "fi": "Name"}},
-            "layouts": [],
+            "target_block_order": [TargetBlockType.METADATA_BLOCK],
             "display_scale": DisplayScale.ORIGINAL,
         }
     )

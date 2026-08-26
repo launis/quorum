@@ -72,7 +72,7 @@ __all__ = [
     "ExpectedInput",
     "WorkflowInputs",
     "QuestionnaireItem",
-    "OutputLayoutBlock",
+    "MatrixSynthesisGroup",
     "SynthesisConfigDTO",
     "OutputProfile",
     "JobAcceptedDTO",
@@ -878,38 +878,14 @@ class ReportDataDTO(V2CoreBase):
         return self
 
 
-class OutputLayoutBlock(V2CoreBase):
+class MatrixSynthesisGroup(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
-    """A single sequential rendering block for a report profile."""
+    """Represents a comparative matrix synthesis group for 2D/3D graphs and multi-matrix synthesis."""
 
-    preset_view: Literal["1d_metrics", "2d_compare", "3d_matrix", "default", "text_only", "matrix_summary"] = Field(
-        description="The static UI renderer preset (e.g. 1d_metrics, 3d_matrix)."
-    )
-    is_synthesis_enabled: bool = Field(default=True, description="Toggle for UI section-level synthesis.")
-    title: I18nText | None = Field(default=None, description="Optional localized layout title.")
-    description: I18nText | None = Field(default=None, description="Optional localized layout description.")
-    steps: list[str] = Field(default_factory=list, description="List of step IDs providing the axes.")
-    target_blocks: list[str | LaxTargetBlockType] = Field(
-        default_factory=list, description="Optional explicit block IDs to plot, filtering and ordering the axes."
-    )
-    text_delivery_mode: Literal["full", "titles_only", "none"] = Field(
-        default="full", description="Granularity of text output in PDF and UI grids."
-    )
-
-    strictness_level: int | None = Field(
-        default=None, ge=0, le=100, description="Override for strictness_level in this layout."
-    )
-    scoring_strategy: LaxScoringStrategy | None = Field(
-        default=None, description="Override for scoring_strategy in this layout."
-    )
-    matrix_column_labels: dict[str, I18nText] = Field(
-        default_factory=dict,
-        description="Optional mapping of UI column identifiers to localized labels.",
-    )
-    matrix_visible_columns: list[str] = Field(
-        default_factory=list,
-        description="Visible columns for this matrix UI.",
-    )
+    id: str = Field(min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Unique group identifier")
+    title: I18nText = Field(description="Localized title for the synthesis group")
+    target_blocks: list[str] = Field(min_length=1, description="List of prompt block IDs targeted by this group")
+    synthesis_directive: str | None = Field(default=None, description="Optional custom synthesis directive")
 
 
 class OutputProfile(V2CoreBase):
@@ -970,18 +946,6 @@ class OutputProfile(V2CoreBase):
     ] = None
     strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
-    user_role_mappings: dict[str, I18nText] = Field(
-        default_factory=dict,
-        description="Localized values for RoleClassification enum values (e.g. ROLE_ARCHITECT).",
-    )
-    extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(
-        default_factory=dict,
-        description="Localized labels for global XAI highlights at the profile level.",
-    )
-    metric_mappings: dict[str, I18nText] = Field(
-        default_factory=dict,
-        description="Localized labels for internal metric variables (e.g. 'variance_mechanical').",
-    )
     synthesis: SynthesisConfigDTO | None = Field(
         default=None, description="Global synthesis configuration for the executive summary."
     )
@@ -1007,13 +971,31 @@ class OutputProfile(V2CoreBase):
             ),
         ),
     ]
-    layouts: list[OutputLayoutBlock] = Field(default_factory=list, description="Ordered sequence of layout blocks.")
+    matrix_synthesis_groups: list[MatrixSynthesisGroup] = Field(
+        default_factory=list, description="Optional matrix synthesis groups for 2D/3D comparative graphs."
+    )
     content_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."
     )
     performativity_detector_step_id: str | None = Field(
         default=None, description="Optional step ID for the performativity detector"
     )
+
+    @model_validator(mode="after")
+    def validate_matrix_graphs_coherence(self) -> Self:
+        """Enforce that matrix_synthesis_groups is populated if MATRIX_GRAPHS_BLOCK is in target_block_order."""
+        has_matrix_graphs = any(
+            t in (TargetBlockType.MATRIX_GRAPHS_BLOCK, TargetBlockType.MATRIX_GRAPHS_BLOCK.value, "matrix_graphs_block")
+            for t in self.target_block_order
+        )
+        if has_matrix_graphs and len(self.matrix_synthesis_groups) < 1:
+            msg = (
+                f"OutputProfile '{self.id}': MATRIX_GRAPHS_BLOCK is present in target_block_order "
+                "but matrix_synthesis_groups is empty. At least one MatrixSynthesisGroup is required."
+            )
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise ValueError(msg)
+        return self
 
     @model_validator(mode="after")
     def validate_custom_scale_bounds(self) -> Self:

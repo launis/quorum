@@ -1,27 +1,33 @@
-"""Regression test for OutputProfile schema mismatch (Epic 122/123 Parity)."""
+"""Regression test for OutputProfile schema modernization (Epic 148 Phase 3)."""
 
 import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.enums import TargetBlockType
-from backend_v2.models.v2_core import OutputProfile
+from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
 
 
 def test_output_profile_response_dto_schema_parity() -> None:
-    """Proof of success: OutputProfileResponseDTO should accept extension_labels and user_role_mappings."""
+    """Proof of success: OutputProfileResponseDTO accepts matrix_synthesis_groups and strictly forbids legacy dicts."""
     payload = {
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
         "name": {"translations": {"en": "Test"}},
-        "layouts": [],
-        "user_role_mappings": {"ROLE_ARCHITECT": {"translations": {"en": "Navigator"}}},
-        "extension_labels": {"citation": {"translations": {"en": "Citation"}}},
+        "target_block_order": [TargetBlockType.METADATA_BLOCK],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_1",
+                "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
+                "target_blocks": ["blk_1", "blk_2"],
+            }
+        ],
     }
 
-    # This should now pass without raising extra_forbidden
-    OutputProfileResponseDTO.model_validate(payload)
+    dto = OutputProfileResponseDTO.model_validate(payload)
+    assert len(dto.matrix_synthesis_groups) == 1
+    assert dto.matrix_synthesis_groups[0].id == "grp_1"
 
 
 def test_output_profile_response_dto_target_block_order_parity() -> None:
@@ -31,39 +37,42 @@ def test_output_profile_response_dto_target_block_order_parity() -> None:
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
         "name": {"translations": {"en": "Test"}},
-        "layouts": [],
         "target_block_order": [TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK],
+        "matrix_synthesis_groups": [],
     }
 
-    # This should pass without raising extra_forbidden
     dto = OutputProfileResponseDTO.model_validate(payload)
     assert dto.target_block_order == [TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK]
 
 
 def test_embedded_output_profile_schema_parity() -> None:
-    """Proof of success: OutputProfile should accept extension_labels and user_role_mappings."""
+    """Proof of success: OutputProfile accepts matrix_synthesis_groups."""
     payload = {
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
         "name": {"translations": {"en": "Test"}},
-        "layouts": [],
-        "user_role_mappings": {"ROLE_ARCHITECT": {"translations": {"en": "Navigator"}}},
-        "extension_labels": {"citation": {"translations": {"en": "Citation"}}},
+        "target_block_order": [TargetBlockType.METADATA_BLOCK],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_1",
+                "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
+                "target_blocks": ["blk_1", "blk_2"],
+            }
+        ],
     }
 
-    # This should now pass without raising extra_forbidden
-    OutputProfile.model_validate(payload)
+    profile = OutputProfile.model_validate(payload)
+    assert len(profile.matrix_synthesis_groups) == 1
 
 
 def test_output_profile_response_dto_negative_extra_keys() -> None:
-    """Proof of failure: extra='forbid' should still work."""
+    """Proof of failure: extra='forbid' should reject unknown or purged keys."""
     payload = {
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
         "name": {"translations": {"en": "Test"}},
-        "layouts": [],
         "invalid_extra_key": "should fail",
     }
     with pytest.raises(ValidationError) as exc_info:
@@ -72,15 +81,15 @@ def test_output_profile_response_dto_negative_extra_keys() -> None:
 
 
 def test_embedded_output_profile_negative_wrong_type() -> None:
-    """Proof of failure: user_role_mappings must be dict, not list."""
+    """Proof of failure: matrix_synthesis_groups must be a list of valid MatrixSynthesisGroup models."""
     payload = {
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
         "name": {"translations": {"en": "Test"}},
-        "layouts": [],
-        "user_role_mappings": [{"ROLE_ARCHITECT": {"translations": {"en": "Navigator"}}}],
+        "target_block_order": [TargetBlockType.METADATA_BLOCK],
+        "matrix_synthesis_groups": "not a list",
     }
     with pytest.raises(ValidationError) as exc_info:
         OutputProfile.model_validate(payload)
-    assert "Input should be a valid dictionary" in str(exc_info.value)
+    assert "Input should be a valid list" in str(exc_info.value)

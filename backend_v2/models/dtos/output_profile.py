@@ -21,7 +21,7 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.v2_core import (
     I18nText,
-    OutputLayoutBlock,
+    MatrixSynthesisGroup,
     SynthesisConfigDTO,
 )
 from backend_v2.models.view.sdui import AnySduiBlock
@@ -54,7 +54,7 @@ class OutputProfileCreateDTO(V2CoreBase):
         synthesis: Nested definition for synthesis configurations.
         strictness_level: Profile-level strictness override setting.
         scoring_strategy: Profile-level strategy calculation override.
-        layouts: Sequence of layout rendering blocks.
+        matrix_synthesis_groups: Sequence of comparative matrix synthesis groups.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -115,9 +115,13 @@ class OutputProfileCreateDTO(V2CoreBase):
             description="Max number of items to show per grouped XAI extension. Sorted by severity.",
         ),
     ] = 3
+
     display_scale: Annotated[
         LaxDisplayScale,
-        Field(default=DisplayScale.ORIGINAL, description="UI rendering scale instruction."),
+        Field(
+            default=DisplayScale.ORIGINAL,
+            description="Selects the source scaling for the scores printed by Blueprint.",
+        ),
     ] = DisplayScale.ORIGINAL
     custom_scale_min: Annotated[
         float | None,
@@ -127,27 +131,6 @@ class OutputProfileCreateDTO(V2CoreBase):
         float | None,
         Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
     ] = None
-    user_role_mappings: Annotated[
-        dict[str, I18nText],
-        Field(
-            default_factory=dict,
-            description="Localized values for RoleClassification enum values.",
-        ),
-    ]
-    extension_labels: Annotated[
-        dict[LaxXaiExtensionType, I18nText],
-        Field(
-            default_factory=dict,
-            description="Localized labels for global XAI highlights at the profile level.",
-        ),
-    ]
-    metric_mappings: Annotated[
-        dict[str, I18nText],
-        Field(
-            default_factory=dict,
-            description="Localized labels for internal metric variables (e.g. 'variance_mechanical').",
-        ),
-    ]
     strictness_level: Annotated[
         Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
     ]
@@ -157,7 +140,10 @@ class OutputProfileCreateDTO(V2CoreBase):
     synthesis: Annotated[
         SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
     ]
-    layouts: Annotated[list[OutputLayoutBlock], Field(default_factory=list, description="Sequence of layouts.")]
+    matrix_synthesis_groups: Annotated[
+        list[MatrixSynthesisGroup],
+        Field(default_factory=list, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),
+    ]
     content_blocks: Annotated[
         list[AnySduiBlock],
         Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
@@ -210,7 +196,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
         synthesis: Optional nested definition mapping synthesis configuration rules.
         strictness_level: Optional override strictness bounds.
         scoring_strategy: Optional strategy engine overriding defaults.
-        layouts: Optional mapped layout instructions.
+        matrix_synthesis_groups: Optional sequence of comparative matrix synthesis groups.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -231,9 +217,6 @@ class OutputProfileUpdateDTO(V2CoreBase):
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
     language: Annotated[str | None, Field(default=None, description="Target output language.")]
-    metric_mappings: Annotated[
-        dict[str, I18nText] | None, Field(default=None, description="Localized labels for internal metric variables.")
-    ]
 
     organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
     visible_metadata: Annotated[
@@ -287,7 +270,10 @@ class OutputProfileUpdateDTO(V2CoreBase):
     synthesis: Annotated[
         SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
     ]
-    layouts: Annotated[list[OutputLayoutBlock] | None, Field(default=None, description="Sequence of layouts.")]
+    matrix_synthesis_groups: Annotated[
+        list[MatrixSynthesisGroup] | None,
+        Field(default=None, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),
+    ]
     content_blocks: Annotated[
         list[AnySduiBlock] | None,
         Field(default=None, description="Base SDUI content blocks predefined by the profile."),
@@ -334,7 +320,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
         synthesis: Specific payload mapped configuring report output logic.
         strictness_level: Validated override value configuring verification rigor.
         scoring_strategy: Mapped logic algorithm enum mapping engine implementation.
-        layouts: Ordered array of discrete layout definitions governing presentation.
+        matrix_synthesis_groups: Ordered array of discrete comparative synthesis groups.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -348,9 +334,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     user_role_label: I18nText | None = None
     tone_instruction: I18nText | None = None
     language: str | None = None
-    user_role_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
-    extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
-    metric_mappings: Annotated[dict[str, I18nText], Field(default_factory=dict)]
     target_block_order: Annotated[
         list[LaxTargetBlockType],
         Field(
@@ -392,7 +375,10 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
     synthesis: SynthesisConfigDTO | None = None
-    layouts: Annotated[list[OutputLayoutBlock], Field(default_factory=list, description="Sequence of layouts.")]
+    matrix_synthesis_groups: Annotated[
+        list[MatrixSynthesisGroup],
+        Field(default_factory=list, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),
+    ]
     content_blocks: Annotated[list[AnySduiBlock], Field(default_factory=list, description="Base SDUI content blocks.")]
     performativity_detector_step_id: Annotated[
         str | None,
