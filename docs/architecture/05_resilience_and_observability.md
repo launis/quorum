@@ -27,6 +27,10 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Law:** Every computational action, especially those invoking external LLMs, must be deterministically tracked for performance, progress, and token consumption.
 - **Enforcement:** The system enforces continuous observability by piping execution metrics into centralized tracking mechanisms. This provides real-time visibility into workflow progress and accurate aggregation of token usage, ensuring both operational transparency and precise cost attribution.
 
+### 2.6. AST Guardrails & Forensic Verification
+- **Law:** Architectural invariants (such as prohibition of procedural routing, duck-typing, or premature state transitions) must be statically provable and mathematically enforced before runtime execution.
+- **Enforcement:** The system executes static AST (Abstract Syntax Tree) guardrails during automated quality gates. These guardrails parse the physical syntax tree to verify that execution engines adhere to structural boundaries, all external hooks register cleanly with the central hook registry, and concurrency limiters are safely wrapped in nullable context managers. Furthermore, cognitive grounding services (such as source verification and evidence quotation) enforce exact lexical matching (`str.find`) and XML injection escaping (`html.escape`) to prevent forensic audit trail contamination.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

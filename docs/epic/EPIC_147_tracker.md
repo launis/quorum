@@ -101,7 +101,7 @@
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verified line coverage >90% for all surviving business logic across all test suites.
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, create/update relevant Knowledge Items (KIs), and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, create/update relevant Knowledge Items (KIs), and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
 - [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
@@ -209,11 +209,10 @@
 - `AST Guardrail Suite`: `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L1-L318]`
 
 ## Remaining Targets in Post-Implementation Gates
-- As-Built Architectural Sync: `/tier7-describe-architecture`
 - Final Epic Audit: `/tier8-audit-epic @[docs/epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience.md]`
 
 ## Next Command
-`/tier7-describe-architecture`
+`/tier8-audit-epic @[docs/epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience.md]`
 
 
 

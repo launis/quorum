@@ -67,7 +67,7 @@
     
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
-        <key_domains>domain/ (Pure Business/Domain Models, NO ORM shapes), dtos/ (API boundaries like output_profile.py), view/ (SDUI Polymorphic Blocks), prompts/ (LLM directives SSOT: synthesis_directives.py, directives.py), v2_core.py, state.py, enums.py</key_domains>
+        <key_domains>domain/ (Pure Business/Domain Models, NO ORM shapes), dtos/ (API boundaries like output_profile.py, engine.py, source_extraction_schema.py), view/ (SDUI Polymorphic Blocks), prompts/ (LLM directives SSOT: synthesis_directives.py, directives.py), v2_core.py, state.py, enums.py</key_domains>
     </module>
 
     <module path="backend_v2/core/">
