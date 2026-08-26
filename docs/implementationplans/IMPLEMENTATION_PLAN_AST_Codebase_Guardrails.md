@@ -1,14 +1,15 @@
 > **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Quality Gate Hardening)**
 
-# Automated AST Codebase Guardrails & Workflow Scripts Modernization (`.get()`, `getattr()`, Silent `except Exception` Prevention, and Neuro-Symbolic Gate Standardization)
+# Automated AST Codebase Guardrails & Workflow Scripts Modernization (QGR000–QGR010: Reflection, Concurrency, Pydantic Strictness, Settings Sovereignty, Error Code Typing, and Temporal Safety)
 
-> **SSOT Implementation Plan — Generated from Tier 8 Feature Audits `feature_audit_ast_guardrail_scripts.md`, `feature_audit_hypocritical_gatekeeper_tech_debt.md`, `feature_audit_ast_syntax_error_resilience.md`, `feature_audit_ast_guardrails_e2e_verification_gate.md`, `feature_audit_guardrail_violation_pydantic_strictness.md`, `feature_audit_ast_self_scanning_paradox.md`, `feature_audit_ast_guardrail_tdd_phasing.md`, `feature_audit_workflow_scripts_ast_evolution.md`, `feature_audit_ast_tokenizer_recursion_resilience.md`, `feature_audit_recursive_testing_paradox.md`, `feature_audit_ast_temporal_coupling_phase5_phase6.md`, `feature_audit_ast_guardrails_context_amnesia.md`, and `feature_audit_target_filepath_syntax_standardization.md`.**  
+> **SSOT Implementation Plan — Generated from Tier 8 Feature Audits `feature_audit_ast_guardrail_scripts.md`, `feature_audit_hypocritical_gatekeeper_tech_debt.md`, `feature_audit_ast_syntax_error_resilience.md`, `feature_audit_ast_guardrails_e2e_verification_gate.md`, `feature_audit_guardrail_violation_pydantic_strictness.md`, `feature_audit_ast_self_scanning_paradox.md`, `feature_audit_ast_guardrail_tdd_phasing.md`, `feature_audit_workflow_scripts_ast_evolution.md`, `feature_audit_ast_tokenizer_recursion_resilience.md`, `feature_audit_recursive_testing_paradox.md`, `feature_audit_ast_temporal_coupling_phase5_phase6.md`, `feature_audit_ast_guardrails_context_amnesia.md`, `feature_audit_target_filepath_syntax_standardization.md`, and `feature_audit_ast_guardrails_phase2_rules.md`.**  
 > **Epic**: Automated Architectural Quality Gate Hardening & Workflow Scripts Modernization
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
   <knowledge_item>@[ki_ast_guardrail_testing.md]</knowledge_item>
   <knowledge_item>@[ki_ast_guardrail_engine.md]</knowledge_item>
   <knowledge_item>@[ki_python_314_concurrency_strictness.md]</knowledge_item>
@@ -45,22 +46,30 @@ Standard Python tooling (`ruff` and `mypy --strict`) cannot enforce domain-level
 3. Silent exception swallowing (`except Exception: pass` or `except Exception: return {}`) is allowed by linters if accompanied by comments or simple log lines, violating `the_duct_tape_ban` and Fail-Fast principles.
 4. **Chameleon / Pseudo-Class Metaprogramming**: Overriding `__new__` on `BaseModel` classes or overriding `model_construct` with `# type: ignore[override]` to fake union behavior bypasses Rust `pydantic-core` validation, breaks MyPy/LSP attribute resolution, and introduces unvalidated silent fallbacks.
 5. **Raw String Discriminator Routing**: Checking `block.category_id == "matrix"` or `category_id == "system_rule"` with raw string literals instead of strict `PromptBlockCategory` Enum members bypasses type safety and creates silent prompt compilation fractures.
-6. **"Hypocritical Gatekeeper" Policy Violation (`touched_scope_tech_debt_mandate`)**: The gatekeeper file `scripts/backend_audit_loop.py` itself contains reflection duck-typing (`hasattr(sys.stdout, "reconfigure")`), silent exception swallowing (`except Exception: pass`), non-fail-fast template reading (`except Exception as e:` in Jinja scanning loop), non-English docstrings/prints, and outdated 30% coverage comments. Under the Scoped Boy Scout mandate, touching `backend_audit_loop.py` strictly requires eradicating this technical debt in Phase 1 before integrating new quality gate steps.
-7. **Tokenizer, SyntaxError, and AST Traversal Crash Risk (Resilience Hole)**: Calling `ast.parse()` without localized error wrapping crashes the entire scanning process if a file contains a syntax error (specifically unclosed parentheses, unexpected EOF, or indentation mismatches). Furthermore, extracting `# noqa: QGRxxx` inline comment suppressions requires Python's `tokenize.tokenize()` which expects a binary byte stream (`io.BytesIO(source_bytes).readline`) and raises `tokenize.TokenError` or `IndentationError` on malformed code (specifically unclosed multi-line strings `"""` or unbalanced brackets). Additionally, traversing complex or deeply nested AST structures with `ast.NodeVisitor` can trigger `RecursionError`. Without complete per-file fault domain isolation catching `(SyntaxError, IndentationError, TabError, tokenize.TokenError, OSError, UnicodeDecodeError, RecursionError)`, a single broken file crashes the global gatekeeper script and halts scanning of remaining files.
-8. **The Self-Scanning Paradox & Developer Trap**: Python's `ast.NodeVisitor` uses `getattr()` internally in `stdlib/ast.py`. While static `ast.parse()` only inspects the target file's physical source and does not evaluate standard library code, developers implementing AST visitors almost universally fall into the anti-pattern of using `getattr(node.func, "id", "")` or `hasattr(node, "attr")` to inspect polymorphic AST nodes. If `scripts/_ast_guardrails.py` or `scripts/_ast_boundary_utils.py` uses naive reflection, it will fail `QGR001` during `--ast-strict` self-auditing. The scanners must enforce pure structural pattern matching (`match/case`) and `isinstance()` type narrowing with zero reflection.
-9. **The Recursive Testing Paradox & CI Deadlock Risk (Fork Bomb)**: `scripts/backend_audit_loop.py` executes external toolchains via `subprocess.run()`, including `pytest backend_v2/tests/... --cov`. If unit tests for `backend_audit_loop.py` (`test_backend_audit_loop.py`) invoke `backend_audit_loop.main()` or `run_tests_with_strict_coverage()` without hermetic mocking of `subprocess.run`, running `pytest` will recursively execute `test_backend_audit_loop.py`, spawning an infinite subprocess chain (Fork Bomb) that deadlocks CI/CD runners and crashes the OS process table. Additionally, unmocked `sys.exit()` calls prematurely abort the entire parent test runner. Hermetic isolation with `@patch('subprocess.run')` and `@patch('sys.exit')` is mathematically mandatory.
-10. **Workflow Scripts Temporal Coupling & Interface Fracture Risk**: Refactoring `scripts/_ast_boundary_utils.py` to return Pydantic V2 DTOs (`TargetFileReferenceDTO`) in Phase 5 without simultaneously updating its direct callers (`scripts/audit_planner_output.py`, `scripts/audit_epic_coverage.py`) and existing test suite (`test_audit_verification_scripts.py`) breaks the CI/CD quality gate immediately after Phase 5 with `TypeError` / `AttributeError`. To uphold the `atomic_checkpoint_mandate`, Phase 5 must consolidate the utility refactor with its direct callers, leaving Phase 6 dedicated to independent diagnostic tools (`audit_markdown_boundaries.py`, `audit_tracker_output.py`).
-11. **TDD Phasing Risk & 5-Tier Regression Defense Inversion**: Integrating an unverified AST scanner directly into `scripts/backend_audit_loop.py` before unit tests are written violates TDD (`tdd_mandate`). If the scanner encounters an unhandled AST node, it breaks the global gatekeeper, preventing developers and agents from executing test runs across the codebase. Unit testing must strictly precede gatekeeper integration.
-12. **Context Window Saturation & Execution Fatigue Risk (Context Amnesia)**: The implementation plan requires massive modifications across 19 distinct files and 7 heavy phases. Attempting to execute this full plan in a single monolithic session will inevitably saturate the LLM context window (200k+ tokens of AST node trees, test outputs, and Pydantic schemas). Context saturation degrades attention across core rules (causing accidental use of `getattr()`, lazy dictionaries, or incomplete AST visitors). To prevent Context Amnesia, the execution protocol MUST be partitioned into 3 distinct Milestones separated by mandatory `/tier5-session-handover` and `/tier5-resume` Context Flush checkpoints (`context_amnesia_prevention_mandate`).
-13. **Target Filepath Syntax & Context Anchor Fracture Risk**: Historically, implementation plans declared target files in `<step target="path">` as bare strings without `@[...]` formatting. This creates a dual vulnerability: 1) Downstream agents (Tier 2 Execute, Tier 5 Resume) fail to treat bare string attributes as active context anchors, leading to Context Amnesia, and 2) Static boundary checkers (`scripts/audit_markdown_boundaries.py`) search exclusively for `@\[([^#\]]+)\]`, skipping unanchored step targets and failing to validate physical file existence or AST symbol boundaries. Furthermore, any naive global replacement that injects `@[...]` into PowerShell code blocks causes immediate `ParserError` crashes during automated execution.
+6. **Concurrency Task Leaks (`asyncio.gather`)**: Using `asyncio.gather` fails to auto-cancel parallel subtasks upon error, causing "Zombie Tasks" that silently continue running in the background, leaking memory, holding database connections, and exploding LLM billing. Python 3.14 concurrency strictly mandates `asyncio.TaskGroup`.
+7. **Loose Schema Ingress & Hallucination Leakage**: Defining Pydantic models without `ConfigDict(strict=True, extra="forbid")` allows LLM and third-party APIs to hallucinate extra fields that pass validation silently without triggering Fail-Fast error boundaries.
+8. **Configuration Sovereignty & Hardcoded Magic Timeouts**: Hardcoding `timeout=10` or `await asyncio.sleep(5)` directly in business logic bypasses centralized configuration (`backend_v2/settings.py`), blinding DevOps to cloud latency spikes and preventing runtime threshold tuning.
+9. **Untyped Error Codes in Domain Exceptions**: Instantiating `raise AppException(...)` with raw strings or missing error codes bypasses typed `ErrorCodes` enum telemetry, breaking RFC 7807 problem details contracts and client-side error classification.
+10. **Naive Datetime & Temporal Integrity**: Calling naive `datetime.now()` without an explicit timezone or using deprecated `datetime.utcnow()` creates ambiguous timestamps across distributed workers, corrupting database ordering and forensic audit trails.
+11. **"Hypocritical Gatekeeper" Policy Violation (`touched_scope_tech_debt_mandate`)**: The gatekeeper file `scripts/backend_audit_loop.py` itself contains reflection duck-typing (`hasattr(sys.stdout, "reconfigure")`), silent exception swallowing (`except Exception: pass`), non-fail-fast template reading (`except Exception as e:` in Jinja scanning loop), non-English docstrings/prints, and outdated 30% coverage comments. Under the Scoped Boy Scout mandate, touching `backend_audit_loop.py` strictly requires eradicating this technical debt in Phase 1 before integrating new quality gate steps.
+12. **Tokenizer, SyntaxError, and AST Traversal Crash Risk (Resilience Hole)**: Calling `ast.parse()` without localized error wrapping crashes the entire scanning process if a file contains a syntax error (specifically unclosed parentheses, unexpected EOF, or indentation mismatches). Furthermore, extracting `# noqa: QGRxxx` inline comment suppressions requires Python's `tokenize.tokenize()` which expects a binary byte stream (`io.BytesIO(source_bytes).readline`) and raises `tokenize.TokenError` or `IndentationError` on malformed code (specifically unclosed multi-line strings `"""` or unbalanced brackets). Additionally, traversing complex or deeply nested AST structures with `ast.NodeVisitor` can trigger `RecursionError`. Without complete per-file fault domain isolation catching `(SyntaxError, IndentationError, TabError, tokenize.TokenError, OSError, UnicodeDecodeError, RecursionError)`, a single broken file crashes the global gatekeeper script and halts scanning of remaining files.
+13. **The Self-Scanning Paradox & Developer Trap**: Python's `ast.NodeVisitor` uses `getattr()` internally in `stdlib/ast.py`. While static `ast.parse()` only inspects the target file's physical source and does not evaluate standard library code, developers implementing AST visitors almost universally fall into the anti-pattern of using `getattr(node.func, "id", "")` or `hasattr(node, "attr")` to inspect polymorphic AST nodes. If `scripts/_ast_guardrails.py` or `scripts/_ast_boundary_utils.py` uses naive reflection, it will fail `QGR001` during `--ast-strict` self-auditing. The scanners must enforce pure structural pattern matching (`match/case`) and `isinstance()` type narrowing with zero reflection.
+14. **The Recursive Testing Paradox & CI Deadlock Risk (Fork Bomb)**: `scripts/backend_audit_loop.py` executes external toolchains via `subprocess.run()`, including `pytest backend_v2/tests/... --cov`. If unit tests for `backend_audit_loop.py` (`test_backend_audit_loop.py`) invoke `backend_audit_loop.main()` or `run_tests_with_strict_coverage()` without hermetic mocking of `subprocess.run`, running `pytest` will recursively execute `test_backend_audit_loop.py`, spawning an infinite subprocess chain (Fork Bomb) that deadlocks CI/CD runners and crashes the OS process table. Additionally, unmocked `sys.exit()` calls prematurely abort the entire parent test runner. Hermetic isolation with `@patch('subprocess.run')` and `@patch('sys.exit')` is mathematically mandatory.
+15. **Workflow Scripts Temporal Coupling & Interface Fracture Risk**: Refactoring `scripts/_ast_boundary_utils.py` to return Pydantic V2 DTOs (`TargetFileReferenceDTO`) in Phase 5 without simultaneously updating its direct callers (`scripts/audit_planner_output.py`, `scripts/audit_epic_coverage.py`) and existing test suite (`test_audit_verification_scripts.py`) breaks the CI/CD quality gate immediately after Phase 5 with `TypeError` / `AttributeError`. To uphold the `atomic_checkpoint_mandate`, Phase 5 must consolidate the utility refactor with its direct callers, leaving Phase 6 dedicated to independent diagnostic tools (`audit_markdown_boundaries.py`, `audit_tracker_output.py`).
+16. **TDD Phasing Risk & 5-Tier Regression Defense Inversion**: Integrating an unverified AST scanner directly into `scripts/backend_audit_loop.py` before unit tests are written violates TDD (`tdd_mandate`). If the scanner encounters an unhandled AST node, it breaks the global gatekeeper, preventing developers and agents from executing test runs across the codebase. Unit testing must strictly precede gatekeeper integration.
+17. **Context Window Saturation & Execution Fatigue Risk (Context Amnesia)**: The implementation plan requires massive modifications across 19 distinct files and 7 heavy phases. Attempting to execute this full plan in a single monolithic session will inevitably saturate the LLM context window (200k+ tokens of AST node trees, test outputs, and Pydantic schemas). Context saturation degrades attention across core rules (causing accidental use of `getattr()`, lazy dictionaries, or incomplete AST visitors). To prevent Context Amnesia, the execution protocol MUST be partitioned into 3 distinct Milestones separated by mandatory `/tier5-session-handover` and `/tier5-resume` Context Flush checkpoints (`context_amnesia_prevention_mandate`).
+18. **Target Filepath Syntax & Context Anchor Fracture Risk**: Historically, implementation plans declared target files in `<step target="path">` as bare strings without `@[...]` formatting. This creates a dual vulnerability: 1) Downstream agents (Tier 2 Execute, Tier 5 Resume) fail to treat bare string attributes as active context anchors, leading to Context Amnesia, and 2) Static boundary checkers (`scripts/audit_markdown_boundaries.py`) search exclusively for `@\[([^#\]]+)\]`, skipping unanchored step targets and failing to validate physical file existence or AST symbol boundaries. Furthermore, any naive global replacement that injects `@[...]` into PowerShell code blocks causes immediate `ParserError` crashes during automated execution.
 
 ### Codebase Blast Radius Audit (Day-One Reality)
 
-Physical scanning of `backend_v2/` reveals **~442 pre-existing legacy violations**:
+Physical scanning of `backend_v2/` reveals:
 - `getattr()` / `hasattr()` calls: **160** (65 in `provider.py` alone for LiteLLM dynamic exception introspection)
 - 2-arg `.get(key, default)` calls in domain logic: **112** (including valid Enum map lookups in `enums.py`)
 - Broad `except Exception:` handlers: **~170** (including valid Circuit Breaker, Worker DLQ, and Archival boundaries)
 - `__new__` / `model_construct` hijacking on BaseModel: **0** (fully cleaned)
+- `asyncio.gather()` calls in production: **0** (1 in unit tests `test_vertex_adapter.py`)
+- Pydantic models with `strict=True, extra="forbid"`: **>95%** compliant
+- Naive `datetime.now()` calls: **1** (`seed/wipe_user_data.py:27`)
 
 > [!CAUTION]
 > **The Scope Creep Bomb**: Activating a rigid, fatal AST check across all legacy files without phased rollout or suppression mechanisms would immediately brick development velocity — any 3-line bug fix would be blocked by 15+ pre-existing legacy violations.
@@ -147,13 +156,17 @@ flowchart TD
 ## User Review Required
 
 > [!IMPORTANT]
-> **Inline Suppression Policy**: To maintain forensic audibility, inline suppression `# noqa: QGR001` and `# noqa: QGR003` is permitted ONLY for:
+> **Inline Suppression Policy**: To maintain forensic audibility, inline suppression `# noqa: QGR001` through `# noqa: QGR010` is permitted ONLY for:
 > 1. Dynamic third-party library introspection (specifically `litellm` exception routing, standard I/O stream reconfigurations).
 > 2. System-boundary resilience handlers (Worker task supervision, Circuit Breaker classification) that log warnings and update status.
+> 3. Specialized ingress models or test fixtures requiring deliberate loose parsing or mock timings.
 > Suppressions in core domain services (`backend_v2/services/orchestrator/`, `backend_v2/models/`) are strictly audited. `QGR000` (SyntaxError, TokenError, RecursionError, ReadError) CANNOT be suppressed. `scripts/_ast_guardrails.py` itself must have ZERO suppressions.
 
 > [!IMPORTANT]
-> **Enum & Header Exemption**: Calling `.get(key, default)` on `_LABEL_MAP` inside `Enum`/`StrEnum` classes, `os.environ.get()`, and `request.headers.get()` is recognized as legitimate and does NOT trigger `QGR002`.
+> **Enum, Header & Test Exemptions**: 
+> - Calling `.get(key, default)` on `_LABEL_MAP` inside `Enum`/`StrEnum` classes, `os.environ.get()`, and `request.headers.get()` is recognized as legitimate and does NOT trigger `QGR002`.
+> - Hardcoded mock timeouts in test directories (`backend_v2/tests/`) do NOT trigger `QGR008`.
+> - Pydantic models inheriting an established base class with `model_config` or decorated with `# noqa: QGR007` do NOT trigger `QGR007`.
 
 > [!IMPORTANT]
 > **Coexistence with Existing AST Tests**: Existing contract tests (`test_ast_prompt_xml_sovereignty.py` and `test_ast_domain_security_guardrails.py`) remain intact as domain-specific regression tests, while `scripts/_ast_guardrails.py` serves as the reusable codebase-wide engine. `test_ast_domain_security_guardrails.py` must be refactored to eliminate legacy `getattr()` calls.
@@ -205,9 +218,20 @@ flowchart TD
     <step id="1.2" target="@[scripts/_ast_guardrails.py]">
       <description>Implement GuardrailSeverity StrEnum, GuardrailViolation Pydantic V2 DTO with ConfigDict(strict=True, extra="forbid", frozen=True), CommentSuppressor for tokenized # noqa: QGRxxx with multiline [lineno, end_lineno] span evaluation, and QuorumGuardrailVisitor with fault-isolated file parsing, binary stream tokenization, recursion guards, and zero-reflection pattern matching in @[scripts/_ast_guardrails.py].</description>
       <constraint invariant="zero_reflection_ast_mandate">Inspect AST nodes exclusively via structural pattern matching (`match / case`) or `isinstance()` type narrowing. Forbid any use of `getattr()` or `hasattr()` in @[scripts/_ast_guardrails.py] to guarantee self-audit passes with 0 violations and 0 suppressions.</constraint>
-      <constraint invariant="ast_guardrail_testing">Implement ast.NodeVisitor detecting: 0) QGR000: SyntaxError/IndentationError/TabError/TokenError/RecursionError and file read errors (FATAL severity, non-suppressible), 1) QGR001: getattr/hasattr calls, 2) QGR002: 2-argument .get(key, default) fallback calls in domain code (exempting Enum methods and os.environ/headers), 3) QGR003: broad except Exception handlers lacking ast.Raise (exempting logged boundary handlers), 4) QGR004: __new__ and model_construct definitions on BaseModel classes, 5) QGR005: raw string literals in category discriminator routing.</constraint>
+      <constraint invariant="ast_guardrail_testing">Implement ast.NodeVisitor detecting:
+        0) QGR000: SyntaxError/IndentationError/TabError/TokenError/RecursionError and file read errors (FATAL severity, non-suppressible).
+        1) QGR001: getattr/hasattr reflection duck-typing calls.
+        2) QGR002: 2-argument .get(key, default) fallback calls in domain code (exempting Enum methods, os.environ, and request.headers).
+        3) QGR003: broad except Exception handlers lacking ast.Raise (exempting logged boundary handlers).
+        4) QGR004: __new__ and model_construct definitions on BaseModel classes.
+        5) QGR005: raw string literals in category discriminator routing.
+        6) QGR006: asyncio.gather() calls (enforcing asyncio.TaskGroup).
+        7) QGR007: Pydantic BaseModel/DTO/Model classes missing model_config = ConfigDict(strict=True, extra="forbid").
+        8) QGR008: hardcoded magic timeouts (timeout=literal, asyncio.sleep(literal)) in domain services (exempting test files).
+        9) QGR009: raise AppException(...) missing typed ErrorCodes.<MEMBER> enum argument.
+        10) QGR010: naive datetime.now() calls without timezone argument or deprecated datetime.utcnow() calls (enforcing datetime.now(UTC)).</constraint>
       <constraint invariant="syntax_error_resilience">Wrap file reading in `try...except (OSError, UnicodeDecodeError)`, AST parsing in `try...except (SyntaxError, IndentationError, TabError) as exc:`, and AST traversal in `try...except RecursionError:`, appending QGR000 violation without process termination, allowing scanning of remaining files.</constraint>
-      <constraint invariant="inline_suppression_support">Parse inline comments via tokenize module using binary streams (`tokenize.tokenize(io.BytesIO(source_bytes).readline)`) wrapped in `try...except (tokenize.TokenError, IndentationError, UnicodeDecodeError)` to support `# noqa: QGR001`, `# noqa: QGR002`, `# noqa: QGR003`, `# noqa: QGR004`, `# noqa: QGR005`. Evaluate suppression across the entire AST node span range(node.lineno, (node.end_lineno if node.end_lineno is not None else node.lineno) + 1) without getattr() to eliminate AST-comment amnesia on multiline calls and except blocks. Explicitly reject suppression for QGR000.</constraint>
+      <constraint invariant="inline_suppression_support">Parse inline comments via tokenize module using binary streams (`tokenize.tokenize(io.BytesIO(source_bytes).readline)`) wrapped in `try...except (tokenize.TokenError, IndentationError, UnicodeDecodeError)` to support `# noqa: QGR001` through `# noqa: QGR010`. Evaluate suppression across the entire AST node span range(node.lineno, (node.end_lineno if node.end_lineno is not None else node.lineno) + 1) without getattr() to eliminate AST-comment amnesia on multiline calls and except blocks. Explicitly reject suppression for QGR000.</constraint>
       <constraint invariant="pydantic_v2_strictness">Implement GuardrailViolation as a strict Pydantic V2 BaseModel with ConfigDict(strict=True, extra='forbid', frozen=True), GuardrailSeverity(StrEnum) for severity tiers (WARNING | FATAL), and regex-validated rule_code pattern r"^QGR\d{3}$" per Quorum Modernity Gate.</constraint>
       <constraint invariant="structured_violation_reporting">Return list of GuardrailViolation Pydantic V2 DTO objects containing filepath: str, lineno: int, col_offset: int, rule_code: str, message: str, remediation: str, severity: GuardrailSeverity, and is_suppressed: bool.</constraint>
       <constraint invariant="safe_remediation_guidance">Enforce architecturally safe `remediation` instructions in `GuardrailViolation` (specifically instructing Pydantic schema modeling or documented `# noqa: QGRxxx` for third-party dynamic reflection, and explicitly forbidding direct dictionary indexing `d[k]` that causes runtime `KeyError` regressions).</constraint>
@@ -222,8 +246,41 @@ flowchart TD
 
   <phase id="2" name="ISTQB Unit Testing &amp; Isolated Scanner Verification (TDD First)">
     <step id="2.1" target="@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]">
-      <description>Implement ISTQB unit tests in @[backend_v2/tests/unit/scripts/test_ast_guardrails.py] covering all positive, negative, false-positive avoidance, syntax error resilience, tokenization resilience, recursion guards, and inline suppression partitions (including multiline spans).</description>
-      <constraint invariant="anti_happy_path_mandate">Test partitions: 1) Detection of QGR000 on invalid Python syntax without crashing runner, 2) Detection of QGR000 on IndentationError, 3) Detection of QGR000 on tokenize.TokenError (unclosed multi-line string """ or unbalanced brackets), 4) Detection of QGR000 on RecursionError (deeply nested AST structure exceeding recursion limits), 5) Immunity of QGR000 against # noqa suppression, 6) Detection of getattr(), 7) Detection of hasattr(), 8) Detection of .get('k', default), 9) Detection of silent except Exception: pass, 10) Detection of except Exception: return {}, 11) Detection of __new__ on BaseModel, 12) Detection of model_construct override on BaseModel, 13) Detection of raw string category routing (== 'matrix'), 14) False-positive immunity for string literals ('getattr'), 15) False-positive immunity for comments, 16) False-positive immunity for os.environ.get and request.headers.get, 17) False-positive immunity for Enum _LABEL_MAP.get, 18) Inline suppression via # noqa: QGR001 on single-line calls, 19) Multiline suppression via # noqa: QGR001 at end_lineno of multiline getattr, 20) Multiline suppression via # noqa: QGR003 inside multiline except tuple, 21) Valid except Exception with raise AppException, 22) Multi-file scanning resilience where bad syntax or broken tokens in file 1 does not prevent scanning file 2, 23) Zero-reflection self-test verifying that the visitor logic itself contains no getattr/hasattr calls.</constraint>
+      <description>Implement ISTQB unit tests in @[backend_v2/tests/unit/scripts/test_ast_guardrails.py] covering all positive, negative, false-positive avoidance, syntax error resilience, tokenization resilience, recursion guards, and inline suppression partitions (including multiline spans) for rules QGR000 through QGR010.</description>
+      <constraint invariant="anti_happy_path_mandate">Test partitions:
+        1) Detection of QGR000 on invalid Python syntax without crashing runner,
+        2) Detection of QGR000 on IndentationError,
+        3) Detection of QGR000 on tokenize.TokenError (unclosed multi-line string """ or unbalanced brackets),
+        4) Detection of QGR000 on RecursionError (deeply nested AST structure exceeding recursion limits),
+        5) Immunity of QGR000 against # noqa suppression,
+        6) Detection of getattr() (QGR001),
+        7) Detection of hasattr() (QGR001),
+        8) Detection of .get('k', default) (QGR002),
+        9) Detection of silent except Exception: pass (QGR003),
+        10) Detection of except Exception: return {} (QGR003),
+        11) Detection of __new__ on BaseModel (QGR004),
+        12) Detection of model_construct override on BaseModel (QGR004),
+        13) Detection of raw string category routing (== 'matrix') (QGR005),
+        14) Detection of asyncio.gather() (QGR006),
+        15) Detection of BaseModel missing ConfigDict(strict=True, extra="forbid") (QGR007),
+        16) Detection of hardcoded timeout=10 and asyncio.sleep(5) in domain code (QGR008),
+        17) Detection of raise AppException("raw string") or missing ErrorCodes (QGR009),
+        18) Detection of naive datetime.now() without tz and deprecated datetime.utcnow() (QGR010),
+        19) False-positive immunity for string literals ('getattr'),
+        20) False-positive immunity for comments and docstrings,
+        21) False-positive immunity for os.environ.get and request.headers.get,
+        22) False-positive immunity for Enum _LABEL_MAP.get,
+        23) False-positive immunity for datetime.now(UTC) and datetime.now(timezone.utc),
+        24) False-positive immunity for asyncio.TaskGroup,
+        25) False-positive immunity for raise AppException(ErrorCodes.VALIDATION_FAILED, ...),
+        26) False-positive immunity for timeouts in test files under tests/,
+        27) Inline suppression via # noqa: QGR001 on single-line calls,
+        28) Multiline suppression via # noqa: QGR001 at end_lineno of multiline getattr,
+        29) Multiline suppression via # noqa: QGR003 inside multiline except tuple,
+        30) Inline suppression via # noqa: QGR006, QGR007, QGR008, QGR009, QGR010,
+        31) Valid except Exception with raise AppException,
+        32) Multi-file scanning resilience where bad syntax or broken tokens in file 1 does not prevent scanning file 2,
+        33) Zero-reflection self-test verifying that the visitor logic itself contains no getattr/hasattr calls.</constraint>
     </step>
 
     <step id="2.2" target="@[backend_v2/tests/unit/test_ast_domain_security_guardrails.py#L8-L89]">
@@ -258,8 +315,8 @@ flowchart TD
 
   <phase id="4" name="Knowledge Item Governance &amp; Live E2E Verification">
     <step id="4.1" target="@[ki_ast_guardrail_engine.md]">
-      <description>Create Knowledge Item @[ki_ast_guardrail_engine.md] documenting the AST Guardrail Engine Architecture as the new codebase SSOT for structural rules and suppression policies.</description>
-      <constraint invariant="knowledge_base_mandate">Document: 1) AST Guardrail Engine role as the codebase SSOT for domain AST constraints, 2) QGR rule code registry (QGR000-QGR005) with severity classifications (FATAL vs WARNING) and remediation guidelines, 3) Tokenized CommentSuppressor mechanics with closed interval [lineno, end_lineno] evaluation across multiline spans, 4) Zero-Reflection Structural Pattern Matching Mandate (match/case and isinstance) preventing the Self-Scanning Paradox, 5) SyntaxError Fault Domain Isolation per file, 6) Dual-mode quality gate CLI integration (--ast-strict vs advisory mode) in backend_audit_loop.py.</constraint>
+      <description>Create Knowledge Item @[ki_ast_guardrail_engine.md] documenting the AST Guardrail Engine Architecture as the new codebase SSOT for structural rules (QGR000-QGR010) and suppression policies.</description>
+      <constraint invariant="knowledge_base_mandate">Document: 1) AST Guardrail Engine role as the codebase SSOT for domain AST constraints, 2) QGR rule code registry (QGR000-QGR010) with severity classifications (FATAL vs WARNING) and remediation guidelines, 3) Tokenized CommentSuppressor mechanics with closed interval [lineno, end_lineno] evaluation across multiline spans, 4) Zero-Reflection Structural Pattern Matching Mandate (match/case and isinstance) preventing the Self-Scanning Paradox, 5) SyntaxError Fault Domain Isolation per file, 6) Dual-mode quality gate CLI integration (--ast-strict vs advisory mode) in backend_audit_loop.py.</constraint>
     </step>
 
     <step id="4.2" target="@[backend_v2/tests/integration/test_integration_real_llm.py]">
@@ -338,6 +395,12 @@ flowchart TD
       <description>Implement ISTQB unit tests for @[scripts/audit_matrix_manager.py] verifying matrix generation, AST evidence binding, anti-rubber-stamping heuristics, and verification gates.</description>
       <constraint invariant="anti_happy_path_mandate">Test partitions: 1) Generating matrix for backend target file with injected rule blocks, 2) Generating matrix with automated AST scan binding from _ast_guardrails.py, 3) Verifying valid matrix with substantive justifications exits with code 0, 4) Verifying matrix with empty/placeholder justifications fails with code 1, 5) Verifying matrix with un-suppressed AST violations fails with code 1, 6) Strict JSON schema validation against AuditMatrixDTO.</constraint>
     </step>
+
+    <step id="7.3" target="@[scripts/_ast_guardrails.py]">
+      <description>Execute Final Production Dry-Run Scan Proof by running @[scripts/_ast_guardrails.py] against the top 3 largest production Python files in @[backend_v2/] (@[backend_v2/models/v2_core.py], @[backend_v2/worker.py], @[backend_v2/database/interfaces.py]), verifying multi-file aggregate performance, zero scanner crashes across 4,500+ lines, and validating expected violation signatures.</description>
+      <constraint invariant="zero_reflection_ast_mandate">Verify that aggregate scanning executes with sub-100ms startup latency and zero recursion/memory overhead.</constraint>
+      <constraint invariant="syntax_error_resilience">Verify that @[backend_v2/database/interfaces.py] passes 100% cleanly with 0 violations (proof of zero false positives on complex abstract interfaces), @[backend_v2/models/v2_core.py] identifies legacy raw dict access, and @[backend_v2/worker.py] accurately catches legacy reflection and untyped dictionary accesses.</constraint>
+    </step>
   </phase>
 </execution_protocol>
 ```
@@ -387,7 +450,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_a
 # /tier5-resume --target="@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Codebase_Guardrails.md]" --workflow="/tier2-execute" --rules="01-python-backend.md"
 
 # ==============================================================================
-# MILESTONE C: Standalone Diagnostics & Evidence Engine (Phases 6-7)
+# MILESTONE C: Standalone Diagnostics, Evidence Engine & Production Dry-Run (Phases 6-7)
 # ==============================================================================
 # 8. Run Standalone Workflow Diagnostics unit tests (Phase 6)
 uv run pytest backend_v2/tests/unit/scripts/test_audit_markdown_boundaries.py -v
@@ -398,6 +461,9 @@ uv run pytest backend_v2/tests/unit/scripts/test_audit_matrix_manager.py -v
 
 # 10. Run full global audit loop on all script test suites
 uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/ --test
+
+# 11. Run Final Production Dry-Run Scan Proof across top 3 largest production files (Phase 7 Step 7.3)
+uv run python scripts/_ast_guardrails.py backend_v2/models/v2_core.py backend_v2/worker.py backend_v2/database/interfaces.py
 ```
 
 ### Self-Audit Proof (Zero Hypocrisy Gate)
@@ -429,13 +495,19 @@ Verify 100% clean pass with 0 violations and 0 suppressions across all gatekeepe
 9. Feed code containing `d.get("key", "")` in `backend_v2/services/` -> Verify audit loop in strict mode exits with code 1 and logs `QGR002: BAN_LAZY_GET_FALLBACK`.
 10. Feed code containing `os.environ.get("PORT", "8000")` -> Verify audit loop passes cleanly (Zero False Positives on standard libraries).
 11. Feed code containing `class X(BaseModel): def __new__(cls): ...` in `models/` -> Verify audit loop in strict mode exits with code 1 and logs `QGR004: BAN_PYDANTIC_METAPROGRAMMING`.
-12. Feed code containing string literal `x = "getattr"` -> Verify audit loop passes cleanly (Zero False Positives on literals).
-13. Feed Jinja template with read permissions error -> Verify audit loop exits with code 1 (Fail-Fast Jinja Gate).
-14. Feed simulated subprocess failure (`returncode=1`) for Ruff check/format, MyPy strict, or Seed data dry-run in `test_backend_audit_loop.py` -> Verify audit loop fails fast and calls `sys.exit(1)` deterministically without spawning real system processes (`hermetic_subprocess_mocking_mandate`).
-15. Feed markdown plan with missing line bounds -> Verify `audit_planner_output.py` returns structured `PlannerFidelityReport` with exact missing line bound list.
-16. Feed markdown document with unclosed XML tag -> Verify `audit_markdown_boundaries.py` reports `MarkdownAuditFinding` with line number and expected closing tag.
-17. Feed audit matrix with placeholder justification -> Verify `audit_matrix_manager.py verify` exits with code 1.
-18. Feed markdown document with bare target file in step attribute (`<step target="scripts/file.py">`) -> Verify `audit_markdown_boundaries.py` / `audit_planner_output.py` requires or normalizes `@[path]` and validates AST line bounds.
+12. Feed code containing `asyncio.gather(*tasks)` -> Verify audit loop in strict mode exits with code 1 and logs `QGR006: BAN_ASYNCIO_GATHER`.
+13. Feed code containing `class X(BaseModel): pass` missing `model_config = ConfigDict(strict=True, extra="forbid")` -> Verify audit loop in strict mode exits with code 1 and logs `QGR007: ENFORCE_PYDANTIC_STRICTNESS`.
+14. Feed code containing `httpx.Client(timeout=10)` in `backend_v2/services/` -> Verify audit loop in strict mode exits with code 1 and logs `QGR008: BAN_HARDCODED_MAGIC_TIMEOUTS`.
+15. Feed code containing `raise AppException("Raw message string")` without `ErrorCodes` enum -> Verify audit loop in strict mode exits with code 1 and logs `QGR009: ENFORCE_TYPED_ERROR_CODES`.
+16. Feed code containing naive `datetime.now()` without tz or `datetime.utcnow()` -> Verify audit loop in strict mode exits with code 1 and logs `QGR010: BAN_NAIVE_DATETIME`.
+17. Feed code containing `datetime.now(UTC)` or `datetime.now(timezone.utc)` -> Verify audit loop passes cleanly (Zero False Positives on UTC).
+18. Feed code containing string literal `x = "getattr"` -> Verify audit loop passes cleanly (Zero False Positives on literals).
+19. Feed Jinja template with read permissions error -> Verify audit loop exits with code 1 (Fail-Fast Jinja Gate).
+20. Feed simulated subprocess failure (`returncode=1`) for Ruff check/format, MyPy strict, or Seed data dry-run in `test_backend_audit_loop.py` -> Verify audit loop fails fast and calls `sys.exit(1)` deterministically without spawning real system processes (`hermetic_subprocess_mocking_mandate`).
+21. Feed markdown plan with missing line bounds -> Verify `audit_planner_output.py` returns structured `PlannerFidelityReport` with exact missing line bound list.
+22. Feed markdown document with unclosed XML tag -> Verify `audit_markdown_boundaries.py` reports `MarkdownAuditFinding` with line number and expected closing tag.
+23. Feed audit matrix with placeholder justification -> Verify `audit_matrix_manager.py verify` exits with code 1.
+24. Feed markdown document with bare target file in step attribute (`<step target="scripts/file.py">`) -> Verify `audit_markdown_boundaries.py` / `audit_planner_output.py` requires or normalizes `@[path]` and validates AST line bounds.
 
 ### Knowledge Item Governance Verification
 
