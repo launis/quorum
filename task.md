@@ -55,9 +55,9 @@
 - [x] (90f852fb) **Step 6.3**: Implement unit tests `@[backend_v2/tests/unit/scripts/test_audit_markdown_boundaries.py]` and `@[backend_v2/tests/unit/scripts/test_audit_tracker_output.py]`
 
 ### Phase 7: Neuro-Symbolic Matrix AST Evidence Engine Integration
-- [x] **Step 7.1**: Modernize `@[scripts/audit_matrix_manager.py]` with AST scan binding and Pydantic V2 schemas
-- [x] **Step 7.2**: Implement unit tests `@[backend_v2/tests/unit/scripts/test_audit_matrix_manager.py]`
-- [x] **Step 7.3**: Execute Final Production Dry-Run Scan Proof on top 3 largest production Python files
+- [x] (edd3e3c3) **Step 7.1**: Modernize `@[scripts/audit_matrix_manager.py]` with AST scan binding and Pydantic V2 schemas
+- [x] (edd3e3c3) **Step 7.2**: Implement unit tests `@[backend_v2/tests/unit/scripts/test_audit_matrix_manager.py]`
+- [x] (edd3e3c3) **Step 7.3**: Execute Final Production Dry-Run Scan Proof on top 3 largest production Python files
 
 ---
 
