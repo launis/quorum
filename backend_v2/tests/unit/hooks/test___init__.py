@@ -9,4 +9,4 @@ def test_interaction_hook_is_exported() -> None:
     assert "source_verification_hook" in hooks_init.__all__
     assert "archival" in hooks_init.__all__
     assert "scoring" in hooks_init.__all__
-    assert len(hooks_init.__all__) == 17
+    assert len(hooks_init.__all__) == 16
