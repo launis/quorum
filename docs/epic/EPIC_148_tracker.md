@@ -56,15 +56,19 @@
   - [x] Step 4: Deterministic Bulk Migration of Test Fixtures via Scratch Scripts
   - [x] Step 5: Re-seed Database & Atomic Quality Gate Verification
 - [x] **[OK] Test Coverage Assertions:** Verified 100% statement coverage on `warning_card_adapter.py`, `sdui.py`, `core_base.py`, and `matrix_scorecard.py`. All 2,153 Python tests and 225 Flutter tests passing.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]`
 
 ---
 
 ### Phase 3: ATOMIC OutputProfile, SDUI Dumb Painter & Localization Parity
 **Plan:** @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md]
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
-  - [ ] Step 1: [DEFERRED IN TIER 1] Detailed execution instructions will be generated upon Phase 2 completion
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
+  - [x] (292a2859) Step 1: Pre-Implementation Technical Debt Cleanups & Static Translation Tables
+  - [x] (a548f83b) Step 2: Python Domain Model & DTO Modernization (v2_core.py & output_profile.py)
+  - [x] (850ca821) Step 3: Flutter Freezed Model Update (output_profile.dart) & Studio UI Cleanups
+  - [x] (f162d4e6) Step 4: SDUI Presentation Adapters, Worker & Jinja2 PDF Template (Dumb Painters)
+  - [ ] Step 5: Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
 
@@ -93,7 +97,10 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` on modified backend files:
   - [ ] @[backend_v2/l10n/en.json]
   - [ ] @[backend_v2/l10n/fi.json]
+  - [ ] @[backend_v2/models/core_base.py]
+  - [ ] @[backend_v2/models/dtos/matrix_scorecard.py]
   - [ ] @[backend_v2/models/dtos/output_profile.py]
+  - [ ] @[backend_v2/models/state.py]
   - [ ] @[backend_v2/models/v2_core.py]
   - [ ] @[backend_v2/seed/seed_data.json]
   - [ ] @[backend_v2/services/localization.py]
@@ -176,20 +183,20 @@
 | **REQ-I18N-13** | §3.2.10, §5.2.4 | Deterministic bulk migration of 1,166 backend test fixture references across 90 test files in `backend_v2/tests/` via `scratch/migrate_backend_i18n_fixtures.py` | Phase 2, Step 4 | Completed |
 | **REQ-I18N-14** | §3.2.10, §5.2.4 | Deterministic bulk migration of 157 Flutter test references across 25 files in `client_app_v2/test/` via `scratch/migrate_flutter_i18n_fixtures.py` | Phase 2, Step 4 | Completed |
 | **REQ-I18N-15** | §5.2.5 | Re-seed local development database (`uv run python backend_v2/seed/run_seed.py local`) and verify Phase 2 quality gates | Phase 2, Step 5 | Completed |
-| **REQ-PROF-01** | §1.1.3, §3.2.5, §5.3.1 | Populate complete backend static translation tables in `backend_v2/l10n/en.json` and `fi.json` for all 17 metric mapping keys, user roles, matrix columns, extension labels, and template labels | Phase 3, Step 1 | Pending |
-| **REQ-PROF-02** | §5.3.1 | Extend `LocalizationService` in `backend_v2/services/localization.py` with type-safe formatting helpers (`format_date`, `format_decimal`, `format_score`, `format_percent`, `format_cost`) | Phase 3, Step 1 | Pending |
-| **REQ-PROF-03** | §1.1.3, §3.2.7, §3.2.24, §5.3.2 | Declare `MatrixSynthesisGroup` domain model in `v2_core.py` with `min_length=1` target blocks and add `matrix_synthesis_groups` with contextual validator to `OutputProfile` | Phase 3, Step 1 | Pending |
-| **REQ-PROF-04** | §1.1.3, §3.2.5, §3.2.23, §5.3.2 | Prune `metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`, and `layouts` from `OutputProfile` and completely eradicate `OutputLayoutBlock` class across Python and Flutter | Phase 3, Step 1 | Pending |
-| **REQ-PROF-05** | §3.2.23, §5.3.2 | Retire AST parity checks (`test_preset_view_parity`, `test_text_delivery_mode_parity`) in `test_enum_parity.py` targeting deleted `OutputLayoutBlock` | Phase 3, Step 1 | Pending |
-| **REQ-PROF-06** | §5.3.2 | Update `OutputProfile` DTOs in `backend_v2/models/dtos/output_profile.py` to replace `layouts` with `matrix_synthesis_groups` | Phase 3, Step 1 | Pending |
-| **REQ-PROF-07** | §5.3.2 | Declare `MatrixSynthesisGroup` Freezed model with explicit `@JsonSerializable(disallowUnrecognizedKeys: true)` and update `OutputProfile` in `client_app_v2/lib/features/studio/models/output_profile.dart` | Phase 3, Step 1 | Pending |
-| **REQ-PROF-08** | §5.3.2, §6 (TC-PROFILE-FLUTTER-01..03) | Update `client_app_v2/test/features/studio/models/output_profile_test.dart` with negative ISTQB tests asserting legacy keys (`layouts`, `metric_mappings`, `preset_view`) throw `CheckedFromJsonException` | Phase 3, Step 1 | Pending |
-| **REQ-PROF-09** | §3.1.2, §3.2.6, §3.2.16, §5.3.3 | Refactor SDUI adapters (`metadata_adapter.py`, `variance_adapter.py`, `authenticity_adapter.py`, `executive_summary_adapter.py`, `matrix_graphs_adapter.py`, `matrix_summary_table_adapter.py`, `printable_sources_adapter.py`, `xai_highlights_adapter.py`) to consume `LocalizationService` and `matrix_synthesis_groups` as pre-localized Dumb Painters | Phase 3, Step 1 | Pending |
-| **REQ-PROF-10** | §1.2.5, §3.2.18, §5.3.3 | Sanitize `report_template.jinja2` and `PdfReportService`: lock `StrictUndefined`, register `raise_unrecognized_sdui_block`, update footer pagination (`1 / 5`), purge hardcoded Finnish/English strings, purge all 11 fallback ternaries `if l10n is defined else '...'` | Phase 3, Step 1 | Pending |
-| **REQ-PROF-11** | §3.2.8, §5.3.3 | Update background worker in `backend_v2/worker.py` and Flutter studio layouts tab in `profile_layouts_tab.dart` to iterate over `matrix_synthesis_groups` | Phase 3, Step 1 | Pending |
-| **REQ-PROF-12** | §5.3.4 | Migrate `OutputProfile` records in `seed_data.json#L9180-L9570` to `matrix_synthesis_groups` and remove legacy dictionaries | Phase 3, Step 1 | Pending |
-| **REQ-PROF-13** | §5.3.4 | Update test fixtures in `backend_v2/tests/` that mock `OutputProfile` or instantiate `OutputLayoutBlock` | Phase 3, Step 1 | Pending |
-| **REQ-PROF-14** | §5.3.5 | Re-seed local development database (`uv run python backend_v2/seed/run_seed.py local`) and verify Phase 3 quality gates | Phase 3, Step 1 | Pending |
+| **REQ-PROF-01** | §1.1.3, §3.2.5, §5.3.1 | Populate complete backend static translation tables in `backend_v2/l10n/en.json` and `fi.json` for all 17 metric mapping keys, user roles, matrix columns, extension labels, and template labels | Phase 3, Step 1 | Completed |
+| **REQ-PROF-02** | §5.3.1 | Extend `LocalizationService` in `backend_v2/services/localization.py` with type-safe formatting helpers (`format_date`, `format_decimal`, `format_score`, `format_percent`, `format_cost`) | Phase 3, Step 1 | Completed |
+| **REQ-PROF-03** | §1.1.3, §3.2.7, §3.2.24, §5.3.2 | Declare `MatrixSynthesisGroup` domain model in `v2_core.py` with `min_length=1` target blocks and add `matrix_synthesis_groups` with contextual validator to `OutputProfile` | Phase 3, Step 2 | Completed |
+| **REQ-PROF-04** | §1.1.3, §3.2.5, §3.2.23, §5.3.2 | Prune `metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`, and `layouts` from `OutputProfile` and completely eradicate `OutputLayoutBlock` class across Python and Flutter | Phase 3, Step 2 | Completed |
+| **REQ-PROF-05** | §3.2.23, §5.3.2 | Retire AST parity checks (`test_preset_view_parity`, `test_text_delivery_mode_parity`) in `test_enum_parity.py` targeting deleted `OutputLayoutBlock` | Phase 3, Step 2 | Completed |
+| **REQ-PROF-06** | §5.3.2 | Update `OutputProfile` DTOs in `backend_v2/models/dtos/output_profile.py` to replace `layouts` with `matrix_synthesis_groups` | Phase 3, Step 2 | Completed |
+| **REQ-PROF-07** | §5.3.2 | Declare `MatrixSynthesisGroup` Freezed model with explicit `@JsonSerializable(disallowUnrecognizedKeys: true)` and update `OutputProfile` in `client_app_v2/lib/features/studio/models/output_profile.dart` | Phase 3, Step 3 | Completed |
+| **REQ-PROF-08** | §5.3.2, §6 (TC-PROFILE-FLUTTER-01..03) | Update `client_app_v2/test/features/studio/models/output_profile_test.dart` with negative ISTQB tests asserting legacy keys (`layouts`, `metric_mappings`, `preset_view`) throw `CheckedFromJsonException` | Phase 3, Step 3 | Completed |
+| **REQ-PROF-09** | §3.1.2, §3.2.6, §3.2.16, §5.3.3 | Refactor SDUI adapters (`metadata_adapter.py`, `variance_adapter.py`, `authenticity_adapter.py`, `executive_summary_adapter.py`, `matrix_graphs_adapter.py`, `matrix_summary_table_adapter.py`, `printable_sources_adapter.py`, `xai_highlights_adapter.py`) to consume `LocalizationService` and `matrix_synthesis_groups` as pre-localized Dumb Painters | Phase 3, Step 4 | Completed |
+| **REQ-PROF-10** | §1.2.5, §3.2.18, §5.3.3 | Sanitize `report_template.jinja2` and `PdfReportService`: lock `StrictUndefined`, register `raise_unrecognized_sdui_block`, update footer pagination (`1 / 5`), purge hardcoded Finnish/English strings, purge all 11 fallback ternaries `if l10n is defined else '...'` | Phase 3, Step 4 | Completed |
+| **REQ-PROF-11** | §3.2.8, §5.3.3 | Update background worker in `backend_v2/worker.py` and Flutter studio layouts tab in `profile_layouts_tab.dart` to iterate over `matrix_synthesis_groups` | Phase 3, Step 4 | Completed |
+| **REQ-PROF-12** | §5.3.4 | Migrate `OutputProfile` records in `seed_data.json#L9180-L9570` to `matrix_synthesis_groups` and remove legacy dictionaries | Phase 3, Step 5 | Pending |
+| **REQ-PROF-13** | §5.3.4 | Update test fixtures in `backend_v2/tests/` that mock `OutputProfile` or instantiate `OutputLayoutBlock` | Phase 3, Step 5 | Pending |
+| **REQ-PROF-14** | §5.3.5 | Re-seed local development database (`uv run python backend_v2/seed/run_seed.py local`) and verify Phase 3 quality gates | Phase 3, Step 5 | Pending |
 | **REQ-GRD-01** | §3.2.11, §5.4.1 | Create AST guardrail suite `test_ast_theory_grounding_guardrails.py` asserting 0 matrices have `EPISTEMIC ANCHOR:` and all 13 have valid `TheoryGrounding` | Phase 4, Step 1 | Pending |
 | **REQ-GRD-02** | §3.2.11, §5.4.1 | Create AST guardrail suite `test_seed_architectural_guardrails.py` asserting 0 occurrences of `default_locale`, 100% bilingual parity, and 0 legacy profile dictionaries | Phase 4, Step 1 | Pending |
 | **REQ-GRD-03** | §5.4.1, §6 (TC-L10N-02) | Create backend internal localization parity suite `test_backend_l10n_internal_parity.py` asserting 1:1 key parity between `en.json` and `fi.json`, 100% Jinja `l10n.*` reference coverage, and 0 dead keys | Phase 4, Step 1 | Pending |
@@ -256,6 +263,39 @@
     - Verified full backend test suite: **2,153 tests passed** (0 failures).
     - Verified full frontend test suite: **225 tests passed** (0 failures).
   - Phase 2 marked as `[x] [OK]` for Execution and Test Coverage Assertions.
+- Executed `/tier0-research-plan` on Phase 3 (`@[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md]`):
+  - Neuro-symbolic planner audit (`audit_planner_output.py`) verified 100% boundary preservation (15/15 line bounds, 56 targets, 54 AST bounds, 14 KIs).
+  - Executed Panel of Experts System 2 analysis across Python backend, LLM prompt compilation, Flutter Dumb Painter architecture, and ISTQB test verification.
+  - Transformed placeholder task into full 5-step executable implementation plan with granular steps, demolish specifications, and ISTQB test contracts.
+  - Phase 3 marked as `[x] [OK]` for Red-Teaming.
+- Executed `/tier2-execute` on Phase 3:
+  - **Step 1 (Tech Debt Cleanups & Static Translation Tables)**:
+    - Completed technical debt cleanups in `backend_v2/models/core_base.py`, `backend_v2/models/dtos/matrix_scorecard.py`, and `client_app_v2/lib/features/studio/views/profile_editor_view.dart`.
+    - Extended `LocalizationService` in `backend_v2/services/localization.py` with type-safe formatting helpers (`format_date`, `format_decimal`, `format_score`, `format_percent`, `format_cost`) and unit tests.
+    - Populated all static translation tables in `backend_v2/l10n/en.json` and `fi.json`.
+    - Git Commit: `292a2859`.
+  - **Step 2 (Python Domain Model & DTO Modernization + Seed Migration)**:
+    - Declared `MatrixSynthesisGroup` in `backend_v2/models/v2_core.py`.
+    - Modernized `OutputProfile` in `backend_v2/models/v2_core.py` (added `matrix_synthesis_groups`, contextual cross-field validator `validate_matrix_graphs_coherence`, purged `layouts`, `metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`).
+    - Eradicated `OutputLayoutBlock` class across the Python codebase.
+    - Modernized DTOs in `backend_v2/models/dtos/output_profile.py`.
+    - Retired obsolete AST parity checks in `backend_v2/tests/unit/test_enum_parity.py`.
+    - Migrated `output_profiles[0]` in `backend_v2/seed/seed_data.json` to 3 comparative matrix synthesis groups.
+    - Git Commit: `a548f83b`.
+  - **Step 3 (Flutter Freezed Model Update & Studio UI Modernization)**:
+    - Declared `MatrixSynthesisGroup` Freezed class in `client_app_v2/lib/features/studio/models/output_profile.dart`.
+    - Modernized `OutputProfile` Freezed class (purged legacy dictionaries and `layouts`, added `@Default([]) List<MatrixSynthesisGroup> matrixSynthesisGroups`).
+    - Modernized Studio UI components: `profile_layouts_tab.dart`, `matrix_graphs_block_card.dart`, `matrix_graph_item_editor.dart`, `matrix_summary_table_card.dart`.
+    - Added negative ISTQB unit tests in `output_profile_test.dart` and updated `profile_layouts_tab_test.dart`.
+    - Ran Flutter code generation and audit loop: 0 errors, 225 Flutter tests passing.
+    - Git Commit: `850ca821`.
+  - **Step 4 (SDUI Presentation Adapters, Worker & Jinja2 PDF Template Sanitization)**:
+    - Modernized presentation adapters in `backend_v2/services/sdui/adapters/` (`metadata_adapter.py`, `variance_adapter.py`, `authenticity_adapter.py`, `executive_summary_adapter.py`, `matrix_graphs_adapter.py`, `matrix_summary_table_adapter.py`, `printable_sources_adapter.py`, `xai_highlights_adapter.py`) to pre-localize labels, costs, and dates via `LocalizationService`.
+    - Modernized worker task `generate_profile_synthesis_and_pdf_task` in `backend_v2/worker.py` to iterate over `matrix_synthesis_groups`.
+    - Sanitized `report_template.jinja2` (purged 11 fallback ternaries, compact footer pagination, registered `raise_unrecognized_sdui_block`).
+    - Resolved circular dependency between `v2_core.py` and `state.py` by placing `ExecutionCoreFields.model_rebuild()` in `state.py`.
+    - Modernized adapter unit test suites (54 adapter tests passing, 23 PDF generator & worker synthesis tests passing with 99% coverage on `pdf_generator.py`).
+    - Quality gate `scripts/backend_audit_loop.py` passed with 0 errors across all step 4 targets.
 
 ## Learned
 - **Phase 1 Insights & Invariants**:
@@ -270,14 +310,27 @@
   - `model_rebuild(_types_namespace=...)` calls in `v2_core.py` and `state.py` must explicitly provide all forward-referenced DTO types (`AnySduiBlock`, `MCPAuditTrace`, `MatrixScorecardRowDTO`).
   - Elimination of module-level `I18N_WARNING_STARVATION` in `warning_card_adapter.py` prevents import-time `ValidationError` crashes, but requires pre-populating `'alert_starvation_insufficient_data'` in `backend_v2/l10n/en.json` and `fi.json`.
   - Automated scratch scripts (`scratch/prune_default_locale_seed.py`, `scratch/migrate_backend_i18n_fixtures.py`, `scratch/migrate_flutter_i18n_fixtures.py`) successfully migrated all 1,166 backend and 157 Flutter fixture occurrences deterministically.
+- **Phase 3 Insights & Invariants**:
+  - `OutputProfile` modernization replaces `layouts: list[OutputLayoutBlock]` with `matrix_synthesis_groups: list[MatrixSynthesisGroup]`, eliminating the `OutputLayoutBlock` zombie DTO across Python and Flutter (`the_no_legacy_mandate`).
+  - Strict Pydantic cross-field validator `@model_validator(mode="after") def validate_matrix_graphs_coherence(self)` asserts that IF `TargetBlockType.MATRIX_GRAPHS_BLOCK` is in `target_block_order`, THEN `len(matrix_synthesis_groups) >= 1`.
+  - Static UI dictionaries (`metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`) are permanently extracted from backend persistence into `backend_v2/l10n/*.json` (for backend SDUI generation) and Flutter `.arb` (for client UI chrome).
+  - SDUI adapters act as pure Dumb Painters: the backend pre-formats and pre-localizes all labels, dates, costs, scores, and percentages via `LocalizationService`, ensuring Jinja2 HTML templates and Flutter renderers never perform inline calculations or fallback guessing.
+  - Removing `state.py` imports from `v2_core.py` and executing `ExecutionCoreFields.model_rebuild()` directly in `state.py` eliminates import graph cycles during pytest collection under Python 3.14.
+
+## Discovered Technical Debt (Resolved in Phase 3, Step 1)
+1. **`client_app_v2/lib/features/studio/views/profile_editor_view.dart#L124-L134`**: Resolved - replaced generic exception with `AppException.validation` and bound background color to primary theme.
+2. **`backend_v2/models/core_base.py#L39`**: Resolved - wrapped description in `Field(description=...)` under 120 chars.
+3. **`backend_v2/models/dtos/matrix_scorecard.py`**: Resolved - added module and union wrapper docstrings.
 
 ## Remaining
-- Execute Phase 2 Plan Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]`).
-- Plan and execute Phase 3 (OutputProfile, SDUI Dumb Painter & Localization Parity) and Phase 4 (AST Guardrails & Parity Suites).
+- Complete Step 5 of Phase 3: Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification (`/tier2-execute @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`).
+- Plan and execute Phase 4 (AST Guardrails & Parity Suites).
 - Complete Post-Implementation Gates: Backend & Frontend Tier 2 Hardening, As-Built Architectural Sync (`/tier7-describe-architecture`), and Reverse Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]
+# Resume Phase 3 at Step 5 (Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification):
+/tier2-execute @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]
 ```
+
 
