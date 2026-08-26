@@ -16,7 +16,7 @@ The absolute SSOT for Directed Acyclic Graph (DAG) state evaluation. It uses a n
 - **Matrix Waterfall Soft-Penalties:** In structured matrix evaluations, the DAG engine applies soft penalty multipliers (deducting percentage scores) rather than hard-stopping when lower-level atoms fail, propagating conditional penalties downstream without halting the entire cascade.
 
 ### 3. Result Projector
-Implements the `ResultProjector` abstraction. `EnrichedResultProjector` uses Python's `graphlib.TopologicalSorter` to enforce a stable topological iteration order over the evaluated nodes. 
+Implements the `ResultProjector` abstraction. `ResultProjector` uses Kahn's topological sort algorithm to enforce a stable topological iteration order over the evaluated nodes. 
 
 ### 4. Sliding Window Linker
 Connects extracted atoms into a causal graph using an output-aware sliding window strategy. To prevent LLM output truncation (8192 token ceiling), windows are dynamically bounded by the strict limit, pre-subdividing oversized chunks and maintaining deterministic edge mapping.
@@ -36,7 +36,7 @@ Supports two distinct execution paths: Regular TDA and Matrix Assertion TDA.
 
 The engine strictly decouples logical graph execution from server-driven UI elements.
 1. The engine produces a `dict[str, AtomExecutionState]`.
-2. `EnrichedResultProjector` compiles the dynamic results into a flat list of `AtomResultDTO` objects.
+2. `ResultProjector` compiles the dynamic results into a flat list of `AtomResultDTO` objects.
 3. All static evidence (`source_quote`, `resolved_claim`) is offloaded to the O(1) Dictionary `hydrated_references` using `HydratedAtomDTO`, keyed by its Opaque Stripe ID (`tda_id`).
 
 This avoids repetitive nested tree logic and guarantees 100% ICU Markdown serialization parity for the Frontend.

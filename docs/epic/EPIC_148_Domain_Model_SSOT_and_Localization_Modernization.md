@@ -16,6 +16,8 @@
   <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
   <knowledge_item>@[ki_execution_engine_protocol.md]</knowledge_item>
   <knowledge_item>@[ki_python_314_concurrency_strictness.md]</knowledge_item>
+  <knowledge_item>@[ki_error_handling_and_fail_fast_rfc7807.md]</knowledge_item>
+  <knowledge_item>@[ki_sdui_dumb_painter.md]</knowledge_item>
 </required_context_rules>
 
 # EPIC 148: Domain Model SSOT & Presentation Localization Modernization
@@ -27,7 +29,7 @@ EPIC 148 standardizes and modernizes Quorum's domain data models and localizatio
 1. Establish the **Epistemic Separation Paradigm** for theory grounding: prune redundant `EPISTEMIC ANCHOR:` prompt tails across all 13 matrix blocks in `seed_data.json`, format pure `<theory_context>` XML citations without raw URL token leakage during prompt compilation, and preserve structured `TheoryGrounding` metadata exclusively for UI/PDF presentation.
 2. Eradicate redundant `default_locale` attributes across backend and frontend `I18nText` data models and 500 instances in `seed_data.json`, shifting language fallback resolution dynamically to execution context parameters (`target_locale`, with global fallback `"en"`).
 3. Modernize `OutputProfile` and Server-Driven UI (SDUI) localization by migrating static UI dictionaries (`metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`) out of the backend database into frontend `.arb` resource files, transforming `MetadataAdapter` into structured key-value envelopes, and replacing legacy V1 `layouts` arrays with strongly-typed `matrix_synthesis_groups`.
-4. Execute the 5-phase **Atomic Migration Protocol** to ensure strict Pydantic V2 (`extra="forbid"`) and Flutter Freezed compatibility without silent fallbacks, duct-tape validators, or broken test fixtures.
+4. Execute the 4-phase **Atomic Migration Protocol** to ensure strict Pydantic V2 (`extra="forbid"`) and Flutter Freezed compatibility without silent fallbacks, duct-tape validators, or broken test fixtures.
 
 ### 1.2 Problem Statement & Root Cause Analysis
 1. **Theory Grounding Dual Injection & Prompt Bloat (Chapter 2)**: In `@[backend_v2/seed/seed_data.json#L336-L6900]`, epistemic and academic grounding anchors are duplicated across both `PromptBlock.ai_description` (as freeform `EPISTEMIC ANCHOR:` text blocks) and `PromptBlock.theory_grounding` (as structured `TheoryGrounding` DTOs). When `MatrixSensorPromptBuilder` compiles prompts, it injects both the raw text description and the structured object with raw URLs (`source_url`), triggering prompt duplication, URL token bloat, XML syntax corruption risks, and Single Source of Truth (SSOT) drift.
@@ -75,7 +77,7 @@ EPIC 148 standardizes and modernizes Quorum's domain data models and localizatio
 
 ## 3. Technical Debt Itemization & Pre-Implementation Remediation
 
-Specifically and exhaustively, the following 14 technical debt items are identified for remediation:
+Specifically and exhaustively, the following 15 technical debt items are identified for remediation:
 1. **Duplicate Theory Anchors in Seed Vault (Chapter 2)**: All 13 matrix blocks in `seed_data.json` duplicate bibliographic text in `ai_description`, creating token bloat and risk of semantic drift.
 2. **Raw JSON Injected in Static System Prompts**: `MatrixSensorPromptBuilder` calls `theory_grounding.model_dump_json()`, injecting raw JSON into system rule blocks.
 3. **URL Token Bloat & Prompt Leakage**: Raw `source_url` strings are emitted in LLM prompt payloads rather than reserved exclusively for client UI rendering and PDF reports.
@@ -85,11 +87,12 @@ Specifically and exhaustively, the following 14 technical debt items are identif
 7. **Obsolete V1 `layouts` Arrays**: `OutputProfile.layouts` retains deprecated fields (`preset_view`, `text_delivery_mode`, `steps: []`) instead of a focused `matrix_synthesis_groups` structure.
 8. **Worker Couplings on `layouts`**: `worker.py` and SDUI adapters depend on `profile.layouts` for synthesis loop routing.
 9. **Flutter Freezed Schema Drift**: `i18n_text.dart` and `output_profile.dart` Freezed models reflect deprecated fields, requiring regeneration via `build_runner`.
-10. **Test Fixture Schema Drift (Chapter 6)**: 1300+ test assertions in `backend_v2/tests/` hardcode `default_locale` or legacy profile layout keys.
+10. **Test Fixture Schema Drift (Chapter 6)**: 1300+ test assertions in `backend_v2/tests/test_worker.py`, `backend_v2/tests/test_worker_synthesis.py`, `backend_v2/tests/test_workflows.py`, and `backend_v2/tests/services/test_blueprint.py` hardcode `default_locale` or legacy profile layout keys.
 11. **Missing AST Guardrails for Seed Vault Purity**: The test suite lacks static AST assertions preventing re-introduction of `default_locale` or `EPISTEMIC ANCHOR:` tails.
 12. **Unsynchronized Local Database State**: `db_v2.json` must be re-seeded atomically after `seed_data.json` mutations.
 13. **Flutter `I18nText` Silent Fallback & Widget Ternary Drift**: `i18n_text.dart` returns `''` on missing translations instead of throwing `AppException.validation`, while `atom_matrix_table_widget.dart` and `matrix_row_item_widget.dart` hardcode `locale == 'fi' ? get('fi') : get('en')` instead of delegating directly to `get(locale)`.
 14. **Studio Ad-Hoc `isEmptyI18n` Functions**: `output_profile_controller.dart` implements local ad-hoc `isEmptyI18n()` functions due to missing SSOT `isEmpty`/`isNotEmpty` properties on `I18nText`.
+15. **Banned Python `.get()` Duck-Typing & Silent Fallbacks in `I18nText`**: `backend_v2/models/v2_core.py#L101-L191` uses `.get()` duck-typing and silent fallback returns (`return ""`, `fallback=""`). These must be completely eradicated in favor of explicit `in` membership checks, sanitized non-empty validation in `@model_validator(mode="after")`, and Fail-Fast `AppException` error propagation.
 
 ---
 
@@ -101,6 +104,7 @@ Specifically and exhaustively, the following 14 technical debt items are identif
 | `EPISTEMIC ANCHOR:` prompt tails | `@[backend_v2/seed/seed_data.json#L336-L6900]` | **PURGED**. Retained exclusively in structured `theory_grounding` field. |
 | Raw `source_url` in LLM prompts | `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]` | **OMITTED** from LLM prompt payload; retained in DTOs for UI/PDF rendering. |
 | `I18nText.default_locale` | `@[backend_v2/models/v2_core.py]`, `@[client_app_v2/lib/shared/models/i18n_text.dart]` | **PURGED**. Replaced by dynamic runtime parameter `target_locale` with `"en"` fallback. |
+| `I18nText.get(fallback="")` & `.get()` duck-typing | `@[backend_v2/models/v2_core.py#L101-L191]` | **PURGED**. Replaced by explicit `if key in dict:` membership checks and strict `resolve()`. |
 | `OutputProfile.metric_mappings` | `@[backend_v2/seed/seed_data.json]`, `@[backend_v2/models/v2_core.py]` | **PURGED**. Replaced by frontend `.arb` static localization files. |
 | `OutputProfile.matrix_column_labels` | `@[backend_v2/seed/seed_data.json]`, `@[backend_v2/models/v2_core.py]` | **PURGED**. Replaced by frontend `.arb` static localization files. |
 | `OutputProfile.user_role_mappings` | `@[backend_v2/seed/seed_data.json]`, `@[backend_v2/models/v2_core.py]` | **PURGED**. Replaced by frontend `.arb` static localization files. |
@@ -118,6 +122,12 @@ Specifically and exhaustively, the following 14 technical debt items are identif
 ## 5. Phased Implementation Plan
 
 ### Phase 1: Theory Grounding & Epistemic Anchor Sanitization (Chapter 2)
+
+#### Pre-Implementation Technical Debt Cleanups (Phase 1 Pre-requisite)
+Before modifying prompt builder logic or mutating seed payloads, execute the following technical debt sweeps and baseline assertions across touched targets:
+1. **Audit `v2_core.py#L101-L191` & Remove Banned `.get()` Duck-Typing**: Eliminate `.get()` dictionary lookups in `I18nText` validation and resolution logic, replacing them with explicit `in` membership checks and sanitized non-empty assertions.
+2. **Audit Flutter Execution Widgets & Remove Redundant Ternaries**: Prepare `atom_matrix_table_widget.dart` and `matrix_row_item_widget.dart` by identifying hardcoded `locale == 'fi' ? get('fi') : get('en')` ternaries for replacement with direct `get(locale)` delegation.
+3. **Verify AST Baseline for Prompt Builder**: Assert that `MatrixSensorPromptBuilder` currently calls `model_dump_json()` and prepare AST test assertions in `test_ast_theory_grounding_guardrails.py` to prevent regression.
 
 #### Step 1.1: Backup Seed Vault (`vault_mutation_protocol`)
 Ensure directory `backend_v2/seed/backups/` exists and execute backup command:
@@ -181,18 +191,60 @@ if matrix_context:
 
 ---
 
-### Phase 2: `I18nText.default_locale` Eradication (Chapter 3)
+### Phase 2: ATOMIC `I18nText` Modernization & Systemic Fixture Migration (Chapter 3)
+*Atomic Transaction Mandate*: Steps 2.1 through 2.5 MUST be executed as a single coherent cycle before triggering the Quality Gate, guaranteeing zero `extra="forbid"` crashes across the 1300+ test suite and database seed.
 
 #### Step 2.1: Python Domain Model Update (`v2_core.py`)
 In `@[backend_v2/models/v2_core.py#L101-L191]`:
 1. Remove `default_locale` field from `I18nText`.
-2. Refactor `resolve()` method to enforce the Universal Fail-Fast mandate (`the_duct_tape_ban` & `dynamic_translation_fail_fast`):
+2. Update `@model_validator(mode="after") def validate_i18n` to sanitize all locale keys (`strip().lower()`), enforce that all translation values are stripped non-empty strings, and ensure `"en"` is strictly present via `"en" not in self.translations` without `.get()` duck-typing:
+   ```python
+   @model_validator(mode="after")
+   def validate_i18n(self) -> I18nText:
+       """Validates that English translation is always present and all translations are non-empty.
+
+       Raises:
+           AppException: If 'en' is missing/empty or any translation contains only whitespace.
+
+       Returns:
+           The validated I18nText instance.
+       """
+       # 1. Enforce baseline fallback: 'en' translation must ALWAYS exist and be non-empty.
+       if "en" not in self.translations or not self.translations["en"].strip():
+           msg = (
+               "I18nText must contain a valid English ('en') translation as a baseline fallback. "
+               f"Payload: {self.translations}"
+           )
+           logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+           raise AppException(
+               message=msg,
+               status_code=status.HTTP_400_BAD_REQUEST,
+               details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+           )
+
+       # 2. Sanitize and validate all translation entries
+       cleaned: dict[str, str] = {}
+       for locale_key, text_val in self.translations.items():
+           if not isinstance(text_val, str) or not text_val.strip():
+               msg = f"I18nText translation for locale '{locale_key}' must be a non-empty string."
+               logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+               raise AppException(
+                   message=msg,
+                   status_code=status.HTTP_400_BAD_REQUEST,
+                   details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+               )
+           cleaned[locale_key.strip().lower()] = text_val.strip()
+
+       object.__setattr__(self, "translations", cleaned)
+       return self
+   ```
+3. Refactor `resolve()` method to enforce the Universal Fail-Fast mandate (`the_duct_tape_ban`, `zero_service_layer_fallbacks`, & `dynamic_translation_fail_fast`), utilizing regex locale parsing (`re.split(r"[-_]", ...)`) and explicit dictionary membership assertions (`in`) instead of `.get()` duck-typing:
    ```python
    def resolve(self, target_locale: str | None = None, fallback_locale: str = "en") -> str:
-       """Strictly typed Fail-Fast resolution of localized text.
+       """Strictly typed Fail-Fast resolution of localized text without .get() duck-typing.
 
        Args:
-           target_locale: The requested locale code (specifically: 'fi', 'fi-FI', 'sv').
+           target_locale: The requested locale code (specifically: 'fi', 'fi-FI', 'fi_FI', 'sv').
            fallback_locale: The baseline fallback locale (defaults to 'en').
 
        Returns:
@@ -201,17 +253,22 @@ In `@[backend_v2/models/v2_core.py#L101-L191]`:
        Raises:
            AppException: If neither target_locale nor fallback_locale can be resolved to a non-empty string.
        """
+       # 1. Attempt Target Locale Match
        if target_locale:
-           target_lang = target_locale.split("-")[0].lower()
-           val = self.translations.get(target_lang)
-           if val and val.strip():
-               return val.strip()
+           target_lang = re.split(r"[-_]", target_locale)[0].lower()
+           if target_lang in self.translations:
+               val = self.translations[target_lang]
+               if val:
+                   return val
 
-       fallback_lang = fallback_locale.split("-")[0].lower()
-       fallback_val = self.translations.get(fallback_lang)
-       if fallback_val and fallback_val.strip():
-           return fallback_val.strip()
+       # 2. Attempt Fallback Locale Match
+       fallback_lang = re.split(r"[-_]", fallback_locale)[0].lower()
+       if fallback_lang in self.translations:
+           fallback_val = self.translations[fallback_lang]
+           if fallback_val:
+               return fallback_val
 
+       # 3. Fail-Fast: Structural Translation Error
        msg = (
            f"Fail-Fast Localization Error: Missing translation for target_locale='{target_locale}' "
            f"and fallback_locale='{fallback_locale}'. Available: {list(self.translations.keys())}"
@@ -223,9 +280,9 @@ In `@[backend_v2/models/v2_core.py#L101-L191]`:
            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
        )
    ```
-3. Deprecate and remove/refactor legacy `I18nText.get()` to delegate directly to `resolve()` without empty string fallback defaults.
+4. Deprecate and remove legacy `I18nText.get(lang_code, fallback="")` (purging default empty string returns) in favor of direct delegation to `resolve()`.
 
-#### Step 2.2: Flutter Freezed Model Update (`i18n_text.dart`), 1-Hop Caller Cleanups & Test Suite
+#### Step 2.2: Flutter Freezed Model Update (`i18n_text.dart`), 1-Hop Caller Cleanups & Unit Tests
 1. In `@[client_app_v2/lib/shared/models/i18n_text.dart]`:
    - Remove `@JsonKey(name: 'default_locale') @Default('en') String defaultLocale` from `I18nText` Freezed model.
    - Update `translations` default to `@Default(<String, String>{}) Map<String, String> translations`.
@@ -242,23 +299,23 @@ In `@[backend_v2/models/v2_core.py#L101-L191]`:
      /// Checks if a non-empty translation exists for the given language code.
      bool has(String? langCode) {
        if (langCode == null || langCode.isEmpty) return false;
-       final normalized = langCode.split('-').first.toLowerCase();
+       final normalized = langCode.split(RegExp(r'[-_]')).first.toLowerCase();
        final val = translations[normalized];
        return val != null && val.trim().isNotEmpty;
      }
      ```
-   - Update `get(String? langCode, {String fallback = 'en'})` method to enforce the Universal Fail-Fast mandate (`dynamic_translation_fail_fast`):
+   - Update `get(String? langCode, {String fallback = 'en'})` method to enforce the Universal Fail-Fast mandate (`dynamic_translation_fail_fast`). In accordance with the Red Screen of Death audit, any missing translation throws `AppException.validation`, which is safely caught and contained by `AppExceptionBoundary` (rendering a localized Diagnostic Node box instead of an unhandled Red Screen crash):
      ```dart
      String get(String? langCode, {String fallback = 'en'}) {
        if (langCode != null && langCode.isNotEmpty) {
-         final normalized = langCode.split('-').first.toLowerCase();
+         final normalized = langCode.split(RegExp(r'[-_]')).first.toLowerCase();
          final val = translations[normalized];
          if (val != null && val.trim().isNotEmpty) {
            return val.trim();
          }
        }
 
-       final fallbackNormalized = fallback.split('-').first.toLowerCase();
+       final fallbackNormalized = fallback.split(RegExp(r'[-_]')).first.toLowerCase();
        final fallbackVal = translations[fallbackNormalized];
        if (fallbackVal != null && fallbackVal.trim().isNotEmpty) {
          return fallbackVal.trim();
@@ -274,26 +331,25 @@ In `@[backend_v2/models/v2_core.py#L101-L191]`:
    - In `@[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart#L52-L54]`: Replace ternary `locale == 'fi' ? matrix.labelI18n.get('fi') : matrix.labelI18n.get('en')` with `matrix.labelI18n.get(locale)`.
    - In `@[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]`: Remove `defaultLocale` state tracking and bind text editing directly to `translations` map.
    - In `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart#L239-L260]`: Replace local `isEmptyI18n(text)` with `text?.isEmpty ?? true`.
-3. Create unit test suite `[NEW]` `@[client_app_v2/test/shared/models/i18n_text_test.dart]` testing:
-   - Target match resolution (`get('fi')` -> `'Käyttäjä'`).
-   - Lingua franca fallback resolution (`get('sv', fallback: 'en')` -> `'User'`).
-   - Fail-Fast `AppException.validation` on missing target and fallback translations.
-   - Fail-Fast `AppException.validation` on empty/whitespace-only translations.
-   - `isEmpty`, `isNotEmpty`, and `has()` helper evaluation.
+   - Note on Error Containment: All widget tree evaluations of `I18nText.get()` operate under the protection of root-level `AppExceptionBoundary` in `app.dart` (and sub-tree boundaries in Studio views), ensuring that any validation failure displays an auditable Diagnostic Node rather than corrupting memory or crashing the process.
+3. Create unit test suite `[NEW]` `@[client_app_v2/test/shared/models/i18n_text_test.dart]` testing target match, English fallback, Fail-Fast on missing/whitespace translations, and state helpers.
 4. Run Flutter build runner: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/shared/models/i18n_text.dart --build`.
 
 #### Step 2.3: Deterministic Pruning of `default_locale` across 500 Instances in `seed_data.json`
 Write and execute an atomic Python script in the scratch directory to strip all `"default_locale": "..."` keys from `backend_v2/seed/seed_data.json` while preserving all other keys.
 
-#### Step 2.4: Test Fixtures Migration across 1300+ Test Cases
-Write and execute an atomic regex/AST migration script to strip `default_locale` kwargs and dictionary entries from `backend_v2/tests/` fixtures.
+#### Step 2.4: Systemic Test Fixtures Migration across 1300+ Test Cases
+Write and execute an atomic AST/regex migration script `scratch/migrate_i18n_test_fixtures.py` to strip `default_locale` kwargs and dictionary entries across all files in `backend_v2/tests/`.
 
-#### Step 2.5: Quality Gate for Phase 2
-Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/ --test` and `uv run python scripts/flutter_audit_loop.py client_app_v2/test/ --build`.
+#### Step 2.5: Re-seed Database & Atomic Quality Gate Verification
+1. Re-seed local development database: `uv run python backend_v2/seed/run_seed.py local`.
+2. Run backend quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/ --test`.
+3. Run Flutter quality gate: `uv run python scripts/flutter_audit_loop.py client_app_v2/test/ --build`.
 
 ---
 
-### Phase 3: Backend PDF Localization Parity, SDUI Adapters & OutputProfile Modernization (Chapter 5)
+### Phase 3: ATOMIC `OutputProfile`, SDUI Dumb Painter & Localization Parity (Chapter 5)
+*Atomic Transaction Mandate*: Steps 3.1 through 3.5 MUST be executed as a single coherent cycle before triggering the Quality Gate, ensuring backend DTOs, Flutter Freezed models, seed data, and adapters compile with 100% parity.
 
 #### Step 3.1: Backend Static L10n Dictionaries & LocalizationService Formatting
 1. **Complete Backend Static Translation Tables (`@[backend_v2/l10n/en.json]` and `@[backend_v2/l10n/fi.json]`)**:
@@ -305,23 +361,11 @@ Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/
    - `format_date(dt: datetime, locale: str) -> str`: fi: `26.08.2026 klo 06:44`, en: `2026-08-26 06:44`.
    - `format_score(value: float, locale: str) -> str`: fi: `3,50`, en: `3.50`.
    - `format_percent(ratio: float, locale: str) -> str`: fi: `85,2 %`, en: `85.2%`.
-   - `format_cost(amount: float, locale: str) -> str`: fi: `0,04 $` (or `0,04 €`), en: `$0.04`.
+   - `format_cost(amount: float, locale: str) -> str`: fi: `0,04 $`, en: `$0.04` (Enforces strict token cost notation in USD per LLM provider billing conventions, localized with Finnish decimal comma and postfix currency symbol).
 3. **Create Unit Tests `[NEW]` `@[backend_v2/tests/unit/services/test_localization_service.py]`**:
-   - Verify translation lookups, missing key Fail-Fast `AppException(VALIDATION_FAILED)` behavior, and `format_date`, `format_score`, `format_percent`, `format_cost` formatting correctness across locales (`fi`, `en`).
+   - Verify translation lookups, missing key Fail-Fast `AppException(VALIDATION_FAILED)` behavior, and formatting helpers across locales (`fi`, `en`).
 
-#### Step 3.2: Refactor SDUI Adapters, Worker & Jinja2 PDF Template (Dumb Painters)
-1. **Refactor SDUI Adapters to Produce Pre-Localized DTO Blocks**:
-   - In `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`: Produce pre-localized `metadata_lines` and `costs`/`tokens` strings using `LocalizationService.translate()` and `format_cost()` / `format_date()` functions.
-   - In `@[backend_v2/services/sdui/adapters/variance_adapter.py]`, `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`, `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`: Decouple completely from `profile.metric_mappings` / `user_role_mappings` database fields. Resolve titles, labels, and numbers via `LocalizationService`.
-   - In `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]` and `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`: Consume `profile.matrix_synthesis_groups` instead of the legacy `layouts` structure. Resolve column headers strictly via `LocalizationService`.
-2. **Jinja2 / WeasyPrint (PDF) & Flutter Client Parity (Dumb Painters)**:
-   - `@[backend_v2/templates/report_template.jinja2]` renders pre-localized `ReportDataDTO` directly without separate dictionary lookup.
-   - Flutter's `sdui_blocks_renderer.dart` renders pre-localized `AnySduiBlock` elements directly. Flutter's `app_en.arb` and `app_fi.arb` are reserved strictly for UI Chrome (buttons, dialogs, themes).
-3. **Update Background Worker & Flutter Studio View**:
-   - In `@[backend_v2/worker.py#L591-L1359]`: Iterate over `profile.matrix_synthesis_groups` for matrix synthesis generation.
-   - In `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`: Bind to `matrixSynthesisGroups` model.
-
-#### Step 3.3: Modernize `OutputProfile` & DTO Schemas (Backend & Frontend)
+#### Step 3.2: Modernize `OutputProfile` & DTO Schemas (Backend & Frontend)
 1. **Backend Domain & DTOs (`v2_core.py` & `models/dtos/output_profile.py`)**:
    - In `@[backend_v2/models/v2_core.py#L1148-L1269]`:
      ```python
@@ -341,21 +385,32 @@ Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/tests/
      - Update `OutputProfile` Freezed model to match backend schema.
    - Run Flutter build runner: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/output_profile.dart --build`.
 
-#### Step 3.4: Seed Vault `OutputProfile` Migration
-Update `OutputProfile` records in `@[backend_v2/seed/seed_data.json#L9180-L9570]` by removing legacy dictionary fields and converting `layouts` to `matrix_synthesis_groups`.
+#### Step 3.3: Refactor SDUI Adapters, Worker & Jinja2 PDF Template (Dumb Painters)
+1. **Refactor SDUI Adapters to Produce Pre-Localized DTO Blocks**:
+   - In `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`: Produce pre-localized `metadata_lines` and `costs`/`tokens` strings using `LocalizationService.translate()` and `format_cost()` / `format_date()` functions.
+   - In `@[backend_v2/services/sdui/adapters/variance_adapter.py]`, `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`, `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`: Decouple completely from `profile.metric_mappings` / `user_role_mappings` database fields. Resolve titles, labels, and numbers via `LocalizationService`.
+   - In `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]` and `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`: Consume `profile.matrix_synthesis_groups` instead of the legacy `layouts` structure. Resolve column headers strictly via `LocalizationService`.
+2. **Jinja2 / WeasyPrint (PDF) & Flutter Client Parity (Dumb Painters)**:
+   - `@[backend_v2/templates/report_template.jinja2]` renders pre-localized `ReportDataDTO` directly without separate dictionary lookup.
+   - Flutter's `sdui_blocks_renderer.dart` renders pre-localized `AnySduiBlock` elements directly. Flutter's `app_en.arb` and `app_fi.arb` are reserved strictly for UI Chrome (buttons, dialogs, themes).
+3. **Update Background Worker & Flutter Studio View**:
+   - In `@[backend_v2/worker.py#L591-L1359]`: Iterate over `profile.matrix_synthesis_groups` for matrix synthesis generation.
+   - In `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`: Bind to `matrixSynthesisGroups` model.
+
+#### Step 3.4: Seed Vault `OutputProfile` Migration & Test Fixture Updates
+1. Update `OutputProfile` records in `@[backend_v2/seed/seed_data.json#L9180-L9570]` by removing legacy dictionary fields and converting `layouts` to `matrix_synthesis_groups`.
+2. Migrate all test fixtures in `backend_v2/tests/` that mock `OutputProfile` (specifically and exhaustively: `test_blueprint.py`, `test_worker_synthesis.py`, `test_variance_adapter.py`) to the new schema.
+
+#### Step 3.5: Re-seed Database & Atomic Quality Gate Verification
+1. Re-seed local development database: `uv run python backend_v2/seed/run_seed.py local`.
+2. Run backend quality gate: `uv run python scripts/backend_audit_loop.py backend_v2 --test`.
+3. Run Flutter quality gate: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`.
 
 ---
 
-### Phase 4: Atomic Fixture Migration, Seed Re-seeding & AST Guardrails (Chapter 6)
+### Phase 4: AST Guardrails, Parity Suites & Final Audit (Chapter 6)
 
-#### Step 4.1: Deterministic Test Fixtures Migration across 1300+ Test Cases
-Execute the atomic AST/regex migration script `scratch/migrate_seed_and_fixtures.py` to remove `default_locale`, `metric_mappings`, and legacy `layouts` fields from all `backend_v2/tests/` files (including `test_blueprint.py`, `test_worker_synthesis.py`, and `test_variance_adapter.py`).
-
-#### Step 4.2: Re-seed Local Database
-Verify JSON syntax integrity and execute local re-seeding:
-`uv run python backend_v2/seed/run_seed.py local`.
-
-#### Step 4.3: Create AST Guardrail & L10n Parity Suites
+#### Step 4.1: Create AST Guardrail & L10n Parity Suites
 1. Create [NEW] `@[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py]`:
    - `test_seed_matrices_have_no_epistemic_anchor_in_ai_description`: Assert 0 matrix blocks contain `"EPISTEMIC ANCHOR:"`.
    - `test_seed_matrices_have_valid_theory_grounding`: Assert all 13 matrix blocks have non-null `theory_grounding`.
@@ -367,9 +422,9 @@ Verify JSON syntax integrity and execute local re-seeding:
 3. Create [NEW] `@[backend_v2/tests/unit/test_l10n_backend_flutter_parity.py]`:
    - `test_backend_json_matches_flutter_arb_keys`: Assert 1:1 key parity between `backend_v2/l10n/*.json` and `client_app_v2/lib/l10n/*.arb`.
 
-#### Step 4.4: Full Audit Gate Verification
-1. Run backend quality gate: `uv run python scripts/backend_audit_loop.py backend_v2 --test`.
-2. Run Flutter quality gate: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`.
+#### Step 4.2: Full Global Quality Gate Verification
+1. Run backend global quality gate: `uv run python scripts/backend_audit_loop.py backend_v2 --test`.
+2. Run Flutter global quality gate: `uv run python scripts/flutter_audit_loop.py client_app_v2 --build`.
 
 ---
 
