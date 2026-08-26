@@ -1,24 +1,52 @@
 """Backend <-> Frontend DTO Parity Verification Script.
 
 Scans Python Pydantic models and Dart Freezed models to verify field-name
-parity across the system boundaries.
+parity across the system boundaries using zero-reflection AST parsing and strict Pydantic V2 DTOs.
 """
 
 from __future__ import annotations
 
 import argparse
 import ast
+import io
 import re
 import sys
 from pathlib import Path
 
+from pydantic import BaseModel, ConfigDict
+
 # Force UTF-8 encoding for stdout/stderr to support emojis on Windows
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
+try:
+    if sys.stdout is not None:
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    if sys.stderr is not None:
         sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
-    except Exception:
-        pass
+except AttributeError, io.UnsupportedOperation:
+    pass
+
+
+class DtoFieldMismatchDTO(BaseModel):
+    """Pydantic V2 DTO representing a field mismatch between Python and Dart models."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    model_name: str
+    field_name: str
+    python_type: str = "unknown"
+    dart_type: str = "unknown"
+    mismatch_reason: str
+    remediation: str
+
+
+class DtoParityReportDTO(BaseModel):
+    """Pydantic V2 DTO representing the aggregate DTO parity audit report."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    is_success: bool
+    shared_models_count: int
+    mismatches: list[DtoFieldMismatchDTO]
+    summary_messages: list[str]
 
 
 def snake_to_camel(snake_str: str) -> str:
@@ -33,27 +61,32 @@ def camel_to_snake(camel_str: str) -> str:
 
 
 def extract_pydantic_fields(file_path: Path) -> dict[str, set[str]]:
-    """Extract Pydantic model class names and field names via Python AST."""
+    """Extract Pydantic model class names and field names via zero-reflection Python AST."""
     if not file_path.exists() or file_path.suffix != ".py":
         return {}
 
     try:
         source = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=file_path.as_posix())
-    except SyntaxError, UnicodeDecodeError:
+    except SyntaxError, UnicodeDecodeError, OSError:
         return {}
 
     models: dict[str, set[str]] = {}
     for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef):
-            fields: set[str] = set()
-            for stmt in node.body:
-                if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
-                    name = stmt.target.id
-                    if not name.startswith("_") and name != "model_config":
-                        fields.add(name)
-            if fields:
-                models[node.name] = fields
+        match node:
+            case ast.ClassDef(name=class_name, body=body):
+                fields: set[str] = set()
+                for stmt in body:
+                    match stmt:
+                        case ast.AnnAssign(target=ast.Name(id=field_name)):
+                            if not field_name.startswith("_") and field_name != "model_config":
+                                fields.add(field_name)
+                        case _:
+                            pass
+                if fields:
+                    models[class_name] = fields
+            case _:
+                pass
 
     return models
 
@@ -65,7 +98,7 @@ def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
 
     try:
         content = file_path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
+    except UnicodeDecodeError, OSError:
         return {}
 
     models: dict[str, set[str]] = {}
@@ -106,8 +139,8 @@ def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
     return models
 
 
-def audit_parity(backend_dir: Path, frontend_dir: Path) -> tuple[bool, list[str]]:
-    """Compare matching DTO models across backend and frontend directories."""
+def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityReportDTO:
+    """Compare matching DTO models across backend and frontend directories, returning DtoParityReportDTO."""
     backend_models: dict[str, set[str]] = {}
     if backend_dir.exists():
         for py_file in backend_dir.rglob("*.py"):
@@ -121,7 +154,8 @@ def audit_parity(backend_dir: Path, frontend_dir: Path) -> tuple[bool, list[str]
                 frontend_models[m_name] = m_fields
 
     shared_names = set(backend_models.keys()) & set(frontend_models.keys())
-    mismatch_reports: list[str] = []
+    mismatches: list[DtoFieldMismatchDTO] = []
+    summary_messages: list[str] = []
 
     for name in sorted(shared_names):
         b_fields = backend_models[name]
@@ -132,12 +166,45 @@ def audit_parity(backend_dir: Path, frontend_dir: Path) -> tuple[bool, list[str]
             diffs: list[str] = []
             if missing_in_front:
                 diffs.append(f"Missing in Frontend: {sorted(missing_in_front)}")
+                for fld in sorted(missing_in_front):
+                    mismatches.append(
+                        DtoFieldMismatchDTO(
+                            model_name=name,
+                            field_name=fld,
+                            mismatch_reason=f"Field '{fld}' present in Python Pydantic model '{name}' but missing in Dart Freezed model.",
+                            remediation=f"Add @JsonKey(name: '{fld}') or camelCase field '{snake_to_camel(fld)}' to Dart Freezed class '{name}'.",
+                        )
+                    )
             if missing_in_back:
                 diffs.append(f"Missing in Backend: {sorted(missing_in_back)}")
-            mismatch_reports.append(f"[{name}] " + "; ".join(diffs))
+                for fld in sorted(missing_in_back):
+                    mismatches.append(
+                        DtoFieldMismatchDTO(
+                            model_name=name,
+                            field_name=fld,
+                            mismatch_reason=f"Field '{fld}' present in Dart Freezed model '{name}' but missing in Python Pydantic model.",
+                            remediation=f"Add field '{fld}: <Type>' to Python Pydantic class '{name}'.",
+                        )
+                    )
+            summary_messages.append(f"[{name}] " + "; ".join(diffs))
 
-    is_success = len(mismatch_reports) == 0
-    return is_success, mismatch_reports
+    is_success = len(mismatches) == 0
+    return DtoParityReportDTO(
+        is_success=is_success,
+        shared_models_count=len(shared_names),
+        mismatches=mismatches,
+        summary_messages=summary_messages,
+    )
+
+
+def audit_parity(backend_dir: Path, frontend_dir: Path) -> tuple[bool, list[str]]:
+    """Compare matching DTO models across backend and frontend directories.
+
+    Returns:
+        tuple[bool, list[str]] indicating (is_success, mismatch_summary_messages).
+    """
+    report = audit_parity_report(backend_dir, frontend_dir)
+    return report.is_success, report.summary_messages
 
 
 def main() -> None:
@@ -152,14 +219,14 @@ def main() -> None:
     f_dir = Path(args.frontend_dir).resolve()
 
     print(f"\n🔍 Auditing DTO Parity between {b_dir} and {f_dir}...")
-    success, reports = audit_parity(b_dir, f_dir)
+    report = audit_parity_report(b_dir, f_dir)
 
-    if success:
-        print("✅ DTO Parity Audit Passed: All shared models are 1:1 aligned.")
+    if report.is_success:
+        print(f"✅ DTO Parity Audit Passed: All {report.shared_models_count} shared models are 1:1 aligned.")
         sys.exit(0)
     else:
         print("❌ DTO Parity Mismatches Found:")
-        for r in reports:
+        for r in report.summary_messages:
             print(f"  - {r}")
         if args.fail_on_mismatch:
             sys.exit(1)

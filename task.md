@@ -39,11 +39,11 @@
 ## Milestone B: Shared AST Utilities, Immediate Workflow Consumers & DTO Parity Modernization (Phase 5)
 
 ### Phase 5: Shared AST Utils, Immediate Workflow Consumers & DTO Parity
-- [ ] **Step 5.1**: Refactor `@[scripts/_ast_boundary_utils.py]` with zero reflection and Pydantic V2 DTOs
-- [ ] **Step 5.2**: Refactor `@[scripts/audit_dto_parity.py]` with zero reflection and Pydantic V2 DTOs
-- [ ] **Step 5.3**: Migrate `@[scripts/audit_planner_output.py]` and `@[scripts/audit_epic_coverage.py]` to consume refactored DTOs
-- [ ] **Step 5.4**: Implement unit tests `@[backend_v2/tests/unit/scripts/test_ast_boundary_utils.py]`, `@[backend_v2/tests/unit/scripts/test_audit_dto_parity.py]`, and migrated `@[backend_v2/tests/unit/scripts/test_audit_verification_scripts.py]`
-- [ ] **Step 5.5**: Context Flush Checkpoint 2 (Mandatory Session Handover)
+- [x] **Step 5.1**: Refactor `@[scripts/_ast_boundary_utils.py]` with zero reflection and Pydantic V2 DTOs
+- [x] **Step 5.2**: Refactor `@[scripts/audit_dto_parity.py]` with zero reflection and Pydantic V2 DTOs
+- [x] **Step 5.3**: Migrate `@[scripts/audit_planner_output.py]` and `@[scripts/audit_epic_coverage.py]` to consume refactored DTOs
+- [x] **Step 5.4**: Implement unit tests `@[backend_v2/tests/unit/scripts/test_ast_boundary_utils.py]`, `@[backend_v2/tests/unit/scripts/test_audit_dto_parity.py]`, and migrated `@[backend_v2/tests/unit/scripts/test_audit_verification_scripts.py]`
+- [x] **Step 5.5**: Context Flush Checkpoint 2 (Mandatory Session Handover)
 
 ---
 
@@ -62,6 +62,6 @@
 ---
 
 ## Session Handover Context
-- **Achieved**: Completed Milestone A (Phases 1–4, commits `c81ff6da`, `1e65aa35`). Implemented `scripts/_ast_guardrails.py` (QGR000–QGR010), refactored `scripts/backend_audit_loop.py` to integrate the AST gate with `--ast-strict`, implemented comprehensive unit tests with >90% coverage across all files, created Knowledge Item `ki_ast_guardrail_engine.md`, created `scripts/__init__.py`, and passed all 6 stages of the quality gate.
-- **Learned**: AST comment suppression parsing directly via `tokenize` and structural pattern matching (`match/case`) avoids the Python `ast.NodeVisitor` reflection paradox. Gatekeepers achieve 100% self-compliance with 0 violations and 0 suppressions.
-- **Remaining**: Milestone B: Shared AST Utilities, Immediate Consumers & DTO Parity (Phase 5), Milestone C: Standalone Diagnostics & Neuro-Symbolic Matrix (Phases 6–7).
+- **Achieved**: Completed Milestone B (Phase 5). Refactored `scripts/_ast_boundary_utils.py` and `scripts/audit_dto_parity.py` with zero-reflection structural pattern matching (`match/case`), Pydantic V2 DTOs (`TargetFileReferenceDTO`, `AstLineBoundDTO`, `SymbolDefinitionDTO`, `DtoFieldMismatchDTO`, `DtoParityReportDTO`), path normalization (`normalize_target_path`), migrated callers (`scripts/audit_planner_output.py`, `scripts/audit_epic_coverage.py`), implemented dedicated unit test suites (`test_ast_boundary_utils.py`, `test_audit_dto_parity.py`), updated `test_audit_verification_scripts.py`, achieved 95% coverage, and passed all 6 stages of the quality gate.
+- **Learned**: Importing `scripts.*` as a package module enables seamless `pytest-cov` mapping under strict coverage gates. Zero-reflection structural pattern matching on `ast.ClassDef` and `ast.AnnAssign` avoids false positives on private fields (`_...`) and `model_config`.
+- **Remaining**: Milestone C: Standalone Workflow Diagnostics (`audit_markdown_boundaries.py`, `audit_tracker_output.py`, Phase 6) & Neuro-Symbolic Matrix Evidence Engine (`audit_matrix_manager.py`, Phase 7).

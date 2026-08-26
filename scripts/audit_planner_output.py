@@ -4,6 +4,8 @@ A deterministic neuro-symbolic check to ensure the Tier 1 Planner
 has not abstracted away specific line boundaries, target files, or KI context via lossy compression.
 """
 
+from __future__ import annotations
+
 import argparse
 import re
 import sys
@@ -87,11 +89,11 @@ def main() -> None:
     epic_targets = extract_target_files(epic_content)
     if epic_targets:
         missing_targets = []
-        for action, target_path, _ in epic_targets:
+        for target in epic_targets:
             # Check if target file path is referenced in plan content
-            clean_name = Path(target_path).name
-            if target_path not in combined_plan_content and clean_name not in combined_plan_content:
-                missing_targets.append((action, target_path))
+            clean_name = Path(target.file_path).name
+            if target.file_path not in combined_plan_content and clean_name not in combined_plan_content:
+                missing_targets.append((target.action, target.file_path))
         if missing_targets:
             print("FAILED: Plans omit the following target files stated in the Epic:")
             for act, tpath in missing_targets:
@@ -108,8 +110,7 @@ def main() -> None:
         if py_file_path.exists():
             bounds = parse_line_bound(bound_str)
             if bounds:
-                start, end = bounds
-                if not validate_ast_line_bound(py_file_path, start, end):
+                if not validate_ast_line_bound(py_file_path, bounds.start_line, bounds.end_line):
                     invalid_ast_bounds.append((file_str, bound_str))
     if invalid_ast_bounds:
         print("FAILED: The following Python line bounds do not match valid AST nodes in physical codebase:")

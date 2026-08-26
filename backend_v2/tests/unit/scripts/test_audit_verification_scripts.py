@@ -3,6 +3,8 @@
 Verifies audit_planner_output.py, audit_epic_coverage.py, and _ast_boundary_utils.py.
 """
 
+from __future__ import annotations
+
 import subprocess
 import sys
 from pathlib import Path
@@ -14,39 +16,50 @@ scripts_dir = Path("scripts").resolve()
 if str(scripts_dir) not in sys.path:
     sys.path.insert(0, str(scripts_dir))
 
-from _ast_boundary_utils import (  # noqa: E402
+from scripts._ast_boundary_utils import (
+    AstLineBoundDTO,
     SymbolDefinitionVisitor,
+    TargetFileReferenceDTO,
     extract_deprecated_symbols,
     extract_target_files,
     find_symbols_in_python_code,
+    normalize_target_path,
     parse_line_bound,
     validate_ast_line_bound,
 )
-from audit_dto_parity import (  # noqa: E402
+from scripts.audit_dto_parity import (
     audit_parity,
     camel_to_snake,
     extract_freezed_fields,
     extract_pydantic_fields,
     snake_to_camel,
 )
-from audit_dto_parity import (
+from scripts.audit_dto_parity import (
     main as audit_dto_parity_main,
 )
-from audit_epic_coverage import (  # noqa: E402
+from scripts.audit_epic_coverage import (
     extract_phase_content,
     scan_for_lingering_symbols,
 )
-from audit_epic_coverage import (
+from scripts.audit_epic_coverage import (
     main as audit_epic_coverage_main,
 )
-from audit_rules_staleness import (  # noqa: E402
+from scripts.audit_rules_staleness import (
     audit_rules_staleness,
     extract_code_symbols_from_rules,
     verify_symbols_exist,
 )
-from audit_rules_staleness import (
+from scripts.audit_rules_staleness import (
     main as audit_rules_staleness_main,
 )
+
+
+def test_normalize_target_path() -> None:
+    """Test normalizing raw markdown path strings into POSIX relative paths."""
+    assert normalize_target_path("`@[backend_v2/settings.py#L10-L20]`") == "backend_v2/settings.py"
+    assert normalize_target_path("@[backend_v2/utils/tool.py]") == "backend_v2/utils/tool.py"
+    assert normalize_target_path("`scripts/file.py`") == "scripts/file.py"
+    assert normalize_target_path("  models/v2_core.py  ") == "models/v2_core.py"
 
 
 def test_extract_target_files_various_syntaxes() -> None:
@@ -58,12 +71,12 @@ def test_extract_target_files_various_syntaxes() -> None:
 - `[DELETE]` `@[legacy_file.py]`
 - `[MODIFY]` `@[client_app_v2/lib/features/studio/view.dart]`
     """
-    targets = extract_target_files(content)
+    targets: list[TargetFileReferenceDTO] = extract_target_files(content)
     assert len(targets) == 4
 
-    actions = [t[0] for t in targets]
-    paths = [t[1] for t in targets]
-    bounds = [t[2] for t in targets]
+    actions = [t.action for t in targets]
+    paths = [t.file_path for t in targets]
+    bounds = [t.line_bound for t in targets]
 
     assert actions == ["MODIFY", "NEW", "DELETE", "MODIFY"]
     assert "backend_v2/settings.py" in paths
@@ -75,11 +88,11 @@ def test_extract_target_files_various_syntaxes() -> None:
 
 
 def test_parse_line_bound_formats() -> None:
-    """Test line bound string parsing for various valid and invalid formats."""
-    assert parse_line_bound("#L10-L25") == (10, 25)
-    assert parse_line_bound("#L10-25") == (10, 25)
-    assert parse_line_bound("L100-L200") == (100, 200)
-    assert parse_line_bound("#L30-L10") == (10, 30)
+    """Test line bound string parsing for various valid and invalid formats returning AstLineBoundDTO."""
+    assert parse_line_bound("#L10-L25") == AstLineBoundDTO(start_line=10, end_line=25)
+    assert parse_line_bound("#L10-25") == AstLineBoundDTO(start_line=10, end_line=25)
+    assert parse_line_bound("L100-L200") == AstLineBoundDTO(start_line=100, end_line=200)
+    assert parse_line_bound("#L30-L10") == AstLineBoundDTO(start_line=10, end_line=30)
     assert parse_line_bound("invalid_bound") is None
     assert parse_line_bound("") is None
 

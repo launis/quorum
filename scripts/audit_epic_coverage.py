@@ -4,6 +4,8 @@ A deterministic post-flight reverse audit script verifying physical codebase
 implementation against Epic requirements via physical file existence and AST symbol absence.
 """
 
+from __future__ import annotations
+
 import argparse
 import re
 import sys
@@ -53,7 +55,7 @@ def scan_for_lingering_symbols(workspace_root: Path, symbols: set[str]) -> list[
                     for match_lineno in lines:
                         rel_path = py_file.relative_to(workspace_root).as_posix()
                         findings.append((sym, rel_path, match_lineno))
-            except SyntaxError, UnicodeDecodeError:
+            except SyntaxError, UnicodeDecodeError, OSError:
                 continue
 
     # Dart text scanning in client_app_v2
@@ -67,7 +69,7 @@ def scan_for_lingering_symbols(workspace_root: Path, symbols: set[str]) -> list[
                         if re.search(rf"\b{re.escape(sym)}\b", line_text):
                             rel_path = dart_file.relative_to(workspace_root).as_posix()
                             findings.append((sym, rel_path, lineno))
-            except UnicodeDecodeError:
+            except UnicodeDecodeError, OSError:
                 continue
 
     return findings
@@ -99,23 +101,23 @@ def main() -> None:
     has_failure = False
 
     # 1. PHYSICAL FILE EXISTENCE VERIFICATION
-    for action, rel_path, _ in target_files:
-        full_path = workspace_root / rel_path
+    for target in target_files:
+        full_path = workspace_root / target.file_path
         exists = full_path.exists()
 
-        if action == "NEW":
+        if target.action == "NEW":
             status = "PASS" if exists else "FAIL"
-            evidence = f"Exists at {rel_path}" if exists else f"Missing file {rel_path}"
-        elif action == "DELETE":
+            evidence = f"Exists at {target.file_path}" if exists else f"Missing file {target.file_path}"
+        elif target.action == "DELETE":
             status = "PASS" if not exists else "FAIL"
-            evidence = f"Deleted at {rel_path}" if not exists else f"File still exists at {rel_path}"
+            evidence = f"Deleted at {target.file_path}" if not exists else f"File still exists at {target.file_path}"
         else:  # MODIFY
             status = "PASS" if exists else "FAIL"
-            evidence = f"Verified at {rel_path}" if exists else f"File not found at {rel_path}"
+            evidence = f"Verified at {target.file_path}" if exists else f"File not found at {target.file_path}"
 
         if status == "FAIL":
             has_failure = True
-        report_rows.append((f"[{action}] `{rel_path}`", "File", status, evidence))
+        report_rows.append((f"[{target.action}] `{target.file_path}`", "File", status, evidence))
 
     # 2. DEPRECATED SYMBOLS SCANNING
     lingering = scan_for_lingering_symbols(workspace_root, deprecated_symbols)
