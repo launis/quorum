@@ -5,19 +5,48 @@ strictly conform to Quorum formatting laws, mandatory sections, handover structu
 and bidirectional Requirements Traceability Matrix mapping.
 """
 
+from __future__ import annotations
+
 import argparse
+import io
 import re
 import sys
+from enum import StrEnum
 from pathlib import Path
+from typing import Annotated
 
-scripts_dir = Path(__file__).resolve().parent
-if str(scripts_dir) not in sys.path:
-    sys.path.insert(0, str(scripts_dir))
+from pydantic import BaseModel, ConfigDict, Field
+
+# Force UTF-8 encoding for stdout on Windows without reflection
+if isinstance(sys.stdout, io.TextIOWrapper):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except AttributeError, io.UnsupportedOperation:
+        pass
 
 
-def check_mandatory_sections(content: str) -> list[str]:
+class GuardrailSeverity(StrEnum):
+    """Severity classification for tracker audit findings."""
+
+    WARNING = "WARNING"
+    FATAL = "FATAL"
+
+
+class TrackerAuditFinding(BaseModel):
+    """Pydantic V2 DTO representing an architectural tracker structure violation."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    section: Annotated[str, Field(description="Section where violation occurred")]
+    rule_code: Annotated[str, Field(pattern=r"^TRK\d{3}$", description="Rule code e.g. TRK001")]
+    message: Annotated[str, Field(description="Descriptive violation message")]
+    severity: Annotated[GuardrailSeverity, Field(description="Severity tier")]
+    remediation: Annotated[str, Field(description="Deterministic remediation guidance")]
+
+
+def check_mandatory_sections(content: str) -> list[TrackerAuditFinding]:
     """Verify presence of all mandatory section headers in the tracker content."""
-    patterns = [
+    patterns: list[tuple[str, str]] = [
         (r"##\s+Phase Execution Status", "## Phase Execution Status"),
         (r"###\s+Post-Implementation Gates", "### Post-Implementation Gates"),
         (r"###\s+Final Epic Audit", "### Final Epic Audit"),
@@ -25,10 +54,22 @@ def check_mandatory_sections(content: str) -> list[str]:
         (r"##\s+Requirements Traceability Matrix", "## Requirements Traceability Matrix"),
         (r"#\s+Session Handover Context", "# Session Handover Context"),
     ]
-    return [name for pat, name in patterns if not re.search(pat, content, re.IGNORECASE)]
+    findings: list[TrackerAuditFinding] = []
+    for pat, name in patterns:
+        if not re.search(pat, content, re.IGNORECASE):
+            findings.append(
+                TrackerAuditFinding(
+                    section=name,
+                    rule_code="TRK001",
+                    message=f"Missing mandatory section header: '{name}'.",
+                    severity=GuardrailSeverity.FATAL,
+                    remediation=f"Add '{name}' section header to the tracker document.",
+                )
+            )
+    return findings
 
 
-def check_phase_format(content: str) -> list[str]:
+def check_phase_format(content: str) -> list[TrackerAuditFinding]:
     """Validate format compliance for all Phase sections in the tracker."""
     phase_pattern = re.compile(
         r"###\s+Phase\s+(\d+)[^\n]*\n([\s\S]*?)(?=(?:###\s+Phase\s+\d+|###\s+Integration Checkpoint|###\s+Post-Implementation|\Z))",
@@ -36,57 +77,139 @@ def check_phase_format(content: str) -> list[str]:
     )
     phases = phase_pattern.findall(content)
     if not phases:
-        return ["No '### Phase N:' sections found in tracker."]
+        return [
+            TrackerAuditFinding(
+                section="Phase Execution Status",
+                rule_code="TRK002",
+                message="No '### Phase N:' sections found in tracker.",
+                severity=GuardrailSeverity.FATAL,
+                remediation="Add at least one '### Phase N: <Title>' section under '## Phase Execution Status'.",
+            )
+        ]
 
-    errors = []
+    findings: list[TrackerAuditFinding] = []
     for phase_num, phase_body in phases:
+        section_name = f"Phase {phase_num}"
         if not re.search(r"\*\*Plan:\*\*\s+@\[[^\]]+\]", phase_body):
-            errors.append(f"Phase {phase_num}: Missing `**Plan:** @[...]` reference.")
+            findings.append(
+                TrackerAuditFinding(
+                    section=section_name,
+                    rule_code="TRK002",
+                    message=f"Phase {phase_num}: Missing `**Plan:** @[...]` reference.",
+                    severity=GuardrailSeverity.FATAL,
+                    remediation=f"Add `**Plan:** @[path/to/plan.md]` under '### Phase {phase_num}'.",
+                )
+            )
 
         has_step_line = bool(
             re.search(r"-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK)\]\s+(?:Red-Teaming|Execution|Audit)", phase_body, re.IGNORECASE)
         )
         if not has_step_line:
-            errors.append(f"Phase {phase_num}: Missing standard step lines (Red-Teaming/Execution/Audit).")
+            findings.append(
+                TrackerAuditFinding(
+                    section=section_name,
+                    rule_code="TRK002",
+                    message=f"Phase {phase_num}: Missing standard step lines (Red-Teaming/Execution/Audit).",
+                    severity=GuardrailSeverity.FATAL,
+                    remediation="Add step lines `- [ ] **[NOK] Execution:** /tier2-execute` or similar.",
+                )
+            )
 
         has_indented_steps = bool(re.search(r"^\s{2,}-\s+\[[ x]\]\s+Step\b", phase_body, re.MULTILINE))
         is_deferred = bool(re.search(r"\[(?:OK|NOK)\]\s+Create Plan", phase_body, re.IGNORECASE))
         if not has_indented_steps and not is_deferred:
-            errors.append(f"Phase {phase_num}: Missing indented `- [ ] Step` or `- [x] Step` checkboxes.")
-    return errors
+            findings.append(
+                TrackerAuditFinding(
+                    section=section_name,
+                    rule_code="TRK002",
+                    message=f"Phase {phase_num}: Missing indented `- [ ] Step` or `- [x] Step` checkboxes.",
+                    severity=GuardrailSeverity.FATAL,
+                    remediation="Add indented `- [ ] Step N.M:` checkboxes under the execution step line.",
+                )
+            )
+    return findings
 
 
-def check_required_context_rules(content: str) -> list[str]:
+def check_required_context_rules(content: str) -> list[TrackerAuditFinding]:
     """Verify presence of <required_context_rules> block referencing 00-antigravity-core.md."""
     match = re.search(r"<required_context_rules>([\s\S]*?)</required_context_rules>", content)
     if not match:
-        return ["Missing `<required_context_rules>` XML block."]
+        return [
+            TrackerAuditFinding(
+                section="Required Context Rules",
+                rule_code="TRK003",
+                message="Missing `<required_context_rules>` XML block.",
+                severity=GuardrailSeverity.FATAL,
+                remediation="Add canonical `<required_context_rules>` XML block at top of tracker.",
+            )
+        ]
     if not re.search(r"00-antigravity-core\.md", match.group(1)):
-        return ["`<required_context_rules>` block does not reference `00-antigravity-core.md`."]
+        return [
+            TrackerAuditFinding(
+                section="Required Context Rules",
+                rule_code="TRK003",
+                message="`<required_context_rules>` block does not reference `00-antigravity-core.md`.",
+                severity=GuardrailSeverity.FATAL,
+                remediation="Add `<rule>@[.agents/rules/00-antigravity-core.md]</rule>` inside `<required_context_rules>`.",
+            )
+        ]
     return []
 
 
-def check_session_handover(content: str) -> list[str]:
+def check_session_handover(content: str) -> list[TrackerAuditFinding]:
     """Verify Session Handover Context sub-headings (tolerating Status for completed trackers)."""
     match = re.search(r"#\s+Session Handover Context([\s\S]*?)(?=\Z)", content, re.IGNORECASE)
     if not match:
-        return ["Missing `# Session Handover Context` section."]
+        return [
+            TrackerAuditFinding(
+                section="Session Handover Context",
+                rule_code="TRK004",
+                message="Missing `# Session Handover Context` section.",
+                severity=GuardrailSeverity.FATAL,
+                remediation="Add `# Session Handover Context` section with ## Achieved, ## Learned, ## Remaining.",
+            )
+        ]
     body = match.group(1)
-    errors = [
-        f"Missing sub-heading `{h}` in Session Handover Context."
-        for h in ["## Achieved", "## Learned", "## Remaining"]
-        if not re.search(rf"^{re.escape(h)}\b", body, re.MULTILINE)
-    ]
+    findings: list[TrackerAuditFinding] = []
+    for h in ["## Achieved", "## Learned", "## Remaining"]:
+        if not re.search(rf"^{re.escape(h)}\b", body, re.MULTILINE):
+            findings.append(
+                TrackerAuditFinding(
+                    section="Session Handover Context",
+                    rule_code="TRK004",
+                    message=f"Missing sub-heading `{h}` in Session Handover Context.",
+                    severity=GuardrailSeverity.FATAL,
+                    remediation=f"Add sub-heading '{h}' under '# Session Handover Context'.",
+                )
+            )
     if not re.search(r"^##\s+(?:Resume Command|Status)\b", body, re.MULTILINE):
-        errors.append("Missing `## Resume Command` (or `## Status` for completed trackers) in Session Handover.")
-    return errors
+        findings.append(
+            TrackerAuditFinding(
+                section="Session Handover Context",
+                rule_code="TRK004",
+                message="Missing `## Resume Command` (or `## Status` for completed trackers) in Session Handover.",
+                severity=GuardrailSeverity.FATAL,
+                remediation="Add '## Resume Command' or '## Status' under '# Session Handover Context'.",
+            )
+        )
+    return findings
 
 
-def check_traceability_mapping(content: str, plan_dir: Path) -> tuple[list[str], list[str]]:
+def check_traceability_mapping(
+    content: str, plan_dir: Path
+) -> tuple[list[TrackerAuditFinding], list[TrackerAuditFinding]]:
     """Bidirectional verification between Requirements Traceability Matrix and Plan Steps."""
     plan_files = sorted(plan_dir.glob("*.md"))
     if not plan_files:
-        return [], [f"No .md plan files found in plan directory: {plan_dir.as_posix()}"]
+        return [], [
+            TrackerAuditFinding(
+                section="Requirements Traceability Matrix",
+                rule_code="TRK006",
+                message=f"No .md plan files found in plan directory: {plan_dir.as_posix()}",
+                severity=GuardrailSeverity.WARNING,
+                remediation="Ensure plan directory contains valid Markdown plan documents.",
+            )
+        ]
 
     plan_steps: dict[tuple[int, str], str] = {}
     for pf in plan_files:
@@ -102,20 +225,40 @@ def check_traceability_mapping(content: str, plan_dir: Path) -> tuple[list[str],
         r"##\s+Requirements Traceability Matrix([\s\S]*?)(?=(?:#\s+Session Handover|\Z))", content, re.IGNORECASE
     )
     if not m_match:
-        return ["Cannot find Requirements Traceability Matrix content for step mapping."], []
+        return [
+            TrackerAuditFinding(
+                section="Requirements Traceability Matrix",
+                rule_code="TRK005",
+                message="Cannot find Requirements Traceability Matrix content for step mapping.",
+                severity=GuardrailSeverity.FATAL,
+                remediation="Add '## Requirements Traceability Matrix' table mapping requirements to plan steps.",
+            )
+        ], []
 
     m_steps = {
         (int(p), s)
         for p, s in re.findall(r"Phase\s+(\d+)[,\s]+Step\s+([0-9a-zA-Z_.-]+)", m_match.group(1), re.IGNORECASE)
     }
 
-    errors = [
-        f"Untracked Plan Step: Phase {p}, Step {s} (from `{f}`) not in Traceability Matrix."
+    errors: list[TrackerAuditFinding] = [
+        TrackerAuditFinding(
+            section="Requirements Traceability Matrix",
+            rule_code="TRK005",
+            message=f"Untracked Plan Step: Phase {p}, Step {s} (from `{f}`) not in Traceability Matrix.",
+            severity=GuardrailSeverity.FATAL,
+            remediation=f"Add Phase {p}, Step {s} to Requirements Traceability Matrix.",
+        )
         for (p, s), f in sorted(plan_steps.items())
         if (p, s) not in m_steps
     ]
-    warnings = [
-        f"Orphan Matrix Step: Matrix references Phase {p}, Step {s}, which was not found in plans."
+    warnings: list[TrackerAuditFinding] = [
+        TrackerAuditFinding(
+            section="Requirements Traceability Matrix",
+            rule_code="TRK006",
+            message=f"Orphan Matrix Step: Matrix references Phase {p}, Step {s}, which was not found in plans.",
+            severity=GuardrailSeverity.WARNING,
+            remediation=f"Verify Phase {p}, Step {s} exists in plan files or remove from matrix.",
+        )
         for p, s in sorted(m_steps)
         if (p, s) not in plan_steps
     ]
@@ -138,16 +281,17 @@ def main() -> None:
     failed = False
     print(f"\n# Tracker Structural Audit: {tracker_path.name}\n" + "-" * 50)
 
-    for cat_name, errs in [
+    for cat_name, findings in [
         ("Mandatory Sections", check_mandatory_sections(content)),
         ("Phase Format", check_phase_format(content)),
         ("Context Rules", check_required_context_rules(content)),
         ("Session Handover", check_session_handover(content)),
     ]:
-        if errs:
+        if findings:
             print(f"[FAIL] {cat_name}:")
-            for e in errs:
-                print(f"  - {e}")
+            for f in findings:
+                print(f"  - [{f.rule_code}] {f.message}")
+                print(f"    Remediation: {f.remediation}")
             failed = True
         else:
             print(f"[PASS] {cat_name}: Valid.")
@@ -159,14 +303,16 @@ def main() -> None:
             if t_errs:
                 print("[FAIL] Traceability Matrix Forward Map:")
                 for e in t_errs:
-                    print(f"  - {e}")
+                    print(f"  - [{e.rule_code}] {e.message}")
+                    print(f"    Remediation: {e.remediation}")
                 failed = True
             else:
                 print("[PASS] Traceability Matrix: All plan steps tracked in matrix.")
             if t_warns:
                 print("[WARN] Traceability Matrix Reverse Map:")
                 for w in t_warns:
-                    print(f"  - {w}")
+                    print(f"  - [{w.rule_code}] {w.message}")
+                    print(f"    Remediation: {w.remediation}")
         else:
             print(f"[WARN] Plan directory `{args.plan_dir}` does not exist, skipping mapping check.")
 

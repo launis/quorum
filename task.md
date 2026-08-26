@@ -39,20 +39,20 @@
 ## Milestone B: Shared AST Utilities, Immediate Workflow Consumers & DTO Parity Modernization (Phase 5)
 
 ### Phase 5: Shared AST Utils, Immediate Workflow Consumers & DTO Parity
-- [x] **Step 5.1**: Refactor `@[scripts/_ast_boundary_utils.py]` with zero reflection and Pydantic V2 DTOs
-- [x] **Step 5.2**: Refactor `@[scripts/audit_dto_parity.py]` with zero reflection and Pydantic V2 DTOs
-- [x] **Step 5.3**: Migrate `@[scripts/audit_planner_output.py]` and `@[scripts/audit_epic_coverage.py]` to consume refactored DTOs
-- [x] **Step 5.4**: Implement unit tests `@[backend_v2/tests/unit/scripts/test_ast_boundary_utils.py]`, `@[backend_v2/tests/unit/scripts/test_audit_dto_parity.py]`, and migrated `@[backend_v2/tests/unit/scripts/test_audit_verification_scripts.py]`
-- [x] **Step 5.5**: Context Flush Checkpoint 2 (Mandatory Session Handover)
+- [x] (a7679b30) **Step 5.1**: Refactor `@[scripts/_ast_boundary_utils.py]` with zero reflection and Pydantic V2 DTOs
+- [x] (a7679b30) **Step 5.2**: Refactor `@[scripts/audit_dto_parity.py]` with zero reflection and Pydantic V2 DTOs
+- [x] (a7679b30) **Step 5.3**: Migrate `@[scripts/audit_planner_output.py]` and `@[scripts/audit_epic_coverage.py]` to consume refactored DTOs
+- [x] (a7679b30) **Step 5.4**: Implement unit tests `@[backend_v2/tests/unit/scripts/test_ast_boundary_utils.py]`, `@[backend_v2/tests/unit/scripts/test_audit_dto_parity.py]`, and migrated `@[backend_v2/tests/unit/scripts/test_audit_verification_scripts.py]`
+- [x] (a7679b30) **Step 5.5**: Context Flush Checkpoint 2 (Mandatory Session Handover)
 
 ---
 
 ## Milestone C: Standalone Workflow Diagnostics, Evidence Engine & Production Dry-Run (Phases 6–7)
 
 ### Phase 6: Standalone Workflow Diagnostics & Remediation Standardization
-- [ ] **Step 6.1**: Modernize `@[scripts/audit_markdown_boundaries.py]` with Pydantic V2 DTOs and AST inspection
-- [ ] **Step 6.2**: Modernize `@[scripts/audit_tracker_output.py]` with Pydantic V2 DTOs and remediation guidance
-- [ ] **Step 6.3**: Implement unit tests `@[backend_v2/tests/unit/scripts/test_audit_markdown_boundaries.py]` and `@[backend_v2/tests/unit/scripts/test_audit_tracker_output.py]`
+- [x] **Step 6.1**: Modernize `@[scripts/audit_markdown_boundaries.py]` with Pydantic V2 DTOs and AST inspection
+- [x] **Step 6.2**: Modernize `@[scripts/audit_tracker_output.py]` with Pydantic V2 DTOs and remediation guidance
+- [x] **Step 6.3**: Implement unit tests `@[backend_v2/tests/unit/scripts/test_audit_markdown_boundaries.py]` and `@[backend_v2/tests/unit/scripts/test_audit_tracker_output.py]`
 
 ### Phase 7: Neuro-Symbolic Matrix AST Evidence Engine Integration
 - [ ] **Step 7.1**: Modernize `@[scripts/audit_matrix_manager.py]` with AST scan binding and Pydantic V2 schemas
@@ -62,6 +62,6 @@
 ---
 
 ## Session Handover Context
-- **Achieved**: Completed Milestone B (Phase 5). Refactored `scripts/_ast_boundary_utils.py` and `scripts/audit_dto_parity.py` with zero-reflection structural pattern matching (`match/case`), Pydantic V2 DTOs (`TargetFileReferenceDTO`, `AstLineBoundDTO`, `SymbolDefinitionDTO`, `DtoFieldMismatchDTO`, `DtoParityReportDTO`), path normalization (`normalize_target_path`), migrated callers (`scripts/audit_planner_output.py`, `scripts/audit_epic_coverage.py`), implemented dedicated unit test suites (`test_ast_boundary_utils.py`, `test_audit_dto_parity.py`), updated `test_audit_verification_scripts.py`, achieved 95% coverage, and passed all 6 stages of the quality gate.
-- **Learned**: Importing `scripts.*` as a package module enables seamless `pytest-cov` mapping under strict coverage gates. Zero-reflection structural pattern matching on `ast.ClassDef` and `ast.AnnAssign` avoids false positives on private fields (`_...`) and `model_config`.
-- **Remaining**: Milestone C: Standalone Workflow Diagnostics (`audit_markdown_boundaries.py`, `audit_tracker_output.py`, Phase 6) & Neuro-Symbolic Matrix Evidence Engine (`audit_matrix_manager.py`, Phase 7).
+- **Achieved**: Completed Phase 6. Modernized `scripts/audit_markdown_boundaries.py` with `MarkdownAuditFinding` Pydantic V2 DTOs, zero-reflection AST inspection (`match/case`), and rule codes `MBD001`-`MBD007`. Modernized `scripts/audit_tracker_output.py` with `TrackerAuditFinding` Pydantic V2 DTOs and rule codes `TRK001`-`TRK006`. Created comprehensive ISTQB unit tests in `backend_v2/tests/unit/scripts/test_audit_markdown_boundaries.py` and expanded `backend_v2/tests/unit/scripts/test_audit_tracker_output.py`, achieving 95%+ strict coverage and passing all quality gate stages.
+- **Learned**: In-process CLI testing against `main()` ensures `pytest-cov` records accurate statement coverage on entrypoints while enabling strict `--ast-strict` validation.
+- **Remaining**: Phase 7: Neuro-Symbolic Matrix Evidence Engine (`scripts/audit_matrix_manager.py`, `backend_v2/tests/unit/scripts/test_audit_matrix_manager.py`, and Final Production Dry-Run Scan Proof).
