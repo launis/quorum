@@ -750,24 +750,7 @@ uv run pytest backend_v2/tests/integration/test_integration_real_llm.py
 
 ## 8. Required Context & Governance (Rules & KI Registry)
 
-```xml
-<required_context_rules>
-  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
-  <rule>@[.agents/rules/01-python-backend.md]</rule>
-  <rule>@[.agents/rules/03_seed_vault.md]</rule>
-  <rule>@[.agents/rules/04_directory_reference.md]</rule>
-  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
-  <knowledge_item>@[ki_execution_engine_protocol.md]</knowledge_item>
-  <knowledge_item>@[ki_python_314_concurrency_strictness.md]</knowledge_item>
-  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
-  <knowledge_item>@[ki_polymorphic_rule_routing.md]</knowledge_item>
-  <knowledge_item>@[ki_global_config_sovereignty.md]</knowledge_item>
-  <knowledge_item>@[ki_ast_guardrail_testing.md]</knowledge_item>
-  <knowledge_item>@[ki_ai_testing_standards.md]</knowledge_item>
-  <knowledge_item>@[ki_llm_extraction_architecture.md]</knowledge_item>
-  <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
-  <knowledge_item>@[ki_sdui_matrix_synthesis.md]</knowledge_item>
-</required_context_rules>
-```
+See the canonical `<required_context_rules>` XML block at the top of this document (@[docs/epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience.md#L1-L17]) for the authoritative registry of active rules and Knowledge Items.
+
 
 

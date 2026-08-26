@@ -124,21 +124,12 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
           - **Manual Verification Steps**: DB re-seed, PDF inspection, UI audit.
           - **MANDATORY Final E2E REST API Verification Gate**: Set environment variable `RUN_LIVE_E2E=true` and run `uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.
         - `## 5. Required Context & Governance (Rules & KI Registry)`:
-          - A `<required_context_rules>` XML block listing all relevant `.agents/rules/` rule files wrapped in `<rule>@[.agents/rules/...]</rule>` and all Knowledge Items relevant to this Epic's domain wrapped in `<knowledge_item>@[ki_filename.md]</knowledge_item>`.
-          - The agent MUST review the KI summaries injected at the start of the conversation, identify KIs whose domain overlaps with the Epic's scope, and list them as `@-reference` paths inside `<knowledge_item>` tags.
-          - This section is the SSOT for all downstream plans and trackers. `/tier1-planner` MUST inherit all listed rules and KIs into every plan's `<required_context_rules>`.
+          - A clear reference pointing to the canonical `<required_context_rules>` XML block placed at the top of the document (file header).
           - Example format:
-          ```xml
-          <required_context_rules>
-            <rule>@[.agents/rules/00-antigravity-core.md]</rule>
-            <rule>@[.agents/rules/01-python-backend.md]</rule>
-            <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
-            <rule>@[.agents/rules/03_seed_vault.md]</rule>
-            <rule>@[.agents/rules/04_directory_reference.md]</rule>
-            <rule>@[.agents/rules/05_llm_architecture.md]</rule>
-            <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
-            <knowledge_item>@[ki_dag_engine_dto_projection_rules.md]</knowledge_item>
-          </required_context_rules>
+          ```markdown
+          ## 5. Required Context & Governance (Rules & KI Registry)
+
+          See the canonical `<required_context_rules>` XML block at the top of this document for the authoritative registry of active rules and Knowledge Items.
           ```
       </constraint>
     </step>
@@ -147,9 +138,10 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
       <action>Verify data origin (Producer) and consumer.</action>
       <action>Mandate Creation of Knowledge Items (KIs) in `&lt;appDataDir&gt;\knowledge\` if introducing a new Single Source of Truth (SSOT) or novel architectural pattern.</action>
       <action name="CONTEXT RULES & KI REGISTRY POPULATION">You MUST review ALL domain-relevant rules and Knowledge Item (KI) summaries injected at the start of this conversation:
-        1. Populate `<required_context_rules>` with the applicable `.agents/rules/` files using `<rule>@[.agents/rules/...]</rule>` tags.
-        2. For each KI whose domain overlaps with this Epic's scope (based on title and summary matching), add its relative filename as `<knowledge_item>@[ki_filename.md]</knowledge_item>` inside the `<required_context_rules>` XML block under `## 5. Required Context & Governance (Rules & KI Registry)`.
-        This section becomes the SSOT that `/tier1-planner` reads to deterministically inject rules and KIs into every generated plan's `<required_context_rules>`.</action>
+        1. Populate the canonical `<required_context_rules>` XML block placed at the very TOP of the Epic document (lines 1..N before the `# EPIC...` title) with the applicable `.agents/rules/` files using `<rule>@[.agents/rules/...]</rule>` tags.
+        2. For each KI whose domain overlaps with this Epic's scope (based on title and summary matching), add its relative filename as `<knowledge_item>@[ki_filename.md]</knowledge_item>` inside the top `<required_context_rules>` XML block.
+        3. Under `## 5. Required Context & Governance (Rules & KI Registry)`, do NOT duplicate the XML block; simply include a markdown reference pointing to the top canonical block.
+        This canonical header block becomes the SSOT that `/tier1-planner` reads to deterministically inject rules and KIs into every generated plan's `<required_context_rules>`.</action>
     </step>
 
     <step id="5" name="EPIC DOCUMENT PERSISTENCE">

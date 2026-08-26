@@ -41,13 +41,13 @@ trigger: always_on
         <catastrophic_reason>Hardcoded local paths cause "Context Amnesia" when documents are opened on another machine, CI/CD server, or by a different agent instance. The IDE's automatic file retrieval fails, destroying the agent's context and halting automated workflows.</catastrophic_reason>
     </rule_block>
     <rule_block id="context_rules_governance_mandate">
-        <banned_pattern>Using fragmented XML tag schemas like `<required_knowledge_items>`, `<ki>`, or placing Knowledge Items outside the canonical `<required_context_rules>` block in Epics, implementation plans, and trackers.</banned_pattern>
-        <mandatory_pattern>All Epic documents (specifically at the file header and under `## 5. Required Context & Governance` / `## 8. Required Context & Governance`), implementation plans, and tracker files MUST unify rule and Knowledge Item declarations inside a single, canonical `<required_context_rules>` XML block.
+        <banned_pattern>Using fragmented XML tag schemas like `<required_knowledge_items>`, `<ki>`, or duplicating/placing Knowledge Items outside the canonical `<required_context_rules>` block in Epics, implementation plans, and trackers.</banned_pattern>
+        <mandatory_pattern>All Epic documents (specifically at the file header lines 1..N), implementation plans, and tracker files MUST define rule and Knowledge Item declarations inside a single, canonical `<required_context_rules>` XML block at the very top of the document. Governance sections (e.g. `## 5. Required Context & Governance` / `## 8. Required Context & Governance`) MUST reference this top header block rather than duplicating the XML.
         Inside `<required_context_rules>`, you MUST use exclusively:
         1. `<rule>@[.agents/rules/...]</rule>` for workspace rule files.
         2. `<knowledge_item>@[ki_name.md]</knowledge_item>` for Knowledge Items.
         Using `<ki>` or separate `<required_knowledge_items>` blocks is STRICTLY PROHIBITED. All downstream agents (specifically `/tier1-planner`, `/tier0-research-plan`, `/tier2-execute`, and `/tier5-resume`) rely on this exact XML schema for self-hydrating context loading and deterministic KI inheritance.</mandatory_pattern>
-        <catastrophic_reason>Tag schema variance (e.g. `<ki>` instead of `<knowledge_item>`) breaks automated regex and AST parsing across planning and execution workflows, causing downstream agents to fail to load required Knowledge Items and triggering catastrophic Context Amnesia.</catastrophic_reason>
+        <catastrophic_reason>Tag schema variance (e.g. `<ki>` instead of `<knowledge_item>`) or fragmented multi-block definitions break automated regex and AST parsing across planning and execution workflows, causing downstream agents to fail to load required Knowledge Items and triggering catastrophic Context Amnesia.</catastrophic_reason>
     </rule_block>
     <rule_block id="anti_apology">
         <banned_pattern>Outputting apologies, conversational filler, or subjective justifications after violating a rule (e.g., "I apologize for the oversight", "You are correct").</banned_pattern>

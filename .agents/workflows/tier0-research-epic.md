@@ -122,9 +122,9 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       </constraint>
       <gate name="ZERO-BEHAVIORAL CHANGE FALSIFICATION (IF REFACTOR)">First, identify if this is a Refactoring Epic or a Feature Epic. If it is a Feature Epic, new business logic is expected. If it is a Refactoring Epic, it MUST adhere to zero-behavioral change. You MUST flag an architectural violation ONLY if the Epic illegally mixes massive structural refactoring with new feature additions in the same phase. If they are mixed, demand they be split into separate phases.</gate>
       <action name="CONTEXT RULES &amp; KI COVERAGE AUDIT">You MUST perform a deterministic Context Rules &amp; KI Coverage Audit on the Epic:
-        1. Locate Section `## 5. Required Context &amp; Governance (Rules &amp; KI Registry)`.
+        1. Locate the canonical `<required_context_rules>` XML block at the top of the Epic document (lines 1..N).
         2. Ensure `&lt;required_context_rules&gt;` contains all domain-relevant `.agents/rules/` files wrapped in `&lt;rule&gt;@[.agents/rules/...]&lt;/rule&gt;`.
-        3. Cross-reference `<required_context_rules>` against the injected KI summaries. If any KI whose domain clearly overlaps with the Epic's scope is MISSING from the block, ADD it via `multi_replace_file_content` using the `<knowledge_item>@[ki_filename.md]</knowledge_item>` format.
+        3. Cross-reference `<required_context_rules>` against the injected KI summaries. If any KI whose domain clearly overlaps with the Epic's scope is MISSING from the block, ADD it via `multi_replace_file_content` using the `<knowledge_item>@[ki_filename.md]</knowledge_item>` format into the header block.
         4. Log the audit result: "Context & KI Coverage Audit: {N} Rules verified, {M} KIs verified."</action>
     </step>
 
