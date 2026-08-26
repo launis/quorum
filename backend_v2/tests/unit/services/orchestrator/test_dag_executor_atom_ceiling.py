@@ -60,8 +60,8 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         status="draft",
         version=1,
         default_profile_id="prof_1234567890abcde",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
-        description=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
                 id="stp_1234567890abcdef",
@@ -97,8 +97,8 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         "id": "blp_1234567890abcdef",
         "slug": "test_step",
         "organization_id": "org_1",
-        "name": {"default_locale": "en", "translations": {"en": "test"}},
-        "description": {"default_locale": "en", "translations": {"en": "test"}},
+        "name": {"translations": {"en": "test"}},
+        "description": {"translations": {"en": "test"}},
         "type": "llm",
         "criteria_block_ids": ["blk_1234567890abcdef"],
         "extraction_protocol_block_id": "blk_1234567890abcdef",

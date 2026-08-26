@@ -351,10 +351,10 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
             ),
             title: Builder(
               builder: (context) {
-                final titleStr =
-                    payload.name.translations['fi'] ??
-                    payload.name.translations['en'] ??
-                    payload.name.defaultLocale;
+                final titleStr = payload.name.get(
+                  Localizations.localeOf(context).languageCode,
+                  fallback: 'en',
+                );
 
                 if (titleStr.isEmpty && payload.id.isNotEmpty) {
                   return Text(

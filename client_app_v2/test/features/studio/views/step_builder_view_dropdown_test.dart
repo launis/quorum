@@ -29,7 +29,7 @@ void main() {
       final mockStep = NodeStrategy.llm(
         id: 'test_step_1',
         slug: 'test_slug',
-        name: I18nText(defaultLocale: 'en', translations: {'en': 'Test'}),
+        name: I18nText(translations: {'en': 'Test'}),
         criteriaBlockIds: ['block_a'],
       );
 
@@ -37,20 +37,14 @@ void main() {
         const PromptBlock.systemRule(
           id: 'block_a',
           slug: 'block_a',
-          label: I18nText(defaultLocale: 'en', translations: {'en': 'Block A'}),
-          description: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Desc A'},
-          ),
+          label: I18nText(translations: {'en': 'Block A'}),
+          description: I18nText(translations: {'en': 'Desc A'}),
         ),
         const PromptBlock.systemRule(
           id: 'block_b',
           slug: 'block_b',
-          label: I18nText(defaultLocale: 'en', translations: {'en': 'Block B'}),
-          description: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Desc B'},
-          ),
+          label: I18nText(translations: {'en': 'Block B'}),
+          description: I18nText(translations: {'en': 'Desc B'}),
         ),
       ];
 
@@ -128,7 +122,7 @@ void main() {
         final mockStep = NodeStrategy.llm(
           id: 'test_step_1',
           slug: 'test_slug',
-          name: I18nText(defaultLocale: 'en', translations: {'en': 'Test'}),
+          name: I18nText(translations: {'en': 'Test'}),
           criteriaBlockIds: ['block_c'], // block_c is filtered out!
         );
 
@@ -136,26 +130,14 @@ void main() {
           const PromptBlock.systemRule(
             id: 'block_a',
             slug: 'block_a',
-            label: I18nText(
-              defaultLocale: 'en',
-              translations: {'en': 'Block A'},
-            ),
-            description: I18nText(
-              defaultLocale: 'en',
-              translations: {'en': 'Desc A'},
-            ),
+            label: I18nText(translations: {'en': 'Block A'}),
+            description: I18nText(translations: {'en': 'Desc A'}),
           ),
           const PromptBlock.runtimeVariables(
             id: 'block_c',
             slug: 'block_c',
-            label: I18nText(
-              defaultLocale: 'en',
-              translations: {'en': 'Block C'},
-            ),
-            description: I18nText(
-              defaultLocale: 'en',
-              translations: {'en': 'Desc C'},
-            ),
+            label: I18nText(translations: {'en': 'Block C'}),
+            description: I18nText(translations: {'en': 'Desc C'}),
           ),
         ];
 

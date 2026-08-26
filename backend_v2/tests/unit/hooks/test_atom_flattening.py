@@ -40,7 +40,7 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> MatrixP
     for score in [1, 5]:
         claims = [
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": f"Claim {score}", "fi": f"Claim {score}"}),
+                label=I18nText(translations={"en": f"Claim {score}", "fi": f"Claim {score}"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_{score:016x}{i:016x}",
@@ -63,8 +63,8 @@ def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> MatrixP
     return MatrixPromptBlock(
         id=block_id,
         slug=f"slug-{block_id}",
-        label=I18nText(default_locale="en", translations={"en": f"Label {block_id}", "fi": f"Label {block_id}"}),
-        description=I18nText(default_locale="en", translations={"en": f"Desc {block_id}", "fi": f"Desc {block_id}"}),
+        label=I18nText(translations={"en": f"Label {block_id}", "fi": f"Label {block_id}"}),
+        description=I18nText(translations={"en": f"Desc {block_id}", "fi": f"Desc {block_id}"}),
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         scales=scales,
@@ -88,7 +88,7 @@ def base_hook_state() -> HookState:
 def mock_step() -> Step:
     return Step(
         id="step_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test Step", "fi": "Test Step"}),
+        name=I18nText(translations={"en": "Test Step", "fi": "Test Step"}),
         slug="test-step",
         role_block_id=None,
         extraction_protocol_block_id="blk_573802341db9d68c",
@@ -376,15 +376,15 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
         depends_on=(edge,),
     )
     claim = MatrixClaim(
-        label=I18nText(default_locale="en", translations={"en": "Claim With Deps", "fi": "Claim With Deps"}),
+        label=I18nText(translations={"en": "Claim With Deps", "fi": "Claim With Deps"}),
         tda_assertions=[parent_tda, child_tda],
     )
     scale = MatrixScale(score=1, ai_label="Level 1", claims=[claim])
     mock_block = MatrixPromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="slug-test-deps",
-        label=I18nText(default_locale="en", translations={"en": "Label", "fi": "Label"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        label=I18nText(translations={"en": "Label", "fi": "Label"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         scales=[scale],
@@ -468,15 +468,15 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
         for i in range(1, 8)
     ]
     claim = MatrixClaim(
-        label=I18nText(default_locale="en", translations={"en": "Scale 1", "fi": "Scale 1"}),
+        label=I18nText(translations={"en": "Scale 1", "fi": "Scale 1"}),
         tda_assertions=[atom_a, atom_b, atom_c, *fillers],
     )
     scale = MatrixScale(score=1, ai_label="Level 1", claims=[claim])
     mock_block = MatrixPromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="slug-transitive",
-        label=I18nText(default_locale="en", translations={"en": "Label", "fi": "Label"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        label=I18nText(translations={"en": "Label", "fi": "Label"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         scales=[scale],

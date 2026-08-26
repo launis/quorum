@@ -326,8 +326,8 @@ class TestPhase2PipelineUnification:
             return MatrixPromptBlock(
                 id=block_id,
                 slug=f"slug_{block_id}",
-                label=I18nText(default_locale="en", translations={"en": label_en}),
-                description=I18nText(default_locale="en", translations={"en": "Description"}),
+                label=I18nText(translations={"en": label_en}),
+                description=I18nText(translations={"en": "Description"}),
                 ai_description="Instructions",
                 category_id=PromptBlockCategory.MATRIX,
                 type=BlockDataType.FLOAT,
@@ -337,7 +337,7 @@ class TestPhase2PipelineUnification:
                         ai_label="INITIAL",
                         claims=[
                             MatrixClaim(
-                                label=I18nText(default_locale="en", translations={"en": "Claim"}),
+                                label=I18nText(translations={"en": "Claim"}),
                                 tda_assertions=[
                                     TDAAssertion(
                                         tda_id="tda_00000000000000000000000000000001",

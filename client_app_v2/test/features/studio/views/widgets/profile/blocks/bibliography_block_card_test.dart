@@ -13,7 +13,7 @@ void main() {
     OutputProfile payload = const OutputProfile(
       id: 'profile_1',
       workflowId: 'wf_1',
-      name: I18nText(defaultLocale: 'en', translations: {'en': 'Test Profile'}),
+      name: I18nText(translations: {'en': 'Test Profile'}),
       targetBlockOrder: [TargetBlockType.printableSourcesBlock],
     );
 

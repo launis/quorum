@@ -23,11 +23,8 @@ class WorkflowInputsTab extends StatelessWidget {
     inputs.add(
       ExpectedInput(
         inputKey: 'new_input_key_${inputs.length}',
-        label: const I18nText(defaultLocale: 'en', translations: {'en': ''}),
-        description: const I18nText(
-          defaultLocale: 'en',
-          translations: {'en': ''},
-        ),
+        label: const I18nText(translations: {'en': ''}),
+        description: const I18nText(translations: {'en': ''}),
         required: false,
         isChatHistory: false,
         inputModes: ['file'],

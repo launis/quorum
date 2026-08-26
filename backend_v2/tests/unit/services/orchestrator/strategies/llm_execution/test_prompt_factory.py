@@ -27,8 +27,8 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
             {
                 "id": "blk_12345678901234567890123456789012",
                 "slug": "test_slug",
-                "label": {"default_locale": "en", "translations": {"en": "Test Label", "fi": "Testi"}},
-                "description": {"default_locale": "en", "translations": {"en": "Test Desc", "fi": "Testi"}},
+                "label": {"translations": {"en": "Test Label", "fi": "Testi"}},
+                "description": {"translations": {"en": "Test Desc", "fi": "Testi"}},
                 "type": "float",
                 "category_id": "matrix",
                 "scales": [
@@ -37,7 +37,7 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
                         "ai_label": "Scale 1",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
+                                "label": {"translations": {"en": "Claim 1", "fi": "Väite 1"}},
                                 "tda_assertions": [
                                     {
                                         "tda_id": "tda_11111111111111111111111111111111",
@@ -255,8 +255,8 @@ def test_prompt_factory_polymorphic_blocks_resolution(mock_compiler: MagicMock) 
     persona = PersonaPromptBlock(
         id="blk_1111111111111111",
         slug="persona_test",
-        label=I18nText(default_locale="en", translations={"en": "Persona"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Persona"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.EXECUTION_PERSONA,
         type=BlockDataType.INSTRUCTION,
         role_enforcement="Act as an expert evaluator.",
@@ -264,8 +264,8 @@ def test_prompt_factory_polymorphic_blocks_resolution(mock_compiler: MagicMock) 
     role = PersonaPromptBlock(
         id="blk_2222222222222222",
         slug="role_test",
-        label=I18nText(default_locale="en", translations={"en": "Role"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Role"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.AGENT_ROLE,
         type=BlockDataType.INSTRUCTION,
         role_enforcement="You are a strict prosecutor.",
@@ -273,8 +273,8 @@ def test_prompt_factory_polymorphic_blocks_resolution(mock_compiler: MagicMock) 
     protocol = ProtocolPromptBlock(
         id="blk_3333333333333333",
         slug="protocol_test",
-        label=I18nText(default_locale="en", translations={"en": "Protocol"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Protocol"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.PROTOCOL,
         type=BlockDataType.INSTRUCTION,
         protocol_instructions="Extract exact quotes without paraphrasing.",
@@ -312,8 +312,8 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
     persona_sys = SystemRulePromptBlock(
         id="blk_4444444444444444",
         slug="persona_sys",
-        label=I18nText(default_locale="en", translations={"en": "Persona"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Persona"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
         instruction_text="Persona via instruction text.",
@@ -321,8 +321,8 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
     role_sys = SystemRulePromptBlock(
         id="blk_5555555555555555",
         slug="role_sys",
-        label=I18nText(default_locale="en", translations={"en": "Role"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Role"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
         instruction_text="Role via instruction text.",
@@ -330,8 +330,8 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
     proto_sys = SystemRulePromptBlock(
         id="blk_6666666666666666",
         slug="proto_sys",
-        label=I18nText(default_locale="en", translations={"en": "Protocol"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Protocol"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
         instruction_text="Protocol via instruction text.",
@@ -360,8 +360,8 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
     persona_fallback = SystemRulePromptBlock(
         id="blk_7777777777777777",
         slug="persona_fb",
-        label=I18nText(default_locale="en", translations={"en": "Persona"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Persona"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
         instruction_text=None,
@@ -370,8 +370,8 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
     role_fallback = SystemRulePromptBlock(
         id="blk_8888888888888888",
         slug="role_fb",
-        label=I18nText(default_locale="en", translations={"en": "Role"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Role"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
         instruction_text=None,
@@ -380,8 +380,8 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
     proto_fallback = SystemRulePromptBlock(
         id="blk_9999999999999999",
         slug="proto_fb",
-        label=I18nText(default_locale="en", translations={"en": "Protocol"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Protocol"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
         instruction_text=None,

@@ -36,7 +36,6 @@ void main() {
                     context: context,
                     builder: (ctx) => const RowEditorModal(
                       initialI18nText: I18nText(
-                        defaultLocale: 'en',
                         translations: {'en': 'Initial simple row'},
                       ),
                       isMatrixRow: false,
@@ -81,7 +80,6 @@ void main() {
                     builder: (ctx) => const RowEditorModal(
                       initialMatrixRow: MatrixRow(
                         label: I18nText(
-                          defaultLocale: 'en',
                           translations: {'en': 'Matrix Row Label'},
                         ),
                         aiDescription: 'Rule explanation for AI',
@@ -122,10 +120,7 @@ void main() {
     testWidgets('cancels and closes modal on close icon tap', (
       WidgetTester tester,
     ) async {
-      I18nText? result = const I18nText(
-        defaultLocale: 'en',
-        translations: {'en': 'Sentinels'},
-      );
+      I18nText? result = const I18nText(translations: {'en': 'Sentinels'});
 
       await tester.pumpWidget(
         createTestWidget(
@@ -137,7 +132,6 @@ void main() {
                     context: context,
                     builder: (ctx) => const RowEditorModal(
                       initialI18nText: I18nText(
-                        defaultLocale: 'en',
                         translations: {'en': 'Simple row'},
                       ),
                       isMatrixRow: false,

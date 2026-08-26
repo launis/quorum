@@ -207,7 +207,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         "id": "prof_1111222233334444",
         "slug": "prof-1",
         "workflow_id": "wf_1234567890123456",
-        "name": {"default_locale": "en", "translations": {"en": "Profile 1"}},
+        "name": {"translations": {"en": "Profile 1"}},
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
@@ -479,7 +479,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_synthesis_block()
                 "id": "prof_1111222233334444",
                 "slug": "prof-1",
                 "workflow_id": "wf_1234567890123456",
-                "name": {"default_locale": "en", "translations": {"en": "Profile"}},
+                "name": {"translations": {"en": "Profile"}},
                 "synthesis": {
                     "synthesis_block_id": "",
                 },
@@ -525,7 +525,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "id": "prof_1111222233334444",
                 "slug": "prof-1",
                 "workflow_id": "wf_1234567890123456",
-                "name": {"default_locale": "en", "translations": {"en": "Profile"}},
+                "name": {"translations": {"en": "Profile"}},
                 "synthesis": {
                     "synthesis_block_id": "blk_1111222233334444",
                 },
@@ -536,8 +536,8 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "id": "blk_1111222233334444",
                 "slug": "synth",
                 "type": "instruction",
-                "label": {"default_locale": "en", "translations": {"en": "Synth"}},
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "label": {"translations": {"en": "Synth"}},
+                "description": {"translations": {"en": "Desc"}},
                 "ai_description": "Synthesize data.",
                 "category_id": "system_rule",
             }
@@ -607,13 +607,12 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "id": "prof_1111222233334444",
                 "slug": "prof-1",
                 "workflow_id": "wf_1234567890123456",
-                "name": {"default_locale": "en", "translations": {"en": "Profile"}},
+                "name": {"translations": {"en": "Profile"}},
                 "synthesis": {
                     "synthesis_block_id": "blk_1111222233334444",
                     "row_explanations_block_id": "blk_2222333344445555",
                     "length_constraint": 500,
                     "tone_instruction": {
-                        "default_locale": "en",
                         "translations": {"en": "Direct tone", "fi": "Suora sävy"},
                     },
                 },
@@ -621,7 +620,6 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                     {
                         "preset_view": "2d_compare",
                         "title": {
-                            "default_locale": "en",
                             "translations": {"en": "Matrix Section", "fi": "Matriisiosio"},
                         },
                         "is_synthesis_enabled": True,
@@ -638,8 +636,8 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                     "id": pb_id,
                     "slug": f"slug_{pb_id}",
                     "type": "instruction",
-                    "label": {"default_locale": "en", "translations": {"en": "Label"}},
-                    "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                    "label": {"translations": {"en": "Label"}},
+                    "description": {"translations": {"en": "Desc"}},
                     "ai_description": f"Instruction for {pb_id}",
                     "category_id": "system_rule",
                 }
@@ -650,8 +648,8 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                     "id": "blk_1111222233334444",
                     "slug": "target_1",
                     "type": "instruction",
-                    "label": {"default_locale": "en", "translations": {"en": "Target Matrix"}},
-                    "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                    "label": {"translations": {"en": "Target Matrix"}},
+                    "description": {"translations": {"en": "Desc"}},
                     "ai_description": "Target Matrix evaluation",
                     "category_id": "system_rule",
                 }
@@ -747,7 +745,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         "id": "prof_1111222233334444",
         "slug": "prof-1",
         "workflow_id": "wf_1234567890123456",
-        "name": {"default_locale": "en", "translations": {"en": "Profile 1"}},
+        "name": {"translations": {"en": "Profile 1"}},
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
@@ -825,7 +823,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "id": "prof_1111222233334444",
                 "slug": "prof-1",
                 "workflow_id": "wf_1234567890123456",
-                "name": {"default_locale": "en", "translations": {"en": "Profile"}},
+                "name": {"translations": {"en": "Profile"}},
                 "synthesis": {
                     "synthesis_block_id": "blk_1111222233334444",
                 },
@@ -854,8 +852,8 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                     "id": "blk_1111222233334444",
                     "slug": "matrix_block",
                     "type": "float",
-                    "label": {"default_locale": "en", "translations": {"en": "Matrix"}},
-                    "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                    "label": {"translations": {"en": "Matrix"}},
+                    "description": {"translations": {"en": "Desc"}},
                     "ai_description": "Evaluation instruction.",
                     "category_id": "matrix",
                     "scales": [
@@ -864,7 +862,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                             "ai_label": "LOW",
                             "claims": [
                                 {
-                                    "label": {"default_locale": "en", "translations": {"en": "Low claim"}},
+                                    "label": {"translations": {"en": "Low claim"}},
                                     "tda_assertions": [
                                         {
                                             "tda_id": "tda_11112222333344445555666677778888",
@@ -881,7 +879,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                             "ai_label": "HIGH",
                             "claims": [
                                 {
-                                    "label": {"default_locale": "en", "translations": {"en": "High claim"}},
+                                    "label": {"translations": {"en": "High claim"}},
                                     "tda_assertions": [
                                         {
                                             "tda_id": "tda_22223333444455556666777788889999",
@@ -901,8 +899,8 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "id": "blk_1111222233334444",
                 "slug": "synth",
                 "type": "instruction",
-                "label": {"default_locale": "en", "translations": {"en": "Synth"}},
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "label": {"translations": {"en": "Synth"}},
+                "description": {"translations": {"en": "Desc"}},
                 "ai_description": "Synthesize data.",
                 "category_id": "system_rule",
             }

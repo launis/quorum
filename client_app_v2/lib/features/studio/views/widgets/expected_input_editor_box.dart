@@ -372,10 +372,7 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
               questions.add(
                 QuestionnaireItem(
                   questionId: 'q${questions.length + 1}',
-                  question: const I18nText(
-                    defaultLocale: 'en',
-                    translations: {'en': ''},
-                  ),
+                  question: const I18nText(translations: {'en': ''}),
                   type: 'text',
                 ),
               );

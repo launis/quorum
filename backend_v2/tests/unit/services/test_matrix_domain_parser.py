@@ -32,7 +32,7 @@ def get_dummy_profile(
         id="prof_1234567890abcdef1234567890abcdef",
         slug="test",
         workflow_id="wf1",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         display_scale=display_scale,
         custom_scale_min=custom_scale_min,
         custom_scale_max=custom_scale_max,
@@ -41,16 +41,16 @@ def get_dummy_profile(
 
 
 def get_dummy_pb_5_scale() -> PromptBlock:
-    label = I18nText(default_locale="en", translations={"en": "test"})
-    desc = I18nText(default_locale="en", translations={"en": "test"})
+    label = I18nText(translations={"en": "test"})
+    desc = I18nText(translations={"en": "test"})
     scales = [
         MatrixScale(
             score=i,
-            name=I18nText(default_locale="en", translations={"en": f"Level {i}"}),
+            name=I18nText(translations={"en": f"Level {i}"}),
             ai_label=f"LEVEL_{i}",
             claims=[
                 MatrixClaim(
-                    label=I18nText(default_locale="en", translations={"en": f"Claim {i}"}),
+                    label=I18nText(translations={"en": f"Claim {i}"}),
                     tda_assertions=[
                         TDAAssertion(
                             inverse_evidence=False,
@@ -76,8 +76,8 @@ def get_dummy_pb_5_scale() -> PromptBlock:
 
 
 def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) -> PromptBlock:
-    label = I18nText(default_locale="en", translations={"en": "test"})
-    desc = I18nText(default_locale="en", translations={"en": "test"})
+    label = I18nText(translations={"en": "test"})
+    desc = I18nText(translations={"en": "test"})
     cat_enum = PromptBlockCategory(category) if isinstance(category, str) else category
     if cat_enum != PromptBlockCategory.MATRIX:
         cls = PROMPT_BLOCK_REGISTRY.get(cat_enum, SystemRulePromptBlock)
@@ -102,11 +102,11 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
         scales=[
             MatrixScale(
                 score=0,
-                name=I18nText(default_locale="en", translations={"en": "Bad"}),
+                name=I18nText(translations={"en": "Bad"}),
                 ai_label="BAD",
                 claims=[
                     MatrixClaim(
-                        label=I18nText(default_locale="en", translations={"en": "Claim"}),
+                        label=I18nText(translations={"en": "Claim"}),
                         tda_assertions=[
                             TDAAssertion(
                                 inverse_evidence=False,
@@ -119,11 +119,11 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
             ),
             MatrixScale(
                 score=1,
-                name=I18nText(default_locale="en", translations={"en": "Good"}),
+                name=I18nText(translations={"en": "Good"}),
                 ai_label="GOOD",
                 claims=[
                     MatrixClaim(
-                        label=I18nText(default_locale="en", translations={"en": "Claim"}),
+                        label=I18nText(translations={"en": "Claim"}),
                         tda_assertions=[
                             TDAAssertion(
                                 inverse_evidence=False,
@@ -443,7 +443,7 @@ def test_parse_matrix_custom_display_scale_missing_bounds_fail_fast() -> None:
         id="prof_1234567890abcdef1234567890abcdef",
         slug="test",
         workflow_id="wf1",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         display_scale=DisplayScale.CUSTOM,
         custom_scale_min=None,
         custom_scale_max=None,
@@ -562,7 +562,7 @@ def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
                 OutputLayoutBlock(
                     preset_view="3d_matrix",
                     matrix_visible_columns=["label", "score", "distribution", "row_explanation", "quotes"],
-                    title=I18nText(default_locale="en", translations={"en": "Matrix"}),
+                    title=I18nText(translations={"en": "Matrix"}),
                 )
             ]
         }

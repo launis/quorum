@@ -73,8 +73,7 @@ class BarsMatrixBuilder extends StatelessWidget {
     MatrixScale scale,
   ) {
     final gradeName = scale.name != null
-        ? scale.name!.translations[scale.name!.defaultLocale] ??
-              scale.name!.defaultLocale
+        ? scale.name!.get(Localizations.localeOf(context).languageCode)
         : '';
 
     return Card(
@@ -155,9 +154,9 @@ class BarsMatrixBuilder extends StatelessWidget {
                 separatorBuilder: (context, _) => AppSpacing.h8,
                 itemBuilder: (context, idx) {
                   final claim = scale.claims[idx];
-                  final labelTrans =
-                      claim.label.translations[claim.label.defaultLocale] ??
-                      claim.label.defaultLocale;
+                  final labelTrans = claim.label.get(
+                    Localizations.localeOf(context).languageCode,
+                  );
                   return Container(
                     padding: AppSpacing.p8,
                     decoration: BoxDecoration(

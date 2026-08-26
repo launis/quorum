@@ -9,14 +9,12 @@
     "custom_preface_md": "vtNntHAVZObXFuhsFbcE",
     "profile_id": "TtytNcfukhwwXTnlFnpV",
     "profile_name": {
-        "default_locale": "en",
         "translations": {
             "en": "Test Profile"
         }
     },
     "available_profiles": {
         "prof_1": {
-            "default_locale": "en",
             "translations": {
                 "en": "Test Profile"
             }

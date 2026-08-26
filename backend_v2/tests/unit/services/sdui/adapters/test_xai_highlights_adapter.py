@@ -21,13 +21,13 @@ def valid_output_profile_fixture() -> OutputProfile:
         id="prf_0123456789abcdef",
         slug="test-profile",
         workflow_id="wfw_test",
-        name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
+        name=I18nText(translations={"en": "Test Profile"}),
         layouts=[],
         target_block_order=[],
         extension_labels={
-            XaiExtensionType.COACHING: I18nText(default_locale="en", translations={"en": "Coaching"}),
-            XaiExtensionType.FALSIFICATION: I18nText(default_locale="en", translations={"en": "Falsification"}),
-            XaiExtensionType.REMEDIATION_STEPS: I18nText(default_locale="en", translations={"en": "Remediation"}),
+            XaiExtensionType.COACHING: I18nText(translations={"en": "Coaching"}),
+            XaiExtensionType.FALSIFICATION: I18nText(translations={"en": "Falsification"}),
+            XaiExtensionType.REMEDIATION_STEPS: I18nText(translations={"en": "Remediation"}),
         },
         visible_block_extensions=[
             XaiExtensionType.COACHING,

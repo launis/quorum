@@ -18,11 +18,10 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
         "id": "blk_1234567890abcdef",
         "slug": "test_matrix",
         "category_id": "matrix",
-        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
         "label": {
-            "default_locale": "en",
             "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"},
         },
         "ai_description": "ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort...",
@@ -33,7 +32,6 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
                 "claims": [
                     {
                         "label": {
-                            "default_locale": "en",
                             "translations": {
                                 "en": "The user is a 'Yes-man'. Blindly accepted the AI's first response.",
                                 "fi": "Mock",

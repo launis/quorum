@@ -26,15 +26,13 @@ def test_output_profile_response_dto_serializes_metric_mappings() -> None:
         "id": "prf_5d6e7f8091a2b3c4",
         "slug": "test_profile",
         "workflow_id": "wf_9d68c573802341db",
-        "name": {"default_locale": "fi", "translations": {"fi": "Testi", "en": "Test"}},
+        "name": {"translations": {"fi": "Testi", "en": "Test"}},
         "layouts": [],
         "metric_mappings": {
             "variance_mechanical": {
-                "default_locale": "fi",
                 "translations": {"fi": "Mekaaninen", "en": "Mechanical"},
             },
             "variance_cognitive": {
-                "default_locale": "fi",
                 "translations": {"fi": "Kognitiivinen", "en": "Cognitive"},
             },
         },
@@ -61,11 +59,10 @@ def test_output_profile_roundtrip_preserves_metric_mappings() -> None:
         id="prf_5d6e7f8091a2b3c4",
         slug="test_profile",
         workflow_id="wf_9d68c573802341db",
-        name=I18nText(default_locale="fi", translations={"fi": "Testi", "en": "Test"}),
+        name=I18nText(translations={"fi": "Testi", "en": "Test"}),
         target_block_order=[],
         metric_mappings={
             "variance_mechanical": I18nText(
-                default_locale="fi",
                 translations={"fi": "Mekaaninen", "en": "Mechanical"},
             ),
         },

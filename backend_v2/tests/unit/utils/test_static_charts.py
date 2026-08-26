@@ -9,7 +9,7 @@ from backend_v2.utils.static_charts import generate_radar_chart, generate_scatte
 
 def get_i18n(text: str) -> I18nText:
     """Helper to create I18nText."""
-    return I18nText(default_locale="fi", translations={"fi": text, "en": text})
+    return I18nText(translations={"fi": text, "en": text})
 
 
 def test_generate_scatter_chart_empty() -> None:

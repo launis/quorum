@@ -16,14 +16,12 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
         "slug": "matrix_causal_analyst",
         "category_id": "matrix",
         "label": {
-            "default_locale": "en",
             "translations": {
                 "en": "Causal Depth & Counterfactual Rigor",
                 "fi": "Kausaalinen syvyys ja kontrafaktuaalinen tarkkuus",
             },
         },
         "description": {
-            "default_locale": "en",
             "translations": {
                 "en": "Evaluates causal inference depth and counterfactual verification.",
                 "fi": "Arvioi kausaalisen pttelyn syvyytt ja kontrafaktuaalista verifiointia.",
@@ -41,7 +39,6 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
                 "claims": [
                     {
                         "label": {
-                            "default_locale": "en",
                             "translations": {
                                 "en": "Mistakes correlation for causation without mechanism analysis.",
                                 "fi": "Sekoittaa korrelaation kausaliteettiin ilman mekanismin analysointia.",
@@ -64,7 +61,6 @@ def test_causal_analyst_schema_generation_and_validation() -> None:
                 "claims": [
                     {
                         "label": {
-                            "default_locale": "en",
                             "translations": {
                                 "en": "Establishes full causal mechanism with counterfactual proofs.",
                                 "fi": "Määrittää täyden kausaalisen mekanismin kontrafaktuaalisin todistein.",

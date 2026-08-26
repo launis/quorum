@@ -22,5 +22,6 @@
   "pdfAuditDuration": "Kesto:",
   "pdfAuditQuery": "Kysely:",
   "pdfAuditImpactedAxes": "Vaikutukset akselilla:",
-  "pdfAuditSources": "Lähteet:"
+  "pdfAuditSources": "Lähteet:",
+  "alert_starvation_insufficient_data": "Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi."
 }

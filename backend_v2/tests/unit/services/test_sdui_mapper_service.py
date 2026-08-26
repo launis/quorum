@@ -1,6 +1,6 @@
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.v2_core import (
-    I18nText,
     MatrixScorecardRowDTO,
     MCPAuditTrace,
     ReportDataDTO,
@@ -43,7 +43,7 @@ def test_map_report_to_sdui_complete() -> None:
     row = MatrixScorecardRowDTO(
         block_id="blk_123",
         name="Security Policy",
-        label_i18n=I18nText(default_locale="en", translations={"en": "Security Policy"}),
+        label_i18n=I18nText(translations={"en": "Security Policy"}),
         score=85.0,
         scale_max=100.0,
         row_explanation="Policy is adequately documented.",
@@ -52,7 +52,7 @@ def test_map_report_to_sdui_complete() -> None:
 
     # Create dummy layout
     layout = SduiMetrics1DBlock(
-        title=I18nText(default_locale="en", translations={"en": "Metrics"}),
+        title=I18nText(translations={"en": "Metrics"}),
         axes=[row],
     )
 

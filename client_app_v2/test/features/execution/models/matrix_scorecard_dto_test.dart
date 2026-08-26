@@ -115,7 +115,6 @@ void main() {
         'block_id': 'blk_1',
         'name': 'test_matrix',
         'label_i18n': {
-          'default_locale': 'en',
           'translations': {'en': 'Test', 'fi': 'Testi'},
         },
         'inner_sdui_blocks': [
@@ -199,7 +198,6 @@ void main() {
         'block_id': 'blk_1',
         'name': 'test_matrix',
         'label_i18n': {
-          'default_locale': 'en',
           'translations': {'en': 'Test', 'fi': 'Testi'},
         },
         'allow_contextual_override': true,

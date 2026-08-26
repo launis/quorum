@@ -18,8 +18,8 @@ def mock_repo() -> Any:
         {
             "id": "blk_0123456789abcdef0123456789ab",
             "slug": "task_bp",
-            "label": {"default_locale": "fi", "translations": {"fi": "Testi", "en": "Test"}},
-            "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus", "en": "Desc"}},
+            "label": {"translations": {"fi": "Testi", "en": "Test"}},
+            "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
             "category_id": "system_rule",
             "type": BlockDataType.STRING,
             "allow_decimals": False,
@@ -30,8 +30,8 @@ def mock_repo() -> Any:
             "slug": "zero_trust_extraction_protocol",
             "category_id": "system_rule",
             "type": BlockDataType.STRING,
-            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
             "ai_description": "Strict extraction protocol.",
             "allow_decimals": False,
             "output_extensions": [],
@@ -40,7 +40,7 @@ def mock_repo() -> Any:
     repo.get_step.return_value = {
         "id": "step_1111111111111111",
         "slug": "task_bp",
-        "name": {"default_locale": "fi", "translations": {"fi": "Vaihe", "en": "Step"}},
+        "name": {"translations": {"fi": "Vaihe", "en": "Step"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789ab"],
@@ -56,15 +56,15 @@ def mock_repo() -> Any:
         "default_profile_id": "prof_dddd1111dddd1111",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
-        "name": {"default_locale": "en", "translations": {"en": "Test WF", "fi": "Test WF"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+        "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
     }
     repo.get_output_profile_by_id.return_value = {
         "id": "prof_dddd1111dddd1111",
         "slug": "test_profile",
         "workflow_id": "wf_5555555555555555",
-        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "name": {"translations": {"en": "Test Profile"}},
         "visible_block_extensions": [],
         "visible_workflow_extensions": [],
     }
@@ -111,8 +111,8 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[StepRule(id="step_1111111111111111", task_blueprint="task_bp")],
     )
 

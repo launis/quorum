@@ -8,13 +8,14 @@ from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, Step, 
 
 def test_prompt_block_allow_decimals_requires_numeric() -> None:
     # Valid setup
-    label = I18nText(default_locale="fi", translations={"fi": "Testi", "en": "Test"})
-    desc = I18nText(default_locale="fi", translations={"fi": "Kuvaus", "en": "Desc"})
+    label = I18nText(translations={"fi": "Testi", "en": "Test"})
+    desc = I18nText(translations={"fi": "Kuvaus", "en": "Desc"})
     tda = TDAAssertion(
         tda_id="tda_11111111111111111111111111111111",
         concept_description="Valid concept description",
         aggregation_mode="ALL_MUST_COMPLY",
         inverse_evidence=False,
+        depends_on=(),
     )
     claim = MatrixClaim(label=label, tda_assertions=[tda])
     scale = MatrixScale(score=1, ai_label="Level 1", claims=[claim])
@@ -49,7 +50,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
 
 
 def test_step_validation_fails_on_empty_execution_logic() -> None:
-    label = I18nText(default_locale="fi", translations={"fi": "Blueprintti", "en": "Blueprint"})
+    label = I18nText(translations={"fi": "Blueprintti", "en": "Blueprint"})
 
     # Successful: Has prompt blocks
     valid_blueprint = Step(
@@ -80,7 +81,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
 
 def test_opaque_id_regex_validation() -> None:
     """Epic 10: Enforce Fail-Fast 422 on legacy slug usage in IDs."""
-    label = I18nText(default_locale="en", translations={"en": "Test", "fi": "Test"})
+    label = I18nText(translations={"en": "Test", "fi": "Test"})
 
     # 1. Test PromptBlock creation rejection
     with pytest.raises(ValidationError) as exc_pb:

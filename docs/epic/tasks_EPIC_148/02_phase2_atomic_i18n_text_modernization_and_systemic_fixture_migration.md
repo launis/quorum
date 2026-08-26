@@ -4,19 +4,23 @@
 **Target Files:**
 - `[MODIFY]` @[backend_v2/models/v2_core.py#L101-L191]
 - `[MODIFY]` @[backend_v2/services/sdui/adapters/warning_card_adapter.py]
+- `[MODIFY]` @[backend_v2/l10n/en.json]
+- `[MODIFY]` @[backend_v2/l10n/fi.json]
 - `[MODIFY]` @[client_app_v2/lib/shared/models/i18n_text.dart]
 - `[MODIFY]` @[backend_v2/seed/seed_data.json]
-- `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]
-- `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart]
+- `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart#L187-L193]
+- `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart#L332-L333]
+- `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart#L52-L54]
 - `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]
 - `[MODIFY]` @[client_app_v2/lib/features/execution/views/execution_report_view.dart]
 - `[MODIFY]` @[client_app_v2/lib/shared/widgets/specialist_section.dart]
 - `[MODIFY]` @[client_app_v2/lib/l10n/app_en.arb]
 - `[MODIFY]` @[client_app_v2/lib/l10n/app_fi.arb]
 - `[MODIFY]` @[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]
-- `[MODIFY]` @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
+- `[MODIFY]` @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart#L239-L260]
 - `[MODIFY]` @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
 - `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart]
+- `[MODIFY]` @[backend_v2/tests/unit/models/test_v2_core.py]
 - `[NEW]` @[client_app_v2/test/shared/models/i18n_text_test.dart]
 - `[MODIFY]` @[client_app_v2/test/models/matrix_claim_test.dart]
 - `[MODIFY]` @[client_app_v2/test/features/studio/models/workflow_test.dart]
@@ -33,11 +37,13 @@
 
   <dod_checklist>
     - [x] `default_locale` removed from `I18nText` in @[backend_v2/models/v2_core.py#L101-L191]; `translations` defined as required `Field(...)` without `default_factory=dict`; `@field_validator("translations")` classmethod implemented for key sanitization and non-empty baseline `'en'` check without `object.__setattr__` frozen mutations; `resolve()` updated with regex locale splitting and Fail-Fast `AppException(VALIDATION_FAILED)`.
+    - [x] Static localization keys populated in @[backend_v2/l10n/en.json] and @[backend_v2/l10n/fi.json] for `'alert_starvation_insufficient_data'`.
     - [x] Synchronous module-level constant migration in @[backend_v2/services/sdui/adapters/warning_card_adapter.py] completed to eliminate `I18N_WARNING_STARVATION = I18nText(default_locale="en", ...)` and resolve warning dynamically via `LocalizationService`.
     - [x] `I18nText` Freezed model in @[client_app_v2/lib/shared/models/i18n_text.dart] updated with explicit `@JsonSerializable(disallowUnrecognizedKeys: true)`, `defaultLocale` removed, `required Map<String, String> translations` enforced without `@Default`, and `isEmpty`, `isNotEmpty`, `has()`, and Fail-Fast `get()` implemented.
-    - [x] 1-hop callers and execution UI widgets modernized: @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart], @[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart], @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart], @[client_app_v2/lib/features/execution/views/execution_report_view.dart], @[client_app_v2/lib/shared/widgets/specialist_section.dart], @[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart], @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart], @[client_app_v2/lib/features/studio/views/profile_editor_view.dart], and @[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart].
+    - [x] 1-hop callers and execution UI widgets modernized: @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart#L187-L193], @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart#L332-L333], @[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart#L52-L54], @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart], @[client_app_v2/lib/features/execution/views/execution_report_view.dart], @[client_app_v2/lib/shared/widgets/specialist_section.dart], @[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart], @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart#L239-L260], @[client_app_v2/lib/features/studio/views/profile_editor_view.dart], and @[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart].
     - [x] Localization keys populated in @[client_app_v2/lib/l10n/app_en.arb] and @[client_app_v2/lib/l10n/app_fi.arb].
     - [x] Unit test suite [NEW] @[client_app_v2/test/shared/models/i18n_text_test.dart] created with positive and negative ISTQB partition test cases (TC-I18N-FLUTTER-01 through TC-I18N-FLUTTER-07).
+    - [x] Unit test suite @[backend_v2/tests/unit/models/test_v2_core.py] updated to assert Fail-Fast `resolve()` and rejection of missing `'translations'` without `default_locale`.
     - [x] 500 occurrences of `"default_locale"` pruned from @[backend_v2/seed/seed_data.json] via deterministic scratch script (`scratch/prune_default_locale_seed.py`), and 4 authentic Finnish translations populated for `prompt_blocks[88]` and `prompt_blocks[89]`.
     - [x] 1,166 backend test fixture references across 90 test files in `backend_v2/tests/` and 157 Flutter test references across 25 files migrated via deterministic scratch scripts (`scratch/migrate_backend_i18n_fixtures.py` and `scratch/migrate_flutter_i18n_fixtures.py`).
     - [x] Local development database re-seeded: `uv run python backend_v2/seed/run_seed.py local`.
@@ -70,6 +76,8 @@
   <touched_artifacts>
     <backend>@[backend_v2/models/v2_core.py]</backend>
     <backend>@[backend_v2/services/sdui/adapters/warning_card_adapter.py]</backend>
+    <backend>@[backend_v2/l10n/en.json]</backend>
+    <backend>@[backend_v2/l10n/fi.json]</backend>
     <backend>@[backend_v2/seed/seed_data.json]</backend>
     <frontend>@[client_app_v2/lib/shared/models/i18n_text.dart]</frontend>
     <frontend>@[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]</frontend>
@@ -81,6 +89,7 @@
     <frontend>@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]</frontend>
     <frontend>@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]</frontend>
     <frontend>@[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart]</frontend>
+    <!-- [MODIFY] backend_v2/tests/unit/models/test_v2_core.py -->
     <!-- [NEW] client_app_v2/test/shared/models/i18n_text_test.dart -->
   </touched_artifacts>
 
@@ -153,6 +162,11 @@
   </test_contracts>
 
   <step id="1" name="Python Domain Model Modernization in v2_core.py &amp; WarningCardAdapter Migration">
+    <action>In @[backend_v2/l10n/en.json] and @[backend_v2/l10n/fi.json]:
+      Add static key `'alert_starvation_insufficient_data'`:
+      - `en.json`: `"alert_starvation_insufficient_data": "Evaluation data was insufficient to generate synthesis."`
+      - `fi.json`: `"alert_starvation_insufficient_data": "Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi."`
+    </action>
     <action>In @[backend_v2/models/v2_core.py#L101-L191]:
       1. Remove `default_locale` field from `I18nText`.
       2. Define `translations: Annotated[dict[str, str], Field(description="Dictionary mapping locale code to translated string, specifically: {'fi': 'Teksti', 'en': 'Text'}." )]` without `default_factory=dict`.
@@ -165,6 +179,9 @@
       Eliminate module-level `I18N_WARNING_STARVATION = I18nText(default_locale="en", ...)` to prevent import-time Pydantic `ValidationError` upon `default_locale` removal, resolving warning messages dynamically via `LocalizationService.translate('alert_starvation_insufficient_data', context.locale)`.
     </action>
     <demolish>REMOVE: module-level `I18N_WARNING_STARVATION` constant at @[backend_v2/services/sdui/adapters/warning_card_adapter.py]. REPLACE WITH: dynamic `LocalizationService` resolution.</demolish>
+    <action>In @[backend_v2/tests/unit/models/test_v2_core.py]:
+      Update `test_i18n_text_validation_and_resolve()` to verify Fail-Fast `resolve()` behavior without `default_locale` and assert Pydantic `ValidationError` on missing `translations`.
+    </action>
   </step>
 
   <step id="2" name="Flutter Freezed Model Update, 1-Hop Widget Cleanups &amp; Unit Tests">

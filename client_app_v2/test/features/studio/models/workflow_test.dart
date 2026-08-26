@@ -13,7 +13,6 @@ void main() {
           'id': 'st_a1b2c3d4e5f60000',
           'slug': 'test_slug',
           'name': {
-            'default_locale': 'en',
             'translations': {'en': 'Test'},
           },
           'type': 'llm',
@@ -51,7 +50,9 @@ void main() {
         final payload = {
           'id': 'st_a1b2c3d4e5f60001',
           'slug': 'test_slug',
-          'name': {'default_locale': 'en'},
+          'name': {
+            'translations': {'en': 'Test'},
+          },
           'type': 'llm',
           'model_strategy': 'fast',
           'expected_inputs': {'data': 'wrong_type'}, // Expected List<String>
@@ -73,7 +74,9 @@ void main() {
         final payload = {
           'id': 'st_a1b2c3d4e5f60002',
           'slug': 'logic_slug',
-          'name': {'default_locale': 'en'},
+          'name': {
+            'translations': {'en': 'Test'},
+          },
           'type': 'logic',
           'hook': 'my_logic_hook',
           // Omitting outputSchema and expectedInputs entirely to test correct @Default injection
@@ -100,12 +103,9 @@ void main() {
       () {
         final payload = {
           'input_key': 'test_key',
-          'label': {'default_locale': 'en', 'translations': <String, String>{}},
+          'label': {'translations': <String, String>{}},
           'required': false,
-          'description': {
-            'default_locale': 'en',
-            'translations': <String, String>{},
-          },
+          'description': {'translations': <String, String>{}},
           'scan_for_performative_patterns': true,
         };
 
@@ -159,7 +159,9 @@ void main() {
         final json = {
           'id': 'st_1234567890abcdef',
           'slug': 'test',
-          'name': {'default_locale': 'en'},
+          'name': {
+            'translations': {'en': 'Test'},
+          },
           'type': 'llm',
           'model_strategy': 'fast',
         };
@@ -182,7 +184,9 @@ void main() {
         final json = {
           'id': 'st_1234567890abcdef',
           'slug': 'test',
-          'name': {'default_locale': 'en'},
+          'name': {
+            'translations': {'en': 'Test'},
+          },
           'type': 'llm',
           'model_strategy': 'fast',
           'is_system_core': true,
@@ -206,7 +210,9 @@ void main() {
         final json = {
           'id': 'st_1234567890abcdef',
           'slug': 'test',
-          'name': {'default_locale': 'en'},
+          'name': {
+            'translations': {'en': 'Test'},
+          },
           'type': 'logic',
           'hook': 'my_hook',
           'is_system_core': true,
@@ -230,7 +236,9 @@ void main() {
         final json = {
           'id': 'st_1234567890abcdef',
           'slug': 'test',
-          'name': {'default_locale': 'en'},
+          'name': {
+            'translations': {'en': 'Test'},
+          },
           'type': 'llm',
           'model_strategy': 'fast',
           'is_system_core': false,

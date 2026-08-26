@@ -14,7 +14,7 @@ def test_sdui_radar_chart_roundtrip():
     """Positive serialization roundtrip test for SduiRadarChartBlock."""
     data = {
         "block_type": "3d_matrix",
-        "title": {"default_locale": "en", "translations": {"en": "Radar Chart", "fi": "Tutkakaavio"}},
+        "title": {"translations": {"en": "Radar Chart", "fi": "Tutkakaavio"}},
         "axes": [],
     }
     block = SduiRadarChartBlock.model_validate(data)
@@ -44,7 +44,7 @@ def test_sdui_matrix_table_roundtrip():
     """Positive serialization roundtrip test for SduiMatrixTableBlock."""
     data = {
         "block_type": "matrix_summary",
-        "matrix_column_labels": {"score": {"default_locale": "en", "translations": {"en": "Score"}}},
+        "matrix_column_labels": {"score": {"translations": {"en": "Score"}}},
         "matrix_visible_columns": ["score"],
     }
     block = SduiMatrixTableBlock.model_validate(data)
@@ -60,7 +60,7 @@ def test_sdui_metrics_1d_roundtrip():
     """Positive serialization roundtrip test for SduiMetrics1DBlock."""
     data = {
         "block_type": "1d_metrics",
-        "title": {"default_locale": "en", "translations": {"en": "1D Metrics"}},
+        "title": {"translations": {"en": "1D Metrics"}},
     }
     block = SduiMetrics1DBlock.model_validate(data)
     assert block.block_type == "1d_metrics"

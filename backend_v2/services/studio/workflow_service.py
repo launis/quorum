@@ -274,8 +274,8 @@ class StudioWorkflowService:
         draft_dict: dict[str, Any] = {
             "id": new_id,
             "slug": new_id,
-            "name": {"default_locale": "en", "translations": {"en": "New Työnkulku", "fi": "Uusi työnkulku"}},
-            "description": {"default_locale": "en", "translations": {"en": "Draft workflow", "fi": "Luonnos"}},
+            "name": {"translations": {"en": "New Työnkulku", "fi": "Uusi työnkulku"}},
+            "description": {"translations": {"en": "Draft workflow", "fi": "Luonnos"}},
             "status": "draft",
             "version": 1,
             "organization_id": (
@@ -573,8 +573,8 @@ class StudioWorkflowService:
         draft_dict: dict[str, Any] = {
             "id": new_id,
             "slug": new_id,
-            "name": {"default_locale": "en", "translations": {"en": "New Askel", "fi": "Uusi askel"}},
-            "description": {"default_locale": "en", "translations": {"en": "Draft step", "fi": "Luonnos"}},
+            "name": {"translations": {"en": "New Askel", "fi": "Uusi askel"}},
+            "description": {"translations": {"en": "Draft step", "fi": "Luonnos"}},
             "type": "llm",
             "role_block_id": None,
             "extraction_protocol_block_id": protocol_block_id,

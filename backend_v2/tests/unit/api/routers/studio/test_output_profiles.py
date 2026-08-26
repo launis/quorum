@@ -58,7 +58,7 @@ async def test_create_output_profile_draft(mock_studio_service):
         id="prof_0123456789abcdef0123456789abcdef",
         workflow_id="*",
         slug="test-draft",
-        name={"default_locale": "en", "translations": {"en": "test"}},
+        name={"translations": {"en": "test"}},
         organization_id="root",
     )
     mock_studio_service.create_output_profile_draft.return_value = mock_profile
@@ -73,7 +73,7 @@ async def test_get_output_profile(mock_studio_service):
         id="prof_0123456789abcdef0123456789abcdef",
         workflow_id="*",
         slug="test-profile",
-        name={"default_locale": "en", "translations": {"en": "test"}},
+        name={"translations": {"en": "test"}},
         organization_id="root",
     )
     mock_studio_service.get_output_profile.return_value = mock_profile
@@ -88,7 +88,7 @@ async def test_save_output_profile(mock_studio_service):
         id="prof_0123456789abcdef0123456789abcdef",
         workflow_id="*",
         slug="test-profile",
-        name={"default_locale": "en", "translations": {"en": "test"}},
+        name={"translations": {"en": "test"}},
         organization_id="root",
     )
     mock_studio_service.save_output_profile.return_value = mock_profile
@@ -108,7 +108,7 @@ async def test_clone_output_profile(mock_studio_service):
         id="prof_0123456789abcdef0123456789abcdef",
         workflow_id="*",
         slug="test-copy",
-        name={"default_locale": "en", "translations": {"en": "test copy"}},
+        name={"translations": {"en": "test copy"}},
         organization_id="root",
     )
     mock_studio_service.clone_output_profile.return_value = mock_profile

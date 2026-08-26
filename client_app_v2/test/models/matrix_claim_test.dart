@@ -37,7 +37,6 @@ void main() {
       () {
         final json = {
           'label': {
-            'default_locale': 'en',
             'translations': {
               'en': 'Strong performance across leadership criteria',
             },
@@ -56,7 +55,6 @@ void main() {
         };
 
         final claim = MatrixClaim.fromJson(json);
-        expect(claim.label.defaultLocale, 'en');
         expect(
           claim.label.translations['en'],
           'Strong performance across leadership criteria',
@@ -82,7 +80,6 @@ void main() {
       () {
         final legacyJson = {
           'label': {
-            'default_locale': 'en',
             'translations': {'en': 'Legacy Claim'},
           },
           'ai_description':

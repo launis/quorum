@@ -143,18 +143,38 @@ def test_i18n_text_validation_and_resolve() -> None:
 
     # 1. Missing or whitespace English translation raises AppException
     with pytest.raises(AppException):
-        I18nText.model_validate({"default_locale": "fi", "translations": {"fi": "Moi", "en": "   "}})
+        I18nText.model_validate({"translations": {"fi": "Moi", "en": "   "}})
 
-    # 2. Resolve logic
-    i18n = I18nText(default_locale="fi", translations={"fi": "Moi", "en": "Hello", "sv": "Hej"})
+    # 2. Missing translations dictionary altogether raises ValidationError
+    with pytest.raises(ValidationError):
+        I18nText.model_validate({})
+
+    # 3. Extra fields forbidden (e.g. default_locale)
+    with pytest.raises(ValidationError):
+        I18nText.model_validate({"default_locale": "en", "translations": {"en": "Hello"}})
+
+    # 4. Key sanitization (whitespace and uppercase)
+    i18n_sanitized = I18nText(translations={"  EN  ": "Hello", "  FI  ": "Moi"})
+    assert i18n_sanitized.translations == {"en": "Hello", "fi": "Moi"}
+
+    # 5. Resolve and get logic
+    i18n = I18nText(translations={"fi": "Moi", "en": "Hello", "sv": "Hej"})
     assert i18n.resolve("sv-SE") == "Hej"
-    assert i18n.resolve("de") == "Moi"  # fallback to default_locale
+    assert i18n.resolve("de", fallback_locale="fi") == "Moi"  # fallback to specified fallback_locale
+    assert i18n.resolve("de") == "Hello"  # default fallback to en
     assert i18n.get("sv") == "Hej"
-    assert i18n.get("de") == "Moi"  # fallback to default_locale
+    assert i18n.get("de", fallback="fi") == "Moi"
+    assert i18n.get("de") == "Hello"
 
-    i18n_en = I18nText(default_locale="de", translations={"en": "Hello"})
-    assert i18n_en.resolve("fr") == "Hello"
-    assert i18n_en.get("fr") == "Hello"
+    # 6. Resolve with unresolvable locale and missing fallback raises AppException
+    i18n_de = I18nText.model_construct(translations={"de": "Hallo"})
+    with pytest.raises(AppException):
+        i18n_de.resolve("fr", fallback_locale="es")
+
+    # 7. Resolve with whitespace-only translation raises AppException
+    i18n_whitespace = I18nText.model_construct(translations={"fi": "   ", "en": "   "})
+    with pytest.raises(AppException):
+        i18n_whitespace.resolve("fi")
 
 
 def test_tda_assertion_validation_branches() -> None:
@@ -204,8 +224,8 @@ def test_prompt_block_validator_branches() -> None:
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
     from backend_v2.models.v2_core import I18nText
 
-    label = I18nText(default_locale="en", translations={"en": "Scale Block"})
-    desc = I18nText(default_locale="en", translations={"en": "Scale Desc"})
+    label = I18nText(translations={"en": "Scale Block"})
+    desc = I18nText(translations={"en": "Scale Desc"})
 
     # Empty scales list raises ValidationError
     with pytest.raises(ValidationError) as exc_info:
@@ -256,7 +276,7 @@ def test_prompt_block_validator_branches() -> None:
 def test_step_and_step_rule_validation() -> None:
     from backend_v2.models.v2_core import I18nText, Step, StepRule
 
-    name = I18nText(default_locale="en", translations={"en": "Step 1"})
+    name = I18nText(translations={"en": "Step 1"})
 
     # Step LLM without extraction protocol
     with pytest.raises(ValueError, match="extraction_protocol_block_id"):
@@ -301,8 +321,8 @@ def test_expected_input_validation() -> None:
         ExpectedInput.model_validate(
             {
                 "input_key": "k1",
-                "label": {"default_locale": "en", "translations": {"en": "K1"}},
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "label": {"translations": {"en": "K1"}},
+                "description": {"translations": {"en": "Desc"}},
                 "required": True,
                 "input_modes": [],
             }
@@ -313,15 +333,15 @@ def test_expected_input_validation() -> None:
         ExpectedInput.model_validate(
             {
                 "input_key": "k1",
-                "label": {"default_locale": "en", "translations": {"en": "K1"}},
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "label": {"translations": {"en": "K1"}},
+                "description": {"translations": {"en": "Desc"}},
                 "required": True,
                 "input_modes": ["questionnaire"],
                 "is_chat_history": True,
                 "questionnaire_definition": [
                     {
                         "question_id": "q1",
-                        "question": {"default_locale": "en", "translations": {"en": "Q1"}},
+                        "question": {"translations": {"en": "Q1"}},
                         "type": "text",
                     }
                 ],
@@ -333,14 +353,14 @@ def test_expected_input_validation() -> None:
         ExpectedInput.model_validate(
             {
                 "input_key": "k1",
-                "label": {"default_locale": "en", "translations": {"en": "K1"}},
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "label": {"translations": {"en": "K1"}},
+                "description": {"translations": {"en": "Desc"}},
                 "required": True,
                 "input_modes": ["questionnaire", "file"],
                 "questionnaire_definition": [
                     {
                         "question_id": "q1",
-                        "question": {"default_locale": "en", "translations": {"en": "Q1"}},
+                        "question": {"translations": {"en": "Q1"}},
                         "type": "text",
                     }
                 ],
@@ -352,8 +372,8 @@ def test_expected_input_validation() -> None:
         ExpectedInput.model_validate(
             {
                 "input_key": "k1",
-                "label": {"default_locale": "en", "translations": {"en": "K1"}},
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "label": {"translations": {"en": "K1"}},
+                "description": {"translations": {"en": "Desc"}},
                 "required": True,
                 "input_modes": ["questionnaire"],
                 "questionnaire_definition": [],
@@ -365,14 +385,14 @@ def test_expected_input_validation() -> None:
         ExpectedInput.model_validate(
             {
                 "input_key": "k1",
-                "label": {"default_locale": "en", "translations": {"en": "K1"}},
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "label": {"translations": {"en": "K1"}},
+                "description": {"translations": {"en": "Desc"}},
                 "required": True,
                 "input_modes": ["file"],
                 "questionnaire_definition": [
                     {
                         "question_id": "q1",
-                        "question": {"default_locale": "en", "translations": {"en": "Q1"}},
+                        "question": {"translations": {"en": "Q1"}},
                         "type": "text",
                     }
                 ],
@@ -384,8 +404,8 @@ def test_workflow_validation_and_allowed_layout_targets() -> None:
     from backend_v2.models.enums import HistoricalContextMode, TargetBlockType
     from backend_v2.models.v2_core import I18nText, Step, StepRule, Workflow
 
-    name = I18nText(default_locale="en", translations={"en": "Workflow Name"})
-    desc = I18nText(default_locale="en", translations={"en": "Workflow Desc"})
+    name = I18nText(translations={"en": "Workflow Name"})
+    desc = I18nText(translations={"en": "Workflow Desc"})
 
     # Orphan dependency check
     with pytest.raises(ValueError, match="depends on 'blk_2222222222222222'"):
@@ -456,11 +476,13 @@ def test_workflow_validation_and_allowed_layout_targets() -> None:
             )
         ],
     )
+    from backend_v2.models.enums import StepType
+
     step1 = Step(
         id="step_1111111111111111",
         slug="step1",
         name=name,
-        type="llm",
+        type=StepType.LLM,
         model_strategy="fast",
         role_block_id="blk_1111111111111111",
         extraction_protocol_block_id="blk_2222222222222222",
@@ -537,6 +559,7 @@ def test_engine_dtos_validation_and_methods() -> None:
         extraction_rule="Rule 1",
         anchor_target="Target 1",
         is_inverse=True,
+        depends_on=(),
     )
     assert atom.atom_id == "atm_123"
     assert atom.is_inverse is True
@@ -553,6 +576,7 @@ def test_engine_dtos_validation_and_methods() -> None:
         matrix_assertions=[atom],
     )
     assert matrix_ctx.allow_contextual_override is True
+    assert matrix_ctx.matrix_assertions is not None
     assert len(matrix_ctx.matrix_assertions) == 1
 
     # 3. EngineExecutionRequest & semaphore_cm
@@ -606,5 +630,6 @@ def test_engine_dtos_validation_and_methods() -> None:
         usage=TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
     assert len(result.results) == 1
+    assert result.usage is not None
     assert result.usage.total_tokens == 15
     assert len(result.trace_events) == 1

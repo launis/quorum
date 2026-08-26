@@ -11,10 +11,10 @@ def test_mcp_source_id_literal_validation() -> None:
     block = SystemRulePromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="test",
-        description=I18nText(default_locale="en", translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
-        label=I18nText(default_locale="en", translations={"en": "test"}),
+        label=I18nText(translations={"en": "test"}),
     )
 
     Schema = factory.build_dynamic_schema(

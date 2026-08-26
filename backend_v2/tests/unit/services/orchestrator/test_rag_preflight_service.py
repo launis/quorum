@@ -50,8 +50,8 @@ def make_valid_step_def(model_strategy: str | None = "fast") -> Step:
         {
             "id": "stp_1234567890abcdef",
             "slug": "test_step",
-            "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test Description"}},
+            "name": {"translations": {"en": "Test Step"}},
+            "description": {"translations": {"en": "Test Description"}},
             "model_strategy": model_strategy,
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
@@ -94,8 +94,8 @@ async def test_rag_preflight_missing_model_strategy_crashes(preflight_service: R
     step_def = Step.model_construct(
         id="stp_1234567890abcdef",
         slug="test_step",
-        name=I18nText(default_locale="en", translations={"en": "Test Step"}),
-        description=I18nText(default_locale="en", translations={"en": "Test Description"}),
+        name=I18nText(translations={"en": "Test Step"}),
+        description=I18nText(translations={"en": "Test Description"}),
         model_strategy=None,
         type="llm",
     )

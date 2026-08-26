@@ -440,7 +440,9 @@ class StepBuilderView extends HookConsumerWidget {
                         const SizedBox(height: 16),
                         I18nTextField(
                           label: l10n.descriptionLabel,
-                          initialData: payload.description ?? I18nText(),
+                          initialData:
+                              payload.description ??
+                              const I18nText(translations: {'en': 'Test'}),
                           onChanged: (val) {
                             ref
                                 .read(stepFormProvider(stepId).notifier)

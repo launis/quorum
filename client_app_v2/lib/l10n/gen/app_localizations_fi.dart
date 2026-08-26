@@ -4418,4 +4418,53 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get studioNoModelsWarning =>
       'Varoitus: Mallirekisteristä ei löytynyt malleja.';
+
+  @override
+  String get humanOverrideTitle => 'Yliohjaa päätös (EU AI Act)';
+
+  @override
+  String humanOverrideClaimLabel(String claim) {
+    return 'Väite: $claim';
+  }
+
+  @override
+  String get humanOverrideNewStatusLabel => 'Uusi arvosana';
+
+  @override
+  String get humanOverrideReasonLabel => 'Perustelu yliohjaukselle';
+
+  @override
+  String get humanOverrideReasonRequired => 'Perustelu on pakollinen.';
+
+  @override
+  String get humanOverrideQuotesTitle => 'Lainaukset (tekninen vedostus)';
+
+  @override
+  String get humanOverrideNoQuotes => 'Ei lainauksia.';
+
+  @override
+  String get humanOverrideDeleteQuoteTooltip => 'Poista';
+
+  @override
+  String get humanOverrideAddEvidenceBtn => 'Lisää todiste';
+
+  @override
+  String get humanOverrideSaveBtn => 'Tallenna Override';
+
+  @override
+  String humanOverrideSaveFailed(String error) {
+    return 'Tallennus epäonnistui: $error';
+  }
+
+  @override
+  String get humanOverrideExpertNote => 'Asiantuntijan vahvistama huomio';
+
+  @override
+  String get downloadFrozenContextTooltip => 'Lataa Frozen Context';
+
+  @override
+  String get downloadExcelBtn => 'Lataa Excel';
+
+  @override
+  String get aboutMetricTitle => 'Tietoa Mittarista';
 }

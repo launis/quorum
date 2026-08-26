@@ -12,7 +12,7 @@ def test_matrix_summary_table_adapter_empty_layouts() -> None:
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[],
     )
     context = AdapterContext(
@@ -37,11 +37,11 @@ def test_matrix_summary_table_adapter_structural_failure() -> None:
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="matrix_summary",
-                title=I18nText(default_locale="en", translations={"en": "Summary"}),
+                title=I18nText(translations={"en": "Summary"}),
                 target_blocks=["m1"],
             )
         ],
@@ -69,11 +69,11 @@ def test_matrix_summary_table_adapter_success() -> None:
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="matrix_summary",
-                title=I18nText(default_locale="en", translations={"en": "Table Summary"}),
+                title=I18nText(translations={"en": "Table Summary"}),
                 target_blocks=["m1"],
                 matrix_visible_columns=["label", "score"],
             )
@@ -97,7 +97,7 @@ def test_matrix_summary_table_adapter_success() -> None:
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
             )
         },
@@ -117,11 +117,11 @@ def test_matrix_summary_table_adapter_validation_missing_id() -> None:
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="matrix_summary",
-                title=I18nText(default_locale="en", translations={"en": "Summary"}),
+                title=I18nText(translations={"en": "Summary"}),
                 target_blocks=["invalid_id"],  # Missing ID in parsed_matrices
             )
         ],
@@ -144,7 +144,7 @@ def test_matrix_summary_table_adapter_validation_missing_id() -> None:
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
             )
         },
@@ -161,11 +161,11 @@ def test_matrix_summary_table_adapter_empty_scorecard_atoms() -> None:
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="matrix_summary",
-                title=I18nText(default_locale="en", translations={"en": "Table Summary"}),
+                title=I18nText(translations={"en": "Table Summary"}),
                 target_blocks=["m1"],
             )
         ],
@@ -188,7 +188,7 @@ def test_matrix_summary_table_adapter_empty_scorecard_atoms() -> None:
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
                 evaluated_atoms=[],  # Empty atoms list
             )
@@ -208,11 +208,11 @@ def test_matrix_summary_table_adapter_wildcard_target_blocks() -> None:
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="matrix_summary",
-                title=I18nText(default_locale="en", translations={"en": "Table Summary"}),
+                title=I18nText(translations={"en": "Table Summary"}),
                 target_blocks=["*"],
             )
         ],
@@ -235,7 +235,7 @@ def test_matrix_summary_table_adapter_wildcard_target_blocks() -> None:
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
             ),
             "m2": MatrixScorecardRowDTO(
@@ -245,7 +245,7 @@ def test_matrix_summary_table_adapter_wildcard_target_blocks() -> None:
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M2"}),
+                label_i18n=I18nText(translations={"en": "M2"}),
                 row_explanation="expl2",
             ),
         },
@@ -266,13 +266,13 @@ def test_matrix_summary_table_adapter_layout_description_and_section_syntheses()
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="matrix_summary",
-                title=I18nText(default_locale="en", translations={"en": "Table Summary"}),
+                title=I18nText(translations={"en": "Table Summary"}),
                 target_blocks=["m1"],
-                description=I18nText(default_locale="en", translations={"en": "Test description"}),
+                description=I18nText(translations={"en": "Test description"}),
                 is_synthesis_enabled=True,
             )
         ],
@@ -298,7 +298,7 @@ def test_matrix_summary_table_adapter_layout_description_and_section_syntheses()
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
             )
         },
@@ -336,11 +336,11 @@ def test_matrix_summary_table_adapter_key_error(monkeypatch: pytest.MonkeyPatch)
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="matrix_summary",
-                title=I18nText(default_locale="en", translations={"en": "Table Summary"}),
+                title=I18nText(translations={"en": "Table Summary"}),
                 target_blocks=["m1"],
             )
         ],
@@ -363,7 +363,7 @@ def test_matrix_summary_table_adapter_key_error(monkeypatch: pytest.MonkeyPatch)
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
             )
         },

@@ -7,7 +7,7 @@ def test_reproduce_tier4_profile_bug() -> None:
         "id": "prf_test12345678",
         "slug": "test_profile",
         "workflow_id": "wf_123",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
         "strictness_level": 50,
         "layouts": [],
     }

@@ -46,8 +46,8 @@ def sample_step() -> Step:
     return Step(
         id="sp_1234567890abcdef",
         slug="test_step",
-        name=I18nText(default_locale="fi", translations={"fi": "Testi", "en": "Test"}),
-        description=I18nText(default_locale="fi", translations={"fi": "Kuvaus", "en": "Description"}),
+        name=I18nText(translations={"fi": "Testi", "en": "Test"}),
+        description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
         type="logic",
         hook="input_processing_hook",
         is_system_core=False,

@@ -29,7 +29,6 @@ class SduiMapperService:
         if not evidence.is_verified or evidence.unverified_aliases:
             logger.warning("[TELEMETRY] Hallucination detected. Unverified aliases: %s", evidence.unverified_aliases)
             warning_msg = I18nText(
-                default_locale="fi",
                 translations={"fi": "Hallusinoituja lainauksia havaittu:", "en": "Hallucinated citations detected:"},
             ).resolve(lang)
             return SduiWarningCard(
@@ -59,7 +58,7 @@ class SduiMapperService:
         # Phase B1: XAI Transparency
         if report.mcp_tool_audit:
             title_audit = I18nText(
-                default_locale="fi", translations={"fi": "Auditointityökalujen käyttö", "en": "Audit Tool Usage"}
+                translations={"fi": "Auditointityökalujen käyttö", "en": "Audit Tool Usage"}
             ).resolve(lang)
             sections.append(
                 UiSection(
@@ -74,10 +73,10 @@ class SduiMapperService:
         na_blocks = []
 
         na_default_msg = I18nText(
-            default_locale="fi", translations={"fi": "Ei sovelleta (N/A)", "en": "Not applicable (N/A)"}
+            translations={"fi": "Ei sovelleta (N/A)", "en": "Not applicable (N/A)"}
         ).resolve(lang)
         na_rule_prefix = I18nText(
-            default_locale="fi", translations={"fi": "Ohitettu säännön perusteella:", "en": "Skipped based on rule:"}
+            translations={"fi": "Ohitettu säännön perusteella:", "en": "Skipped based on rule:"}
         ).resolve(lang)
 
         for result in report.results:
@@ -97,7 +96,7 @@ class SduiMapperService:
 
         if na_blocks:
             title_na = I18nText(
-                default_locale="fi", translations={"fi": "Ohitetut Osiot (N/A)", "en": "Skipped Sections (N/A)"}
+                translations={"fi": "Ohitetut Osiot (N/A)", "en": "Skipped Sections (N/A)"}
             ).resolve(lang)
             sections.append(
                 UiSection(

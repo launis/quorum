@@ -19,19 +19,19 @@ def fix_mock_dict(d: Any) -> Any:
             object.__setattr__(d, "metric_mappings", {})
         d.metric_mappings.setdefault(
             "metadata_user",
-            I18nText(default_locale="en", translations={"en": "User", "fi": "Käyttäjä"}),
+            I18nText(translations={"en": "User", "fi": "Käyttäjä"}),
         )
         d.metric_mappings.setdefault(
             "metadata_organization",
-            I18nText(default_locale="en", translations={"en": "Organization", "fi": "Organisaatio"}),
+            I18nText(translations={"en": "Organization", "fi": "Organisaatio"}),
         )
         d.metric_mappings.setdefault(
             "metadata_scoring_engine",
-            I18nText(default_locale="en", translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
+            I18nText(translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
         )
         d.metric_mappings.setdefault(
             "metadata_strictness",
-            I18nText(default_locale="en", translations={"en": "Strictness Level", "fi": "Ankaruustaso"}),
+            I18nText(translations={"en": "Strictness Level", "fi": "Ankaruustaso"}),
         )
         return d
     if isinstance(d, dict):
@@ -78,19 +78,19 @@ def fix_mock_dict(d: Any) -> Any:
         if "metric_mappings" in d and isinstance(d["metric_mappings"], dict):
             d["metric_mappings"].setdefault(
                 "metadata_user",
-                {"default_locale": "en", "translations": {"en": "User", "fi": "Käyttäjä"}},
+                {"translations": {"en": "User", "fi": "Käyttäjä"}},
             )
             d["metric_mappings"].setdefault(
                 "metadata_organization",
-                {"default_locale": "en", "translations": {"en": "Organization", "fi": "Organisaatio"}},
+                {"translations": {"en": "Organization", "fi": "Organisaatio"}},
             )
             d["metric_mappings"].setdefault(
                 "metadata_scoring_engine",
-                {"default_locale": "en", "translations": {"en": "Scoring Engine", "fi": "Arviointimoottori"}},
+                {"translations": {"en": "Scoring Engine", "fi": "Arviointimoottori"}},
             )
             d["metric_mappings"].setdefault(
                 "metadata_strictness",
-                {"default_locale": "en", "translations": {"en": "Strictness Level", "fi": "Ankaruustaso"}},
+                {"translations": {"en": "Strictness Level", "fi": "Ankaruustaso"}},
             )
         for _k, v in d.items():
             fix_mock_dict(v)
@@ -158,8 +158,8 @@ def mock_repo_transformer() -> Any:
         {
             "id": "wf_1234abcd1234abcd",
             "slug": "wf_1",
-            "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}},
-            "description": {"default_locale": "en", "translations": {"en": "desc", "fi": "desc"}},
+            "name": {"translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}},
+            "description": {"translations": {"en": "desc", "fi": "desc"}},
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
@@ -170,12 +170,12 @@ def mock_repo_transformer() -> Any:
             "steps": [],
             "output_profiles": {
                 "prf_dddd1111dddd1111": {
-                    "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+                    "name": {"translations": {"en": "Default", "fi": "Default"}},
                     "layouts": [
                         {
                             "preset_view": "text_only",
                             "text_delivery_mode": "full",
-                            "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+                            "title": {"translations": {"en": "Title", "fi": "Title"}},
                             "target_blocks": ["*"],
                         }
                     ],
@@ -188,36 +188,34 @@ def mock_repo_transformer() -> Any:
             {
                 "id": "prf_dddd1111dddd1111",
                 "slug": "default",
-                "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+                "name": {"translations": {"en": "Default", "fi": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
                 "layouts": [
                     {
                         "preset_view": "text_only",
                         "text_delivery_mode": "full",
-                        "title": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+                        "title": {"translations": {"en": "Title", "fi": "Title"}},
                         "target_blocks": ["*"],
                         "description": None,
                     }
                 ],
                 "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
-                    "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
-                    "variance_total": {"default_locale": "en", "translations": {"en": "Variance"}},
-                    "alignment_verdict": {"default_locale": "en", "translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"default_locale": "en", "translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"default_locale": "en", "translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"default_locale": "en", "translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"default_locale": "en", "translations": {"en": "Authenticity Level"}},
-                    "level_high": {"default_locale": "en", "translations": {"en": "High"}},
-                    "level_medium": {"default_locale": "en", "translations": {"en": "Medium"}},
-                    "level_low": {"default_locale": "en", "translations": {"en": "Low"}},
+                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                    "variance_total": {"translations": {"en": "Variance"}},
+                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                    "level_high": {"translations": {"en": "High"}},
+                    "level_medium": {"translations": {"en": "Medium"}},
+                    "level_low": {"translations": {"en": "Low"}},
                     "authenticity_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0}"},
                     },
                     "variance_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0} {1}"},
                     },
                 },
@@ -239,16 +237,16 @@ def mock_repo_transformer() -> Any:
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
-                "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
+                "description": {"translations": {"fi": "Kuvaus", "en": "Description"}},
+                "label": {"translations": {"fi": "Logiikka", "en": "Logic"}},
                 "scales": [
                     {
                         "score": 0,
-                        "name": {"default_locale": "en", "translations": {"fi": "Ei mitään", "en": "Zero"}},
+                        "name": {"translations": {"fi": "Ei mitään", "en": "Zero"}},
                         "ai_label": "zero",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
+                                "label": {"translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                                 "tda_assertions": [
                                     {
@@ -263,11 +261,11 @@ def mock_repo_transformer() -> Any:
                     },
                     {
                         "score": 100,
-                        "name": {"default_locale": "en", "translations": {"fi": "Täysi", "en": "Full"}},
+                        "name": {"translations": {"fi": "Täysi", "en": "Full"}},
                         "ai_label": "full",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
+                                "label": {"translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                                 "tda_assertions": [
                                     {
@@ -293,27 +291,23 @@ def mock_repo_transformer() -> Any:
                 id="prf_dddd1111dddd1111",
                 slug="default",
                 workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(default_locale="en", translations={"en": "Default", "fi": "Default"}),
+                name=I18nText(translations={"en": "Default", "fi": "Default"}),
                 display_scale=DisplayScale.ORIGINAL,
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
                 metric_mappings={
-                    "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
-                    "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
-                    "variance_total": I18nText(default_locale="en", translations={"en": "Variance"}),
-                    "alignment_verdict": I18nText(default_locale="en", translations={"en": "Alignment Verdict"}),
-                    "alignment_aligned": I18nText(default_locale="en", translations={"en": "ALIGNED"}),
-                    "alignment_misaligned": I18nText(default_locale="en", translations={"en": "MISALIGNED"}),
-                    "jargon_score": I18nText(default_locale="en", translations={"en": "AI-Jargon Score"}),
-                    "authenticity_level": I18nText(default_locale="en", translations={"en": "Authenticity Level"}),
-                    "level_high": I18nText(default_locale="en", translations={"en": "High"}),
-                    "level_medium": I18nText(default_locale="en", translations={"en": "Medium"}),
-                    "level_low": I18nText(default_locale="en", translations={"en": "Low"}),
-                    "authenticity_fallback_explanation": I18nText(
-                        default_locale="en", translations={"en": "Fallback {0}"}
-                    ),
-                    "variance_fallback_explanation": I18nText(
-                        default_locale="en", translations={"en": "Fallback {0} {1}"}
-                    ),
+                    "variance_mechanical": I18nText(translations={"en": "Mechanical"}),
+                    "variance_cognitive": I18nText(translations={"en": "Cognitive"}),
+                    "variance_total": I18nText(translations={"en": "Variance"}),
+                    "alignment_verdict": I18nText(translations={"en": "Alignment Verdict"}),
+                    "alignment_aligned": I18nText(translations={"en": "ALIGNED"}),
+                    "alignment_misaligned": I18nText(translations={"en": "MISALIGNED"}),
+                    "jargon_score": I18nText(translations={"en": "AI-Jargon Score"}),
+                    "authenticity_level": I18nText(translations={"en": "Authenticity Level"}),
+                    "level_high": I18nText(translations={"en": "High"}),
+                    "level_medium": I18nText(translations={"en": "Medium"}),
+                    "level_low": I18nText(translations={"en": "Low"}),
+                    "authenticity_fallback_explanation": I18nText(translations={"en": "Fallback {0}"}),
+                    "variance_fallback_explanation": I18nText(translations={"en": "Fallback {0} {1}"}),
                 },
                 layouts=[
                     OutputLayoutBlock(
@@ -322,15 +316,9 @@ def mock_repo_transformer() -> Any:
                     )
                 ],
                 extension_labels={
-                    XaiExtensionType.REMEDIATION_STEPS: I18nText(
-                        default_locale="en", translations={"en": "Remediation", "fi": "Korjaus"}
-                    ),
-                    XaiExtensionType.COACHING: I18nText(
-                        default_locale="en", translations={"en": "Coaching", "fi": "Vinkki"}
-                    ),
-                    XaiExtensionType.RISK_FLAG: I18nText(
-                        default_locale="en", translations={"en": "Risk", "fi": "Riski"}
-                    ),
+                    XaiExtensionType.REMEDIATION_STEPS: I18nText(translations={"en": "Remediation", "fi": "Korjaus"}),
+                    XaiExtensionType.COACHING: I18nText(translations={"en": "Coaching", "fi": "Vinkki"}),
+                    XaiExtensionType.RISK_FLAG: I18nText(translations={"en": "Risk", "fi": "Riski"}),
                 },
                 visible_block_extensions=[
                     XaiExtensionType.REMEDIATION_STEPS,
@@ -354,16 +342,16 @@ def mock_repo_transformer() -> Any:
         "category_id": "matrix",
         "type": "float",
         "is_evaluative": True,
-        "description": {"default_locale": "en", "translations": {"fi": "Kuvaus", "en": "Description"}},
-        "label": {"default_locale": "en", "translations": {"fi": "Logiikka", "en": "Logic"}},
+        "description": {"translations": {"fi": "Kuvaus", "en": "Description"}},
+        "label": {"translations": {"fi": "Logiikka", "en": "Logic"}},
         "scales": [
             {
                 "score": 1,
-                "name": {"default_locale": "en", "translations": {"en": "1"}},
+                "name": {"translations": {"en": "1"}},
                 "ai_label": "1",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                        "label": {"translations": {"en": "claim"}},
                         "ai_description": "desc",
                         "tda_assertions": [
                             {
@@ -420,10 +408,10 @@ def mock_repo_microcot() -> Any:
         {
             "id": "wf_1234567890abcdef",
             "slug": "mock_workflow",
-            "description": {"default_locale": "en", "translations": {"en": "desc", "fi": "desc"}},
+            "description": {"translations": {"en": "desc", "fi": "desc"}},
             "status": "published",
             "version": 1,
-            "name": {"default_locale": "en", "translations": {"en": "Mock Workflow", "fi": "Mock Workflow"}},
+            "name": {"translations": {"en": "Mock Workflow", "fi": "Mock Workflow"}},
             "default_profile_id": "prf_1234567890abcdef",
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
@@ -433,7 +421,6 @@ def mock_repo_microcot() -> Any:
             "output_profiles": {
                 "prf_1234567890abcdef": {
                     "name": {
-                        "default_locale": "en",
                         "translations": {"en": "Default Profile", "fi": "Default Profile"},
                     },
                     "layouts": [
@@ -441,7 +428,6 @@ def mock_repo_microcot() -> Any:
                             "preset_view": "2d_compare",
                             "text_delivery_mode": "full",
                             "title": {
-                                "default_locale": "en",
                                 "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
                             },
                             "target_blocks": ["*"],
@@ -457,14 +443,13 @@ def mock_repo_microcot() -> Any:
             {
                 "id": "prf_1234567890abcdef",
                 "slug": "default",
-                "name": {"default_locale": "en", "translations": {"en": "Default Profile", "fi": "Default Profile"}},
+                "name": {"translations": {"en": "Default Profile", "fi": "Default Profile"}},
                 "workflow_id": "wf_1234567890abcdef",
                 "layouts": [
                     {
                         "preset_view": "2d_compare",
                         "text_delivery_mode": "full",
                         "title": {
-                            "default_locale": "en",
                             "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
                         },
                         "target_blocks": ["*"],
@@ -473,23 +458,21 @@ def mock_repo_microcot() -> Any:
                 ],
                 "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
-                    "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
-                    "variance_total": {"default_locale": "en", "translations": {"en": "Variance"}},
-                    "alignment_verdict": {"default_locale": "en", "translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"default_locale": "en", "translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"default_locale": "en", "translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"default_locale": "en", "translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"default_locale": "en", "translations": {"en": "Authenticity Level"}},
-                    "level_high": {"default_locale": "en", "translations": {"en": "High"}},
-                    "level_medium": {"default_locale": "en", "translations": {"en": "Medium"}},
-                    "level_low": {"default_locale": "en", "translations": {"en": "Low"}},
+                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                    "variance_total": {"translations": {"en": "Variance"}},
+                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                    "level_high": {"translations": {"en": "High"}},
+                    "level_medium": {"translations": {"en": "Medium"}},
+                    "level_low": {"translations": {"en": "Low"}},
                     "authenticity_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0}"},
                     },
                     "variance_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0} {1}"},
                     },
                 },
@@ -511,27 +494,27 @@ def mock_repo_microcot() -> Any:
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
-                "label": {"default_locale": "en", "translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},  # noqa: E501
+                "description": {"translations": {"en": "Description", "fi": "Description"}},
+                "label": {"translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},  # noqa: E501
                 "scales": [
                     {
                         "score": 0,
-                        "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
+                        "name": {"translations": {"en": "Zero", "fi": "Zero"}},
                         "ai_label": "zero",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
+                                "label": {"translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
                     },
                     {
                         "score": 3,
-                        "name": {"default_locale": "en", "translations": {"en": "Full", "fi": "Full"}},
+                        "name": {"translations": {"en": "Full", "fi": "Full"}},
                         "ai_label": "full",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
+                                "label": {"translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
@@ -546,27 +529,27 @@ def mock_repo_microcot() -> Any:
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
-                "label": {"default_locale": "en", "translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},  # noqa: E501
+                "description": {"translations": {"en": "Description", "fi": "Description"}},
+                "label": {"translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},  # noqa: E501
                 "scales": [
                     {
                         "score": 0,
-                        "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
+                        "name": {"translations": {"en": "Zero", "fi": "Zero"}},
                         "ai_label": "zero",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
+                                "label": {"translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
                     },
                     {
                         "score": 5,
-                        "name": {"default_locale": "en", "translations": {"en": "Full", "fi": "Full"}},
+                        "name": {"translations": {"en": "Full", "fi": "Full"}},
                         "ai_label": "full",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
+                                "label": {"translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
@@ -587,8 +570,8 @@ def mock_repo_sdui() -> AsyncMock:
         {
             "id": "wf_1234abcd1234abcd",
             "slug": "wf_test",
-            "name": {"default_locale": "en", "translations": {"en": "Mock", "fi": "Mock"}},
-            "description": {"default_locale": "en", "translations": {"en": "desc", "fi": "desc"}},
+            "name": {"translations": {"en": "Mock", "fi": "Mock"}},
+            "description": {"translations": {"en": "desc", "fi": "desc"}},
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_1234abcd1234abcd",
@@ -605,12 +588,12 @@ def mock_repo_sdui() -> AsyncMock:
                 "id": "prf_1234abcd1234abcd",
                 "slug": "default",
                 "workflow_id": "wf_1234abcd1234abcd",
-                "name": {"default_locale": "en", "translations": {"fi": "Oletus", "en": "Default"}},
+                "name": {"translations": {"fi": "Oletus", "en": "Default"}},
                 "layouts": [
                     {
                         "preset_view": "text_only",
                         "text_delivery_mode": "full",
-                        "title": {"default_locale": "en", "translations": {"en": "Metrics", "fi": "Metrics"}},
+                        "title": {"translations": {"en": "Metrics", "fi": "Metrics"}},
                         "steps": [],
                         "target_blocks": ["*"],
                         "description": None,
@@ -618,23 +601,21 @@ def mock_repo_sdui() -> AsyncMock:
                 ],
                 "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
-                    "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
-                    "variance_total": {"default_locale": "en", "translations": {"en": "Variance"}},
-                    "alignment_verdict": {"default_locale": "en", "translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"default_locale": "en", "translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"default_locale": "en", "translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"default_locale": "en", "translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"default_locale": "en", "translations": {"en": "Authenticity Level"}},
-                    "level_high": {"default_locale": "en", "translations": {"en": "High"}},
-                    "level_medium": {"default_locale": "en", "translations": {"en": "Medium"}},
-                    "level_low": {"default_locale": "en", "translations": {"en": "Low"}},
+                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                    "variance_total": {"translations": {"en": "Variance"}},
+                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                    "level_high": {"translations": {"en": "High"}},
+                    "level_medium": {"translations": {"en": "Medium"}},
+                    "level_low": {"translations": {"en": "Low"}},
                     "authenticity_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0}"},
                     },
                     "variance_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0} {1}"},
                     },
                 },
@@ -656,29 +637,29 @@ def mock_repo_sdui() -> AsyncMock:
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "description": {"default_locale": "en", "translations": {"en": "Description", "fi": "Description"}},
-                "label": {"default_locale": "en", "translations": {"en": "Metric Category", "fi": "Metric Category"}},
+                "description": {"translations": {"en": "Description", "fi": "Description"}},
+                "label": {"translations": {"en": "Metric Category", "fi": "Metric Category"}},
                 "computed_min": 0,
                 "computed_max": 5,
                 "scales": [
                     {
                         "score": 0,
-                        "name": {"default_locale": "en", "translations": {"en": "Zero", "fi": "Zero"}},
+                        "name": {"translations": {"en": "Zero", "fi": "Zero"}},
                         "ai_label": "zero",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
+                                "label": {"translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
                     },
                     {
                         "score": 5,
-                        "name": {"default_locale": "en", "translations": {"en": "Full", "fi": "Full"}},
+                        "name": {"translations": {"en": "Full", "fi": "Full"}},
                         "ai_label": "full",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim", "fi": "claim"}},
+                                "label": {"translations": {"en": "claim", "fi": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
@@ -866,8 +847,8 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         {
             "id": "wf_1234abcd1234abcd",
             "slug": "wf_1",
-            "name": {"default_locale": "en", "translations": {"en": "Workflow Name"}},
-            "description": {"default_locale": "en", "translations": {"en": "Workflow Desc"}},
+            "name": {"translations": {"en": "Workflow Name"}},
+            "description": {"translations": {"en": "Workflow Desc"}},
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
@@ -892,25 +873,25 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
-                "label": {"default_locale": "en", "translations": {"en": "Label"}},
+                "description": {"translations": {"en": "Desc"}},
+                "label": {"translations": {"en": "Label"}},
                 "scales": [
                     {
                         "score": 1,
-                        "name": {"default_locale": "en", "translations": {"en": "Min"}},
+                        "name": {"translations": {"en": "Min"}},
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"translations": {"en": "claim"}},
                                 "ai_description": "claim",
                             }
                         ],
                     },
                     {
                         "score": 5,
-                        "name": {"default_locale": "en", "translations": {"en": "Max"}},
+                        "name": {"translations": {"en": "Max"}},
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"translations": {"en": "claim"}},
                                 "ai_description": "claim",
                             }
                         ],
@@ -925,42 +906,40 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
             {
                 "id": "prf_dddd1111dddd1111",
                 "slug": "default",
-                "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+                "name": {"translations": {"en": "Default", "fi": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
                 "layouts": [
                     {
                         "preset_view": "text_only",
                         "text_delivery_mode": "full",
                         "target_blocks": ["*"],
-                        "title": {"default_locale": "en", "translations": {"en": "Title"}},
+                        "title": {"translations": {"en": "Title"}},
                     }
                 ],
                 "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
-                    "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
-                    "variance_total": {"default_locale": "en", "translations": {"en": "Variance"}},
-                    "alignment_verdict": {"default_locale": "en", "translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"default_locale": "en", "translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"default_locale": "en", "translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"default_locale": "en", "translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"default_locale": "en", "translations": {"en": "Authenticity Level"}},
-                    "level_high": {"default_locale": "en", "translations": {"en": "High"}},
-                    "level_medium": {"default_locale": "en", "translations": {"en": "Medium"}},
-                    "level_low": {"default_locale": "en", "translations": {"en": "Low"}},
+                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                    "variance_total": {"translations": {"en": "Variance"}},
+                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                    "level_high": {"translations": {"en": "High"}},
+                    "level_medium": {"translations": {"en": "Medium"}},
+                    "level_low": {"translations": {"en": "Low"}},
                     "authenticity_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0}"},
                     },
                     "variance_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0} {1}"},
                     },
                 },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
                 "extension_labels": {
-                    XaiExtensionType.VARIANCE_VALIDATION: {"default_locale": "en", "translations": {"en": "Variance"}},
+                    XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
                 },
                 "max_extension_items": 2,
                 "strictness_level": 85,
@@ -1032,35 +1011,33 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
             {
                 "id": "prf_dddd1111dddd1111",
                 "slug": "default",
-                "name": {"default_locale": "en", "translations": {"en": "Default", "fi": "Default"}},
+                "name": {"translations": {"en": "Default", "fi": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
                 "layouts": [],
                 "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
-                    "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
-                    "variance_total": {"default_locale": "en", "translations": {"en": "Variance"}},
-                    "alignment_verdict": {"default_locale": "en", "translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"default_locale": "en", "translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"default_locale": "en", "translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"default_locale": "en", "translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"default_locale": "en", "translations": {"en": "Authenticity Level"}},
-                    "level_high": {"default_locale": "en", "translations": {"en": "High"}},
-                    "level_medium": {"default_locale": "en", "translations": {"en": "Medium"}},
-                    "level_low": {"default_locale": "en", "translations": {"en": "Low"}},
+                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                    "variance_total": {"translations": {"en": "Variance"}},
+                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                    "level_high": {"translations": {"en": "High"}},
+                    "level_medium": {"translations": {"en": "Medium"}},
+                    "level_low": {"translations": {"en": "Low"}},
                     "authenticity_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0}"},
                     },
                     "variance_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0} {1}"},
                     },
                 },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
                 "extension_labels": {
-                    XaiExtensionType.VARIANCE_VALIDATION: {"default_locale": "en", "translations": {"en": "Variance"}},
+                    XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
                 },
                 "max_extension_items": 2,
                 "strictness_level": 85,
@@ -1152,8 +1129,8 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
         {
             "id": "wf_1234abcd1234abcd",
             "slug": "wf_1",
-            "name": {"default_locale": "en", "translations": {"en": "Workflow Name"}},
-            "description": {"default_locale": "en", "translations": {"en": "Workflow Desc"}},
+            "name": {"translations": {"en": "Workflow Name"}},
+            "description": {"translations": {"en": "Workflow Desc"}},
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
@@ -1179,25 +1156,25 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
-                "label": {"default_locale": "en", "translations": {"en": "Label"}},
+                "description": {"translations": {"en": "Desc"}},
+                "label": {"translations": {"en": "Label"}},
                 "scales": [
                     {
                         "score": 1,
-                        "name": {"default_locale": "en", "translations": {"en": "Min"}},
+                        "name": {"translations": {"en": "Min"}},
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"translations": {"en": "claim"}},
                                 "ai_description": "claim",
                             }
                         ],
                     },
                     {
                         "score": 5,
-                        "name": {"default_locale": "en", "translations": {"en": "Max"}},
+                        "name": {"translations": {"en": "Max"}},
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"translations": {"en": "claim"}},
                                 "ai_description": "claim",
                             }
                         ],
@@ -1212,42 +1189,40 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             {
                 "id": "prf_dddd1111dddd1111",
                 "slug": "default",
-                "name": {"default_locale": "en", "translations": {"en": "Default"}},
+                "name": {"translations": {"en": "Default"}},
                 "workflow_id": "wf_1234abcd1234abcd",
                 "layouts": [
                     {
                         "preset_view": "text_only",
                         "text_delivery_mode": "full",
                         "target_blocks": ["*"],
-                        "title": {"default_locale": "en", "translations": {"en": "Title"}},
+                        "title": {"translations": {"en": "Title"}},
                     }
                 ],
                 "display_scale": DisplayScale.ORIGINAL,
                 "metric_mappings": {
-                    "variance_mechanical": {"default_locale": "en", "translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"default_locale": "en", "translations": {"en": "Cognitive"}},
-                    "variance_total": {"default_locale": "en", "translations": {"en": "Variance"}},
-                    "alignment_verdict": {"default_locale": "en", "translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"default_locale": "en", "translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"default_locale": "en", "translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"default_locale": "en", "translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"default_locale": "en", "translations": {"en": "Authenticity Level"}},
-                    "level_high": {"default_locale": "en", "translations": {"en": "High"}},
-                    "level_medium": {"default_locale": "en", "translations": {"en": "Medium"}},
-                    "level_low": {"default_locale": "en", "translations": {"en": "Low"}},
+                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                    "variance_total": {"translations": {"en": "Variance"}},
+                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                    "level_high": {"translations": {"en": "High"}},
+                    "level_medium": {"translations": {"en": "Medium"}},
+                    "level_low": {"translations": {"en": "Low"}},
                     "authenticity_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0}"},
                     },
                     "variance_fallback_explanation": {
-                        "default_locale": "en",
                         "translations": {"en": "Fallback {0} {1}"},
                     },
                 },
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
                 "extension_labels": {
-                    XaiExtensionType.VARIANCE_VALIDATION: {"default_locale": "en", "translations": {"en": "Variance"}},
+                    XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
                 },
                 "max_extension_items": 2,
                 "strictness_level": 85,
@@ -1309,7 +1284,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         id="prf_dddd1111dddd1111",
         slug="default",
         workflow_id="wf_1234abcd1234abcd",
-        name=I18nText(default_locale="en", translations={"en": "Default"}),
+        name=I18nText(translations={"en": "Default"}),
         display_scale=DisplayScale.ORIGINAL,
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         layouts=[
@@ -1323,8 +1298,8 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
             ),
         ],
         extension_labels={
-            XaiExtensionType.REMEDIATION_STEPS: I18nText(default_locale="en", translations={"en": "Remediation"}),
-            XaiExtensionType.FALSIFICATION: I18nText(default_locale="en", translations={"en": "Falsification"}),
+            XaiExtensionType.REMEDIATION_STEPS: I18nText(translations={"en": "Remediation"}),
+            XaiExtensionType.FALSIFICATION: I18nText(translations={"en": "Falsification"}),
         },
         visible_block_extensions=[XaiExtensionType.REMEDIATION_STEPS, XaiExtensionType.FALSIFICATION],
     )
@@ -1403,7 +1378,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         id="prf_dddd1111dddd1111",
         slug="default",
         workflow_id="wf_1234abcd1234abcd",
-        name=I18nText(default_locale="en", translations={"en": "Default"}),
+        name=I18nText(translations={"en": "Default"}),
         display_scale=DisplayScale.ORIGINAL,
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         layouts=[
@@ -1417,7 +1392,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
             ),
         ],
         extension_labels={
-            XaiExtensionType.COACHING: I18nText(default_locale="en", translations={"en": "Coaching"}),
+            XaiExtensionType.COACHING: I18nText(translations={"en": "Coaching"}),
         },
         visible_block_extensions=[XaiExtensionType.COACHING],
     )
@@ -1594,27 +1569,23 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 id="prf_dddd1111dddd1111",
                 slug="default",
                 workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(default_locale="en", translations={"en": "Default"}),
+                name=I18nText(translations={"en": "Default"}),
                 display_scale=DisplayScale.ORIGINAL,
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
                 metric_mappings={
-                    "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
-                    "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
-                    "variance_total": I18nText(default_locale="en", translations={"en": "Variance"}),
-                    "alignment_verdict": I18nText(default_locale="en", translations={"en": "Alignment Verdict"}),
-                    "alignment_aligned": I18nText(default_locale="en", translations={"en": "ALIGNED"}),
-                    "alignment_misaligned": I18nText(default_locale="en", translations={"en": "MISALIGNED"}),
-                    "jargon_score": I18nText(default_locale="en", translations={"en": "AI-Jargon Score"}),
-                    "authenticity_level": I18nText(default_locale="en", translations={"en": "Authenticity Level"}),
-                    "level_high": I18nText(default_locale="en", translations={"en": "High"}),
-                    "level_medium": I18nText(default_locale="en", translations={"en": "Medium"}),
-                    "level_low": I18nText(default_locale="en", translations={"en": "Low"}),
-                    "authenticity_fallback_explanation": I18nText(
-                        default_locale="en", translations={"en": "Fallback {0}"}
-                    ),
-                    "variance_fallback_explanation": I18nText(
-                        default_locale="en", translations={"en": "Fallback {0} {1}"}
-                    ),
+                    "variance_mechanical": I18nText(translations={"en": "Mechanical"}),
+                    "variance_cognitive": I18nText(translations={"en": "Cognitive"}),
+                    "variance_total": I18nText(translations={"en": "Variance"}),
+                    "alignment_verdict": I18nText(translations={"en": "Alignment Verdict"}),
+                    "alignment_aligned": I18nText(translations={"en": "ALIGNED"}),
+                    "alignment_misaligned": I18nText(translations={"en": "MISALIGNED"}),
+                    "jargon_score": I18nText(translations={"en": "AI-Jargon Score"}),
+                    "authenticity_level": I18nText(translations={"en": "Authenticity Level"}),
+                    "level_high": I18nText(translations={"en": "High"}),
+                    "level_medium": I18nText(translations={"en": "Medium"}),
+                    "level_low": I18nText(translations={"en": "Low"}),
+                    "authenticity_fallback_explanation": I18nText(translations={"en": "Fallback {0}"}),
+                    "variance_fallback_explanation": I18nText(translations={"en": "Fallback {0} {1}"}),
                 },
                 layouts=[
                     OutputLayoutBlock(
@@ -1629,9 +1600,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 visible_block_extensions=[],
                 visible_workflow_extensions=[XaiExtensionType.AUTHENTICITY_EVALUATION],
                 extension_labels={
-                    XaiExtensionType.AUTHENTICITY_EVALUATION: I18nText(
-                        default_locale="en", translations={"en": "Authenticity"}
-                    ),
+                    XaiExtensionType.AUTHENTICITY_EVALUATION: I18nText(translations={"en": "Authenticity"}),
                 },
                 max_extension_items=2,
                 strictness_level=85,
@@ -1687,31 +1656,31 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
             {
                 "id": "blk_0000000000000002",
                 "slug": "matrix_test",
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "description": {"translations": {"en": "Desc"}},
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "label": {"default_locale": "en", "translations": {"en": "Label"}},
+                "label": {"translations": {"en": "Label"}},
                 "computed_min": 0,
                 "computed_max": 5,
                 # Intentionally omitting scale_min and scale_max
                 "scales": [
                     {
                         "score": 0,
-                        "name": {"default_locale": "en", "translations": {"en": "Zero"}},
+                        "name": {"translations": {"en": "Zero"}},
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "Claim"}},
+                                "label": {"translations": {"en": "Claim"}},
                                 "ai_description": "test",
                             }
                         ],
                     },
                     {
                         "score": 5,
-                        "name": {"default_locale": "en", "translations": {"en": "Five"}},
+                        "name": {"translations": {"en": "Five"}},
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "Claim"}},
+                                "label": {"translations": {"en": "Claim"}},
                                 "ai_description": "test",
                             }
                         ],
@@ -1727,7 +1696,7 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
                 id="prf_dddd1111dddd1111",
                 slug="default",
                 workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(default_locale="en", translations={"en": "Default"}),
+                name=I18nText(translations={"en": "Default"}),
                 display_scale=DisplayScale.CUSTOM,
                 custom_scale_min=None,
                 custom_scale_max=None,
@@ -1781,7 +1750,7 @@ async def test_blueprint_transformer_unrecognized_text_delivery_mode(mock_repo_t
                 id="prf_dddd1111dddd1111",
                 slug="default",
                 workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(default_locale="en", translations={"en": "Default"}),
+                name=I18nText(translations={"en": "Default"}),
                 display_scale=DisplayScale.ORIGINAL,
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
                 metric_mappings={},
@@ -1858,7 +1827,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         id="prf_1111111111111111",
         slug="test",
         workflow_id="wf_1111111111111111",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         display_scale=DisplayScale.CUSTOM,
         custom_scale_min=1.0,
         custom_scale_max=5.0,
@@ -1907,10 +1876,10 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         ),
     ]
 
-    mock_label = I18nText(default_locale="en", translations={"en": "Logic"})
-    mock_desc = I18nText(default_locale="en", translations={"en": "Description"})
-    mock_name = I18nText(default_locale="en", translations={"en": "Full"})
-    mock_claim = I18nText(default_locale="en", translations={"en": "claim"})
+    mock_label = I18nText(translations={"en": "Logic"})
+    mock_desc = I18nText(translations={"en": "Description"})
+    mock_name = I18nText(translations={"en": "Full"})
+    mock_claim = I18nText(translations={"en": "claim"})
 
     mock_matrix_pb = MatrixPromptBlock(
         id="blk_1234abcd1234abcd",
@@ -1925,7 +1894,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
             MatrixScale(
                 score=0,
                 ai_label="Fail",
-                name=I18nText(default_locale="en", translations={"en": "Fail"}),
+                name=I18nText(translations={"en": "Fail"}),
                 claims=[
                     MatrixClaim(
                         label=mock_claim,
@@ -2010,7 +1979,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         id="prf_1111111111111111",
         slug="test",
         workflow_id="wf_1111111111111111",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         display_scale=DisplayScale.ORIGINAL,
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         layouts=[],
@@ -2019,10 +1988,10 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     valid_scale_0 = MatrixScale(
         score=0,
         ai_label="Fail",
-        name=I18nText(default_locale="en", translations={"en": "Fail"}),
+        name=I18nText(translations={"en": "Fail"}),
         claims=[
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": "claim"}),
+                label=I18nText(translations={"en": "claim"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id="tda_00000000000000000000000000000000",
@@ -2037,10 +2006,10 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     valid_scale_100 = MatrixScale(
         score=100,
         ai_label="Full",
-        name=I18nText(default_locale="en", translations={"en": "Full"}),
+        name=I18nText(translations={"en": "Full"}),
         claims=[
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": "claim"}),
+                label=I18nText(translations={"en": "claim"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id="tda_11111111111111111111111111111111",
@@ -2058,8 +2027,8 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         is_evaluative=True,
-        description=I18nText(default_locale="en", translations={"en": "desc"}),
-        label=I18nText(default_locale="en", translations={"en": "Logic"}),
+        description=I18nText(translations={"en": "desc"}),
+        label=I18nText(translations={"en": "Logic"}),
         scales=[valid_scale_0, valid_scale_100],
     )
 
@@ -2092,7 +2061,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         is_evaluative=True,
-        description=I18nText(default_locale="en", translations={"en": "desc"}),
+        description=I18nText(translations={"en": "desc"}),
         label=None,
         scales=[valid_scale_0, valid_scale_100],
     )
@@ -2114,8 +2083,8 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         is_evaluative=True,
-        description=I18nText(default_locale="en", translations={"en": "desc"}),
-        label=I18nText(default_locale="en", translations={"en": "Logic"}),
+        description=I18nText(translations={"en": "desc"}),
+        label=I18nText(translations={"en": "Logic"}),
         scales=[],
     )
     with pytest.raises(AppException) as exc:
@@ -2131,8 +2100,8 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         is_evaluative=True,
-        description=I18nText(default_locale="en", translations={"en": "desc"}),
-        label=I18nText(default_locale="en", translations={"en": "Logic"}),
+        description=I18nText(translations={"en": "desc"}),
+        label=I18nText(translations={"en": "Logic"}),
         scales=[MatrixScale.model_construct(score=100, name=None)],
         computed_min=0,
         computed_max=100,
@@ -2197,20 +2166,20 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
             {
                 "id": "blk_1234abcd1234abcd",
                 "slug": "matrix_test",
-                "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+                "description": {"translations": {"en": "Desc"}},
                 "category_id": "matrix",
                 "type": "float",
                 "is_evaluative": True,
-                "label": {"default_locale": "en", "translations": {"en": "Label"}},
+                "label": {"translations": {"en": "Label"}},
                 "computed_min": 0,
                 "computed_max": 100,
                 "scales": [
                     {
                         "score": 100,
-                        "name": {"default_locale": "en", "translations": {"en": "Full"}},
+                        "name": {"translations": {"en": "Full"}},
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                                "label": {"translations": {"en": "claim"}},
                                 "ai_description": "desc",
                             }
                         ],
@@ -2228,7 +2197,7 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
                 id="prf_dddd1111dddd1111",
                 slug="default",
                 workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(default_locale="en", translations={"en": "Default"}),
+                name=I18nText(translations={"en": "Default"}),
                 display_scale=DisplayScale.NORMALIZED_100,
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
                 metric_mappings={},
@@ -2283,17 +2252,11 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         id="prf_1111222233334444",
         slug="test-profile",
         workflow_id="wf_1234abcd1234abcd",
-        name=I18nText(default_locale="fi", translations={"fi": "Testiprofiili", "en": "Test Profile"}),
-        description=I18nText(default_locale="fi", translations={"fi": "Testikuvaus", "en": "Test Description"}),
-        user_role_label=I18nText(default_locale="fi", translations={"fi": "Kohderyhmä", "en": "Target Audience"}),
-        user_role_mappings={
-            "ROLE_ARCHITECT": I18nText(
-                default_locale="fi", translations={"fi": "Pääarkkitehti", "en": "Lead Architect"}
-            )
-        },
-        custom_preface=I18nText(
-            default_locale="fi", translations={"fi": "Mukautettu esipuhe.", "en": "Custom preface."}
-        ),
+        name=I18nText(translations={"fi": "Testiprofiili", "en": "Test Profile"}),
+        description=I18nText(translations={"fi": "Testikuvaus", "en": "Test Description"}),
+        user_role_label=I18nText(translations={"fi": "Kohderyhmä", "en": "Target Audience"}),
+        user_role_mappings={"ROLE_ARCHITECT": I18nText(translations={"fi": "Pääarkkitehti", "en": "Lead Architect"})},
+        custom_preface=I18nText(translations={"fi": "Mukautettu esipuhe.", "en": "Custom preface."}),
         visible_metadata=["user", "date", "scoring_engine"],
         visible_block_extensions=[XaiExtensionType.COACHING, XaiExtensionType.FALSIFICATION],
         max_extension_items=2,
@@ -2310,28 +2273,18 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
             OutputLayoutBlock(
                 preset_view="1d_metrics",
                 text_delivery_mode="full",
-                title=I18nText(default_locale="fi", translations={"fi": "Mittarit", "en": "Metrics"}),
+                title=I18nText(translations={"fi": "Mittarit", "en": "Metrics"}),
             )
         ],
         metric_mappings={
-            "metadata_user": I18nText(default_locale="fi", translations={"fi": "Käyttäjä", "en": "User"}),
-            "metadata_organization": I18nText(
-                default_locale="fi", translations={"fi": "Organisaatio", "en": "Organization"}
-            ),
-            "metadata_scoring_engine": I18nText(
-                default_locale="fi", translations={"fi": "Arviointimoottori", "en": "Scoring Engine"}
-            ),
-            "metadata_strictness": I18nText(
-                default_locale="fi", translations={"fi": "Ankaruustaso", "en": "Strictness Level"}
-            ),
+            "metadata_user": I18nText(translations={"fi": "Käyttäjä", "en": "User"}),
+            "metadata_organization": I18nText(translations={"fi": "Organisaatio", "en": "Organization"}),
+            "metadata_scoring_engine": I18nText(translations={"fi": "Arviointimoottori", "en": "Scoring Engine"}),
+            "metadata_strictness": I18nText(translations={"fi": "Ankaruustaso", "en": "Strictness Level"}),
         },
         extension_labels={
-            XaiExtensionType.COACHING: I18nText(
-                default_locale="fi", translations={"fi": "Valmennusvinkit", "en": "Coaching Tips"}
-            ),
-            XaiExtensionType.FALSIFICATION: I18nText(
-                default_locale="fi", translations={"fi": "Falsifiointi", "en": "Falsification"}
-            ),
+            XaiExtensionType.COACHING: I18nText(translations={"fi": "Valmennusvinkit", "en": "Coaching Tips"}),
+            XaiExtensionType.FALSIFICATION: I18nText(translations={"fi": "Falsifiointi", "en": "Falsification"}),
         },
     )
 
@@ -2398,7 +2351,7 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_1234abcd1234abcd",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
         layouts=[],
@@ -2529,7 +2482,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_1234abcd1234abcd",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],  # Empty target_block_order to test fallback radar block
         layouts=[],
@@ -2614,7 +2567,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_1234abcd1234abcd",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
         layouts=[],
@@ -2691,22 +2644,16 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_1234abcd1234abcd",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
         layouts=[],
         user_role_mappings={},
         metric_mappings={
-            "metadata_user": I18nText(default_locale="en", translations={"en": "User", "fi": "Käyttäjä"}),
-            "metadata_organization": I18nText(
-                default_locale="en", translations={"en": "Organization", "fi": "Organisaatio"}
-            ),
-            "metadata_scoring_engine": I18nText(
-                default_locale="en", translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}
-            ),
-            "metadata_strictness": I18nText(
-                default_locale="en", translations={"en": "Strictness", "fi": "Ankaruustaso"}
-            ),
+            "metadata_user": I18nText(translations={"en": "User", "fi": "Käyttäjä"}),
+            "metadata_organization": I18nText(translations={"en": "Organization", "fi": "Organisaatio"}),
+            "metadata_scoring_engine": I18nText(translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
+            "metadata_strictness": I18nText(translations={"en": "Strictness", "fi": "Ankaruustaso"}),
         },
     )
     mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
@@ -2815,22 +2762,16 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_1234abcd1234abcd",
-        name=I18nText(default_locale="en", translations={"en": "Test", "fi": "Testi"}),
+        name=I18nText(translations={"en": "Test", "fi": "Testi"}),
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
         layouts=[],
         user_role_mappings={},
         metric_mappings={
-            "metadata_user": I18nText(default_locale="en", translations={"en": "User", "fi": "Käyttäjä"}),
-            "metadata_organization": I18nText(
-                default_locale="en", translations={"en": "Organization", "fi": "Organisaatio"}
-            ),
-            "metadata_scoring_engine": I18nText(
-                default_locale="en", translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}
-            ),
-            "metadata_strictness": I18nText(
-                default_locale="en", translations={"en": "Strictness", "fi": "Ankaruustaso"}
-            ),
+            "metadata_user": I18nText(translations={"en": "User", "fi": "Käyttäjä"}),
+            "metadata_organization": I18nText(translations={"en": "Organization", "fi": "Organisaatio"}),
+            "metadata_scoring_engine": I18nText(translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
+            "metadata_strictness": I18nText(translations={"en": "Strictness", "fi": "Ankaruustaso"}),
         },
     )
     mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
@@ -2946,8 +2887,8 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         id="prf_99998888777766665555444433332222",
         slug="starvation-profile",
         workflow_id="wf_1234abcd1234abcd1234abcd1234abcd",
-        name=I18nText(default_locale="en", translations={"en": "Report", "fi": "Talousraportti"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Kuvaus"}),
+        name=I18nText(translations={"en": "Report", "fi": "Talousraportti"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         target_block_order=[
             TargetBlockType.METADATA_BLOCK,
             TargetBlockType.MATRIX_GRAPHS_BLOCK,
@@ -2957,16 +2898,10 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         content_blocks=[],
         layouts=[],
         metric_mappings={
-            "metadata_user": I18nText(default_locale="en", translations={"en": "User", "fi": "Käyttäjä"}),
-            "metadata_organization": I18nText(
-                default_locale="en", translations={"en": "Organization", "fi": "Organisaatio"}
-            ),
-            "metadata_scoring_engine": I18nText(
-                default_locale="en", translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}
-            ),
-            "metadata_strictness": I18nText(
-                default_locale="en", translations={"en": "Strictness", "fi": "Ankaruustaso"}
-            ),
+            "metadata_user": I18nText(translations={"en": "User", "fi": "Käyttäjä"}),
+            "metadata_organization": I18nText(translations={"en": "Organization", "fi": "Organisaatio"}),
+            "metadata_scoring_engine": I18nText(translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
+            "metadata_strictness": I18nText(translations={"en": "Strictness", "fi": "Ankaruustaso"}),
         },
     )
     mock_repo_transformer.get_all_output_profiles.return_value = [profile]

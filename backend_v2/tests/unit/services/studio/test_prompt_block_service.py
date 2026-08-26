@@ -52,8 +52,8 @@ async def test_list_prompt_blocks_success(
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -70,7 +70,7 @@ async def test_list_prompt_blocks_corrupt_data_raises_app_exception(
     corrupt_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
+        "label": {"translations": {"en": "Block"}},
     }
     mock_seed_prompt_block_repo.get_all_prompt_blocks.return_value = [corrupt_data]
     with pytest.raises(AppException) as exc_info:
@@ -85,8 +85,8 @@ async def test_list_prompt_blocks_tenant_filtering(
     blk_org = {
         "id": "blk_1111222233334444",
         "slug": "blk_org",
-        "label": {"default_locale": "en", "translations": {"en": "Org Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Org Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -94,8 +94,8 @@ async def test_list_prompt_blocks_tenant_filtering(
     blk_other_org = {
         "id": "blk_5555666677778888",
         "slug": "blk_other",
-        "label": {"default_locale": "en", "translations": {"en": "Other Org Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Other Org Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_other_999",
@@ -112,8 +112,8 @@ async def test_get_prompt_block_success(
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -140,8 +140,8 @@ async def test_get_prompt_block_tenant_isolation_fails(
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -158,8 +158,8 @@ async def test_save_prompt_block_success(
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -178,8 +178,8 @@ async def test_save_prompt_block_missing_after_save_raises(
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -198,8 +198,8 @@ async def test_delete_prompt_block_success(
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -246,8 +246,8 @@ async def test_clone_prompt_block_success(
         "blk_1234567890abcdef12": {
             "id": "blk_1234567890abcdef12",
             "slug": "blk_1",
-            "label": {"default_locale": "en", "translations": {"en": "Block"}},
-            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+            "label": {"translations": {"en": "Block"}},
+            "description": {"translations": {"en": "Desc"}},
             "category_id": "agent_role",
             "type": "string",
             "organization_id": "org_123",

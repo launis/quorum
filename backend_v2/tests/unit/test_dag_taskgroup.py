@@ -22,8 +22,8 @@ def mock_repo() -> AsyncMock:
         "type": "logic",
         "model_strategy": "logic",
         "slug": "mock",
-        "name": {"default_locale": "en", "translations": {"en": "mock"}},
-        "description": {"default_locale": "en", "translations": {"en": "mock"}},
+        "name": {"translations": {"en": "mock"}},
+        "description": {"translations": {"en": "mock"}},
         "hook": "mock_hook",
     }
 
@@ -67,8 +67,8 @@ async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMoc
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "TG Test", "fi": "TG Test"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        name=I18nText(translations={"en": "TG Test", "fi": "TG Test"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             # Two independent steps running in parallel without depends_on
             StepRule(id="step_ffff1111ffff1111", task_blueprint="bp_fail"),
@@ -135,8 +135,8 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "TG Test", "fi": "TG Test"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        name=I18nText(translations={"en": "TG Test", "fi": "TG Test"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             StepRule(id="step_aaaa1111aaaa1111", task_blueprint="bp_fail"),
             StepRule(id="step_cccc3333cccc3333", task_blueprint="bp_dep", depends_on=["step_aaaa1111aaaa1111"]),
@@ -205,8 +205,8 @@ async def test_step_transient_failure_exhausts_retries(mock_repo: AsyncMock, moc
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "TG Test", "fi": "TG Test"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        name=I18nText(translations={"en": "TG Test", "fi": "TG Test"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             StepRule(id="step_ffaa9999ffaa9999", task_blueprint="bp_retry"),
         ],

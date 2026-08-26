@@ -16,13 +16,10 @@ void main() {
         const MatrixScale(
           score: 1,
           aiLabel: 'LOW',
-          name: I18nText(defaultLocale: 'en', translations: {'en': 'Terrible'}),
+          name: I18nText(translations: {'en': 'Terrible'}),
           claims: [
             MatrixClaim(
-              label: const I18nText(
-                defaultLocale: 'en',
-                translations: {'en': 'Claim 1'},
-              ),
+              label: const I18nText(translations: {'en': 'Claim 1'}),
               tdaAssertions: [
                 const TDAAssertion(
                   tdaId: 'tda_1',
@@ -43,10 +40,7 @@ void main() {
         const MatrixScale(
           score: 5,
           aiLabel: 'HIGH',
-          name: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Excellent'},
-          ),
+          name: I18nText(translations: {'en': 'Excellent'}),
           claims: [],
         ),
       ];

@@ -24,10 +24,7 @@ void main() {
     return OutputProfile(
       id: 'prf_test',
       workflowId: 'wf_test',
-      name: const I18nText(
-        defaultLocale: 'en',
-        translations: {'en': 'Test Profile'},
-      ),
+      name: const I18nText(translations: {'en': 'Test Profile'}),
       maxExtensionItems: maxExtensionItems,
       layouts: layouts,
       visibleMetadata: visibleMetadata,

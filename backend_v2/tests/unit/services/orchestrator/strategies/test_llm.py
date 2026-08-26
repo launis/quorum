@@ -18,7 +18,7 @@ def mock_repo() -> MagicMock:
         return_value={
             "id": "prof_0123456789abcdef0123456789abcdef",
             "slug": "test",
-            "name": {"default_locale": "en", "translations": {"en": "Test"}},
+            "name": {"translations": {"en": "Test"}},
             "workflow_id": "wf_123",
             "organization_id": "root",
         }
@@ -27,8 +27,8 @@ def mock_repo() -> MagicMock:
         return_value={
             "id": "wf_0123456789abcdef",
             "slug": "test",
-            "name": {"default_locale": "en", "translations": {"en": "Test"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test"}},
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
             "status": "draft",
             "version": 1,
             "default_profile_id": "prof",
@@ -151,8 +151,8 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test", "fi": "Test"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
@@ -203,8 +203,8 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test", "fi": "Test"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["missing_block_999"],
@@ -218,8 +218,8 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
             "slug": "zero_trust_extraction_protocol",
             "category_id": "system_rule",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
             "ai_description": "Strict extraction protocol.",
         }
     ]
@@ -275,8 +275,8 @@ async def test_execute_success_path_structured_output(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test", "fi": "Test"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
@@ -289,8 +289,8 @@ async def test_execute_success_path_structured_output(
             "slug": "test_block",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Label", "fi": "Label"}},
-            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "label": {"translations": {"en": "Label", "fi": "Label"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "ai_description": "Test Block AI Desc",
         },
         {
@@ -298,16 +298,16 @@ async def test_execute_success_path_structured_output(
             "slug": "zero_trust_extraction_protocol",
             "category_id": "system_rule",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
             "ai_description": "Strict extraction protocol.",
         },
     ]
     mock_repo.get_workflow.return_value = {
         "id": "wf_0123456789abcdef0123456789abcdef",
         "slug": "test",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test", "fi": "Test"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prf_123",
@@ -380,8 +380,8 @@ async def test_llm_strategy_missing_atoms_crash(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_matrix",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "model_strategy": "standard",
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_2222222222222222",
@@ -393,15 +393,15 @@ async def test_llm_strategy_missing_atoms_crash(
             "slug": "matrix_block",
             "category_id": "matrix",
             "type": "float",
-            "label": {"default_locale": "en", "translations": {"en": "Test"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test"}},
+            "label": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
             "scales": [
                 {
                     "score": 1,
                     "ai_label": "bad",
                     "claims": [
                         {
-                            "label": {"default_locale": "en", "translations": {"en": "Test"}},
+                            "label": {"translations": {"en": "Test"}},
                             "tda_assertions": [
                                 {
                                     "inverse_evidence": False,
@@ -417,7 +417,7 @@ async def test_llm_strategy_missing_atoms_crash(
                     "ai_label": "good",
                     "claims": [
                         {
-                            "label": {"default_locale": "en", "translations": {"en": "Test"}},
+                            "label": {"translations": {"en": "Test"}},
                             "tda_assertions": [
                                 {
                                     "inverse_evidence": False,
@@ -435,8 +435,8 @@ async def test_llm_strategy_missing_atoms_crash(
             "slug": "system_block",
             "category_id": "system_rule",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Test"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test"}},
+            "label": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
         },
     ]
     mock_hook_state = MagicMock()
@@ -489,8 +489,8 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_matrix",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "model_strategy": "standard",
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_2222222222222222",
@@ -502,15 +502,15 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
             "slug": "matrix_block",
             "category_id": "matrix",
             "type": "float",
-            "label": {"default_locale": "en", "translations": {"en": "Test"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test"}},
+            "label": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
             "scales": [
                 {
                     "score": 1,
                     "ai_label": "bad",
                     "claims": [
                         {
-                            "label": {"default_locale": "en", "translations": {"en": "Test"}},
+                            "label": {"translations": {"en": "Test"}},
                             "tda_assertions": [
                                 {
                                     "inverse_evidence": False,
@@ -526,7 +526,7 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
                     "ai_label": "good",
                     "claims": [
                         {
-                            "label": {"default_locale": "en", "translations": {"en": "Test"}},
+                            "label": {"translations": {"en": "Test"}},
                             "tda_assertions": [
                                 {
                                     "inverse_evidence": False,
@@ -544,8 +544,8 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
             "slug": "system_block",
             "category_id": "system_rule",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Test"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test"}},
+            "label": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
         },
     ]
 
@@ -580,8 +580,8 @@ async def test_execute_with_role_and_persona_and_protocol(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "full_step",
-        "name": {"default_locale": "en", "translations": {"en": "Full Step", "fi": "Täysi vaihe"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Kuvaus"}},
+        "name": {"translations": {"en": "Full Step", "fi": "Täysi vaihe"}},
+        "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
         "role_block_id": "blk_1111111111111111",
         "execution_persona_block_id": "blk_2222222222222222",
         "extraction_protocol_block_id": "blk_3333333333333333",
@@ -595,8 +595,8 @@ async def test_execute_with_role_and_persona_and_protocol(
             "slug": "role_lead",
             "category_id": "agent_role",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Role"}},
-            "description": {"default_locale": "en", "translations": {"en": "Role"}},
+            "label": {"translations": {"en": "Role"}},
+            "description": {"translations": {"en": "Role"}},
             "ai_description": "Act as an expert auditor.",
         },
         {
@@ -604,8 +604,8 @@ async def test_execute_with_role_and_persona_and_protocol(
             "slug": "persona_strict",
             "category_id": "execution_persona",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Persona"}},
-            "description": {"default_locale": "en", "translations": {"en": "Persona"}},
+            "label": {"translations": {"en": "Persona"}},
+            "description": {"translations": {"en": "Persona"}},
             "ai_description": "Strict Persona.",
         },
         {
@@ -613,8 +613,8 @@ async def test_execute_with_role_and_persona_and_protocol(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
         {
@@ -622,8 +622,8 @@ async def test_execute_with_role_and_persona_and_protocol(
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate clarity.",
         },
     ]
@@ -631,8 +631,8 @@ async def test_execute_with_role_and_persona_and_protocol(
     mock_repo.get_workflow.return_value = {
         "id": "wf_0123456789abcdef0123456789abcdef",
         "slug": "test_wf",
-        "name": {"default_locale": "en", "translations": {"en": "Workflow"}},
-        "description": {"default_locale": "en", "translations": {"en": "Workflow"}},
+        "name": {"translations": {"en": "Workflow"}},
+        "description": {"translations": {"en": "Workflow"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_123",
@@ -726,8 +726,8 @@ async def test_execute_synthesis_engine_path(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "synth_step",
-        "name": {"default_locale": "en", "translations": {"en": "Synth"}},
-        "description": {"default_locale": "en", "translations": {"en": "Synth"}},
+        "name": {"translations": {"en": "Synth"}},
+        "description": {"translations": {"en": "Synth"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -740,8 +740,8 @@ async def test_execute_synthesis_engine_path(
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate.",
         },
         {
@@ -749,8 +749,8 @@ async def test_execute_synthesis_engine_path(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -827,8 +827,8 @@ async def test_execute_anomaly_retry_flow(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "retry_step",
-        "name": {"default_locale": "en", "translations": {"en": "Retry"}},
-        "description": {"default_locale": "en", "translations": {"en": "Retry"}},
+        "name": {"translations": {"en": "Retry"}},
+        "description": {"translations": {"en": "Retry"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -841,8 +841,8 @@ async def test_execute_anomaly_retry_flow(
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate.",
         },
         {
@@ -850,8 +850,8 @@ async def test_execute_anomaly_retry_flow(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -935,8 +935,8 @@ async def test_execute_fails_fast_on_missing_role_block(llm_strategy: LLMNodeStr
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "role_block_id": "blk_1111111111111111",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -985,8 +985,8 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "role_block_id": None,
         "execution_persona_block_id": "blk_2222222222222222",
         "extraction_protocol_block_id": "blk_3333333333333333",
@@ -999,8 +999,8 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         }
     ]
@@ -1048,8 +1048,8 @@ async def test_execute_fails_fast_on_missing_output_profile(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -1060,8 +1060,8 @@ async def test_execute_fails_fast_on_missing_output_profile(
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate clarity.",
         },
         {
@@ -1069,8 +1069,8 @@ async def test_execute_fails_fast_on_missing_output_profile(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -1131,8 +1131,8 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -1143,8 +1143,8 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate clarity.",
         },
         {
@@ -1152,8 +1152,8 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -1312,8 +1312,8 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -1324,8 +1324,8 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate.",
         },
         {
@@ -1333,8 +1333,8 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -1384,8 +1384,8 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -1396,8 +1396,8 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate.",
         },
         {
@@ -1405,8 +1405,8 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -1464,8 +1464,8 @@ async def test_execute_matrix_chunking_flow(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "matrix_step",
-        "name": {"default_locale": "en", "translations": {"en": "Matrix"}},
-        "description": {"default_locale": "en", "translations": {"en": "Matrix"}},
+        "name": {"translations": {"en": "Matrix"}},
+        "description": {"translations": {"en": "Matrix"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_5555555555555555"],
@@ -1477,8 +1477,8 @@ async def test_execute_matrix_chunking_flow(
         "slug": "eval_matrix",
         "category_id": "matrix",
         "type": "float",
-        "label": {"default_locale": "en", "translations": {"en": "Matrix"}},
-        "description": {"default_locale": "en", "translations": {"en": "Matrix"}},
+        "label": {"translations": {"en": "Matrix"}},
+        "description": {"translations": {"en": "Matrix"}},
         "ai_description": "Analyze against theoretical framework.",
         "theory_grounding": None,
         "allow_contextual_override": True,
@@ -1504,8 +1504,8 @@ async def test_execute_matrix_chunking_flow(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -1514,10 +1514,9 @@ async def test_execute_matrix_chunking_flow(
         "id": "prof_0123456789abcdef0123456789abcdef",
         "slug": "exec_profile",
         "workflow_id": "wf_0123456789abcdef0123456789abcdef",
-        "name": {"default_locale": "en", "translations": {"en": "Profile"}},
-        "description": {"default_locale": "en", "translations": {"en": "Profile"}},
+        "name": {"translations": {"en": "Profile"}},
+        "description": {"translations": {"en": "Profile"}},
         "tone_instruction": {
-            "default_locale": "en",
             "translations": {"en": "Professional and analytical."},
         },
         "layouts": [],
@@ -1600,8 +1599,8 @@ async def test_execute_anomaly_retry_exceeded_limit(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "retry_max_step",
-        "name": {"default_locale": "en", "translations": {"en": "Retry Max"}},
-        "description": {"default_locale": "en", "translations": {"en": "Retry Max"}},
+        "name": {"translations": {"en": "Retry Max"}},
+        "description": {"translations": {"en": "Retry Max"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -1614,8 +1613,8 @@ async def test_execute_anomaly_retry_exceeded_limit(
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate.",
         },
         {
@@ -1623,8 +1622,8 @@ async def test_execute_anomaly_retry_exceeded_limit(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -1689,8 +1688,8 @@ async def test_execute_fails_fast_on_corrupted_prompt_block_in_db(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -1741,8 +1740,8 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "matrix_step",
-        "name": {"default_locale": "en", "translations": {"en": "Matrix"}},
-        "description": {"default_locale": "en", "translations": {"en": "Matrix"}},
+        "name": {"translations": {"en": "Matrix"}},
+        "description": {"translations": {"en": "Matrix"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_5555555555555555"],
@@ -1754,8 +1753,8 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
             "slug": "eval_matrix",
             "category_id": "matrix",
             "type": "float",
-            "label": {"default_locale": "en", "translations": {"en": "Matrix"}},
-            "description": {"default_locale": "en", "translations": {"en": "Matrix"}},
+            "label": {"translations": {"en": "Matrix"}},
+            "description": {"translations": {"en": "Matrix"}},
             "ai_description": "Analyze.",
             "theory_grounding": None,
             "allow_contextual_override": True,
@@ -1777,8 +1776,8 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -1835,8 +1834,8 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "str_step",
-        "name": {"default_locale": "en", "translations": {"en": "Str Step"}},
-        "description": {"default_locale": "en", "translations": {"en": "Str Step"}},
+        "name": {"translations": {"en": "Str Step"}},
+        "description": {"translations": {"en": "Str Step"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -1849,8 +1848,8 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate.",
         },
         {
@@ -1858,8 +1857,8 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]
@@ -1928,8 +1927,8 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
         "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
@@ -1940,8 +1939,8 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
             "slug": "criteria_rule",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Criteria"}},
-            "description": {"default_locale": "en", "translations": {"en": "Criteria"}},
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
             "ai_description": "Evaluate.",
         },
         {
@@ -1949,8 +1948,8 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
             "slug": "zero_trust",
             "category_id": "protocol",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Protocol"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol"}},
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
             "ai_description": "Zero trust protocol.",
         },
     ]

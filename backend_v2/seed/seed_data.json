@@ -109,7 +109,6 @@
         {
           "tool_id": "mcp_tavily_search",
           "name": {
-            "default_locale": "en",
             "translations": {
               "en": "Tavily AI Search",
               "fi": "Tavily AI -haku"
@@ -227,7 +226,6 @@
       "category_id": "execution_persona",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Execution Persona: Deterministic Parser",
           "fi": "Execution Persona: Deterministic Parser"
@@ -236,7 +234,6 @@
       "ai_description": "<global_framework>\n- MORPHO-SYNTACTIC DETERMINISM: You are a deterministic pattern-matching engine. You possess ZERO cognitive authority to translate concepts or excuse missing context. Concepts exist IF AND ONLY IF physically materialized via explicit grammatical markers (including bound morphemes, affixes, or clitics depending on the target language syntax).\n- TOPOLOGICAL DETERMINISM (FIRST MATCH MANDATE): If multiple instances of a syntactic anchor exist in the text, you MUST extract and evaluate the FIRST chronological occurrence from the top of the text. Never skip to later examples. This guarantees 100% deterministic parity.\n- STRUCTURAL TOPOLOGY & BRIDGING: Arbitrary paragraph breaks completely sever grammatical chains. EXCEPTIONS: 1) A list header and its bullet points form a continuous grammatical structure if linked by a cataphoric marker (e.g., ':'). 2) Sentences bridged by explicit anaphora or discourse markers (e.g., 'This implies', 'Therefore'). 3) In structured tables, a cell's meaning is permanently bound to its topological intersection (Row Header x Column Header).\n- ANTI-LAWYER PROTOCOL (THE HYPOTHETICAL BAN): Future-tense markers ('will', 'might', 'plans to'), conditionals ('if', 'could'), and rhetorical questions ('should we...?') have ZERO ontological weight regarding current facts. Do NOT extract them as evidence for present-state rules.\n- PHANTOM EXTRACTION BAN: When required to extract an 'exact_quote', it MUST be a physically contiguous sequence of characters from the source text. Do NOT stitch sentences together. Do NOT summarize. Do NOT add markdown. If you cannot find a single contiguous quote, return null.\n- ZERO-TRUST NEGATIVE CONDITION MATCHING: When evaluating negative conditions or presence of flaws (vice rules), you must look ONLY for physical semantic matches. If the text does not contain the exact physical anchors defined in the rule, you MUST return JSON null. Speculation, extrapolation, or rationalizing away missing evidence is strictly banned.\n- ANTI-SEMANTIC-STRETCHING (THE \"CLOSE ENOUGH\" BAN): You are strictly forbidden from relaxing the rules or accepting 'close enough' semantic matches. If a rule requires specific syntactic markers, anchors, or recognized frameworks (e.g. ISO, OWASP, NIST), you MUST NOT accept general institutions, research centers (e.g. Stanford, Työterveyslaitos), or similar semantic substitutes. If a single required condition is absent, you MUST conclude 'CONDITION NOT MET' and return null for the exact_quote. Never rationalize, excuse, or bypass missing conditions in your reasoning trace.\n- ABSENCE & NEGATION PROTOCOL (ZERO-COUNT / COMPLETE ABSENCE): When a rule targets absolute absence (e.g., a count of exactly 0, or a feature being 'completely absent'), you must actively attempt to falsify this absence. 1) Morpho-Syntactic Clitics/Affixes (Language-Independent Zero): When checking for zero occurrence of a grammatical feature (e.g., first-person reference), you MUST inspect both standalone words and bound morphemes, inflections, clitics, or possessive suffixes (e.g., '-mme', '-ni', '-n' in Finnish, or equivalents in other target languages) in the source text. If any such marker is present, the count is greater than zero. 2) Bounding Box Falsification (Conceptual Absence): To prove a concept (e.g., 'alternative hypotheses') is completely absent, you must systematically scan all sentences/paragraphs. If you locate even a single instance of a competing option, alternative theory, or counter-argument, the absence is falsified. In either case, the negative condition is triggered: you MUST conclude 'CONDITION NOT MET' and return JSON null for the exact_quote. Excusing or ignoring localized evidence of presence is a catastrophic violation.\n- ONTOLOGICAL COHERENCE (THE \"TOPOLOGY DRIFT\" BAN): You must always maintain a coherent understanding of the source document's global ontology and setting (e.g., number of authors, dialogue format, document type). Before validating any local semantic match, you MUST verify that the match is ontologically possible and structurally valid within the document's global context. If a rule demands relationships or interactions between specific entities (e.g., 'consensus among multiple agents', 'agreement between experts'), but the document globally contains only a single author, a simple two-party dialogue (like one human and one AI), or completely lacks such multiple interacting entities, the local semantic match is physically impossible. You are strictly forbidden from stretching single-party or simple dialogue statements to satisfy multi-entity rules. In such cases of ontological mismatch, you MUST conclude 'CONDITION NOT MET' and return JSON null.\n<variance_reduction>\nCRITICAL VARIANCE REDUCTION MANDATE (FAST-MODEL COMPENSATOR):\n1. MECHANICAL PARSING ONLY: You are operating as a fast deterministic parser. Do NOT attempt deep cognitive leaps, assumed context, or 'expert judgment'.\n2. BINARY FALSIFICATION: If ANY explicit criterion or anchor is missing from the physical text, you MUST fail the condition instantly. Do not hypothesize intent.\n3. RIGID REASONING TRACE: Your reasoning must be highly mechanical: 'Criterion requires X. Text provides Y. Therefore, Condition Not Met.'\n4. ZERO TOLERANCE FOR FORGIVENESS: You must NEVER forgive missing evidence. Missing evidence = False. No exceptions.\n</variance_reduction>\n</global_framework>",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Persona",
           "fi": "Persona"
@@ -249,7 +246,6 @@
       "category_id": "protocol",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Lightweight Extract Protocol",
           "fi": "Kevyt poimintaprotokolla"
@@ -259,7 +255,6 @@
       "output_extensions": [],
       "is_lightweight_protocol": true,
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Protocol",
           "fi": "Protocol"
@@ -272,7 +267,6 @@
       "category_id": "execution_persona",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Execution Persona: XAI Reporter",
           "fi": "Execution Persona: XAI Reporter"
@@ -281,7 +275,6 @@
       "ai_description": "<global_framework>\n- PEDAGOGICAL SYNTHESIS: You are an objective, pedagogical XAI Reporter. Your job is to summarize the decisions of previous agents into a cohesive, user-friendly report.\n- NO NEW EVIDENCE: You MUST ONLY cite evidence that was explicitly provided in your input context. Do NOT invent new quotes. Do NOT hallucinate evidence from outside the context. If you need to cite a quote, copy it VERBATIM from the input JSON.\n- NO STITCHING: If you are asked to provide an exact quote, it MUST be an exact string match to a quote found in the previous agents' outputs. Do NOT combine quotes. Do NOT add markdown.\n</global_framework>",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Persona",
           "fi": "Persona"
@@ -294,7 +287,6 @@
       "category_id": "execution_persona",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Execution Persona: Coach",
           "fi": "Execution Persona: Coach"
@@ -303,7 +295,6 @@
       "ai_description": "<global_framework>\n- ACTIONABLE REMEDIATION: You are a Coach. Your job is to translate failing scores into constructive, actionable next steps.\n- NO SCORING ALTERATION: You accept the scores given by the previous agents as absolute truth. Do not question them.\n</global_framework>",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Persona",
           "fi": "Persona"
@@ -316,7 +307,6 @@
       "category_id": "execution_persona",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Execution Persona: Generative Assistant",
           "fi": "Execution Persona: Generative Assistant"
@@ -325,7 +315,6 @@
       "ai_description": "<global_framework>\n- HELPFUL ASSISTANT: You are a helpful, generative assistant. Answer the user's questions clearly and accurately.\n</global_framework>",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Persona",
           "fi": "Persona"
@@ -335,14 +324,12 @@
     {
       "id": "blk_440a5fef9331451b",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Väitteiden perustelu (Toulminin Argumentaatiomalli)",
           "en": "Toulmin Argumentation Model"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kertoo, kuinka taitavasti perustelet asiasi. Se seuraa, onko esittämilläsi väitteillä selkeä looginen pohja.",
           "en": "Evaluates the robustness of logic and the justification of claims."
@@ -359,7 +346,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Heikko",
               "en": "Weak"
@@ -369,7 +355,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Väite on vailla perusteita (No Data).",
                   "en": "The claim lacks any grounds (No Data)."
@@ -419,7 +404,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Oikeutus (Warrant) puuttuu täysin.",
                   "en": "The logical bridge (Warrant) is completely missing."
@@ -447,7 +431,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Absoluuttinen varmuus ilman varaumia (No Qualifier).",
                   "en": "Absolute certainty without reservations (No Qualifier)."
@@ -478,7 +461,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Välttävä",
               "en": "Poor"
@@ -488,7 +470,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Teksti sisältää perusväitteen ja dataa (Floor Logic).",
                   "en": "The text contains a basic claim and some data."
@@ -516,7 +497,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Data on irrallista tai heikkoa (Weak Grounds).",
                   "en": "The data is disconnected or weak."
@@ -544,7 +524,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Vastaväitteet sivuutetaan (No Rebuttal).",
                   "en": "Counter-arguments are ignored."
@@ -575,7 +554,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Kohtalainen",
               "en": "Fair"
@@ -585,7 +563,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Looginen silta on olemassa mutta implisiittinen.",
                   "en": "The logical bridge exists but is implicit."
@@ -613,7 +590,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Käsittelee vastaväitteitä pinnallisesti.",
                   "en": "Addresses counter-arguments superficially."
@@ -645,7 +621,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Taustatuki (Backing) puuttuu.",
                   "en": "Foundational backing is missing."
@@ -676,7 +651,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Hyvä",
               "en": "Good"
@@ -686,7 +660,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Oikeutus (Warrant) on eksplisiittisesti artikuloitu.",
                   "en": "The logical bridge (Warrant) is explicitly articulated."
@@ -714,7 +687,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Epävarmuudet on tunnistettu (Qualifier).",
                   "en": "Uncertainties are acknowledged (Qualifier)."
@@ -742,7 +714,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Vastaväitteitä (Rebuttal) käsitellään rakentavasti.",
                   "en": "Counter-arguments are handled constructively."
@@ -773,7 +744,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Erinomainen",
               "en": "Excellent"
@@ -783,7 +753,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Argumentti on täydellisesti ankkuroitu (Backing).",
                   "en": "The argument is perfectly anchored to expert sources."
@@ -815,7 +784,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kognitiivinen kitka on eksplisiittisesti dokumentoitu.",
                   "en": "Cognitive friction is explicitly documented."
@@ -843,7 +811,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Syy-seuraussuhteet ovat aukottomia.",
                   "en": "Causal relationships are watertight."
@@ -875,7 +842,6 @@
       "rows": [
         {
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Argumentaation laatu",
               "en": "Quality of Argumentation"
@@ -902,14 +868,12 @@
     {
       "id": "blk_f921c7c0989b47e8",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Luovuus ja syvyys (Bloomin Taksonomia)",
           "en": "Bloom's Taxonomy"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Mittaa, kuinka syvälle pureudut aiheeseen. Korkeimmalla tasolla et vain toista tietoa, vaan luot tekoälyn avulla täysin uusia näkökulmia.",
           "en": "Evaluates the depth of cognitive processing and actionable execution."
@@ -926,7 +890,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Muistaminen",
               "en": "Remembering"
@@ -935,7 +898,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Tiedon mekaaninen toistaminen",
                   "en": "Mechanical Rote Recall"
@@ -957,7 +919,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Irrationaalinen tietoisku",
                   "en": "Contextless Fact Dump"
@@ -979,7 +940,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Absoluuttinen varmuus ilman lähdekritiikkiä",
                   "en": "Absolute Certainty Without Critique"
@@ -1005,7 +965,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Ymmärtäminen",
               "en": "Understanding"
@@ -1014,7 +973,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Tiedon uudelleenmuotoilu",
                   "en": "Information Paraphrasing"
@@ -1036,7 +994,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Käsitteiden rinnastaminen ilman synteesiä",
                   "en": "Juxtaposition Without Synthesis"
@@ -1064,7 +1021,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Yksinkertaistava tulkinta",
                   "en": "Oversimplification"
@@ -1096,7 +1052,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Soveltaminen",
               "en": "Applying"
@@ -1105,7 +1060,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Konseptin konkreettinen soveltaminen",
                   "en": "Concrete Application of Concept"
@@ -1127,7 +1081,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Mekaaninen prosessin suorittaminen",
                   "en": "Mechanistic Execution"
@@ -1149,7 +1102,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Vaihtoehtojen sokea sivuuttaminen",
                   "en": "Blind to Alternatives"
@@ -1175,7 +1127,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Analysointi",
               "en": "Analyzing"
@@ -1184,7 +1135,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kokonaisuuden purkaminen osiin",
                   "en": "Deconstruction into Parts"
@@ -1206,7 +1156,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Piilevien rakenteiden tunnistaminen",
                   "en": "Identifying Hidden Structures"
@@ -1232,7 +1181,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Arviointi",
               "en": "Evaluating"
@@ -1241,7 +1189,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Eksplisiittinen arvoasetelma",
                   "en": "Explicit Value Judgment"
@@ -1263,7 +1210,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Arvioinnin kriteerien ankkurointi",
                   "en": "Criteria Anchoring"
@@ -1295,7 +1241,6 @@
         {
           "score": 6,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Luominen",
               "en": "Creating"
@@ -1304,7 +1249,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Uuden synteesin luominen",
                   "en": "Novel Synthesis"
@@ -1326,7 +1270,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kognitiivisen kitkan dokumentointi",
                   "en": "Documented Cognitive Friction"
@@ -1348,7 +1291,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Ankkuroimaton abstraktio",
                   "en": "Unanchored Abstraction"
@@ -1375,7 +1317,6 @@
       "rows": [
         {
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Kognitiivinen syvyys",
               "en": "Cognitive Depth"
@@ -1402,14 +1343,12 @@
     {
       "id": "blk_109dab5b6b3f403a",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Harkintakyky (Kahnemanin Kaksoisprosessiteoria)",
           "en": "Kahneman's Dual Process Theory"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Seuraa, käytätkö nopeaa intuitiota (Systeemi 1) vai hidasta, kriittistä harkintaa (Systeemi 2). Tavoitteena on välttää hätäisiä johtopäätöksiä.",
           "en": "Measures the balance between intuitive speed and analytical deliberation."
@@ -1426,7 +1365,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Systeemi 1 (Nopea)",
               "en": "System 1 (Fast)"
@@ -1435,7 +1373,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Reaktiivinen nopeus",
                   "en": "Reactive Speed"
@@ -1467,7 +1404,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Heuristiikat ja vinoumat",
                   "en": "Heuristics and Biases"
@@ -1495,7 +1431,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Hybris",
                   "en": "Hubris"
@@ -1527,7 +1462,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Siirtymä",
               "en": "Transition"
@@ -1536,7 +1470,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Yksipuolinen kehystys",
                   "en": "One-Sided Framing"
@@ -1568,7 +1501,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Systeemi 2 (Hidas)",
               "en": "System 2 (Slow)"
@@ -1577,7 +1509,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Systemaattinen purkaminen",
                   "en": "Systematic Deconstruction"
@@ -1609,7 +1540,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Episteeminen ankkurointi",
                   "en": "Epistemic Anchoring"
@@ -1642,7 +1572,6 @@
       "rows": [
         {
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Ajattelun modaliteetti",
               "en": "Cognitive Modality"
@@ -1669,14 +1598,12 @@
     {
       "id": "blk_53f32679aa514fcb",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)",
           "en": "Performativity & Goodhart's Law"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Arvioi, oletko prosessin johtaja vai pelkkä matkustaja. Se mittaa, kuinka aktiivisesti ohjaat tekoälyä kohti tavoitetta.",
           "en": "Exposes superficial strategies and over-reliance on optimizable metrics."
@@ -1693,7 +1620,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Sokea usko",
               "en": "Blind Faith"
@@ -1702,7 +1628,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Auktoriteettiharha",
                   "en": "Authority Bias"
@@ -1734,7 +1659,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Reaktiivinen huomioija",
               "en": "Reactive Observer"
@@ -1743,7 +1667,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Faktavirheitä on korjattu.",
                   "en": "Factual errors have been corrected."
@@ -1771,7 +1694,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Mittarit hyväksytään kyseenalaistamatta.",
                   "en": "Metrics are accepted without questioning."
@@ -1797,7 +1719,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Pintapuolinen",
               "en": "Superficial"
@@ -1806,7 +1727,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Mittarifiksaatio",
                   "en": "Metric Fixation"
@@ -1828,7 +1748,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Yksipuolinen suorittaminen",
                   "en": "One-Sided Execution"
@@ -1854,7 +1773,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Kriittinen ohjaaja",
               "en": "Critical Guide"
@@ -1863,7 +1781,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Strateginen navigointi",
                   "en": "Strategic Navigation"
@@ -1891,7 +1808,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Few-shot-ohjaus esimerkeillä",
                   "en": "Few-shot Coaching"
@@ -1913,7 +1829,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Epävarmuuden tunnistaminen",
                   "en": "Identification of Uncertainty"
@@ -1939,7 +1854,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Aktiivinen haastaja",
               "en": "Active Challenger"
@@ -1948,7 +1862,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Sokraattinen ohjaus",
                   "en": "Socratic Steering"
@@ -1970,7 +1883,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Objektiivinen ankkurointi",
                   "en": "Objective Anchoring"
@@ -1997,7 +1909,6 @@
       "rows": [
         {
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Performativiteetti ja ajaminen",
               "en": "Performativity and Driving"
@@ -2024,14 +1935,12 @@
     {
       "id": "blk_599645bd5baf44e2",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Syötteiden Prosessointi",
           "en": "Critical Input Processing"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Suorittaa raakatiedon ja syötteiden tarkan, objektiivisen prosessoinnin. Eristää todennettavat faktat olettamuksista ja poistaa kohinan.",
           "en": "Executes precise, objective processing of raw data and inputs. Isolates verifiable facts from assumptions and eliminates noise."
@@ -2050,14 +1959,12 @@
     {
       "id": "blk_ad6f491a05ec4386",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Analyytikko",
           "en": "Critical Analyst"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Suorittaa aineiston systemaattisen ja objektiivisen loogisen analyysin, erottaen todistetut kausaalisuudet olettamuksista.",
           "en": "Executes a systematic and objective logical analysis of the material, separating proven causalities from assumptions."
@@ -2076,14 +1983,12 @@
     {
       "id": "blk_ea60cbbe3f714160",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Auditoija",
           "en": "Critical Auditor"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Auditoi väitteet ja etsii järjestelmällisesti loogisia ristiriitoja, vaatien vahvaa validointia ilman vihamielistä ennakkoasennetta.",
           "en": "Audits claims and systematically searches for logical contradictions, requiring strong validation without a hostile bias."
@@ -2102,14 +2007,12 @@
     {
       "id": "blk_f84dc457f6184358",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Analyyttinen Zero-Trust -Protokolla",
           "en": "Analytical Zero-Trust Protocol"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Edellyttää kaikkien väitteiden, olettamusten ja logiikan tiukkaa, kiihkotonta ja askeleittaista validointia ilman sokeaa luottamusta auktoriteettiin.",
           "en": "Requires strict, dispassionate, and step-by-step validation of all claims, assumptions, and logic without blind trust in authority."
@@ -2128,14 +2031,12 @@
     {
       "id": "blk_d0d6d14d67054d00",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Todistusaineiston Vaatimus",
           "en": "Critical Evidentiary Rigor"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Edellyttää kaikkien väitteiden, olettamusten ja logiikan systemaattista dokumentointia ja ankkurointia todennettaviin asiantuntijalähteisiin.",
           "en": "Requires systematic documentation and anchoring of all claims, assumptions, and logic to verifiable expert sources."
@@ -2154,14 +2055,12 @@
     {
       "id": "blk_fb15f8dcf23f4865",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Ohjeiden noudattaminen (Arkistointistandardien Auditointi)",
           "en": "Archival Compliance Audit"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Seuraa, kuinka hyvin pysyt sovituissa raameissa ja parhaissa käytännöissä työn aikana.",
           "en": "Measures data traceability and logical anchoring to reliable references."
@@ -2174,7 +2073,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Kriittisesti Poikkeava",
               "en": "Critically Misaligned"
@@ -2184,7 +2082,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Ohjeiden täydellinen sivuuttaminen",
                   "en": "Complete disregard of instructions"
@@ -2206,7 +2103,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Absoluuttinen varmuus ilman lähdeviitettä",
                   "en": "Absolute certainty without provenance"
@@ -2228,7 +2124,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Yksityisyyden tai suojauksen vaarantaminen",
                   "en": "Compromising privacy or protection"
@@ -2253,7 +2148,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Poikkeava",
               "en": "Misaligned"
@@ -2263,7 +2157,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Irralliset käytännöt ilman rakennetta",
                   "en": "Isolated practices without structure"
@@ -2285,7 +2178,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Ohjeiden ohittaminen mukavuussyistä",
                   "en": "Bypassing instructions for convenience"
@@ -2307,7 +2199,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Yksipuolinen ja sokea suorittaminen",
                   "en": "One-sided and blind execution"
@@ -2332,7 +2223,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Neutraali",
               "en": "Neutral"
@@ -2342,7 +2232,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Mekaaninen perusprosessin noudattaminen",
                   "en": "Mechanical adherence to basic process"
@@ -2364,7 +2253,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Haasteiden ja riskien sivuuttaminen",
                   "en": "Ignoring challenges and risks"
@@ -2387,7 +2275,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Lähdekritiikin puute",
                   "en": "Lack of source criticism"
@@ -2413,7 +2300,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Linjassa",
               "en": "Aligned"
@@ -2423,7 +2309,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Jäsennelty ja todistettava ohjausmalli",
                   "en": "Structured and verifiable steering model"
@@ -2445,7 +2330,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Rajoitteiden ja reunaehtojen tunnistaminen",
                   "en": "Identification of constraints and boundary conditions"
@@ -2467,7 +2351,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Vastaväitteiden ennakoiva käsittely",
                   "en": "Proactive handling of counterarguments"
@@ -2492,7 +2375,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Vahvasti Linjassa",
               "en": "Strongly Aligned"
@@ -2502,7 +2384,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kognitiivisen kitkan eksplisiittinen dokumentointi",
                   "en": "Explicit documentation of cognitive friction"
@@ -2524,7 +2405,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Täydellinen ulkoinen ankkurointi",
                   "en": "Perfect external anchoring"
@@ -2546,7 +2426,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Tavoitteiden ja riskien mestarillinen tasapainottelu",
                   "en": "Masterful balancing of goals and risks"
@@ -2572,7 +2451,6 @@
       "rows": [
         {
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Best Practices -yhteensopivuus",
               "en": "Best Practices Compliance"
@@ -2604,14 +2482,12 @@
     {
       "id": "blk_c5804a9143c34cb1",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Syy-seuraussuhteet (Kausaalisuuden Analyysi)",
           "en": "Causal Analyst"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Arvioi kykyäsi ymmärtää, mikä johtaa mihinkin. Se mittaa, kuinka hyvin hallitset monimutkaisia ketjuja, joissa yksi asia vaikuttaa toiseen.",
           "en": "Evaluates the validity and robustness of direct causal relationships."
@@ -2628,7 +2504,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Mahdoton (Impossible)",
               "en": "Impossible"
@@ -2638,7 +2513,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Korrelaation ja Kausaalisuuden sekoittaminen",
                   "en": "Confusing Correlation with Causation"
@@ -2660,7 +2534,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Post hoc ergo propter hoc",
                   "en": "Post Hoc Fallacy"
@@ -2682,7 +2555,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Taikasana-kausaalisuus",
                   "en": "Magic Word Causality"
@@ -2708,7 +2580,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Epätodennäköinen (Unlikely)",
               "en": "Unlikely"
@@ -2718,7 +2589,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Yksittäisen syyn ylikorostaminen",
                   "en": "Oversimplified Single Cause"
@@ -2740,7 +2610,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kausaalinen suunta",
                   "en": "Direction of Causality"
@@ -2762,7 +2631,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Anekdoottinen kausaalisuus",
                   "en": "Anecdotal Causation"
@@ -2787,7 +2655,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Mahdollinen (Plausible)",
               "en": "Plausible"
@@ -2797,7 +2664,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kausaalimekanismin kuvaus",
                   "en": "Description of Causal Mechanism"
@@ -2820,7 +2686,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Sekoittavien tekijöiden tunnistaminen",
                   "en": "Identification of Confounders"
@@ -2842,7 +2707,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Yleistämisen virhe",
                   "en": "Overgeneralization Fallacy"
@@ -2867,7 +2731,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Todennäköinen (Probable)",
               "en": "Probable"
@@ -2877,7 +2740,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Interventio-logiikka",
                   "en": "Intervention Logic (Pearl's Rung 2)"
@@ -2900,7 +2762,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Hallittu eristäminen",
                   "en": "Controlled Isolation"
@@ -2922,7 +2783,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Yleistyksen rajaus",
                   "en": "Boundary Definition"
@@ -2948,7 +2808,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Täysin Varma (Absolute Certainty)",
               "en": "Absolute Certainty"
@@ -2958,7 +2817,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kontrafaktuaalinen testaus",
                   "en": "Counterfactual Testing (Pearl's Rung 3)"
@@ -2980,7 +2838,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Formaali mallintaminen / Do-operaattori",
                   "en": "Formal Modeling / Do-Operator"
@@ -3002,7 +2859,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Lakisidonnainen ankkurointi",
                   "en": "Theoretical Law Anchoring"
@@ -3028,7 +2884,6 @@
       "rows": [
         {
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Kausaalinen Uskottavuus",
               "en": "Causal Integrity"
@@ -3056,14 +2911,12 @@
     {
       "id": "blk_518904fe9010453b",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Sokraattinen Valmentaja",
           "en": "Critical Socratic Coach"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Toimii asiantuntevana ja objektiivisena valmentajana, joka ohjaa kohti syvällistä ongelmanratkaisua kyseenalaistamalla olettamuksia ja vaatimalla loogisia perusteluja.",
           "en": "Acts as an expert and objective coach, guiding toward deep problem-solving by questioning assumptions and requiring logical justifications."
@@ -3082,14 +2935,12 @@
     {
       "id": "blk_b476f89fb732448c",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Itsensä haastaminen (Falsifioinnin Auditointi)",
           "en": "Falsification Audit"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Mittaa haluasi etsiä virheitä omista ajatuksistasi. Se arvioi, yritätkö aktiivisesti todistaa omat väitteesi vääriksi vahvistaaksesi niitä.",
           "en": "Measures the acknowledgment of counterarguments and active vulnerability testing."
@@ -3102,7 +2953,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Myötäilyvinouma (Sycophancy)",
               "en": "Sycophancy"
@@ -3112,7 +2962,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Ad-hoc immunisointi (Ad-hoc Immunization)",
                   "en": "Ad-hoc Immunization"
@@ -3140,7 +2989,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Nollakritiikki (Zero Falsification)",
                   "en": "Zero Falsification"
@@ -3171,7 +3019,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Kosmeettinen Korjaaja",
               "en": "Aesthetic Refinement"
@@ -3181,7 +3028,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Olkinukke-vasta-argumentti (Straw-Man Critique)",
                   "en": "Straw-Man Critique"
@@ -3209,7 +3055,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Ehdollistettu myötäily (Conditional Sycophancy)",
                   "en": "Conditional Sycophancy"
@@ -3237,7 +3082,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Turvallinen kyseenalaistaminen (Safe Questioning)",
                   "en": "Safe Questioning"
@@ -3268,7 +3112,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Neutraali",
               "en": "Neutral"
@@ -3278,7 +3121,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Toteava tulkinta (Descriptive Interpretation)",
                   "en": "Descriptive Interpretation"
@@ -3306,7 +3148,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Rajoitteiden passiivinen listaus (Passive Limitation Listing)",
                   "en": "Passive Limitation Listing"
@@ -3334,7 +3175,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Konfliktin välttely (Conflict Avoidance)",
                   "en": "Conflict Avoidance"
@@ -3365,7 +3205,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Proaktiivinen",
               "en": "Proactive"
@@ -3375,7 +3214,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Aktiivinen rajojen kokeilu (Active Boundary Testing)",
                   "en": "Active Boundary Testing"
@@ -3403,7 +3241,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Rakenteellinen itsekritiikki (Structural Self-Criticism)",
                   "en": "Structural Self-Criticism"
@@ -3439,7 +3276,6 @@
       "rows": [
         {
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Kriittinen Etäisyys",
               "en": "Critical Distance"
@@ -3461,14 +3297,12 @@
     {
       "id": "blk_4d357be1587144b8",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Vastuullisuus (Turvallisuus- ja Etiikkasuodatin)",
           "en": "Responsibility"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Varmistaa, ettei tekoälyä käytetä tavalla, joka tuottaa perusteetonta tai riskialtista tietoa.",
           "en": "Ensures the AI is not used to generate unfounded or risky information."
@@ -3487,14 +3321,12 @@
     {
       "id": "blk_ff72c2d79edb4ebf",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Prosessiomistajuus (Ylituomari)",
           "en": "Supreme Adjudicator"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Tämä kuvaa sitä, kuinka vahvasti otat vastuun koko ketjusta ja ohjaat työtä alusta loppuun.",
           "en": "Evaluates the final executive command and control over decision making."
@@ -3507,7 +3339,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Täysi Matkustaja",
               "en": "Complete Passenger"
@@ -3517,7 +3348,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Sokea hyväksyntä",
                   "en": "Blind acceptance"
@@ -3540,7 +3370,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Päätösvallan ulkoistaminen",
                   "en": "Delegating decision authority"
@@ -3563,7 +3392,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Virheiden sivuuttaminen",
                   "en": "Ignoring errors"
@@ -3594,7 +3422,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Reaktiivinen Seuraaja",
               "en": "Reactive Follower"
@@ -3604,7 +3431,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Pintapuolinen korjailu",
                   "en": "Superficial tweaking"
@@ -3632,7 +3458,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Reaktiivinen paikkailu",
                   "en": "Reactive patching"
@@ -3655,7 +3480,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Lähdeaineiston ohittaminen",
                   "en": "Bypassing source material"
@@ -3686,7 +3510,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Neutraali Osallistuja",
               "en": "Neutral Participant"
@@ -3696,7 +3519,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Reunaehtojen asettaminen",
                   "en": "Setting constraints"
@@ -3724,7 +3546,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Taustakontekstin määrittely",
                   "en": "Defining background context"
@@ -3747,7 +3568,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Perusteltu palaute",
                   "en": "Reasoned feedback"
@@ -3778,7 +3598,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Ohjaaja",
               "en": "Director"
@@ -3788,7 +3607,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Analyysimetodin pakottaminen",
                   "en": "Forcing an analysis method"
@@ -3811,7 +3629,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Välitavoitteiden asettaminen",
                   "en": "Setting intermediate milestones"
@@ -3837,7 +3654,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Ylituomari",
               "en": "Supreme Adjudicator"
@@ -3847,7 +3663,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Episteeminen kumoaminen",
                   "en": "Epistemic overriding"
@@ -3875,7 +3690,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Falsifioinnin pakottaminen",
                   "en": "Forcing falsification"
@@ -3898,7 +3712,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Aktiivinen ristiintarkastus",
                   "en": "Active Cross-Verification"
@@ -3928,7 +3741,6 @@
       "rows": [
         {
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Lopullinen Tuomioasteikko",
               "en": "Final Verdict Scale"
@@ -3955,14 +3767,12 @@
     {
       "id": "blk_f83f4532575a4a1a",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Logiikan Valvoja",
           "en": "Critical Logic Auditor"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Suorittaa argumenttien objektiivisen ja systemaattisen purkamisen, arvioiden niiden deduktiivista ja induktiivista pätevyyttä erottaen faktat virhepäätelmistä.",
           "en": "Executes an objective and systematic deconstruction of arguments, evaluating their deductive and inductive validity by separating facts from logical fallacies."
@@ -3981,14 +3791,12 @@
     {
       "id": "blk_d997313b84fb4fd1",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Työnkulun Valvoja",
           "en": "Critical Workflow Overseer"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Vastaa agenttijärjestelmän työnkulkujen objektiivisesta koordinoinnista ja valvonnasta, varmistaen strategisen linjakkuuden ja loogisen eheyden.",
           "en": "Responsible for the objective coordination and oversight of agent workflows, ensuring strategic alignment and logical integrity."
@@ -4007,14 +3815,12 @@
     {
       "id": "blk_005d4a86fe77496d",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Psykologinen Profiloija",
           "en": "Critical Psychological Profiler"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Analysoi järjestelmällisesti tekstin kielellisiä ja psykologisia rakenteita, erottaen todennettavat kognitiiviset mallit olettamuksista.",
           "en": "Systematically analyzes the linguistic and psychological structures of the text, separating verifiable cognitive patterns from assumptions."
@@ -4033,14 +3839,12 @@
     {
       "id": "blk_6b8c766185294f7e",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Luottamusarvio (XAI-Raportoija)",
           "en": "XAI Synthesis Reporter"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Arvioi tekoälyn suositusten läpinäkyvyyttä ja selitettävyyttä luottamuksen rakentamiseksi.",
           "en": "Delivers the final verdict on the internal coherence of the generated analyses."
@@ -4053,7 +3857,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Erittäin Epävarma (0%)",
               "en": "Highly Uncertain (0%)"
@@ -4063,7 +3866,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Faktojen puuttuminen ja subjektiivinen hallusinaatio.",
                   "en": "Absence of facts and subjective hallucination."
@@ -4089,7 +3891,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Keskivarma (50%)",
               "en": "Moderately Certain (50%)"
@@ -4099,7 +3900,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Käsittelemättömät vastaväitteet.",
                   "en": "Unaddressed counterarguments."
@@ -4135,7 +3935,6 @@
       "rows": [
         {
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Luottamustaso",
               "en": "Confidence Score"
@@ -4159,14 +3958,12 @@
     {
       "id": "blk_bd7c5a9f27504a2c",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Ehdottomat Määräykset",
           "en": "Irrevocable Mandates"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Mandaattiosion erotin. 1. PERUUTTAMATTOMAT MÄÄRÄYKSET (IRREVOCABLE MANDATES)",
           "en": "Header for overarching system mandates."
@@ -4184,14 +3981,12 @@
     {
       "id": "blk_2305f4ac865a4815",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Pisteytysprotokollan Noudattaminen",
           "en": "Critical Scoring Protocol Compliance"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää tiukat säännöt arviointikriteerien (BARS) soveltamiselle. Vaatii jokaisen annetun arvosanan ja desimaalin (esim. 2.1, 3.5) objektiivista, loogista ja askeleittaista perustelua ilman ohjeistamattomien skaalojen hallusinointia.",
           "en": "Defines strict rules for applying the evaluation criteria (BARS). Requires objective, logical, and step-by-step justification for every assigned score and decimal (e.g., 2.1, 3.5) without hallucinating uninstructed scales."
@@ -4210,14 +4005,12 @@
     {
       "id": "blk_f2cb51b5d074419a",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittiset Operatiiviset Säännöt",
           "en": "Critical Operational Rules"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää järjestelmän operationaalisten sääntöjen kehyksen, jonka puitteissa kaikkea myöhempää toimintaa on analysoitava, perusteltava ja valvottava objektiivisesti.",
           "en": "Defines the framework of operational rules for the system, within which all subsequent activity must be analyzed, justified, and monitored objectively."
@@ -4236,14 +4029,12 @@
     {
       "id": "blk_f27f6d04c1f74257",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittiset Työkalut ja Menetelmät",
           "en": "Critical Tools and Methods"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää sallittujen työkalujen ja analyyttisten menetelmien tiukat puitteet, vaatien niiden objektiivista, jäljitettävää ja askeleittaista soveltamista.",
           "en": "Defines the strict framework for permitted tools and analytical methods, requiring their objective, traceable, and step-by-step application."
@@ -4262,14 +4053,12 @@
     {
       "id": "blk_091db241c5154336",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittiset Suoritusohjeet",
           "en": "Critical Execution Instructions"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää järjestelmän kriittiset suoritusohjeet, vaatien metakognitiivista auditointiketjua ja ehdotonta keskittymistä vain käyttäjän aitoon toimintaan, sulkien pois tekoälyn tuotokset.",
           "en": "Defines the critical execution instructions of the system, requiring a metacognitive audit trail and an absolute focus only on genuine user activity, excluding AI outputs."
@@ -4288,14 +4077,12 @@
     {
       "id": "blk_9d68ceff695b4196",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Kognitiivisten Vinoumien Hallinta",
           "en": "Critical Cognitive Bias Mitigation"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan kognitiivisten vinoumien, kuten vahvistusvinouman ja uponneiden kustannusten harhan, tunnistamiseksi ja loogiseksi purkamiseksi.",
           "en": "Defines an objective protocol for identifying and logically deconstructing cognitive biases, such as confirmation bias and the sunk cost fallacy."
@@ -4314,14 +4101,12 @@
     {
       "id": "blk_23ca73cf267d4078",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Asiantuntijuuden Erottelu",
           "en": "Critical Mastery Distinction"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Arvioi objektiivisesti asiantuntijuuden tasoa erottamalla loogisesti perustellut poikkeamat (mestaruus) perusteettomista virheistä (osaamattomuus).",
           "en": "Objectively evaluates the level of expertise by distinguishing logically justified deviations (mastery) from unjustified errors (incompetence)."
@@ -4340,14 +4125,12 @@
     {
       "id": "blk_2cbe96bffde04571",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Nollahypoteesin Noudattaminen",
           "en": "Critical Null Hypothesis Adherence"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kääntää todistustaakan objektiivisesti: olettaa väitteet vääriksi, kunnes ne todistetaan suorilla lainauksilla syötteestä. Poistaa olettamukset ja vaatii askeleittaisen todentamisen.",
           "en": "Objectively inverts the burden of proof: assumes claims are false until proven with direct quotations from the input. Eliminates assumptions and requires step-by-step verification."
@@ -4366,14 +4149,12 @@
     {
       "id": "blk_665b2e223f214564",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Zero-Trust -Tietoturvaraja",
           "en": "Critical Zero-Trust Perimeter"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää tarkan ja objektiivisen tietoturvarajan, joka edellyttää kaiken saapuvan datan askeleittaista validointia ja turva-agentin varmentamista ennen prosessointia.",
           "en": "Defines a precise and objective security perimeter, requiring step-by-step validation and guard agent verification of all incoming data prior to processing."
@@ -4392,14 +4173,12 @@
     {
       "id": "blk_78d110eb0bad4541",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittiset Toimivallan Rajat",
           "en": "Critical Jurisdictional Boundaries"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää tarkan ja objektiivisen toimivallan rajauksen, joka kieltää tekoälyä simuloimasta tai väittämästä ominaisuuksia, joita sillä ei ole, vaatien askeleittaista validointia.",
           "en": "Defines precise and objective jurisdictional boundaries, strictly prohibiting the AI from simulating or claiming capabilities it does not possess, requiring step-by-step validation."
@@ -4418,14 +4197,12 @@
     {
       "id": "blk_cc852aa44a1a464e",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Sisältö Ennen Muotoa",
           "en": "Critical Substance Over Form"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen arvioinnin, joka ohittaa esteettisen muotoilun ja vaatii pelkän loogisen sisällön ja todennettavien faktojen askeleittaista validointia.",
           "en": "Defines an objective evaluation that bypasses aesthetic formatting and requires step-by-step validation of pure logical substance and verifiable facts."
@@ -4444,14 +4221,12 @@
     {
       "id": "blk_04544fa8b5ca408f",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Prosessin Integriteetti",
           "en": "Critical Process Integrity"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Arvioi objektiivisesti prosessin eheyttä vaatimalla todisteita iteratiivisesta kehityksestä ja paljastamalla perusteettoman täydellisyyden illuusiot.",
           "en": "Objectively evaluates process integrity by requiring evidence of iterative development and exposing unjustified illusions of perfection."
@@ -4470,14 +4245,12 @@
     {
       "id": "blk_c1cc56f65f6a47e1",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Oman tiedon rajat (Episteeminen Nöyryys)",
           "en": "Critical Epistemic Humility"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Arvioi kykyäsi tunnistaa, mitä et tiedä. Se varoittaa liiallisesta varmuudesta asioissa, jotka ovat todellisuudessa epävarmoja.",
           "en": "Defines an objective protocol for identifying uncertainty and epistemic gaps, strictly prohibiting guesses and assumptions."
@@ -4496,14 +4269,12 @@
     {
       "id": "blk_e71bcbeb90244b37",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Falsifiointi ja Faktojen Ensisijaisuus",
           "en": "Critical Falsification and Factual Primacy"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan, joka asettaa todennettavat faktat retoriikan edelle. Yksikin todennettavissa oleva asiavirhe mitätöi väitteen loogisen arvon.",
           "en": "Defines an objective protocol that prioritizes verifiable facts over rhetoric. A single verifiable factual error nullifies the logical value of a claim."
@@ -4522,14 +4293,12 @@
     {
       "id": "blk_9e44687dff884ff6",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Järjestelmän Konteksti",
           "en": "Critical System Context"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittelee järjestelmän globaalin suorituskontekstin ja ehdottomat perusrajoitteet (V2).",
           "en": "Establishes the global execution constraints and context."
@@ -4548,14 +4317,12 @@
     {
       "id": "blk_080a729c8b974492",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Faktuaalisuus ja Perustelut",
           "en": "Critical Factuality and Grounding"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan faktojen tarkistamiselle. Vaatii jokaisen väitteen askeleittaista todentamista ja rankaisee ankarasti kaikista hallusinaatioista ilman poikkeuksia.",
           "en": "Defines an objective protocol for fact-checking. Requires step-by-step verification of every claim and strictly penalizes all hallucinations without exception."
@@ -4574,14 +4341,12 @@
     {
       "id": "blk_5b5f6faf0144401f",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Todennettava Alkuperä",
           "en": "Critical Verifiable Authorship"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan ihmisen asiantuntijuuden todentamiseksi, erottaen askeleittain ohjatun tekijyyden ja kognitiivisen työn pelkästä tekoälyn automaation hyödyntämisestä.",
           "en": "Defines an objective protocol for verifying human expertise, step-by-step separating guided authorship and cognitive labor from mere exploitation of AI automation."
@@ -4600,14 +4365,12 @@
     {
       "id": "blk_6a02268ad79542de",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Ero Todisteiden ja Väitteiden Välillä",
           "en": "Critical Evidence-Claim Distinction"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan, joka erottaa todennettavat toimet (empiiriset todisteet) pelkistä subjektiivisista väitteistä tai pohdinnoista (reflektiot), kieltäen niiden sekoittamisen.",
           "en": "Defines an objective protocol that separates verifiable actions (empirical evidence) from mere subjective claims or reflections, strictly prohibiting their conflation."
@@ -4626,14 +4389,12 @@
     {
       "id": "blk_a93c517915f94e09",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Passiivisuusleikkuri",
           "en": "Critical Passivity Penalty"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan passiivisuuden ja 'matkustajaroolin' tunnistamiseksi. Edellyttää ilmiön askeleittaista dokumentointia myöhempää tuomarointia varten ilman itsenäistä pisteiden laskemista.",
           "en": "Defines an objective protocol for identifying passivity and the 'passenger role'. Requires step-by-step documentation of the phenomenon for subsequent adjudication without independently lowering the score."
@@ -4652,14 +4413,12 @@
     {
       "id": "blk_71b84ce7c6554639",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Nollatoleranssi Hallusinaatioille",
           "en": "Critical Zero-Tolerance Grounding"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen nollatoleranssiprotokollan hallusinaatioille. Vaatii kaiken analyysin ehdotonta, askeleittaista ankkurointia vain toimitettuun aineistoon, kieltäen keksityt esimerkit ja aukkokohtien täydentämisen olettamuksilla.",
           "en": "Defines an objective zero-tolerance protocol for hallucinations. Requires all analysis to be strictly and step-by-step anchored only to the provided material, prohibiting invented examples and the filling of gaps with assumptions."
@@ -4678,14 +4437,12 @@
     {
       "id": "blk_280fd9eb2f2543f6",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Lainausvelvollisuus",
           "en": "Critical Citation Mandate"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen lainausprotokollan, joka vaatii jokaisen väitteen ja numeerisen arvion ankkuroimista askeleittain sanatarkkaan lainaukseen yksinomaan käyttäjän tuottamasta tekstistä.",
           "en": "Defines an objective citation protocol that requires step-by-step anchoring of every claim and numerical evaluation to a precise, verbatim quote exclusively from user-generated text."
@@ -4704,14 +4461,12 @@
     {
       "id": "blk_608ba7099d07428f",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Datan Eristämisprotokolla",
           "en": "Critical Data Isolation Protocol"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan datan eheyden ja eristämisen varmistamiseksi. Kieltää ehdottomasti alkuperäisen aineiston kopioinnin tulosteeseen JSON-rakenteen rikkoutumisen ja tietovuotojen estämiseksi, edellyttäen tarkan vahvistusmerkkijonon käyttöä.",
           "en": "Defines an objective protocol to ensure data integrity and isolation. Strictly prohibits copying original source data into the output to prevent JSON corruption and data leaks, requiring the use of an exact confirmation string."
@@ -4730,14 +4485,12 @@
     {
       "id": "blk_3cc672a8038144e0",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Ehdoton Lähdeuskollisuus",
           "en": "Critical Absolute Source Adherence"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan ehdottomalle lähdeuskollisuudelle. Vaatii kaiken tiedon ankkurointia yksinomaan annettuun tietokantaan ja kieltää tiukasti ulkopuolisen tiedon tai olettamusten käytön.",
           "en": "Defines an objective protocol for absolute source adherence. Requires anchoring all information exclusively to the provided knowledge base and strictly prohibits the use of external knowledge or assumptions."
@@ -4756,14 +4509,12 @@
     {
       "id": "blk_a5ce16009a514628",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Kielellinen Mukautuminen",
           "en": "Critical Linguistic Conformity"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan ehdottomalle kielelliselle johdonmukaisuudelle. Vaatii tuotetun tekstin täydellistä ankkurointia määritettyyn pääkieleen ja kieltää tiukasti luvattomat kielen vaihdot.",
           "en": "Defines an objective protocol for absolute linguistic consistency. Requires the output to be strictly anchored to the designated primary language and strictly prohibits unauthorized code-switching."
@@ -4782,14 +4533,12 @@
     {
       "id": "blk_80732a33fe1947ee",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Vastuullisuus (Turvallisuus- ja Etiikkasuodatin)",
           "en": "Responsibility"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Varmistaa, ettei tekoälyä käytetä tavalla, joka tuottaa perusteetonta tai riskialtista tietoa.",
           "en": "Ensures the AI is not used to generate unfounded or risky information."
@@ -4802,7 +4551,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Täysi Piittaamattomuus",
               "en": "Total Disregard"
@@ -4812,7 +4560,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Teksti osoittaa sokeaa luottamusta tekoälyn tuotoksiin ilman tarkistusmekanismeja.",
                   "en": "The text shows blind trust in AI outputs without verification mechanisms."
@@ -4840,7 +4587,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Tekstissä esiintyy hallusinaatioita tai keksittyä tietoa, joka esitetään totena.",
                   "en": "The text contains hallucinations or fabricated information presented as truth."
@@ -4865,7 +4611,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Reaktiivinen Turvallisuus",
               "en": "Reactive Security"
@@ -4875,7 +4620,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Turvallisuutta harkitaan vasta ongelman ilmetessä.",
                   "en": "Security is considered only after an issue arises."
@@ -4903,7 +4647,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Eettiset riskit on tunnistettu, mutta niitä ei mitigoida.",
                   "en": "Ethical risks are identified but not mitigated."
@@ -4934,7 +4677,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Perustason Turvallisuus",
               "en": "Baseline Security"
@@ -4944,7 +4686,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Syötteet ja tulosteet tarkistetaan perussääntöjen mukaisesti.",
                   "en": "Inputs and outputs are checked according to basic rules."
@@ -4972,7 +4713,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Käyttäjä tiedostaa tekoälyn rajoitteet.",
                   "en": "The user is aware of AI limitations."
@@ -5000,7 +4740,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Tietoturvakäytännöt ovat näkyvillä ja niitä noudatetaan suurimmaksi osaksi.",
                   "en": "Security practices are visible and mostly followed."
@@ -5031,7 +4770,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Proaktiivinen Turvallisuushygienia",
               "en": "Proactive Security Hygiene"
@@ -5041,7 +4779,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Turvallisuus ja etiikka on sisäänrakennettu prosesseihin.",
                   "en": "Security and ethics are built into processes."
@@ -5069,7 +4806,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Järjestelmä sietää vääriä syötteitä (Fail-Safe).",
                   "en": "The system tolerates invalid inputs (Fail-Safe)."
@@ -5100,7 +4836,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Täydellinen Tietoturvahygienia",
               "en": "Perfect Security Hygiene"
@@ -5110,7 +4845,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Keskustelun syötteet ja tulosteet käsitellään absoluuttisen neutraalisti ja turvallisesti (Zero-Trust).",
                   "en": "Inputs and outputs are handled with absolute neutrality and security (Zero-Trust)."
@@ -5138,7 +4872,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Turvallisuuspäätökset on täydellisesti perusteltu ja vaadittu kognitiivinen kitka on dokumentoitu.",
                   "en": "Security decisions are fully justified and required cognitive friction is documented."
@@ -5166,7 +4899,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Turvallisuuslogiikka on askeleittain ankkuroitu tunnistettuun viitekehykseen (esim. OWASP).",
                   "en": "Security logic is step-by-step anchored to a recognized framework (e.g. OWASP)."
@@ -5211,14 +4943,12 @@
     {
       "id": "blk_033180746a954415",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Väitteiden Purku ja Kyselyn Muodostaminen",
           "en": "Critical Claim Deconstruction"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan aineiston analysointiin, eristäen jokaisen väitteen askeleittain todennettaviksi hypoteeseiksi ja koneoptimoiduiksi hakukyselyiksi.",
           "en": "Defines an objective protocol for systematic evidence breakdown, step-by-step isolating claims into verifiable hypotheses and machine-optimized search queries."
@@ -5239,14 +4969,12 @@
     {
       "id": "blk_9c0c7c46568648c4",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Kognitiivinen Profilointi",
           "en": "Critical Cognitive Profiling"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan tekstin kognitiiviselle ja sävylliselle profiloinnille, purkaen askeleittain piilomerkitykset, intentiot ja kognitiiviset vinoumat.",
           "en": "Defines an objective protocol for behavioral profiling and cognitive analysis, step-by-step deconstructing tone, subtext, intent, and cognitive biases."
@@ -5267,14 +4995,12 @@
     {
       "id": "blk_652fce41dcb54793",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Loogisuuden Validointi",
           "en": "Critical Logical Validation"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan loogiselle purkamiselle, vaatien argumenttien askeleittaista jakamista väitteisiin, perusteisiin ja oikeutuksiin päättelyn pätevyyden arvioimiseksi.",
           "en": "Defines an objective protocol for logical deconstruction, requiring the step-by-step breakdown of arguments into claims, grounds, and warrants to assess reasoning validity."
@@ -5294,14 +5020,12 @@
     {
       "id": "blk_90d0dd098757433e",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Tehtävien Falsifioija",
           "en": "Critical Task Falsifier"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan hypoteesien tiukalle testaukselle, tunnistaen askeleittain heikkouksia ja alistaen väitteet popperilaiseen falsifioitavuuteen.",
           "en": "Defines an objective protocol for rigorous hypothesis testing, step-by-step identifying vulnerabilities and subjecting claims to Popperian falsifiability."
@@ -5321,14 +5045,12 @@
     {
       "id": "blk_58f750206a4c4af0",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Tehtävien Valvoja",
           "en": "Critical Task Overseer"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan työnkulun valvonnalle ja yhdistämiselle, vaatien faktaväitteiden askeleittaista tarkastamista ja eettisten havaintojen tiukkaa arviointia.",
           "en": "Defines an objective protocol for workflow oversight and aggregation, requiring the step-by-step scrutiny of factual assertions and rigorous adjudication of ethical implications."
@@ -5348,14 +5070,12 @@
     {
       "id": "blk_c3bc5f3eb8e74110",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Päättelyn rehellisyys (Kausaalinen ja Abduktiivinen Integriteetti)",
           "en": "Causal & Abductive Integrity"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Varmistaa, että johtopäätöksesi ovat syntyneet aidon analyysin tuloksena, eivätkä ne ole vain keksittyjä selityksiä lopputulokselle.",
           "en": "Exposes post-hoc rationalizations and illogical leaps in decision making."
@@ -5368,7 +5088,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Keksitty (Post-Hoc Fallacy)",
               "en": "Fabricated (Post-Hoc Fallacy)"
@@ -5378,7 +5097,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Ohjaus on jälkikäteen seliteltyä, eikä alkuperäinen tarkoitus näy interaktiossa.",
                   "en": "Guidance is post-hoc rationalized, without visible original intent."
@@ -5406,7 +5124,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Tekoälyn tuottama lisäarvo syntyi sattumalta (Stokastisuus).",
                   "en": "The value produced by AI was stochastic / coincidence."
@@ -5445,7 +5162,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Heikko Kausaalisuus",
               "en": "Weak Causality"
@@ -5455,7 +5171,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Ohjaus on pinnallista tai epämääräistä.",
                   "en": "Guidance is superficial or vague."
@@ -5483,7 +5198,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Vain onnistumiset on kirjattu (Vahvistusharha).",
                   "en": "Only successes are logged (Confirmation Bias)."
@@ -5518,7 +5232,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Perustason Integriteetti",
               "en": "Baseline Integrity"
@@ -5528,7 +5241,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Käyttäjä antaa suorat ohjeet ja tarkistaa tulokset loogisesti.",
                   "en": "User provides direct instructions and logically verifies results."
@@ -5556,7 +5268,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Perustason vaihtoehdot on huomioitu.",
                   "en": "Basic alternatives have been considered."
@@ -5584,7 +5295,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Tavoite ja tulos kohtaavat objektiivisesti.",
                   "en": "Goal and outcome match objectively."
@@ -5619,7 +5329,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Proaktiivinen Abduktio",
               "en": "Proactive Abduction"
@@ -5629,7 +5338,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kognitiivinen kitka on tuotu esiin ennen generointia.",
                   "en": "Cognitive friction is surfaced before generation."
@@ -5657,7 +5365,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Syy-seuraussuhde on johdonmukaisesti jäljitettävissä.",
                   "en": "Causal relationship is consistently traceable."
@@ -5692,7 +5399,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Aito (Kausaalinen Täydellisyys)",
               "en": "Genuine (Causal Perfection)"
@@ -5702,7 +5408,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Käyttäjä on todistetusti visioinut ratkaisun ja kognitiivinen kitka on kirjoitettu auki.",
                   "en": "User has verifiably envisioned the solution and cognitive friction is explicitly articulated."
@@ -5730,7 +5435,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Vastaväitteet ja vaihtoehtoiset mallit on kumottu järjestelmällisesti.",
                   "en": "Counterarguments and alternative models have been systematically refuted."
@@ -5762,7 +5466,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Syysuhde on ankkuroitu todennettaviin ulkoisiin asiantuntijalähteisiin.",
                   "en": "The causal relationship is anchored to verifiable external expert sources."
@@ -5814,14 +5517,12 @@
     {
       "id": "blk_43e297666d3b4359",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Kausaalivaikutusten Todentaminen",
           "en": "Critical Causal Impact Verification"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan syy-seuraussuhteiden arviointiin, vaatien väitteiden ja todennettavien toimien askeleittaista purkamista sekä Say-Do -kuilun ja kontrafaktuaalien analysointia.",
           "en": "Defines an objective protocol for establishing causal pathways, step-by-step evaluating the cause-and-effect relationship between claims and verifiable actions through Say-Do gap analysis and counterfactual simulation."
@@ -5842,14 +5543,12 @@
     {
       "id": "blk_3744757fbff44175",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Ennakkotapausten Auditointi",
           "en": "Critical Precedent Audit"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan ennakkotapausten auditoinnille, vaatien aineiston ja päätöksenteon askeleittaista ankkurointia historiallisiin ennakkotapauksiin ja organisaatiostandardeihin.",
           "en": "Defines an objective protocol for precedent auditing, requiring step-by-step anchoring of materials and decision-making to historical precedents and organizational standards."
@@ -5869,14 +5568,12 @@
     {
       "id": "blk_f971def5b3864ba4",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Tuomari",
           "en": "Critical Task Judge"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan asiantuntija-arvioiden yhdistämiseksi, vaatien askeleittaista synteesiä ja ankarin rangaistuksin puuttumista performatiiviseen reflektioon ja Say-Do -kuiluihin.",
           "en": "Defines an objective protocol for synthesizing expert evaluations, requiring step-by-step synthesis and imposing draconian penalties on performative reflection and Say-Do gaps."
@@ -5896,14 +5593,12 @@
     {
       "id": "blk_5d26dff39e574d5f",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Teknisen Korjauksen Valmentaja",
           "en": "Critical Technical Remediation Coach"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan sokraattiselle valmennukselle, vaatien askeleittaista kognitiivista kitkaa ilman suorien vastausten antamista.",
           "en": "Defines an objective protocol for Socratic coaching, requiring step-by-step cognitive friction without providing direct answers."
@@ -5923,14 +5618,12 @@
     {
       "id": "blk_f6e286f050c94d60",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Avoimuus (Selitettävyys ja Läpinäkyvyys)",
           "en": "Explainability & Transparency"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Mittaa, kuinka helposti raporttisi logiikka on ulkopuolisen seurattavissa ja kuinka hyvin olet avannut käytetyt lähteet.",
           "en": "Measures how transparently and explainably conclusions are reached."
@@ -5943,7 +5636,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Musta Laatikko",
               "en": "Black Box"
@@ -5953,7 +5645,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Logiikka on täysin piilotettu tai läpinäkymätön.",
                   "en": "Logic is completely hidden or opaque."
@@ -5989,7 +5680,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Päätökset perustuvat heuristiikkaan ilman perusteluja.",
                   "en": "Decisions are based on heuristics without justification."
@@ -6024,7 +5714,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Heikko Selitettävyys",
               "en": "Weak Explainability"
@@ -6034,7 +5723,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Selitykset ovat epämääräisiä tai yleisluontoisia.",
                   "en": "Explanations are vague or generic."
@@ -6069,7 +5757,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Perustason Läpinäkyvyys",
               "en": "Baseline Transparency"
@@ -6079,7 +5766,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Syötteen ja tulosteen yhteys on näkyvillä.",
                   "en": "The connection between input and output is visible."
@@ -6111,7 +5797,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Käytetyt muuttujat ja painoarvot on määritelty.",
                   "en": "Used variables and weights are defined."
@@ -6139,7 +5824,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Poikkeustapaukset ja rajoitteet on huomioitu.",
                   "en": "Edge cases and constraints have been considered."
@@ -6170,7 +5854,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Proaktiivinen Jäljitettävyys",
               "en": "Proactive Traceability"
@@ -6180,7 +5863,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Syy-seurausketju on dokumentoitu askeleittain.",
                   "en": "Causal chain is documented step-by-step."
@@ -6212,7 +5894,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kognitiivinen kitka on näkyvillä ennen lopullista päätöstä.",
                   "en": "Cognitive friction is visible before the final decision."
@@ -6240,7 +5921,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Mallin rajat on selkeästi viestitty käyttäjälle.",
                   "en": "Model limitations are clearly communicated to the user."
@@ -6275,7 +5955,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Täydellinen Läpinäkyvyys",
               "en": "Perfect Transparency"
@@ -6285,7 +5964,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kontrafaktuaalit on analysoitu ja kumottu.",
                   "en": "Counterfactuals have been analyzed and refuted."
@@ -6313,7 +5991,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Varmuuden rajat ja kognitiivinen kitka on dokumentoitu.",
                   "en": "Boundaries of certainty and cognitive friction are documented."
@@ -6345,7 +6022,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Logiikka on ankkuroitu ulkoisiin asiantuntijalähteisiin.",
                   "en": "The logic is anchored to external expert sources."
@@ -6396,14 +6072,12 @@
     {
       "id": "blk_ab65a936bca34bf1",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Negatiivisen Lokin Protokolla",
           "en": "Critical Negative Logging Protocol"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan puutteiden ja laiminlyöntien systemaattiselle dokumentoinnille, vaatien askeleittaista kirjaamista siitä, mitä jätettiin tekemättä tai kyseenalaistamatta.",
           "en": "Defines an objective protocol for the systematic documentation of omissions and flaws, requiring step-by-step logging of what was not done, asked, or challenged."
@@ -6422,14 +6096,12 @@
     {
       "id": "blk_44b0c6cc5ec24151",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen RFI-Protokollan Noudattaminen",
           "en": "Critical RFI Protocol Enforcement"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan tiedonhankinnan laadunvarmistukselle (RFI), vaatien ehdotonta kieltoa tekoälyn spekuloinnille ja askeleittaista vaatimusta tarkentaville kysymyksille ennen suoritusta.",
           "en": "Defines an objective protocol for quality assurance of information retrieval (RFI), requiring an absolute prohibition on AI speculation and a step-by-step mandate for clarifying questions prior to execution."
@@ -6448,14 +6120,12 @@
     {
       "id": "blk_7260c1b6ac5648ca",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Eskalointi Ihmiselle",
           "en": "Critical Human-In-The-Loop Escalation"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan vastuunsiirrosta ihmiselle, vaatien autonomisen toiminnan askeleittaista keskeyttämistä ja delegointia epävarmuuden tai matalan luottamuksen tilanteissa.",
           "en": "Defines an objective protocol for responsibility handover to a human, requiring step-by-step suspension of autonomous action and delegation in situations of uncertainty or low confidence."
@@ -6474,14 +6144,12 @@
     {
       "id": "blk_6e08842eae9146a2",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen PII-Datan Sanitointi",
           "en": "Critical PII Sanitization"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan PII-datan anonymisoinnille, vaatien henkilötietojen askeleittaista, peruuttamatonta poistamista ilman keksittyjen korvikkeiden luomista.",
           "en": "Defines an objective protocol for the anonymization of PII data, requiring the step-by-step, irreversible removal of personal information without fabricating placeholders."
@@ -6500,14 +6168,12 @@
     {
       "id": "blk_1ca6f187c5b04d2b",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen RAG-Kontekstin Optimointi",
           "en": "Critical RAG Context Optimization"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan RAG-kontekstin optimoinnille, vaatien askeleittaista uudelleenjärjestelyä 'Lost in the Middle' -ilmiön neutraloimiseksi ilman alkuperäisen aineiston muokkaamista tai poistamista.",
           "en": "Defines an objective protocol for RAG context optimization, requiring the step-by-step restructuring of information to neutralize the 'Lost in the Middle' phenomenon without modifying or deleting original content."
@@ -6526,14 +6192,12 @@
     {
       "id": "blk_2c13f67014094f3b",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Popperilainen Falsifiointi",
           "en": "Critical Popperian Falsification"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan popperilaiselle falsifioinnille, vaatien väitteiden askeleittaista, tiukkaa testausta ja epäonnistuneiden hypoteesien ehdotonta hylkäämistä.",
           "en": "Defines an objective protocol for Popperian falsification, requiring the step-by-step rigorous testing of claims and the absolute rejection of failed hypotheses."
@@ -6552,14 +6216,12 @@
     {
       "id": "blk_fb0b98da76e046dd",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Parametrien Diversifiointi",
           "en": "Critical Parameter Diversification"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan parametrien diversifioinnille, vaatien mallin suoritusparametrien askeleittaista erottamista kriittisten ja luovien vaiheiden välillä tilaromahduksen estämiseksi.",
           "en": "Defines an objective protocol for parameter diversification, requiring the step-by-step separation of model execution parameters between critical and creative phases to prevent mode collapse."
@@ -6578,14 +6240,12 @@
     {
       "id": "blk_0217b0b725b54b10",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Lähdeviittausvaatimus",
           "en": "Critical Citation Mandate"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan tieteellisille lähdeviittauksille, vaatien väitteiden askeleittaista ankkurointia tekstiin ja kieltäen ehdottomasti lähdeluettelon manuaalisen täyttämisen.",
           "en": "Defines an objective protocol for scientific in-text citations, requiring step-by-step anchoring of claims to the text and strictly prohibiting the manual population of the bibliography."
@@ -6604,14 +6264,12 @@
     {
       "id": "blk_cb6217bccc974cca",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen RAG-Perustelut ja Lähdeviittaukset",
           "en": "Critical RAG Grounding & Citation Protocol"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan syy-seuraussuhteen temporaaliselle tarkistukselle, vaatien askeleittaista varmistusta siitä, että väitetty oivallus edelsi mitattua parannusta.",
           "en": "Defines an objective protocol for the temporal check of causality, requiring step-by-step verification that the claimed insight strictly preceded the observed improvement."
@@ -6630,14 +6288,12 @@
     {
       "id": "blk_3568312503964aec",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Kausaalisen Ketjun Todentaminen",
           "en": "Critical Causal Sequence Verification"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan intervention vaikuttavuuden kontrafaktuaaliselle tarkistukselle, vaatien askeleittaista arviointia siitä, olisiko tekoäly päätynyt samaan tulokseen ilman käyttäjän panosta.",
           "en": "Defines an objective protocol for the counterfactual check of intervention impact, requiring a step-by-step evaluation of whether the AI would have reached the same outcome without user input."
@@ -6656,14 +6312,12 @@
     {
       "id": "blk_8b6e5fba923642f2",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Occamin Partaveitsi",
           "en": "Critical Principle of Parsimony (Occam's Razor)"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan Occamin partaveitsen soveltamiselle, vaatien askeleittaista hypoteesien karsimista yksinkertaisimpaan selitykseen, joka kattaa kaikki todisteet.",
           "en": "Defines an objective protocol for applying Occam's razor, requiring the step-by-step reduction of competing hypotheses to the simplest explanation that fully accounts for the evidence."
@@ -6682,14 +6336,12 @@
     {
       "id": "blk_b4912f9ff3a24b31",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Performatiivisuuden Auditointi",
           "en": "Critical Task Performativity Audit"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan performatiivisen ohjaamisen tunnistamiseksi, vaatien laiskojen kehotteiden ja kontrolli-illuusioiden askeleittaista eristämistä Goodhartin lain mukaisesti.",
           "en": "Defines an objective protocol for identifying performative guidance, requiring the step-by-step isolation of lazy prompts and illusions of control in accordance with Goodhart's Law."
@@ -6710,14 +6362,12 @@
     {
       "id": "blk_3584789303284f7f",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Syyttäjä (Prosecutorial Audit)",
           "en": "Critical Prosecutorial Audit"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan adversaariselle dekonstruktiolle, vaatien askeleittaista purkamista ja ehdotonta skeptisyyttä kaikkia väitteitä, oletuksia ja johtopäätöksiä kohtaan.",
           "en": "Defines an objective protocol for adversarial deconstruction, requiring the step-by-step stress-testing of all claims, premises, and conclusions under the default assumption of absolute skepticism."
@@ -6736,14 +6386,12 @@
     {
       "id": "blk_38cce6ca212d41d3",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Zero-Trust -Protokolla",
           "en": "Critical Zero-Trust Protocol"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan empiiristen todisteiden vaatimiseksi, vaatien väitteiden askeleittaista kyseenalaistamista ja ehdotonta numeerista tai todennettavaa ankkurointia.",
           "en": "Defines an objective protocol requiring empirical evidence, demanding the step-by-step challenging of assertions and absolute numerical or verifiable anchoring."
@@ -6762,14 +6410,12 @@
     {
       "id": "blk_7904edffddb94a84",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Todistusaineiston Vaatimus",
           "en": "Critical Evidentiary Rigor"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan metakognitiiviselle puolustukselle, vaatien logiikan askeleittaista perustelua ja tiukkaa ankkurointia joko loogisiin aksioomiin tai lähdefaktoihin.",
           "en": "Defines an objective protocol for metacognitive defense, requiring step-by-step logical justification and strict anchoring to either logical axioms or source facts."
@@ -6784,14 +6430,12 @@
     {
       "id": "blk_aacc1668c4224040",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Red Team (Sabotööri)",
           "en": "Critical Red Team (Saboteur)"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan kilpailevien argumenttien adversaariselle testaamiselle, vaatien askeleittaista purkamista ja analyyttistä dominanssia sisäänrakennettujen heikkouksien paljastamiseksi.",
           "en": "Defines an objective protocol for the adversarial testing of competing arguments, requiring step-by-step deconstruction and analytical dominance to expose inherent weaknesses."
@@ -6810,14 +6454,12 @@
     {
       "id": "blk_3d7833f059084bab",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kriittinen Falsifiointi Ensin -Protokolla",
           "en": "Critical Falsification-First Protocol"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Määrittää objektiivisen protokollan käänteiselle todistustaakalle, vaatien askeleittaista, tiukkaa invalidointia ja vähintään kolmen kriittisen virheen paljastamista ennen validointia.",
           "en": "Defines an objective protocol for a reverse burden of proof, requiring step-by-step rigorous invalidation and the exposure of at least three critical flaws prior to any validation."
@@ -6836,14 +6478,12 @@
     {
       "id": "blk_22e3598e06414409",
       "label": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Oman tiedon rajat (Episteeminen Nöyryys)",
           "en": "Epistemic Humility"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Arvioi kykyäsi tunnistaa, mitä et tiedä. Se varoittaa liiallisesta varmuudesta asioissa, jotka ovat todellisuudessa epävarmoja.",
           "en": "Evaluates the ability to openly recognize boundaries of context and inherent uncertainties."
@@ -6860,7 +6500,6 @@
         {
           "score": 1,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Ylimielinen/Ehdoton",
               "en": "Arrogant / Absolute"
@@ -6870,7 +6509,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Teksti esittää asiat absoluuttisina faktoina (Overconfidence).",
                   "en": "The text presents things as absolute facts (Overconfidence)."
@@ -6898,7 +6536,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Rajoitteita tai epävarmuuksia ei ole tunnistettu.",
                   "en": "Limitations or uncertainties have not been identified."
@@ -6926,7 +6563,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Vaihtoehtoiset näkökulmat sivuutetaan täysin.",
                   "en": "Alternative perspectives are completely ignored."
@@ -6951,7 +6587,6 @@
         {
           "score": 2,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Heikko",
               "en": "Weak"
@@ -6961,7 +6596,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Teksti käyttää performatiivista epävarmuutta.",
                   "en": "The text uses performative uncertainty."
@@ -6989,7 +6623,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Kritiikille jätetään vain marginaalinen sija.",
                   "en": "Only a marginal space is left for critique."
@@ -7017,7 +6650,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Vaihtoehtoisia malleja ei tutkita järjestelmällisesti.",
                   "en": "Alternative models are not systematically investigated."
@@ -7043,7 +6675,6 @@
         {
           "score": 3,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Neutraali",
               "en": "Neutral"
@@ -7053,7 +6684,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Asiat esitetään suoraviivaisesti ilman ehdottomuutta.",
                   "en": "Things are presented straightforwardly without absoluteness."
@@ -7076,7 +6706,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Itsereflektio puuttuu.",
                   "en": "Self-reflection is missing."
@@ -7104,7 +6733,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Tietolähteiden rajoitteita ei ole käsitelty.",
                   "en": "The limitations of data sources have not been discussed."
@@ -7130,7 +6758,6 @@
         {
           "score": 4,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Tunnustava",
               "en": "Acknowledging"
@@ -7140,7 +6767,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Teksti ymmärtää oman perspektiivinsä rajallisuuden.",
                   "en": "The text understands the limits of its own perspective."
@@ -7171,7 +6797,6 @@
         {
           "score": 5,
           "name": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Itsekriittinen",
               "en": "Self-Critical"
@@ -7181,7 +6806,6 @@
           "claims": [
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Omat rajoitteet, data-aukot ja oletukset on listattu kattavasti.",
                   "en": "Own limitations, data gaps, and assumptions are listed comprehensively."
@@ -7209,7 +6833,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Riskit ja vastaväitteet on käsitelty proaktiivisesti.",
                   "en": "Risks and counterarguments are addressed proactively."
@@ -7232,7 +6855,6 @@
             },
             {
               "label": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Päätöksentekoprosessi ja kognitiivinen kitka on kirjoitettu auki.",
                   "en": "The decision-making process and cognitive friction are explicitly articulated."
@@ -7276,14 +6898,12 @@
       "id": "blk_573802341db9d68c",
       "slug": "block_extraction_protocol_zerotrust",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Global Zero-Trust Evidence Extraction Protocol",
           "fi": "Globaali Zero-Trust evidenssin poimintaprotokolla"
         }
       },
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Standard rules governing blind mathematical and evidence extraction tasks.",
           "fi": "Vakiomuotoiset säännöt mekaaniseen poimintaan."
@@ -7298,14 +6918,12 @@
       "id": "blk_573802341db9d68d",
       "slug": "block_extraction_protocol_lightweight",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Lightweight JSON Extraction (No Reasoning)",
           "fi": "Kevyt JSON-uutto (Ei perusteluja)"
         }
       },
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Lightweight extraction protocol for direct JSON output without reasoning traces.",
           "fi": "Kevyt, perustelut ohittava nopea poimintaprotokolla JSON-ulostulolle."
@@ -7323,14 +6941,12 @@
       "type": "instruction",
       "is_lightweight_protocol": true,
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Lightweight JSON Extraction",
           "fi": "Kevyt JSON-poiminta"
         }
       },
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Protocol block",
           "fi": "Protokollalohko"
@@ -7344,7 +6960,6 @@
       "category_id": "protocol",
       "type": "string",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Guided Semantic Protocol",
           "fi": "Ohjattu semanttinen protokolla"
@@ -7353,7 +6968,6 @@
       "ai_description": "Execute the extraction allowing semantic overrides where intent is clear but exact wording is absent. You MUST document your override reason if the physical syntax is missing.",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Protocol",
           "fi": "Protokolla"
@@ -7366,7 +6980,6 @@
       "category_id": "protocol",
       "type": "string",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Freeform Semantic Protocol",
           "fi": "Vapaamuotoinen semanttinen protokolla"
@@ -7375,7 +6988,6 @@
       "ai_description": "Execute the extraction prioritizing semantic meaning and holistic intent above physical syntax. Syntactic constraints can be overridden.",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Protocol",
           "fi": "Protokolla"
@@ -7388,7 +7000,6 @@
       "category_id": "system_rule",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Synthesis Global Rules",
           "fi": "Synteesi - Globaalit Säännöt"
@@ -7397,7 +7008,6 @@
       "ai_description": "SDUI POLYMORPHIC SYNTHESIS MANDATE: You must structure your entire response by mapping your output directly into the section_syntheses dictionary according to the requested layout IDs.\nALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. NO OTHER TYPES ARE ALLOWED.\nNO RECURSION: Nested blocks inside blocks are strictly banned.\nNO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.\nCITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.\nXAI HIGHLIGHTS CURATION: Review the <raw_extensions> XML block. Synthesize and combine all insights across all inputs for each extension category. Create up to {{ max_extensions }} MOST CRITICAL items for each individual category (meaning up to {{ max_extensions }} items of type 'justification', up to {{ max_extensions }} items of type 'coaching', etc.). The total length of the `xai_highlights` array may be up to `max_extension_items * number_of_categories`. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. Make each item's content an ultra-short, punchy bullet point (max 1 sentence).\nOmit internal system identifiers or raw JSON keys. When referring to information, use inline numerical tags like [1], [2].\nCRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond to the items in the `cited_sources` list (1-indexed). ONLY create a numerical citation tag AND add an entry to `cited_sources` if the source is an actual literary reference, empirical citation, methodology framework, or external document (e.g., 'Toulmin 2003', 'Sitra Report'). DO NOT use citation tags for general analysis sections, step titles, or internal data dumps. If you mention internal findings, state them directly without using it.\nSTATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, summarize, or report on the substantive topics, subjects, or domains discussed in the historical context. Your output must be STRICTLY based on the current <source_data>.",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Global rules for synthesis output",
           "fi": "Globaalit säännöt synteesille"
@@ -7410,7 +7020,6 @@
       "category_id": "system_rule",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Synthesis Section Rules",
           "fi": "Synteesi - Osiokohtaiset Säännöt"
@@ -7419,7 +7028,6 @@
       "ai_description": "<section_rules>\n<objective>Section-Level Synthesis</objective>\n<rules>\n<rule>CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 short sentences.</rule>\n<rule>CRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the <required_output_language>.</rule>\n<rule>You MUST ALSO provide targeted synthesized summaries for the following distinct sections as an array in `section_syntheses`.</rule>\n</rules>\n</section_rules>",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Section specific rules for synthesis",
           "fi": "Osiokohtaiset säännöt synteesille"
@@ -7432,7 +7040,6 @@
       "category_id": "system_rule",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Row Explanation Rules",
           "fi": "Rivisivun Selityssäännöt"
@@ -7441,7 +7048,6 @@
       "ai_description": "<row_explanation_rules>\n<objective>Explain where the matrix score came from and why it was assigned. Your explanation must trace the score back to specific evidence found in the evaluated content.</objective>\n<rules>\n<rule>Output EXACTLY ONE sentence of maximum 30 words.</rule>\n<rule>Do NOT use markdown. Output plain text only.</rule>\n<rule>Focus on the causal reasoning: what specific content or pattern in the source data drove the score up or down.</rule>\n<rule>Ensure the tone aligns with the tone instruction.</rule>\n</rules>\n</row_explanation_rules>",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Row explanation formatting rules",
           "fi": "Rivisivun selityksen muotoilusäännöt"
@@ -7454,7 +7060,6 @@
       "category_id": "system_rule",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Variance Explanation Rules",
           "fi": "Varianssin selityssäännöt"
@@ -7463,7 +7068,6 @@
       "ai_description": "## Objective\nExplain the variance between the Cognitive and Mechanical evaluation scores in exactly ONE sentence of maximum 30 words.\n\n## Context\nThe Cognitive score represents the LLM-evaluated authenticity and depth of reasoning. The Mechanical score represents the count of detected performative language patterns.\n\n## Rules\n- Focus on what the gap between these scores reveals about the user's analytical approach.\n- Do NOT use markdown. Output plain text only.",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Variance explanation formatting rules",
           "fi": "Varianssin selityksen muotoilusäännöt"
@@ -7476,7 +7080,6 @@
       "category_id": "task_definition",
       "type": "instruction",
       "label": {
-        "default_locale": "en",
         "translations": {
           "en": "Synthesis Generation",
           "fi": "Synteesin generointi"
@@ -7485,7 +7088,6 @@
       "ai_description": "Generate a high-level executive summary and an urgency level based on the evaluation results.",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Synthesis Generation Block",
           "fi": "Synthesis Generation Block"
@@ -7499,9 +7101,9 @@
       "type": "instruction",
       "is_evaluative": false,
       "label": {
-        "default_locale": "en",
         "translations": {
-          "en": "Executive Coach Synthesis"
+          "en": "Executive Coach Synthesis",
+          "fi": "Johdon valmennussynteesi"
         }
       },
       "ai_description": "## Role\nSenior Executive Coach\n\n## Objective\nProduce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives. Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings.\n\n## Rules\n- FOUR-PARAGRAPH STRUCTURE: You MUST format your response into exactly four separate paragraphs representing a professional Executive Summary. Do not use bullet points or markdown headers.\n- PARAGRAPH 1 (OVERVIEW & URGENCY): Provide a high-level summary of the overall performance, integrating the user's role and stating the urgency of the findings.\n- PARAGRAPH 2 (STRENGTHS & CAPABILITIES): Weave together the strongest logical and cognitive capabilities identified in the evaluation.\n- PARAGRAPH 3 (BLIND SPOTS & RISKS): Speak truthfully and highlight the critical logical gaps, false assumptions, or risks without sugarcoating.\n- PARAGRAPH 4 (STRATEGIC REMEDIATION & ROLE PREPARATION): Conclude with a concrete, actionable takeaway based on the combined coaching extensions. Note that the Python backend will dynamically append the exact User Role classification immediately after this paragraph. Ensure your closing thought flows logically into this final role declaration without trying to generate the role string yourself.\n- SCORE-DRIVEN TONE (CRITICAL): You must dynamically adjust your tone based on the mathematical 'normalized_score' (0-100) found in the source data: (1) 0-39: Zero praise. (2) 40-69: Firm and clinical. (3) 70-89: Constructive coaching. (4) 90-100: Highly validating and visionary.\n- CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws.\n- NO ACADEMIC JARGON: Translate complex theory into punchy, plain business language.\n- ENUM TRANSLATION: Do NOT translate the user role enums yourself. You MUST use the pre-translated human-readable role name provided in the source data.",
@@ -7512,9 +7114,9 @@
         "remediation_steps"
       ],
       "description": {
-        "default_locale": "en",
         "translations": {
-          "en": "Executive Coach Synthesis Block"
+          "en": "Executive Coach Synthesis Block",
+          "fi": "Johdon valmentajan synteesilohko"
         }
       }
     },
@@ -7525,17 +7127,17 @@
       "type": "instruction",
       "is_evaluative": false,
       "label": {
-        "default_locale": "en",
         "translations": {
-          "en": "Analytical Graph Synthesis"
+          "en": "Analytical Graph Synthesis",
+          "fi": "Analyyttinen graafisynteesi"
         }
       },
       "ai_description": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text. CRITICAL: When evaluations data contains exact_quote fields, you MUST weave these real user quotes into your narrative to ground every claim in concrete evidence. NEVER use academic framework names (Kahneman, Toulmin, Pearl, Goodhart, Popper) — translate all theoretical findings into plain business language about the user's actual content.\n- BILINGUAL OUTPUT MANDATE: Any structural headings or titles you generate within your output MUST be bilingual in Finnish and English (e.g., 'Yhteenveto / Summary').",
       "output_extensions": [],
       "description": {
-        "default_locale": "en",
         "translations": {
-          "en": "Analytical Graph Synthesis Block"
+          "en": "Analytical Graph Synthesis Block",
+          "fi": "Analyyttisen graafin synteesilohko"
         }
       }
     }
@@ -7544,14 +7146,12 @@
     {
       "id": "wf_9d68c573802341db",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kokonaisvaltainen Auditointi",
           "en": "Holistic Audit"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Kattava 12-vaiheinen auditointiketju, joka analysoi datan monipuolisesti ja tuottaa syvällisen arvioinnin.",
           "en": "Comprehensive 12-step audit chain that analyzes data from multiple perspectives to produce an in-depth evaluation."
@@ -7561,7 +7161,6 @@
         {
           "input_key": "product_text",
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Lopputuote",
               "en": "Product"
@@ -7574,7 +7173,6 @@
             "paste"
           ],
           "description": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Tähän liitetään auditoitavan prosessin varsinainen tuotos, esim. PDF-dokumentti.",
               "en": "Attach the actual output of the audited process (e.g. PDF)."
@@ -7586,7 +7184,6 @@
         {
           "input_key": "chat_log",
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Keskusteluhistoria",
               "en": "Chat Log"
@@ -7599,7 +7196,6 @@
             "paste"
           ],
           "description": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Liitä keskusteluhistoria ihmisen ja tekoälyn välillä.",
               "en": "Attach chat log between human and AI."
@@ -7611,7 +7207,6 @@
         {
           "input_key": "reflection_text",
           "label": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Reflektiodokumentti",
               "en": "Reflection"
@@ -7623,7 +7218,6 @@
             "questionnaire"
           ],
           "description": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Vastaa lyhyesti reflektiokysymyksiin.",
               "en": "Answer reflection questions briefly."
@@ -7634,7 +7228,6 @@
             {
               "question_id": "ref1",
               "question": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Mikä oli mielestäsi onnistuneinta tässä vuorovaikutuksessa?",
                   "en": "What do you think was the most successful part of this interaction?"
@@ -7645,7 +7238,6 @@
             {
               "question_id": "ref2",
               "question": {
-                "default_locale": "fi",
                 "translations": {
                   "fi": "Mitä tekisit toisin ensi kerralla?",
                   "en": "What would you do differently next time?"
@@ -7906,14 +7498,12 @@
       "is_system_core": true,
       "slug": "step_input_processing",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Input Processing",
           "en": "Input Processing"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Parses files and raw text into standard variables.",
           "en": "Parses files and raw text into standard variables."
@@ -7948,14 +7538,12 @@
       "is_system_core": false,
       "slug": "sp_1624bd0454c9425e",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Analyst",
           "en": "Analyst"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
           "en": "Imported from sequential_audit_chain"
@@ -8002,14 +7590,12 @@
       "is_system_core": false,
       "slug": "sp_2a81cb9e3e4b4694",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Archivist",
           "en": "Archivist"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Best Practices Audit",
           "en": "Best Practices Audit"
@@ -8049,14 +7635,12 @@
       "is_system_core": false,
       "slug": "step_causal_analyst",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Causal Analyst",
           "en": "Causal Analyst"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Impact Verification",
           "en": "Impact Verification"
@@ -8098,14 +7682,12 @@
       "is_system_core": false,
       "slug": "sp_744ca2e40b51424b",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Coach",
           "en": "Coach"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
           "en": "Imported from sequential_audit_chain"
@@ -8151,14 +7733,12 @@
       "is_system_core": false,
       "slug": "step_performativity_detector",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Performativity Detector",
           "en": "Performativity Detector"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Illusion of Control Audit",
           "en": "Illusion of Control Audit"
@@ -8198,14 +7778,12 @@
       "is_system_core": false,
       "slug": "sp_d948cb51bed3454c",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Falsifier",
           "en": "Falsifier"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Critical Loop Audit",
           "en": "Critical Loop Audit"
@@ -8249,14 +7827,12 @@
       "is_system_core": false,
       "slug": "sp_b080d22fcc2f4ff0",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Guard",
           "en": "Guard"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
           "en": "Imported from sequential_audit_chain"
@@ -8299,14 +7875,12 @@
       "is_system_core": false,
       "slug": "sp_282a7b15f76d4c9e",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Judge",
           "en": "Judge"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
           "en": "Imported from sequential_audit_chain"
@@ -8351,14 +7925,12 @@
       "is_system_core": false,
       "slug": "sp_b7aea7179c1b4193",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Logician",
           "en": "Logician"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
           "en": "Imported from sequential_audit_chain"
@@ -8400,14 +7972,12 @@
       "is_system_core": false,
       "slug": "sp_76b0dbf44e36495e",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Overseer",
           "en": "Overseer"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
           "en": "Imported from sequential_audit_chain"
@@ -8453,14 +8023,12 @@
       "is_system_core": false,
       "slug": "sp_d86aaa8a2756481b",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Profiler",
           "en": "Profiler"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
           "en": "Imported from sequential_audit_chain"
@@ -8504,14 +8072,12 @@
       "is_system_core": true,
       "slug": "step_xai_reporter",
       "name": {
-        "default_locale": "fi",
         "translations": {
           "fi": "XAI Reporter",
           "en": "XAI Reporter"
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "fi": "Imported from sequential_audit_chain",
           "en": "Imported from sequential_audit_chain"
@@ -8548,14 +8114,12 @@
       "is_system_core": false,
       "slug": "step_fact_checker",
       "name": {
-        "default_locale": "en",
         "translations": {
           "fi": "Faktantarkistaja",
           "en": "Fact Checker"
         }
       },
       "description": {
-        "default_locale": "en",
         "translations": {
           "fi": "Hakee taustatietoa tieteelliseen analyysiin.",
           "en": "Extracts hypotheses and runs Google Search in background"
@@ -8597,14 +8161,12 @@
       "type": "logic",
       "hook": "apply_scoring_logic",
       "name": {
-        "default_locale": "en",
         "translations": {
           "en": "Scoring Engine",
           "fi": "Scoring Engine"
         }
       },
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Aggregates final holistic scores",
           "fi": "Laskee loppupisteet"
@@ -8631,14 +8193,12 @@
       "type": "logic",
       "hook": "synthesis_distiller_hook",
       "name": {
-        "default_locale": "en",
         "translations": {
           "en": "Synthesis Distiller",
           "fi": "Synteesin Kokoaja"
         }
       },
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Distills metadata and loads historical context",
           "fi": "Tiivistää metadatan ja lataa historian"
@@ -8664,14 +8224,12 @@
       "type": "llm",
       "model_strategy": "synthesis",
       "name": {
-        "default_locale": "en",
         "translations": {
           "en": "LLM Synthesis",
           "fi": "LLM Synteesi"
         }
       },
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Generates the final markdown and content blocks",
           "fi": "Tuottaa lopullisen markdownin ja sisältölohkot"
@@ -8702,14 +8260,12 @@
       "type": "llm",
       "model_strategy": "fast",
       "name": {
-        "default_locale": "en",
         "translations": {
           "en": "Row Explanations",
           "fi": "Riviselitykset"
         }
       },
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Explains individual matrix rows",
           "fi": "Selittää yksittäiset matriisirivit"
@@ -8738,14 +8294,12 @@
       "type": "llm",
       "model_strategy": "synthesis",
       "name": {
-        "default_locale": "en",
         "translations": {
           "en": "Synthesis Generation",
           "fi": "Synteesin Generointi"
         }
       },
       "description": {
-        "default_locale": "en",
         "translations": {
           "en": "Generates GlobalSynthesisDTO headless data.",
           "fi": "Generates GlobalSynthesisDTO headless data."
@@ -8868,21 +8422,18 @@
   "output_profiles": [
     {
       "name": {
-        "default_locale": "fi",
         "translations": {
           "en": "Holistic Audit",
           "fi": "Kokonaisvaltainen Auditointi"
         }
       },
       "tone_instruction": {
-        "default_locale": "en",
         "translations": {
           "en": "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data.",
           "fi": "Toimi ylemmän johdon valmentajana (Senior Executive Coach). Tarjoa syvällistä, provosoivaa ja strategista analyysiä pelkän datan luettelemisen sijaan."
         }
       },
       "description": {
-        "default_locale": "fi",
         "translations": {
           "en": "End-to-end transparent evaluation.",
           "fi": "Koko datan läpäisevä täydellinen auditointiraportti."
@@ -8897,14 +8448,12 @@
         "strictness"
       ],
       "custom_preface": {
-        "default_locale": "fi",
         "translations": {
           "en": "**Report on your AI skills**\n\nThis report analyzes your way of utilizing AI and helps you develop into a strategic guide...",
           "fi": "**Raportti tekoälytaidoistasi**\n\nTämä raportti analysoi tapaasi hyödyntää tekoälyä ja auttaa sinua kehittymään sen strategiseksi ohjaajaksi. Arvioinnissa keskitytään kolmeen osa-alueeseen:\n\n- **Oivalluskyky**: Pureudutko syvälle aiheeseen vai jäätkö pintatasolle?\n- **Logiikka ja päättely**: Miten perustelet väitteesi ja haastat tekoälyn vastauksia?\n- **Luotettavuus**: Miten hallitset prosessia ja sen läpinäkyvyyttä?\n\nAnalyysi perustuu tieteellisiin malleihin (mm. Kahneman, Toulmin ja Popper). Lopussa olevan pisteytyksen avulla voit tunnistaa vahvuutesi ja rakentaa itsellesi tavoitteellisen kehityspolun."
         }
       },
       "user_role_label": {
-        "default_locale": "fi",
         "translations": {
           "en": "User Role",
           "fi": "Käyttäjärooli"
@@ -8912,28 +8461,24 @@
       },
       "user_role_mappings": {
         "ROLE_ARCHITECT": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Arkkitehti",
             "en": "Architect"
           }
         },
         "ROLE_DRIVER": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Kuljettaja",
             "en": "Driver"
           }
         },
         "ROLE_PASSENGER": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Matkustaja",
             "en": "Passenger"
           }
         },
         "ROLE_NAVIGATOR": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Navigaattori",
             "en": "Navigator"
@@ -8942,119 +8487,102 @@
       },
       "metric_mappings": {
         "metadata_user": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Käyttäjä:",
             "en": "User:"
           }
         },
         "metadata_organization": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Organisaatio:",
             "en": "Organization:"
           }
         },
         "metadata_scoring_engine": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Arviointimoottori:",
             "en": "Scoring Engine:"
           }
         },
         "metadata_strictness": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Ankaruustaso:",
             "en": "Strictness Level:"
           }
         },
         "variance_mechanical": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Mekaaninen",
             "en": "Mechanical"
           }
         },
         "variance_cognitive": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Kognitiivinen",
             "en": "Cognitive"
           }
         },
         "variance_total": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Variaatio",
             "en": "Variance"
           }
         },
         "alignment_verdict": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Linjaus (Alignment)",
             "en": "Alignment Verdict"
           }
         },
         "alignment_aligned": {
-          "default_locale": "fi",
           "translations": {
             "fi": "YHDENMUKAINEN",
             "en": "ALIGNED"
           }
         },
         "alignment_misaligned": {
-          "default_locale": "fi",
           "translations": {
             "fi": "RISTIRIITAINEN",
             "en": "MISALIGNED"
           }
         },
         "jargon_score": {
-          "default_locale": "fi",
           "translations": {
             "fi": "AI-Jargon Pisteet",
             "en": "AI-Jargon Score"
           }
         },
         "authenticity_level": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Autenttisuusaste",
             "en": "Authenticity Level"
           }
         },
         "level_high": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Korkea",
             "en": "High"
           }
         },
         "level_medium": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Kohtalainen",
             "en": "Medium"
           }
         },
         "level_low": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Matala",
             "en": "Low"
           }
         },
         "variance_fallback_explanation": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Havaittu {0} performatiivista AI-lausetta. Kokonaisvaltainen autenttisuusindeksi on {1}.",
             "en": "Detected {0} performative AI-phrases. Overall authenticity index is {1}."
           }
         },
         "authenticity_fallback_explanation": {
-          "default_locale": "fi",
           "translations": {
             "fi": "Lähdedatan autenttisuusarviointi tuotti tuloksen {0}/100. Tämä osoittaa todennäköisyyden sille, että lähdemateriaali on tekoälyn tuottamaa ilman riittävää inhimillistä kognitiivista panosta.",
             "en": "The source data authenticity evaluation resulted in a score of {0}/100. This indicates the likelihood that the source material was generated by an AI without sufficient human cognitive effort."
@@ -9063,84 +8591,72 @@
       },
       "extension_labels": {
         "citation": {
-          "default_locale": "fi",
           "translations": {
             "fi": "VIITTEET",
             "en": "CITATIONS"
           }
         },
         "justification": {
-          "default_locale": "fi",
           "translations": {
             "fi": "PERUSTELUT",
             "en": "JUSTIFICATIONS"
           }
         },
         "falsification": {
-          "default_locale": "fi",
           "translations": {
             "fi": "VASTA-ARGUMENTTI",
             "en": "COUNTER-ARGUMENT"
           }
         },
         "theory_link": {
-          "default_locale": "fi",
           "translations": {
             "fi": "TEOREETTINEN YHTEYS",
             "en": "THEORETICAL LINK"
           }
         },
         "risk_flag": {
-          "default_locale": "fi",
           "translations": {
             "fi": "VAKAVA RISKI HAVAITTU",
             "en": "SEVERE RISK DETECTED"
           }
         },
         "coaching": {
-          "default_locale": "fi",
           "translations": {
             "fi": "ARJEN VINKKI",
             "en": "DAILY TIP"
           }
         },
         "missing_context": {
-          "default_locale": "fi",
           "translations": {
             "fi": "PUUTTUVA KONTEKSTI",
             "en": "MISSING CONTEXT"
           }
         },
         "remediation_steps": {
-          "default_locale": "fi",
           "translations": {
             "fi": "KORJAAVAT TOIMENPITEET",
             "en": "REMEDIATION STEPS"
           }
         },
         "emotional_sentiment": {
-          "default_locale": "fi",
           "translations": {
             "fi": "EMOTIONAALINEN SÄVY",
             "en": "EMOTIONAL SENTIMENT"
           }
         },
         "confidence": {
-          "default_locale": "fi",
           "translations": {
             "fi": "LUOTETTAVUUS JA VARMUUS",
             "en": "RELIABILITY AND CONFIDENCE"
           }
         },
         "variance_validation": {
-          "default_locale": "fi",
           "translations": {
             "fi": "VARIAATIO (KOGNITIIVINEN VS. MEKAANINEN)",
             "en": "VARIANCE (COGNITIVE VS. MECHANICAL)"
           }
         },
         "authenticity_evaluation": {
-          "default_locale": "fi",
           "translations": {
             "fi": "AUTENTTISUUSARVIOINTI",
             "en": "AUTHENTICITY EVALUATION"
@@ -9164,14 +8680,12 @@
         {
           "preset_view": "2d_compare",
           "title": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Looginen perusta ja ajatteluvääristymät",
               "en": "Logical Basis & Cognitive Distortions"
             }
           },
           "description": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Datan todennettavuus ja looginen rakenne.",
               "en": "Data verifiability and logical structure."
@@ -9193,14 +8707,12 @@
         {
           "preset_view": "2d_compare",
           "title": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Kausaalisuus ja falsifioitavuus",
               "en": "Causality & Falsification"
             }
           },
           "description": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Datan todennettavuus ja looginen rakenne.",
               "en": "Data verifiability and logical structure."
@@ -9221,14 +8733,12 @@
         {
           "preset_view": "2d_compare",
           "title": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Jäljitettävyys ja ankkurointi",
               "en": "Traceability & Anchoring"
             }
           },
           "description": {
-            "default_locale": "fi",
             "translations": {
               "fi": "Datan todennettavuus ja looginen rakenne.",
               "en": "Data verifiability and logical structure."
@@ -9272,42 +8782,36 @@
           "scoring_strategy": null,
           "matrix_column_labels": {
             "label": {
-              "default_locale": "fi",
               "translations": {
                 "fi": "Ulottuvuus",
                 "en": "Dimension"
               }
             },
             "atomic_breakdown": {
-              "default_locale": "fi",
               "translations": {
                 "fi": "Tasojakauma",
                 "en": "Distribution"
               }
             },
             "row_explanation": {
-              "default_locale": "fi",
               "translations": {
                 "fi": "Selite",
                 "en": "Explanation"
               }
             },
             "quotes": {
-              "default_locale": "fi",
               "translations": {
                 "fi": "Lainaukset",
                 "en": "Quotes"
               }
             },
             "normalized_score": {
-              "default_locale": "fi",
               "translations": {
                 "fi": "Normitettu arvo",
                 "en": "Normalized Score"
               }
             },
             "score": {
-              "default_locale": "fi",
               "translations": {
                 "fi": "Pisteet",
                 "en": "Score"

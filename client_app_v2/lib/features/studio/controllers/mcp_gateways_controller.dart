@@ -197,7 +197,6 @@ class McpGatewayForm extends _$McpGatewayForm {
     tools.add({
       'tool_id': 'new_tool',
       'name': {
-        'default_locale': 'en',
         'translations': {'en': 'New Tool', 'fi': 'Uusi työkalu'},
       },
       'description': '',

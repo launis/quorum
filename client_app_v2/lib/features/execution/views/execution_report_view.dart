@@ -274,7 +274,9 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
                 )
               : IconButton(
                   icon: const Icon(Icons.policy),
-                  tooltip: 'Lataa Frozen Context',
+                  tooltip: AppLocalizations.of(
+                    context,
+                  )!.downloadFrozenContextTooltip,
                   onPressed: _downloadFrozenContext,
                 ),
           _isDownloadingPdf
@@ -305,7 +307,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
                 ),
               )
             : const Icon(Icons.table_chart),
-        label: const Text('Lataa Excel'),
+        label: Text(AppLocalizations.of(context)!.downloadExcelBtn),
       ),
       body: switch (reportAsync) {
         AsyncData(:final value) => SingleChildScrollView(

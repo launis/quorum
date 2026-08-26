@@ -392,7 +392,6 @@ class McpGatewayView extends HookConsumerWidget {
     final nameObj =
         tool['name'] as Map<String, dynamic>? ??
         {
-          'default_locale': 'en',
           'translations': {'en': '', 'fi': ''},
         };
     tool['name'] = nameObj;

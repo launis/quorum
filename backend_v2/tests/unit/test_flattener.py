@@ -36,7 +36,7 @@ def test_flat_file_service_flatten_results() -> None:
                     MatrixScorecardRowDTO(
                         block_id="blk_1",
                         name="Matrix 1",
-                        label_i18n=I18nText(translations={"en": "Matrix 1"}, default_locale="en"),
+                        label_i18n=I18nText(translations={"en": "Matrix 1"}),
                         row_explanation="Test matrix",
                         score=4.0,
                         semantic_reasoning="Passed because of X",

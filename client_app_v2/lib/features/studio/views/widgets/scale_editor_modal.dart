@@ -33,7 +33,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
       final claims = List<MatrixClaim>.from(_editableScale.claims);
       claims.add(
         MatrixClaim(
-          label: const I18nText(defaultLocale: 'en', translations: {'en': ''}),
+          label: const I18nText(translations: {'en': ''}),
           tdaAssertions: [
             TDAAssertion.create(
               conceptDescription: 'CRITICAL MANDATE: ',
@@ -102,10 +102,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                 label: l10n.scaleGradeNameLabel,
                 initialData:
                     _editableScale.name ??
-                    const I18nText(
-                      defaultLocale: 'en',
-                      translations: {'en': ''},
-                    ),
+                    const I18nText(translations: {'en': ''}),
                 onChanged: (val) {
                   _editableScale = _editableScale.copyWith(name: val);
                 },

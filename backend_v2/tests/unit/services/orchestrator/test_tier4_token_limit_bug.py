@@ -24,8 +24,8 @@ async def test_tier4_reasoning_trace_truncation_bug() -> None:
             slug="test_slug",
             category_id=PromptBlockCategory.SYSTEM_RULE,
             type=BlockDataType.INSTRUCTION,
-            label=I18nText(default_locale="fi", translations={"fi": "Testi", "en": "Test"}),
-            description=I18nText(default_locale="fi", translations={"fi": "Kuvaus", "en": "Desc"}),
+            label=I18nText(translations={"fi": "Testi", "en": "Test"}),
+            description=I18nText(translations={"fi": "Kuvaus", "en": "Desc"}),
         )
     ]
 

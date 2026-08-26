@@ -17,7 +17,7 @@ def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) ->
             ai_label="TEST",
             claims=[
                 MatrixClaim(
-                    label=I18nText(default_locale="en", translations={"en": "Test"}),
+                    label=I18nText(translations={"en": "Test"}),
                     tda_assertions=[
                         TDAAssertion(
                             concept_description="Concept test",
@@ -31,8 +31,8 @@ def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) ->
         return MatrixPromptBlock(
             id="blk_1234567890abcdef1234567890abcdef",
             slug=slug,
-            label=I18nText(default_locale="en", translations={"en": "Test Label", "fi": "Test Label"}),
-            description=I18nText(default_locale="en", translations={"en": "Test Desc", "fi": "Test Desc"}),
+            label=I18nText(translations={"en": "Test Label", "fi": "Test Label"}),
+            description=I18nText(translations={"en": "Test Desc", "fi": "Test Desc"}),
             ai_description="Test AI instruction",
             category_id=PromptBlockCategory.MATRIX,
             is_evaluative=True,
@@ -44,8 +44,8 @@ def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) ->
     return SystemRulePromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug=slug,
-        label=I18nText(default_locale="en", translations={"en": "Test Label", "fi": "Test Label"}),
-        description=I18nText(default_locale="en", translations={"en": "Test Desc", "fi": "Test Desc"}),
+        label=I18nText(translations={"en": "Test Label", "fi": "Test Label"}),
+        description=I18nText(translations={"en": "Test Desc", "fi": "Test Desc"}),
         ai_description="Test AI instruction",
         category_id=PromptBlockCategory.SYSTEM_RULE,
         is_evaluative=True,

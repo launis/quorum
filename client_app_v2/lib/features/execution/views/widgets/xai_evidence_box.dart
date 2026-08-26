@@ -297,6 +297,7 @@ class XAIEvidenceBox extends ConsumerWidget {
                       ),
                       label: Text(
                         _truncateUrl(url),
+                        overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: AppColors.intentInfo,
                         ),
@@ -338,10 +339,10 @@ class XAIEvidenceBox extends ConsumerWidget {
     try {
       final uri = Uri.parse(url);
       final pathSegments = uri.pathSegments;
-      if (pathSegments.isEmpty) return uri.host;
-      return '${uri.host}/${pathSegments.first}...';
+      if (pathSegments.isEmpty) return uri.host.isNotEmpty ? uri.host : url;
+      return '${uri.host}/${pathSegments.first}';
     } catch (_) {
-      return url.length > 40 ? '${url.substring(0, 40)}...' : url;
+      return url;
     }
   }
 

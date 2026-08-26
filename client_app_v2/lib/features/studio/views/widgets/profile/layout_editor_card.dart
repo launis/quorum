@@ -27,7 +27,7 @@ class LayoutEditorCard extends ConsumerWidget {
     newList.add(
       const OutputLayoutBlock(
         presetView: PresetView.metrics1d,
-        title: I18nText(defaultLocale: 'en'),
+        title: I18nText(translations: {'en': 'Metrics 1D'}),
         textDeliveryMode: TextDeliveryMode.full,
         targetBlocks: [],
       ),

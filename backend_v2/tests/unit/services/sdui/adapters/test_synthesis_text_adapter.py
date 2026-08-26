@@ -12,7 +12,7 @@ def test_synthesis_text_adapter_builds_markdown_blocks() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-slug",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
+        name=I18nText(translations={"en": "Test Profile"}),
         content_blocks=[cb],
         target_block_order=[],
     )
@@ -43,7 +43,7 @@ def test_synthesis_text_adapter_ignores_section_syntheses() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-slug",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
+        name=I18nText(translations={"en": "Test Profile"}),
         content_blocks=[cb],
         target_block_order=[],
     )

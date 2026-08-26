@@ -13,18 +13,16 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
         "id": "blk_1234567890abcdef",
         "slug": "test_matrix",
         "category_id": "matrix",
-        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
         "label": {
-            "default_locale": "en",
             "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"},
         },
         "ai_description": "ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort...",
         "rows": [
             {
                 "label": {
-                    "default_locale": "en",
                     "translations": {"en": "Critical Distance Score", "fi": "Critical Distance Score"},
                 },
                 "ai_description": (
@@ -40,7 +38,6 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                 "claims": [
                     {
                         "label": {
-                            "default_locale": "en",
                             "translations": {
                                 "en": "The user is a 'Yes-man'. Blindly accepted the AI's first response.",
                                 "fi": "Mock",
@@ -57,7 +54,6 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                     },
                     {
                         "label": {
-                            "default_locale": "en",
                             "translations": {"en": "No corrective move or objection presented.", "fi": "Mock"},
                         },
                         "tda_assertions": [
@@ -77,7 +73,6 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
                 "claims": [
                     {
                         "label": {
-                            "default_locale": "en",
                             "translations": {
                                 "en": "The user requested changes, but they were only superficial.",
                                 "fi": "Mock",
@@ -133,10 +128,10 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "id": "blk_2234567890abcdef",
         "slug": "extract_test",
         "category_id": "matrix",
-        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
-        "label": {"default_locale": "en", "translations": {"en": "Test Score", "fi": "Test Score"}},
+        "label": {"translations": {"en": "Test Score", "fi": "Test Score"}},
         "ai_description": "Base Desc",
         "output_extensions": ["justification", "remediation_steps", "confidence"],
         "scales": [
@@ -145,7 +140,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
                 "ai_label": "ONE",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Claim 1"}},
+                        "label": {"translations": {"en": "Claim 1", "fi": "Claim 1"}},
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_44444444444444444444444444444444",
@@ -279,10 +274,10 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
         "id": "blk_1234567890abcdef",
         "slug": "extreme_test",
         "category_id": "matrix",
-        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "type": BlockDataType.FLOAT,
         "allow_decimals": True,
-        "label": {"default_locale": "en", "translations": {"en": "Extreme Score", "fi": "Extreme Score"}},
+        "label": {"translations": {"en": "Extreme Score", "fi": "Extreme Score"}},
         "ai_description": extreme_desc,
         "scales": [
             {
@@ -291,7 +286,6 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
                 "claims": [
                     {
                         "label": {
-                            "default_locale": "en",
                             "translations": {"en": "Minimal Claim", "fi": "Minimal Claim"},
                         },
                         "tda_assertions": [
@@ -331,9 +325,8 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
         "slug": "custom_instruction",
         "category_id": "system_rule",
         "type": "instruction",
-        "label": {"default_locale": "en", "translations": {"en": "Instruction Label", "fi": "Instruction Label"}},
+        "label": {"translations": {"en": "Instruction Label", "fi": "Instruction Label"}},
         "description": {
-            "default_locale": "en",
             "translations": {"en": "Instruction Description", "fi": "Instruction Description"},
         },
         "ai_description": "Custom instruction details.",
@@ -374,16 +367,16 @@ def test_build_xml_context() -> None:
     expected_inputs = [
         ExpectedInput(
             input_key="normal_input",
-            label=I18nText(default_locale="en", translations={"en": "Normal"}),
-            description=I18nText(default_locale="en", translations={"en": "Desc"}),
+            label=I18nText(translations={"en": "Normal"}),
+            description=I18nText(translations={"en": "Desc"}),
             is_chat_history=False,
             input_modes=["text"],
             required=True,
         ),
         ExpectedInput(
             input_key="chat_input",
-            label=I18nText(default_locale="en", translations={"en": "Chat"}),
-            description=I18nText(default_locale="en", translations={"en": "Desc"}),
+            label=I18nText(translations={"en": "Chat"}),
+            description=I18nText(translations={"en": "Desc"}),
             is_chat_history=True,
             input_modes=["text"],
             required=True,

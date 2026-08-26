@@ -31,7 +31,7 @@ def mock_repo() -> MagicMock:
         return_value={
             "id": "prof_0123456789abcdef0123456789abcdef",
             "slug": "test",
-            "name": {"default_locale": "en", "translations": {"en": "Test"}},
+            "name": {"translations": {"en": "Test"}},
             "workflow_id": "wf_123",
             "organization_id": "root",
         }
@@ -40,8 +40,8 @@ def mock_repo() -> MagicMock:
         return_value={
             "id": "wf_0123456789abcdef0123456789abcdef",
             "slug": "test",
-            "name": {"default_locale": "en", "translations": {"en": "Test"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test"}},
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
             "status": "draft",
             "version": 1,
             "default_profile_id": "prof",
@@ -171,8 +171,8 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test", "fi": "Test"}},
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
@@ -184,8 +184,8 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
             "slug": "test_block",
             "category_id": "system_rule",
             "type": "string",
-            "label": {"default_locale": "en", "translations": {"en": "Label", "fi": "Label"}},
-            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "label": {"translations": {"en": "Label", "fi": "Label"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "ai_description": "Test Block AI Desc",
         },
         {
@@ -193,8 +193,8 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
             "slug": "zero_trust_extraction_protocol",
             "category_id": "system_rule",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "description": {"default_locale": "en", "translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+            "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
             "ai_description": "Strict extraction protocol.",
         },
     ]

@@ -184,12 +184,11 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
-                                  (Localizations.localeOf(
-                                                context,
-                                              ).languageCode ==
-                                              'fi'
-                                          ? (m.labelI18n.get('fi'))
-                                          : (m.labelI18n.get('en'))) +
+                                  m.labelI18n.get(
+                                        Localizations.localeOf(
+                                          context,
+                                        ).languageCode,
+                                      ) +
                                       (m.isEvaluative ? ' *' : '') +
                                       (m.allowContextualOverride ? ' **' : ''),
                                   style: const TextStyle(
@@ -328,9 +327,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    (Localizations.localeOf(context).languageCode == 'fi'
-                            ? (m.labelI18n.get('fi'))
-                            : (m.labelI18n.get('en'))) +
+                    m.labelI18n.get(
+                          Localizations.localeOf(context).languageCode,
+                        ) +
                         (m.isEvaluative ? ' *' : '') +
                         (m.allowContextualOverride ? ' **' : ''),
                     style: const TextStyle(fontWeight: FontWeight.bold),

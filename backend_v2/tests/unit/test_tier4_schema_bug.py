@@ -18,10 +18,10 @@ def test_reproduce_tier4_schema_bug() -> None:
             "id": "blk_599645bd5baf44e2",
             "type": "string",
             "category_id": PromptBlockCategory.SYSTEM_RULE,
-            "label": {"translations": {"en": "Matrix"}, "default_locale": "en"},
+            "label": {"translations": {"en": "Matrix"}},
             "ai_description": "Do matrix things",
             "slug": "test_block",
-            "description": {"translations": {"en": "desc"}, "default_locale": "en"},
+            "description": {"translations": {"en": "desc"}},
         }
     )
 

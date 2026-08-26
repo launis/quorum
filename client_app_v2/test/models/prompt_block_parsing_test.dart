@@ -8,11 +8,9 @@ void main() {
         'id': 'pb_1234567890abcdef',
         'slug': 'test-slug',
         'label': {
-          'default_locale': 'en',
           'translations': {'en': 'Test Label', 'fi': 'Testi'},
         },
         'description': {
-          'default_locale': 'en',
           'translations': {'en': 'Test Desc', 'fi': 'Testi'},
         },
         'category_id': 'matrix',

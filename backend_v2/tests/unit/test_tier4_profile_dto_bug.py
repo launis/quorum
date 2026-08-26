@@ -13,7 +13,7 @@ def test_output_profile_dtos_accept_content_blocks() -> None:
         "id": "prf_1234abcd1234abcd",
         "slug": "test_slug",
         "workflow_id": "wf_1234abcd1234abcd",
-        "name": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+        "name": {"translations": {"en": "Title", "fi": "Title"}},
         "layouts": [],
         "content_blocks": [{"id": "blk_123", "block_type": "markdown", "text": "test"}],
     }

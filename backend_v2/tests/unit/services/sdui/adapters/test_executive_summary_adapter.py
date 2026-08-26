@@ -14,14 +14,12 @@ def test_build_valid_role_returns_paragraph_block() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_label=I18nText(default_locale="en", translations={"en": "Role", "fi": "Rooli"}),
+        user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
         user_role_mappings={
-            RoleClassification.NAVIGATOR.value: I18nText(
-                default_locale="en", translations={"en": "Navigator", "fi": "Navigaattori"}
-            ),
+            RoleClassification.NAVIGATOR.value: I18nText(translations={"en": "Navigator", "fi": "Navigaattori"}),
         },
     )
     cache = RenderedSynthesisCache(
@@ -53,14 +51,12 @@ def test_build_valid_role_with_narrative_and_section_syntheses() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_label=I18nText(default_locale="en", translations={"en": "Role", "fi": "Rooli"}),
+        user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
         user_role_mappings={
-            RoleClassification.NAVIGATOR.value: I18nText(
-                default_locale="en", translations={"en": "Navigator", "fi": "Navigaattori"}
-            ),
+            RoleClassification.NAVIGATOR.value: I18nText(translations={"en": "Navigator", "fi": "Navigaattori"}),
         },
     )
     cache = RenderedSynthesisCache(
@@ -103,14 +99,12 @@ def test_build_legacy_unmapped_section_key_ignored_negative() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_label=I18nText(default_locale="en", translations={"en": "Role", "fi": "Rooli"}),
+        user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
         user_role_mappings={
-            RoleClassification.NAVIGATOR.value: I18nText(
-                default_locale="en", translations={"en": "Navigator", "fi": "Navigaattori"}
-            ),
+            RoleClassification.NAVIGATOR.value: I18nText(translations={"en": "Navigator", "fi": "Navigaattori"}),
         },
     )
     cache = RenderedSynthesisCache(
@@ -162,10 +156,10 @@ def test_build_missing_user_role_returns_empty_list() -> None:
             id="prf_0123456789abcdef0123456789abcdef",
             slug="test",
             workflow_id="wf_0123456789abcdef0123456789abcdef",
-            name=I18nText(default_locale="en", translations={"en": "Test"}),
+            name=I18nText(translations={"en": "Test"}),
             content_blocks=[],
             target_block_order=[],
-            user_role_label=I18nText(default_locale="en", translations={"en": "Role", "fi": "Rooli"}),
+            user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
             user_role_mappings={},
         ),
         profile_cache=cache,
@@ -183,10 +177,10 @@ def test_build_invalid_role_classification_raises_app_exception() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_label=I18nText(default_locale="en", translations={"en": "Role", "fi": "Rooli"}),
+        user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
         user_role_mappings={},
     )
     cache = RenderedSynthesisCache(
@@ -219,14 +213,12 @@ def test_build_missing_user_role_label_raises_app_exception() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
         user_role_label=None,
         user_role_mappings={
-            RoleClassification.NAVIGATOR.value: I18nText(
-                default_locale="en", translations={"en": "Navigator", "fi": "Navigaattori"}
-            ),
+            RoleClassification.NAVIGATOR.value: I18nText(translations={"en": "Navigator", "fi": "Navigaattori"}),
         },
     )
     cache = RenderedSynthesisCache(
@@ -259,10 +251,10 @@ def test_build_missing_role_mapping_raises_app_exception() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_label=I18nText(default_locale="en", translations={"en": "Role", "fi": "Rooli"}),
+        user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
         user_role_mappings={},  # Missing NAVIGATOR
     )
     cache = RenderedSynthesisCache(

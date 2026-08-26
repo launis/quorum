@@ -199,8 +199,8 @@ class StudioPromptBlockService:
         draft_dict: dict[str, Any] = {
             "id": new_id,
             "slug": new_id,
-            "label": {"default_locale": "en", "translations": {"en": "New Block", "fi": "Uusi lohko"}},
-            "description": {"default_locale": "en", "translations": {"en": "Draft block", "fi": "Luonnos"}},
+            "label": {"translations": {"en": "New Block", "fi": "Uusi lohko"}},
+            "description": {"translations": {"en": "Draft block", "fi": "Luonnos"}},
             "ai_description": "Initial AI logic draft.",
             "category_id": PromptBlockCategory.SYSTEM_RULE.value,
             "type": BlockDataType.INSTRUCTION.value,

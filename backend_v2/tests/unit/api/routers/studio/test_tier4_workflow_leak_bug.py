@@ -53,7 +53,7 @@ async def test_workflow_does_not_leak_metric_mappings(mock_studio_service: Async
             "id": "prof_0123456789abcdef0123456789abcdef",
             "workflow_id": "wf_0123456789abcdef0123456789abcdef",
             "slug": "test-profile",
-            "name": {"default_locale": "en", "translations": {"en": "test"}},
+            "name": {"translations": {"en": "test"}},
             "layouts": [],
         },
         strict=False,
@@ -62,7 +62,7 @@ async def test_workflow_does_not_leak_metric_mappings(mock_studio_service: Async
     mock_workflow = WorkflowResponseDTO(
         id="wf_0123456789abcdef0123456789abcdef",
         slug="test-wf",
-        name=I18nText(default_locale="en", translations={"en": "test wf"}),
+        name=I18nText(translations={"en": "test wf"}),
         description="test",
         status="draft",
         version=1,

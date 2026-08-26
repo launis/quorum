@@ -9,7 +9,6 @@ void main() {
       final jsonPayload = {
         'preset_view': 'default',
         'title': {
-          'default_locale': 'en',
           'translations': {'fi': 'Otsikko', 'en': 'Title'},
         },
         'text_delivery_mode': 'full',
@@ -135,7 +134,6 @@ void main() {
         'id': 'op_1234567890abcdef',
         'workflow_id': 'wf_9d68c573802341db',
         'name': {
-          'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
         },
         'language': 'fi',
@@ -156,7 +154,6 @@ void main() {
         'id': 'op_1234567890abcdef',
         'workflow_id': 'wf_9d68c573802341db',
         'name': {
-          'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
         },
         'synthesis': {
@@ -184,19 +181,15 @@ void main() {
         'workflow_id': 'wf_9d68c573802341db',
         'organization_id': 'org_123',
         'name': {
-          'default_locale': 'en',
           'translations': {'en': 'Complete Valid Profile'},
         },
         'description': {
-          'default_locale': 'en',
           'translations': {'en': 'Valid Description'},
         },
         'user_role_label': {
-          'default_locale': 'en',
           'translations': {'en': 'Lead'},
         },
         'custom_preface': {
-          'default_locale': 'en',
           'translations': {'en': 'Preface'},
         },
         'visible_metadata': ['date', 'organization'],
@@ -207,25 +200,21 @@ void main() {
         'strictness_level': 85,
         'scoring_strategy': 'WATERFALL',
         'tone_instruction': {
-          'default_locale': 'en',
           'translations': {'en': 'Formal'},
         },
         'language': 'en',
         'user_role_mappings': {
           'role_1': {
-            'default_locale': 'en',
             'translations': {'en': 'Role One'},
           },
         },
         'extension_labels': {
           'ext_1': {
-            'default_locale': 'en',
             'translations': {'en': 'Extension One'},
           },
         },
         'metric_mappings': {
           'metric_1': {
-            'default_locale': 'en',
             'translations': {'en': 'Metric One'},
           },
         },
@@ -233,7 +222,6 @@ void main() {
           {
             'preset_view': '1d_metrics',
             'title': {
-              'default_locale': 'en',
               'translations': {'en': 'Layout 1'},
             },
             'text_delivery_mode': 'titles_only',
@@ -292,7 +280,6 @@ void main() {
         'id': 'op_1234567890abcdef',
         'workflow_id': 'wf_9d68c573802341db',
         'name': {
-          'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
         },
         'display_scale': 'invalid_scale',
@@ -310,7 +297,6 @@ void main() {
         'id': 'op_1234567890abcdef',
         'workflow_id': 'wf_9d68c573802341db',
         'name': {
-          'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
         },
         'target_block_order': ['invalid_block'],
@@ -328,7 +314,6 @@ void main() {
         'id': 'op_1234567890abcdef',
         'workflow_id': 'wf_9d68c573802341db',
         'name': {
-          'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
         },
         'include_diagnostic_scorecard': true,
@@ -346,7 +331,6 @@ void main() {
         'id': 'op_1234567890abcdef',
         'workflow_id': 'wf_9d68c573802341db',
         'name': {
-          'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
         },
         'synthesis': {'synthesis_block_id': 'blk_syn_1', 'ghost_key': true},
@@ -364,7 +348,6 @@ void main() {
         'id': 'op_1234567890abcdef',
         'workflow_id': 'wf_9d68c573802341db',
         'name': {
-          'default_locale': 'en',
           'translations': {'en': 'Test Profile'},
         },
         'layouts': [
@@ -385,7 +368,6 @@ void main() {
           'id': 'op_1234567890abcdef',
           'workflow_id': 'wf_9d68c573802341db',
           'name': {
-            'default_locale': 'en',
             'translations': {'en': 'Test Profile'},
           },
           'display_scale': 'custom',

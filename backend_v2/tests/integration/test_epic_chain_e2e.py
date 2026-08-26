@@ -87,8 +87,8 @@ async def test_epic_93_e2e_golden_master() -> None:
     mock_workflow = {
         "id": wf_id,
         "slug": "wf_1",
-        "name": {"default_locale": "en", "translations": {"en": "Mock Workflow"}},
-        "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "name": {"translations": {"en": "Mock Workflow"}},
+        "description": {"translations": {"en": "desc"}},
         "status": "published",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
@@ -109,18 +109,18 @@ async def test_epic_93_e2e_golden_master() -> None:
         "slug": "mock-profile-slug",
         "workflow_id": wf_id,
         "organization_id": "root",
-        "name": {"default_locale": "en", "translations": {"en": "Mock Profile"}},
-        "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "name": {"translations": {"en": "Mock Profile"}},
+        "description": {"translations": {"en": "desc"}},
         "metric_mappings": {
-            "metadata_scoring_engine": {"default_locale": "en", "translations": {"en": "Scoring Engine"}},
-            "metadata_strictness": {"default_locale": "en", "translations": {"en": "Strictness"}},
+            "metadata_scoring_engine": {"translations": {"en": "Scoring Engine"}},
+            "metadata_strictness": {"translations": {"en": "Strictness"}},
         },
         "layouts": [
             {
                 "preset_view": "1d_metrics",
                 "steps": ["step_analyst"],
                 "target_blocks": [block_id],
-                "title": {"default_locale": "en", "translations": {"en": "Axis Title"}},
+                "title": {"translations": {"en": "Axis Title"}},
             }
         ],
     }
@@ -133,16 +133,16 @@ async def test_epic_93_e2e_golden_master() -> None:
         "category_id": "matrix",
         "is_evaluative": True,
         "type": "float",
-        "label": {"default_locale": "en", "translations": {"en": "Matrix 1"}},
-        "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "label": {"translations": {"en": "Matrix 1"}},
+        "description": {"translations": {"en": "desc"}},
         "scales": [
             {
-                "name": {"default_locale": "en", "translations": {"en": "FAIL"}},
+                "name": {"translations": {"en": "FAIL"}},
                 "score": 0,
                 "ai_label": "FAIL",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                        "label": {"translations": {"en": "claim"}},
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_00000000000000000000000000000000",
@@ -155,12 +155,12 @@ async def test_epic_93_e2e_golden_master() -> None:
                 ],
             },
             {
-                "name": {"default_locale": "en", "translations": {"en": "PASS"}},
+                "name": {"translations": {"en": "PASS"}},
                 "score": 100,
                 "ai_label": "PASS",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "claim 2"}},
+                        "label": {"translations": {"en": "claim 2"}},
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",
@@ -299,7 +299,7 @@ async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
     mock_workflow = {
         "id": wf_id,
         "slug": "wf_neg01",
-        "name": {"default_locale": "en", "translations": {"en": "Mock Workflow"}},
+        "name": {"translations": {"en": "Mock Workflow"}},
         "default_profile_id": "prf_11111111111111111111111111111111",
         "steps": [],
         "output_profiles": [],
@@ -350,7 +350,7 @@ async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
     mock_workflow = {
         "id": wf_id,
         "slug": "wf_neg02",
-        "name": {"default_locale": "en", "translations": {"en": "Mock Workflow"}},
+        "name": {"translations": {"en": "Mock Workflow"}},
         "default_profile_id": "prf_22222222222222222222222222222222",
         "steps": [],
         "output_profiles": [],
@@ -410,7 +410,7 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
     mock_workflow = {
         "id": wf_id,
         "slug": "wf_neg03",
-        "name": {"default_locale": "en", "translations": {"en": "Mock Workflow"}},
+        "name": {"translations": {"en": "Mock Workflow"}},
         "default_profile_id": profile_id,
         "steps": [],
         "output_profiles": [profile_id],
@@ -421,7 +421,7 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
         "id": profile_id,
         "slug": "mock-profile",
         "workflow_id": wf_id,
-        "name": {"default_locale": "en", "translations": {"en": "Mock Profile"}},
+        "name": {"translations": {"en": "Mock Profile"}},
         "layouts": [],
     }
     mock_output_profile_repo.get_all_output_profiles.return_value = [mock_profile]
@@ -432,16 +432,16 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
         "category_id": "matrix",
         "is_evaluative": True,
         "type": "float",
-        "label": {"default_locale": "en", "translations": {"en": "Matrix 1"}},
-        "description": {"default_locale": "en", "translations": {"en": "desc"}},
+        "label": {"translations": {"en": "Matrix 1"}},
+        "description": {"translations": {"en": "desc"}},
         "scales": [
             {
-                "name": {"default_locale": "en", "translations": {"en": "FAIL"}},
+                "name": {"translations": {"en": "FAIL"}},
                 "score": 0,
                 "ai_label": "FAIL",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "claim"}},
+                        "label": {"translations": {"en": "claim"}},
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_00000000000000000000000000000000",
@@ -454,12 +454,12 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
                 ],
             },
             {
-                "name": {"default_locale": "en", "translations": {"en": "PASS"}},
+                "name": {"translations": {"en": "PASS"}},
                 "score": 100,
                 "ai_label": "PASS",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "claim 2"}},
+                        "label": {"translations": {"en": "claim 2"}},
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_11111111111111111111111111111111",

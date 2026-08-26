@@ -60,7 +60,7 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         "id": "prof_1111111111111111",
         "slug": "prof1",
         "workflow_id": "wf_0123456789abcdef01",
-        "name": {"default_locale": "en", "translations": {"en": "Prof 1"}},
+        "name": {"translations": {"en": "Prof 1"}},
         "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
     }
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
@@ -126,7 +126,7 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
         "id": "prof_1111111111111111",
         "slug": "prof1",
         "workflow_id": "wf_0123456789abcdef01",
-        "name": {"default_locale": "en", "translations": {"en": "Prof 1"}},
+        "name": {"translations": {"en": "Prof 1"}},
         "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
     }
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []

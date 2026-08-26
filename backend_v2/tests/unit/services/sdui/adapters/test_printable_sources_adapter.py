@@ -17,7 +17,7 @@ def valid_output_profile_fixture() -> OutputProfile:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test Profile"}),
+        name=I18nText(translations={"en": "Test Profile"}),
         content_blocks=[],
         target_block_order=[],
     )

@@ -15,10 +15,7 @@ void main() {
       OutputProfile payload = const OutputProfile(
         id: 'profile_1',
         workflowId: 'wf_1',
-        name: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Test Profile'},
-        ),
+        name: I18nText(translations: {'en': 'Test Profile'}),
         targetBlockOrder: [TargetBlockType.matrixGraphsBlock],
         layouts: [],
       );
@@ -26,14 +23,8 @@ void main() {
       final mockPromptBlock = const PromptBlock.matrix(
         id: 'block_1',
         slug: 'matrix_block_1',
-        label: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Matrix Block 1'},
-        ),
-        description: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Matrix block description'},
-        ),
+        label: I18nText(translations: {'en': 'Matrix Block 1'}),
+        description: I18nText(translations: {'en': 'Matrix block description'}),
         scales: [],
       );
 

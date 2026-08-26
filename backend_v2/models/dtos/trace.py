@@ -1,13 +1,13 @@
-"""Execution trace DTO schemas."""
-
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
 
-from backend_v2.models.domain.metadata import StepMetadataDTO
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import LaxExecutionStatus
+
+if TYPE_CHECKING:
+    from backend_v2.models.domain.metadata import StepMetadataDTO
 
 
 class DataStarvationEvent(BaseDTO):

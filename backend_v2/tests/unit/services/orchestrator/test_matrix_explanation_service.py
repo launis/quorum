@@ -29,7 +29,7 @@ def _create_matrix_block(
                 ai_label="INITIAL",
                 claims=[
                     MatrixClaim(
-                        label=I18nText(default_locale="en", translations={"en": "Claim Label", "fi": "Väite"}),
+                        label=I18nText(translations={"en": "Claim Label", "fi": "Väite"}),
                         tda_assertions=[
                             TDAAssertion(
                                 tda_id="tda_00000000000000000000000000000001",
@@ -46,8 +46,8 @@ def _create_matrix_block(
     return MatrixPromptBlock(
         id=block_id,
         slug=f"slug_{block_id}",
-        label=I18nText(default_locale="en", translations={"en": "Matrix Label", "fi": "Matriisin Otsikko"}),
-        description=I18nText(default_locale="en", translations={"en": "Description", "fi": "Kuvaus"}),
+        label=I18nText(translations={"en": "Matrix Label", "fi": "Matriisin Otsikko"}),
+        description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
         ai_description="Cognitive instructions for matrix",
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
@@ -259,7 +259,7 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
         ai_label="INITIAL",
         claims=[
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": "Claim 1"}),
+                label=I18nText(translations={"en": "Claim 1"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=tda_id_1,
@@ -270,7 +270,7 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
                 ],
             ),
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": "Claim 3"}),
+                label=I18nText(translations={"en": "Claim 3"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=tda_id_3,
@@ -305,7 +305,7 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
         ai_label="DIVERSITY_SCALE",
         claims=[
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": "Claim Alpha"}),
+                label=I18nText(translations={"en": "Claim Alpha"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_a000000000000000000000000000000{i}",
@@ -317,7 +317,7 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
                 ],
             ),
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": "Claim Beta"}),
+                label=I18nText(translations={"en": "Claim Beta"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_b000000000000000000000000000000{i}",
@@ -397,7 +397,7 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
         ai_label="DEDUP_SCALE",
         claims=[
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": "Claim A"}),
+                label=I18nText(translations={"en": "Claim A"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_da00000000000000000000000000000{i}",
@@ -409,7 +409,7 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
                 ],
             ),
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": "Claim B"}),
+                label=I18nText(translations={"en": "Claim B"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_db00000000000000000000000000000{i}",
@@ -490,7 +490,7 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
             ai_label="CRITICAL",
             claims=[
                 MatrixClaim(
-                    label=I18nText(default_locale="en", translations={"en": f"Deficit Level 1 Claim {i}"}),
+                    label=I18nText(translations={"en": f"Deficit Level 1 Claim {i}"}),
                     tda_assertions=[
                         TDAAssertion(
                             tda_id=f"tda_1111111111111111111111111111111{i}",
@@ -508,7 +508,7 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
             ai_label="INTERMEDIATE",
             claims=[
                 MatrixClaim(
-                    label=I18nText(default_locale="en", translations={"en": f"Deficit Level 2 Claim {i}"}),
+                    label=I18nText(translations={"en": f"Deficit Level 2 Claim {i}"}),
                     tda_assertions=[
                         TDAAssertion(
                             tda_id=f"tda_2222222222222222222222222222222{i}",
@@ -526,7 +526,7 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
             ai_label="ASPIRATIONAL",
             claims=[
                 MatrixClaim(
-                    label=I18nText(default_locale="en", translations={"en": f"Deficit Level 5 Claim {i}"}),
+                    label=I18nText(translations={"en": f"Deficit Level 5 Claim {i}"}),
                     tda_assertions=[
                         TDAAssertion(
                             tda_id=f"tda_5555555555555555555555555555555{i}",
@@ -656,9 +656,7 @@ def test_assemble_matrices_to_explain_multilingual_resolution() -> None:
         ai_label="MULTILINGUAL",
         claims=[
             MatrixClaim(
-                label=I18nText(
-                    default_locale="en", translations={"en": "English Criteria Name", "fi": "Suomalainen Kriteeri"}
-                ),
+                label=I18nText(translations={"en": "English Criteria Name", "fi": "Suomalainen Kriteeri"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=tda_id,
@@ -754,7 +752,7 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
         ai_label="OVERRIDE_SCALE",
         claims=[
             MatrixClaim(
-                label=I18nText(default_locale="en", translations={"en": f"Claim {i}"}),
+                label=I18nText(translations={"en": f"Claim {i}"}),
                 tda_assertions=[
                     TDAAssertion(
                         tda_id=f"tda_{i:032x}",

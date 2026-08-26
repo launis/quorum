@@ -35,20 +35,18 @@ def _create_base_profile(
 ) -> OutputProfile:
     if metric_mappings is None:
         metric_mappings = {
-            "jargon_score": I18nText(default_locale="en", translations={"en": "Jargon Score"}),
-            "authenticity_level": I18nText(default_locale="en", translations={"en": "Authenticity Level"}),
-            "level_high": I18nText(default_locale="en", translations={"en": "High"}),
-            "level_medium": I18nText(default_locale="en", translations={"en": "Medium"}),
-            "level_low": I18nText(default_locale="en", translations={"en": "Low"}),
+            "jargon_score": I18nText(translations={"en": "Jargon Score"}),
+            "authenticity_level": I18nText(translations={"en": "Authenticity Level"}),
+            "level_high": I18nText(translations={"en": "High"}),
+            "level_medium": I18nText(translations={"en": "Medium"}),
+            "level_low": I18nText(translations={"en": "Low"}),
             "authenticity_fallback_explanation": I18nText(
-                default_locale="en",
                 translations={"en": "Authenticity score is {}."},
             ),
         }
     if extension_labels is None:
         extension_labels = {
             XaiExtensionType.AUTHENTICITY_EVALUATION: I18nText(
-                default_locale="en",
                 translations={"en": "Authenticity Evaluation"},
             ),
         }
@@ -56,7 +54,7 @@ def _create_base_profile(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
         visible_workflow_extensions=[XaiExtensionType.AUTHENTICITY_EVALUATION],
@@ -70,7 +68,7 @@ def test_build_not_requested_returns_empty() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
         visible_workflow_extensions=[],

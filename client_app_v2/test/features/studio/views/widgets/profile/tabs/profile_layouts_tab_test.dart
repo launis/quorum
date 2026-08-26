@@ -92,21 +92,16 @@ void main() {
         final testWorkflow = Workflow(
           id: 'wf_test',
           slug: 'wf-test',
-          name: const I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Test Flow'},
-          ),
-          description: const I18nText(defaultLocale: 'en'),
+          name: const I18nText(translations: {'en': 'Test Flow'}),
+          description:
+              const I18nText(translations: {'en': 'Test Flow Description'}),
           steps: [],
         );
 
         final initialProfile = OutputProfile(
           id: 'prf_test',
           workflowId: 'wf_test',
-          name: const I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Test Profile'},
-          ),
+          name: const I18nText(translations: {'en': 'Test Profile'}),
           targetBlockOrder: [TargetBlockType.metadataBlock],
           visibleWorkflowExtensions: [],
         );

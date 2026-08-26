@@ -14,9 +14,9 @@ def test_worker_db_hydration_metric_mappings_bug() -> None:
         "id": "prf_1234abcd1234abcd",
         "slug": "test_slug",
         "workflow_id": "wf_1234abcd1234abcd",
-        "name": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+        "name": {"translations": {"en": "Title", "fi": "Title"}},
         "layouts": [],
-        "metric_mappings": {"variance_mechanical": {"default_locale": "en", "translations": {"en": "Variance"}}},
+        "metric_mappings": {"variance_mechanical": {"translations": {"en": "Variance"}}},
     }
 
     # This is exactly what worker.py line 145 does.

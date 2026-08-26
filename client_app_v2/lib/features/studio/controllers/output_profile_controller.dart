@@ -235,16 +235,7 @@ class OutputProfileForm extends _$OutputProfileForm {
         }
       }
 
-      // RIGOROUS DTO SANITIZATION (Flatten empty I18nTexts to null to satisfy strict backend extra='forbid' & English-Only Mandate)
-      bool isEmptyI18n(I18nText? text) {
-        if (text == null) return true;
-        if (text.translations.isEmpty) return true;
-        if (text.translations.values.every((v) => v.trim().isEmpty))
-          return true;
-        return false;
-      }
-
-      if (isEmptyI18n(profileWithId.name)) {
+      if (profileWithId.name.isEmpty) {
         throw AppException.validation(
           "Profile Name (English) is required due to the English-Only Mandate.",
         );
@@ -253,22 +244,22 @@ class OutputProfileForm extends _$OutputProfileForm {
       Map<String, I18nText> sanitizeMap(Map<String, I18nText> map) {
         final sanitizedMap = <String, I18nText>{};
         map.forEach((k, v) {
-          if (!isEmptyI18n(v)) sanitizedMap[k] = v;
+          if (v.isNotEmpty) sanitizedMap[k] = v;
         });
         return sanitizedMap;
       }
 
       final sanitized = profileWithId.copyWith(
-        description: isEmptyI18n(profileWithId.description)
+        description: (profileWithId.description?.isEmpty ?? true)
             ? null
             : profileWithId.description,
-        userRoleLabel: isEmptyI18n(profileWithId.userRoleLabel)
+        userRoleLabel: (profileWithId.userRoleLabel?.isEmpty ?? true)
             ? null
             : profileWithId.userRoleLabel,
-        customPreface: isEmptyI18n(profileWithId.customPreface)
+        customPreface: (profileWithId.customPreface?.isEmpty ?? true)
             ? null
             : profileWithId.customPreface,
-        toneInstruction: isEmptyI18n(profileWithId.toneInstruction)
+        toneInstruction: (profileWithId.toneInstruction?.isEmpty ?? true)
             ? null
             : profileWithId.toneInstruction,
         userRoleMappings: sanitizeMap(profileWithId.userRoleMappings),
@@ -276,18 +267,21 @@ class OutputProfileForm extends _$OutputProfileForm {
         synthesis: profileWithId.synthesis == null
             ? null
             : profileWithId.synthesis!.copyWith(
-                preambleText: isEmptyI18n(profileWithId.synthesis!.preambleText)
+                preambleText:
+                    (profileWithId.synthesis!.preambleText?.isEmpty ?? true)
                     ? null
                     : profileWithId.synthesis!.preambleText,
                 toneInstruction:
-                    isEmptyI18n(profileWithId.synthesis!.toneInstruction)
+                    (profileWithId.synthesis!.toneInstruction?.isEmpty ?? true)
                     ? null
                     : profileWithId.synthesis!.toneInstruction,
               ),
         layouts: profileWithId.layouts.map((l) {
           return l.copyWith(
-            title: isEmptyI18n(l.title) ? null : l.title,
-            description: isEmptyI18n(l.description) ? null : l.description,
+            title: (l.title?.isEmpty ?? true) ? null : l.title,
+            description: (l.description?.isEmpty ?? true)
+                ? null
+                : l.description,
             matrixColumnLabels: sanitizeMap(l.matrixColumnLabels),
           );
         }).toList(),

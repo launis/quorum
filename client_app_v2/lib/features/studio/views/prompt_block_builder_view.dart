@@ -1039,10 +1039,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             context: context,
                             builder: (ctx) => RowEditorModal(
                               initialMatrixRow: const MatrixRow(
-                                label: I18nText(
-                                  defaultLocale: 'en',
-                                  translations: {'en': ''},
-                                ),
+                                label: I18nText(translations: {'en': ''}),
                                 aiDescription: 'CRITICAL MANDATE: ',
                               ),
                               title: 'Add $title',
@@ -1078,8 +1075,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: ListTile(
                     title: Text(
-                      item.label.translations[item.label.defaultLocale] ??
-                          item.label.defaultLocale,
+                      item.label.get(
+                        Localizations.localeOf(context).languageCode,
+                      ),
                     ),
                     subtitle: Text('Item ${index + 1}'),
                     trailing: IconButton(
@@ -1166,7 +1164,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             context: context,
                             builder: (ctx) => const RowEditorModal(
                               initialI18nText: I18nText(
-                                defaultLocale: 'en',
                                 translations: {'en': ''},
                               ),
                               title: 'Add Column',
@@ -1202,8 +1199,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: ListTile(
                     title: Text(
-                      item.translations[item.defaultLocale] ??
-                          item.defaultLocale,
+                      item.get(Localizations.localeOf(context).languageCode),
                     ),
                     subtitle: Text('Item ${index + 1}'),
                     trailing: IconButton(
@@ -1279,14 +1275,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             initialScale: MatrixScale(
                               score: 1,
                               aiLabel: '1',
-                              name: const I18nText(
-                                defaultLocale: 'en',
-                                translations: {'en': ''},
-                              ),
+                              name: const I18nText(translations: {'en': ''}),
                               claims: [
                                 MatrixClaim(
                                   label: const I18nText(
-                                    defaultLocale: 'en',
                                     translations: {'en': ''},
                                   ),
                                   tdaAssertions: [

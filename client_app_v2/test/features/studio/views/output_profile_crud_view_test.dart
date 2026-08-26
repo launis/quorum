@@ -129,18 +129,9 @@ void main() {
       id: id,
       slug: slug,
       workflowId: workflowId,
-      name: I18nText(
-        defaultLocale: 'en',
-        translations: {'en': nameEn, 'fi': 'Johdon yhteenveto'},
-      ),
-      description: const I18nText(
-        defaultLocale: 'en',
-        translations: {'en': 'Test description'},
-      ),
-      customPreface: const I18nText(
-        defaultLocale: 'en',
-        translations: {'en': 'Test preface'},
-      ),
+      name: I18nText(translations: {'en': nameEn, 'fi': 'Johdon yhteenveto'}),
+      description: const I18nText(translations: {'en': 'Test description'}),
+      customPreface: const I18nText(translations: {'en': 'Test preface'}),
       displayScale: displayScale,
       strictnessLevel: strictnessLevel,
       scoringStrategy: scoringStrategy,
@@ -367,11 +358,9 @@ void main() {
       final testWorkflow = Workflow(
         id: 'wf_test',
         slug: 'wf-test',
-        name: const I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Test Flow'},
-        ),
-        description: const I18nText(defaultLocale: 'en'),
+        name: const I18nText(translations: {'en': 'Test Flow'}),
+        description:
+            const I18nText(translations: {'en': 'Test Flow Description'}),
         steps: [],
       );
       final profile = createValidProfile(
@@ -517,11 +506,9 @@ void main() {
         final testWorkflow = Workflow(
           id: 'wf_test',
           slug: 'wf-test',
-          name: const I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Test Flow'},
-          ),
-          description: const I18nText(defaultLocale: 'en'),
+          name: const I18nText(translations: {'en': 'Test Flow'}),
+          description:
+            const I18nText(translations: {'en': 'Test Flow Description'}),
           steps: [],
         );
         final profile = createValidProfile(
@@ -567,11 +554,9 @@ void main() {
         final testWorkflow = Workflow(
           id: 'wf_test',
           slug: 'wf-test',
-          name: const I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Test Flow'},
-          ),
-          description: const I18nText(defaultLocale: 'en'),
+          name: const I18nText(translations: {'en': 'Test Flow'}),
+          description:
+            const I18nText(translations: {'en': 'Test Flow Description'}),
           steps: [],
         );
         final profile = createValidProfile(

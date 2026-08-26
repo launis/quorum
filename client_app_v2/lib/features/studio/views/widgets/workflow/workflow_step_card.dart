@@ -66,7 +66,7 @@ class WorkflowStepCard extends StatelessWidget {
           id: '',
           slug: '',
           hook: '',
-          name: I18nText(defaultLocale: 'en'),
+          name: I18nText(translations: {'en': ''}),
         ),
       );
       if (bp.id.isNotEmpty) {

@@ -1550,5 +1550,34 @@
   "matrixPromptNotice": "Arviointimatriisin ohjeet ja kriteerit määritellään alla olevissa BARS-matriisin asteikoissa.",
   "studioModelStrategyLabel": "Mallistrategia (Hinta/Kognitio-ohitus)",
   "studioNoModelsWarning": "Varoitus: Mallirekisteristä ei löytynyt malleja.",
-  "studioSaveButton": "Tallenna"
+  "studioSaveButton": "Tallenna",
+  "humanOverrideTitle": "Yliohjaa päätös (EU AI Act)",
+  "humanOverrideClaimLabel": "Väite: {claim}",
+  "@humanOverrideClaimLabel": {
+    "placeholders": {
+      "claim": {
+        "type": "String"
+      }
+    }
+  },
+  "humanOverrideNewStatusLabel": "Uusi arvosana",
+  "humanOverrideReasonLabel": "Perustelu yliohjaukselle",
+  "humanOverrideReasonRequired": "Perustelu on pakollinen.",
+  "humanOverrideQuotesTitle": "Lainaukset (tekninen vedostus)",
+  "humanOverrideNoQuotes": "Ei lainauksia.",
+  "humanOverrideDeleteQuoteTooltip": "Poista",
+  "humanOverrideAddEvidenceBtn": "Lisää todiste",
+  "humanOverrideSaveBtn": "Tallenna Override",
+  "humanOverrideSaveFailed": "Tallennus epäonnistui: {error}",
+  "@humanOverrideSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "humanOverrideExpertNote": "Asiantuntijan vahvistama huomio",
+  "downloadFrozenContextTooltip": "Lataa Frozen Context",
+  "downloadExcelBtn": "Lataa Excel",
+  "aboutMetricTitle": "Tietoa Mittarista"
 }

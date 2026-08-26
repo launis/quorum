@@ -94,16 +94,16 @@ async def test_get_prompt_blocks_by_ids_success(repo: PromptBlockRepositoryImpl,
         "slug": "block_1",
         "category_id": "system_rule",
         "type": "instruction",
-        "label": {"default_locale": "en", "translations": {"en": "Rule 1"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc 1"}},
+        "label": {"translations": {"en": "Rule 1"}},
+        "description": {"translations": {"en": "Desc 1"}},
     }
     blk_2_data = {
         "id": "blk_2222222222222222",
         "slug": "block_2",
         "category_id": "system_rule",
         "type": "instruction",
-        "label": {"default_locale": "en", "translations": {"en": "Rule 2"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc 2"}},
+        "label": {"translations": {"en": "Rule 2"}},
+        "description": {"translations": {"en": "Desc 2"}},
     }
 
     async def mock_get(collection: str, doc_id: str) -> dict[str, Any] | None:
@@ -139,8 +139,8 @@ async def test_get_prompt_blocks_by_ids_duplicate_input(
         "slug": "block_1",
         "category_id": "system_rule",
         "type": "instruction",
-        "label": {"default_locale": "en", "translations": {"en": "Rule 1"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc 1"}},
+        "label": {"translations": {"en": "Rule 1"}},
+        "description": {"translations": {"en": "Desc 1"}},
     }
     mock_driver.get.return_value = blk_1_data
 
@@ -160,8 +160,8 @@ async def test_get_prompt_blocks_by_ids_strict_missing_single_raises_app_excepti
         "slug": "block_1",
         "category_id": "system_rule",
         "type": "instruction",
-        "label": {"default_locale": "en", "translations": {"en": "Rule 1"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc 1"}},
+        "label": {"translations": {"en": "Rule 1"}},
+        "description": {"translations": {"en": "Desc 1"}},
     }
 
     async def mock_get(collection: str, doc_id: str) -> dict[str, Any] | None:
@@ -203,8 +203,8 @@ async def test_get_prompt_blocks_by_ids_non_strict_returns_partial(
         "slug": "block_1",
         "category_id": "system_rule",
         "type": "instruction",
-        "label": {"default_locale": "en", "translations": {"en": "Rule 1"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc 1"}},
+        "label": {"translations": {"en": "Rule 1"}},
+        "description": {"translations": {"en": "Desc 1"}},
     }
 
     async def mock_get(collection: str, doc_id: str) -> dict[str, Any] | None:
@@ -241,8 +241,8 @@ async def test_get_all_prompt_blocks_models_success(repo: PromptBlockRepositoryI
         "slug": "block_1",
         "category_id": "system_rule",
         "type": "instruction",
-        "label": {"default_locale": "en", "translations": {"en": "Rule 1"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc 1"}},
+        "label": {"translations": {"en": "Rule 1"}},
+        "description": {"translations": {"en": "Desc 1"}},
     }
     mock_driver.query.return_value = [blk_1_data]
 

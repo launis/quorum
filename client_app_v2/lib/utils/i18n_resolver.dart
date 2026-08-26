@@ -6,8 +6,7 @@
 /// **Backend JSON Structure Expected**:
 /// ```json
 /// {
-///   "default_locale": "fi",
-///   "translations": {
+///   ///   "translations": {
 ///     "fi": "Arvioi innovaatiotaso.",
 ///     "en": "Evaluate the innovation level."
 ///   }

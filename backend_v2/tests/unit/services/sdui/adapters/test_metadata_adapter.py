@@ -18,28 +18,23 @@ def _create_sample_profile(locale: str = "en") -> OutputProfile:
         slug="test-slug",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
         name=I18nText(
-            default_locale="en",
             translations={"en": "Executive Report", "fi": "Johdon raportti"},
         ),
         custom_preface=I18nText(
-            default_locale="en",
             translations={"en": "Welcome to the executive summary.", "fi": "Tervetuloa johdon katsaukseen."},
         ),
         content_blocks=[],
         target_block_order=[],
         visible_metadata=["user", "organization", "date"],
         metric_mappings={
-            "metadata_user": I18nText(default_locale="en", translations={"en": "User", "fi": "Käyttäjä"}),
+            "metadata_user": I18nText(translations={"en": "User", "fi": "Käyttäjä"}),
             "metadata_organization": I18nText(
-                default_locale="en",
                 translations={"en": "Organization", "fi": "Organisaatio"},
             ),
             "metadata_scoring_engine": I18nText(
-                default_locale="en",
                 translations={"en": "Scoring Engine", "fi": "Arviointimoottori"},
             ),
             "metadata_strictness": I18nText(
-                default_locale="en",
                 translations={"en": "Strictness", "fi": "Ankaruustaso"},
             ),
         },
@@ -167,7 +162,7 @@ def test_metadata_adapter_missing_metric_mapping_raises_app_exception() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
         visible_metadata=["user"],
@@ -204,7 +199,7 @@ def test_metadata_adapter_dual_logging_on_exception(monkeypatch: pytest.MonkeyPa
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
         visible_metadata=["user"],

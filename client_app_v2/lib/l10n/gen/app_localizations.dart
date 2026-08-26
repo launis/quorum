@@ -7931,6 +7931,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Warning: No models found in registry.'**
   String get studioNoModelsWarning;
+
+  /// No description provided for @humanOverrideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Override Decision (EU AI Act)'**
+  String get humanOverrideTitle;
+
+  /// No description provided for @humanOverrideClaimLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim: {claim}'**
+  String humanOverrideClaimLabel(String claim);
+
+  /// No description provided for @humanOverrideNewStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New Rating'**
+  String get humanOverrideNewStatusLabel;
+
+  /// No description provided for @humanOverrideReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason for override'**
+  String get humanOverrideReasonLabel;
+
+  /// No description provided for @humanOverrideReasonRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason is required.'**
+  String get humanOverrideReasonRequired;
+
+  /// No description provided for @humanOverrideQuotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quotes (technical proof)'**
+  String get humanOverrideQuotesTitle;
+
+  /// No description provided for @humanOverrideNoQuotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No quotes.'**
+  String get humanOverrideNoQuotes;
+
+  /// No description provided for @humanOverrideDeleteQuoteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get humanOverrideDeleteQuoteTooltip;
+
+  /// No description provided for @humanOverrideAddEvidenceBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add evidence'**
+  String get humanOverrideAddEvidenceBtn;
+
+  /// No description provided for @humanOverrideSaveBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Override'**
+  String get humanOverrideSaveBtn;
+
+  /// No description provided for @humanOverrideSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed: {error}'**
+  String humanOverrideSaveFailed(String error);
+
+  /// No description provided for @humanOverrideExpertNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert-confirmed observation'**
+  String get humanOverrideExpertNote;
+
+  /// No description provided for @downloadFrozenContextTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Frozen Context'**
+  String get downloadFrozenContextTooltip;
+
+  /// No description provided for @downloadExcelBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Excel'**
+  String get downloadExcelBtn;
+
+  /// No description provided for @aboutMetricTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About Metric'**
+  String get aboutMetricTitle;
 }
 
 class _AppLocalizationsDelegate

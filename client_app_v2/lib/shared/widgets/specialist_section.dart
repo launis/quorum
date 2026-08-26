@@ -1980,7 +1980,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                const Text("Tietoa Mittarista", style: TextStyle(fontSize: 16)),
+                Text(
+                  AppLocalizations.of(context)?.aboutMetricTitle ??
+                      "About Metric",
+                  style: const TextStyle(fontSize: 16),
+                ),
               ],
             ),
             content: Text(text, style: const TextStyle(height: 1.5)),

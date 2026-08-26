@@ -4384,4 +4384,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get studioNoModelsWarning => 'Warning: No models found in registry.';
+
+  @override
+  String get humanOverrideTitle => 'Override Decision (EU AI Act)';
+
+  @override
+  String humanOverrideClaimLabel(String claim) {
+    return 'Claim: $claim';
+  }
+
+  @override
+  String get humanOverrideNewStatusLabel => 'New Rating';
+
+  @override
+  String get humanOverrideReasonLabel => 'Reason for override';
+
+  @override
+  String get humanOverrideReasonRequired => 'Reason is required.';
+
+  @override
+  String get humanOverrideQuotesTitle => 'Quotes (technical proof)';
+
+  @override
+  String get humanOverrideNoQuotes => 'No quotes.';
+
+  @override
+  String get humanOverrideDeleteQuoteTooltip => 'Delete';
+
+  @override
+  String get humanOverrideAddEvidenceBtn => 'Add evidence';
+
+  @override
+  String get humanOverrideSaveBtn => 'Save Override';
+
+  @override
+  String humanOverrideSaveFailed(String error) {
+    return 'Save failed: $error';
+  }
+
+  @override
+  String get humanOverrideExpertNote => 'Expert-confirmed observation';
+
+  @override
+  String get downloadFrozenContextTooltip => 'Download Frozen Context';
+
+  @override
+  String get downloadExcelBtn => 'Download Excel';
+
+  @override
+  String get aboutMetricTitle => 'About Metric';
 }

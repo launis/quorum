@@ -24,17 +24,11 @@ void main() {
   MatrixScale createSampleScale() {
     return MatrixScale(
       score: 5,
-      name: const I18nText(
-        defaultLocale: 'en',
-        translations: {'en': 'Exemplary Mastery'},
-      ),
+      name: const I18nText(translations: {'en': 'Exemplary Mastery'}),
       aiLabel: 'EXEMPLARY_5',
       claims: [
         MatrixClaim(
-          label: const I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Claim Level 5'},
-          ),
+          label: const I18nText(translations: {'en': 'Claim Level 5'}),
           tdaAssertions: [
             TDAAssertion(
               tdaId: 'tda_11112222333344445555666677778888',

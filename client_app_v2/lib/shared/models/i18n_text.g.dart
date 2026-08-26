@@ -8,25 +8,16 @@ part of 'i18n_text.dart';
 
 _I18nText _$I18nTextFromJson(Map<String, dynamic> json) =>
     $checkedCreate('_I18nText', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['default_locale', 'translations']);
+      $checkKeys(json, allowedKeys: const ['translations']);
       final val = _I18nText(
-        defaultLocale: $checkedConvert(
-          'default_locale',
-          (v) => v as String? ?? 'en',
-        ),
         translations: $checkedConvert(
           'translations',
-          (v) =>
-              (v as Map<String, dynamic>?)?.map(
-                (k, e) => MapEntry(k, e as String),
-              ) ??
-              const {'en': ''},
+          (v) => Map<String, String>.from(v as Map),
         ),
       );
       return val;
-    }, fieldKeyMap: const {'defaultLocale': 'default_locale'});
+    });
 
 Map<String, dynamic> _$I18nTextToJson(_I18nText instance) => <String, dynamic>{
-  'default_locale': instance.defaultLocale,
   'translations': instance.translations,
 };

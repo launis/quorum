@@ -24,7 +24,7 @@ def test_matrix_graphs_adapter_empty_layouts():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[],
     )
     context = AdapterContext(
@@ -48,11 +48,11 @@ def test_matrix_graphs_adapter_graceful_degradation():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="3d_matrix",
-                title=I18nText(default_locale="en", translations={"en": "Graph 3D"}),
+                title=I18nText(translations={"en": "Graph 3D"}),
                 target_blocks=["m1"],
                 text_delivery_mode="none",
             )
@@ -76,7 +76,7 @@ def test_matrix_graphs_adapter_graceful_degradation():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
             )
         },
@@ -96,11 +96,11 @@ def test_matrix_graphs_adapter_degrade_to_2d_compare():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="3d_matrix",
-                title=I18nText(default_locale="en", translations={"en": "Graph 3D"}),
+                title=I18nText(translations={"en": "Graph 3D"}),
                 target_blocks=["m1", "m2"],
                 text_delivery_mode="none",
             )
@@ -124,7 +124,7 @@ def test_matrix_graphs_adapter_degrade_to_2d_compare():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl 1",
             ),
             "m2": MatrixScorecardRowDTO(
@@ -134,7 +134,7 @@ def test_matrix_graphs_adapter_degrade_to_2d_compare():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M2"}),
+                label_i18n=I18nText(translations={"en": "M2"}),
                 row_explanation="expl 2",
             ),
         },
@@ -150,11 +150,11 @@ def test_matrix_graphs_adapter_success_3d():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="3d_matrix",
-                title=I18nText(default_locale="en", translations={"en": "Graph 3D"}),
+                title=I18nText(translations={"en": "Graph 3D"}),
                 target_blocks=["m1", "m2", "m3"],
                 text_delivery_mode="none",
             )
@@ -178,7 +178,7 @@ def test_matrix_graphs_adapter_success_3d():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
             ),
             "m2": MatrixScorecardRowDTO(
@@ -188,7 +188,7 @@ def test_matrix_graphs_adapter_success_3d():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
             ),
             "m3": MatrixScorecardRowDTO(
@@ -198,7 +198,7 @@ def test_matrix_graphs_adapter_success_3d():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl",
             ),
         },
@@ -217,12 +217,12 @@ def test_matrix_graphs_adapter_wildcard_target_blocks():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="3d_matrix",
-                title=I18nText(default_locale="en", translations={"en": "All Matrices"}),
-                description=I18nText(default_locale="en", translations={"en": "Description for all"}),
+                title=I18nText(translations={"en": "All Matrices"}),
+                description=I18nText(translations={"en": "Description for all"}),
                 target_blocks=["*"],
                 text_delivery_mode="none",
             )
@@ -246,7 +246,7 @@ def test_matrix_graphs_adapter_wildcard_target_blocks():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="expl 1",
             ),
             "m2": MatrixScorecardRowDTO(
@@ -256,7 +256,7 @@ def test_matrix_graphs_adapter_wildcard_target_blocks():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M2"}),
+                label_i18n=I18nText(translations={"en": "M2"}),
                 row_explanation="expl 2",
             ),
             "m3": MatrixScorecardRowDTO(
@@ -266,7 +266,7 @@ def test_matrix_graphs_adapter_wildcard_target_blocks():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M3"}),
+                label_i18n=I18nText(translations={"en": "M3"}),
                 row_explanation="expl 3",
             ),
         },
@@ -284,17 +284,17 @@ def test_matrix_graphs_adapter_text_only_modes():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="text_only",
-                title=I18nText(default_locale="en", translations={"en": "Text Full"}),
+                title=I18nText(translations={"en": "Text Full"}),
                 target_blocks=["m1"],
                 text_delivery_mode="full",
             ),
             OutputLayoutBlock(
                 preset_view="text_only",
-                title=I18nText(default_locale="en", translations={"en": "Text Titles"}),
+                title=I18nText(translations={"en": "Text Titles"}),
                 target_blocks=["m2"],
                 text_delivery_mode="titles_only",
             ),
@@ -318,7 +318,7 @@ def test_matrix_graphs_adapter_text_only_modes():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M1"}),
+                label_i18n=I18nText(translations={"en": "M1"}),
                 row_explanation="Full row explanation text.",
             ),
             "m2": MatrixScorecardRowDTO(
@@ -328,7 +328,7 @@ def test_matrix_graphs_adapter_text_only_modes():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "M2"}),
+                label_i18n=I18nText(translations={"en": "M2"}),
                 row_explanation="Hidden explanation.",
             ),
         },
@@ -341,7 +341,7 @@ def test_matrix_graphs_adapter_invalid_text_delivery_mode():
     """Verify invalid text_delivery_mode raises ConfigurationError."""
     layout = OutputLayoutBlock(
         preset_view="3d_matrix",
-        title=I18nText(default_locale="en", translations={"en": "Invalid Mode"}),
+        title=I18nText(translations={"en": "Invalid Mode"}),
         target_blocks=["m1"],
         text_delivery_mode="none",
     )
@@ -351,7 +351,7 @@ def test_matrix_graphs_adapter_invalid_text_delivery_mode():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[layout],
     )
     context = AdapterContext(
@@ -376,11 +376,11 @@ def test_matrix_graphs_adapter_empty_valid_layout():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="1d_metrics",
-                title=I18nText(default_locale="en", translations={"en": "Metrics"}),
+                title=I18nText(translations={"en": "Metrics"}),
                 target_blocks=["missing_id"],
                 text_delivery_mode="none",
             )
@@ -409,11 +409,11 @@ def test_matrix_graphs_adapter_section_syntheses_positive():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="3d_matrix",
-                title=I18nText(default_locale="en", translations={"en": "3D Analysis"}),
+                title=I18nText(translations={"en": "3D Analysis"}),
                 target_blocks=["m1", "m2", "m3"],
                 is_synthesis_enabled=True,
             )
@@ -440,7 +440,7 @@ def test_matrix_graphs_adapter_section_syntheses_positive():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "A"}),
+                label_i18n=I18nText(translations={"en": "A"}),
                 row_explanation="expl A",
             ),
             "m2": MatrixScorecardRowDTO(
@@ -450,7 +450,7 @@ def test_matrix_graphs_adapter_section_syntheses_positive():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "B"}),
+                label_i18n=I18nText(translations={"en": "B"}),
                 row_explanation="expl B",
             ),
             "m3": MatrixScorecardRowDTO(
@@ -460,7 +460,7 @@ def test_matrix_graphs_adapter_section_syntheses_positive():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "C"}),
+                label_i18n=I18nText(translations={"en": "C"}),
                 row_explanation="expl C",
             ),
         },
@@ -480,11 +480,11 @@ def test_matrix_graphs_adapter_section_syntheses_disabled_negative():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="3d_matrix",
-                title=I18nText(default_locale="en", translations={"en": "3D Analysis"}),
+                title=I18nText(translations={"en": "3D Analysis"}),
                 target_blocks=["m1", "m2", "m3"],
                 is_synthesis_enabled=False,
             )
@@ -511,7 +511,7 @@ def test_matrix_graphs_adapter_section_syntheses_disabled_negative():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "A"}),
+                label_i18n=I18nText(translations={"en": "A"}),
                 row_explanation="expl A",
             ),
             "m2": MatrixScorecardRowDTO(
@@ -521,7 +521,7 @@ def test_matrix_graphs_adapter_section_syntheses_disabled_negative():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "B"}),
+                label_i18n=I18nText(translations={"en": "B"}),
                 row_explanation="expl B",
             ),
             "m3": MatrixScorecardRowDTO(
@@ -531,7 +531,7 @@ def test_matrix_graphs_adapter_section_syntheses_disabled_negative():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "C"}),
+                label_i18n=I18nText(translations={"en": "C"}),
                 row_explanation="expl C",
             ),
         },
@@ -548,11 +548,11 @@ def test_matrix_graphs_adapter_section_syntheses_unmapped_key_negative():
         id="prf_1234567890abcdef",
         slug="test",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
         layouts=[
             OutputLayoutBlock(
                 preset_view="3d_matrix",
-                title=I18nText(default_locale="en", translations={"en": "3D Analysis"}),
+                title=I18nText(translations={"en": "3D Analysis"}),
                 target_blocks=["m1", "m2", "m3"],
                 is_synthesis_enabled=True,
             )
@@ -577,7 +577,7 @@ def test_matrix_graphs_adapter_section_syntheses_unmapped_key_negative():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "A"}),
+                label_i18n=I18nText(translations={"en": "A"}),
                 row_explanation="expl A",
             ),
             "m2": MatrixScorecardRowDTO(
@@ -587,7 +587,7 @@ def test_matrix_graphs_adapter_section_syntheses_unmapped_key_negative():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "B"}),
+                label_i18n=I18nText(translations={"en": "B"}),
                 row_explanation="expl B",
             ),
             "m3": MatrixScorecardRowDTO(
@@ -597,7 +597,7 @@ def test_matrix_graphs_adapter_section_syntheses_unmapped_key_negative():
                 scale_min=1.0,
                 scale_max=5.0,
                 is_evaluative=True,
-                label_i18n=I18nText(default_locale="en", translations={"en": "C"}),
+                label_i18n=I18nText(translations={"en": "C"}),
                 row_explanation="expl C",
             ),
         },

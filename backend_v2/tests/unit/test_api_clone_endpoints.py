@@ -56,13 +56,13 @@ def mock_studio_service() -> AsyncMock:
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Workflow (Copy)", "fi": "Workflow (Copy)"}),
-        description=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "Workflow (Copy)", "fi": "Workflow (Copy)"}),
+        description=I18nText(translations={"en": "test"}),
     )
     service.clone_step.return_value = Step(
         id="step_1111111111111112",
         slug="test_step_clone",
-        name=I18nText(default_locale="en", translations={"en": "Step (Copy)", "fi": "Step (Copy)"}),
+        name=I18nText(translations={"en": "Step (Copy)", "fi": "Step (Copy)"}),
         type="llm",
         model_strategy="fast",
         role_block_id=None,
@@ -72,8 +72,8 @@ def mock_studio_service() -> AsyncMock:
     service.clone_prompt_block.return_value = SystemRulePromptBlock(
         id="blk_1111111111111112",
         slug="test_block_clone",
-        label=I18nText(default_locale="en", translations={"en": "Block (Copy)", "fi": "Block (Copy)"}),
-        description=I18nText(default_locale="en", translations={"en": "desc", "fi": "desc"}),
+        label=I18nText(translations={"en": "Block (Copy)", "fi": "Block (Copy)"}),
+        description=I18nText(translations={"en": "desc", "fi": "desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
     )
@@ -93,7 +93,7 @@ def mock_studio_service() -> AsyncMock:
         id="prof_1111111111111112",
         slug="test_prof_clone",
         workflow_id="wf_3333333333333333",
-        name=I18nText(default_locale="en", translations={"en": "Profile (Copy)", "fi": "Profile (Copy)"}),
+        name=I18nText(translations={"en": "Profile (Copy)", "fi": "Profile (Copy)"}),
         layouts=[],
     )
     return service

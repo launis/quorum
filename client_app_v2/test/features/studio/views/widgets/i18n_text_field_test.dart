@@ -28,10 +28,7 @@ void main() {
               children: [
                 I18nTextField(
                   label: 'Test Label',
-                  initialData: const I18nText(
-                    defaultLocale: 'en',
-                    translations: {'en': 'Initial'},
-                  ),
+                  initialData: const I18nText(translations: {'en': 'Initial'}),
                   onChanged: (val) {
                     emitCount++;
                     emittedText = val;

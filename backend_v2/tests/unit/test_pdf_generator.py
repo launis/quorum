@@ -29,7 +29,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
         inner_sdui_blocks=[SduiMetrics1DBlock(axes=[])],
     )
 
@@ -48,7 +48,7 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
         inner_sdui_blocks=[SduiMetrics1DBlock(axes=[])],
     )
 
@@ -67,7 +67,7 @@ async def test_pdf_generator_empty_radar_chart_crashes() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
         inner_sdui_blocks=[SduiRadarChartBlock(axes=[])],
     )
 
@@ -86,7 +86,7 @@ async def test_pdf_generator_scatter_plot_rendering() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
         inner_sdui_blocks=[SduiScatterPlotBlock(axes=[])],
     )
 
@@ -104,7 +104,7 @@ async def test_pdf_generator_empty_scatter_plot_crashes() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
         inner_sdui_blocks=[SduiScatterPlotBlock(axes=[])],
     )
 
@@ -123,7 +123,7 @@ async def test_pdf_generator_chart_value_error_raises_app_exception() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
         inner_sdui_blocks=[SduiRadarChartBlock(axes=[])],
     )
 
@@ -142,7 +142,7 @@ async def test_pdf_generator_unsupported_locale_raises() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
         inner_sdui_blocks=[],
     )
 
@@ -160,7 +160,7 @@ async def test_pdf_generator_localization_load_failure_raises() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
         inner_sdui_blocks=[],
     )
 
@@ -179,7 +179,7 @@ async def test_pdf_generator_unknown_block_type_skipped() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Test Profile"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
         inner_sdui_blocks=[ParagraphBlock(text="Hello", exact_quotes=[], citations=[])],
     )
 
@@ -245,7 +245,7 @@ async def test_pdf_generator_filters_and_matrix_summary() -> None:
     axis = MatrixScorecardRowDTO(
         block_id="axis_1",
         name="Test Axis",
-        label_i18n=I18nText(default_locale="en", translations={"en": "Test Axis", "fi": "Testi Akseli"}),
+        label_i18n=I18nText(translations={"en": "Test Axis", "fi": "Testi Akseli"}),
         is_evaluative=True,
         allow_contextual_override=True,
         level_names={"1": "Level 1"},
@@ -269,7 +269,7 @@ async def test_pdf_generator_filters_and_matrix_summary() -> None:
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
-        profile_name=I18nText(default_locale="en", translations={"en": "Test Profile", "fi": "Testiprofiili"}),
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Testiprofiili"}),
         inner_sdui_blocks=[meta_block, block],
     )
     html = await svc.generate_execution_html(execution_id="exe_matrix33333333", report_dto=dto, locale="fi")

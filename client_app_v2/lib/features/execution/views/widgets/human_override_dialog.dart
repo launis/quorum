@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class HumanOverrideDialog extends ConsumerStatefulWidget {
   final ScorecardAtomDto atom;
@@ -45,11 +46,12 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
   }
 
   Future<void> _submitOverride() async {
+    final l10n = AppLocalizations.of(context)!;
     final reason = _reasonController.text.trim();
     if (reason.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Perustelu on pakollinen.')));
+      ).showSnackBar(SnackBar(content: Text(l10n.humanOverrideReasonRequired)));
       return;
     }
 
@@ -85,9 +87,9 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Tallennus epäonnistui: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.humanOverrideSaveFailed(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -96,8 +98,10 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return AlertDialog(
-      title: const Text('👨‍⚖️ Yliohjaa päätös (EU AI Act)'),
+      title: Text('👨‍⚖️ ${l10n.humanOverrideTitle}'),
       content: SizedBox(
         width: 500,
         child: SingleChildScrollView(
@@ -106,7 +110,7 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Väite: ${widget.atom.claimLabel}',
+                l10n.humanOverrideClaimLabel(widget.atom.claimLabel),
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
@@ -125,30 +129,30 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedStatus = val);
                 },
-                decoration: const InputDecoration(
-                  labelText: 'Uusi arvosana',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.humanOverrideNewStatusLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _reasonController,
-                decoration: const InputDecoration(
-                  labelText: 'Perustelu yliohjaukselle',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.humanOverrideReasonLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 3,
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Lainaukset (tekninen vedostus)',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                l10n.humanOverrideQuotesTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               if (_quotes.isEmpty)
-                const Text(
-                  'Ei lainauksia.',
-                  style: TextStyle(
+                Text(
+                  l10n.humanOverrideNoQuotes,
+                  style: const TextStyle(
                     fontStyle: FontStyle.italic,
                     color: Colors.grey,
                   ),
@@ -178,7 +182,7 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, size: 18),
                       onPressed: () => setState(() => _quotes.remove(q)),
-                      tooltip: 'Poista',
+                      tooltip: l10n.humanOverrideDeleteQuoteTooltip,
                     ),
                   ),
                 ),
@@ -188,16 +192,16 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                 onPressed: () {
                   setState(() {
                     _quotes.add(
-                      const QuoteEvidenceDto(
-                        verifiedSourceIds: ['human_override'],
-                        quote: 'Asiantuntijan vahvistama huomio',
+                      QuoteEvidenceDto(
+                        verifiedSourceIds: const ['human_override'],
+                        quote: l10n.humanOverrideExpertNote,
                         isVerified: true,
                       ),
                     );
                   });
                 },
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Lisää todiste'),
+                label: Text(l10n.humanOverrideAddEvidenceBtn),
               ),
             ],
           ),
@@ -206,7 +210,7 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Peruuta'),
+          child: Text(l10n.cancel),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _submitOverride,
@@ -216,7 +220,7 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Tallenna Override'),
+              : Text(l10n.humanOverrideSaveBtn),
         ),
       ],
     );

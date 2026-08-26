@@ -14,7 +14,7 @@ void main() {
       (WidgetTester tester) async {
         final layout = const OutputLayoutBlock(
           presetView: PresetView.matrixSummary,
-          title: I18nText(defaultLocale: 'en'),
+          title: I18nText(translations: {'en': 'Matrix Summary'}),
           textDeliveryMode: TextDeliveryMode.full,
           targetBlocks: [],
         );

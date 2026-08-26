@@ -11,8 +11,8 @@ def test_prompt_block_fail_fast_on_corrupt_type() -> None:
     data = {
         "id": "blk_1111111111111111",
         "slug": "pb_1",
-        "label": {"default_locale": "en", "translations": {"en": "T", "fi": "T"}},
-        "description": {"default_locale": "en", "translations": {"en": "D", "fi": "D"}},
+        "label": {"translations": {"en": "T", "fi": "T"}},
+        "description": {"translations": {"en": "D", "fi": "D"}},
         "category_id": "system_rule",
         "type": "INVALID_TYPE",
     }
@@ -45,9 +45,8 @@ def test_embedded_output_profile_description_parsing() -> None:
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
-        "name": {"default_locale": "en", "translations": {"en": "My Profile", "fi": "My Profile"}},
+        "name": {"translations": {"en": "My Profile", "fi": "My Profile"}},
         "description": {
-            "default_locale": "en",
             "translations": {"en": "A valid description", "fi": "A valid description"},
         },
         "display_scale": DisplayScale.ORIGINAL,
@@ -62,7 +61,7 @@ def test_embedded_output_profile_description_parsing() -> None:
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
-        "name": {"default_locale": "en", "translations": {"en": "My Profile", "fi": "My Profile"}},
+        "name": {"translations": {"en": "My Profile", "fi": "My Profile"}},
         "description": "This is a simple string instead of I18nText dict",
         "display_scale": DisplayScale.ORIGINAL,
     }

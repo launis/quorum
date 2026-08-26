@@ -127,8 +127,8 @@ async def test_list_workflows_with_data(
     wf_data = {
         "id": "wf_1234567890abcdef12",
         "slug": "wf-1",
-        "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "name": {"translations": {"en": "Test Workflow"}},
+        "description": {"translations": {"en": "Test Desc"}},
         "status": "active",
         "version": 1,
         "organization_id": "org_123",
@@ -158,8 +158,8 @@ async def test_delete_workflow(workflow_service: Any, admin_token: Any, mock_wor
     wf_data = {
         "id": "wf_1234567890abcdef12",
         "slug": "wf-1",
-        "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "name": {"translations": {"en": "Test Workflow"}},
+        "description": {"translations": {"en": "Test Desc"}},
         "status": "active",
         "version": 1,
         "organization_id": "org_123",
@@ -178,8 +178,8 @@ async def test_create_workflow_draft(workflow_service: Any, admin_token: Any, mo
     mock_workflow_repo.get_workflow_by_id.return_value = {
         "id": "wf_1234567890abcdef12",
         "slug": "wf_test",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Desc"}},
         "status": "draft",
         "version": 1,
         "organization_id": "org_123",
@@ -240,7 +240,7 @@ async def test_delete_step(workflow_service: Any, admin_token: Any, mock_workflo
     step_data = {
         "id": "step_1234567890abcdef12",
         "slug": "step_1",
-        "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
+        "name": {"translations": {"en": "Test Step"}},
         "type": "llm",
         "organization_id": "org_123",
         "safety": "safe",
@@ -260,7 +260,7 @@ async def test_delete_step_protected_system_core_fails_fast(
     step_data = {
         "id": "sp_db849f9790984585",
         "slug": "input_processing",
-        "name": {"default_locale": "en", "translations": {"en": "Input Processing"}},
+        "name": {"translations": {"en": "Input Processing"}},
         "type": "logic",
         "hook": "input_processing_hook",
         "organization_id": "org_123",
@@ -282,7 +282,7 @@ async def test_save_step_protected_system_core_slug_mutation_fails_fast(
     existing_step_data = {
         "id": "sp_db849f9790984585",
         "slug": "input_processing",
-        "name": {"default_locale": "en", "translations": {"en": "Input Processing"}},
+        "name": {"translations": {"en": "Input Processing"}},
         "type": "logic",
         "hook": "input_processing_hook",
         "organization_id": "org_123",
@@ -293,7 +293,7 @@ async def test_save_step_protected_system_core_slug_mutation_fails_fast(
     modified_step = Step(
         id="sp_db849f9790984585",
         slug="mutated_slug",
-        name={"default_locale": "en", "translations": {"en": "Input Processing"}},
+        name={"translations": {"en": "Input Processing"}},
         type="logic",
         hook="input_processing_hook",
         organization_id="org_123",
@@ -321,8 +321,8 @@ async def test_list_prompt_blocks_success(
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -340,7 +340,7 @@ async def test_list_prompt_blocks_corrupt_data_raises_app_exception(
     corrupt_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
+        "label": {"translations": {"en": "Block"}},
     }
     mock_seed_prompt_block_repo.get_all_prompt_blocks.return_value = [corrupt_data]
     with pytest.raises(AppException) as exc_info:
@@ -355,8 +355,8 @@ async def test_list_prompt_blocks_tenant_filtering(
     blk_org = {
         "id": "blk_1111222233334444",
         "slug": "blk_org",
-        "label": {"default_locale": "en", "translations": {"en": "Org Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Org Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",  # Matches admin_token
@@ -364,8 +364,8 @@ async def test_list_prompt_blocks_tenant_filtering(
     blk_other_org = {
         "id": "blk_5555666677778888",
         "slug": "blk_other",
-        "label": {"default_locale": "en", "translations": {"en": "Other Org Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Other Org Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_other_999",  # Different org
@@ -391,8 +391,8 @@ async def test_delete_prompt_block(
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -426,7 +426,7 @@ async def test_delete_output_profile(
     prof_data = {
         "id": "prof_1234567890abcdef12",
         "slug": "prof_1",
-        "name": {"default_locale": "en", "translations": {"en": "Prof"}},
+        "name": {"translations": {"en": "Prof"}},
         "category_id": "report",
         "layouts": [],
         "organization_id": "org_123",
@@ -445,7 +445,7 @@ async def test_list_output_profiles_corrupted_legacy_keys_raises_state_integrity
     corrupted_profile = {
         "id": "prof_1234567890abcdef12",
         "slug": "prof_1",
-        "name": {"default_locale": "en", "translations": {"en": "Prof"}},
+        "name": {"translations": {"en": "Prof"}},
         "organization_id": "org_123",
         "workflow_id": "wf_1234567890abcdef12",
         "synthesis": {
@@ -471,8 +471,8 @@ async def test_list_workflows_corrupted_legacy_output_profile_raises_state_integ
     wf_data = {
         "id": "wf_1234567890abcdef12",
         "slug": "wf-1",
-        "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "name": {"translations": {"en": "Test Workflow"}},
+        "description": {"translations": {"en": "Test Desc"}},
         "status": "active",
         "version": 1,
         "organization_id": "org_123",
@@ -485,7 +485,7 @@ async def test_list_workflows_corrupted_legacy_output_profile_raises_state_integ
     corrupted_profile = {
         "id": "prof_1234567890abcdef12",
         "slug": "prof_1",
-        "name": {"default_locale": "en", "translations": {"en": "Prof"}},
+        "name": {"translations": {"en": "Prof"}},
         "organization_id": "org_123",
         "workflow_id": "wf_1234567890abcdef12",
         "synthesis": {
@@ -511,8 +511,8 @@ async def test_save_workflow(workflow_service: Any, admin_token: Any, mock_workf
     wf_data = {
         "id": "wf_1234567890abcdef12",
         "slug": "wf-1",
-        "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "name": {"translations": {"en": "Test Workflow"}},
+        "description": {"translations": {"en": "Test Desc"}},
         "status": "active",
         "version": 1,
         "organization_id": "org_123",
@@ -531,7 +531,7 @@ async def test_save_step(workflow_service: Any, admin_token: Any, mock_workflow_
     step_data = {
         "id": "step_1234567890abcdef12",
         "slug": "step_1",
-        "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
+        "name": {"translations": {"en": "Test Step"}},
         "type": "llm",
         "organization_id": "org_123",
         "safety": "safe",
@@ -551,7 +551,7 @@ async def test_save_step_direct_organization_id_access(
     step_data = {
         "id": "sp_1234567890abcdef12",
         "slug": "step_direct_org",
-        "name": {"default_locale": "en", "translations": {"en": "Direct Org Step"}},
+        "name": {"translations": {"en": "Direct Org Step"}},
         "type": "llm",
         "organization_id": "org_123",
         "safety": "safe",
@@ -571,8 +571,8 @@ async def test_save_prompt_block(prompt_block_service: Any, admin_token: Any, mo
     blk_data = {
         "id": "blk_1234567890abcdef12",
         "slug": "blk_1",
-        "label": {"default_locale": "en", "translations": {"en": "Block"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+        "label": {"translations": {"en": "Block"}},
+        "description": {"translations": {"en": "Desc"}},
         "category_id": "agent_role",
         "type": "string",
         "organization_id": "org_123",
@@ -612,8 +612,8 @@ async def test_clone_prompt_block(
         "blk_1234567890abcdef12": {
             "id": "blk_1234567890abcdef12",
             "slug": "blk_1",
-            "label": {"default_locale": "en", "translations": {"en": "Block"}},
-            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+            "label": {"translations": {"en": "Block"}},
+            "description": {"translations": {"en": "Desc"}},
             "category_id": "agent_role",
             "type": "string",
             "organization_id": "org_123",

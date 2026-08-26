@@ -14,10 +14,10 @@ def test_output_profile_response_dto_schema_parity() -> None:
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "layouts": [],
-        "user_role_mappings": {"ROLE_ARCHITECT": {"default_locale": "en", "translations": {"en": "Navigator"}}},
-        "extension_labels": {"citation": {"default_locale": "en", "translations": {"en": "Citation"}}},
+        "user_role_mappings": {"ROLE_ARCHITECT": {"translations": {"en": "Navigator"}}},
+        "extension_labels": {"citation": {"translations": {"en": "Citation"}}},
     }
 
     # This should now pass without raising extra_forbidden
@@ -30,7 +30,7 @@ def test_output_profile_response_dto_target_block_order_parity() -> None:
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "layouts": [],
         "target_block_order": [TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK],
     }
@@ -46,10 +46,10 @@ def test_embedded_output_profile_schema_parity() -> None:
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "layouts": [],
-        "user_role_mappings": {"ROLE_ARCHITECT": {"default_locale": "en", "translations": {"en": "Navigator"}}},
-        "extension_labels": {"citation": {"default_locale": "en", "translations": {"en": "Citation"}}},
+        "user_role_mappings": {"ROLE_ARCHITECT": {"translations": {"en": "Navigator"}}},
+        "extension_labels": {"citation": {"translations": {"en": "Citation"}}},
     }
 
     # This should now pass without raising extra_forbidden
@@ -62,7 +62,7 @@ def test_output_profile_response_dto_negative_extra_keys() -> None:
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "layouts": [],
         "invalid_extra_key": "should fail",
     }
@@ -77,9 +77,9 @@ def test_embedded_output_profile_negative_wrong_type() -> None:
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "layouts": [],
-        "user_role_mappings": [{"ROLE_ARCHITECT": {"default_locale": "en", "translations": {"en": "Navigator"}}}],
+        "user_role_mappings": [{"ROLE_ARCHITECT": {"translations": {"en": "Navigator"}}}],
     }
     with pytest.raises(ValidationError) as exc_info:
         OutputProfile.model_validate(payload)

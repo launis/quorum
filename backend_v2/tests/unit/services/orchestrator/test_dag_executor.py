@@ -17,8 +17,8 @@ def mock_repo() -> Any:
         "type": "logic",
         "model_strategy": "logic",
         "slug": "mock_step",
-        "name": {"default_locale": "en", "translations": {"en": "Mock Step"}},
-        "description": {"default_locale": "en", "translations": {"en": "Mock"}},
+        "name": {"translations": {"en": "Mock Step"}},
+        "description": {"translations": {"en": "Mock"}},
         "hook": "mock_hook",
     }
     return repo
@@ -53,8 +53,8 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
     )
 
@@ -104,8 +104,8 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
     )
 
@@ -168,8 +168,8 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
     )
 
@@ -240,8 +240,8 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Test WF", "fi": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc", "fi": "Desc"}),
+        name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             StepRule(
                 id="stp_1234567890abcdef",
@@ -300,8 +300,8 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
         SystemRulePromptBlock(
             id="blk_1234567890abcdef",
             slug="synthesis-rule",
-            label=I18nText(default_locale="en", translations={"en": "Synthesis Rule"}),
-            description=I18nText(default_locale="en", translations={"en": "Synthesis Rule Desc"}),
+            label=I18nText(translations={"en": "Synthesis Rule"}),
+            description=I18nText(translations={"en": "Synthesis Rule Desc"}),
             category_id=PromptBlockCategory.SYSTEM_RULE,
         )
     ]
@@ -332,8 +332,8 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
         "model_strategy": "synthesis",
         "criteria_block_ids": ["blk_1234567890abcdef"],
         "extraction_protocol_block_id": "blk_1234567890abcdef",
-        "name": {"default_locale": "en", "translations": {"en": "en"}},
-        "description": {"default_locale": "en", "translations": {"en": "en"}},
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
     }
     projector = MagicMock()
     projector.snapshot = {}
@@ -456,8 +456,8 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     matrix_block = MatrixPromptBlock(
         id="blk_1111222233334444",
         slug="matrix-block",
-        label=I18nText(default_locale="en", translations={"en": "Matrix"}),
-        description=I18nText(default_locale="en", translations={"en": "Matrix Desc"}),
+        label=I18nText(translations={"en": "Matrix"}),
+        description=I18nText(translations={"en": "Matrix Desc"}),
         category_id=PromptBlockCategory.MATRIX,
         scales=[
             MatrixScale(
@@ -470,8 +470,8 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     system_block = SystemRulePromptBlock(
         id="blk_5555666677778888",
         slug="sys-block",
-        label=I18nText(default_locale="en", translations={"en": "Sys"}),
-        description=I18nText(default_locale="en", translations={"en": "Sys Desc"}),
+        label=I18nText(translations={"en": "Sys"}),
+        description=I18nText(translations={"en": "Sys Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
     )
     mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = [matrix_block, system_block]
@@ -498,8 +498,8 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
         role_block_id="blk_5555666677778888",
         extraction_protocol_block_id="blk_5555666677778888",
         execution_persona_block_id="blk_5555666677778888",
-        name=I18nText(default_locale="en", translations={"en": "Matrix Step"}),
-        description=I18nText(default_locale="en", translations={"en": "Matrix Step"}),
+        name=I18nText(translations={"en": "Matrix Step"}),
+        description=I18nText(translations={"en": "Matrix Step"}),
     )
 
     tda_engine = executor._resolve_execution_engine(matrix_step_def, [matrix_block, system_block])
@@ -512,8 +512,8 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
         model_strategy="fast",
         criteria_block_ids=["blk_5555666677778888"],
         extraction_protocol_block_id="blk_5555666677778888",
-        name=I18nText(default_locale="en", translations={"en": "Prompt Step"}),
-        description=I18nText(default_locale="en", translations={"en": "Prompt Step"}),
+        name=I18nText(translations={"en": "Prompt Step"}),
+        description=I18nText(translations={"en": "Prompt Step"}),
     )
     prompt_engine = executor._resolve_execution_engine(prompt_step_def, [system_block])
     assert isinstance(prompt_engine, PromptEngine)
@@ -538,8 +538,8 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
         SystemRulePromptBlock(
             id="blk_1111222233334444",
             slug="rule",
-            label=I18nText(default_locale="en", translations={"en": "Rule"}),
-            description=I18nText(default_locale="en", translations={"en": "Desc"}),
+            label=I18nText(translations={"en": "Rule"}),
+            description=I18nText(translations={"en": "Desc"}),
             category_id=PromptBlockCategory.SYSTEM_RULE,
         )
     ]
@@ -566,8 +566,8 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
         "type": "logic",
         "model_strategy": "logic",
         "hook": "mock_hook",
-        "name": {"default_locale": "en", "translations": {"en": "en"}},
-        "description": {"default_locale": "en", "translations": {"en": "en"}},
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
     }
     projector = MagicMock()
     projector.snapshot = [
@@ -622,8 +622,8 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Cascading WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Cascading WF"}),
+        description=I18nText(translations={"en": "Desc"}),
         steps=[
             StepRule(id="stp_1111222233334444", task_blueprint="bp_1111222233334444", depends_on=[]),
             StepRule(
@@ -638,8 +638,8 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
         "type": "logic",
         "model_strategy": "logic",
         "hook": "mock_hook",
-        "name": {"default_locale": "en", "translations": {"en": "en"}},
-        "description": {"default_locale": "en", "translations": {"en": "en"}},
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
     }
 
     with (
@@ -700,8 +700,8 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Resume WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Resume WF"}),
+        description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
@@ -712,8 +712,8 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         "model_strategy": "synthesis",
         "criteria_block_ids": ["blk_1111222233334444"],
         "extraction_protocol_block_id": "blk_1111222233334444",
-        "name": {"default_locale": "en", "translations": {"en": "en"}},
-        "description": {"default_locale": "en", "translations": {"en": "en"}},
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
     }
 
     existing_record = ExecutionRecord(
@@ -824,8 +824,8 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Preflight WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Preflight WF"}),
+        description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
@@ -836,8 +836,8 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
         "model_strategy": "synthesis",
         "criteria_block_ids": ["blk_1111222233334444"],
         "extraction_protocol_block_id": "blk_1111222233334444",
-        "name": {"default_locale": "en", "translations": {"en": "en"}},
-        "description": {"default_locale": "en", "translations": {"en": "en"}},
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
     }
     mock_repo.get_execution.return_value = None
 
@@ -878,8 +878,8 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Matrix Fail WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Matrix Fail WF"}),
+        description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
@@ -890,8 +890,8 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
         "model_strategy": "synthesis",
         "criteria_block_ids": ["blk_1111222233334444"],
         "extraction_protocol_block_id": "blk_1111222233334444",
-        "name": {"default_locale": "en", "translations": {"en": "en"}},
-        "description": {"default_locale": "en", "translations": {"en": "en"}},
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
     }
     mock_repo.get_execution.return_value = None
 
@@ -938,8 +938,8 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
         status="draft",
         version=1,
         default_profile_id="prof_dddd1111dddd1111",
-        name=I18nText(default_locale="en", translations={"en": "Prog WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Prog WF"}),
+        description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
@@ -949,8 +949,8 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
         "type": "logic",
         "model_strategy": "logic",
         "hook": "mock_hook",
-        "name": {"default_locale": "en", "translations": {"en": "en"}},
-        "description": {"default_locale": "en", "translations": {"en": "en"}},
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
     }
     mock_repo.get_execution.return_value = None
 

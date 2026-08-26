@@ -72,7 +72,7 @@ def _valid_step_dict(
     return {
         "id": step_id,
         "slug": slug,
-        "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
+        "name": {"translations": {"en": "Test Step"}},
         "type": "llm",
         "organization_id": org_id,
         "safety": "safe",
@@ -92,8 +92,8 @@ def _valid_workflow_dict(
     return {
         "id": wf_id,
         "slug": slug,
-        "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "name": {"translations": {"en": "Test Workflow"}},
+        "description": {"translations": {"en": "Test Desc"}},
         "status": status,
         "version": 1,
         "organization_id": org_id,
@@ -109,8 +109,8 @@ def _valid_matrix_block_dict(block_id: str = "blk_0123456789abcdef01") -> dict[s
     return {
         "id": block_id,
         "slug": f"slug_{block_id}",
-        "label": {"default_locale": "en", "translations": {"en": "Matrix Label"}},
-        "description": {"default_locale": "en", "translations": {"en": "Description"}},
+        "label": {"translations": {"en": "Matrix Label"}},
+        "description": {"translations": {"en": "Description"}},
         "ai_description": "AI desc",
         "category_id": "matrix",
         "type": "float",
@@ -121,7 +121,7 @@ def _valid_matrix_block_dict(block_id: str = "blk_0123456789abcdef01") -> dict[s
                 "ai_label": "INITIAL",
                 "claims": [
                     {
-                        "label": {"default_locale": "en", "translations": {"en": "Default Claim"}},
+                        "label": {"translations": {"en": "Default Claim"}},
                         "tda_assertions": [
                             {
                                 "tda_id": "tda_00000000000000000000000000000001",
@@ -315,7 +315,7 @@ async def test_clone_workflow_success(
             "id": "pro_0123456789abcdef01",
             "slug": "prof_standard",
             "workflow_id": wf["id"],
-            "name": {"default_locale": "en", "translations": {"en": "Standard"}},
+            "name": {"translations": {"en": "Standard"}},
             "layouts": [{"preset_view": "default", "steps": ["sr_000000000000000000000001"]}],
             "max_extension_items": 5,
         }

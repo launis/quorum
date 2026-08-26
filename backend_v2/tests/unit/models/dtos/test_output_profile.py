@@ -14,7 +14,7 @@ _VALID_CREATE_PAYLOAD: dict[str, Any] = {
     "id": "prf_1234abcd",
     "slug": "my-profile",
     "workflow_id": "wf_123",
-    "name": {"default_locale": "en", "translations": {"en": "Name", "fi": "Name"}},
+    "name": {"translations": {"en": "Name", "fi": "Name"}},
 }
 
 
@@ -158,7 +158,7 @@ def test_output_profile_response_dto_strictness() -> None:
             "id": "prf_1234abcd",
             "slug": "my-profile",
             "workflow_id": "wf_123",
-            "name": {"default_locale": "en", "translations": {"en": "Name", "fi": "Name"}},
+            "name": {"translations": {"en": "Name", "fi": "Name"}},
             "layouts": [],
             "display_scale": DisplayScale.ORIGINAL,
         }

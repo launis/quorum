@@ -58,8 +58,8 @@ async def test_simulate_workflow_success(simulation_service: StudioSimulationSer
     workflow = Workflow(
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
-        name=I18nText(default_locale="en", translations={"en": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
         status="active",
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
@@ -68,9 +68,9 @@ async def test_simulate_workflow_success(simulation_service: StudioSimulationSer
         expected_inputs=[
             ExpectedInput(
                 input_key="document_text",
-                label=I18nText(default_locale="en", translations={"en": "Doc"}),
+                label=I18nText(translations={"en": "Doc"}),
                 required=True,
-                description=I18nText(default_locale="en", translations={"en": "Doc desc"}),
+                description=I18nText(translations={"en": "Doc desc"}),
                 input_modes=["paste"],
             )
         ],
@@ -109,8 +109,8 @@ async def test_simulate_workflow_missing_input(
     workflow = Workflow(
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
-        name=I18nText(default_locale="en", translations={"en": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
         status="active",
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
@@ -119,9 +119,9 @@ async def test_simulate_workflow_missing_input(
         expected_inputs=[
             ExpectedInput(
                 input_key="doc",
-                label=I18nText(default_locale="en", translations={"en": "Doc"}),
+                label=I18nText(translations={"en": "Doc"}),
                 required=True,
-                description=I18nText(default_locale="en", translations={"en": "Doc desc"}),
+                description=I18nText(translations={"en": "Doc desc"}),
                 input_modes=["paste"],
             )
         ],
@@ -149,8 +149,8 @@ async def test_simulate_workflow_undeclared_dependency(
     workflow = Workflow(
         id="wor_1234567890abcdef1234567890abcdef",
         slug="test_wf",
-        name=I18nText(default_locale="en", translations={"en": "Test WF"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
         status="active",
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
@@ -229,8 +229,8 @@ async def test_simulate_prompt_block_simple(simulation_service: StudioSimulation
     block = SystemRulePromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="test_instruction",
-        label=I18nText(default_locale="en", translations={"en": "Instruction"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Instruction"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
         instruction_text="Analyze the document: {doc_title} and report.",
@@ -253,8 +253,8 @@ async def test_simulate_prompt_block_none_ai_description(
     block = SystemRulePromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="test_none",
-        label=I18nText(default_locale="en", translations={"en": "Instruction"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Instruction"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
         instruction_text=None,
@@ -274,8 +274,8 @@ async def test_simulate_prompt_block_matrix_scales(
     block = MatrixPromptBlock(
         id="blk_22222222222222222222222222222222",
         slug="test_matrix",
-        label=I18nText(default_locale="en", translations={"en": "Matrix Block"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Matrix Block"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         ai_description="Perform matrix evaluation.",
@@ -285,7 +285,7 @@ async def test_simulate_prompt_block_matrix_scales(
                 ai_label="POOR",
                 claims=[
                     MatrixClaim(
-                        label=I18nText(default_locale="en", translations={"en": "Claim Label", "fi": "Väite"}),
+                        label=I18nText(translations={"en": "Claim Label", "fi": "Väite"}),
                         tda_assertions=[
                             TDAAssertion(
                                 concept_description="Verify that evidence exists",
@@ -317,8 +317,8 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
     persona_block = PersonaPromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="persona_test",
-        label=I18nText(default_locale="en", translations={"en": "Persona"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Persona"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.EXECUTION_PERSONA,
         type=BlockDataType.INSTRUCTION,
         role_enforcement="Act as an expert auditor.",
@@ -331,8 +331,8 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
     protocol_block = ProtocolPromptBlock(
         id="blk_22222222222222222222222222222222",
         slug="protocol_test",
-        label=I18nText(default_locale="en", translations={"en": "Protocol"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Protocol"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.PROTOCOL,
         type=BlockDataType.INSTRUCTION,
         protocol_instructions="Extract exact quotes only.",
@@ -345,8 +345,8 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
     sys_block = SystemRulePromptBlock(
         id="blk_33333333333333333333333333333333",
         slug="sys_rule_test",
-        label=I18nText(default_locale="en", translations={"en": "System Rule"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "System Rule"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
         instruction_text="Strict JSON only.",
@@ -371,8 +371,8 @@ async def test_simulate_step_success(
     mock_block = PersonaPromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="role_block",
-        label=I18nText(default_locale="en", translations={"en": "Role"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Role"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.AGENT_ROLE,
         type=BlockDataType.STRING,
         role_enforcement="You are a senior analyst.",
@@ -383,8 +383,8 @@ async def test_simulate_step_success(
     step = Step(
         id="stp_11111111111111111111111111111111",
         slug="step_analyze",
-        name=I18nText(default_locale="en", translations={"en": "Analyze Step"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Analyze Step"}),
+        description=I18nText(translations={"en": "Desc"}),
         type="llm",
         model_strategy="fast",
         role_block_id="blk_11111111111111111111111111111111",
@@ -412,8 +412,8 @@ async def test_simulate_step_prompt_block_not_found(
     step = Step(
         id="stp_11111111111111111111111111111111",
         slug="step_missing_block",
-        name=I18nText(default_locale="en", translations={"en": "Step"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        name=I18nText(translations={"en": "Step"}),
+        description=I18nText(translations={"en": "Desc"}),
         type="llm",
         model_strategy="fast",
         role_block_id="blk_11111111111111111111111111111111",

@@ -33,7 +33,7 @@ void main() {
     return const OutputProfile(
       id: 'prf_test',
       workflowId: 'wf_test',
-      name: I18nText(defaultLocale: 'en', translations: {'en': 'Test Profile'}),
+      name: I18nText(translations: {'en': 'Test Profile'}),
       displayScale: DisplayScale.original,
       strictnessLevel: 50,
       scoringStrategy: ScoringStrategy.waterfall,

@@ -22,5 +22,6 @@
   "pdfAuditDuration": "Duration:",
   "pdfAuditQuery": "Query:",
   "pdfAuditImpactedAxes": "Impacted Axes:",
-  "pdfAuditSources": "Sources:"
+  "pdfAuditSources": "Sources:",
+  "alert_starvation_insufficient_data": "Evaluation data was insufficient to generate synthesis."
 }

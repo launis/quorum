@@ -208,7 +208,7 @@ class StudioOutputProfileService:
         draft_dict: dict[str, Any] = {
             "id": new_id,
             "slug": new_id,
-            "name": {"default_locale": "en", "translations": {"en": "New Profile", "fi": "Uusi profiili"}},
+            "name": {"translations": {"en": "New Profile", "fi": "Uusi profiili"}},
             "category_id": "report",
             "layouts": [
                 {"layout_type": "default_pdf", "layout_config": {"columns": 1, "theme": "light"}, "blocks": []}
@@ -256,10 +256,9 @@ class StudioOutputProfileService:
             cloned_data["organization_id"] = initiator.organization_id
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-            default_locale = cloned_data["name"].get("default_locale", "en")
             translations = cloned_data["name"].get("translations", {})
-            if default_locale in translations:
-                translations[default_locale] = translations[default_locale] + " (Copy)"
+            if "en" in translations:
+                translations["en"] = translations["en"] + " (Copy)"
                 cloned_data["name"]["translations"] = translations
         elif "name" in cloned_data and isinstance(cloned_data["name"], str):
             cloned_data["name"] = cloned_data["name"] + " (Copy)"

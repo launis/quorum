@@ -43,8 +43,8 @@ def _build_mock_deps() -> HookDependencies:
     cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
         "id": "wor_0123456789abcdef01",
         "slug": "test_workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test Description"}},
+        "name": {"translations": {"en": "Test Workflow"}},
+        "description": {"translations": {"en": "Test Description"}},
         "status": "active",
         "version": 1,
         "organization_id": "org_0123456789abcdef01",
@@ -65,7 +65,7 @@ def _build_mock_deps() -> HookDependencies:
         "id": "pro_0123456789abcdef01",
         "slug": "prof_standard",
         "workflow_id": "wor_0123456789abcdef01",
-        "name": {"default_locale": "en", "translations": {"en": "Standard Profile"}},
+        "name": {"translations": {"en": "Standard Profile"}},
         "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
         "max_extension_items": 5,
     }
@@ -477,8 +477,8 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
     cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
         "id": "wor_0123456789abcdef01",
         "slug": "test_workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test Workflow"}},
-        "description": {"default_locale": "en", "translations": {"en": "Test Description"}},
+        "name": {"translations": {"en": "Test Workflow"}},
+        "description": {"translations": {"en": "Test Description"}},
         "status": "active",
         "version": 1,
         "organization_id": "org_0123456789abcdef01",
@@ -502,7 +502,7 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
         {
             "id": "sp_111111111111111111111111",
             "slug": "input_raw",
-            "name": {"default_locale": "en", "translations": {"en": "Input Processing"}},
+            "name": {"translations": {"en": "Input Processing"}},
             "type": "logic",
             "hook": "input_processing_hook",
             "organization_id": "org_0123456789abcdef01",
@@ -510,7 +510,7 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
         {
             "id": "sp_222222222222222222222222",
             "slug": "specialist",
-            "name": {"default_locale": "en", "translations": {"en": "Specialist Analysis"}},
+            "name": {"translations": {"en": "Specialist Analysis"}},
             "type": "llm",
             "model_strategy": "fast",
             "criteria_block_ids": ["blk_222222222222222222222222"],
@@ -560,7 +560,7 @@ async def test_synthesis_distiller_wiring_forwards_synthesis_config() -> None:
         "id": "pro_0123456789abcdef01",
         "slug": "prof_standard",
         "workflow_id": "wor_0123456789abcdef01",
-        "name": {"default_locale": "en", "translations": {"en": "Standard Profile"}},
+        "name": {"translations": {"en": "Standard Profile"}},
         "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
         "max_extension_items": 5,
         "synthesis": synthesis_cfg.model_dump(mode="json"),

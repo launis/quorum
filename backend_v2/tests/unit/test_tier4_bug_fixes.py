@@ -9,8 +9,8 @@ def test_bug_metric_mappings_silent_override() -> None:
         id="prof_1234abcd1234abcd",
         slug="test",
         workflow_id="wf_1234",
-        name={"default_locale": "en", "translations": {"en": "Name"}},  # type: ignore
-        metric_mappings={"variance_mechanical": {"default_locale": "en", "translations": {"en": "Mech"}}},  # type: ignore
+        name={"translations": {"en": "Name"}},  # type: ignore
+        metric_mappings={"variance_mechanical": {"translations": {"en": "Mech"}}},  # type: ignore
     )
 
     assert "variance_mechanical" in db_profile.metric_mappings

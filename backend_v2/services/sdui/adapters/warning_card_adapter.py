@@ -7,10 +7,10 @@ WARNING_CARD_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import VisualIntent
-from backend_v2.models.v2_core import I18nText
 from backend_v2.models.view.sdui import AlertBlock, AnySduiBlock
+from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
@@ -29,14 +29,6 @@ WARNING_CARD_RULES: dict[str, dict[str, VisualIntent]] = {
         "severity": VisualIntent.WARNING,
     },
 }
-
-I18N_WARNING_STARVATION = I18nText(
-    default_locale="en",
-    translations={
-        "en": "Evaluation data was insufficient to generate synthesis.",
-        "fi": "Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi.",
-    },
-)
 
 
 # ============================================================================
@@ -87,10 +79,10 @@ class WarningCardAdapter:
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": "CONFIGURATION_ERROR"},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             ) from e
 
-        warning_msg = I18N_WARNING_STARVATION.resolve(context.locale)
+        warning_msg = LocalizationService.translate("alert_starvation_insufficient_data", context.locale)
 
         blocks.append(
             AlertBlock(

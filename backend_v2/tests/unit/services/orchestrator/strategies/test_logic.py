@@ -76,9 +76,9 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
     step_def = {
         "id": "stp_1234567890abcdef",
         "slug": "test_slug",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "hook": "test_hook",
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "description": {"translations": {"en": "Test Desc"}},
         "type": StepType.LOGIC,
     }
     from typing import cast
@@ -115,9 +115,9 @@ async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy:
     step_def = {
         "id": "stp_1234567890abcdef",
         "slug": "test_slug",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "hook": "test_hook",
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "description": {"translations": {"en": "Test Desc"}},
         "type": StepType.LOGIC,
     }
     from typing import cast
@@ -154,9 +154,9 @@ async def test_execute_hook_failure_raises_app_exception(logic_strategy: LogicNo
     step_def = {
         "id": "stp_1234567890abcdef",
         "slug": "test_slug",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "hook": "test_hook",
-        "description": {"default_locale": "en", "translations": {"en": "Test Desc"}},
+        "description": {"translations": {"en": "Test Desc"}},
         "type": StepType.LOGIC,
     }
     from typing import cast

@@ -63,7 +63,7 @@ async def test_atomizer_deterministic_mapping() -> None:
     )
 
     claim = MatrixClaim(
-        label=I18nText(default_locale="en", translations={"en": "Test claim", "fi": "Test claim"}),
+        label=I18nText(translations={"en": "Test claim", "fi": "Test claim"}),
         tda_assertions=[tda1, tda2],
     )
 
@@ -73,8 +73,8 @@ async def test_atomizer_deterministic_mapping() -> None:
         {
             "id": "blk_1234567890abcdef",
             "slug": "test_block",
-            "label": {"default_locale": "en", "translations": {"en": "Test block", "fi": "Test block"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test desc", "fi": "Test desc"}},
+            "label": {"translations": {"en": "Test block", "fi": "Test block"}},
+            "description": {"translations": {"en": "Test desc", "fi": "Test desc"}},
             "category_id": "matrix",
             "type": "int",
             "scales": [scale.model_dump()],

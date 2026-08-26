@@ -15,10 +15,7 @@ void main() {
     OutputProfile payload = const OutputProfile(
       id: 'profile_1',
       workflowId: 'wf_1',
-      name: I18nText(
-        defaultLocale: 'en',
-        translations: {'en': 'Default Profile'},
-      ),
+      name: I18nText(translations: {'en': 'Default Profile'}),
       targetBlockOrder: [TargetBlockType.synthesisTextBlock],
       synthesis: SynthesisConfigDTO(synthesisBlockId: 'block_1'),
     );
@@ -26,14 +23,8 @@ void main() {
     final mockPromptBlock = const PromptBlock.systemRule(
       id: 'block_1',
       slug: 'exec_summary',
-      label: I18nText(
-        defaultLocale: 'en',
-        translations: {'en': 'Executive Summary'},
-      ),
-      description: I18nText(
-        defaultLocale: 'en',
-        translations: {'en': 'Exec summary block'},
-      ),
+      label: I18nText(translations: {'en': 'Executive Summary'}),
+      description: I18nText(translations: {'en': 'Exec summary block'}),
     );
 
     await tester.pumpWidget(

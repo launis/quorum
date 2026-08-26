@@ -99,7 +99,6 @@ class ProfileEditorView extends HookConsumerWidget {
             id: 'default',
             workflowId: payload.id,
             name: const I18nText(
-              defaultLocale: 'en',
               translations: {'fi': 'Oletusraportti', 'en': 'Default Report'},
             ),
             visibleBlockExtensions: const [],
@@ -107,7 +106,7 @@ class ProfileEditorView extends HookConsumerWidget {
             layouts: const [
               OutputLayoutBlock(
                 presetView: PresetView.metrics1d,
-                title: I18nText(defaultLocale: 'en'),
+                title: I18nText(translations: {'en': 'Metrics 1D'}),
                 textDeliveryMode: TextDeliveryMode.full,
                 targetBlocks: [],
               ),
@@ -180,7 +179,6 @@ class ProfileEditorView extends HookConsumerWidget {
                   id: newId,
                   workflowId: payload.id,
                   name: const I18nText(
-                    defaultLocale: 'en',
                     translations: {'fi': 'Uusi profiili', 'en': 'New Profile'},
                   ),
                   visibleBlockExtensions: const [],

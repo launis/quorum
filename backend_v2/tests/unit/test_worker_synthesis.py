@@ -48,8 +48,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
     mock_repo.get_workflow_by_id.return_value = {
         "id": "wf_1234567812345678",
         "slug": "test_workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
@@ -69,7 +69,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         {
             "id": "sp_1234567812345678",
             "slug": "synthesis_step",
-            "name": {"default_locale": "en", "translations": {"en": "Synth"}},
+            "name": {"translations": {"en": "Synth"}},
             "model_strategy": "synthesis",
             "type": "logic",
             "hook": "text_consolidation_hook",
@@ -97,8 +97,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
             "id": "pb_1111111111111111",
             "slug": "system_prompt",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "System"}},
-            "description": {"default_locale": "en", "translations": {"en": "System prompt"}},
+            "label": {"translations": {"en": "System"}},
+            "description": {"translations": {"en": "System prompt"}},
             "category_id": "system_rule",
         }
     ]
@@ -107,8 +107,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "id": "pb_2222222222222222",
         "slug": "synthesis_prompt",
         "type": "instruction",
-        "label": {"default_locale": "en", "translations": {"en": "Synth System"}},
-        "description": {"default_locale": "en", "translations": {"en": "System prompt for synthesis"}},
+        "label": {"translations": {"en": "Synth System"}},
+        "description": {"translations": {"en": "System prompt for synthesis"}},
         "ai_description": "You are an AI.",
         "category_id": "system_rule",
     }
@@ -116,7 +116,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
     mock_repo.get_output_profile_by_id.return_value = {
         "slug": "test_slug",
         "workflow_id": "wf_123",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
         "id": "prof_1111111111111111",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
@@ -124,12 +124,12 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "synthesis": {
             "synthesis_block_id": "pb_2222222222222222",
             "length_constraint": 1000,
-            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional"}},
+            "tone_instruction": {"translations": {"en": "Professional"}},
         },
         "layouts": [
             {
                 "preset_view": "3d_matrix",
-                "title": {"default_locale": "en", "translations": {"en": "T"}},
+                "title": {"translations": {"en": "T"}},
                 "is_synthesis_enabled": True,
                 "target_blocks": [],
             }
@@ -189,8 +189,8 @@ def _setup_mock_repo_for_metrics(
     mock_repo.get_workflow_by_id.return_value = {
         "id": "wf_1234567812345678",
         "slug": "test_workflow",
-        "name": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
-        "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
@@ -232,8 +232,8 @@ def _setup_mock_repo_for_metrics(
             "id": block_id,
             "slug": "synthesis_prompt",
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Synth System"}},
-            "description": {"default_locale": "en", "translations": {"en": "System prompt for synthesis"}},
+            "label": {"translations": {"en": "Synth System"}},
+            "description": {"translations": {"en": "System prompt for synthesis"}},
             "ai_description": "You are an AI.",
             "category_id": "system_rule",
         }
@@ -243,7 +243,7 @@ def _setup_mock_repo_for_metrics(
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
         "slug": "prof",
-        "name": {"default_locale": "en", "translations": {"en": "test"}},
+        "name": {"translations": {"en": "test"}},
         "workflow_id": "wf_1234567812345678",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
@@ -499,7 +499,7 @@ async def test_worker_synthesis_matrix_layout_directives(
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
         "slug": "prof_test",
-        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "name": {"translations": {"en": "Test Profile"}},
         "workflow_id": "wf_1234567812345678",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
@@ -507,12 +507,12 @@ async def test_worker_synthesis_matrix_layout_directives(
         "synthesis": {
             "synthesis_block_id": "pb_2222222222222222",
             "length_constraint": 1000,
-            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
         "layouts": [
             {
                 "preset_view": preset_view,
-                "title": {"default_locale": "fi", "translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
+                "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
                 "is_synthesis_enabled": True,
                 "target_blocks": [],
                 "text_delivery_mode": "none",
@@ -592,7 +592,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
         "slug": "prof_disabled",
-        "name": {"default_locale": "en", "translations": {"en": "Disabled Profile"}},
+        "name": {"translations": {"en": "Disabled Profile"}},
         "workflow_id": "wf_1234567812345678",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
@@ -600,12 +600,12 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
         "synthesis": {
             "synthesis_block_id": "pb_2222222222222222",
             "length_constraint": 1000,
-            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
         "layouts": [
             {
                 "preset_view": "2d_compare",
-                "title": {"default_locale": "fi", "translations": {"fi": "Disabled Layout", "en": "Disabled Layout"}},
+                "title": {"translations": {"fi": "Disabled Layout", "en": "Disabled Layout"}},
                 "is_synthesis_enabled": False,
                 "target_blocks": [],
                 "text_delivery_mode": "none",
@@ -673,7 +673,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
         "slug": "prof_exec_summary",
-        "name": {"default_locale": "en", "translations": {"en": "Exec Profile"}},
+        "name": {"translations": {"en": "Exec Profile"}},
         "workflow_id": "wf_1234567812345678",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
@@ -681,7 +681,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
         "synthesis": {
             "synthesis_block_id": "pb_2222222222222222",
             "length_constraint": 1000,
-            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
         "layouts": [],
     }
@@ -757,7 +757,7 @@ async def test_worker_synthesis_multi_section_aggregation(
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
         "slug": "prof_multi_sec",
-        "name": {"default_locale": "en", "translations": {"en": "Multi Section Profile"}},
+        "name": {"translations": {"en": "Multi Section Profile"}},
         "workflow_id": "wf_1234567812345678",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
@@ -765,12 +765,12 @@ async def test_worker_synthesis_multi_section_aggregation(
         "synthesis": {
             "synthesis_block_id": "pb_2222222222222222",
             "length_constraint": 1000,
-            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
         "layouts": [
             {
                 "preset_view": "2d_compare",
-                "title": {"default_locale": "fi", "translations": {"fi": "Kausaalisuus", "en": "Causality"}},
+                "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
                 "is_synthesis_enabled": True,
                 "target_blocks": [],
                 "text_delivery_mode": "none",
@@ -858,7 +858,7 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
         "slug": "prof_empty_sec",
-        "name": {"default_locale": "en", "translations": {"en": "Empty Section Profile"}},
+        "name": {"translations": {"en": "Empty Section Profile"}},
         "workflow_id": "wf_1234567812345678",
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
@@ -866,12 +866,12 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
         "synthesis": {
             "synthesis_block_id": "pb_2222222222222222",
             "length_constraint": 1000,
-            "tone_instruction": {"default_locale": "en", "translations": {"en": "Professional", "fi": "Ammattimainen"}},
+            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         },
         "layouts": [
             {
                 "preset_view": "2d_compare",
-                "title": {"default_locale": "fi", "translations": {"fi": "Kausaalisuus", "en": "Causality"}},
+                "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
                 "is_synthesis_enabled": True,
                 "target_blocks": [],
                 "text_delivery_mode": "none",

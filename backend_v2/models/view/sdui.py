@@ -1,13 +1,11 @@
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import AliasChoices, ConfigDict, Field, StringConstraints
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import I18nText, V2CoreBase
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.enums import LaxUiVariant, LaxVisualIntent, LaxXaiExtensionType, VisualIntent
-
-if TYPE_CHECKING:
-    from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO
 
 StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 

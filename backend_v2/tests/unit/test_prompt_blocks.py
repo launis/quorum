@@ -21,7 +21,6 @@ from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixRow, MatrixSc
 def sample_i18n_text() -> I18nText:
     """Provides a sample I18nText fixture for testing."""
     return I18nText(
-        default_locale="en",
         translations={"en": "Sample Label", "fi": "Esimerkki"},
     )
 

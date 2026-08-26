@@ -2250,6 +2250,35 @@
   "matrixPromptNotice": "Evaluation matrix guidelines and criteria are configured in the BARS Matrix scales below.",
   "studioModelStrategyLabel": "Model Strategy (Cost/Cognition Override)",
   "studioNoModelsWarning": "Warning: No models found in registry.",
-  "studioSaveButton": "Save"
+  "studioSaveButton": "Save",
+  "humanOverrideTitle": "Override Decision (EU AI Act)",
+  "humanOverrideClaimLabel": "Claim: {claim}",
+  "@humanOverrideClaimLabel": {
+    "placeholders": {
+      "claim": {
+        "type": "String"
+      }
+    }
+  },
+  "humanOverrideNewStatusLabel": "New Rating",
+  "humanOverrideReasonLabel": "Reason for override",
+  "humanOverrideReasonRequired": "Reason is required.",
+  "humanOverrideQuotesTitle": "Quotes (technical proof)",
+  "humanOverrideNoQuotes": "No quotes.",
+  "humanOverrideDeleteQuoteTooltip": "Delete",
+  "humanOverrideAddEvidenceBtn": "Add evidence",
+  "humanOverrideSaveBtn": "Save Override",
+  "humanOverrideSaveFailed": "Save failed: {error}",
+  "@humanOverrideSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "humanOverrideExpertNote": "Expert-confirmed observation",
+  "downloadFrozenContextTooltip": "Download Frozen Context",
+  "downloadExcelBtn": "Download Excel",
+  "aboutMetricTitle": "About Metric"
 }
 

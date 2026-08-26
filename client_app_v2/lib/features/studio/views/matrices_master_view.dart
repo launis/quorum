@@ -86,7 +86,7 @@ class MatricesMasterView extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     final matrix = matrices[index];
                     final displayName = matrix.label.get(
-                      matrix.label.defaultLocale,
+                      Localizations.localeOf(context).languageCode,
                     );
                     if (displayName.isEmpty == true && matrix.id.isNotEmpty) {
                       // Fallback

@@ -18,8 +18,8 @@ def mock_repo() -> MagicMock:
         "type": "logic",
         "model_strategy": "logic",
         "slug": "mock_step",
-        "name": {"default_locale": "en", "translations": {"en": "Mock Step"}},
-        "description": {"default_locale": "en", "translations": {"en": "Mock"}},
+        "name": {"translations": {"en": "Mock Step"}},
+        "description": {"translations": {"en": "Mock"}},
         "hook": "mock_hook",
     }
     return repo
@@ -53,8 +53,8 @@ async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: 
         status="draft",
         version=1,
         default_profile_id="prof_1234567890abcde",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
-        description=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[])
         ],
@@ -100,8 +100,8 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
         status="draft",
         version=1,
         default_profile_id="prof_1234567890abcde",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
-        description=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
                 id="stp_1234567890abcdef",
@@ -157,8 +157,8 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         status="draft",
         version=1,
         default_profile_id="prof_1234567890abcde",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
-        description=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
                 id="stp_1234567890abcdef",
@@ -175,8 +175,8 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         "type": "logic",
         "model_strategy": "synthesis",
         "slug": "synthesis_step",
-        "name": {"default_locale": "en", "translations": {"en": "Synth"}},
-        "description": {"default_locale": "en", "translations": {"en": "Mock"}},
+        "name": {"translations": {"en": "Synth"}},
+        "description": {"translations": {"en": "Mock"}},
         "hook": "mock_hook",
     }
 
@@ -220,8 +220,8 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
         status="draft",
         version=1,
         default_profile_id="prof_1234567890abcde",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
-        description=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
                 id="stp_1234567890abcdef",
@@ -280,8 +280,8 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         status="draft",
         version=1,
         default_profile_id="prof_1234567890abcde",
-        name=I18nText(default_locale="en", translations={"en": "test"}),
-        description=I18nText(default_locale="en", translations={"en": "test"}),
+        name=I18nText(translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
                 id="stp_1234567890abcdef",
@@ -297,7 +297,7 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         return_value={
             "id": "stp_1234567890abcdef",
             "slug": "blp_test",
-            "name": {"default_locale": "en", "translations": {"en": "blp_test"}},
+            "name": {"translations": {"en": "blp_test"}},
             "model_strategy": "fast",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
@@ -384,7 +384,7 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
         {
             "id": "stp_1234567890abcdef",
             "slug": "blp_test",
-            "name": {"default_locale": "en", "translations": {"en": "blp_test"}},
+            "name": {"translations": {"en": "blp_test"}},
             "model_strategy": "fast",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
@@ -436,7 +436,7 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
         {
             "id": "stp_1234567890abcdef",
             "slug": "blp_test",
-            "name": {"default_locale": "en", "translations": {"en": "blp_test"}},
+            "name": {"translations": {"en": "blp_test"}},
             "model_strategy": "fast",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",

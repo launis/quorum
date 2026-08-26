@@ -46,8 +46,8 @@ def client_member(mock_studio_service_manager: Any) -> Any:
 def test_step_rbac_save_member_forbidden(client_member: Any) -> None:
     payload = {
         "id": "step_2222222222222222",
-        "name": {"default_locale": "en", "translations": {"en": "new", "fi": "new"}},
-        "description": {"default_locale": "en", "translations": {"en": "desc", "fi": "desc"}},
+        "name": {"translations": {"en": "new", "fi": "new"}},
+        "description": {"translations": {"en": "desc", "fi": "desc"}},
         "type": "llm",
         "model_strategy": "fast",
         "role_block_id": None,

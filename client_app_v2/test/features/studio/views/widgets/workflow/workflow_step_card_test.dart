@@ -16,7 +16,6 @@ void main() {
           id: 'sp_db849f9790984585',
           slug: 'input_processing',
           name: I18nText(
-            defaultLocale: 'en',
             translations: {
               'en': 'Input Processing & Decomposition',
               'fi': 'Syötteiden käsittely ja purku',
@@ -29,7 +28,6 @@ void main() {
           id: 'sp_agent_specialist_1',
           slug: 'senior_executive_coach',
           name: I18nText(
-            defaultLocale: 'en',
             translations: {
               'en': 'Senior Executive Coach',
               'fi': 'Johtamisen asiantuntija',
@@ -42,7 +40,6 @@ void main() {
           id: 'sp_agent_specialist_2',
           slug: 'strategy_analyst',
           name: I18nText(
-            defaultLocale: 'en',
             translations: {
               'en': 'Strategy Analyst',
               'fi': 'Strategia-analyytikko',
@@ -55,7 +52,6 @@ void main() {
           id: 'sp_192910b5f5a34c79',
           slug: 'xai_reporter',
           name: I18nText(
-            defaultLocale: 'en',
             translations: {
               'en': 'XAI Reporter & Aggregator',
               'fi': 'XAI Raportointi & Koonti',
@@ -70,11 +66,9 @@ void main() {
         const ExpectedInput(
           inputKey: 'source_documents',
           label: I18nText(
-            defaultLocale: 'en',
             translations: {'en': 'Source Documents', 'fi': 'Lähdedokumentit'},
           ),
           description: I18nText(
-            defaultLocale: 'en',
             translations: {
               'en': 'Primary source materials',
               'fi': 'Ensisijaiset lähdemateriaalit',
@@ -85,14 +79,12 @@ void main() {
         const ExpectedInput(
           inputKey: 'interview_notes',
           label: I18nText(
-            defaultLocale: 'en',
             translations: {
               'en': 'Interview Notes',
               'fi': 'Haastattelumuistiinpanot',
             },
           ),
           description: I18nText(
-            defaultLocale: 'en',
             translations: {
               'en': 'Interview summaries',
               'fi': 'Haastattelujen yhteenvedot',

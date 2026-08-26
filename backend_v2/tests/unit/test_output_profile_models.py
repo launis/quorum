@@ -9,7 +9,7 @@ def test_output_profile_fails_fast_on_invalid_id() -> None:
         "id": "INVALID",
         "slug": "test_slug",
         "workflow_id": "wf_1234abcd",
-        "name": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+        "name": {"translations": {"en": "Title", "fi": "Title"}},
         "layouts": [],
     }
     with pytest.raises(ValidationError) as exc_info:
@@ -22,7 +22,7 @@ def test_output_profile_fails_fast_on_empty_slug() -> None:
         "id": "prf_1234abcd",
         "slug": "   ",
         "workflow_id": "wf_1234abcd",
-        "name": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+        "name": {"translations": {"en": "Title", "fi": "Title"}},
         "layouts": [],
     }
     with pytest.raises(ValidationError) as exc_info:
@@ -35,7 +35,7 @@ def test_output_profile_fails_fast_on_extra_keys() -> None:
         "id": "prf_1234abcd",
         "slug": "test_slug",
         "workflow_id": "wf_1234abcd",
-        "name": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+        "name": {"translations": {"en": "Title", "fi": "Title"}},
         "layouts": [],
         "include_diagnostic_scorecard": True,
     }
@@ -49,7 +49,7 @@ def test_output_profile_fails_fast_on_unmapped_target_block_type() -> None:
         "id": "prf_1234abcd",
         "slug": "test_slug",
         "workflow_id": "wf_1234abcd",
-        "name": {"default_locale": "en", "translations": {"en": "Title", "fi": "Title"}},
+        "name": {"translations": {"en": "Title", "fi": "Title"}},
         "layouts": [],
         "target_block_order": ["unmapped_block_type_xyz"],
     }

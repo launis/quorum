@@ -12,7 +12,7 @@ def test_build_missing_execution_raises_app_exception() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
     )
@@ -43,7 +43,7 @@ def test_build_missing_metrics_raises_app_exception() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
     )
@@ -78,7 +78,7 @@ def test_build_empty_when_extension_not_requested() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         visible_workflow_extensions=[],
     )
@@ -107,22 +107,22 @@ def test_build_success_with_llm_explanation() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
         extension_labels={
             XaiExtensionType.VARIANCE_VALIDATION: I18nText(
-                default_locale="en", translations={"en": "Variance Validation", "fi": "Varianssivalidointi"}
+                translations={"en": "Variance Validation", "fi": "Varianssivalidointi"}
             )
         },
         metric_mappings={
-            "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
-            "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
-            "variance_total": I18nText(default_locale="en", translations={"en": "Total Variance"}),
-            "alignment_verdict": I18nText(default_locale="en", translations={"en": "Alignment Verdict"}),
-            "alignment_aligned": I18nText(default_locale="en", translations={"en": "Aligned"}),
-            "alignment_misaligned": I18nText(default_locale="en", translations={"en": "Misaligned"}),
-            "variance_fallback_explanation": I18nText(default_locale="en", translations={"en": "Fallback: {} {}"}),
+            "variance_mechanical": I18nText(translations={"en": "Mechanical"}),
+            "variance_cognitive": I18nText(translations={"en": "Cognitive"}),
+            "variance_total": I18nText(translations={"en": "Total Variance"}),
+            "alignment_verdict": I18nText(translations={"en": "Alignment Verdict"}),
+            "alignment_aligned": I18nText(translations={"en": "Aligned"}),
+            "alignment_misaligned": I18nText(translations={"en": "Misaligned"}),
+            "variance_fallback_explanation": I18nText(translations={"en": "Fallback: {} {}"}),
         },
     )
     execution = ExecutionRecord(
@@ -179,22 +179,22 @@ def test_build_success_with_fallback_explanation() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
         extension_labels={
             XaiExtensionType.VARIANCE_VALIDATION: I18nText(
-                default_locale="en", translations={"en": "Variance Validation", "fi": "Varianssivalidointi"}
+                translations={"en": "Variance Validation", "fi": "Varianssivalidointi"}
             )
         },
         metric_mappings={
-            "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
-            "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
-            "variance_total": I18nText(default_locale="en", translations={"en": "Total Variance"}),
-            "alignment_verdict": I18nText(default_locale="en", translations={"en": "Alignment Verdict"}),
-            "alignment_aligned": I18nText(default_locale="en", translations={"en": "Aligned"}),
-            "alignment_misaligned": I18nText(default_locale="en", translations={"en": "Misaligned"}),
-            "variance_fallback_explanation": I18nText(default_locale="en", translations={"en": "Fallback: {} {}"}),
+            "variance_mechanical": I18nText(translations={"en": "Mechanical"}),
+            "variance_cognitive": I18nText(translations={"en": "Cognitive"}),
+            "variance_total": I18nText(translations={"en": "Total Variance"}),
+            "alignment_verdict": I18nText(translations={"en": "Alignment Verdict"}),
+            "alignment_aligned": I18nText(translations={"en": "Aligned"}),
+            "alignment_misaligned": I18nText(translations={"en": "Misaligned"}),
+            "variance_fallback_explanation": I18nText(translations={"en": "Fallback: {} {}"}),
         },
     )
     execution = ExecutionRecord(
@@ -246,7 +246,7 @@ def test_build_incomplete_metrics_raises_app_exception() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
     )
@@ -291,7 +291,7 @@ def test_build_missing_metric_mappings_raises_app_exception() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
         metric_mappings={},
@@ -337,18 +337,18 @@ def test_build_missing_extension_labels_raises_app_exception() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
         extension_labels={},
         metric_mappings={
-            "variance_mechanical": I18nText(default_locale="en", translations={"en": "Mechanical"}),
-            "variance_cognitive": I18nText(default_locale="en", translations={"en": "Cognitive"}),
-            "variance_total": I18nText(default_locale="en", translations={"en": "Total Variance"}),
-            "alignment_verdict": I18nText(default_locale="en", translations={"en": "Alignment Verdict"}),
-            "alignment_aligned": I18nText(default_locale="en", translations={"en": "Aligned"}),
-            "alignment_misaligned": I18nText(default_locale="en", translations={"en": "Misaligned"}),
-            "variance_fallback_explanation": I18nText(default_locale="en", translations={"en": "Fallback: {} {}"}),
+            "variance_mechanical": I18nText(translations={"en": "Mechanical"}),
+            "variance_cognitive": I18nText(translations={"en": "Cognitive"}),
+            "variance_total": I18nText(translations={"en": "Total Variance"}),
+            "alignment_verdict": I18nText(translations={"en": "Alignment Verdict"}),
+            "alignment_aligned": I18nText(translations={"en": "Aligned"}),
+            "alignment_misaligned": I18nText(translations={"en": "Misaligned"}),
+            "variance_fallback_explanation": I18nText(translations={"en": "Fallback: {} {}"}),
         },
     )
     execution = ExecutionRecord(
@@ -393,7 +393,7 @@ def test_build_data_starvation_returns_empty() -> None:
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],

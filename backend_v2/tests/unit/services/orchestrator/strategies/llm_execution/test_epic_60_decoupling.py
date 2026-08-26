@@ -15,7 +15,7 @@ def test_step_validation_fails_without_criteria_or_protocol() -> None:
         Step(
             id="stp_1234567890123456",
             slug="test_step_missing_criteria",
-            name=I18nText(default_locale="en", translations={"en": "Test Step", "fi": "Testi"}),
+            name=I18nText(translations={"en": "Test Step", "fi": "Testi"}),
             type="llm",
             model_strategy="fast",
             extraction_protocol_block_id="blk_a1b2c3d4e5f60011",
@@ -28,7 +28,7 @@ def test_step_validation_fails_without_criteria_or_protocol() -> None:
         Step(
             id="stp_1234567890123457",
             slug="test_step_missing_protocol",
-            name=I18nText(default_locale="en", translations={"en": "Test Step", "fi": "Testi"}),
+            name=I18nText(translations={"en": "Test Step", "fi": "Testi"}),
             type="llm",
             model_strategy="fast",
             extraction_protocol_block_id=None,  # Missing protocol
@@ -50,8 +50,8 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
         {
             "id": "blk_1122334455667788",
             "slug": "role_critic",
-            "label": {"default_locale": "en", "translations": {"en": "Role Critic", "fi": "Kriitikko"}},
-            "description": {"default_locale": "en", "translations": {"en": "Role Desc", "fi": "Kuvaus"}},
+            "label": {"translations": {"en": "Role Critic", "fi": "Kriitikko"}},
+            "description": {"translations": {"en": "Role Desc", "fi": "Kuvaus"}},
             "ai_description": "ROLE: ANTAGONISTIC PROSECUTOR",
             "category_id": "agent_role",
             "type": "string",
@@ -62,8 +62,8 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
         {
             "id": "blk_9988776655443322",
             "slug": "extraction_protocol",
-            "label": {"default_locale": "en", "translations": {"en": "Extraction Protocol", "fi": "Protokolla"}},
-            "description": {"default_locale": "en", "translations": {"en": "Protocol Desc", "fi": "Kuvaus"}},
+            "label": {"translations": {"en": "Extraction Protocol", "fi": "Protokolla"}},
+            "description": {"translations": {"en": "Protocol Desc", "fi": "Kuvaus"}},
             "ai_description": "EXTRACTION INSTRUCTION: Locate raw facts and return exact quotes.",
             "category_id": "system_rule",
             "type": "instruction",
@@ -75,8 +75,8 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
             {
                 "id": "blk_12345678901234567890123456789012",
                 "slug": "criteria_matrix",
-                "label": {"default_locale": "en", "translations": {"en": "Criteria Matrix", "fi": "Matriisi"}},
-                "description": {"default_locale": "en", "translations": {"en": "Criteria Desc", "fi": "Kuvaus"}},
+                "label": {"translations": {"en": "Criteria Matrix", "fi": "Matriisi"}},
+                "description": {"translations": {"en": "Criteria Desc", "fi": "Kuvaus"}},
                 "ai_description": "CRITERIA: Evaluate Toulmin logic.",
                 "category_id": "matrix",
                 "type": "float",
@@ -86,7 +86,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
                         "ai_label": "Scale 1",
                         "claims": [
                             {
-                                "label": {"default_locale": "en", "translations": {"en": "Claim 1", "fi": "Väite 1"}},
+                                "label": {"translations": {"en": "Claim 1", "fi": "Väite 1"}},
                                 "tda_assertions": [
                                     {
                                         "tda_id": "tda_11111111111111111111111111111111",

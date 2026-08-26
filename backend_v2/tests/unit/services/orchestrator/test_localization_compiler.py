@@ -12,7 +12,7 @@ from backend_v2.services.orchestrator.localization_compiler import LocalizationC
 def test_resolve_i18n() -> None:
     compiler = LocalizationCompiler()
 
-    text_obj = {"default_locale": "en", "translations": {"en": "Hello", "fi": "Hei"}}
+    text_obj = {"translations": {"en": "Hello", "fi": "Hei"}}
     assert compiler.resolve_i18n(text_obj, "en") == "Hello"
     assert compiler.resolve_i18n(text_obj, "fi") == "Hei"
 
@@ -30,9 +30,9 @@ def test_compile_static_instructions_supported_locales() -> None:
             "id": "blk_5234567890abcdef",
             "slug": "test_static",
             "category_id": "system_rule",
-            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+            "label": {"translations": {"en": "Test", "fi": "Test"}},
             "ai_description": "Target language is {TARGET_LANGUAGE}",
         }
     ]
@@ -59,9 +59,9 @@ def test_compile_static_instructions_unsupported_locale_raises_app_exception() -
             "id": "blk_5234567890abcdef",
             "slug": "test_static",
             "category_id": "system_rule",
-            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+            "label": {"translations": {"en": "Test", "fi": "Test"}},
             "ai_description": "Test static instruction",
         }
     ]
@@ -83,9 +83,9 @@ def test_compile_dynamic_instructions_supported_locales() -> None:
             "id": "blk_6234567890abcdef",
             "slug": "test_dynamic",
             "category_id": "runtime_variables",
-            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+            "label": {"translations": {"en": "Test", "fi": "Test"}},
             "ai_description": "Today is {CURRENT_DATE} in {TARGET_LANGUAGE}",
         }
     ]
@@ -116,7 +116,7 @@ def test_compile_static_instructions_missing_ai_description() -> None:
         id="blk_nodesc",
         slug="no_desc",
         category_id=PromptBlockCategory.SYSTEM_RULE,
-        label={"default_locale": "en", "translations": {"en": "Label"}},
+        label={"translations": {"en": "Label"}},
         ai_description=None,
     )
     with pytest.raises(ConfigurationError):
@@ -130,7 +130,7 @@ def test_compile_dynamic_instructions_missing_ai_description() -> None:
         id="blk_nodyn",
         slug="no_dyn",
         category_id=PromptBlockCategory.RUNTIME_VARIABLES,
-        label={"default_locale": "en", "translations": {"en": "Label"}},
+        label={"translations": {"en": "Label"}},
         ai_description=None,
     )
     with pytest.raises(ConfigurationError):
@@ -147,9 +147,9 @@ def test_compile_dynamic_instructions_execution_time_types() -> None:
             "id": "blk_7234567890abcdef",
             "slug": "test_dyn_time",
             "category_id": "runtime_variables",
-            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "type": "instruction",
-            "label": {"default_locale": "en", "translations": {"en": "Test", "fi": "Test"}},
+            "label": {"translations": {"en": "Test", "fi": "Test"}},
             "ai_description": "Date: {CURRENT_DATE} Time: {DYNAMIC_TIME}",
         }
     ]
@@ -190,8 +190,8 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
     persona = PersonaPromptBlock(
         id="blk_1111111111111111",
         slug="persona_block",
-        label=I18nText(default_locale="en", translations={"en": "Persona"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Persona"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.EXECUTION_PERSONA,
         type=BlockDataType.INSTRUCTION,
         role_enforcement="Act as senior analyst in {TARGET_LANGUAGE}",
@@ -199,8 +199,8 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
     protocol = ProtocolPromptBlock(
         id="blk_2222222222222222",
         slug="protocol_block",
-        label=I18nText(default_locale="en", translations={"en": "Protocol"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "Protocol"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.PROTOCOL,
         type=BlockDataType.INSTRUCTION,
         protocol_instructions="Extract exact quotes for {TARGET_LANGUAGE}",
@@ -208,8 +208,8 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
     system_rule = SystemRulePromptBlock(
         id="blk_3333333333333333",
         slug="system_rule_block",
-        label=I18nText(default_locale="en", translations={"en": "SystemRule"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "SystemRule"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
         instruction_text="Enforce strict logic in {TARGET_LANGUAGE}",
@@ -231,7 +231,7 @@ def test_compile_static_instructions_missing_instruction_text_raises_configurati
         id="blk_nodesc_empty",
         slug="no_desc_empty",
         category_id=PromptBlockCategory.SYSTEM_RULE,
-        label={"default_locale": "en", "translations": {"en": "Label"}},
+        label={"translations": {"en": "Label"}},
         instruction_text=None,
         ai_description=None,
     )
@@ -258,8 +258,8 @@ def test_compile_dynamic_instructions_polymorphic_system_rule() -> None:
     block = SystemRulePromptBlock(
         id="blk_1111222233334444",
         slug="dyn_sys",
-        label=I18nText(default_locale="en", translations={"en": "DynSys"}),
-        description=I18nText(default_locale="en", translations={"en": "Desc"}),
+        label=I18nText(translations={"en": "DynSys"}),
+        description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.RUNTIME_VARIABLES,
         type=BlockDataType.INSTRUCTION,
         instruction_text="Dynamic run on {CURRENT_DATE} in {TARGET_LANGUAGE}",

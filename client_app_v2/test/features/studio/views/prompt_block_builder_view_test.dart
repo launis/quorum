@@ -112,14 +112,8 @@ void main() {
         const block = PromptBlock.systemRule(
           id: 'blk_test_sysrule',
           slug: 'test_rule',
-          label: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'System Rule A'},
-          ),
-          description: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Description A'},
-          ),
+          label: I18nText(translations: {'en': 'System Rule A'}),
+          description: I18nText(translations: {'en': 'Description A'}),
           instructionText: 'Strict instruction without XML',
         );
 
@@ -150,14 +144,8 @@ void main() {
         const block = PromptBlock.executionPersona(
           id: 'blk_test_persona',
           slug: 'test_persona',
-          label: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Persona Executive'},
-          ),
-          description: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Executive Persona Desc'},
-          ),
+          label: I18nText(translations: {'en': 'Persona Executive'}),
+          description: I18nText(translations: {'en': 'Executive Persona Desc'}),
           roleEnforcement: 'You are a Senior Strategic Advisor.',
           toneDirectives: ['Authoritative', 'Direct'],
         );
@@ -205,14 +193,8 @@ void main() {
         const block = PromptBlock.agentRole(
           id: 'blk_test_agent_role',
           slug: 'agent_role',
-          label: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Agent Role'},
-          ),
-          description: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Agent Role Desc'},
-          ),
+          label: I18nText(translations: {'en': 'Agent Role'}),
+          description: I18nText(translations: {'en': 'Agent Role Desc'}),
           roleEnforcement: 'You are an Audit Agent.',
           toneDirectives: ['Surgical'],
         );
@@ -236,14 +218,8 @@ void main() {
       const block = PromptBlock.protocol(
         id: 'blk_test_protocol',
         slug: 'protocol_test',
-        label: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Protocol Block'},
-        ),
-        description: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Protocol Desc'},
-        ),
+        label: I18nText(translations: {'en': 'Protocol Block'}),
+        description: I18nText(translations: {'en': 'Protocol Desc'}),
         protocolInstructions: 'Step 1: Extract concepts. Step 2: Validate.',
       );
 
@@ -267,14 +243,8 @@ void main() {
         const block = PromptBlock.runtimeVariables(
           id: 'blk_test_vars',
           slug: 'runtime_vars',
-          label: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Runtime Variables'},
-          ),
-          description: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Vars Desc'},
-          ),
+          label: I18nText(translations: {'en': 'Runtime Variables'}),
+          description: I18nText(translations: {'en': 'Vars Desc'}),
           instructionText: 'Variables instruction text',
         );
 
@@ -296,22 +266,13 @@ void main() {
       const block = PromptBlock.matrix(
         id: 'blk_test_matrix',
         slug: 'matrix_test',
-        label: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Matrix Block'},
-        ),
-        description: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Matrix Desc'},
-        ),
+        label: I18nText(translations: {'en': 'Matrix Block'}),
+        description: I18nText(translations: {'en': 'Matrix Desc'}),
         scales: [
           MatrixScale(
             score: 1,
             aiLabel: '1',
-            name: I18nText(
-              defaultLocale: 'en',
-              translations: {'en': 'Grade 1'},
-            ),
+            name: I18nText(translations: {'en': 'Grade 1'}),
             claims: [],
           ),
         ],
@@ -353,14 +314,8 @@ void main() {
         const block = PromptBlock.systemRule(
           id: 'blk_test_preview',
           slug: 'test_preview',
-          label: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'System Rule Preview'},
-          ),
-          description: I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Description Preview'},
-          ),
+          label: I18nText(translations: {'en': 'System Rule Preview'}),
+          description: I18nText(translations: {'en': 'Description Preview'}),
           instructionText: 'Compiled prompt instructions',
         );
 
@@ -417,11 +372,8 @@ void main() {
       const block = PromptBlock.systemRule(
         id: 'blk_test_empty_en',
         slug: 'test_empty',
-        label: I18nText(defaultLocale: 'en', translations: {'en': ''}),
-        description: I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Desc'},
-        ),
+        label: I18nText(translations: {'en': ''}),
+        description: I18nText(translations: {'en': 'Desc'}),
         instructionText: 'Test Instruction',
       );
 

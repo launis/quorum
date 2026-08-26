@@ -23,8 +23,8 @@ def _make_step_def() -> Step:
         {
             "id": "stp_1234567890abcdef",
             "slug": "test_step",
-            "name": {"default_locale": "en", "translations": {"en": "Test Step"}},
-            "description": {"default_locale": "en", "translations": {"en": "Desc"}},
+            "name": {"translations": {"en": "Test Step"}},
+            "description": {"translations": {"en": "Desc"}},
             "model_strategy": "fast",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",

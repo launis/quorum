@@ -15,14 +15,13 @@ if TYPE_CHECKING:
     from backend_v2.models.dtos.dag_models import CausalEdge
     from backend_v2.models.dtos.trace import DataStarvationEvent
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+    from backend_v2.models.view.sdui import AnySduiBlock
 
-from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
-from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote, QuoteEvidenceDTO
+from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.core_base import I18nText, V2CoreBase
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
@@ -42,10 +41,8 @@ from backend_v2.models.enums import (
     StepType,
     StrictnessAnchor,
     TargetBlockType,
-    VisualIntent,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields
-from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -85,6 +82,7 @@ __all__ = [
     "HumanOverrideRequest",
     "HumanOverrideDTO",
     "ScorecardAtomDTO",
+    "MatrixScorecardRowDTO",
     "ErrorDetailsDTO",
     "HydratedAtomDTO",
     "ExtractedValueDTO",
@@ -96,99 +94,6 @@ __all__ = [
     "RenderedSynthesisCache",
     "DataStarvationEvent",
 ]
-
-
-class I18nText(V2CoreBase):
-    """V2 Strict: Frontend no-string mandate requires all localized text to be structured.
-
-    Attributes:
-        default_locale: The default locale used if a translation is missing.
-        translations: Dictionary mapping locale code to translated string.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    default_locale: str = Field(description="The default locale used if a translation is missing.")
-    translations: dict[str, str] = Field(
-        default_factory=dict,
-        description="Dictionary mapping locale code to translated string (e.g. {'fi': 'Teksti', 'en': 'Text'}).",
-    )
-
-    @model_validator(mode="after")
-    def validate_i18n(self) -> I18nText:
-        """Validates that English translation is always present as a baseline fallback.
-        The schema is multi-lingual, allowing any number of languages (primarily English and Finnish)
-        to be added as needed.
-
-        Raises:
-            AppException: If the English translation is missing or empty.
-
-        Returns:
-            The validated I18nText instance.
-        """
-        # Enforce baseline fallback: 'en' translation must ALWAYS exist.
-        en_trans = self.translations.get("en")
-        if not en_trans or not en_trans.strip():
-            msg = (
-                "I18nText must contain a valid English ('en') translation as a baseline fallback. "
-                f"Payload: {self.translations}"
-            )
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-
-        if self.default_locale not in self.translations or not self.translations.get(self.default_locale):
-            logger.warning(
-                "[V2Core] I18nText missing translation for default_locale '%s'. Will fallback to 'en'.",
-                self.default_locale,
-            )
-
-        return self
-
-    def resolve(self, target_locale: str | None = None) -> str:
-        """Strictly typed method to resolve the best localization, avoiding 'naked dict' fallback logic.
-
-        Args:
-            target_locale: The requested locale code.
-
-        Returns:
-            The resolved localized string.
-        """
-        if not self.translations:
-            return ""
-
-        if target_locale:
-            target_lang = target_locale.split("-")[0].lower()
-            if target_lang in self.translations:
-                return self.translations[target_lang]
-
-        if self.default_locale in self.translations:
-            return self.translations[self.default_locale]
-
-        return self.translations["en"]
-
-    def get(self, lang_code: str, fallback: str = "") -> str:
-        """Extracts the localized string safely for templates (Jinja2) and programmatic access.
-
-        Args:
-            lang_code: Target locale code.
-            fallback: Default value if unable to resolve.
-
-        Returns:
-            The resolved string or fallback value.
-        """
-        if not self.translations:
-            return fallback
-
-        if lang_code in self.translations and self.translations[lang_code].strip():
-            return self.translations[lang_code]
-        if self.default_locale in self.translations and self.translations[self.default_locale].strip():
-            return self.translations[self.default_locale]
-
-        return self.translations["en"]
 
 
 class TheoryGrounding(V2CoreBase):
@@ -760,154 +665,16 @@ class ExpectedInput(V2CoreBase):
         return self
 
 
-class HumanOverrideRequest(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    """Payload for human override requests."""
-
-    new_status: LaxExecutionStatus = Field(description="The overridden status (PASSED, FAILED, SYSTEM_ERROR).")
-    reason: str = Field(description="The reason for the override.")
-    evidence_quotes: list[QuoteEvidenceDTO] = Field(
-        default_factory=list, description="Selected quotes to support the override."
-    )
-
-
-class HumanOverrideDTO(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    """Schema for human-initiated state override."""
-
-    new_status: ExecutionStatus = Field(description="The overridden status (PASSED, FAILED, SYSTEM_ERROR).")
-    reason: str = Field(description="The reason for the override.")
-    evidence_quotes: list[QuoteEvidenceDTO] = Field(description="Selected quotes to support the override.")
-    overridden_by: str = Field(description="User ID who performed the override.")
-    overridden_at: datetime = Field(description="Timestamp of the override.")
-
-
-class ScorecardAtomDTO(V2CoreBase):
-    """Explicit DTO firewall for presentation logic of individual atom evaluations."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    atom_id: str
-    level: int
-    level_name: str
-    claim_label: str
-    extracted_facts: dict[str, str | None]
-    exact_quotes: list[QuoteEvidenceDTO]
-    internal_logic_en: ReasoningStepDTO
-    status: LaxExecutionStatus | None
-    semantic_reasoning: str
-    contextual_override: bool
-    structural_location: str | None
-    chart_display_label: str
-    visual_intent: VisualIntent
-    human_override: HumanOverrideDTO | None = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def map_contested_to_warning(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            status = data.get("status")
-            # Handle both string and Enum variants for status
-            is_passed = status == "PASSED" or (isinstance(status, ExecutionStatus) and status == ExecutionStatus.PASSED)
-            if is_passed and data.get("contextual_override"):
-                data["visual_intent"] = VisualIntent.WARNING
-        return data
-
-
-class TDAPending(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    runtimeType: Literal["pending"] = Field(default="pending")
-
-
-class TDAEvaluated(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    runtimeType: Literal["evaluated"] = Field(default="evaluated")
-    passed: bool
-    display_quote: str
-    raw_anchor: str
-
-
-class TDADlq(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    runtimeType: Literal["dlq"] = Field(default="dlq")
-    user_reason: str
-    backend_trace: str
-
-
-TDAStateUnion = Annotated[TDAPending | TDAEvaluated | TDADlq, Field(discriminator="runtimeType")]
-
-
-class MatrixScorecardRowDTO(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    """Represents a single evaluated matrix row in the scorecard and plot axes."""
-
-    block_id: str = Field(..., description="The opaque Stripe ID of the prompt block.")
-    name: str = Field(..., description="Pre-localized name for PDF layouts and static charts.")
-    label_i18n: I18nText = Field(..., description="Full I18n translations dictionary for the UI.")
-    description: str | None = Field(
-        default=None, description="Detailed instructions or prompt context behind this axis."
-    )
-
-    score: float | None = Field(default=None, description="Raw scaled score.")
-    score_display_label: str | None = None
-    scale_min: float | None = Field(default=None, description="Minimum possible score.")
-    scale_max: float | None = Field(default=None, description="Maximum possible score.")
-    normalized_score: float | None = Field(default=None, description="Normalized score (0-100) if evaluative.")
-
-    true_atoms: int | None = Field(default=None, description="Global hits found.")
-    total_atoms: int | None = Field(default=None, description="Total atoms available to evaluate.")
-    row_explanation: str = Field(..., description="The one-sentence justification.")
-    evidence_type: Literal["EXPLICIT_QUOTE", "IMPLIED_INTENT", "NO_EVIDENCE"] | None = Field(
-        default=None, description="The EvidenceType extracted from AtomResponse"
-    )
-
-    cited_source_id: str | None = None
-    cited_text_quote: str | None = None
-    cited_web_citation: str | None = None
-
-    # XAI Output Extensions
-    confidence: float | None = None
-
-    inner_sdui_blocks: list[AnySduiBlock] = Field(
-        default_factory=list, description="Strict SDUI components rendered for this row."
-    )
-
-    contextual_override: bool | None = Field(default=None, description="Whether contextual override was applied.")
-    semantic_reasoning: str | None = Field(
-        default=None, description="Detailed semantic justification for the override."
-    )
-
-    level_breakdown: dict[str, str] | None = Field(
-        default=None,
-        description="Breakdowns: DINA hits vs total per scale floor e.g. {'1.0': '5/5'}",
-    )
-
-    level_names: dict[str, str] | None = Field(
-        default=None,
-        description="Map of level keys to their human readable names e.g. {'1': 'Heikko'}",
-    )
-
-    ui_plot_ratio: float | None = Field(
-        default=None, description="Absolute normalized plot plot ratio [0.0 - 1.0] for mathless Flutter plotting"
-    )
-    ui_boundary_labels: dict[str, str] = Field(
-        default_factory=dict, description="Pre-computed labels for extremes, e.g. {'0.0': 'Low', '1.0': 'High'}"
-    )
-
-    is_evaluative: bool = Field(..., description="Whether this block contributes to global average.")
-    allow_contextual_override: bool = Field(
-        default=False, description="Whether contextual override is allowed on this PromptBlock matrix."
-    )
-
-    used_evidence_ids: list[str] = Field(default_factory=list, description="Trace IDs used for this row.")
-    evaluated_atoms: list[ScorecardAtomDTO] = Field(
-        default_factory=list, description="Flat presentation-only atoms evaluated for this row."
-    )
-    clustered_row_sources: list[MCPAuditTrace] = Field(
-        default_factory=list, description="Purity Paradox resolution, cluster arrays at row level."
-    )
-
-    tda_state: TDAStateUnion | None = Field(default=None, description="TDAState union representation.")
+from backend_v2.models.dtos.matrix_scorecard import (  # noqa: F401
+    HumanOverrideDTO,
+    HumanOverrideRequest,
+    MatrixScorecardRowDTO,
+    ScorecardAtomDTO,
+    TDADlq,
+    TDAEvaluated,
+    TDAPending,
+    TDAStateUnion,
+)
 
 
 class SynthesisConfigDTO(V2CoreBase):
@@ -1639,26 +1406,50 @@ class BaseTDAExtraction(BaseModel):
         return data
 
 
+import backend_v2.models.view.sdui as sdui_mod
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.dtos.trace import DataStarvationEvent
-from backend_v2.models.view.sdui import (
-    SduiMatrixTableBlock,
-    SduiMetrics1DBlock,
-    SduiRadarChartBlock,
-    SduiScatterPlotBlock,
-)
-
-RenderedSynthesisCache.model_rebuild()
-ExecutionCreate.model_rebuild()
-TDAAssertion.model_rebuild(_types_namespace={"CausalEdge": CausalEdge})
+from backend_v2.models.execution_core import ExecutionCoreFields
+from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+from backend_v2.models.view.sdui import AnySduiBlock
 
 _sdui_localns = {
-    "I18nText": I18nText,
     "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
     "LaxXaiExtensionType": LaxXaiExtensionType,
+    "AnySduiBlock": AnySduiBlock,
+    "MCPAuditTrace": MCPAuditTrace,
 }
-SduiRadarChartBlock.model_rebuild(_types_namespace=_sdui_localns)
-SduiScatterPlotBlock.model_rebuild(_types_namespace=_sdui_localns)
-SduiMatrixTableBlock.model_rebuild(_types_namespace=_sdui_localns)
-SduiMetrics1DBlock.model_rebuild(_types_namespace=_sdui_localns)
+sdui_mod.SduiRadarChartBlock.model_rebuild(_types_namespace=_sdui_localns)
+sdui_mod.SduiScatterPlotBlock.model_rebuild(_types_namespace=_sdui_localns)
+sdui_mod.SduiMatrixTableBlock.model_rebuild(_types_namespace=_sdui_localns)
+sdui_mod.SduiMetrics1DBlock.model_rebuild(_types_namespace=_sdui_localns)
+sdui_mod.SduiGridBlock.model_rebuild(_types_namespace=_sdui_localns)
+
+_state_types = {
+    "ErrorTraceEvent": ErrorTraceEvent,
+    "TombstoneEvent": TombstoneEvent,
+    "TraceEvent": TraceEvent,
+}
+ExecutionCoreFields.model_rebuild(_types_namespace=_state_types)
+ExecutionRecord.model_rebuild(_types_namespace=_state_types)
+
+RenderedSynthesisCache.model_rebuild(
+    _types_namespace={
+        "DataStarvationEvent": DataStarvationEvent,
+        "AnySduiBlock": AnySduiBlock,
+    }
+)
+ReportDataDTO.model_rebuild(
+    _types_namespace={
+        "AnySduiBlock": AnySduiBlock,
+    }
+)
+MatrixScorecardRowDTO.model_rebuild(
+    _types_namespace={
+        "AnySduiBlock": AnySduiBlock,
+        "MCPAuditTrace": MCPAuditTrace,
+    }
+)
+ExecutionCreate.model_rebuild()
+TDAAssertion.model_rebuild(_types_namespace={"CausalEdge": CausalEdge})

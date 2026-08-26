@@ -44,8 +44,8 @@ def mock_repo() -> AsyncMock:
             "slug": "mock",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
-            "name": {"default_locale": "en", "translations": {"en": "mock"}},
-            "description": {"default_locale": "en", "translations": {"en": "mock"}},
+            "name": {"translations": {"en": "mock"}},
+            "description": {"translations": {"en": "mock"}},
         }
 
     repo.get_step_by_id.return_value = _mock_step_data()
@@ -61,8 +61,8 @@ def mock_repo() -> AsyncMock:
         {
             "id": "blk_1234567890abcdef",
             "slug": "task_bp",
-            "label": {"default_locale": "fi", "translations": {"fi": "Testi", "en": "Test"}},
-            "description": {"default_locale": "fi", "translations": {"fi": "Kuvaus", "en": "Desc"}},
+            "label": {"translations": {"fi": "Testi", "en": "Test"}},
+            "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
             "ai_description": "Strict extraction protocol.",
             "category_id": "system_rule",
             "type": "string",
@@ -74,7 +74,7 @@ def mock_repo() -> AsyncMock:
         "id": "prof_0000000000000000",
         "slug": "test_profile",
         "workflow_id": "wf_0000000000000000",
-        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "name": {"translations": {"en": "Test Profile"}},
         "visible_block_extensions": [],
         "visible_workflow_extensions": [],
     }
@@ -120,8 +120,8 @@ def _create_workflow(num_steps: int) -> Workflow:
         status="draft",
         version=1,
         default_profile_id="prof_0000000000000000",
-        name=I18nText(default_locale="en", translations={"en": "Fuzz"}),
-        description=I18nText(default_locale="en", translations={"en": "Fuzz"}),
+        name=I18nText(translations={"en": "Fuzz"}),
+        description=I18nText(translations={"en": "Fuzz"}),
         steps=[StepRule(id=f"step_{i:016x}", task_blueprint="bp_fuzz") for i in range(num_steps)],
     )
 

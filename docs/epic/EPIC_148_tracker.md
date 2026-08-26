@@ -42,20 +42,20 @@
   - [x] Step 4: Format Pure <theory_context> in MatrixSensorPromptBuilder via Direct TemplateProcessor Assembly
   - [x] Step 5: Unit Tests for Theory Grounding Prompt Builder
 - [x] **[OK] Test Coverage Assertions:** Verified 100% statement coverage on `matrix_sensor_prompt_builder.py` and 92% on `_ast_guardrails.py`.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/01_phase1_theory_grounding_and_epistemic_anchor_sanitization.md] @[docs/epic/EPIC_148_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/01_phase1_theory_grounding_and_epistemic_anchor_sanitization.md] @[docs/epic/EPIC_148_tracker.md]`
 
 ---
 
 ### Phase 2: ATOMIC I18nText Modernization & Systemic Fixture Migration
 **Plan:** @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]`
-  - [ ] Step 1: Python Domain Model Modernization in v2_core.py & WarningCardAdapter Migration
-  - [ ] Step 2: Flutter Freezed Model Update, 1-Hop Widget Cleanups & Unit Tests
-  - [ ] Step 3: Deterministic Pruning of default_locale in seed_data.json & 100% Bilingual Seeding
-  - [ ] Step 4: Deterministic Bulk Migration of Test Fixtures via Scratch Scripts
-  - [ ] Step 5: Re-seed Database & Atomic Quality Gate Verification
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]`
+  - [x] Step 1: Python Domain Model Modernization in v2_core.py & WarningCardAdapter Migration
+  - [x] Step 2: Flutter Freezed Model Update, 1-Hop Widget Cleanups & Unit Tests
+  - [x] Step 3: Deterministic Pruning of default_locale in seed_data.json & 100% Bilingual Seeding
+  - [x] Step 4: Deterministic Bulk Migration of Test Fixtures via Scratch Scripts
+  - [x] Step 5: Re-seed Database & Atomic Quality Gate Verification
+- [x] **[OK] Test Coverage Assertions:** Verified 100% statement coverage on `warning_card_adapter.py`, `sdui.py`, `core_base.py`, and `matrix_scorecard.py`. All 2,153 Python tests and 225 Flutter tests passing.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]`
 
 ---
@@ -161,21 +161,21 @@
 | **REQ-TG-06** | §3.1.4, §3.2.25 | Update `.agents/rules/01-python-backend.md` (`frozen_state_mutability`) to lock architectural ban against frozen model in-place mutations | Phase 1, Step 1 | Completed |
 | **REQ-TG-07** | §5.1.4 | Backup seed vault to `backend_v2/seed/backups/seed_data_pre_epic148_cleanup.json` prior to any surgical edits | Phase 1, Step 2 | Completed |
 | **REQ-TG-08** | §5.1.4, §6 (TC-TG-01..06) | Unit tests in `test_matrix_sensor_prompt_builder.py` verifying pure CDATA theory formatting and XML injection protection | Phase 1, Step 5 | Completed |
-| **REQ-I18N-01** | §1.1.2, §3.2.4, §5.2.1 | Remove `default_locale` from `I18nText` in `backend_v2/models/v2_core.py`; enforce required `translations: Annotated[dict[str, str], Field(...)]` without `default_factory=dict` | Phase 2, Step 1 | Pending |
-| **REQ-I18N-02** | §3.1.1, §3.2.15, §5.2.1 | Implement `@field_validator("translations")` classmethod in `I18nText` for key sanitization and non-empty baseline `'en'` check without `object.__setattr__` frozen mutations | Phase 2, Step 1 | Pending |
-| **REQ-I18N-03** | §3.1.1, §3.2.15, §5.2.1 | Refactor `I18nText.resolve()` to enforce Fail-Fast validation using regex locale parsing and explicit dictionary membership assertions (`in`) instead of `.get()` duck-typing | Phase 2, Step 1 | Pending |
-| **REQ-I18N-04** | §3.1.2, §3.2.17, §5.2.1 | Synchronous module-level constant migration in `warning_card_adapter.py` to eliminate `I18N_WARNING_STARVATION` and resolve dynamically via `LocalizationService` | Phase 2, Step 1 | Pending |
-| **REQ-I18N-05** | §1.1.2, §3.2.9, §5.2.2 | Update `I18nText` Freezed model in `i18n_text.dart` with explicit `@JsonSerializable(disallowUnrecognizedKeys: true)`, remove `defaultLocale`, enforce required `translations` without `@Default` | Phase 2, Step 2 | Pending |
-| **REQ-I18N-06** | §3.2.13, §5.2.2 | Add `isEmpty`, `isNotEmpty`, `has(langCode)` helpers and Fail-Fast `get(langCode)` throwing `AppException.validation` in `i18n_text.dart` | Phase 2, Step 2 | Pending |
-| **REQ-I18N-07** | §3.1.1, §3.2.13, §5.2.2 | Remove redundant `locale == 'fi' ? get('fi') : get('en')` ternaries in `atom_matrix_table_widget.dart` and `matrix_row_item_widget.dart` | Phase 2, Step 2 | Pending |
-| **REQ-I18N-08** | §1.2.6, §3.1.3, §3.2.22, §5.2.2 | Migrate hardcoded execution-tier strings to `AppLocalizations` in `human_override_dialog.dart`, `execution_report_view.dart`, and `specialist_section.dart` | Phase 2, Step 2 | Pending |
-| **REQ-I18N-09** | §3.1.3, §3.2.22, §5.2.2 | Populate execution-tier localization keys in `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb` | Phase 2, Step 2 | Pending |
-| **REQ-I18N-10** | §3.1.3, §3.2.13, §5.2.2 | Modernize Studio widgets: `i18n_text_field.dart` (bind translations), `output_profile_controller.dart` (use SSOT `isEmpty`), `profile_editor_view.dart` (primary theme color & `AppException`), `xai_evidence_box.dart` (`TextOverflow.ellipsis`) | Phase 2, Step 2 | Pending |
-| **REQ-I18N-11** | §5.2.2, §6 (TC-I18N-FLUTTER-01..07) | Create unit test suite `client_app_v2/test/shared/models/i18n_text_test.dart` asserting Fail-Fast validation, fallback resolution, and negative ISTQB partition rejection of `default_locale` | Phase 2, Step 2 | Pending |
-| **REQ-I18N-12** | §1.1.2, §3.2.4, §3.2.21, §5.2.3 | Prune 500 instances of `"default_locale"` in `seed_data.json` via scratch script and populate 4 authentic Finnish translations for `prompt_blocks[88]` and `prompt_blocks[89]` | Phase 2, Step 3 | Pending |
-| **REQ-I18N-13** | §3.2.10, §5.2.4 | Deterministic bulk migration of 1,166 backend test fixture references across 90 test files in `backend_v2/tests/` via `scratch/migrate_backend_i18n_fixtures.py` | Phase 2, Step 4 | Pending |
-| **REQ-I18N-14** | §3.2.10, §5.2.4 | Deterministic bulk migration of 157 Flutter test references across 25 files in `client_app_v2/test/` via `scratch/migrate_flutter_i18n_fixtures.py` | Phase 2, Step 4 | Pending |
-| **REQ-I18N-15** | §5.2.5 | Re-seed local development database (`uv run python backend_v2/seed/run_seed.py local`) and verify Phase 2 quality gates | Phase 2, Step 5 | Pending |
+| **REQ-I18N-01** | §1.1.2, §3.2.4, §5.2.1 | Remove `default_locale` from `I18nText` in `backend_v2/models/core_base.py`; enforce required `translations: Annotated[dict[str, str], Field(...)]` without `default_factory=dict` | Phase 2, Step 1 | Completed |
+| **REQ-I18N-02** | §3.1.1, §3.2.15, §5.2.1 | Implement `@field_validator("translations")` classmethod in `I18nText` for key sanitization and non-empty baseline `'en'` check without `object.__setattr__` frozen mutations | Phase 2, Step 1 | Completed |
+| **REQ-I18N-03** | §3.1.1, §3.2.15, §5.2.1 | Refactor `I18nText.resolve()` to enforce Fail-Fast validation using regex locale parsing and explicit dictionary membership assertions (`in`) instead of `.get()` duck-typing | Phase 2, Step 1 | Completed |
+| **REQ-I18N-04** | §3.1.2, §3.2.17, §5.2.1 | Synchronous module-level constant migration in `warning_card_adapter.py` to eliminate `I18N_WARNING_STARVATION` and resolve dynamically via `LocalizationService` | Phase 2, Step 1 | Completed |
+| **REQ-I18N-05** | §1.1.2, §3.2.9, §5.2.2 | Update `I18nText` Freezed model in `i18n_text.dart` with explicit `@JsonSerializable(disallowUnrecognizedKeys: true)`, remove `defaultLocale`, enforce required `translations` without `@Default` | Phase 2, Step 2 | Completed |
+| **REQ-I18N-06** | §3.2.13, §5.2.2 | Add `isEmpty`, `isNotEmpty`, `has(langCode)` helpers and Fail-Fast `get(langCode)` throwing `AppException.validation` in `i18n_text.dart` | Phase 2, Step 2 | Completed |
+| **REQ-I18N-07** | §3.1.1, §3.2.13, §5.2.2 | Remove redundant `locale == 'fi' ? get('fi') : get('en')` ternaries in `atom_matrix_table_widget.dart` and `matrix_row_item_widget.dart` | Phase 2, Step 2 | Completed |
+| **REQ-I18N-08** | §1.2.6, §3.1.3, §3.2.22, §5.2.2 | Migrate hardcoded execution-tier strings to `AppLocalizations` in `human_override_dialog.dart`, `execution_report_view.dart`, and `specialist_section.dart` | Phase 2, Step 2 | Completed |
+| **REQ-I18N-09** | §3.1.3, §3.2.22, §5.2.2 | Populate execution-tier localization keys in `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb` | Phase 2, Step 2 | Completed |
+| **REQ-I18N-10** | §3.1.3, §3.2.13, §5.2.2 | Modernize Studio widgets: `i18n_text_field.dart` (bind translations), `output_profile_controller.dart` (use SSOT `isEmpty`), `profile_editor_view.dart` (primary theme color & `AppException`), `xai_evidence_box.dart` (`TextOverflow.ellipsis`) | Phase 2, Step 2 | Completed |
+| **REQ-I18N-11** | §5.2.2, §6 (TC-I18N-FLUTTER-01..07) | Create unit test suite `client_app_v2/test/shared/models/i18n_text_test.dart` asserting Fail-Fast validation, fallback resolution, and negative ISTQB partition rejection of `default_locale` | Phase 2, Step 2 | Completed |
+| **REQ-I18N-12** | §1.1.2, §3.2.4, §3.2.21, §5.2.3 | Prune 500 instances of `"default_locale"` in `seed_data.json` via scratch script and populate 4 authentic Finnish translations for `prompt_blocks[88]` and `prompt_blocks[89]` | Phase 2, Step 3 | Completed |
+| **REQ-I18N-13** | §3.2.10, §5.2.4 | Deterministic bulk migration of 1,166 backend test fixture references across 90 test files in `backend_v2/tests/` via `scratch/migrate_backend_i18n_fixtures.py` | Phase 2, Step 4 | Completed |
+| **REQ-I18N-14** | §3.2.10, §5.2.4 | Deterministic bulk migration of 157 Flutter test references across 25 files in `client_app_v2/test/` via `scratch/migrate_flutter_i18n_fixtures.py` | Phase 2, Step 4 | Completed |
+| **REQ-I18N-15** | §5.2.5 | Re-seed local development database (`uv run python backend_v2/seed/run_seed.py local`) and verify Phase 2 quality gates | Phase 2, Step 5 | Completed |
 | **REQ-PROF-01** | §1.1.3, §3.2.5, §5.3.1 | Populate complete backend static translation tables in `backend_v2/l10n/en.json` and `fi.json` for all 17 metric mapping keys, user roles, matrix columns, extension labels, and template labels | Phase 3, Step 1 | Pending |
 | **REQ-PROF-02** | §5.3.1 | Extend `LocalizationService` in `backend_v2/services/localization.py` with type-safe formatting helpers (`format_date`, `format_decimal`, `format_score`, `format_percent`, `format_cost`) | Phase 3, Step 1 | Pending |
 | **REQ-PROF-03** | §1.1.3, §3.2.7, §3.2.24, §5.3.2 | Declare `MatrixSynthesisGroup` domain model in `v2_core.py` with `min_length=1` target blocks and add `matrix_synthesis_groups` with contextual validator to `OutputProfile` | Phase 3, Step 1 | Pending |
@@ -221,6 +221,41 @@
   - Fixed dictionary `.get()` fallback on line 169 in `matrix_sensor_prompt_builder.py` to comply with AST rule `QGR002`.
   - Passed Universal Quality Gate with 100% statement coverage on `matrix_sensor_prompt_builder.py` and 92% on `_ast_guardrails.py`.
   - Re-seeded local development database cleanly (`uv run python backend_v2/seed/run_seed.py local`).
+- Executed `/tier8-audit-plan` on Phase 1:
+  - Verified 100% compliance against plan requirements, demolitions, AST guardrails, and test contracts.
+  - Generated audit artifact `red_team_audit_epic148_phase1.md`.
+  - Ran global backend audit loop `uv run python scripts/backend_audit_loop.py backend_v2/ --test` with 2,148 tests passing cleanly.
+  - Phase 1 marked as `[x] [OK]` across all gates (Red-Teaming, Execution, Coverage, Audit).
+- Executed `/tier0-research-plan` on Phase 2 (`@[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md]`):
+  - Neuro-symbolic planner audit (`audit_planner_output.py`) verified 100% boundary preservation (15/15 line bounds, 56 targets, 51 AST bounds, 14 KIs).
+  - Touched Scope Technical Debt & Integration Sweep:
+    - Identified that `WarningCardAdapter` dynamically calls `LocalizationService.translate('alert_starvation_insufficient_data', context.locale)`, but the translation key was missing from backend static dictionary files (`backend_v2/l10n/en.json` and `backend_v2/l10n/fi.json`).
+    - Added `backend_v2/l10n/en.json`, `backend_v2/l10n/fi.json`, and `backend_v2/tests/unit/models/test_v2_core.py` to target files, touched artifacts, and Step 1 actions.
+    - Verified Flutter 1-hop execution widgets and Studio widgets for precise line bounds.
+  - Phase 2 marked as `[x] [OK]` for Red-Teaming.
+- Executed `/tier2-execute` on Phase 2:
+  - **Step 1 (Python Domain Model & Decoupling)**:
+    - Moved `I18nText` to `backend_v2/models/core_base.py` (re-exported in `v2_core.py`), removed `default_locale`, made `translations` required without defaults, and enforced Fail-Fast `resolve()` / `get()`.
+    - Created decoupled DTO module `backend_v2/models/dtos/matrix_scorecard.py` containing `MatrixScorecardRowDTO`, `ScorecardAtomDTO`, `HumanOverrideDTO`, `HumanOverrideRequest`, `TDAPending`, `TDAEvaluated`, `TDADlq`, `TDAStateUnion`.
+    - Resolved circular import between `v2_core.py` and `sdui.py` cleanly through `matrix_scorecard.py`.
+    - Refactored `WarningCardAdapter` in `backend_v2/services/sdui/adapters/warning_card_adapter.py` to translate `'alert_starvation_insufficient_data'` via `LocalizationService` and raise `ErrorCodes.CONFIGURATION_ERROR`.
+    - Populated translation tables in `backend_v2/l10n/en.json` and `fi.json`.
+  - **Step 2 (Flutter Freezed Model & UI Cleanups)**:
+    - Modernized `client_app_v2/lib/shared/models/i18n_text.dart` (`@JsonSerializable(disallowUnrecognizedKeys: true)` without `defaultLocale`, added `isEmpty`/`isNotEmpty`/`has()`/`get()`).
+    - Cleaned all Studio views, controllers, and 1-hop execution widgets.
+    - Added comprehensive Flutter unit test suite `client_app_v2/test/shared/models/i18n_text_test.dart` (7/7 tests passing).
+    - Ran `flutter_audit_loop.py` (0 analyzer issues) and verified all 225 Flutter tests passing.
+  - **Step 3 (Deterministic Pruning of seed_data.json)**:
+    - Pruned 500 legacy `default_locale` keys from `seed_data.json` via scratch script and verified 100% bilingual Finnish translations for `prompt_blocks[88]` and `prompt_blocks[89]`.
+    - Re-seeded local development database cleanly (`uv run python backend_v2/seed/run_seed.py local`).
+  - **Step 4 (Deterministic Bulk Migration of Test Fixtures)**:
+    - Bulk migrated 90 Python test files (1,166 fixture occurrences) and 25+ Flutter test files (157 fixture occurrences).
+  - **Step 5 (Universal Quality Gate & Full Verification)**:
+    - Added dedicated unit test coverage for `core_base.py` and `dtos/matrix_scorecard.py`.
+    - Ran `backend_audit_loop.py` achieving 100% coverage across all touched targets.
+    - Verified full backend test suite: **2,153 tests passed** (0 failures).
+    - Verified full frontend test suite: **225 tests passed** (0 failures).
+  - Phase 2 marked as `[x] [OK]` for Execution and Test Coverage Assertions.
 
 ## Learned
 - **Phase 1 Insights & Invariants**:
@@ -228,12 +263,21 @@
   - Direct assembly via `TemplateProcessor.safe_interpolate()` with CDATA Breakout Shielding (`_apply_breakout_shield`) provides mathematically bulletproof XML injection protection for `<theory_context>` and `<matrix_objective>`.
   - `QGR001` statically bans `setattr(...)` and `object.__setattr__(...)` across all non-test python code, ensuring frozen model immutability.
   - `QGR002` AST rule strictly flags dictionary `.get()` with default fallbacks; explicit membership assertions (`if key in dict`) must be used for alias resolution.
+  - Global backend test suite (2,148 tests) runs cleanly and validates cross-domain stability after Phase 1 sanitization.
+- **Phase 2 Insights & Invariants**:
+  - `I18nText` modernization purges `default_locale` across Pydantic V2 and Freezed models, requiring explicit `Field(...)` / `required Map<String, String> translations` without `@Default` or `default_factory=dict`.
+  - Moving `I18nText` to `backend_v2/models/core_base.py` and scorecard DTOs to `backend_v2/models/dtos/matrix_scorecard.py` decouples presentation DTOs from `v2_core.py`, eliminating cyclical import traps with `backend_v2/models/view/sdui.py` in Python 3.14 / Pydantic V2.
+  - `model_rebuild(_types_namespace=...)` calls in `v2_core.py` and `state.py` must explicitly provide all forward-referenced DTO types (`AnySduiBlock`, `MCPAuditTrace`, `MatrixScorecardRowDTO`).
+  - Elimination of module-level `I18N_WARNING_STARVATION` in `warning_card_adapter.py` prevents import-time `ValidationError` crashes, but requires pre-populating `'alert_starvation_insufficient_data'` in `backend_v2/l10n/en.json` and `fi.json`.
+  - Automated scratch scripts (`scratch/prune_default_locale_seed.py`, `scratch/migrate_backend_i18n_fixtures.py`, `scratch/migrate_flutter_i18n_fixtures.py`) successfully migrated all 1,166 backend and 157 Flutter fixture occurrences deterministically.
 
 ## Remaining
-- Audit Phase 1 implementation via `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/01_phase1_theory_grounding_and_epistemic_anchor_sanitization.md] @[docs/epic/EPIC_148_tracker.md]`.
-- Execute Phase 2: Red-teaming analysis (`/tier0-research-plan`), Tier 2 execution, and plan audit.
+- Execute Phase 2 Plan Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]`).
 - Plan and execute Phase 3 (OutputProfile, SDUI Dumb Painter & Localization Parity) and Phase 4 (AST Guardrails & Parity Suites).
 - Complete Post-Implementation Gates: Backend & Frontend Tier 2 Hardening, As-Built Architectural Sync (`/tier7-describe-architecture`), and Reverse Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
-`/tier8-audit-plan @[docs\epic\tasks_EPIC_148\01_phase1_theory_grounding_and_epistemic_anchor_sanitization.md] @[docs\epic\EPIC_148_tracker.md]`
+```powershell
+/tier8-audit-plan @[docs/epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration.md] @[docs/epic/EPIC_148_tracker.md]
+```
+

@@ -6,10 +6,9 @@ import 'package:client_app/shared/models/i18n_text.dart';
 
 /// **Dynaaminen I18n-syöttö**
 ///
-/// A compound widget that captures a `default_locale` string alongside
-/// an optional `translations` dictionary for multiple languages.
+/// A compound widget that captures translations dictionary for multiple languages.
 /// Emits pure `I18nText` representations adhering to the
-/// Strict Freezed Pydantic-parity policy for the Admin Studio editing.
+/// Strict Freezed Pydantic-parity policy for Admin Studio editing.
 class I18nTextField extends StatefulWidget {
   final String label;
   final I18nText? initialData;
@@ -30,7 +29,6 @@ class _I18nTextFieldState extends State<I18nTextField> {
   late TextEditingController _defaultController;
   late FocusNode _defaultFocusNode;
   late Map<String, String> _translations;
-  late String _defaultLocale;
   Timer? _debounceTimer;
 
   // Controllers for active inline translations
@@ -48,24 +46,19 @@ class _I18nTextFieldState extends State<I18nTextField> {
     _defaultFocusNode = FocusNode();
 
     if (widget.initialData != null) {
-      _defaultLocale = widget.initialData!.defaultLocale;
       final t = widget.initialData!.translations;
       t.forEach((key, value) {
         final langCode = key.toString();
         final text = value.toString();
         _translations[langCode] = text;
 
-        if (langCode != _defaultLocale) {
+        if (langCode != 'en') {
           _setupTranslationController(langCode, text);
         }
       });
-    } else {
-      _defaultLocale = 'en';
     }
 
-    _defaultController = TextEditingController(
-      text: _translations[_defaultLocale] ?? '',
-    );
+    _defaultController = TextEditingController(text: _translations['en'] ?? '');
 
     _defaultController.addListener(_onDefaultControllerChanged);
     _defaultFocusNode.addListener(_onDefaultFocusChange);
@@ -121,18 +114,16 @@ class _I18nTextFieldState extends State<I18nTextField> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (_defaultController.text.isNotEmpty) {
-        _translations[_defaultLocale] = _defaultController.text;
+        _translations['en'] = _defaultController.text;
       } else {
-        _translations.remove(_defaultLocale);
+        _translations.remove('en');
       }
 
       // Clean up empty translations before sending
       final safeTranslations = Map<String, String>.from(_translations);
       safeTranslations.removeWhere((k, v) => v.isEmpty);
 
-      widget.onChanged(
-        I18nText(defaultLocale: _defaultLocale, translations: safeTranslations),
-      );
+      widget.onChanged(I18nText(translations: safeTranslations));
     });
   }
 
@@ -140,16 +131,12 @@ class _I18nTextFieldState extends State<I18nTextField> {
   void didUpdateWidget(covariant I18nTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialData != oldWidget.initialData) {
-      final newLocale = widget.initialData?.defaultLocale ?? 'en';
       final newTranslationsStringMap = widget.initialData?.translations ?? {};
-      String newDefaultText = newTranslationsStringMap[newLocale] ?? '';
-
-      // Riverpod parent update
-      _defaultLocale = newLocale;
+      final String newDefaultText = newTranslationsStringMap['en'] ?? '';
 
       // Add missing ones from external updates
       for (final entry in newTranslationsStringMap.entries) {
-        if (entry.key != _defaultLocale) {
+        if (entry.key != 'en') {
           _translations[entry.key] = entry.value;
           if (!_translationControllers.containsKey(entry.key)) {
             _setupTranslationController(entry.key, entry.value);
@@ -217,7 +204,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
   }
 
   void _addTranslation(String langCode, String text) {
-    if (langCode == _defaultLocale) {
+    if (langCode == 'en') {
       _defaultController.text = text;
     } else {
       setState(() {
@@ -339,7 +326,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(
                   context,
-                )!.i18nDefaultFormLabel(_defaultLocale.toUpperCase()),
+                )!.i18nDefaultFormLabel('EN'),
                 border: const OutlineInputBorder(),
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surface,

@@ -12,15 +12,9 @@ void main() {
     (WidgetTester tester) async {
       final inputDef = ExpectedInput(
         inputKey: 'test_key',
-        label: const I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Test Label'},
-        ),
+        label: const I18nText(translations: {'en': 'Test Label'}),
         required: true,
-        description: const I18nText(
-          defaultLocale: 'en',
-          translations: {'en': 'Test Description'},
-        ),
+        description: const I18nText(translations: {'en': 'Test Description'}),
         aiDescription: 'AI description',
       );
 

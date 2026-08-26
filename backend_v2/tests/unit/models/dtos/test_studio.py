@@ -79,8 +79,8 @@ def test_core_response_dto_strictness() -> None:
         {
             "id": valid_id_wf,
             "slug": "test-wf",
-            "name": {"default_locale": "en", "translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
-            "description": {"default_locale": "en", "translations": {"en": "Desc", "fi": "Desc"}},
+            "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "version": 1,
             "status": "draft",
             "default_profile_id": valid_id_prf,
@@ -95,9 +95,9 @@ def test_core_response_dto_strictness() -> None:
         {
             "id": valid_id_stp,
             "slug": "test-step",
-            "name": {"default_locale": "en", "translations": {"en": "Test Step", "fi": "Test Step"}},
+            "name": {"translations": {"en": "Test Step", "fi": "Test Step"}},
             "type": "llm",
-            "description": {"default_locale": "en", "translations": {"en": "test", "fi": "testi"}},
+            "description": {"translations": {"en": "test", "fi": "testi"}},
             "model_strategy": "fast",
             "extraction_protocol_block_id": "blk_0123456789abcdef",
             "criteria_block_ids": ["blk_0123456789abcdef"],
@@ -110,8 +110,8 @@ def test_core_response_dto_strictness() -> None:
         {
             "id": valid_id_blk,
             "slug": "test-block",
-            "label": {"default_locale": "en", "translations": {"en": "Test Block", "fi": "Test Block"}},
-            "description": {"default_locale": "en", "translations": {"en": "Test Block Desc", "fi": "Test Block Desc"}},
+            "label": {"translations": {"en": "Test Block", "fi": "Test Block"}},
+            "description": {"translations": {"en": "Test Block Desc", "fi": "Test Block Desc"}},
             "category_id": "system_rule",
             "type": "string",
             "organization_id": valid_id_org,

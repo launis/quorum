@@ -28,17 +28,11 @@ void main() {
           ],
         );
 
-        final emptyI18n = const I18nText(
-          defaultLocale: 'en',
-          translations: {'en': ''},
-        );
+        final emptyI18n = const I18nText(translations: {'en': ''});
         final profile = OutputProfile(
           id: 'test_id',
           workflowId: 'wf_1',
-          name: const I18nText(
-            defaultLocale: 'en',
-            translations: {'en': 'Valid Name'},
-          ),
+          name: const I18nText(translations: {'en': 'Valid Name'}),
           description: emptyI18n,
           userRoleLabel: emptyI18n,
           customPreface: emptyI18n,
@@ -146,10 +140,7 @@ void main() {
           final profileMissingBounds = OutputProfile(
             id: 'test_id',
             workflowId: 'wf_1',
-            name: const I18nText(
-              defaultLocale: 'en',
-              translations: {'en': 'Valid Name'},
-            ),
+            name: const I18nText(translations: {'en': 'Valid Name'}),
             displayScale: DisplayScale.custom,
             customScaleMin: null,
             customScaleMax: null,
@@ -187,10 +178,7 @@ void main() {
           final profileInvertedBounds = OutputProfile(
             id: 'test_id',
             workflowId: 'wf_1',
-            name: const I18nText(
-              defaultLocale: 'en',
-              translations: {'en': 'Valid Name'},
-            ),
+            name: const I18nText(translations: {'en': 'Valid Name'}),
             displayScale: DisplayScale.custom,
             customScaleMin: 10.0,
             customScaleMax: 4.0,
@@ -228,10 +216,7 @@ void main() {
           final profileEqualBounds = OutputProfile(
             id: 'test_id',
             workflowId: 'wf_1',
-            name: const I18nText(
-              defaultLocale: 'en',
-              translations: {'en': 'Valid Name'},
-            ),
+            name: const I18nText(translations: {'en': 'Valid Name'}),
             displayScale: DisplayScale.custom,
             customScaleMin: 5.0,
             customScaleMax: 5.0,
@@ -269,10 +254,7 @@ void main() {
           final validCustomProfile = OutputProfile(
             id: 'test_id',
             workflowId: 'wf_1',
-            name: const I18nText(
-              defaultLocale: 'en',
-              translations: {'en': 'Valid Name'},
-            ),
+            name: const I18nText(translations: {'en': 'Valid Name'}),
             displayScale: DisplayScale.custom,
             customScaleMin: 4.0,
             customScaleMax: 10.0,

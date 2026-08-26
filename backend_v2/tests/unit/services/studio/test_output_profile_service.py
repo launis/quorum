@@ -50,7 +50,7 @@ async def test_save_output_profile_allows_target_block_types(service: Any, mock_
         "id": "opt_1234567890abcdef",
         "slug": "opt_123",
         "workflow_id": "wf_123",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "organization_id": "root",
         "layouts": [],
     }
@@ -60,7 +60,7 @@ async def test_save_output_profile_allows_target_block_types(service: Any, mock_
         id="opt_1234567890abcdef",
         slug="opt_123",
         workflow_id="wf_123",
-        name=I18nText(default_locale="en", translations={"en": "Test"}),
+        name=I18nText(translations={"en": "Test"}),
         organization_id="root",
         target_block_order=[TargetBlockType.GLOBAL_SCORE_BLOCK],
         layouts=[OutputLayoutBlock(preset_view="text_only", target_blocks=[TargetBlockType.GLOBAL_SCORE_BLOCK])],
@@ -91,7 +91,7 @@ async def test_save_output_profile_fails_wrong_workflow_block(service: Any, mock
         "id": "opt_1234567890abcdef",
         "slug": "opt_123",
         "workflow_id": "wf_123",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "organization_id": "root",
         "layouts": [{"preset_view": "text_only", "target_blocks": ["blk_wrong_workflow"]}],
     }
@@ -124,7 +124,7 @@ async def test_save_output_profile_fails_invalid_block(service: Any, mock_workfl
         "id": "opt_1234567890abcdef",
         "slug": "opt_123",
         "workflow_id": "wf_123",
-        "name": {"default_locale": "en", "translations": {"en": "Test"}},
+        "name": {"translations": {"en": "Test"}},
         "organization_id": "root",
         "layouts": [{"preset_view": "text_only", "target_blocks": ["invalid_block_123"]}],
     }

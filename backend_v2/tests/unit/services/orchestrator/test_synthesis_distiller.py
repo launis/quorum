@@ -133,15 +133,15 @@ def test_build_title_map_with_blocks_and_steps() -> None:
             slug="test_block",
             type=BlockDataType.INSTRUCTION,
             category_id=PromptBlockCategory.SYSTEM_RULE,
-            label=I18nText(default_locale="en", translations={"en": "Block Label EN", "fi": "Lohkon nimi FI"}),
-            description=I18nText(default_locale="en", translations={"en": "Desc"}),
+            label=I18nText(translations={"en": "Block Label EN", "fi": "Lohkon nimi FI"}),
+            description=I18nText(translations={"en": "Desc"}),
         )
     }
 
     step_blueprint = Step(
         id="sp_1111111111111111",
         slug="step_one",
-        name=I18nText(default_locale="en", translations={"en": "Step Blueprint Name"}),
+        name=I18nText(translations={"en": "Step Blueprint Name"}),
         model_strategy="fast",
         type="logic",
         hook="text_consolidation_hook",
@@ -150,8 +150,8 @@ def test_build_title_map_with_blocks_and_steps() -> None:
     wf = Workflow(
         id="wf_1111111111111111",
         slug="test_wf",
-        name=I18nText(default_locale="en", translations={"en": "Workflow Name"}),
-        description=I18nText(default_locale="en", translations={"en": "Workflow Desc"}),
+        name=I18nText(translations={"en": "Workflow Name"}),
+        description=I18nText(translations={"en": "Workflow Desc"}),
         status="draft",
         version=1,
         default_profile_id="prof_1111111111111111",
@@ -161,8 +161,8 @@ def test_build_title_map_with_blocks_and_steps() -> None:
         expected_inputs=[
             ExpectedInput(
                 input_key="interview_text",
-                label=I18nText(default_locale="en", translations={"en": "Interview Text"}),
-                description=I18nText(default_locale="en", translations={"en": "Interview Text"}),
+                label=I18nText(translations={"en": "Interview Text"}),
+                description=I18nText(translations={"en": "Interview Text"}),
                 required=True,
                 input_modes=["paste"],
             )
@@ -191,8 +191,8 @@ def test_build_title_map_missing_blueprint_raises() -> None:
     wf = Workflow(
         id="wf_1111111111111111",
         slug="test_wf",
-        name=I18nText(default_locale="en", translations={"en": "Workflow Name"}),
-        description=I18nText(default_locale="en", translations={"en": "Workflow Desc"}),
+        name=I18nText(translations={"en": "Workflow Name"}),
+        description=I18nText(translations={"en": "Workflow Desc"}),
         status="draft",
         version=1,
         default_profile_id="prof_1111111111111111",

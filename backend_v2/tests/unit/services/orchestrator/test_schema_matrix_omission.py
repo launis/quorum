@@ -19,23 +19,23 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
         inverse_evidence=False,
     )
     claim = MatrixClaim(
-        label=I18nText(default_locale="en", translations={"en": "test"}),
+        label=I18nText(translations={"en": "test"}),
         tda_assertions=[tda],
     )
     scale = MatrixScale(
         score=1,
-        name=I18nText(default_locale="en", translations={"en": "test_scale"}),
+        name=I18nText(translations={"en": "test_scale"}),
         ai_label="Test Scale",
         claims=[claim],
     )
     matrix = MatrixPromptBlock(
         id="blk_0123456789abcdef",
         slug="test-matrix-1",
-        description=I18nText(default_locale="en", translations={"en": "test matrix block"}),
+        description=I18nText(translations={"en": "test matrix block"}),
         category_id=PromptBlockCategory.MATRIX,
         scales=[scale],
         type=BlockDataType.FLOAT,
-        label=I18nText(default_locale="en", translations={"en": "Test Matrix"}),
+        label=I18nText(translations={"en": "Test Matrix"}),
     )
 
     # 1. No dag_results -> Matrix is included
