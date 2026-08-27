@@ -13,6 +13,8 @@ from backend_v2.models.view.sdui import AlertBlock, AnySduiBlock
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
+__all__ = ["WARNING_CARD_RULES", "WarningCardAdapter"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -75,11 +77,11 @@ class WarningCardAdapter:
             aesthetics = WARNING_CARD_RULES[starvation.event_type]
         except KeyError as e:
             msg = f"Missing rule mapping for event_type: '{starvation.event_type}'"
-            logger.error("[WarningCardAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
+            logger.error("[WarningCardAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
 
         warning_msg = LocalizationService.translate("alert_starvation_insufficient_data", context.locale)

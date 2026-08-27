@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.trace import DataStarvationEvent
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.v2_core import I18nText, OutputProfile, RenderedSynthesisCache
@@ -127,4 +127,4 @@ def test_warning_card_adapter_missing_rule_fail_fast(base_output_profile: Output
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details is not None
-    assert exc_info.value.details.get("error_code") == "CONFIGURATION_ERROR"
+    assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
