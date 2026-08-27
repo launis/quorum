@@ -22,6 +22,8 @@ from backend_v2.models.view.sdui import (
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
+__all__ = ["VARIANCE_RULES", "VarianceAdapter"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -157,11 +159,11 @@ class VarianceAdapter:
             aesthetics = VARIANCE_RULES[lvl_key]
         except KeyError as e:
             msg = f"Missing rule mapping for type_key: {lvl_key}"
-            logger.error("[VarianceAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
+            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": "CONFIGURATION_ERROR"},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
 
         alert_severity = aesthetics["severity"]
@@ -181,8 +183,12 @@ class VarianceAdapter:
         )
 
         llm_explanation = ""
-        if context.profile_cache and hasattr(context.profile_cache, "row_explanations"):
-            llm_explanation = context.profile_cache.row_explanations.get("variance_validation", "")
+        if (
+            context.profile_cache
+            and context.profile_cache.row_explanations
+            and "variance_validation" in context.profile_cache.row_explanations
+        ):
+            llm_explanation = context.profile_cache.row_explanations["variance_validation"]
 
         if not llm_explanation:
             fallback_template = LocalizationService.translate("variance_fallback_explanation", context.locale)
