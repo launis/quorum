@@ -7,6 +7,12 @@ from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
+__all__ = [
+    "LocalizationService",
+    "get_language",
+    "set_language",
+]
+
 logger = logging.getLogger(__name__)
 
 # Context Variable for Request-Scope Language
@@ -54,7 +60,7 @@ class LocalizationService:
             if not cls.L10N_DIR.exists():
                 # Fail Fast: Missing localization directory is a critical deployment error.
                 msg = f"Localization directory not found: {cls.L10N_DIR}"
-                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -65,7 +71,7 @@ class LocalizationService:
             if not json_files:
                 # Fail Fast: No translation files found.
                 msg = f"No translation files found in {cls.L10N_DIR}"
-                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -82,7 +88,13 @@ class LocalizationService:
                 except Exception as e:
                     # Fail Fast: Corrupt translation file.
                     msg = f"Failed to load translation file {file_path}"
-                    logger.error("[LocalizationService] %s: %s - %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
+                    logger.error(
+                        "[LocalizationService] %s: %s - %s",
+                        ErrorCodes.CONFIGURATION_ERROR.name,
+                        msg,
+                        e,
+                        exc_info=True,
+                    )
                     raise AppException(
                         message=msg,
                         status_code=500,
@@ -143,7 +155,7 @@ class LocalizationService:
         # 3. Strict Missing Key Exception
         if val is None:
             msg = f"Translation key '{key}' is missing from both '{lang_simple}' and 'en' dictionaries."
-            logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
             )
@@ -155,7 +167,7 @@ class LocalizationService:
             except KeyError as e:
                 # Fail Fast: Missing interpolation argument is a developer error.
                 msg = f"Localization missing argument '{e.args[0]}' for key '{key}' in lang '{lang}'"
-                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -164,7 +176,7 @@ class LocalizationService:
             except Exception as e:
                 # Fail Fast: Invalid format string
                 msg = f"Localization format error for key '{key}': {e}"
-                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=500,
