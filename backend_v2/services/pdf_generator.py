@@ -23,6 +23,8 @@ from backend_v2.utils.static_charts import generate_radar_chart, generate_scatte
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["PdfReportService"]
+
 
 class PdfReportService:
     """Service to generate PDF reports dynamically from V2 execution data.
@@ -84,7 +86,7 @@ class PdfReportService:
         def raise_unrecognized_sdui_block(block_type: str) -> None:
             """Strict fail-fast hook for unrecognized SDUI blocks in Jinja2."""
             msg = f"Strict Fail-Fast: Unrecognized SDUI block_type '{block_type}' encountered during PDF rendering."
-            logger.error("[PdfReportService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            logger.error("[PdfReportService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
