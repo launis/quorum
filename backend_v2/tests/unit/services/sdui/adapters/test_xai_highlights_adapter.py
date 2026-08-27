@@ -5,6 +5,7 @@ import logging
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.state import TraceEvent
@@ -349,4 +350,4 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
         XaiHighlightsAdapter.build(context)
 
     assert "Missing rule mapping for extension key: coaching" in str(exc_info.value)
-    assert exc_info.value.details == {"error_code": "CONFIGURATION_ERROR"}
+    assert exc_info.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
