@@ -164,11 +164,11 @@ class AuthenticityAdapter:
             aesthetics = AUTHENTICITY_RULES[lvl_key]
         except KeyError as e:
             msg = f"Missing rule mapping for type_key: {lvl_key}"
-            logger.error("[AuthenticityAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
+            logger.error("[AuthenticityAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": "CONFIGURATION_ERROR"},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
 
         alert_severity = aesthetics["severity"]
@@ -182,8 +182,12 @@ class AuthenticityAdapter:
         )
 
         llm_explanation = ""
-        if context.profile_cache and context.profile_cache.row_explanations:
-            llm_explanation = context.profile_cache.row_explanations.get("authenticity_evaluation", "")
+        if (
+            context.profile_cache
+            and context.profile_cache.row_explanations
+            and "authenticity_evaluation" in context.profile_cache.row_explanations
+        ):
+            llm_explanation = context.profile_cache.row_explanations["authenticity_evaluation"]
 
         if not llm_explanation:
             fallback_template = LocalizationService.translate("authenticity_fallback_explanation", context.locale)

@@ -6,6 +6,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     MatrixScorecardRowDTO,
@@ -67,4 +68,13 @@ class SduiAdapterProtocol(Protocol):
         ...
 
 
-AdapterContext.model_rebuild()
+AdapterContext.model_rebuild(
+    _types_namespace={
+        "ErrorTraceEvent": ErrorTraceEvent,
+        "TombstoneEvent": TombstoneEvent,
+        "TraceEvent": TraceEvent,
+        "AnySduiBlock": AnySduiBlock,
+        "MCPAuditTrace": MCPAuditTrace,
+        "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
+    }
+)

@@ -152,3 +152,130 @@ def test_build_success_with_metrics() -> None:
     assert isinstance(blocks[1], ParagraphBlock)
     assert blocks[1].text == "High degree of authenticity identified in execution traces."
     assert isinstance(blocks[2], SduiMetrics1DBlock)
+
+
+def test_build_starved_returns_empty() -> None:
+    from backend_v2.models.dtos.trace import DataStarvationEvent
+
+    profile = _create_base_profile()
+    execution = ExecutionRecord(
+        id="ex_0123456789abcdef0123456789abcdef",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        execution_trace=[],
+        context_variables={},
+    )
+    cache = RenderedSynthesisCache(
+        data_starvation=DataStarvationEvent(
+            total_atoms=0,
+            reason="insufficient_tokens",
+        )
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+    blocks = AuthenticityAdapter.build(context)
+    assert blocks == []
+
+
+def test_build_missing_authenticity_score_raises_app_exception() -> None:
+    profile = _create_base_profile()
+    execution = ExecutionRecord(
+        id="ex_0123456789abcdef0123456789abcdef",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        execution_trace=[],
+        context_variables={},
+    )
+    cache = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=None,
+            performative_phrases_count=2.0,
+            variance_score=15.0,
+            alignment_verdict="ALIGNED",
+        )
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+    with pytest.raises(AppException) as exc_info:
+        AuthenticityAdapter.build(context)
+
+    assert exc_info.value.status_code == 500
+    assert "authenticity_score is missing" in exc_info.value.message
+
+
+def test_build_fallback_explanation_and_medium_low_levels() -> None:
+    profile = _create_base_profile()
+    execution = ExecutionRecord(
+        id="ex_0123456789abcdef0123456789abcdef",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        execution_trace=[],
+        context_variables={},
+    )
+    # Medium level with no custom row_explanation
+    cache_med = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=60.0,
+            performative_phrases_count=2.0,
+            variance_score=15.0,
+            alignment_verdict="ALIGNED",
+        )
+    )
+    context_med = AdapterContext(
+        execution=execution,
+        locale="fi",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache_med,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+    blocks_med = AuthenticityAdapter.build(context_med)
+    assert len(blocks_med) == 3
+    assert isinstance(blocks_med[0], MarkdownBlock)
+    assert blocks_med[0].text == "### Autenttisuusarviointi"
+
+    # Low level
+    cache_low = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=30.0,
+            performative_phrases_count=5.0,
+            variance_score=50.0,
+            alignment_verdict="MISALIGNED",
+        )
+    )
+    context_low = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache_low,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+    blocks_low = AuthenticityAdapter.build(context_low)
+    assert len(blocks_low) == 3
+
