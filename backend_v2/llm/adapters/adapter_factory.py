@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Adapter Factory for Lazy Loading LLM Providers Cache Adapters.
 
 Provides a decoupled mechanism to fetch concrete LLM cache adapters without triggering
 heavy upfront third-party imports at initialization.
 """
+
+from __future__ import annotations
 
 import logging
 from typing import cast

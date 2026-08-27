@@ -70,7 +70,6 @@ class GCPLocationDTO(BaseDTO):
     description: Annotated[str, Field(description="Informational region description")]
 
 
-
 class WorkflowCreateDTO(V2CoreBase):
     """DTO for creating a new Workflow without client-specified ID.
 

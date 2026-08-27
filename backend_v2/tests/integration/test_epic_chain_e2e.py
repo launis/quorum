@@ -111,17 +111,11 @@ async def test_epic_93_e2e_golden_master() -> None:
         "organization_id": "root",
         "name": {"translations": {"en": "Mock Profile"}},
         "description": {"translations": {"en": "desc"}},
-        "metric_mappings": {
-            "metadata_scoring_engine": {"translations": {"en": "Scoring Engine"}},
-            "metadata_strictness": {"translations": {"en": "Strictness"}},
-        },
-        "layouts": [
-            {
-                "preset_view": "1d_metrics",
-                "steps": ["step_analyst"],
-                "target_blocks": [block_id],
-                "title": {"translations": {"en": "Axis Title"}},
-            }
+        "target_block_order": [
+            "metadata_block",
+            "executive_summary_block",
+            "matrix_summary_table_block",
+            "global_score_block",
         ],
     }
     mock_output_profile_repo.get_all_output_profiles.return_value = [mock_profile]
@@ -206,15 +200,15 @@ async def test_epic_93_e2e_golden_master() -> None:
     # Verify that ReportDataDTO.inner_sdui_blocks are populated
     assert len(view.inner_sdui_blocks) > 0
 
-    scorecard_block = next(
+    executive_or_grid_block = next(
         (
             b
             for b in view.inner_sdui_blocks
-            if getattr(b, "block_type", getattr(b, "preset_view", "")) in ("1d_metrics", "text_only")
+            if getattr(b, "block_type", "") in ("executive_summary", "data_grid", "hero_insight", "metadata")
         ),
         None,
     )
-    assert scorecard_block is not None
+    assert executive_or_grid_block is not None
 
 
 @pytest.mark.asyncio
@@ -422,7 +416,12 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
         "slug": "mock-profile",
         "workflow_id": wf_id,
         "name": {"translations": {"en": "Mock Profile"}},
-        "layouts": [],
+        "target_block_order": [
+            "metadata_block",
+            "executive_summary_block",
+            "matrix_summary_table_block",
+            "global_score_block",
+        ],
     }
     mock_output_profile_repo.get_all_output_profiles.return_value = [mock_profile]
 

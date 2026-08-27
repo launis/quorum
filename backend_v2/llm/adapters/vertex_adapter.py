@@ -116,8 +116,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 - A dictionary of extra keyword arguments containing the cache reference name.
         """
         # Vertex AI context caching requires caching conversational turns in `contents`.
-        # System instructions alone (`system_instruction`) cannot form an explicit cached resource in GCP without accompanying conversational content.
-        # Calculate the token estimate strictly from static non-system messages to prevent GCP 1-token / empty contents InvalidArgument errors.
+        # System instructions alone cannot form an explicit cached resource in GCP without conversational content.
+        # Calculate token estimate strictly from static non-system messages to prevent GCP 1-token InvalidArgument.
         total_content_chars = 0
         has_non_system_static = False
         for msg in compiled_prompt.static_messages:
@@ -144,7 +144,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
             or static_content_token_count < min_threshold
         ):
             logger.info(
-                "Vertex AI caching bypassed: Static conversational content token count %d is below minimum threshold %d (or static messages lack non-system turns or globally disabled).",
+                "Vertex AI caching bypassed: Static content token count %d is below "
+                "minimum threshold %d (or static messages lack non-system turns or globally disabled).",
                 static_content_token_count,
                 min_threshold,
             )
@@ -340,7 +341,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
             The calculated usage metrics including savings.
 
         Raises:
-            AppException (ErrorCodes.CONFIGURATION_ERROR): If essential pricing parameters are missing from pricing_config.
+            AppException: Triggered with ErrorCodes.CONFIGURATION_ERROR if pricing parameters are missing.
         """
         if "input_token_price" not in pricing_config or "output_token_price" not in pricing_config:
             logger.error(

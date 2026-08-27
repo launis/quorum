@@ -1,6 +1,6 @@
 """Google AI Studio (Direct Gemini API) cache adapter with distributed Redis locks and thundering herd protection.
 
-Uses the official Google GenAI SDK (google.genai) caches.create API without requiring Google Cloud Vertex AI infrastructure.
+Uses the official Google GenAI SDK (google.genai) caches.create API without requiring GCP Vertex AI infrastructure.
 """
 
 from __future__ import annotations
@@ -142,7 +142,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
             or static_content_token_count < min_threshold
         ):
             logger.info(
-                "Google AI Studio caching bypassed: Static conversational content token count %d is below minimum threshold %d (or static messages lack non-system turns or globally disabled).",
+                "Google AI Studio caching bypassed: Static content token count %d is below "
+                "minimum threshold %d (or static messages lack non-system turns or globally disabled).",
                 static_content_token_count,
                 min_threshold,
             )
@@ -253,7 +254,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
 
                 except Exception:
                     logger.error(
-                        "Fail-Soft: Google AI Studio Context Cache creation failed. Falling back to uncached completion.",
+                        "Fail-Soft: Google AI Studio Context Cache creation failed. "
+                        "Falling back to uncached completion.",
                         exc_info=True,
                     )
                     await redis_client.set(redis_key, PromptCacheStatus.FAILED.value, ex=300)

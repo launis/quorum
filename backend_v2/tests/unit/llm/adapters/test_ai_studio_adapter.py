@@ -387,4 +387,3 @@ async def test_ai_studio_real_get_redis_client(monkeypatch: pytest.MonkeyPatch) 
     assert client is not None
     client2 = await ai_module.get_redis_client()
     assert client2 is client
-

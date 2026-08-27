@@ -243,10 +243,11 @@ async def test_vertex_fail_soft_resilience_integration(
     # Apply mock to LiteLLMProvider.generate
     monkeypatch.setattr("backend_v2.llm.provider.LiteLLMProvider.generate", mock_provider_generate)
 
-    # Generate a massive prompt (over Vertex caching character threshold of 130k)
+    # Generate a massive prompt (over Vertex caching character threshold)
     large_static = "A" * 150000
     messages = [
-        {"role": "system", "content": large_static},
+        {"role": "system", "content": "You are a helpful analyst."},
+        {"role": "user", "content": large_static},
         {"role": "user", "content": "Extract dynamic insight"},
     ]
 
@@ -268,7 +269,7 @@ async def test_vertex_fail_soft_resilience_integration(
     # The actual static_messages is compiled by PromptCompilerAdapter.compile_prompt
     compiled_p = PromptCompilerAdapter().compile_prompt(messages)
     actual_hash = hashlib.sha256(json.dumps(compiled_p.static_messages, sort_keys=True).encode()).hexdigest()
-    redis_key = f"vertex_cache:vertex_ai/gemini-1.5-pro:{actual_hash}"
+    redis_key = f"vertex_cache:europe-north1:vertex_ai/gemini-1.5-pro:{actual_hash}"
 
     status = await mock_redis_client.get(redis_key)
     if isinstance(status, bytes):
