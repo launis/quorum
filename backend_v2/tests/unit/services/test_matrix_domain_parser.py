@@ -550,7 +550,7 @@ def test_parse_matrices_missing_label_and_scales_fail_fast() -> None:
 def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
     """Test level breakdown parsing, invalid level breakdown, and synthesis cache requirements."""
     from backend_v2.exceptions import AppException, ErrorCodes
-    from backend_v2.models.v2_core import OutputLayoutBlock, SynthesisConfigDTO
+    from backend_v2.models.v2_core import MatrixSynthesisGroup, SynthesisConfigDTO
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
@@ -558,11 +558,11 @@ def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
     # 1. Valid level breakdown with 3D matrix visible columns
     profile_3d = profile.model_copy(
         update={
-            "layouts": [
-                OutputLayoutBlock(
-                    preset_view="3d_matrix",
-                    matrix_visible_columns=["label", "score", "distribution", "row_explanation", "quotes"],
+            "matrix_synthesis_groups": [
+                MatrixSynthesisGroup(
+                    id="grp_matrix",
                     title=I18nText(translations={"en": "Matrix"}),
+                    target_blocks=["blk_1234567890abcdef1234567890abcdef"],
                 )
             ]
         }

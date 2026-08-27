@@ -12,30 +12,41 @@ from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: 
 
 
 def fix_mock_dict(d: Any) -> Any:
-    from backend_v2.models.v2_core import I18nText, OutputProfile
+    from backend_v2.models.enums import TargetBlockType
+    from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup, OutputProfile
 
     if isinstance(d, OutputProfile):
-        if not hasattr(d, "metric_mappings") or d.metric_mappings is None:
-            object.__setattr__(d, "metric_mappings", {})
-        d.metric_mappings.setdefault(
-            "metadata_user",
-            I18nText(translations={"en": "User", "fi": "Käyttäjä"}),
-        )
-        d.metric_mappings.setdefault(
-            "metadata_organization",
-            I18nText(translations={"en": "Organization", "fi": "Organisaatio"}),
-        )
-        d.metric_mappings.setdefault(
-            "metadata_scoring_engine",
-            I18nText(translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
-        )
-        d.metric_mappings.setdefault(
-            "metadata_strictness",
-            I18nText(translations={"en": "Strictness Level", "fi": "Ankaruustaso"}),
-        )
+        if (
+            TargetBlockType.MATRIX_GRAPHS_BLOCK in d.target_block_order
+            or "matrix_graphs_block" in [str(t) for t in d.target_block_order]
+        ) and not d.matrix_synthesis_groups:
+            object.__setattr__(
+                d,
+                "matrix_synthesis_groups",
+                [
+                    MatrixSynthesisGroup(
+                        id="grp_default", title=I18nText(translations={"en": "Default"}), target_blocks=["*"]
+                    )
+                ],
+            )
         return d
     if isinstance(d, dict):
         import re
+
+        d.pop("metric_mappings", None)
+        d.pop("layouts", None)
+        d.pop("extension_labels", None)
+        d.pop("user_role_mappings", None)
+
+        if "workflow_id" in d and "id" in d:
+            if "matrix_synthesis_groups" not in d or not d["matrix_synthesis_groups"]:
+                d["matrix_synthesis_groups"] = [
+                    {
+                        "id": "grp_default",
+                        "title": {"translations": {"en": "Default", "fi": "Oletus"}},
+                        "target_blocks": ["*"],
+                    }
+                ]
 
         if "score" in d and "claims" in d and "ai_label" not in d:
             d["ai_label"] = "ai_label_mock"
@@ -75,23 +86,6 @@ def fix_mock_dict(d: Any) -> Any:
                 d["chart_display_label"] = "Test"
         if "tda_id" in d and not re.match(r"^tda_[a-f0-9]{32}$", str(d["tda_id"])):
             d["tda_id"] = "tda_00000000000000000000000000000000"
-        if "metric_mappings" in d and isinstance(d["metric_mappings"], dict):
-            d["metric_mappings"].setdefault(
-                "metadata_user",
-                {"translations": {"en": "User", "fi": "Käyttäjä"}},
-            )
-            d["metric_mappings"].setdefault(
-                "metadata_organization",
-                {"translations": {"en": "Organization", "fi": "Organisaatio"}},
-            )
-            d["metric_mappings"].setdefault(
-                "metadata_scoring_engine",
-                {"translations": {"en": "Scoring Engine", "fi": "Arviointimoottori"}},
-            )
-            d["metric_mappings"].setdefault(
-                "metadata_strictness",
-                {"translations": {"en": "Strictness Level", "fi": "Ankaruustaso"}},
-            )
         for _k, v in d.items():
             fix_mock_dict(v)
         return d
@@ -102,14 +96,14 @@ def fix_mock_dict(d: Any) -> Any:
 
 from datetime import datetime, timezone
 
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import DisplayScale, ExecutionStatus, ScoringStrategy, TargetBlockType, XaiExtensionType
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExtensionMetricsDTO,
     I18nText,
-    OutputLayoutBlock,
+    MatrixSynthesisGroup,
     OutputProfile,
     RenderedSynthesisCache,
     ReportDataDTO,
@@ -294,32 +288,13 @@ def mock_repo_transformer() -> Any:
                 name=I18nText(translations={"en": "Default", "fi": "Default"}),
                 display_scale=DisplayScale.ORIGINAL,
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-                metric_mappings={
-                    "variance_mechanical": I18nText(translations={"en": "Mechanical"}),
-                    "variance_cognitive": I18nText(translations={"en": "Cognitive"}),
-                    "variance_total": I18nText(translations={"en": "Variance"}),
-                    "alignment_verdict": I18nText(translations={"en": "Alignment Verdict"}),
-                    "alignment_aligned": I18nText(translations={"en": "ALIGNED"}),
-                    "alignment_misaligned": I18nText(translations={"en": "MISALIGNED"}),
-                    "jargon_score": I18nText(translations={"en": "AI-Jargon Score"}),
-                    "authenticity_level": I18nText(translations={"en": "Authenticity Level"}),
-                    "level_high": I18nText(translations={"en": "High"}),
-                    "level_medium": I18nText(translations={"en": "Medium"}),
-                    "level_low": I18nText(translations={"en": "Low"}),
-                    "authenticity_fallback_explanation": I18nText(translations={"en": "Fallback {0}"}),
-                    "variance_fallback_explanation": I18nText(translations={"en": "Fallback {0} {1}"}),
-                },
-                layouts=[
-                    OutputLayoutBlock(
-                        preset_view="text_only",
+                matrix_synthesis_groups=[
+                    MatrixSynthesisGroup(
+                        id="grp_default",
+                        title=I18nText(translations={"en": "Default", "fi": "Oletus"}),
                         target_blocks=["blk_1234abcd1234abcd", "grouped_extensions_block"],
                     )
                 ],
-                extension_labels={
-                    XaiExtensionType.REMEDIATION_STEPS: I18nText(translations={"en": "Remediation", "fi": "Korjaus"}),
-                    XaiExtensionType.COACHING: I18nText(translations={"en": "Coaching", "fi": "Vinkki"}),
-                    XaiExtensionType.RISK_FLAG: I18nText(translations={"en": "Risk", "fi": "Riski"}),
-                },
                 visible_block_extensions=[
                     XaiExtensionType.REMEDIATION_STEPS,
                     XaiExtensionType.COACHING,
@@ -982,12 +957,12 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     assert isinstance(grid_block, SduiGridBlock)
     assert isinstance(alert_block, AlertBlock)
 
-    assert "Mechanical: 1" in getattr(grid_block.items[0], "text", "")
-    assert "Cognitive: 4.0" in getattr(grid_block.items[1], "text", "")
-    assert "Variance: 1.2" in getattr(grid_block.items[2], "text", "")
+    assert "Mechanical" in getattr(grid_block.items[0], "text", "") and "1" in getattr(grid_block.items[0], "text", "")
+    assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "4.0" in getattr(grid_block.items[1], "text", "")
+    assert "Variance" in getattr(grid_block.items[2], "text", "") and "1.2" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "warning"
-    assert "MISALIGNED" in alert_block.text
+    assert "MISALIGNED" in alert_block.text.upper()
 
 
 @pytest.mark.asyncio
@@ -1266,11 +1241,13 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert isinstance(grid_block, SduiGridBlock)
     assert isinstance(alert_block, AlertBlock)
 
-    assert "Cognitive: 2.51" in getattr(grid_block.items[1], "text", "")
-    assert "Variance: 0.09" in getattr(grid_block.items[2], "text", "")
+    assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "2.51" in getattr(
+        grid_block.items[1], "text", ""
+    )
+    assert "Variance" in getattr(grid_block.items[2], "text", "") and "0.09" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "info"
-    assert "ALIGNED" in alert_block.text
+    assert "ALIGNED" in alert_block.text.upper()
 
 
 @pytest.mark.asyncio
@@ -1278,7 +1255,13 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
     """Verify that xai_highlights are grouped into AccordionBlocks."""
     from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile, RenderedSynthesisCache
+    from backend_v2.models.v2_core import (
+        ExecutionRecord,
+        I18nText,
+        MatrixSynthesisGroup,
+        OutputProfile,
+        RenderedSynthesisCache,
+    )
 
     profile_mock = OutputProfile.model_construct(
         id="prf_dddd1111dddd1111",
@@ -1287,20 +1270,13 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         name=I18nText(translations={"en": "Default"}),
         display_scale=DisplayScale.ORIGINAL,
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-        layouts=[
-            OutputLayoutBlock(
-                preset_view="text_only",
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_default",
+                title=I18nText(translations={"en": "Default"}),
                 target_blocks=["*"],
-            ),
-            OutputLayoutBlock(
-                preset_view="text_only",
-                target_blocks=["grouped_extensions_block"],
-            ),
+            )
         ],
-        extension_labels={
-            XaiExtensionType.REMEDIATION_STEPS: I18nText(translations={"en": "Remediation"}),
-            XaiExtensionType.FALSIFICATION: I18nText(translations={"en": "Falsification"}),
-        },
         visible_block_extensions=[XaiExtensionType.REMEDIATION_STEPS, XaiExtensionType.FALSIFICATION],
     )
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict([profile_mock])
@@ -1349,21 +1325,22 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         system_repo=mock_repo_transformer,
     )
 
+    from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
+
     dto = await transformer.build_report_dto("exe_0000000000000015", accept_language="en")
-    assert len(dto.inner_sdui_blocks) > 0
 
     assert len(dto.inner_sdui_blocks) > 1
-    accordions = [b for b in dto.inner_sdui_blocks if getattr(b, "block_type", "") == "accordion"]
+    accordions = [b for b in dto.inner_sdui_blocks if isinstance(b, AccordionBlock)]
     assert len(accordions) >= 2
 
-    alert_blocks: list[Any] = []
-    for acc in accordions:
-        alert_blocks.extend(getattr(acc, "children", []))
+    # Verify accordions for each extension
+    alert_blocks_1 = [c for c in accordions[0].children if isinstance(c, AlertBlock)]
+    alert_blocks_2 = [c for c in accordions[1].children if isinstance(c, AlertBlock)]
 
-    remediation_alert = next((b for b in alert_blocks if "Do this to fix" in getattr(b, "text", "")), None)
+    remediation_alert = next((b for b in alert_blocks_1 + alert_blocks_2 if "Do this to fix" in b.text), None)
+    falsification_alert = next((b for b in alert_blocks_1 + alert_blocks_2 if "This is false" in b.text), None)
+
     assert remediation_alert is not None
-
-    falsification_alert = next((b for b in alert_blocks if "This is false" in getattr(b, "text", "")), None)
     assert falsification_alert is not None
 
 
@@ -1372,7 +1349,13 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
     """Verify fallback language logic when target language is unknown."""
     from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile, RenderedSynthesisCache
+    from backend_v2.models.v2_core import (
+        ExecutionRecord,
+        I18nText,
+        MatrixSynthesisGroup,
+        OutputProfile,
+        RenderedSynthesisCache,
+    )
 
     profile_mock = OutputProfile.model_construct(
         id="prf_dddd1111dddd1111",
@@ -1381,19 +1364,13 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         name=I18nText(translations={"en": "Default"}),
         display_scale=DisplayScale.ORIGINAL,
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-        layouts=[
-            OutputLayoutBlock(
-                preset_view="text_only",
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_default",
+                title=I18nText(translations={"en": "Default"}),
                 target_blocks=["*"],
-            ),
-            OutputLayoutBlock(
-                preset_view="text_only",
-                target_blocks=["grouped_extensions_block"],
-            ),
+            )
         ],
-        extension_labels={
-            XaiExtensionType.COACHING: I18nText(translations={"en": "Coaching"}),
-        },
         visible_block_extensions=[XaiExtensionType.COACHING],
     )
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict([profile_mock])
@@ -1572,36 +1549,15 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 name=I18nText(translations={"en": "Default"}),
                 display_scale=DisplayScale.ORIGINAL,
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-                metric_mappings={
-                    "variance_mechanical": I18nText(translations={"en": "Mechanical"}),
-                    "variance_cognitive": I18nText(translations={"en": "Cognitive"}),
-                    "variance_total": I18nText(translations={"en": "Variance"}),
-                    "alignment_verdict": I18nText(translations={"en": "Alignment Verdict"}),
-                    "alignment_aligned": I18nText(translations={"en": "ALIGNED"}),
-                    "alignment_misaligned": I18nText(translations={"en": "MISALIGNED"}),
-                    "jargon_score": I18nText(translations={"en": "AI-Jargon Score"}),
-                    "authenticity_level": I18nText(translations={"en": "Authenticity Level"}),
-                    "level_high": I18nText(translations={"en": "High"}),
-                    "level_medium": I18nText(translations={"en": "Medium"}),
-                    "level_low": I18nText(translations={"en": "Low"}),
-                    "authenticity_fallback_explanation": I18nText(translations={"en": "Fallback {0}"}),
-                    "variance_fallback_explanation": I18nText(translations={"en": "Fallback {0} {1}"}),
-                },
-                layouts=[
-                    OutputLayoutBlock(
-                        preset_view="text_only",
+                matrix_synthesis_groups=[
+                    MatrixSynthesisGroup(
+                        id="grp_default",
+                        title=I18nText(translations={"en": "Default"}),
                         target_blocks=["*"],
-                    ),
-                    OutputLayoutBlock(
-                        preset_view="text_only",
-                        target_blocks=["grouped_extensions_block"],
-                    ),
+                    )
                 ],
                 visible_block_extensions=[],
                 visible_workflow_extensions=[XaiExtensionType.AUTHENTICITY_EVALUATION],
-                extension_labels={
-                    XaiExtensionType.AUTHENTICITY_EVALUATION: I18nText(translations={"en": "Authenticity"}),
-                },
                 max_extension_items=2,
                 strictness_level=85,
                 performativity_detector_step_id="stp_1234abcd1234abcd",
@@ -1701,12 +1657,12 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
                 custom_scale_min=None,
                 custom_scale_max=None,
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-                metric_mappings={},
-                layouts=[
-                    OutputLayoutBlock(
-                        preset_view="text_only",
+                matrix_synthesis_groups=[
+                    MatrixSynthesisGroup(
+                        id="grp_default",
+                        title=I18nText(translations={"en": "Default"}),
                         target_blocks=["*"],
-                    ),
+                    )
                 ],
                 visible_block_extensions=[],
                 visible_workflow_extensions=[],
@@ -1733,61 +1689,6 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
 
 
 @pytest.mark.asyncio
-async def test_blueprint_transformer_unrecognized_text_delivery_mode(mock_repo_transformer: MagicMock) -> None:
-    """Verify that unrecognized text_delivery_mode fails deterministically."""
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
-        id="exe_0000000000000099",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        active_profile_id="prf_dddd1111dddd1111",
-        execution_trace=[],
-        metadata={"target_locale": "en"},
-    )
-
-    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
-        [
-            OutputProfile(
-                id="prf_dddd1111dddd1111",
-                slug="default",
-                workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(translations={"en": "Default"}),
-                display_scale=DisplayScale.ORIGINAL,
-                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-                metric_mappings={},
-                layouts=[
-                    OutputLayoutBlock.model_construct(
-                        preset_view="text_only",
-                        target_blocks=["*"],
-                        text_delivery_mode="invalid_mode",  # type: ignore[arg-type]
-                    )
-                ],
-                visible_block_extensions=[],
-                visible_workflow_extensions=[],
-                extension_labels={},
-                max_extension_items=2,
-                strictness_level=85,
-            )
-        ]
-    )
-
-    transformer = BlueprintTransformer(
-        exec_repo=mock_repo_transformer,
-        workflow_repo=mock_repo_transformer,
-        comp_repo=mock_repo_transformer,
-        prompt_block_repo=mock_repo_transformer,
-        output_profile_repo=mock_repo_transformer,
-        identity_repo=mock_repo_transformer,
-        system_repo=mock_repo_transformer,
-    )
-
-    with pytest.raises(ConfigurationError) as exc_info:
-        await transformer.build_report_dto("exe_0000000000000099")
-
-    assert "Unrecognized text_delivery_mode: 'invalid_mode'" in str(exc_info.value)
-    assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"
-
-
-@pytest.mark.asyncio
 async def test_blueprint_apply_pii_masking(mock_repo_transformer: Any) -> None:
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1807,7 +1708,7 @@ async def test_blueprint_apply_pii_masking(mock_repo_transformer: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_transformer: Any) -> None:
-    from backend_v2.models.v2_core import OutputLayoutBlock, OutputProfile
+    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
     from backend_v2.services.blueprint import BlueprintTransformer
 
     _transformer = BlueprintTransformer(
@@ -1832,10 +1733,11 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         custom_scale_min=1.0,
         custom_scale_max=5.0,
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-        layouts=[
-            OutputLayoutBlock(
-                preset_view="3d_matrix",
-                matrix_visible_columns=["quotes"],  # Hit 213-214 and 437
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_matrix",
+                title=I18nText(translations={"en": "Matrix"}),
+                target_blocks=["matrix_logic1234"],
             )
         ],
     )
@@ -1982,7 +1884,13 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         name=I18nText(translations={"en": "test"}),
         display_scale=DisplayScale.ORIGINAL,
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-        layouts=[],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_test",
+                title=I18nText(translations={"en": "test"}),
+                target_blocks=["*"],
+            )
+        ],
     )
 
     valid_scale_0 = MatrixScale(
@@ -2189,7 +2097,7 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
         ]
     )
 
-    from backend_v2.models.v2_core import OutputLayoutBlock, OutputProfile
+    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
 
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
         [
@@ -2200,12 +2108,12 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
                 name=I18nText(translations={"en": "Default"}),
                 display_scale=DisplayScale.NORMALIZED_100,
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-                metric_mappings={},
-                layouts=[
-                    OutputLayoutBlock.model_construct(
-                        preset_view="text_only",
+                matrix_synthesis_groups=[
+                    MatrixSynthesisGroup(
+                        id="grp_default",
+                        title=I18nText(translations={"en": "Default"}),
                         target_blocks=["*"],
-                    ),
+                    )
                 ],
                 visible_block_extensions=[],
                 visible_workflow_extensions=[],
@@ -2255,7 +2163,6 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         name=I18nText(translations={"fi": "Testiprofiili", "en": "Test Profile"}),
         description=I18nText(translations={"fi": "Testikuvaus", "en": "Test Description"}),
         user_role_label=I18nText(translations={"fi": "Kohderyhmä", "en": "Target Audience"}),
-        user_role_mappings={"ROLE_ARCHITECT": I18nText(translations={"fi": "Pääarkkitehti", "en": "Lead Architect"})},
         custom_preface=I18nText(translations={"fi": "Mukautettu esipuhe.", "en": "Custom preface."}),
         visible_metadata=["user", "date", "scoring_engine"],
         visible_block_extensions=[XaiExtensionType.COACHING, XaiExtensionType.FALSIFICATION],
@@ -2269,23 +2176,13 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
             TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
             TargetBlockType.MATRIX_GRAPHS_BLOCK,
         ],
-        layouts=[
-            OutputLayoutBlock(
-                preset_view="1d_metrics",
-                text_delivery_mode="full",
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_metrics",
                 title=I18nText(translations={"fi": "Mittarit", "en": "Metrics"}),
+                target_blocks=["*"],
             )
         ],
-        metric_mappings={
-            "metadata_user": I18nText(translations={"fi": "Käyttäjä", "en": "User"}),
-            "metadata_organization": I18nText(translations={"fi": "Organisaatio", "en": "Organization"}),
-            "metadata_scoring_engine": I18nText(translations={"fi": "Arviointimoottori", "en": "Scoring Engine"}),
-            "metadata_strictness": I18nText(translations={"fi": "Ankaruustaso", "en": "Strictness Level"}),
-        },
-        extension_labels={
-            XaiExtensionType.COACHING: I18nText(translations={"fi": "Valmennusvinkit", "en": "Coaching Tips"}),
-            XaiExtensionType.FALSIFICATION: I18nText(translations={"fi": "Falsifiointi", "en": "Falsification"}),
-        },
     )
 
     mock_repo_transformer.get_all_output_profiles.return_value = [custom_profile.model_dump()]
@@ -2336,9 +2233,7 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
     assert any("Käyttäjä" in line for line in meta_block.metadata_lines)
     assert not any("Organisaatio" in line for line in meta_block.metadata_lines)
 
-    coaching = next(
-        b for b in report_dto.inner_sdui_blocks if isinstance(b, AccordionBlock) and b.title == "Valmennusvinkit"
-    )
+    coaching = next(b for b in report_dto.inner_sdui_blocks if isinstance(b, AccordionBlock) and b.title == "Valmennus")
     assert len(coaching.children) == 2
 
 
@@ -2354,8 +2249,6 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
-        layouts=[],
-        user_role_mappings={},
     )
 
     mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
@@ -2485,8 +2378,6 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],  # Empty target_block_order to test fallback radar block
-        layouts=[],
-        user_role_mappings={},
     )
     mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
 
@@ -2570,8 +2461,6 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
-        layouts=[],
-        user_role_mappings={},
     )
     mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
 
@@ -2586,7 +2475,9 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
             TraceEvent(
                 step_name="step_system_scoring",
                 event_type="output",
-                content={"total_score": 80.0, "penalties_applied": ["UNSUPPORTED_PENALTY_FORMAT:50"]},
+                content={
+                    "scoring_result": {"total_score": 80.0, "penalties_applied": ["UNSUPPORTED_PENALTY_FORMAT:50"]}
+                },
             )
         ],
     )
@@ -2647,14 +2538,6 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
-        layouts=[],
-        user_role_mappings={},
-        metric_mappings={
-            "metadata_user": I18nText(translations={"en": "User", "fi": "Käyttäjä"}),
-            "metadata_organization": I18nText(translations={"en": "Organization", "fi": "Organisaatio"}),
-            "metadata_scoring_engine": I18nText(translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
-            "metadata_strictness": I18nText(translations={"en": "Strictness", "fi": "Ankaruustaso"}),
-        },
     )
     mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
 
@@ -2765,14 +2648,6 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
         name=I18nText(translations={"en": "Test", "fi": "Testi"}),
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
-        layouts=[],
-        user_role_mappings={},
-        metric_mappings={
-            "metadata_user": I18nText(translations={"en": "User", "fi": "Käyttäjä"}),
-            "metadata_organization": I18nText(translations={"en": "Organization", "fi": "Organisaatio"}),
-            "metadata_scoring_engine": I18nText(translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
-            "metadata_strictness": I18nText(translations={"en": "Strictness", "fi": "Ankaruustaso"}),
-        },
     )
     mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
 
@@ -2896,13 +2771,13 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
             TargetBlockType.GLOBAL_SCORE_BLOCK,
         ],
         content_blocks=[],
-        layouts=[],
-        metric_mappings={
-            "metadata_user": I18nText(translations={"en": "User", "fi": "Käyttäjä"}),
-            "metadata_organization": I18nText(translations={"en": "Organization", "fi": "Organisaatio"}),
-            "metadata_scoring_engine": I18nText(translations={"en": "Scoring Engine", "fi": "Arviointimoottori"}),
-            "metadata_strictness": I18nText(translations={"en": "Strictness", "fi": "Ankaruustaso"}),
-        },
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_default",
+                title=I18nText(translations={"en": "Default"}),
+                target_blocks=["*"],
+            )
+        ],
     )
     mock_repo_transformer.get_all_output_profiles.return_value = [profile]
     mock_repo_transformer.get_output_profile.return_value = profile

@@ -67,6 +67,13 @@ def mock_repo() -> Any:
         "name": {"translations": {"en": "Test Profile"}},
         "visible_block_extensions": [],
         "visible_workflow_extensions": [],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_default",
+                "title": {"translations": {"en": "Default"}},
+                "target_blocks": ["*"],
+            }
+        ],
     }
     return repo
 

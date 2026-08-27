@@ -1,5 +1,3 @@
-import pytest
-
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixScorecardRowDTO,

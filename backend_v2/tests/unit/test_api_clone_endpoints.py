@@ -89,12 +89,20 @@ def mock_studio_service() -> AsyncMock:
         type="mcp_gateways",
         tools=[],
     )
+    from backend_v2.models.v2_core import MatrixSynthesisGroup
+
     service.clone_output_profile.return_value = OutputProfile(
         id="prof_1111111111111112",
         slug="test_prof_clone",
         workflow_id="wf_3333333333333333",
         name=I18nText(translations={"en": "Profile (Copy)", "fi": "Profile (Copy)"}),
-        layouts=[],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_default",
+                title=I18nText(translations={"en": "Default"}),
+                target_blocks=["*"],
+            )
+        ],
     )
     return service
 

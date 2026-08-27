@@ -61,7 +61,13 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         "slug": "prof1",
         "workflow_id": "wf_0123456789abcdef01",
         "name": {"translations": {"en": "Prof 1"}},
-        "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_default",
+                "title": {"translations": {"en": "Default"}},
+                "target_blocks": ["*"],
+            }
+        ],
     }
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
     cast(AsyncMock, deps.prompt_block_repo.get_all_prompt_blocks).return_value = []
@@ -127,7 +133,13 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
         "slug": "prof1",
         "workflow_id": "wf_0123456789abcdef01",
         "name": {"translations": {"en": "Prof 1"}},
-        "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_default",
+                "title": {"translations": {"en": "Default"}},
+                "target_blocks": ["*"],
+            }
+        ],
     }
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
     cast(AsyncMock, deps.prompt_block_repo.get_all_prompt_blocks).return_value = []

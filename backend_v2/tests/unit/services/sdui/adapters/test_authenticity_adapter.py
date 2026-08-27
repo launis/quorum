@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.enums import VisualIntent, XaiExtensionType
+from backend_v2.models.enums import XaiExtensionType
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExtensionMetricsDTO,
@@ -11,7 +11,7 @@ from backend_v2.models.v2_core import (
     OutputProfile,
     RenderedSynthesisCache,
 )
-from backend_v2.models.view.sdui import AlertBlock, MarkdownBlock, ParagraphBlock, SduiMetrics1DBlock
+from backend_v2.models.view.sdui import MarkdownBlock, ParagraphBlock, SduiMetrics1DBlock
 from backend_v2.services.sdui.adapters.authenticity_adapter import AuthenticityAdapter
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 

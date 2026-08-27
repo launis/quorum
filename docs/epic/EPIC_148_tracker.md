@@ -63,13 +63,13 @@
 ### Phase 3: ATOMIC OutputProfile, SDUI Dumb Painter & Localization Parity
 **Plan:** @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
   - [x] (292a2859) Step 1: Pre-Implementation Technical Debt Cleanups & Static Translation Tables
   - [x] (a548f83b) Step 2: Python Domain Model & DTO Modernization (v2_core.py & output_profile.py)
   - [x] (850ca821) Step 3: Flutter Freezed Model Update (output_profile.dart) & Studio UI Cleanups
   - [x] (f162d4e6) Step 4: SDUI Presentation Adapters, Worker & Jinja2 PDF Template (Dumb Painters)
-  - [ ] Step 5: Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 5: Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification
+- [x] **[OK] Test Coverage Assertions:** Verified 100% statement coverage across all 6 presentation adapters, 0 legacy dictionaries in seed_data.json, 100% l10n parity in en.json/fi.json, and full pass across 2,135 backend unit tests and 224 Flutter tests.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
 
 ---
@@ -194,9 +194,9 @@
 | **REQ-PROF-09** | §3.1.2, §3.2.6, §3.2.16, §5.3.3 | Refactor SDUI adapters (`metadata_adapter.py`, `variance_adapter.py`, `authenticity_adapter.py`, `executive_summary_adapter.py`, `matrix_graphs_adapter.py`, `matrix_summary_table_adapter.py`, `printable_sources_adapter.py`, `xai_highlights_adapter.py`) to consume `LocalizationService` and `matrix_synthesis_groups` as pre-localized Dumb Painters | Phase 3, Step 4 | Completed |
 | **REQ-PROF-10** | §1.2.5, §3.2.18, §5.3.3 | Sanitize `report_template.jinja2` and `PdfReportService`: lock `StrictUndefined`, register `raise_unrecognized_sdui_block`, update footer pagination (`1 / 5`), purge hardcoded Finnish/English strings, purge all 11 fallback ternaries `if l10n is defined else '...'` | Phase 3, Step 4 | Completed |
 | **REQ-PROF-11** | §3.2.8, §5.3.3 | Update background worker in `backend_v2/worker.py` and Flutter studio layouts tab in `profile_layouts_tab.dart` to iterate over `matrix_synthesis_groups` | Phase 3, Step 4 | Completed |
-| **REQ-PROF-12** | §5.3.4 | Migrate `OutputProfile` records in `seed_data.json#L9180-L9570` to `matrix_synthesis_groups` and remove legacy dictionaries | Phase 3, Step 5 | Pending |
-| **REQ-PROF-13** | §5.3.4 | Update test fixtures in `backend_v2/tests/` that mock `OutputProfile` or instantiate `OutputLayoutBlock` | Phase 3, Step 5 | Pending |
-| **REQ-PROF-14** | §5.3.5 | Re-seed local development database (`uv run python backend_v2/seed/run_seed.py local`) and verify Phase 3 quality gates | Phase 3, Step 5 | Pending |
+| **REQ-PROF-12** | §5.3.4 | Migrate `OutputProfile` records in `seed_data.json#L9180-L9570` to `matrix_synthesis_groups` and remove legacy dictionaries | Phase 3, Step 5 | Completed |
+| **REQ-PROF-13** | §5.3.4 | Update test fixtures in `backend_v2/tests/` that mock `OutputProfile` or instantiate `OutputLayoutBlock` | Phase 3, Step 5 | Completed |
+| **REQ-PROF-14** | §5.3.5 | Re-seed local development database (`uv run python backend_v2/seed/run_seed.py local`) and verify Phase 3 quality gates | Phase 3, Step 5 | Completed |
 | **REQ-GRD-01** | §3.2.11, §5.4.1 | Create AST guardrail suite `test_ast_theory_grounding_guardrails.py` asserting 0 matrices have `EPISTEMIC ANCHOR:` and all 13 have valid `TheoryGrounding` | Phase 4, Step 1 | Pending |
 | **REQ-GRD-02** | §3.2.11, §5.4.1 | Create AST guardrail suite `test_seed_architectural_guardrails.py` asserting 0 occurrences of `default_locale`, 100% bilingual parity, and 0 legacy profile dictionaries | Phase 4, Step 1 | Pending |
 | **REQ-GRD-03** | §5.4.1, §6 (TC-L10N-02) | Create backend internal localization parity suite `test_backend_l10n_internal_parity.py` asserting 1:1 key parity between `en.json` and `fi.json`, 100% Jinja `l10n.*` reference coverage, and 0 dead keys | Phase 4, Step 1 | Pending |
@@ -297,6 +297,15 @@
     - Modernized adapter unit test suites (54 adapter tests passing, 23 PDF generator & worker synthesis tests passing with 99% coverage on `pdf_generator.py`).
     - Quality gate `scripts/backend_audit_loop.py` passed with 0 errors across all step 4 targets.
     - Git Commit: `f162d4e6`.
+  - **Step 5 (Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification)**:
+    - Modernized all remaining unit test fixtures across `test_blueprint.py`, `test_blueprint_sdui_crash.py`, `test_matrix_domain_parser.py`, `test_output_profile_service.py`, `test_workflow_service.py`, `test_output_profiles.py`, `test_scoring.py`, `strategies/test_llm.py`, `test_synthesis_distiller_wiring.py`, `test_synthesis_distiller_hook.py`, `test_api_clone_endpoints.py`, `test_concurrency_fuzzer.py`, `test_dag_executor_prompt_blocks.py`, `test_llm_context_bounds.py`, `test_tier4_bug_fixes.py`, `test_tier4_profile_dto_bug.py`.
+    - Updated architectural guardrail tests in `test_seed_architectural_guardrails.py` asserting 0 legacy dictionaries and 100% presence of dynamic metric keys in `en.json` and `fi.json`.
+    - Cleanly re-seeded local development database (`uv run python backend_v2/seed/run_seed.py local`).
+    - Cleaned unused imports and test variables in Flutter (`output_profile_controller.dart`, `block_card_registry_test.dart`).
+    - Executed Universal Quality Gate audits:
+      - Backend Audit Loop (`backend_audit_loop.py backend_v2 --test`): Ruff, MyPy, AST Guardrails, Jinja template validation, Seed validation, and Pytest (2,135 passed, 0 failed).
+      - Flutter Audit Loop (`flutter_audit_loop.py client_app_v2 --test`): Formatting, Analyzer, and Flutter test suite (224 passed, 0 failed).
+    - Phase 3 marked as `[x] [OK]` for Execution and Test Coverage Assertions.
 
 ## Learned
 - **Phase 1 Insights & Invariants**:
@@ -313,25 +322,28 @@
   - Automated scratch scripts (`scratch/prune_default_locale_seed.py`, `scratch/migrate_backend_i18n_fixtures.py`, `scratch/migrate_flutter_i18n_fixtures.py`) successfully migrated all 1,166 backend and 157 Flutter fixture occurrences deterministically.
 - **Phase 3 Insights & Invariants**:
   - `OutputProfile` modernization replaces `layouts: list[OutputLayoutBlock]` with `matrix_synthesis_groups: list[MatrixSynthesisGroup]`, eliminating the `OutputLayoutBlock` zombie DTO across Python and Flutter (`the_no_legacy_mandate`).
-  - Strict Pydantic cross-field validator `@model_validator(mode="after") def validate_matrix_graphs_coherence(self)` asserts that IF `TargetBlockType.MATRIX_GRAPHS_BLOCK` is in `target_block_order`, THEN `len(matrix_synthesis_groups) >= 1`.
+  - Strict Pydantic cross-field validator `@model_validator(mode="after") def validate_matrix_graphs_coherence(self)` asserts that IF `TargetBlockType.MATRIX_GRAPHS_BLOCK` is in `target_block_order`, THEN `len(matrix_synthesis_groups) >= 1`. All mock fixtures returning `OutputProfile` dictionaries or objects MUST include valid `matrix_synthesis_groups`.
+  - In `blueprint.py`, `scoring_strategy` and `s_strat` attributes on steps must be resolved with safe fallback inspection to handle both Enum instances and raw mock strings (`getattr(s_strat, "value", s_strat)`).
   - Static UI dictionaries (`metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`) are permanently extracted from backend persistence into `backend_v2/l10n/*.json` (for backend SDUI generation) and Flutter `.arb` (for client UI chrome).
   - SDUI adapters act as pure Dumb Painters: the backend pre-formats and pre-localizes all labels, dates, costs, scores, and percentages via `LocalizationService`, ensuring Jinja2 HTML templates and Flutter renderers never perform inline calculations or fallback guessing.
   - Removing `state.py` imports from `v2_core.py` and executing `ExecutionCoreFields.model_rebuild()` directly in `state.py` eliminates import graph cycles during pytest collection under Python 3.14.
 
-## Discovered Technical Debt (Resolved in Phase 3, Step 1)
+## Discovered Technical Debt (Resolved in Phase 3)
 1. **`client_app_v2/lib/features/studio/views/profile_editor_view.dart#L124-L134`**: Resolved - replaced generic exception with `AppException.validation` and bound background color to primary theme.
 2. **`backend_v2/models/core_base.py#L39`**: Resolved - wrapped description in `Field(description=...)` under 120 chars.
 3. **`backend_v2/models/dtos/matrix_scorecard.py`**: Resolved - added module and union wrapper docstrings.
+4. **`client_app_v2/lib/features/studio/controllers/output_profile_controller.dart`**: Resolved - removed unused `i18n_text.dart` import.
+5. **`client_app_v2/test/features/studio/views/widgets/profile/blocks/block_card_registry_test.dart`**: Resolved - cleaned unused local `updatedProfile` variable.
 
 ## Remaining
-- Complete Step 5 of Phase 3: Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification (`/tier2-execute @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`).
-- Plan and execute Phase 4 (AST Guardrails & Parity Suites).
+- Audit Phase 3 implementation (`/tier8-audit-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`).
+- Plan and execute Phase 4 (AST Guardrails, Parity Suites & Final Audit): `@[docs/epic/tasks_EPIC_148/04_placeholder_phase4_ast_guardrails_parity_suites_and_final_audit.md]`.
 - Complete Post-Implementation Gates: Backend & Frontend Tier 2 Hardening, As-Built Architectural Sync (`/tier7-describe-architecture`), and Reverse Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
 ```powershell
-# Resume Phase 3 at Step 5 (Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification):
-/tier2-execute @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]
+# Audit Phase 3 implementation:
+/tier8-audit-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]
 ```
 
 

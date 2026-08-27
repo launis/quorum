@@ -464,4 +464,3 @@ _state_types = {
     "TraceEvent": TraceEvent,
 }
 ExecutionCoreFields.model_rebuild(_types_namespace=_state_types)
-

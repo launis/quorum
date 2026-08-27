@@ -60,6 +60,13 @@ async def test_create_output_profile_draft(mock_studio_service):
         slug="test-draft",
         name={"translations": {"en": "test"}},
         organization_id="root",
+        matrix_synthesis_groups=[
+            {
+                "id": "grp_test",
+                "title": {"translations": {"en": "test"}},
+                "target_blocks": ["*"],
+            }
+        ],
     )
     mock_studio_service.create_output_profile_draft.return_value = mock_profile
     response = client.post("/profiles/draft")
@@ -75,6 +82,13 @@ async def test_get_output_profile(mock_studio_service):
         slug="test-profile",
         name={"translations": {"en": "test"}},
         organization_id="root",
+        matrix_synthesis_groups=[
+            {
+                "id": "grp_test",
+                "title": {"translations": {"en": "test"}},
+                "target_blocks": ["*"],
+            }
+        ],
     )
     mock_studio_service.get_output_profile.return_value = mock_profile
     response = client.get("/profiles/prof_0123456789abcdef0123456789abcdef")
@@ -90,6 +104,13 @@ async def test_save_output_profile(mock_studio_service):
         slug="test-profile",
         name={"translations": {"en": "test"}},
         organization_id="root",
+        matrix_synthesis_groups=[
+            {
+                "id": "grp_test",
+                "title": {"translations": {"en": "test"}},
+                "target_blocks": ["*"],
+            }
+        ],
     )
     mock_studio_service.save_output_profile.return_value = mock_profile
     response = client.put("/profiles/prof_0123456789abcdef0123456789abcdef", json=mock_profile.model_dump(mode="json"))
@@ -110,6 +131,13 @@ async def test_clone_output_profile(mock_studio_service):
         slug="test-copy",
         name={"translations": {"en": "test copy"}},
         organization_id="root",
+        matrix_synthesis_groups=[
+            {
+                "id": "grp_test",
+                "title": {"translations": {"en": "test"}},
+                "target_blocks": ["*"],
+            }
+        ],
     )
     mock_studio_service.clone_output_profile.return_value = mock_profile
     response = client.post("/profiles/prof_0123456789abcdef0123456789abcdef/clone")

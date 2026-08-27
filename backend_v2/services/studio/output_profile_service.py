@@ -136,8 +136,8 @@ class StudioOutputProfileService:
         # Delegate permission calculation to the Domain Model
         allowed_blocks = workflow.get_allowed_layout_targets(all_steps)
 
-        for layout in profile.layouts:
-            for comp in layout.target_blocks:
+        for group in profile.matrix_synthesis_groups:
+            for comp in group.target_blocks:
                 if comp != "*" and comp not in allowed_blocks:
                     msg = f"Target Component '{comp}' does not exist in the context of Workflow '{workflow.id}'."
                     logger.error(
@@ -209,10 +209,7 @@ class StudioOutputProfileService:
             "id": new_id,
             "slug": new_id,
             "name": {"translations": {"en": "New Profile", "fi": "Uusi profiili"}},
-            "category_id": "report",
-            "layouts": [
-                {"layout_type": "default_pdf", "layout_config": {"columns": 1, "theme": "light"}, "blocks": []}
-            ],
+            "matrix_synthesis_groups": [],
             "organization_id": (
                 SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
             ),

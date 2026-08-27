@@ -54,7 +54,7 @@ async def test_workflow_does_not_leak_metric_mappings(mock_studio_service: Async
             "workflow_id": "wf_0123456789abcdef0123456789abcdef",
             "slug": "test-profile",
             "name": {"translations": {"en": "test"}},
-            "layouts": [],
+            "matrix_synthesis_groups": [],
         },
         strict=False,
     )
@@ -86,6 +86,7 @@ async def test_workflow_does_not_leak_metric_mappings(mock_studio_service: Async
     assert "prof_0123456789abcdef0123456789abcdef" in profiles
     profile_data = profiles["prof_0123456789abcdef0123456789abcdef"]
 
-    # Dual-Axis Localization contract requires metric_mappings to be retained in responses
-    assert "metric_mappings" in profile_data
+    # In Phase 3, matrix_synthesis_groups is present and metric_mappings is omitted
+    assert "matrix_synthesis_groups" in profile_data
+    assert "metric_mappings" not in profile_data
     assert "score_display_label" not in profile_data

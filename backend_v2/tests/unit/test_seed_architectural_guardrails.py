@@ -111,27 +111,58 @@ def test_output_profiles_zero_legacy_diagnostic_scorecard() -> None:
     assert "include_diagnostic_scorecard" in malformed_profile
 
 
-def test_output_profiles_metric_mappings_contain_bilingual_metadata_keys() -> None:
-    """Architectural Guardrail: All output profiles must have complete bilingual metric mappings (all 17 keys)."""
+def test_output_profiles_zero_legacy_dictionaries_and_valid_matrix_synthesis_groups() -> None:
+    """Architectural Guardrail: OutputProfiles MUST NOT contain legacy dictionaries and MUST have valid matrix_synthesis_groups."""
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
+    legacy_keys = [
+        "metric_mappings",
+        "matrix_column_labels",
+        "user_role_mappings",
+        "extension_labels",
+        "layouts",
+        "preset_view",
+        "text_delivery_mode",
+    ]
+
+    profiles = data.get("output_profiles", [])
+    assert profiles, "At least one output profile must exist in master seed"
+
+    for raw_profile in profiles:
+        # Assert 0 legacy dictionaries in master seed
+        for leg_key in legacy_keys:
+            assert leg_key not in raw_profile, (
+                f"Legacy dictionary/field '{leg_key}' found in output_profile '{raw_profile.get('id')}'"
+            )
+
+        # Validate with strict OutputProfile domain model
+        profile = OutputProfile.model_validate(raw_profile)
+        assert hasattr(profile, "matrix_synthesis_groups")
+        assert len(profile.matrix_synthesis_groups) >= 1
+        for group in profile.matrix_synthesis_groups:
+            assert len(group.target_blocks) >= 1
+            assert group.title.get("en")
+            assert group.title.get("fi")
+
+    # Verify static translation tables contain all 17 required metric mapping keys
+    l10n_dir = Path(__file__).resolve().parents[2] / "l10n"
+    with open(l10n_dir / "en.json", encoding="utf-8") as f_en, open(l10n_dir / "fi.json", encoding="utf-8") as f_fi:
+        en_l10n = json.load(f_en)
+        fi_l10n = json.load(f_fi)
+
     required_keys = [
-        # Metadata labels
         "metadata_user",
         "metadata_organization",
         "metadata_scoring_engine",
         "metadata_strictness",
-        # Variance labels
         "variance_mechanical",
         "variance_cognitive",
         "variance_total",
         "variance_fallback_explanation",
-        # Alignment labels
         "alignment_verdict",
         "alignment_aligned",
         "alignment_misaligned",
-        # Authenticity labels
         "jargon_score",
         "authenticity_level",
         "level_high",
@@ -139,51 +170,9 @@ def test_output_profiles_metric_mappings_contain_bilingual_metadata_keys() -> No
         "level_low",
         "authenticity_fallback_explanation",
     ]
-
-    profiles = data.get("output_profiles", [])
-    assert profiles, "At least one output profile must exist in master seed"
-
-    for profile in profiles:
-        mappings = profile.get("metric_mappings", {})
-        for req_key in required_keys:
-            assert req_key in mappings, (
-                f"Required metric key '{req_key}' missing from metric_mappings in profile '{profile.get('id')}'"
-            )
-            i18n_entry = mappings[req_key]
-            translations = i18n_entry.get("translations", {})
-            assert "fi" in translations and bool(translations["fi"]), (
-                f"Missing or empty 'fi' translation for '{req_key}' in profile '{profile.get('id')}'"
-            )
-            assert "en" in translations and bool(translations["en"]), (
-                f"Missing or empty 'en' translation for '{req_key}' in profile '{profile.get('id')}'"
-            )
-
-    # Anti-happy-path negative verification
-    def validate_metric_keys(mappings_dict: dict[str, Any]) -> bool:
-        for key in required_keys:
-            if key not in mappings_dict:
-                return False
-            t = mappings_dict[key].get("translations", {})
-            if not t.get("fi") or not t.get("en"):
-                return False
-        return True
-
-    assert not validate_metric_keys({})
-    assert not validate_metric_keys({"metadata_user": {"translations": {"fi": "Käyttäjä:"}}})
-    # Missing variance keys
-    assert not validate_metric_keys(
-        {
-            "metadata_user": {"translations": {"fi": "Käyttäjä:", "en": "User:"}},
-            "metadata_organization": {"translations": {"fi": "Org:", "en": "Org:"}},
-            "metadata_scoring_engine": {"translations": {"fi": "Moottori:", "en": "Engine:"}},
-            "metadata_strictness": {"translations": {"fi": "Taso:", "en": "Level:"}},
-        }
-    )
-    # Complete dummy with 1 empty string in variance_mechanical
-    complete_dummy: dict[str, Any] = {k: {"translations": {"fi": f"Val_{k}", "en": f"Val_{k}"}} for k in required_keys}
-    assert validate_metric_keys(complete_dummy)
-    complete_dummy["variance_mechanical"]["translations"]["en"] = ""
-    assert not validate_metric_keys(complete_dummy)
+    for req_key in required_keys:
+        assert req_key in en_l10n and bool(en_l10n[req_key]), f"Missing '{req_key}' in backend_v2/l10n/en.json"
+        assert req_key in fi_l10n and bool(fi_l10n[req_key]), f"Missing '{req_key}' in backend_v2/l10n/fi.json"
 
 
 def test_output_profiles_enums_valid() -> None:
@@ -202,8 +191,6 @@ def test_output_profiles_enums_valid() -> None:
         "weighted_average",
         "pure_math",
     }
-    valid_preset_views = {"1d_metrics", "2d_compare", "3d_matrix", "text_only", "matrix_summary"}
-    valid_text_delivery_modes = {"full", "summary", "bullets"}
 
     profiles = data.get("output_profiles", [])
     assert profiles, "At least one output profile must exist in master seed"
@@ -217,14 +204,6 @@ def test_output_profiles_enums_valid() -> None:
             assert profile["scoring_strategy"] in valid_scoring_strategies, (
                 f"Invalid scoring_strategy '{profile['scoring_strategy']}' in profile '{profile.get('id')}'"
             )
-        if "preset_view" in profile:
-            assert profile["preset_view"] in valid_preset_views, (
-                f"Invalid preset_view '{profile['preset_view']}' in profile '{profile.get('id')}'"
-            )
-        if "text_delivery_mode" in profile:
-            assert profile["text_delivery_mode"] in valid_text_delivery_modes, (
-                f"Invalid text_delivery_mode '{profile['text_delivery_mode']}' in profile '{profile.get('id')}'"
-            )
 
     # Anti-happy-path negative verification
     def validate_profile_enums(profile_dict: dict[str, Any]) -> bool:
@@ -232,21 +211,13 @@ def test_output_profiles_enums_valid() -> None:
             return False
         if "scoring_strategy" in profile_dict and profile_dict["scoring_strategy"] not in valid_scoring_strategies:
             return False
-        if "preset_view" in profile_dict and profile_dict["preset_view"] not in valid_preset_views:
-            return False
-        if "text_delivery_mode" in profile_dict and profile_dict["text_delivery_mode"] not in valid_text_delivery_modes:
-            return False
         return True
 
     assert validate_profile_enums(
         {
             "display_scale": "original",
             "scoring_strategy": "AVERAGE",
-            "preset_view": "3d_matrix",
-            "text_delivery_mode": "full",
         }
     )
     assert not validate_profile_enums({"display_scale": "unsupported_scale_1000"})
     assert not validate_profile_enums({"scoring_strategy": "NON_EXISTENT_STRATEGY"})
-    assert not validate_profile_enums({"preset_view": "invalid_preset"})
-    assert not validate_profile_enums({"text_delivery_mode": "invalid_mode"})

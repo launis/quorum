@@ -8,7 +8,7 @@ import pytest
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.enums import TargetBlockType
-from backend_v2.models.v2_core import I18nText, OutputLayoutBlock, OutputProfile
+from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup, OutputProfile
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
 
 
@@ -52,7 +52,13 @@ async def test_save_output_profile_allows_target_block_types(service: Any, mock_
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test"}},
         "organization_id": "root",
-        "layouts": [],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_test",
+                "title": {"translations": {"en": "Test"}},
+                "target_blocks": ["*"],
+            }
+        ],
     }
 
     # Create an OutputProfile that includes "global_score_block"
@@ -63,7 +69,13 @@ async def test_save_output_profile_allows_target_block_types(service: Any, mock_
         name=I18nText(translations={"en": "Test"}),
         organization_id="root",
         target_block_order=[TargetBlockType.GLOBAL_SCORE_BLOCK],
-        layouts=[OutputLayoutBlock(preset_view="text_only", target_blocks=[TargetBlockType.GLOBAL_SCORE_BLOCK])],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_test",
+                title=I18nText(translations={"en": "Test Group"}),
+                target_blocks=[TargetBlockType.GLOBAL_SCORE_BLOCK],
+            )
+        ],
     )
 
     # This should NOT raise AppException
@@ -93,7 +105,13 @@ async def test_save_output_profile_fails_wrong_workflow_block(service: Any, mock
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test"}},
         "organization_id": "root",
-        "layouts": [{"preset_view": "text_only", "target_blocks": ["blk_wrong_workflow"]}],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_wrong",
+                "title": {"translations": {"en": "Wrong"}},
+                "target_blocks": ["blk_wrong_workflow"],
+            }
+        ],
     }
     profile = OutputProfile.model_validate(profile_dict, strict=False)
 
@@ -126,7 +144,13 @@ async def test_save_output_profile_fails_invalid_block(service: Any, mock_workfl
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test"}},
         "organization_id": "root",
-        "layouts": [{"preset_view": "text_only", "target_blocks": ["invalid_block_123"]}],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_invalid",
+                "title": {"translations": {"en": "Invalid"}},
+                "target_blocks": ["invalid_block_123"],
+            }
+        ],
     }
     profile = OutputProfile.model_validate(profile_dict, strict=False)
 

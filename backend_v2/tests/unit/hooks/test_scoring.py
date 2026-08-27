@@ -124,7 +124,13 @@ class MockRepository:
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "strictness_level": 85,
             "scoring_strategy": "WATERFALL",
-            "layouts": [],
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_default",
+                    "title": {"translations": {"en": "Default", "fi": "Default"}},
+                    "target_blocks": ["*"],
+                }
+            ],
             "display_scale": "original",
         }
 
@@ -209,7 +215,13 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
                 "name": {"translations": {"en": "Test", "fi": "Test"}},
                 "strictness_level": 85,
                 "scoring_strategy": "WATERFALL",
-                "layouts": [],
+                "matrix_synthesis_groups": [
+                    {
+                        "id": "grp_default",
+                        "title": {"translations": {"en": "Default", "fi": "Default"}},
+                        "target_blocks": ["*"],
+                    }
+                ],
                 "display_scale": "original",
             }
 
@@ -311,7 +323,13 @@ class MockRepoWaterfall:
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "strictness_level": 85,
             "scoring_strategy": "WATERFALL",
-            "layouts": [],
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_default",
+                    "title": {"translations": {"en": "Default", "fi": "Default"}},
+                    "target_blocks": ["*"],
+                }
+            ],
             "display_scale": "original",
         }
 
@@ -361,7 +379,13 @@ class MockRepoWaterfallMixed:
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "strictness_level": 85,
             "scoring_strategy": "WATERFALL",
-            "layouts": [],
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_default",
+                    "title": {"translations": {"en": "Default", "fi": "Default"}},
+                    "target_blocks": ["*"],
+                }
+            ],
             "display_scale": "original",
         }
 
@@ -601,7 +625,13 @@ class MockRepoWaterfallSimulation:
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "strictness_level": 85,
             "scoring_strategy": "AVERAGE",
-            "layouts": [],
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_default",
+                    "title": {"translations": {"en": "Default", "fi": "Default"}},
+                    "target_blocks": ["*"],
+                }
+            ],
             "display_scale": "original",
         }
 
@@ -959,7 +989,13 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
                 "scoring_strategy": "WATERFALL",
                 "visible_block_extensions": ["coaching", "falsification", "remediation_steps"],
                 "visible_workflow_extensions": [],
-                "layouts": [],
+                "matrix_synthesis_groups": [
+                    {
+                        "id": "grp_default",
+                        "title": {"translations": {"en": "Default", "fi": "Default"}},
+                        "target_blocks": ["*"],
+                    }
+                ],
             }
 
     deps = HookDependencies(
@@ -1028,7 +1064,13 @@ async def test_scoring_matrix_namespace_isolation() -> None:
                 "scoring_strategy": "WATERFALL",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
-                "layouts": [],
+                "matrix_synthesis_groups": [
+                    {
+                        "id": "grp_default",
+                        "title": {"translations": {"en": "Default", "fi": "Default"}},
+                        "target_blocks": ["*"],
+                    }
+                ],
             }
 
     deps = HookDependencies(
@@ -1093,7 +1135,13 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
                 "scoring_strategy": "WATERFALL",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
-                "layouts": [],
+                "matrix_synthesis_groups": [
+                    {
+                        "id": "grp_default",
+                        "title": {"translations": {"en": "Default", "fi": "Default"}},
+                        "target_blocks": ["*"],
+                    }
+                ],
             }
 
     deps = HookDependencies(
@@ -1159,7 +1207,13 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
                 "scoring_strategy": "WATERFALL",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
-                "layouts": [],
+                "matrix_synthesis_groups": [
+                    {
+                        "id": "grp_default",
+                        "title": {"translations": {"en": "Default", "fi": "Default"}},
+                        "target_blocks": ["*"],
+                    }
+                ],
             }
 
     deps = HookDependencies(

@@ -318,9 +318,6 @@ def test_build_malformed_highlight_item_skipped(
     )
 
 
-
-
-
 def test_build_missing_aesthetics_rule_raises_app_exception(
     valid_output_profile_fixture: OutputProfile, monkeypatch: pytest.MonkeyPatch
 ) -> None:

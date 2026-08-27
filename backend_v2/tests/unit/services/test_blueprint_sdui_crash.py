@@ -3,13 +3,17 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.exceptions import AppException
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, ExtensionMetricsDTO, RenderedSynthesisCache
+from backend_v2.models.v2_core import (
+    ExecutionRecord,
+    ExecutionStatus,
+    ExtensionMetricsDTO,
+    RenderedSynthesisCache,
+)
 from backend_v2.services.blueprint import BlueprintTransformer
 
 
 @pytest.mark.asyncio
-async def test_blueprint_authenticity_evaluation_crash() -> None:
+async def test_blueprint_authenticity_evaluation_success() -> None:
     # Setup mock repositories
     mock_prompt_block_repo = AsyncMock()
     mock_prompt_block_repo.get_all_prompt_blocks.return_value = []
@@ -17,6 +21,7 @@ async def test_blueprint_authenticity_evaluation_crash() -> None:
     mock_workflow_repo = AsyncMock()
     mock_wf = AsyncMock()
     mock_wf.default_scoring_strategy = "AVERAGE"
+    mock_wf.default_strictness_level = 85
     mock_workflow_repo.get_workflow.return_value = mock_wf
     mock_workflow_repo.get_workflow_by_id.return_value = {
         "id": "wf_1234567812345678",
@@ -34,7 +39,7 @@ async def test_blueprint_authenticity_evaluation_crash() -> None:
     mock_exec_repo.get_execution.return_value = ExecutionRecord(
         id="exec_1234567812345678",
         workflow_id="wf_1234567812345678",
-        output_profile_id="prf_1234567812345678",
+        active_profile_id="prf_1234567812345678",
         status=ExecutionStatus.PASSED,
         context_variables={"step_detector": json.dumps({"raw_score": 75.0})},
         execution_trace=[],
@@ -46,23 +51,13 @@ async def test_blueprint_authenticity_evaluation_crash() -> None:
     )
 
     mock_profile_repo = AsyncMock()
-    # Create profile with authenticity_evaluation in extensions but NOT in extension_labels
     mock_profile_dict = {
         "id": "prf_1234567812345678",
         "slug": "test",
         "workflow_id": "wf_1234567812345678",
-        "metric_mappings": {
-            "jargon_score": {"translations": {"en": "Jargon Score"}},
-            "authenticity_level": {"translations": {"en": "Authenticity Evaluation"}},
-            "level_high": {"translations": {"en": "High"}},
-            "level_medium": {"translations": {"en": "Medium"}},
-            "level_low": {"translations": {"en": "Low"}},
-            "authenticity_fallback_explanation": {"translations": {"en": "Fallback"}},
-        },
-        "layouts": [],
         "name": {"translations": {"en": "test"}},
+        "target_block_order": ["authenticity_evaluation_block"],
         "visible_workflow_extensions": ["authenticity_evaluation"],
-        "extension_labels": {},
     }
 
     mock_profile_repo.get_all_output_profiles.return_value = [mock_profile_dict]
@@ -82,10 +77,6 @@ async def test_blueprint_authenticity_evaluation_crash() -> None:
         system_repo=AsyncMock(),
     )
 
-    # Executing build_report_dto should raise AppException due to missing label
-    with pytest.raises(AppException) as exc_info:
-        await transformer.build_report_dto("exec_1234567812345678", "prf_1234567812345678", "en")
-
-    assert "Strict Fail-Fast: Missing extension_labels mapping for authenticity_evaluation in OutputProfile." in str(
-        exc_info.value.message
-    )
+    report = await transformer.build_report_dto("exec_1234567812345678", "prf_1234567812345678", "en")
+    assert report is not None
+    assert len(report.inner_sdui_blocks) >= 1

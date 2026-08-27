@@ -8,7 +8,6 @@ import 'package:client_app/utils/riverpod_extensions.dart';
 
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/theme/app_durations.dart';

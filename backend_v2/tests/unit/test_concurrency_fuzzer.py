@@ -77,6 +77,13 @@ def mock_repo() -> AsyncMock:
         "name": {"translations": {"en": "Test Profile"}},
         "visible_block_extensions": [],
         "visible_workflow_extensions": [],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_default",
+                "title": {"translations": {"en": "Default"}},
+                "target_blocks": ["*"],
+            }
+        ],
     }
     repo.get_workflow.return_value = _create_workflow(1).model_dump(mode="json")
     repo.get_workflow_by_id.return_value = repo.get_workflow.return_value

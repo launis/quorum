@@ -14,7 +14,6 @@ def test_output_profile_dtos_accept_content_blocks() -> None:
         "slug": "test_slug",
         "workflow_id": "wf_1234abcd1234abcd",
         "name": {"translations": {"en": "Title", "fi": "Title"}},
-        "layouts": [],
         "content_blocks": [{"id": "blk_123", "block_type": "markdown", "text": "test"}],
     }
 

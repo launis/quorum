@@ -2,8 +2,6 @@
 
 from datetime import datetime
 
-import pytest
-
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile
 from backend_v2.models.view.sdui import SduiMetadataBlock

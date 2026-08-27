@@ -21,6 +21,13 @@ def mock_repo() -> MagicMock:
             "name": {"translations": {"en": "Test"}},
             "workflow_id": "wf_123",
             "organization_id": "root",
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_test",
+                    "title": {"translations": {"en": "Test"}},
+                    "target_blocks": ["*"],
+                }
+            ],
         }
     )
     repo.get_workflow = AsyncMock(
@@ -1519,7 +1526,13 @@ async def test_execute_matrix_chunking_flow(
         "tone_instruction": {
             "translations": {"en": "Professional and analytical."},
         },
-        "layouts": [],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_test",
+                "title": {"translations": {"en": "Test"}},
+                "target_blocks": ["*"],
+            }
+        ],
     }
 
     mock_hook_state = MagicMock()

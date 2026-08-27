@@ -66,7 +66,13 @@ def _build_mock_deps() -> HookDependencies:
         "slug": "prof_standard",
         "workflow_id": "wor_0123456789abcdef01",
         "name": {"translations": {"en": "Standard Profile"}},
-        "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_default",
+                "title": {"translations": {"en": "Default"}},
+                "target_blocks": ["*"],
+            }
+        ],
         "max_extension_items": 5,
     }
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
@@ -561,7 +567,13 @@ async def test_synthesis_distiller_wiring_forwards_synthesis_config() -> None:
         "slug": "prof_standard",
         "workflow_id": "wor_0123456789abcdef01",
         "name": {"translations": {"en": "Standard Profile"}},
-        "layouts": [{"preset_view": "default", "target_blocks": ["*"]}],
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_default",
+                "title": {"translations": {"en": "Default"}},
+                "target_blocks": ["*"],
+            }
+        ],
         "max_extension_items": 5,
         "synthesis": synthesis_cfg.model_dump(mode="json"),
     }

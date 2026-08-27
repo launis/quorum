@@ -263,15 +263,13 @@ void main() {
       final profile = createTestProfile(
         targetBlockOrder: [TargetBlockType.matrixSummaryTableBlock],
       );
-      OutputProfile? updatedProfile;
-
       await tester.pumpWidget(
         createTestWidget(
           child: Builder(
             builder: (context) {
               return MatrixSummaryTableCard(
                 payload: profile,
-                updatePayload: (p) => updatedProfile = p,
+                updatePayload: (_) {},
               );
             },
           ),

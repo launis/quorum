@@ -34,6 +34,13 @@ def mock_repo() -> MagicMock:
             "name": {"translations": {"en": "Test"}},
             "workflow_id": "wf_123",
             "organization_id": "root",
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_test",
+                    "title": {"translations": {"en": "Test"}},
+                    "target_blocks": ["*"],
+                }
+            ],
         }
     )
     repo.get_workflow = AsyncMock(

@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.enums import TargetBlockType
-from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
+from backend_v2.models.v2_core import OutputProfile
 
 
 def test_output_profile_response_dto_schema_parity() -> None:

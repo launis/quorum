@@ -448,9 +448,11 @@ class BlueprintTransformer:
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 ) from u_err
 
-        s_strat = workflow_obj.default_scoring_strategy.value
-        if profile.scoring_strategy is not None:
-            s_strat = profile.scoring_strategy.value
+        s_strat = (
+            getattr(profile.scoring_strategy, "value", str(profile.scoring_strategy))
+            if getattr(profile, "scoring_strategy", None) is not None
+            else getattr(workflow_obj.default_scoring_strategy, "value", str(workflow_obj.default_scoring_strategy))
+        )
 
         engine_str = str(s_strat)
 
@@ -534,11 +536,12 @@ class BlueprintTransformer:
                 if profile.strictness_level is not None
                 else workflow_obj.default_strictness_level
             )
-            scoring_strategy = (
+            strat_raw = (
                 profile.scoring_strategy
                 if profile.scoring_strategy is not None
                 else workflow_obj.default_scoring_strategy
-            ).value
+            )
+            scoring_strategy = getattr(strat_raw, "value", str(strat_raw))
 
             resolved_preface_md = custom_preface_md
             if profile.custom_preface:

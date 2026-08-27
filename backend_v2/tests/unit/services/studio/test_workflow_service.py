@@ -316,7 +316,13 @@ async def test_clone_workflow_success(
             "slug": "prof_standard",
             "workflow_id": wf["id"],
             "name": {"translations": {"en": "Standard"}},
-            "layouts": [{"preset_view": "default", "steps": ["sr_000000000000000000000001"]}],
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_default",
+                    "title": {"translations": {"en": "Default"}},
+                    "target_blocks": ["*"],
+                }
+            ],
             "max_extension_items": 5,
         }
     ]
