@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Execution Report</title>
+    <title>{{ l10n.report_title }}</title>
     <style>
         @page {
             size: A4;
@@ -149,14 +149,14 @@
                 </div>
             {% elif block.block_type is defined and block.block_type == 'warning_card' %}
                 <div style="margin-bottom: 15px; border-left: 4px solid #D32F2F; background-color: #FFEBEE; padding: 12px; border-radius: 6px;">
-                    <strong style="color: #D32F2F;">Warning:</strong> {{ block.message if block.message is defined else '' }}
+                    <strong style="color: #D32F2F;">{{ l10n.warning_label }}:</strong> {{ block.message if block.message is defined else '' }}
                     {% if block.quote_text is defined and block.quote_text %}
                         <div style="margin-top: 5px; font-style: italic; color: #D32F2F; font-size: 11px;">"{{ block.quote_text }}"</div>
                     {% endif %}
                 </div>
             {% elif block.block_type is defined and block.block_type == 'n_a_card' %}
                 <div style="margin-bottom: 15px; border-left: 4px solid #9E9E9E; background-color: #F5F5F5; padding: 12px; border-radius: 6px;">
-                    <strong style="color: #757575;">N/A (Ei arvioitu):</strong> {{ block.message if block.message is defined else '' }}
+                    <strong style="color: #757575;">{{ l10n.na_not_evaluated_label }}:</strong> {{ block.message if block.message is defined else '' }}
                 </div>
             {% elif block.block_type is defined and block.block_type == 'grid' %}
                 <div style="margin-bottom: 15px;">
@@ -193,13 +193,13 @@
                         <tr>
                             {% if block.costs %}
                             <td style="width: 50%; vertical-align: top; text-align: left;">
-                                <strong style="font-size: 12px;">Meta Costs</strong><br>
+                                <strong style="font-size: 12px;">{{ l10n.sduiMetadataCosts }}</strong><br>
                                 <span style="font-size: 11px;">{{ block.costs }}</span>
                             </td>
                             {% endif %}
                             {% if block.tokens %}
                             <td style="width: 50%; vertical-align: top; text-align: left;">
-                                <strong style="font-size: 12px;">Meta Tokens</strong><br>
+                                <strong style="font-size: 12px;">{{ l10n.sduiMetadataTokens }}</strong><br>
                                 <span style="font-size: 11px;">
                                     {% for key, val in block.tokens.items() %}
                                         {{ key }}: {{ val }}<br>
@@ -377,13 +377,10 @@
                                                         {% if atom.exact_quotes %}
                                                             {% for quote in atom.exact_quotes %}
                                                                 <div style="margin-top: 2px; color: #555;">
-                                                                    {% if quote.display_name %}
-                                                                        <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: bold; color: #1565c0; margin-right: 4px;">{{ quote.display_name | upper }}</span>
+                                                                    {% if quote.verified_source_ids %}
+                                                                        <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: bold; color: #1565c0; margin-right: 4px;">{{ quote.verified_source_ids | join(', ') }}</span>
                                                                     {% endif %}
                                                                     "{{ quote.quote }}"
-                                                                    {% if quote.verified_source_ids %}
-                                                                        <br><span style="font-size: 10px; color: #1976D2; font-weight: bold;">(Lähde: {{ quote.verified_source_ids | join(', ') }})</span>
-                                                                    {% endif %}
                                                                 </div>
                                                             {% endfor %}
                                                         {% endif %}

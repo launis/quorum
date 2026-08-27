@@ -93,6 +93,8 @@ class QuoteEvidenceDTO(V2CoreBase):
             return data
 
         if info.context is None:
+            if "verified_source_ids" in data or "unverified_aliases" in data:
+                return data
             raise RuntimeError("ValidationInfo.context is missing. Cannot resolve aliases without context.")
 
         registry = info.context.get("alias_registry", {})

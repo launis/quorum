@@ -11,26 +11,12 @@ from backend_v2.models.view.sdui import (
     AnySduiBlock,
     MarkdownBlock,
 )
+from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["PRINTABLE_SOURCES_RULES", "PrintableSourcesAdapter"]
-
-# ============================================================================
-# SECTION 1: AESTHETICS RULES
-# ============================================================================
-# All visual decisions (severity, icon, label) are defined here as a flat
-# dictionary. The adapter class below MUST NOT contain any if/elif/else
-# chains for visual property selection.
-# ============================================================================
-
-PRINTABLE_SOURCES_RULES: dict[str, dict[str, str]] = {
-    "header_title": {
-        "fi": "### Lähdeluettelo ja viitteet",
-        "en": "### Sources & Bibliography",
-    }
-}
+__all__ = ["PrintableSourcesAdapter"]
 
 
 # ============================================================================
@@ -97,9 +83,10 @@ class PrintableSourcesAdapter:
         if not md_lines:
             return blocks
 
-        # 2. RESOLVE: Fail-Fast localized header title from Section 1 aesthetics rules
+        # 2. RESOLVE: Fail-Fast localized header title via LocalizationService
         locale = context.locale if context.locale in ("fi", "en") else "en"
-        header_text = PRINTABLE_SOURCES_RULES["header_title"][locale]
+        title_str = LocalizationService.translate("sources_and_bibliography_title", locale)
+        header_text = f"### {title_str}"
 
         md_content = f"{header_text}\n" + "\n".join(md_lines)
         blocks.append(MarkdownBlock(text=md_content))

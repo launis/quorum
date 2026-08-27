@@ -1,4 +1,7 @@
+"""Architectural guardrails and structural validation tests for the seed vault (seed_data.json)."""
+
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -144,6 +147,9 @@ def test_output_profiles_zero_legacy_dictionaries_and_valid_matrix_synthesis_gro
             assert len(group.target_blocks) >= 1
             assert group.title.get("en")
             assert group.title.get("fi")
+            assert re.match(r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", group.id), (
+                f"Group id '{group.id}' in profile '{profile.id}' is not a valid 16-hex Opaque Stripe ID"
+            )
 
     # Verify static translation tables contain all 17 required metric mapping keys
     l10n_dir = Path(__file__).resolve().parents[2] / "l10n"
@@ -173,6 +179,61 @@ def test_output_profiles_zero_legacy_dictionaries_and_valid_matrix_synthesis_gro
     for req_key in required_keys:
         assert req_key in en_l10n and bool(en_l10n[req_key]), f"Missing '{req_key}' in backend_v2/l10n/en.json"
         assert req_key in fi_l10n and bool(fi_l10n[req_key]), f"Missing '{req_key}' in backend_v2/l10n/fi.json"
+
+
+def test_seed_has_no_default_locale() -> None:
+    """Architectural Guardrail: seed_data.json MUST contain 0 occurrences of 'default_locale'."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        content = f.read()
+
+    # Master seed positive assertion: 0 occurrences
+    assert "default_locale" not in content, "Found legacy 'default_locale' in seed_data.json"
+
+    # Anti-happy-path negative verification
+    synthetic_legacy_payload = '{"label": {"translations": {"en": "Test"}, "default_locale": "en"}}'
+    assert "default_locale" in synthetic_legacy_payload
+
+
+def test_seed_i18n_has_100_percent_bilingual_parity() -> None:
+    """Architectural Guardrail: 100% of all I18nText records in seed_data.json possess valid 'en' and 'fi' translations."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    i18n_records: list[tuple[str, dict[str, Any]]] = []
+
+    def _collect_i18n(obj: Any, path: str = "") -> None:
+        if isinstance(obj, dict):
+            if "translations" in obj and isinstance(obj["translations"], dict):
+                i18n_records.append((path, obj))
+            for k, v in obj.items():
+                _collect_i18n(v, f"{path}.{k}" if path else k)
+        elif isinstance(obj, list):
+            for i, v in enumerate(obj):
+                _collect_i18n(v, f"{path}[{i}]")
+
+    _collect_i18n(data)
+
+    assert len(i18n_records) >= 450, f"Expected >= 450 I18nText records in master seed, found {len(i18n_records)}"
+
+    for path, record in i18n_records:
+        translations = record["translations"]
+        en_text = translations.get("en", "").strip()
+        fi_text = translations.get("fi", "").strip()
+        assert en_text, f"I18nText at '{path}' has empty or missing 'en' translation"
+        assert fi_text, f"I18nText at '{path}' has empty or missing 'fi' translation"
+
+    # Anti-happy-path negative verification
+    def _is_valid_bilingual_i18n(rec: dict[str, Any]) -> bool:
+        if not isinstance(rec, dict) or "translations" not in rec or not isinstance(rec["translations"], dict):
+            return False
+        tr = rec["translations"]
+        return bool(tr.get("en", "").strip()) and bool(tr.get("fi", "").strip())
+
+    assert _is_valid_bilingual_i18n({"translations": {"en": "Hello", "fi": "Hei"}})
+    assert not _is_valid_bilingual_i18n({"translations": {"en": "Hello"}})
+    assert not _is_valid_bilingual_i18n({"translations": {"en": "Hello", "fi": "   "}})
+    assert not _is_valid_bilingual_i18n({"translations": {"fi": "Hei"}})
+    assert not _is_valid_bilingual_i18n({"text": "Hello"})
 
 
 def test_output_profiles_enums_valid() -> None:

@@ -1,0 +1,481 @@
+{
+  "workflow_id": "wor_golden_master_01",
+  "execution_id": "exec_0123456789abcdef",
+  "profile_id": "prf_golden_master_01",
+  "profile_name": {
+    "translations": {
+      "en": "Executive Assessment Profile",
+      "fi": "Johdon arviointiprofiili"
+    }
+  },
+  "profile_description": {
+    "translations": {
+      "en": "Comprehensive validation profile for golden master verification.",
+      "fi": "Kattava validointiprofiili golden master -todentamiseen."
+    }
+  },
+  "scoring_strategy": "WATERFALL",
+  "user_name": "Dr. Evelyn Vance",
+  "scoring_engine_name": "Cognitive Diagnostic Engine V2",
+  "strictness_level": 85,
+  "local_time_str": "2026-08-27 12:00 UTC",
+  "custom_preface_md": "### Executive Overview\nThis is an automated architectural verification report.",
+  "global_score": 88.5,
+  "has_warning": false,
+  "org_name": "Quorum Cognitive Enterprise",
+  "created_at": "2026-08-27T12:00:00Z",
+  "cost_estimate": 0.042,
+  "total_tokens": 15420,
+  "prompt_tokens": 12100,
+  "completion_tokens": 3320,
+  "reasoning_tokens": 0,
+  "mcp_tool_audit": [
+    {
+      "tool_id": "tavily_search",
+      "step_name": "step_source_verification",
+      "query": "Enterprise Cognitive Architecture Standards",
+      "duration_ms": 245,
+      "response_summary": "Verified theoretical foundation and grounding principles.",
+      "source_urls": [
+        "https://arxiv.org/abs/2601.12345"
+      ],
+      "impacted_axis_names": [
+        "Cognitive Agility",
+        "Strategic Synthesis"
+      ],
+      "timestamp": "2026-08-27T12:00:00Z"
+    }
+  ],
+  "results": [],
+  "hydrated_references": {},
+  "inner_sdui_blocks": [
+    {
+      "block_type": "metadata",
+      "title": "Executive Assessment Profile",
+      "badges": [
+        "Pillar 4 SDUI",
+        "Deterministic",
+        "Strictness: 85"
+      ],
+      "metadata_lines": [
+        "User: Dr. Evelyn Vance",
+        "Organization: Quorum Cognitive Enterprise",
+        "2026-08-27 12:00 UTC"
+      ],
+      "costs": "$0.042",
+      "tokens": {
+        "total": "15420",
+        "prompt": "12100",
+        "completion": "3320"
+      },
+      "custom_preface_md": "### Executive Overview\nThis is an automated architectural verification report."
+    },
+    {
+      "block_type": "hero_insight",
+      "text": "Strong strategic synthesis observed with high authenticity across all evaluation axes.",
+      "exact_quotes": [
+        "clear executive reasoning demonstrated throughout the interview"
+      ],
+      "citations": [
+        1
+      ]
+    },
+    {
+      "block_type": "paragraph",
+      "text": "The candidate demonstrates exceptional cognitive clarity and structured decision making.",
+      "exact_quotes": [
+        "prioritizes systemic stability over acute firefighting"
+      ],
+      "citations": [
+        1,
+        2
+      ]
+    },
+    {
+      "block_type": "bullet_list",
+      "items": [
+        {
+          "text": "Demonstrates proactive risk anticipation in architectural design.",
+          "exact_quotes": [],
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "Enforces Fail-Fast verification across system boundaries.",
+          "exact_quotes": [
+            "zero tolerance for silent fallbacks"
+          ],
+          "citations": [
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "block_type": "alert_box",
+      "severity": "info",
+      "text": "High degree of cognitive agility observed in counterfactual scenarios.",
+      "exact_quotes": [],
+      "citations": [
+        3
+      ]
+    },
+    {
+      "block_type": "quote_card",
+      "quote": "We must design systems that fail loudly rather than corrupting state silently.",
+      "source_aliases": [
+        "doc_transcription",
+        "src_0"
+      ],
+      "citations": [
+        1
+      ]
+    },
+    {
+      "block_type": "warning_card",
+      "message": "Mild hesitation noted when discussing legacy migration timelines.",
+      "quote_text": "legacy refactoring might take an extra sprint"
+    },
+    {
+      "block_type": "n_a_card",
+      "short_circuit_reason_tda_ids": [
+        "tda_short_circuit_01"
+      ],
+      "message": "External supply chain compliance was not evaluated in this protocol."
+    },
+    {
+      "block_type": "markdown",
+      "text": "#### Detailed Analytical Commentary\nThis section outlines structural findings."
+    },
+    {
+      "block_type": "accordion",
+      "title": "Coaching & Development Guidance",
+      "severity": "success",
+      "icon_name": "lightbulb",
+      "children": [
+        {
+          "block_type": "paragraph",
+          "text": "Focus on delegating micro-decisions to lead engineers to prevent bottlenecks.",
+          "exact_quotes": [],
+          "citations": []
+        }
+      ]
+    },
+    {
+      "block_type": "score_card",
+      "global_score": 88.5
+    },
+    {
+      "block_type": "grid",
+      "items": [
+        {
+          "block_type": "paragraph",
+          "text": "Grid Cell A: Left pane observation.",
+          "exact_quotes": [],
+          "citations": []
+        },
+        {
+          "block_type": "paragraph",
+          "text": "Grid Cell B: Right pane observation.",
+          "exact_quotes": [],
+          "citations": []
+        }
+      ]
+    },
+    {
+      "block_type": "1d_metrics",
+      "title": {
+        "translations": {
+          "en": "Leadership Competency Breakdown",
+          "fi": "Johtamiskompetenssien erittely"
+        }
+      },
+      "axes": [
+        {
+          "block_id": "blk_matrix_leadership_01",
+          "name": "Strategic Execution",
+          "label_i18n": {
+            "translations": {
+              "en": "Strategic Execution",
+              "fi": "Strateginen toimeenpano"
+            }
+          },
+          "description": "Ability to drive complex organizational initiatives",
+          "is_evaluative": true,
+          "allow_contextual_override": false,
+          "contextual_override": false,
+          "score_display_label": "4.5 / 5.0",
+          "ui_plot_ratio": 0.9,
+          "row_explanation": "Consistently aligns actions with strategic objectives.",
+          "evaluated_atoms": [],
+          "level_breakdown": {
+            "5": "4/4"
+          },
+          "level_names": {
+            "5": "Exemplary"
+          }
+        }
+      ]
+    },
+    {
+      "block_type": "3d_matrix",
+      "title": {
+        "translations": {
+          "en": "Holistic Leadership Profile (3D Radar)",
+          "fi": "Kokonaisvaltainen johtamisprofiili (3D-tutka)"
+        }
+      },
+      "axes": [
+        {
+          "block_id": "blk_radar_01",
+          "name": "Strategic Execution",
+          "label_i18n": {
+            "translations": {
+              "en": "Strategic Execution",
+              "fi": "Strateginen toimeenpano"
+            }
+          },
+          "description": "Ability to drive complex organizational initiatives",
+          "is_evaluative": true,
+          "allow_contextual_override": false,
+          "contextual_override": false,
+          "score_display_label": "4.5 / 5.0",
+          "ui_plot_ratio": 0.9,
+          "row_explanation": "Consistently aligns actions with strategic objectives.",
+          "evaluated_atoms": [],
+          "level_breakdown": {
+            "5": "4/4"
+          },
+          "level_names": {
+            "5": "Exemplary"
+          }
+        },
+        {
+          "block_id": "blk_radar_02",
+          "name": "Cognitive Agility",
+          "label_i18n": {
+            "translations": {
+              "en": "Cognitive Agility",
+              "fi": "Kognitiivinen ketteryys"
+            }
+          },
+          "description": "Adaptability in dynamic environments",
+          "is_evaluative": true,
+          "allow_contextual_override": false,
+          "contextual_override": false,
+          "score_display_label": "4.0 / 5.0",
+          "ui_plot_ratio": 0.8,
+          "row_explanation": "Rapidly processes and responds to novel information.",
+          "evaluated_atoms": [],
+          "level_breakdown": {
+            "4": "3/4"
+          },
+          "level_names": {
+            "4": "Advanced"
+          }
+        },
+        {
+          "block_id": "blk_radar_03",
+          "name": "People Leadership",
+          "label_i18n": {
+            "translations": {
+              "en": "People Leadership",
+              "fi": "Ihmisjohtaminen"
+            }
+          },
+          "description": "Inspirational and empathetic team guidance",
+          "is_evaluative": true,
+          "allow_contextual_override": false,
+          "contextual_override": false,
+          "score_display_label": "4.8 / 5.0",
+          "ui_plot_ratio": 0.96,
+          "row_explanation": "Builds high-trust, psychologically safe environments.",
+          "evaluated_atoms": [],
+          "level_breakdown": {
+            "5": "5/5"
+          },
+          "level_names": {
+            "5": "Exemplary"
+          }
+        }
+      ]
+    },
+    {
+      "block_type": "2d_compare",
+      "title": {
+        "translations": {
+          "en": "Comparative Decision Making (2D Matrix)",
+          "fi": "Vertaileva päätöksenteko (2D-matriisi)"
+        }
+      },
+      "axes": [
+        {
+          "block_id": "blk_compare_01",
+          "name": "Speed of Execution",
+          "label_i18n": {
+            "translations": {
+              "en": "Speed of Execution",
+              "fi": "Toimeenpanon nopeus"
+            }
+          },
+          "description": "Velocity of translating strategy into operational reality",
+          "is_evaluative": true,
+          "allow_contextual_override": false,
+          "contextual_override": false,
+          "score_display_label": "4.2 / 5.0",
+          "ui_plot_ratio": 0.84,
+          "row_explanation": "Maintains high velocity without sacrificing rigor.",
+          "evaluated_atoms": [],
+          "level_breakdown": {
+            "4": "4/5"
+          },
+          "level_names": {
+            "4": "Advanced"
+          }
+        },
+        {
+          "block_id": "blk_compare_02",
+          "name": "Analytical Rigor",
+          "label_i18n": {
+            "translations": {
+              "en": "Analytical Rigor",
+              "fi": "Analyyttinen tarkkuus"
+            }
+          },
+          "description": "Depth of data-driven grounding before major decisions",
+          "is_evaluative": true,
+          "allow_contextual_override": false,
+          "contextual_override": false,
+          "score_display_label": "4.6 / 5.0",
+          "ui_plot_ratio": 0.92,
+          "row_explanation": "Thoroughly tests hypotheses against empirical evidence.",
+          "evaluated_atoms": [],
+          "level_breakdown": {
+            "5": "4/4"
+          },
+          "level_names": {
+            "5": "Exemplary"
+          }
+        }
+      ]
+    },
+    {
+      "block_type": "matrix_summary",
+      "title": {
+        "translations": {
+          "en": "Comprehensive Matrix Scorecard",
+          "fi": "Kattava matriisiyhteenveto"
+        }
+      },
+      "matrix_visible_columns": [
+        "label",
+        "distribution",
+        "row_explanation",
+        "quotes",
+        "normalized_score",
+        "score"
+      ],
+      "matrix_column_labels": {
+        "label": {
+          "translations": {
+            "en": "Logic Matrix",
+            "fi": "Logiikkamatriisi"
+          }
+        },
+        "distribution": {
+          "translations": {
+            "en": "Distribution",
+            "fi": "Jakauma"
+          }
+        },
+        "row_explanation": {
+          "translations": {
+            "en": "Explanation",
+            "fi": "Selitys"
+          }
+        },
+        "quotes": {
+          "translations": {
+            "en": "Quotes",
+            "fi": "Lainaukset"
+          }
+        },
+        "normalized_score": {
+          "translations": {
+            "en": "Normalized Score",
+            "fi": "Normalisoitu pisteytys"
+          }
+        },
+        "score": {
+          "translations": {
+            "en": "Score",
+            "fi": "Pisteet"
+          }
+        }
+      },
+      "extension_labels": {},
+      "axes": [
+        {
+          "block_id": "blk_summary_01",
+          "name": "Strategic Synthesis",
+          "label_i18n": {
+            "translations": {
+              "en": "Strategic Synthesis",
+              "fi": "Strateginen synteesi"
+            }
+          },
+          "description": "Holistic integration of complex strategic vectors",
+          "is_evaluative": true,
+          "allow_contextual_override": false,
+          "contextual_override": false,
+          "score_display_label": "4.5 / 5.0",
+          "ui_plot_ratio": 0.9,
+          "row_explanation": "Synthesizes multi-domain challenges effectively.",
+          "evaluated_atoms": [
+            {
+              "atom_id": "tda_synth_01",
+              "level": 5,
+              "level_name": "Exemplary",
+              "claim_label": "Multi-Horizon Alignment",
+              "extracted_facts": {
+                "horizon": "3-year"
+              },
+              "exact_quotes": [
+                {
+                  "quote": "We balanced 3-year vision with Q1 deliverables.",
+                  "verified_source_ids": [
+                    "src_01"
+                  ],
+                  "unverified_aliases": [],
+                  "is_verified": true
+                }
+              ],
+              "internal_logic_en": {
+                "step_1_identify_premise": "Examine multi-horizon alignment.",
+                "step_2_scan_source": "Source shows clear vision and near-term deliverable balance.",
+                "step_3_evaluate_anti_patterns": "No anti-patterns detected.",
+                "step_4_final_conclusion": "Premise verified with high confidence."
+              },
+              "status": "PASSED",
+              "semantic_reasoning": "Successfully balances long-term strategy with short-term velocity.",
+              "contextual_override": false,
+              "structural_location": "Section 3.2",
+              "chart_display_label": "Multi-Horizon Alignment",
+              "visual_intent": "success"
+            }
+          ],
+          "level_breakdown": {
+            "5": "1/1"
+          },
+          "level_names": {
+            "5": "Exemplary"
+          }
+        }
+      ]
+    },
+    {
+      "block_type": "audit_trail"
+    }
+  ]
+}

@@ -65,3 +65,6 @@ class SduiAdapterProtocol(Protocol):
             Ordered list of polymorphic SDUI blocks.
         """
         ...
+
+
+AdapterContext.model_rebuild()
