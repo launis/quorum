@@ -48,7 +48,20 @@ class LLMCacheAdapterFactory:
 
                 return MockCacheAdapter()
 
-            case LLMProviderName.VERTEX_AI | LLMProviderName.GOOGLE:
+            case LLMProviderName.AI_STUDIO | "ai_studio" | LLMProviderName.GOOGLE | "google":
+                try:
+                    from backend_v2.llm.adapters.ai_studio_adapter import GoogleAIStudioCacheAdapter
+
+                    return cast(BaseLLMAdapter, GoogleAIStudioCacheAdapter())
+                except ImportError as e:
+                    logger.error("Google AI Studio cache adapter import failed", exc_info=True)
+                    raise AppException(
+                        message=f"Adapter for provider '{provider_name}' is not implemented: {e}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED},
+                    ) from e
+
+            case LLMProviderName.VERTEX_AI | "vertex_ai":
                 try:
                     from backend_v2.llm.adapters.vertex_adapter import VertexCacheAdapter
 

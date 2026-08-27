@@ -444,6 +444,7 @@ class LLMProviderName(StrEnum):
 
     VERTEX_AI = "vertex_ai"
     GOOGLE = "google"
+    AI_STUDIO = "ai_studio"
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
     DEEPSEEK = "deepseek"

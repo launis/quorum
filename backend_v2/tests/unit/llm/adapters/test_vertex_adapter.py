@@ -165,8 +165,8 @@ async def test_vertex_thundering_herd_protection() -> None:
     # Clear shared ledger keys before starting
     redis_client = await get_redis_client()
     static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
-    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
-    lock_key = f"lock:vertex_cache:gemini-1.5-pro:{static_hash}"
+    redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
+    lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
     # Spawn 5 workers concurrently
@@ -201,8 +201,8 @@ async def test_vertex_instant_exit_on_failed() -> None:
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
     static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
-    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
-    lock_key = f"lock:vertex_cache:gemini-1.5-pro:{static_hash}"
+    redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
+    lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
     # Pre-populate the shared ledger key with FAILED sentinel status
@@ -234,8 +234,8 @@ async def test_vertex_fail_soft_gcp_error() -> None:
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
     static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
-    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
-    lock_key = f"lock:vertex_cache:gemini-1.5-pro:{static_hash}"
+    redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
+    lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
     # Call adapter, it should swallow the exception and return standard completion payload gracefully
@@ -275,8 +275,8 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
     static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
-    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
-    lock_key = f"lock:vertex_cache:gemini-1.5-pro:{static_hash}"
+    redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
+    lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
     returned_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
@@ -495,7 +495,7 @@ async def test_vertex_cache_immediate_hit_in_shared_ledger() -> None:
 
     redis_client = await get_redis_client()
     static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
-    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
+    redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     existing_cache_id = "projects/mock-proj/locations/europe-north1/cachedContents/hit-12345"
     await redis_client.set(redis_key, existing_cache_id, ex=300)
 
@@ -526,8 +526,8 @@ async def test_vertex_cache_assistant_role_and_unqualified_name() -> None:
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
     static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
-    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
-    lock_key = f"lock:vertex_cache:gemini-1.5-pro:{static_hash}"
+    redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
+    lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
     _, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
@@ -559,8 +559,8 @@ async def test_vertex_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyPatc
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
     static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
-    redis_key = f"vertex_cache:gemini-1.5-pro:{static_hash}"
-    lock_key = f"lock:vertex_cache:gemini-1.5-pro:{static_hash}"
+    redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
+    lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
 
     # Lock held by worker_0, status CREATING
     await redis_client.set(lock_key, "worker_0", ex=10)
@@ -599,3 +599,41 @@ async def test_vertex_adapter_bypasses_cache_when_contents_empty_or_system_only(
     # When vertex_contents is empty, caching MUST be bypassed to avoid GCP 1-token InvalidArgument error
     assert extra_kwargs == {}
     assert len(flat_msgs) == 2
+
+
+@pytest.mark.asyncio
+async def test_vertex_adapter_dynamic_location_caching(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify that VertexCacheAdapter respects dynamic VERTEX_LOCATION environment variable for region caching."""
+    mock_cached_contents.CachedContent.create.reset_mock()
+    mock_cached_contents.CachedContent.create.side_effect = None
+
+    class DummyCacheObj:
+        name = "projects/mock-proj/locations/us-central1/cachedContents/us-cache-777"
+
+    mock_cached_contents.CachedContent.create.return_value = DummyCacheObj()
+
+    monkeypatch.setenv("VERTEX_LOCATION", "us-central1")
+
+    large_static = "B" * 150000
+    prompt = CompiledPrompt(
+        static_messages=[
+            {"role": "system", "content": "You are a US evaluator."},
+            {"role": "user", "content": large_static},
+        ],
+        dynamic_messages=[
+            {"role": "user", "content": "US Query"},
+        ],
+    )
+
+    adapter = VertexCacheAdapter()
+    redis_client = await get_redis_client()
+    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    redis_key = f"vertex_cache:us-central1:gemini-1.5-pro:{static_hash}"
+    lock_key = f"lock:vertex_cache:us-central1:gemini-1.5-pro:{static_hash}"
+    await redis_client.delete(redis_key, lock_key)
+
+    returned_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+
+    assert extra_kwargs == {"cached_content": "projects/mock-proj/locations/us-central1/cachedContents/us-cache-777"}
+    assert mock_cached_contents.CachedContent.create.call_count == 1
+    assert returned_msgs == prompt.to_dynamic_flat()
