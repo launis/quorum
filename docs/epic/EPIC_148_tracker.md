@@ -339,7 +339,7 @@
   - Neuro-symbolic planner audit (`audit_planner_output.py`) verified 100% boundary preservation (15/15 line bounds, 56 targets, 54 AST bounds, 14 KIs).
   - Executed Panel of Experts System 2 analysis across Python backend, LLM prompt compilation, Flutter Dumb Painter architecture, and ISTQB test verification.
   - Transformed placeholder task into full 5-step executable implementation plan with granular steps, demolish specifications, Tri-Axis Dialectical Audit, and ISTQB test contracts.
-  - Resolved `audit_markdown_boundaries.py` findings: updated `TheoryGrounding` AST node line bounds to `@[backend_v2/models/v2_core.py#L101-L114]` and eradicated ambiguous language (`e.g.`).
+  - Resolved `audit_markdown_boundaries.py` findings: updated `TheoryGrounding` AST node line bounds to `@[backend_v2/models/v2_core.py#L112-L125]` and eradicated ambiguous language (`e.g.`).
   - Ran `audit_markdown_boundaries.py` and `audit_planner_output.py` achieving 100% pass across all markdown boundaries and character-level constraints.
   - Phase 4 marked as `[x] [OK]` for Red-Teaming.
 - Executed `/tier2-execute` on Phase 4:
@@ -418,7 +418,7 @@
   - Presentation Parity Golden Master (`backend_v2/tests/fixtures/sdui_golden_master.json`) must contain fully populated instances of all 17 block types to validate BeautifulSoup HTML DOM rendering and headless Flutter widget tree rendering with 1:1 semantic text, citation, and badge parity.
   - Backend translation tables (`backend_v2/l10n/en.json` and `backend_v2/l10n/fi.json`) must possess 100% internal 1:1 key parity and cover 100% of `report_template.jinja2` `l10n.*` references without dead or orphaned keys.
   - Fail-Fast `raise_unrecognized_sdui_block` handler bound in `PdfReportService` environment guarantees that unhandled synthetic blocks halt PDF compilation with RFC 7807 structured errors rather than falling back silently.
-  - `TheoryGrounding` schema SSOT is anchored at `@[backend_v2/models/v2_core.py#L101-L114]` (re-exported cleanly across domain layers).
+  - `TheoryGrounding` schema SSOT is anchored at `@[backend_v2/models/v2_core.py#L112-L125]` (re-exported cleanly across domain layers).
   - Markdown AST scanner (`audit_markdown_boundaries.py`) strictly enforces MBD001 (banning ambiguous `e.g.`) and MBD004 (verifying physical class/function line bounds in `@-references`).
 - **Tier 2 Backend Hardening (Batch 1 - Domain Models & DTOs)**:
   - `core_base.py`: Enforcing `__all__ = ["I18nText", "V2CoreBase"]` and `exc_info=True` on `logger.error` guarantees RFC 7807 Fail-Fast trace logging.
