@@ -15,6 +15,8 @@ from backend_v2.models.view.sdui import (
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
+__all__ = ["MATRIX_GRAPHS_RULES", "MatrixGraphsAdapter"]
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
