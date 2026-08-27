@@ -189,6 +189,7 @@ def test_base_adapter_strip_unsupported_constraints_list_and_explicit_discrimina
         {
             "discriminator": {"propertyName": "custom_tag"},
             "properties": {"custom_tag": {"type": "string"}},
+            "required": ["contextual_override", "override_reason"],
         },
     ]
 
@@ -196,3 +197,49 @@ def test_base_adapter_strip_unsupported_constraints_list_and_explicit_discrimina
     assert "minLength" not in schema_list[0]
     assert schema_list[0]["enum"] == ["fixed_val"]
     assert "custom_tag" in schema_list[1]["required"]
+    assert "contextual_override" not in schema_list[1]["required"]
+    assert "override_reason" not in schema_list[1]["required"]
+
+
+def test_base_adapter_estimate_static_tokens() -> None:
+    """Verify estimate_static_tokens correctly handles string, list of blocks, and system exclusion."""
+    adapter = ConcreteAdapter()
+
+    prompt = CompiledPrompt(
+        static_messages=[
+            {"role": "system", "content": "System instruction 16c"},  # 22 chars
+            {"role": "user", "content": "User static content 24c"},  # 23 chars
+            {
+                "role": "assistant",
+                "content": [
+                    {"type": "text", "text": "Block text 1234"},  # 15 chars
+                    "Direct text str",  # 15 chars
+                    12345,  # 5 chars
+                ],
+            },
+        ],
+        dynamic_messages=[
+            {"role": "user", "content": "Dynamic text"},
+        ],
+    )
+
+    # With exclude_system=False
+    tokens_all, has_non_sys = adapter.estimate_static_tokens(prompt, exclude_system=False)
+    assert has_non_sys is True
+    assert tokens_all > 0
+
+    # With exclude_system=True
+    tokens_no_sys, has_non_sys_2 = adapter.estimate_static_tokens(prompt, exclude_system=True)
+    assert has_non_sys_2 is True
+    assert tokens_no_sys < tokens_all
+
+    # System only prompt
+    sys_only_prompt = CompiledPrompt(
+        static_messages=[
+            {"role": "system", "content": "Only system message"},
+        ],
+        dynamic_messages=[],
+    )
+    tokens_sys_only, has_non_sys_3 = adapter.estimate_static_tokens(sys_only_prompt, exclude_system=True)
+    assert has_non_sys_3 is False
+    assert tokens_sys_only == 0

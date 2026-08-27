@@ -185,7 +185,30 @@ class Settings(BaseSettings):
     context_cache_passive_ttl_seconds: Annotated[int, Field(description="Lifespan of Vertex context cache")] = 3600
     context_cache_lock_poll_interval_ms: Annotated[int, Field(description="Polling interval for lock acquire")] = 500
     context_cache_lock_wait_limit_seconds: Annotated[int, Field(description="Max wait time for caching lock")] = 20
-    context_cache_minimum_token_limit: Annotated[int, Field(description="Minimum tokens to trigger caching")] = 2048
+    context_cache_min_tokens_vertex: Annotated[
+        int,
+        Field(
+            ge=1024,
+            le=1000000,
+            description="Minimum non-system content tokens required by Vertex AI Context Caching",
+        ),
+    ] = 1024
+    context_cache_min_tokens_ai_studio: Annotated[
+        int,
+        Field(
+            ge=1024,
+            le=1000000,
+            description="Minimum non-system content tokens required by Google AI Studio Context Caching",
+        ),
+    ] = 32768
+    context_cache_failed_ttl_seconds: Annotated[
+        int,
+        Field(
+            ge=1,
+            le=86400,
+            description="TTL in seconds for marking context cache state as FAILED in Redis",
+        ),
+    ] = 300
     pacing_delay_vertex_seconds: Annotated[int, Field(description="Forced delay between Vertex AI requests")] = 4
     pacing_delay_openai_seconds: Annotated[int, Field(description="Forced delay between OpenAI requests")] = 1
     pacing_delay_mock_seconds: Annotated[int, Field(description="Forced delay between Mock responses")] = 0

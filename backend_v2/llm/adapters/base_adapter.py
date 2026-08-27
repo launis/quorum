@@ -186,7 +186,7 @@ class BaseLLMAdapter(ABC):
         has_non_system_static = False
 
         for msg in compiled_prompt.static_messages:
-            role = msg.get("role", "user")
+            role = msg.get("role", "user")  # noqa: QGR002 [REASON: Defaulting untyped message role in token estimation]
             if role == "system":
                 if exclude_system:
                     continue
@@ -198,8 +198,12 @@ class BaseLLMAdapter(ABC):
                 total_chars += len(content)
             elif isinstance(content, list):
                 for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        total_chars += len(block.get("text", ""))
+                    if (
+                        isinstance(block, dict) and block.get("type") == "text"  # noqa: QGR002 [REASON: Parsing polymorphic text block type]
+                    ):
+                        total_chars += len(
+                            block.get("text", "")  # noqa: QGR002 [REASON: Extracting polymorphic text block content]
+                        )
                     elif isinstance(block, str):
                         total_chars += len(block)
             elif content is not None:

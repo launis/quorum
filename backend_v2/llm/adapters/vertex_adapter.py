@@ -93,7 +93,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
             compiled_prompt, exclude_system=True
         )
 
-        min_threshold = max(get_settings().context_cache_minimum_token_limit, 1024)
+        min_threshold = get_settings().context_cache_min_tokens_vertex
 
         if (
             get_settings().disable_vertex_cache
@@ -101,8 +101,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
             or static_content_token_count < min_threshold
         ):
             logger.info(
-                "Vertex AI caching bypassed: Static content token count %d is below "
-                "minimum threshold %d (or static messages lack non-system turns or globally disabled).",
+                "Vertex AI caching bypassed: Static conversational contents (%d tokens) below "
+                "GCP explicit cache minimum (%d tokens) or lacking non-system turns.",
                 static_content_token_count,
                 min_threshold,
             )
@@ -190,8 +190,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     vertex_contents = []
                     system_text = ""
                     for msg in static_flat:
-                        role = msg.get("role", "user")
-                        content = msg.get("content", "")
+                        role = msg.get("role", "user")  # noqa: QGR002 [REASON: Defaulting untyped message role in vertex payload]
+                        content = msg.get("content", "")  # noqa: QGR002 [REASON: Defaulting untyped message content in vertex payload]
 
                         if role == "system":
                             system_text += content + "\n"
@@ -233,12 +233,16 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         "cached_content": cache_resource_id,
                     }
 
-                except Exception:
-                    logger.error(
-                        "Fail-Soft: Google GCP API Context Cache creation failed. Falling back to uncached completion.",
-                        exc_info=True,
+                except Exception as exc:  # noqa: QGR003 [REASON: Fail-Soft graceful degradation to uncached completion on cloud SDK failure]
+                    logger.warning(
+                        "Fail-Soft: Vertex AI Context Cache creation bypassed/failed (%s). Continuing with uncached completion.",
+                        str(exc),
                     )
-                    await redis_client.set(redis_key, PromptCacheStatus.FAILED.value, ex=300)
+                    await redis_client.set(
+                        redis_key,
+                        PromptCacheStatus.FAILED.value,
+                        ex=get_settings().context_cache_failed_ttl_seconds,
+                    )
                     return compiled_prompt.to_flat_messages(), {}
 
             finally:

@@ -95,6 +95,29 @@ async def test_ai_studio_adapter_preparer_bypass() -> None:
 
 
 @pytest.mark.asyncio
+async def test_ai_studio_adapter_bypasses_cache_when_contents_empty_or_system_only() -> None:
+    """Verify that GoogleAIStudioCacheAdapter bypasses caching if all static messages are 'system' role."""
+    mock_genai_client.caches.create.reset_mock()
+    adapter = GoogleAIStudioCacheAdapter()
+
+    large_system_instruction = "System Directive " * 10000  # > 32768 tokens
+
+    prompt = CompiledPrompt(
+        static_messages=[
+            {"role": "system", "content": large_system_instruction},
+        ],
+        dynamic_messages=[
+            {"role": "user", "content": "Query payload"},
+        ],
+    )
+
+    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+    assert extra_kwargs == {}
+    assert len(flat_msgs) == 2
+    assert mock_genai_client.caches.create.call_count == 0
+
+
+@pytest.mark.asyncio
 async def test_ai_studio_teardown_is_noop() -> None:
     """Verify teardown is successfully executed as No-Op."""
     adapter = GoogleAIStudioCacheAdapter()
@@ -197,8 +220,10 @@ async def test_ai_studio_thundering_herd_protection() -> None:
 
 
 @pytest.mark.asyncio
-async def test_ai_studio_fail_soft_error() -> None:
-    """Verify that when google.genai cache creation raises, it falls back cleanly to uncached."""
+async def test_ai_studio_fail_soft_error(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify that when google.genai cache creation raises, it logs a warning and falls back cleanly to uncached."""
+    import logging
+
     mock_genai_client.caches.create.reset_mock()
     mock_genai_client.caches.create.side_effect = Exception("API Key invalid or quota reached.")
 
@@ -220,9 +245,12 @@ async def test_ai_studio_fail_soft_error() -> None:
     lock_key = f"lock:ai_studio_cache:gemini-3.7-flash:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+    with caplog.at_level(logging.WARNING):
+        flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+
     assert extra_kwargs == {}
     assert mock_genai_client.caches.create.call_count == 1
+    assert "Fail-Soft: Google AI Studio Context Cache creation bypassed/failed" in caplog.text
 
     status = await redis_client.get(redis_key)
     if isinstance(status, bytes):

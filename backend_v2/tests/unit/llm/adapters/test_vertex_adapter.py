@@ -203,8 +203,10 @@ async def test_vertex_instant_exit_on_failed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_vertex_fail_soft_gcp_error() -> None:
+async def test_vertex_fail_soft_gcp_error(caplog: pytest.LogCaptureFixture) -> None:
     """Verify the Zero-Compromise Fail-Soft path when the GCP SDK raises an error."""
+    import logging
+
     mock_cached_contents.CachedContent.create.reset_mock()
     mock_cached_contents.CachedContent.create.side_effect = Exception("GCP Context Cache quota exceeded.")
 
@@ -226,10 +228,13 @@ async def test_vertex_fail_soft_gcp_error() -> None:
     lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
-    # Call adapter, it should swallow the exception and return standard completion payload gracefully
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    with caplog.at_level(logging.WARNING):
+        # Call adapter, it should swallow the exception and return standard completion payload gracefully
+        flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+
     assert extra_kwargs == {}
     assert mock_cached_contents.CachedContent.create.call_count == 1
+    assert "Fail-Soft: Vertex AI Context Cache creation bypassed/failed" in caplog.text
 
     # Verify that the FAILED sentinel status was written to the shared ledger to block new requests for 5 mins
     status = await redis_client.get(redis_key)

@@ -91,7 +91,7 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
             compiled_prompt, exclude_system=True
         )
 
-        min_threshold = max(get_settings().context_cache_minimum_token_limit, 32768)
+        min_threshold = get_settings().context_cache_min_tokens_ai_studio
 
         if (
             get_settings().disable_vertex_cache
@@ -99,8 +99,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
             or static_content_token_count < min_threshold
         ):
             logger.info(
-                "Google AI Studio caching bypassed: Static content token count %d is below "
-                "minimum threshold %d (or static messages lack non-system turns or globally disabled).",
+                "Google AI Studio caching bypassed: Static conversational contents (%d tokens) below "
+                "minimum threshold (%d tokens) or lacking non-system turns.",
                 static_content_token_count,
                 min_threshold,
             )
@@ -170,8 +170,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                     ai_studio_contents = []
                     system_text = ""
                     for msg in static_flat:
-                        role = msg.get("role", "user")
-                        content = msg.get("content", "")
+                        role = msg.get("role", "user")  # noqa: QGR002 [REASON: Defaulting untyped message role in ai studio payload]
+                        content = msg.get("content", "")  # noqa: QGR002 [REASON: Defaulting untyped message content in ai studio payload]
 
                         if role == "system":
                             system_text += content + "\n"
@@ -209,13 +209,17 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                         "cached_content": cache_name,
                     }
 
-                except Exception:
-                    logger.error(
-                        "Fail-Soft: Google AI Studio Context Cache creation failed. "
-                        "Falling back to uncached completion.",
-                        exc_info=True,
+                except Exception as exc:  # noqa: QGR003 [REASON: Fail-Soft graceful degradation to uncached completion on cloud SDK failure]
+                    logger.warning(
+                        "Fail-Soft: Google AI Studio Context Cache creation bypassed/failed (%s). "
+                        "Continuing with uncached completion.",
+                        str(exc),
                     )
-                    await redis_client.set(redis_key, PromptCacheStatus.FAILED.value, ex=300)
+                    await redis_client.set(
+                        redis_key,
+                        PromptCacheStatus.FAILED.value,
+                        ex=get_settings().context_cache_failed_ttl_seconds,
+                    )
                     return compiled_prompt.to_flat_messages(), {}
 
             finally:
