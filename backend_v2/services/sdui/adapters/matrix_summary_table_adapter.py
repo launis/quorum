@@ -14,6 +14,8 @@ from backend_v2.models.view.sdui import (
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
+__all__ = ["MATRIX_SUMMARY_RULES", "STANDARD_COLUMNS", "MatrixSummaryTableAdapter"]
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
