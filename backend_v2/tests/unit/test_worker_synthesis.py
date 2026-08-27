@@ -515,6 +515,7 @@ async def test_worker_synthesis_matrix_layout_directives(
                 "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
                 "target_blocks": ["blk_1"],
                 "synthesis_directive": synthesis_directive,
+                "view_type": "2d_compare",
             }
         ],
         "target_block_order": ["matrix_graphs_block"],

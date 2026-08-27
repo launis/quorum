@@ -1143,10 +1143,10 @@ async def generate_profile_synthesis_and_pdf_task(
                                 if event_blueprint == perf_step_id:
                                     for key, val in event.content.items():
                                         if key.startswith("blk_"):
-                                             det_out = LightweightMatrixOutput.model_validate(val, strict=False)
-                                             if det_out.raw_score is not None:
-                                                 authenticity_score = float(det_out.raw_score)
-                                             break
+                                            det_out = LightweightMatrixOutput.model_validate(val, strict=False)
+                                            if det_out.raw_score is not None:
+                                                authenticity_score = float(det_out.raw_score)
+                                            break
 
                         if authenticity_score is not None and performative_phrases_count is not None:
                             break

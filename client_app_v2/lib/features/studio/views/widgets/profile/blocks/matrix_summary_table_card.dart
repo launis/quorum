@@ -20,7 +20,11 @@ class MatrixSummaryTableCard extends StatelessWidget {
       'labelEn': 'Row Explanation',
     },
     {'key': 'quotes', 'labelFi': 'Lainaukset', 'labelEn': 'Quotes'},
-    {'key': 'normalized_score', 'labelFi': 'Normitettu', 'labelEn': 'Normalized'},
+    {
+      'key': 'normalized_score',
+      'labelFi': 'Normitettu',
+      'labelEn': 'Normalized',
+    },
     {'key': 'score', 'labelFi': 'Pistemäärä', 'labelEn': 'Score'},
   ];
 
@@ -64,9 +68,9 @@ class MatrixSummaryTableCard extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: AppSpacing.s8),
             child: Text(
               'Näytettävät sarakkeet (Visible Columns):',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           Wrap(
@@ -89,7 +93,9 @@ class MatrixSummaryTableCard extends StatelessWidget {
                   } else {
                     newCols.remove(key);
                   }
-                  updatePayload(payload.copyWith(matrixVisibleColumns: newCols));
+                  updatePayload(
+                    payload.copyWith(matrixVisibleColumns: newCols),
+                  );
                 },
               );
             }).toList(),

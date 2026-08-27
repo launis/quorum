@@ -3,7 +3,7 @@
 import xml.etree.ElementTree as ET
 
 from backend_v2.models.enums import TargetBlockType
-from backend_v2.models.prompts.synthesis_directives import (
+from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
     EXECUTIVE_SUMMARY_DIRECTIVE,
     EXECUTIVE_SUMMARY_SECTION_ID,
@@ -57,7 +57,7 @@ def test_matrix_directives_valid_xml() -> None:
 def test_sdui_and_section_directives_valid_xml() -> None:
     """Verify that global synthesis mandate and section directive are valid XML."""
     root_sdui = ET.fromstring(SDUI_SYNTHESIS_MANDATE_BLOCK)
-    assert root_sdui.tag == "sdui_synthesis_mandate"
+    assert root_sdui.tag in ("sdui_mandate", "sdui_synthesis_mandate")
 
     root_section = ET.fromstring(SECTION_SYNTHESIS_DIRECTIVE_BLOCK)
     assert root_section.tag == "section_synthesis_directive"

@@ -70,7 +70,7 @@
   - [x] (f162d4e6) Step 4: SDUI Presentation Adapters, Worker & Jinja2 PDF Template (Dumb Painters)
   - [x] Step 5: Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification
 - [x] **[OK] Test Coverage Assertions:** Verified 100% statement coverage across all 6 presentation adapters, 0 legacy dictionaries in seed_data.json, 100% l10n parity in en.json/fi.json, and full pass across 2,135 backend unit tests and 224 Flutter tests.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`
 
 ---
 
@@ -309,6 +309,28 @@
       - Backend Audit Loop (`backend_audit_loop.py backend_v2 --test`): Ruff, MyPy, AST Guardrails, Jinja template validation, Seed validation, and Pytest (2,135 passed, 0 failed, 90% coverage).
       - Flutter Audit Loop (`flutter_audit_loop.py client_app_v2 --test`): Formatting, Analyzer, and Flutter test suite (224 passed, 0 failed).
     - Phase 3 marked as `[x] [OK]` for Execution and Test Coverage Assertions.
+- Executed Server-Side ID Generation Mandate & Request/Response DTO Separation Plan:
+  - **DTO Schema Separation**: Created dedicated `*CreateDTO` and `*UpdateDTO` models in `backend_v2/models/dtos/studio.py` (`WorkflowCreateDTO`, `OutputProfileCreateDTO`, `PromptBlockCreateDTO`, `StepRuleCreateDTO`, `MatrixSynthesisGroupCreateDTO`) with strict `extra="forbid"`, banning client-supplied `id` fields.
+  - **Server ID Authority**: Updated `SystemConfigService`, `WorkflowService`, and `OutputProfileService` in `backend_v2/services/studio/` to generate canonical 16-hex Opaque Stripe IDs (`uuid.uuid4().hex[:16]`).
+  - **Router Hardening**: Updated `backend_v2/api/routers/output_profiles.py` to use `OutputProfileCreateDTO` and return `OutputProfileResponseDTO`.
+  - **AST Guardrail Engine (QGR011)**: Added `QGR011` AST rule in `scripts/_ast_guardrails.py` banning `id` field declarations on `*CreateDTO` classes. Added AST test suite in `backend_v2/tests/unit/scripts/test_ast_guardrails.py`.
+  - **Frontend Decoupling**: Purged client-side ID generation and `Uuid().v4()` calls from Flutter Studio views (`prompt_block_builder_view.dart`, `step_builder_view.dart`, `matrix_graphs_block_card.dart`, `layout_editor_card.dart`, `workflow_steps_tab.dart`).
+- Executed `/tier8-audit-plan` on Phase 3:
+  - **Neuro-Symbolic & AST Boundary Verification**: Planner output audit script `scripts/audit_planner_output.py` verified 100% boundary preservation across all 15 line bounds, 56 targets, 54 AST bounds, and 14 KIs.
+  - **Destructive Purge & Demolish Verification**: Confirmed complete eradication of `OutputLayoutBlock` and purged dictionary lookups (`metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`, `layouts`) with 0 matches across the repository.
+  - **Dumb Painter & StrictUndefined Audit**: Verified `LocalizationService` pre-formatting methods (`format_date`, `format_decimal`, `format_score`, `format_percent`, `format_cost`), Jinja2 `StrictUndefined` environment configuration, and fail-fast `raise_unrecognized_sdui_block` handler.
+  - **Universal Quality Gate Executions**:
+    - Backend Audit Loop (`backend_audit_loop.py backend_v2 --test`): Ruff linting/formatting, MyPy strict type checking, AST guardrails, Jinja template validation, seed dry-run, and full Pytest suite (**2,148 tests passed**, 25 skipped, 0 failed).
+    - Flutter Audit Loop (`flutter_audit_loop.py client_app_v2 --test`): Dart formatting, Dart analyzer (0 issues), and Flutter test suite (**224 tests passed**, 1 skipped, 0 failed).
+    - Supply Chain Security: 0 banned third-party AI packages detected (`langchain`, `llamaindex`, `crewai`, `autogen`, `semantic-kernel`).
+  - **Audit Artifact Generated**: Created comprehensive System 2 audit report `red_team_audit_epic148_phase3.md` in the artifact directory containing the full Traceability Matrix, Tri-Axis Dialectical Audit, and Zero-Defect Verdict.
+  - Phase 3 marked as `[x] [OK]` across all gates (Red-Teaming, Execution, Coverage, Audit).
+- Executed Flutter Dynamic Workflow Title & Label Resolution via `I18nText` Modernization:
+  - **DashboardView Title Resolution**: Modernized `workflowDisplay` and `_getVariantDisplayName` in `client_app_v2/lib/features/execution/views/dashboard_view.dart` to use `I18nText.fromJson(rawMap).get(locale)`, eliminating legacy `default_locale` lookups and resolving runtime validation error crashes on dashboard load.
+  - **NewExecutionView Resolution**: Modernized workflow selector sidebar title/description, dynamic header, questionnaire definition labels, and print variant selector titles/descriptions in `client_app_v2/lib/features/execution/views/new_execution_view.dart` using `I18nText.fromJson`.
+  - **DynamicStartScreen, StudioDashboardView & WorkflowSelector Modernization**: Updated `dynamic_start_screen.dart`, `studio_dashboard_view.dart`, and `workflow_selector.dart` to resolve dynamic localized strings strictly via `I18nText.fromJson(rawMap).get(locale)`.
+  - **Obsolete File Deletion**: Eradicated legacy dead file `client_app_v2/lib/utils/i18n_resolver.dart`.
+  - **Universal Quality Gate**: Passed `scripts/flutter_audit_loop.py client_app_v2` (0 errors) and all 231 Flutter unit and widget tests (`flutter test`).
 
 ## Learned
 - **Phase 1 Insights & Invariants**:
@@ -337,24 +359,29 @@
     - Backend ID Authority: The backend exclusively generates canonical, randomized 16-hex Opaque Stripe IDs (`uuid.uuid4().hex[:16]`).
     - Frontend Decoupling: All client-side `Uuid().v4()` calls and ID-generation fallbacks are eliminated from Flutter Studio views and models.
     - AST Guardrail (`QGR011`): Static AST verification in Phase 4 ensures no `*CreateDTO` contains an `id` field and domain models enforce standard Opaque Stripe ID patterns.
+- **Flutter Dynamic Title & Label Resolution Insights**:
+  - Eliminating `default_locale` from the backend persistence and domain models requires client UI layers to avoid raw dictionary indexing (`nameMap['translations']?[nameMap['default_locale']]`).
+  - All dynamic label lookups in Flutter MUST use the Single Source of Truth `I18nText.fromJson(Map<String, dynamic>.from(rawMap)).get(locale)`.
+  - `I18nText.get(locale)` automatically performs safe fallback to Lingua Franca (`en`) while raising strict Fail-Fast `AppException.validation` when translations are truly missing.
 
-## Discovered Technical Debt (Resolved in Phase 3)
+## Discovered Technical Debt (Resolved in Phase 3 & Inter-Phase Bugfixes)
 1. **`client_app_v2/lib/features/studio/views/profile_editor_view.dart#L124-L134`**: Resolved - replaced generic exception with `AppException.validation` and bound background color to primary theme.
 2. **`backend_v2/models/core_base.py#L39`**: Resolved - wrapped description in `Field(description=...)` under 120 chars.
 3. **`backend_v2/models/dtos/matrix_scorecard.py`**: Resolved - added module and union wrapper docstrings.
 4. **`client_app_v2/lib/features/studio/controllers/output_profile_controller.dart`**: Resolved - removed unused `i18n_text.dart` import.
 5. **`client_app_v2/test/features/studio/views/widgets/profile/blocks/block_card_registry_test.dart`**: Resolved - cleaned unused local `updatedProfile` variable.
+6. **`client_app_v2/lib/utils/i18n_resolver.dart`**: Resolved - removed obsolete dead file throwing non-standard `FormatException`.
 
 ## Remaining
-- Execute and verify Server-Side ID Generation Mandate & Request/Response DTO Separation Plan (`@[implementation_plan.md]`).
-- Audit Phase 3 implementation (`/tier8-audit-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`).
-- Plan and execute Phase 4 (AST Guardrails, Parity Suites & Final Audit): `@[docs/epic/tasks_EPIC_148/04_placeholder_phase4_ast_guardrails_parity_suites_and_final_audit.md]`.
+- Red-Team & Research Phase 4 (`/tier0-research-plan @[docs/epic/tasks_EPIC_148/04_placeholder_phase4_ast_guardrails_parity_suites_and_final_audit.md] @[docs/epic/EPIC_148_tracker.md]`).
+- Execute Phase 4 (AST Guardrails, Parity Suites & Final Audit): `@[docs/epic/tasks_EPIC_148/04_placeholder_phase4_ast_guardrails_parity_suites_and_final_audit.md]`.
+- Audit Phase 4 implementation (`/tier8-audit-plan @[docs/epic/tasks_EPIC_148/04_placeholder_phase4_ast_guardrails_parity_suites_and_final_audit.md] @[docs/epic/EPIC_148_tracker.md]`).
 - Complete Post-Implementation Gates: Backend & Frontend Tier 2 Hardening, As-Built Architectural Sync (`/tier7-describe-architecture`), and Reverse Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
 ```powershell
-# Execute the Server-Side ID Generation Mandate Plan:
-/tier2-execute
+# Research & Plan Phase 4:
+/tier0-research-plan @[docs/epic/tasks_EPIC_148/04_placeholder_phase4_ast_guardrails_parity_suites_and_final_audit.md] @[docs/epic/EPIC_148_tracker.md]
 ```
 
 

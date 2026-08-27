@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
     from backend_v2.models.view.sdui import AnySduiBlock
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import I18nText, V2CoreBase
@@ -130,6 +130,13 @@ class AntiPattern(V2CoreBase):
     allows_contextual_excuse: bool = Field(default=False)
 
 
+def _coerce_to_tuple(v: Any) -> Any:
+    """Coerces list to tuple for immutable DAG depends_on fields."""
+    if isinstance(v, list):
+        return tuple(v)
+    return v
+
+
 class TDAAssertion(V2CoreBase):
     """Deterministic rule evaluated by the backend.
 
@@ -202,6 +209,7 @@ class TDAAssertion(V2CoreBase):
     )
     depends_on: Annotated[
         tuple[CausalEdge, ...],
+        BeforeValidator(_coerce_to_tuple),
         Field(
             default_factory=tuple,
             description="Causal preconditions required for this assertion.",

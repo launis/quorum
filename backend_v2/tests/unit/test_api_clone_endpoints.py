@@ -179,8 +179,8 @@ def test_clone_mcp_gateways_endpoint(client_root: TestClient, mock_studio_servic
 
 
 def test_clone_output_profile_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/output-profiles/prof_12345/clone")
-    assert response.status_code == 200
+    response = client_admin.post("/api/v2/studio/profiles/prof_1111111111111111/clone")
+    assert response.status_code == 201
     data = response.json()
     assert data["id"] == "prof_1111111111111112"
     mock_studio_service.clone_output_profile.assert_called_once()

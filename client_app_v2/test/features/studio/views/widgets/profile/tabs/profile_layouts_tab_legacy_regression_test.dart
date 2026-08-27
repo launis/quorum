@@ -86,7 +86,8 @@ void main() {
           targetBlockOrder: [
             TargetBlockType.metadataBlock,
             TargetBlockType.executiveSummaryBlock,
-            TargetBlockType.synthesisTextBlock, // Legacy block that was demolished from UI
+            TargetBlockType
+                .synthesisTextBlock, // Legacy block that was demolished from UI
             TargetBlockType.matrixGraphsBlock,
             TargetBlockType.groupedExtensionsBlock,
             TargetBlockType.penaltiesBlock,

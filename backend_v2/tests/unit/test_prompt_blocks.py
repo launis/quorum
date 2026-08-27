@@ -13,7 +13,7 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixRow, MatrixScale, TDAAssertion
 
 
@@ -235,3 +235,116 @@ def test_prompt_block_json_deserialization(sample_i18n_text: I18nText) -> None:
     validated = PromptBlockAdapter.validate_json(raw_json)
     assert isinstance(validated, SystemRulePromptBlock)
     assert validated.id == "blk_0123456789abcdef0123456789abcdef"
+
+
+def test_matrix_prompt_block_deserialization_with_list_depends_on(
+    sample_i18n_text: I18nText,
+) -> None:
+    """Tests that a MatrixPromptBlock serialized with JSON list depends_on deserializes into tuple CausalEdge."""
+    raw_matrix_dict = {
+        "id": "blk_0123456789abcdef0123456789abcdef",
+        "slug": "test-matrix-deps",
+        "label": sample_i18n_text.model_dump(),
+        "description": sample_i18n_text.model_dump(),
+        "category_id": "matrix",
+        "type": "float",
+        "scales": [
+            {
+                "score": 1,
+                "ai_label": "LEVEL_1",
+                "claims": [
+                    {
+                        "label": sample_i18n_text.model_dump(),
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_00000000000000010000000000000001",
+                                "concept_description": "Valid test concept description for assertion 1",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                                "depends_on": [],
+                            },
+                            {
+                                "tda_id": "tda_00000000000000010000000000000002",
+                                "concept_description": "Valid test concept description for assertion 2",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                                "depends_on": [
+                                    {
+                                        "edge_reasoning": "Assertion 1 must pass first",
+                                        "tda_id": "tda_00000000000000010000000000000001",
+                                        "source_id": "chk_123",
+                                        "expected_status": ExecutionStatus.PASSED,
+                                    }
+                                ],
+                            },
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    # Test dictionary validation (PromptBlockAdapter.validate_python)
+    block = PromptBlockAdapter.validate_python(raw_matrix_dict)
+    assert isinstance(block, MatrixPromptBlock)
+    claim = block.scales[0].claims[0]
+    assert isinstance(claim.tda_assertions[0].depends_on, tuple)
+    assert len(claim.tda_assertions[0].depends_on) == 0
+    assert isinstance(claim.tda_assertions[1].depends_on, tuple)
+    assert len(claim.tda_assertions[1].depends_on) == 1
+    assert claim.tda_assertions[1].depends_on[0].tda_id == "tda_00000000000000010000000000000001"
+
+    # Negative test case 1: Non-collection primitive (e.g. integer or string) must fail tuple validation
+    invalid_primitive_dict = {
+        **raw_matrix_dict,
+        "scales": [
+            {
+                "score": 1,
+                "ai_label": "LEVEL_1",
+                "claims": [
+                    {
+                        "label": sample_i18n_text.model_dump(),
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_00000000000000010000000000000001",
+                                "concept_description": "Valid test concept description for assertion 1",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                                "depends_on": 12345,  # Invalid type (integer instead of collection)
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        PromptBlockAdapter.validate_python(invalid_primitive_dict)
+    assert "Input should be a valid tuple" in str(exc_info.value)
+
+    # Negative test case 2: Invalid item inside list (e.g. string instead of CausalEdge dict) must fail CausalEdge validation
+    invalid_element_dict = {
+        **raw_matrix_dict,
+        "scales": [
+            {
+                "score": 1,
+                "ai_label": "LEVEL_1",
+                "claims": [
+                    {
+                        "label": sample_i18n_text.model_dump(),
+                        "tda_assertions": [
+                            {
+                                "tda_id": "tda_00000000000000010000000000000001",
+                                "concept_description": "Valid test concept description for assertion 1",
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
+                                "depends_on": ["invalid_edge_string"],  # Invalid item type
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    with pytest.raises(ValidationError) as exc_info_2:
+        PromptBlockAdapter.validate_python(invalid_element_dict)
+    assert "Input should be a valid dictionary or instance of CausalEdge" in str(exc_info_2.value)

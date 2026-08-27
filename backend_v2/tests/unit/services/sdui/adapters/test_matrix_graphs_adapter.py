@@ -453,4 +453,3 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
     b_text = MatrixGraphsAdapter.build(ctx_text)
     assert len(b_text) == 1
     assert isinstance(b_text[0], MarkdownBlock)
-

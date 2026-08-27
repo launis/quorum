@@ -9,7 +9,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
@@ -26,6 +26,13 @@ __all__ = [
     "FlattenedAtom",
     "MatrixEvaluationContext",
 ]
+
+
+def _coerce_to_tuple(v: Any) -> Any:
+    """Coerces list to tuple for immutable DAG depends_on fields."""
+    if isinstance(v, list):
+        return tuple(v)
+    return v
 
 
 class FlattenedAtom(BaseModel):
@@ -47,6 +54,7 @@ class FlattenedAtom(BaseModel):
     is_inverse: Annotated[bool, Field(default=False, description="True if this is an inverse assertion.")]
     depends_on: Annotated[
         tuple[CausalEdge, ...],
+        BeforeValidator(_coerce_to_tuple),
         Field(
             default_factory=tuple,
             description="Causal dependencies attached to this atom.",
