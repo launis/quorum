@@ -278,4 +278,3 @@ def test_build_fallback_explanation_and_medium_low_levels() -> None:
     )
     blocks_low = AuthenticityAdapter.build(context_low)
     assert len(blocks_low) == 3
-

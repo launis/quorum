@@ -24,8 +24,8 @@ These absolute rules (Knowledge Items) govern the global context and must NEVER 
 - **Enforcement:** Attributes like specific vocabulary (e.g., forcing the AI to use "delve into" or "syventyä") are injected dynamically via `performative_lexicons` defined in the seed data. The LLM engine must apply these lexicons post-resolution, allowing multi-lingual operation without altering the core logic.
 
 ### 2.5. Universal I18n Domain Model (I18nText)
-- **Law:** Dynamic localized strings must never be flattened into dictionary maps or separate schema fields (e.g., `title_en`).
-- **Enforcement:** Any user-facing string that exists within the ontology (like profile titles, layout descriptions, and preambles) MUST use the strictly typed `I18nText` object in Python and Flutter. This ensures safe fallback resolution logic, structural parity across boundaries, and prevents UI crashes due to missing translation keys.
+- **Law:** Dynamic localized strings must never be flattened into dictionary maps, legacy default locale properties, or separate schema fields (e.g., `title_en`).
+- **Enforcement:** Any user-facing string that exists within the ontology (like profile titles, layout descriptions, and preambles) MUST use the strictly typed `I18nText` object in Python and Flutter. The schema mandates a required `translations` mapping containing non-empty baseline `'en'` and target language keys with 100% bilingual parity. This ensures Fail-Fast translation fallback resolution logic (`target -> fallback -> en`), structural parity across boundaries, and prevents UI crashes due to missing translation keys.
 
 ### 2.6. Workflow Context Governance & System Core Protections
 - **Law:** Foundational pipeline steps and synthesis context boundaries must be declaratively governed within the ontology rather than assumed by ad-hoc runtime code.

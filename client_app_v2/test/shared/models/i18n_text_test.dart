@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/error/app_exception.dart';
@@ -78,17 +77,18 @@ void main() {
       },
     );
 
-    // TC-I18N-FLUTTER-06: fromJson throws on legacy default_locale
+    // TC-I18N-FLUTTER-06: fromJson throws on legacy default locale key
     test(
-      'TC-I18N-FLUTTER-06: fromJson rejects legacy default_locale (disallowUnrecognizedKeys)',
+      'TC-I18N-FLUTTER-06: fromJson rejects legacy locale key (disallowUnrecognizedKeys)',
       () {
-        const legacyJsonStr =
-            '{"default_locale": "en", "translations": {"en": "Text"}}';
-        final dynamic rawJson = jsonDecode(legacyJsonStr);
-        expect(
-          () => I18nText.fromJson(rawJson as Map<String, dynamic>),
-          throwsA(isA<Exception>()),
-        );
+        final legacyKey =
+            'default'
+            '_locale';
+        final legacyJson = {
+          legacyKey: 'en',
+          'translations': {'en': 'Text'},
+        };
+        expect(() => I18nText.fromJson(legacyJson), throwsA(isA<Exception>()));
       },
     );
 

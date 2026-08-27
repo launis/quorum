@@ -39,10 +39,6 @@ class I18nTextFactory(ModelFactory[I18nText]):
     def translations(cls) -> dict[str, str]:
         return {"en": "English test", "fi": "Finnish test"}
 
-    @classmethod
-    def default_locale(cls) -> str:
-        return "en"
-
 
 class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
     __model__ = ReportDataDTO

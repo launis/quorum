@@ -118,4 +118,3 @@ def test_matrix_summary_table_adapter_starved() -> None:
     )
     blocks = MatrixSummaryTableAdapter.build(context)
     assert blocks == []
-

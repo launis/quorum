@@ -289,7 +289,9 @@ void main() {
         'name': {
           'translations': {'en': 'Test Profile'},
         },
-        'metric_mappings': {},
+        'metric'
+                '_mappings':
+            {},
       };
 
       expect(

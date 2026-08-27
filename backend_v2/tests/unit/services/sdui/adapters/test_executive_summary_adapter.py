@@ -291,5 +291,3 @@ def test_build_unmapped_role_rule_raises_configuration_error(monkeypatch: pytest
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
-
-

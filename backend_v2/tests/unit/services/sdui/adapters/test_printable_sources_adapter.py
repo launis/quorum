@@ -232,4 +232,3 @@ def test_build_starved_returns_empty(valid_output_profile_fixture: OutputProfile
     )
     blocks = PrintableSourcesAdapter.build(context)
     assert blocks == []
-

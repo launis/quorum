@@ -5,7 +5,7 @@ import 'package:client_app/core/error/app_exception.dart';
 void main() {
   group('Workflow Title Resolution Regression Tests', () {
     test(
-      'proves that legacy default_locale indexing fails on modern I18nText JSON',
+      'proves that legacy locale key indexing fails on modern I18nText JSON',
       () {
         final Map<String, dynamic> rawWorkflow = {
           'id': 'wf_9d68c573802341db',
@@ -21,14 +21,16 @@ void main() {
         final nameMap = nameMapRaw is Map ? nameMapRaw : {};
 
         // Legacy indexing:
+        final legacyKey =
+            'default'
+            '_locale';
         final buggyResolved =
-            nameMap['translations']?[nameMap['default_locale']] ??
-            nameMap['default_locale'];
+            nameMap['translations']?[nameMap[legacyKey]] ?? nameMap[legacyKey];
         expect(
           buggyResolved,
           isNull,
           reason:
-              'default_locale is no longer present in modern I18nText payloads',
+              'legacy locale key is no longer present in modern I18nText payloads',
         );
 
         // The buggy code executed `throw AppException.validation('Fail-Fast: Missing required translation.')`

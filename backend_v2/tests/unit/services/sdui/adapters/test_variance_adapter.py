@@ -227,4 +227,3 @@ def test_build_misaligned_and_fallback_explanation() -> None:
     assert blocks[0].text == "### Varianssivalidointi"
     assert isinstance(blocks[1], ParagraphBlock)
     assert isinstance(blocks[2], SduiMetrics1DBlock)
-

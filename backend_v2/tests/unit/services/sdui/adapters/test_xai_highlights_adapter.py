@@ -323,7 +323,6 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
     valid_output_profile_fixture: OutputProfile, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Error path: missing aesthetics rule mapping raises AppException with CONFIGURATION_ERROR."""
-    from backend_v2.exceptions import AppException
     from backend_v2.models.dtos.synthesis import XaiHighlightItem
     from backend_v2.services.sdui.adapters import xai_highlights_adapter
 
