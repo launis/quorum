@@ -8,7 +8,6 @@ import 'package:client_app/features/studio/views/widgets/profile/blocks/matrix_g
 import 'package:client_app/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/metadata_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart';
-import 'package:client_app/features/studio/views/widgets/profile/blocks/synthesis_text_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart';
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -97,13 +96,7 @@ class BlockCardRegistry {
         dragHandle: dragHandle,
         syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
-      TargetBlockType.synthesisTextBlock => SynthesisTextBlockCard(
-        key: key,
-        payload: payload,
-        updatePayload: updatePayload,
-        promptBlocksState: promptBlocksState,
-        dragHandle: dragHandle,
-      ),
+      TargetBlockType.synthesisTextBlock => const SizedBox.shrink(),
       TargetBlockType.matrixGraphsBlock => MatrixGraphsBlockCard(
         key: key,
         payload: payload,

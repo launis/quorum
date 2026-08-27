@@ -88,11 +88,20 @@ class MatrixGraphsAdapter:
                 if section_blocks:
                     blocks.extend(section_blocks)
 
-                if len(axes) >= 3:
+                # Route graph block emission by deterministic view_type
+                view_type = grp.view_type
+                if view_type in ("3d_matrix", "matrix3d") and len(axes) >= 3:
+                    blocks.append(SduiRadarChartBlock(title=None, axes=axes))
+                elif view_type in ("2d_compare", "compare2d") and len(axes) >= 2:
+                    blocks.append(SduiScatterPlotBlock(title=None, axes=axes[:2]))
+                elif view_type in ("text_only", "textOnly"):
+                    # Text-only synthesis group does not emit visual chart blocks
+                    pass
+                elif len(axes) >= 3:
                     blocks.append(SduiRadarChartBlock(title=None, axes=axes))
                 elif len(axes) == 2:
-                    blocks.append(SduiScatterPlotBlock(title=None, axes=axes))
+                    blocks.append(SduiScatterPlotBlock(title=None, axes=axes[:2]))
                 elif len(axes) == 1:
-                    blocks.append(SduiMetrics1DBlock(title=None, axes=axes))
+                    blocks.append(SduiMetrics1DBlock(title=None, axes=axes[:1]))
 
         return blocks

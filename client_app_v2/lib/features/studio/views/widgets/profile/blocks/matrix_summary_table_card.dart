@@ -5,11 +5,24 @@ import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
-/// Dedicated configuration card for matrixSummaryTableBlock.
+/// Dedicated configuration card for matrixSummaryTableBlock with column visibility selection.
 class MatrixSummaryTableCard extends StatelessWidget {
   final OutputProfile payload;
   final void Function(OutputProfile) updatePayload;
   final Widget? dragHandle;
+
+  static const List<Map<String, String>> availableColumns = [
+    {'key': 'label', 'labelFi': 'Ulottuvuus', 'labelEn': 'Dimension'},
+    {'key': 'distribution', 'labelFi': 'Jakauma', 'labelEn': 'Distribution'},
+    {
+      'key': 'row_explanation',
+      'labelFi': 'Rivisyy / Peruste',
+      'labelEn': 'Row Explanation',
+    },
+    {'key': 'quotes', 'labelFi': 'Lainaukset', 'labelEn': 'Quotes'},
+    {'key': 'normalized_score', 'labelFi': 'Normitettu', 'labelEn': 'Normalized'},
+    {'key': 'score', 'labelFi': 'Pistemäärä', 'labelEn': 'Score'},
+  ];
 
   const MatrixSummaryTableCard({
     super.key,
@@ -24,6 +37,7 @@ class MatrixSummaryTableCard extends StatelessWidget {
     final isIncluded = payload.targetBlockOrder.contains(
       TargetBlockType.matrixSummaryTableBlock,
     );
+    final visibleCols = payload.matrixVisibleColumns;
 
     return BaseBlockCard(
       blockType: TargetBlockType.matrixSummaryTableBlock,
@@ -43,12 +57,44 @@ class MatrixSummaryTableCard extends StatelessWidget {
         }
         updatePayload(payload.copyWith(targetBlockOrder: newOrder));
       },
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
-        child: Text(
-          l10n.blockMatrixSummarySubtitle,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+            child: Text(
+              'Näytettävät sarakkeet (Visible Columns):',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Wrap(
+            spacing: AppSpacing.s8,
+            runSpacing: AppSpacing.s4,
+            children: availableColumns.map((col) {
+              final key = col['key']!;
+              final label = col['labelFi']!;
+              final isSelected = visibleCols.contains(key);
+
+              return FilterChip(
+                label: Text(label),
+                selected: isSelected,
+                onSelected: (selected) {
+                  final newCols = List<String>.from(visibleCols);
+                  if (selected) {
+                    if (!newCols.contains(key)) {
+                      newCols.add(key);
+                    }
+                  } else {
+                    newCols.remove(key);
+                  }
+                  updatePayload(payload.copyWith(matrixVisibleColumns: newCols));
+                },
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }

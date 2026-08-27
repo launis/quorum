@@ -40,14 +40,22 @@ from backend_v2.models.dtos.synthesis import (
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlockType
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
+    DEFAULT_COACHING_TONE_MANDATE,
+    DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
     EXECUTIVE_SUMMARY_DIRECTIVE,
     EXECUTIVE_SUMMARY_SECTION_ID,
     GLOBAL_MANDATES_XML,
+    MATRIX_1D_SYNTHESIS_DIRECTIVE,
     MATRIX_2D_SYNTHESIS_DIRECTIVE,
+    MATRIX_3D_SYNTHESIS_DIRECTIVE,
+    MATRIX_TEXT_SYNTHESIS_DIRECTIVE,
+    ROW_EXPLANATION_DIRECTIVE,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SECTION_RULES_PREFIX,
     SYNTHESIS_XAI_CURATION,
+    VARIANCE_EXPLANATION_DIRECTIVE,
+    XAI_EXPLANATIONS_DIRECTIVE,
     build_linguistic_context,
 )
 from backend_v2.models.state import StateProjector, TraceEvent
@@ -892,12 +900,15 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 pb = PromptBlockAdapter.validate_python(pb_dict, strict=False)
                 # sys_prompt MUST remain 100% static for cache prefix survival
-                sys_prompt = pb.ai_description or ""
+                sys_prompt = pb.ai_description or DEFAULT_SYNTHESIS_SYSTEM_PROMPT
                 sys_prompt += f"\n\n{SYNTHESIS_SDUI_MANDATES}"
                 sys_prompt += f"\n\n{ANTI_JARGON_MANDATE_BLOCK}"
 
                 # Dynamic context parts injected into user message <dynamic_context>
-                base_dynamic_parts: list[str] = [GLOBAL_MANDATES_XML]
+                base_dynamic_parts: list[str] = [
+                    GLOBAL_MANDATES_XML,
+                    DEFAULT_COACHING_TONE_MANDATE,
+                ]
                 lang_ctx = build_linguistic_context(
                     source_language="Unknown", target_locale=accept_language, include_mandate=True
                 )
@@ -965,7 +976,18 @@ async def generate_profile_synthesis_and_pdf_task(
                                     target_titles.append(title_map[tb.lower()])
                         target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
 
-                        directive_content = grp.synthesis_directive or MATRIX_2D_SYNTHESIS_DIRECTIVE
+                        if grp.synthesis_directive:
+                            directive_content = grp.synthesis_directive
+                        elif grp.view_type in ("1d_metrics", "metrics1d"):
+                            directive_content = MATRIX_1D_SYNTHESIS_DIRECTIVE
+                        elif grp.view_type in ("2d_compare", "compare2d"):
+                            directive_content = MATRIX_2D_SYNTHESIS_DIRECTIVE
+                        elif grp.view_type in ("3d_matrix", "matrix3d"):
+                            directive_content = MATRIX_3D_SYNTHESIS_DIRECTIVE
+                        elif grp.view_type in ("text_only", "textOnly"):
+                            directive_content = MATRIX_TEXT_SYNTHESIS_DIRECTIVE
+                        else:
+                            directive_content = MATRIX_2D_SYNTHESIS_DIRECTIVE
 
                         grp_dynamic_parts = list(base_dynamic_parts)
                         grp_section_rule = (
@@ -1013,8 +1035,10 @@ async def generate_profile_synthesis_and_pdf_task(
                         wf_exts.extend(active_profile_dto.visible_block_extensions)
                     wf_exts = list(dict.fromkeys(wf_exts))
                     req_exts = ", ".join([str(e) for e in wf_exts]) if wf_exts else "none"
-                    xai_cur = SYNTHESIS_XAI_CURATION.replace("<max_extension_items>", str(max_ext))
-                    xai_cur = xai_cur.replace("<requested_extensions>", req_exts)
+                    xai_cur = (
+                        f"{XAI_EXPLANATIONS_DIRECTIVE}\n\n"
+                        f"{SYNTHESIS_XAI_CURATION.replace('<max_extension_items>', str(max_ext)).replace('<requested_extensions>', req_exts)}"
+                    )
 
                     xai_dynamic_parts = list(base_dynamic_parts)
                     xai_dynamic_parts.append(xai_cur)
@@ -1049,7 +1073,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     row_lang_ctx = build_linguistic_context(
                         source_language="Unknown", target_locale=accept_language, include_mandate=True
                     )
-                    row_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{row_lang_ctx}"
+                    row_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{row_lang_ctx}\n\n{ROW_EXPLANATION_DIRECTIVE}"
 
                     row_messages: list[dict[str, Any]] = [
                         {"role": "system", "content": row_sys_prompt},
@@ -1119,10 +1143,10 @@ async def generate_profile_synthesis_and_pdf_task(
                                 if event_blueprint == perf_step_id:
                                     for key, val in event.content.items():
                                         if key.startswith("blk_"):
-                                            det_out = LightweightMatrixOutput.model_validate(val, strict=False)
-                                            if det_out.raw_score is not None:
-                                                authenticity_score = float(det_out.raw_score)
-                                            break
+                                             det_out = LightweightMatrixOutput.model_validate(val, strict=False)
+                                             if det_out.raw_score is not None:
+                                                 authenticity_score = float(det_out.raw_score)
+                                             break
 
                         if authenticity_score is not None and performative_phrases_count is not None:
                             break
@@ -1149,7 +1173,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         var_lang_ctx = build_linguistic_context(
                             source_language="Unknown", target_locale=accept_language, include_mandate=True
                         )
-                        var_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{var_lang_ctx}"
+                        var_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{var_lang_ctx}\n\n{VARIANCE_EXPLANATION_DIRECTIVE}"
 
                         var_messages: list[dict[str, Any]] = [
                             {"role": "system", "content": var_sys_prompt},

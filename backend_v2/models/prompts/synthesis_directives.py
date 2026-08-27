@@ -1,40 +1,29 @@
-"""Centralized synthesis prompt directives and XML mandates.
+"""Direct synthesis, section, and analytical prompt directives.
 
-This module acts as the Single Source of Truth (SSOT) for synthesis prompt blocks,
-ensuring strict DRY compliance and zero-hardcoding across workers and hooks.
+Single Source of Truth (SSOT) for direct content generation, including Executive Summary,
+1D Metrics, 2D Comparison, 3D Radar, Text-Only matrix syntheses, Row Explanations,
+XAI Highlights, and Variance Explanations.
 """
 
 from backend_v2.models.enums import TargetBlockType
 
 __all__ = [
-    "ANTI_JARGON_MANDATE_BLOCK",
+    "DEFAULT_SYNTHESIS_SYSTEM_PROMPT",
     "EXECUTIVE_SUMMARY_DIRECTIVE",
     "EXECUTIVE_SUMMARY_SECTION_ID",
     "MATRIX_1D_SYNTHESIS_DIRECTIVE",
     "MATRIX_2D_SYNTHESIS_DIRECTIVE",
     "MATRIX_3D_SYNTHESIS_DIRECTIVE",
     "MATRIX_TEXT_SYNTHESIS_DIRECTIVE",
-    "SDUI_SYNTHESIS_MANDATE_BLOCK",
-    "SECTION_SYNTHESIS_DIRECTIVE_BLOCK",
-    "SPARSE_DATA_SYNTHESIS_MANDATE",
-    "STATE_ISOLATION_BLOCK",
+    "ROW_EXPLANATION_DIRECTIVE",
+    "VARIANCE_EXPLANATION_DIRECTIVE",
+    "XAI_EXPLANATIONS_DIRECTIVE",
 ]
 
-SPARSE_DATA_SYNTHESIS_MANDATE: str = (
-    "<sparse_data_synthesis_mandate>\n"
-    "- CRITICAL SPARSE DATA INSTRUCTION: The evaluation dataset contains minimal atomic evidence.\n"
-    "- You MUST be extremely concise, objective, and brief.\n"
-    "- You MUST leave sections completely empty (empty strings or empty arrays) if there is no direct supporting data.\n"
-    "- Do NOT invent narrative filler, do NOT guess, and do NOT generate generic consultant advice.\n"
-    "- If a matrix dimension or report section lacks observations, output an empty structure according to schema.\n"
-    "</sparse_data_synthesis_mandate>"
-)
-
-ANTI_JARGON_MANDATE_BLOCK: str = (
-    "<anti_jargon_mandate>\n"
-    "- ANTI-JARGON MANDATE: You MUST NOT use performative consulting clichés, empty buzzwords, or unsubstantiated meta-commentary.\n"
-    "- State all findings using direct, plain, evidence-backed statements.\n"
-    "</anti_jargon_mandate>"
+DEFAULT_SYNTHESIS_SYSTEM_PROMPT: str = (
+    "You are a Senior Executive Coach and Strategic Evaluator. Synthesize the evaluated "
+    "cognitive matrix data into structured Server-Driven UI (SDUI) blocks with executive rigor, "
+    "mathematical clarity, and actionable developmental feedback."
 )
 
 EXECUTIVE_SUMMARY_SECTION_ID: str = TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
@@ -84,37 +73,29 @@ MATRIX_TEXT_SYNTHESIS_DIRECTIVE: str = (
     "</matrix_text_directive>"
 )
 
-SDUI_SYNTHESIS_MANDATE_BLOCK: str = (
-    "<sdui_synthesis_mandate>\n"
-    "- SDUI POLYMORPHIC SYNTHESIS MANDATE: Structure your response by mapping output directly "
-    "into the section_syntheses dictionary using the requested layout IDs.\n"
-    "- ALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. "
-    "NO OTHER TYPES ARE ALLOWED.\n"
-    "- NO RECURSION: Nested blocks inside blocks are strictly banned.\n"
-    "- NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. "
-    "The UI will render text structurally.\n"
-    "- CITATIONS ARRAYS: Instead of inline brackets like [1], provide an array of integers in the "
-    "`citations: list[int]` field for each block that uses sources.\n"
-    "- USER ROLE EXTRACTION: Deduce the user's role (ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, "
-    "ROLE_ARCHITECT) and output it as the uppercase enum constant in `user_role` with reasoning in "
-    "`user_role_justification`.\n"
-    "</sdui_synthesis_mandate>"
+ROW_EXPLANATION_DIRECTIVE: str = (
+    "<row_explanation_directive>\n"
+    "MATRIX ROW CAUSAL EXPLANATION MANDATE:\n"
+    "- Provide a concise causal explanation for why this specific matrix score was reached.\n"
+    "- Strict brevity constraint: maximum 30 words per row.\n"
+    "- Return plain text only; no markdown formatting.\n"
+    "</row_explanation_directive>"
 )
 
-SECTION_SYNTHESIS_DIRECTIVE_BLOCK: str = (
-    "<section_synthesis_directive>\n"
-    "CRITICAL: You MUST place the output for each section_instruction strictly inside the "
-    "`sections` array using the exact target `layout_id`. All generated content blocks MUST be "
-    "contained within `sections[].content_blocks` for that layout_id. Do NOT put section analysis "
-    "in the global executive_summary, and do NOT invent sub-paragraph layout IDs.\n"
-    "</section_synthesis_directive>"
+XAI_EXPLANATIONS_DIRECTIVE: str = (
+    "<xai_explanations_directive>\n"
+    "XAI HIGHLIGHTS & EXTENSIONS SYNTHESIS MANDATE:\n"
+    "- Review evaluated XAI extensions across matrices and distill critical developmental insights.\n"
+    "- Highlight key risk flags, coaching challenges, and remediation pathways.\n"
+    "- Structure findings into compact, high-impact bullet items.\n"
+    "</xai_explanations_directive>"
 )
 
-STATE_ISOLATION_BLOCK: str = (
-    "<state_isolation_mandate>\n"
-    "STATE ISOLATION MANDATE: If &lt;HistoricalContext&gt; is provided, use it ONLY to understand "
-    "the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, "
-    "summarize, or report on the substantive topics, subjects, or domains discussed in the "
-    "historical context. Your output must be STRICTLY based on the current &lt;source_data&gt;.\n"
-    "</state_isolation_mandate>"
+VARIANCE_EXPLANATION_DIRECTIVE: str = (
+    "<variance_explanation_directive>\n"
+    "VARIANCE & AUTHENTICITY EVALUATION MANDATE:\n"
+    "- Explain the mechanical versus cognitive alignment score and interpret any detected variance.\n"
+    "- Provide actionable coaching context regarding authenticity and rhetorical consistency.\n"
+    "- Keep explanations objective, constructive, and evidence-grounded.\n"
+    "</variance_explanation_directive>"
 )

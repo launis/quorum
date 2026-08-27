@@ -83,6 +83,20 @@ class OutputProfileCreateDTO(V2CoreBase):
             description="List of metadata fields visible on the UI and PDF cover header.",
         ),
     ]
+    matrix_visible_columns: Annotated[
+        list[str],
+        Field(
+            default_factory=lambda: [
+                "label",
+                "distribution",
+                "row_explanation",
+                "quotes",
+                "normalized_score",
+                "score",
+            ],
+            description="List of column keys visible in the matrix summary table.",
+        ),
+    ]
     visible_block_extensions: Annotated[
         list[LaxXaiExtensionType],
         Field(
@@ -192,6 +206,14 @@ class OutputProfileUpdateDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
+    id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            description="Optional Profile ID supplied in PUT payload for client-state preservation.",
+        ),
+    ] = None
     slug: Annotated[str | None, Field(default=None, description="Human-readable routing identifier.")]
     workflow_id: Annotated[str | None, Field(default=None, description="Optional workflow reassignment.")]
     name: Annotated[I18nText | None, Field(default=None, description="Localized name.")]
@@ -217,6 +239,13 @@ class OutputProfileUpdateDTO(V2CoreBase):
             description="List of metadata fields visible on the UI and PDF cover header.",
         ),
     ]
+    matrix_visible_columns: Annotated[
+        list[str] | None,
+        Field(
+            default=None,
+            description="Optional list of column keys visible in the matrix summary table.",
+        ),
+    ] = None
     visible_block_extensions: Annotated[
         list[LaxXaiExtensionType] | None,
         Field(
@@ -347,6 +376,19 @@ class OutputProfileResponseDTO(BaseResponseDTO):
 
     visible_metadata: Annotated[
         list[str], Field(default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"])
+    ]
+    matrix_visible_columns: Annotated[
+        list[str],
+        Field(
+            default_factory=lambda: [
+                "label",
+                "distribution",
+                "row_explanation",
+                "quotes",
+                "normalized_score",
+                "score",
+            ]
+        ),
     ]
     visible_block_extensions: Annotated[list[LaxXaiExtensionType], Field(default_factory=list)]
     visible_workflow_extensions: Annotated[list[LaxXaiExtensionType], Field(default_factory=list)]

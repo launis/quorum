@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
@@ -31,11 +32,27 @@ class MatrixGraphItemEditor extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final blocks = promptBlocksState.value ?? [];
-    final selectableBlocks = allowedBlockIds.isEmpty
-        ? blocks
-        : blocks.where((b) => allowedBlockIds.contains(b.id)).toList();
+
+    // Filter strictly to matrix category prompt blocks
+    final matrixBlocks = blocks.where((b) {
+      final isCategoryMatrix = b is MatrixPromptBlock;
+      if (allowedBlockIds.isEmpty) {
+        return isCategoryMatrix;
+      }
+      return isCategoryMatrix && allowedBlockIds.contains(b.id);
+    }).toList();
 
     final targetBlocks = List<String>.from(group.targetBlocks);
+    final currentViewType = group.viewType;
+
+    // Slot capacity per view type
+    final int maxSlots = switch (currentViewType) {
+      PresetView.metrics1d => 1,
+      PresetView.compare2d => 2,
+      PresetView.matrix3d => 3,
+      PresetView.textOnly => 1,
+      _ => 1,
+    };
 
     return Card(
       elevation: 0,
@@ -71,40 +88,125 @@ class MatrixGraphItemEditor extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.s12),
           Text(
-            l10n.selectBlockHint,
+            'Näkymätyyppi (View Type)',
             style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: AppSpacing.s8),
-          Wrap(
-            spacing: AppSpacing.s8,
-            runSpacing: AppSpacing.s4,
-            children: selectableBlocks.map((block) {
-              final isSelected = targetBlocks.contains(block.id);
-              final label = block.label.translations['en'] ?? block.slug;
-              return FilterChip(
-                label: Text('$label (${block.id})'),
-                selected: isSelected,
-                onSelected: (selected) {
-                  final newTargets = List<String>.from(targetBlocks);
-                  if (selected) {
-                    if (!newTargets.contains(block.id)) {
-                      newTargets.add(block.id);
-                    }
-                  } else {
-                    newTargets.remove(block.id);
-                  }
-                  onUpdate(group.copyWith(targetBlocks: newTargets));
-                },
+          const SizedBox(height: AppSpacing.s4),
+          SegmentedButton<PresetView>(
+            segments: const [
+              ButtonSegment(
+                value: PresetView.metrics1d,
+                label: Text('1D Mittari'),
+                icon: Icon(Icons.speed),
+              ),
+              ButtonSegment(
+                value: PresetView.compare2d,
+                label: Text('2D Vertailu'),
+                icon: Icon(Icons.scatter_plot),
+              ),
+              ButtonSegment(
+                value: PresetView.matrix3d,
+                label: Text('3D Tutka'),
+                icon: Icon(Icons.radar),
+              ),
+              ButtonSegment(
+                value: PresetView.textOnly,
+                label: Text('Teksti'),
+                icon: Icon(Icons.article_outlined),
+              ),
+            ],
+            selected: {currentViewType},
+            onSelectionChanged: (newSelection) {
+              final selectedType = newSelection.first;
+              final newLimit = switch (selectedType) {
+                PresetView.metrics1d => 1,
+                PresetView.compare2d => 2,
+                PresetView.matrix3d => 3,
+                PresetView.textOnly => 1,
+                _ => 1,
+              };
+
+              final trimmedTargets = targetBlocks.length > newLimit
+                  ? targetBlocks.sublist(0, newLimit)
+                  : targetBlocks;
+
+              onUpdate(
+                group.copyWith(
+                  viewType: selectedType,
+                  targetBlocks: trimmedTargets,
+                ),
               );
-            }).toList(),
+            },
           ),
+          const SizedBox(height: AppSpacing.s12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                l10n.selectBlockHint,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${targetBlocks.length} / $maxSlots valittu',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: targetBlocks.length == maxSlots
+                      ? colorScheme.primary
+                      : colorScheme.outline,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          if (matrixBlocks.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+              child: Text(
+                'Ei matriiseja valittavissa työnkulussa.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.error,
+                ),
+              ),
+            )
+          else
+            Wrap(
+              spacing: AppSpacing.s8,
+              runSpacing: AppSpacing.s4,
+              children: matrixBlocks.map((block) {
+                final isSelected = targetBlocks.contains(block.id);
+                final canSelectMore = targetBlocks.length < maxSlots;
+                final label = block.label.translations['en'] ?? block.slug;
+
+                return FilterChip(
+                  label: Text('$label (${block.id})'),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    final newTargets = List<String>.from(targetBlocks);
+                    if (selected) {
+                      if (maxSlots == 1) {
+                        // Single selection replaces previous choice
+                        newTargets.clear();
+                        newTargets.add(block.id);
+                      } else if (canSelectMore) {
+                        newTargets.add(block.id);
+                      }
+                    } else {
+                      newTargets.remove(block.id);
+                    }
+                    onUpdate(group.copyWith(targetBlocks: newTargets));
+                  },
+                );
+              }).toList(),
+            ),
           const SizedBox(height: AppSpacing.s12),
           TextFormField(
             initialValue: group.synthesisDirective ?? '',
             decoration: const InputDecoration(
-              labelText: 'Synthesis Directive (Optional)',
+              labelText: 'Synteesiohje / Directive (Valinnainen)',
               border: OutlineInputBorder(),
               isDense: true,
             ),

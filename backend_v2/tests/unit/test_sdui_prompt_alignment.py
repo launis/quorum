@@ -1,4 +1,4 @@
-from backend_v2.models.prompts.hook_prompts import SYNTHESIS_SDUI_MANDATES
+from backend_v2.models.prompts.sdui_directives import SYNTHESIS_SDUI_MANDATES
 
 
 def test_sdui_prompt_alignment_with_schema() -> None:

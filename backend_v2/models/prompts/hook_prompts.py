@@ -31,27 +31,6 @@ INTERACTION_RULES = (
     "</interaction_rules>"
 )
 
-# ============================================================================
-# SYNTHESIS HOOK RULES (backend_v2/hooks/synthesis.py)
-# ============================================================================
-
-SYNTHESIS_SDUI_MANDATES = (
-    "<sdui_mandate>\n"
-    "- SDUI POLYMORPHIC SYNTHESIS MANDATE: You must structure your entire response by mapping your output directly into the section_syntheses dictionary according to the requested layout IDs.\n"
-    "- ALLOWED SDUI BLOCKS: 'paragraph', 'bullet_list', 'alert_box', 'quote_card', 'warning_card'. "
-    "NO OTHER TYPES ARE ALLOWED.\n"
-    '- BULLET LISTS MUST USE OBJECTS: For `bullet_list`, the `items` array MUST contain objects with a `text` field (e.g. `[{"text": "kohta 1"}]`), NOT raw strings!\n'
-    "- NO RECURSION: Nested blocks inside blocks are strictly banned.\n"
-    "- MCP CITATIONS: When citing information retrieved via ANY external tool (e.g., Jira, Web Search), you MUST use the exact tool call ID or the tool's defined identifier as the `source_id`.\n"
-    "- NO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside "
-    "text fields. The UI will render text structurally.\n"
-    "- CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of "
-    "integers in the `citations: list[int]` field for each block that uses sources.\n"
-    "- USER ROLE EXTRACTION (CRITICAL): You MUST deduce the user's role (ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, ROLE_ARCHITECT) and output it EXACTLY as the uppercase enum constant in the JSON field `user_role`. Provide reasoning in `user_role_justification`.\n"
-    "- ROLE TRANSLATION: Do NOT translate role constants. Output them exactly as they are so the UI can translate and format them.\n"
-    "</sdui_mandate>"
-)
-
 SYNTHESIS_XAI_CURATION = (
     "<xai_curation_mandate>\n"
     "XAI HIGHLIGHTS CURATION: Review the `extensions` fields inside the input data (if any). Synthesize and combine "
@@ -63,13 +42,6 @@ SYNTHESIS_XAI_CURATION = (
     "</xai_curation_mandate>"
 )
 
-SYNTHESIS_LENGTH_CONSTRAINT = (
-    "<length_constraint>\n"
-    "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
-    "specified in <global_length_constraint_chars>.\n"
-    "</length_constraint>"
-)
-
 SYNTHESIS_SECTION_RULES_PREFIX = (
     "<section_rules>\n"
     "## Section-Level Synthesis\n"
@@ -77,26 +49,4 @@ SYNTHESIS_SECTION_RULES_PREFIX = (
     "short sentences.\n"
     "- You MUST ALSO provide targeted synthesized summaries for the following distinct "
     "sections as an array in `section_syntheses`.\n\n"
-)
-
-SYNTHESIS_CITATION_RULES = (
-    "<citation_rules>\n"
-    "Omit internal system identifiers or raw JSON keys. When referring to information, use "
-    "inline numerical tags like [1], [2].\n"
-    "CRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond "
-    "to the items in the `cited_sources` list (1-indexed). ONLY create a numerical citation "
-    "tag AND add an entry to `cited_sources` if the source is an actual literary reference, "
-    "empirical citation, methodology framework, or external document. DO NOT use citation tags for general analysis sections, step titles, "
-    "or internal data dumps. If you mention internal findings, state them directly without "
-    "using it.\n"
-    "</citation_rules>"
-)
-
-SYNTHESIS_STATE_ISOLATION_MANDATE = (
-    "<state_isolation_mandate>\n"
-    "STATE ISOLATION MANDATE: If <HistoricalContext> is provided, use it ONLY to understand "
-    "the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, "
-    "summarize, or report on the substantive topics, subjects, or domains discussed in the "
-    "historical context. Your output must be STRICTLY based on the current <source_data>.\n"
-    "</state_isolation_mandate>"
 )

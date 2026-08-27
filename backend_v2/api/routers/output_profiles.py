@@ -13,6 +13,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.output_profile import (
     OutputProfileCreateDTO,
     OutputProfileResponseDTO,
+    OutputProfileUpdateDTO,
 )
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,9 @@ async def get_output_profile(
 
     Returns:
         The requested OutputProfile domain model.
+
+    Raises:
+        AppException: If the profile is not found or tenant unauthorized.
     """
     profile = await service.get_output_profile(initiator=initiator, id=profile_id)
     return profile
@@ -80,7 +84,7 @@ async def get_output_profile(
 @router.put("/{profile_id}", response_model=OutputProfileResponseDTO)
 async def upsert_output_profile(
     profile_id: str,
-    dto: OutputProfileCreateDTO,
+    dto: OutputProfileUpdateDTO,
     initiator: CurrentUserDep,
     service: StudioOutputProfileServiceDep,
 ) -> OutputProfile:
@@ -125,23 +129,3 @@ async def delete_output_profile(
         service: Injected StudioService for domain operations.
     """
     await service.delete_output_profile(initiator=initiator, id=profile_id)
-
-
-@router.post("/{profile_id}/clone", response_model=OutputProfileResponseDTO)
-async def clone_output_profile(
-    profile_id: str,
-    initiator: CurrentUserDep,
-    service: StudioOutputProfileServiceDep,
-) -> OutputProfile:
-    """Deep clone an Output Profile.
-
-    Args:
-        profile_id: Unique Opaque Stripe ID of the profile to clone.
-        initiator: The current verified user executing the request.
-        service: Injected StudioService for domain operations.
-
-    Returns:
-        The newly cloned OutputProfile domain model.
-    """
-    profile = await service.clone_output_profile(initiator=initiator, id=profile_id)
-    return profile

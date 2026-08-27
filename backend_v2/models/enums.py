@@ -49,6 +49,7 @@ __all__ = [
     "LaxLLMCachingStrategy",
     "LaxLLMProviderName",
     "LaxPlausibilityLevel",
+    "LaxPresetView",
     "LaxPromptBlockCategory",
     "LaxRiskLevel",
     "LaxRoleClassification",
@@ -65,6 +66,7 @@ __all__ = [
     "LaxXaiExtensionType",
     "PipelineConfig",
     "PlausibilityLevel",
+    "PresetView",
     "PromptBlockCategory",
     "PromptCacheStatus",
     "ReferenceTitle",
@@ -803,3 +805,18 @@ PIPELINE_REGISTRY: dict[str, PipelineConfig] = {
     "synthesis": PipelineConfig(profile=ExecutionProfile.ITERATIVE),
     "synthesis_strict": PipelineConfig(profile=ExecutionProfile.ONE_SHOT),
 }
+
+
+class PresetView(StrEnum):
+    """UI Renderer presets for matrix graph visualization blocks."""
+
+    METRICS_1D = "1d_metrics"
+    COMPARE_2D = "2d_compare"
+    MATRIX_3D = "3d_matrix"
+    TEXT_ONLY = "text_only"
+    DEFAULT = "default"
+    MATRIX_SUMMARY = "matrix_summary"
+
+
+LaxPresetView = PresetView | str
+

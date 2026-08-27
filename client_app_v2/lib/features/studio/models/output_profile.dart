@@ -18,6 +18,9 @@ abstract class MatrixSynthesisGroup with _$MatrixSynthesisGroup {
     required I18nText title,
     @JsonKey(name: 'target_blocks') required List<String> targetBlocks,
     @JsonKey(name: 'synthesis_directive') String? synthesisDirective,
+    @Default(PresetView.metrics1d)
+    @JsonKey(name: 'view_type')
+    PresetView viewType,
   }) = _MatrixSynthesisGroup;
 
   factory MatrixSynthesisGroup.fromJson(Map<String, dynamic> json) =>
@@ -58,7 +61,18 @@ abstract class OutputProfile with _$OutputProfile {
     I18nText? description,
     @JsonKey(name: 'user_role_label') I18nText? userRoleLabel,
     @JsonKey(name: 'custom_preface') I18nText? customPreface,
-    @Default(['date', 'organization']) List<String> visibleMetadata,
+    @Default(['date', 'organization', 'user', 'scoring_engine', 'strictness'])
+    List<String> visibleMetadata,
+    @Default([
+      'label',
+      'distribution',
+      'row_explanation',
+      'quotes',
+      'normalized_score',
+      'score',
+    ])
+    @JsonKey(name: 'matrix_visible_columns')
+    List<String> matrixVisibleColumns,
     @Default([]) List<XaiExtensionType> visibleBlockExtensions,
     @Default([]) List<XaiExtensionType> visibleWorkflowExtensions,
     @Default(3) @JsonKey(name: 'max_extension_items') int maxExtensionItems,
@@ -81,7 +95,6 @@ abstract class OutputProfile with _$OutputProfile {
     @Default([
       TargetBlockType.metadataBlock,
       TargetBlockType.executiveSummaryBlock,
-      TargetBlockType.synthesisTextBlock,
       TargetBlockType.matrixGraphsBlock,
       TargetBlockType.groupedExtensionsBlock,
       TargetBlockType.penaltiesBlock,

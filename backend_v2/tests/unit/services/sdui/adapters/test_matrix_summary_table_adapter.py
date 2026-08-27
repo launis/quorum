@@ -1,3 +1,4 @@
+import backend_v2.models.state  # noqa: F401
 from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO, OutputProfile
 from backend_v2.models.view.sdui import SduiMatrixTableBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext

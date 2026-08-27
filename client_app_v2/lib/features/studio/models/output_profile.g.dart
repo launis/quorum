@@ -19,6 +19,7 @@ _MatrixSynthesisGroup _$MatrixSynthesisGroupFromJson(
         'title',
         'target_blocks',
         'synthesis_directive',
+        'view_type',
       ],
     );
     final val = _MatrixSynthesisGroup(
@@ -35,12 +36,18 @@ _MatrixSynthesisGroup _$MatrixSynthesisGroupFromJson(
         'synthesis_directive',
         (v) => v as String?,
       ),
+      viewType: $checkedConvert(
+        'view_type',
+        (v) =>
+            $enumDecodeNullable(_$PresetViewEnumMap, v) ?? PresetView.metrics1d,
+      ),
     );
     return val;
   },
   fieldKeyMap: const {
     'targetBlocks': 'target_blocks',
     'synthesisDirective': 'synthesis_directive',
+    'viewType': 'view_type',
   },
 );
 
@@ -51,6 +58,16 @@ Map<String, dynamic> _$MatrixSynthesisGroupToJson(
   'title': instance.title.toJson(),
   'target_blocks': instance.targetBlocks,
   'synthesis_directive': instance.synthesisDirective,
+  'view_type': _$PresetViewEnumMap[instance.viewType]!,
+};
+
+const _$PresetViewEnumMap = {
+  PresetView.metrics1d: '1d_metrics',
+  PresetView.compare2d: '2d_compare',
+  PresetView.matrix3d: '3d_matrix',
+  PresetView.textOnly: 'text_only',
+  PresetView.defaultView: 'default',
+  PresetView.matrixSummary: 'matrix_summary',
 };
 
 _SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
@@ -148,6 +165,7 @@ _OutputProfile _$OutputProfileFromJson(
         'user_role_label',
         'custom_preface',
         'visible_metadata',
+        'matrix_visible_columns',
         'visible_block_extensions',
         'visible_workflow_extensions',
         'max_extension_items',
@@ -196,7 +214,26 @@ _OutputProfile _$OutputProfileFromJson(
         'visible_metadata',
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-            const ['date', 'organization'],
+            const [
+              'date',
+              'organization',
+              'user',
+              'scoring_engine',
+              'strictness',
+            ],
+      ),
+      matrixVisibleColumns: $checkedConvert(
+        'matrix_visible_columns',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const [
+              'label',
+              'distribution',
+              'row_explanation',
+              'quotes',
+              'normalized_score',
+              'score',
+            ],
       ),
       visibleBlockExtensions: $checkedConvert(
         'visible_block_extensions',
@@ -273,7 +310,6 @@ _OutputProfile _$OutputProfileFromJson(
             const [
               TargetBlockType.metadataBlock,
               TargetBlockType.executiveSummaryBlock,
-              TargetBlockType.synthesisTextBlock,
               TargetBlockType.matrixGraphsBlock,
               TargetBlockType.groupedExtensionsBlock,
               TargetBlockType.penaltiesBlock,
@@ -304,6 +340,7 @@ _OutputProfile _$OutputProfileFromJson(
     'userRoleLabel': 'user_role_label',
     'customPreface': 'custom_preface',
     'visibleMetadata': 'visible_metadata',
+    'matrixVisibleColumns': 'matrix_visible_columns',
     'visibleBlockExtensions': 'visible_block_extensions',
     'visibleWorkflowExtensions': 'visible_workflow_extensions',
     'maxExtensionItems': 'max_extension_items',
@@ -332,6 +369,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'user_role_label': instance.userRoleLabel?.toJson(),
   'custom_preface': instance.customPreface?.toJson(),
   'visible_metadata': instance.visibleMetadata,
+  'matrix_visible_columns': instance.matrixVisibleColumns,
   'visible_block_extensions': instance.visibleBlockExtensions
       .map((e) => _$XaiExtensionTypeEnumMap[e]!)
       .toList(),

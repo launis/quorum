@@ -32,10 +32,12 @@ from backend_v2.models.enums import (
     LaxDisplayScale,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
+    LaxPresetView,
     LaxScoringStrategy,
     LaxStepType,
     LaxTargetBlockType,
     LaxXaiExtensionType,
+    PresetView,
     ScoringStrategy,
     SDUIComponentType,
     StepType,
@@ -892,6 +894,10 @@ class MatrixSynthesisGroup(V2CoreBase):
     title: I18nText = Field(description="Localized title for the synthesis group")
     target_blocks: list[str] = Field(min_length=1, description="List of prompt block IDs targeted by this group")
     synthesis_directive: str | None = Field(default=None, description="Optional custom synthesis directive")
+    view_type: LaxPresetView = Field(
+        default=PresetView.METRICS_1D,
+        description="UI presentation preset view for this matrix group (e.g. 1d_metrics, 2d_compare, 3d_matrix, text_only).",
+    )
 
 
 class OutputProfile(V2CoreBase):
@@ -916,6 +922,17 @@ class OutputProfile(V2CoreBase):
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],
         description="List of metadata fields visible on the UI and PDF cover header.",
+    )
+    matrix_visible_columns: list[str] = Field(
+        default_factory=lambda: [
+            "label",
+            "distribution",
+            "row_explanation",
+            "quotes",
+            "normalized_score",
+            "score",
+        ],
+        description="List of column keys visible in the matrix summary table.",
     )
     visible_block_extensions: list[LaxXaiExtensionType] = Field(
         default_factory=list,

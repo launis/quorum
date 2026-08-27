@@ -88,7 +88,11 @@ class ProfileLayoutsTab extends ConsumerWidget {
     }
 
     final inactiveBlocks = TargetBlockType.values
-        .where((b) => !payload.targetBlockOrder.contains(b))
+        .where(
+          (b) =>
+              b != TargetBlockType.synthesisTextBlock &&
+              !payload.targetBlockOrder.contains(b),
+        )
         .toList();
 
     return ListView(
