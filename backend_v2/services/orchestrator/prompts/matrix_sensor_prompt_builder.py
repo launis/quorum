@@ -133,6 +133,7 @@ class MatrixSensorPromptBuilder:
                         "[MatrixSensorPromptBuilder] %s: %s",
                         ErrorCodes.VALIDATION_FAILED.name,
                         msg,
+                        exc_info=True,
                         extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tda_id": tda_id},
                     )
                     raise AppException(
