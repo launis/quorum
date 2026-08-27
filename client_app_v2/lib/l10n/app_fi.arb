@@ -1577,6 +1577,15 @@
     }
   },
   "humanOverrideExpertNote": "Asiantuntijan vahvistama huomio",
+  "humanOverrideHumanDecisionBadge": "👨‍⚖️ Ihmisen päätös (EU AI Act)",
+  "humanOverrideReasonPrefix": "Perustelu: {reason}",
+  "@humanOverrideReasonPrefix": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "downloadFrozenContextTooltip": "Lataa Frozen Context",
   "downloadExcelBtn": "Lataa Excel",
   "aboutMetricTitle": "Tietoa Mittarista",

@@ -122,21 +122,21 @@
   - [x] @[backend_v2/templates/report_template.jinja2]
   - [x] @[backend_v2/worker.py]
   - [x] @[scripts/_ast_guardrails.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` on modified Flutter files:
-  - [ ] @[client_app_v2/lib/features/execution/views/execution_report_view.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart]
-  - [ ] @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
-  - [ ] @[client_app_v2/lib/features/studio/models/output_profile.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]
-  - [ ] @[client_app_v2/lib/l10n/app_en.arb]
-  - [ ] @[client_app_v2/lib/l10n/app_fi.arb]
-  - [ ] @[client_app_v2/lib/shared/models/i18n_text.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` on modified Flutter files:
+  - [x] @[client_app_v2/lib/features/execution/views/execution_report_view.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart]
+  - [x] @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
+  - [x] @[client_app_v2/lib/features/studio/models/output_profile.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]
+  - [x] @[client_app_v2/lib/l10n/app_en.arb]
+  - [x] @[client_app_v2/lib/l10n/app_fi.arb]
+  - [x] @[client_app_v2/lib/shared/models/i18n_text.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies or unreferenced symbols remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 
@@ -440,42 +440,41 @@
   - `worker.py`: Cleaned `getattr()`, `hasattr()`, and `.get()` calls to ensure fail-fast dictionary indexing and explicit null-checking. Added `ConfigDict(strict=True, extra="forbid")` to `VarianceExplanationResult`.
   - `_ast_guardrails.py`: Exported `__all__`, strictly verified zero-reflection compliance (no getattr/hasattr), all 52 unit tests passing cleanly.
 
+- **Tier 2 Frontend Hardening (All 14 Targets)**:
+  - `execution_report_view.dart`: Audited and verified SDUI layout rendering and export handlers with 0 analyzer issues.
+  - `atom_matrix_table_widget.dart`: Replaced hardcoded Finnish strings with `l10n.humanOverrideHumanDecisionBadge` and `l10n.humanOverrideReasonPrefix`, updated golden snapshot.
+  - `human_override_dialog.dart`: Verified typed override submission, `if (mounted)` safety on async gaps, and RFC 7807 error propagation.
+  - `matrix_row_item_widget.dart`: Verified Zero-Math rendering, `is Dlq` pattern matching, and design tokens.
+  - `xai_evidence_box.dart`: Verified safe URL launching, error logging, and `ErrorView` diagnostic fallback node.
+  - `output_profile_controller.dart`: Verified optimistic update and rollback patterns, `safeIsolateRun` JSON parsing, and strict custom scale validation.
+  - `output_profile.dart`: Verified strict `@JsonSerializable(disallowUnrecognizedKeys: true)` and `@StrictOpaqueIdConverter()` on Freezed models.
+  - `profile_editor_view.dart`: Verified HookConsumerWidget lifecycle, tab switching, and `I18nTextField` integration.
+  - `i18n_text_field.dart`: Verified dynamic translation controllers lifecycle, debounced emission, and memory leak prevention in `dispose()`.
+  - `profile_layouts_tab.dart`: Verified reorderable visual block builder, drag handle listener, and ActionChip synchronization.
+  - `app_en.arb` & `app_fi.arb`: Verified 100% key symmetry and added human decision badges and reason prefix keys.
+  - `i18n_text.dart`: Verified Fail-Fast translation fallback resolution (`target -> fallback -> en`) and `AppException.validation` throwing.
+  - `specialist_section.dart`: Verified `_validateRequiredKeys` data integrity checks, `excludeSemantics` on Windows, and localized enum mapping.
+
 ## Discovered Technical Debt (Resolved in Hardening)
 1. **`backend_v2/services/matrix_domain_parser.py#L391-L498`**: Resolved - passed explicit `human_override=None` and `tda_state=None` to satisfy strict MyPy typing after `matrix_scorecard.py` hardening.
 2. **`backend_v2/l10n/en.json` & `fi.json`**: Resolved - added missing `user_role_label` key with 100% bilingual parity.
 3. **`backend_v2/worker.py`**: Resolved - removed `hasattr` reflection in profile/scoring strategy resolution and added `ConfigDict(strict=True, extra="forbid")` to `VarianceExplanationResult`.
+4. **`client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart`**: Resolved hardcoded Finnish strings for human override badge and quotes title by adding `humanOverrideHumanDecisionBadge` and `humanOverrideReasonPrefix` to English/Finnish `.arb` files and updating golden snapshots.
 
-## Remaining
-- Complete Post-Implementation Gates:
-  1. **Frontend Tier 2 Hardening**: Execute `/tier2-hardening-frontend @[docs/epic/EPIC_148_tracker.md]` across all 14 modified Flutter files:
-     - `@[client_app_v2/lib/features/execution/views/execution_report_view.dart]`
-     - `@[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]`
-     - `@[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]`
-     - `@[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart]`
-     - `@[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart]`
-     - `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]`
-     - `@[client_app_v2/lib/features/studio/models/output_profile.dart]`
-     - `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`
-     - `@[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]`
-     - `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`
-     - `@[client_app_v2/lib/l10n/app_en.arb]`
-     - `@[client_app_v2/lib/l10n/app_fi.arb]`
-     - `@[client_app_v2/lib/shared/models/i18n_text.dart]`
-     - `@[client_app_v2/lib/shared/widgets/specialist_section.dart]`
-  2. **Golden Master & Test Restoration Audit**: Verify zero commented-out or bypassed tests across touched domains.
-  3. **Proxy Sunset & Consumer Migration**: Final audit verifying zero dead legacy imports or `OutputLayoutBlock` callers remain.
-  4. **As-Built Architectural Sync**: Execute `/tier7-describe-architecture` to synchronize directory references and update Knowledge Items.
-  5. **Final Reverse Epic Audit**: Execute `/tier8-audit-epic @[docs/epic/EPIC_148_Domain_Model_SSOT_and_Localization_Modernization.md]` to verify full Epic closure against codebase reality.
+## Remaining Post-Implementation Gates
+1. **Golden Master & Test Restoration Audit**: Verify no commented-out or bypassed tests across touched domains.
+2. **Proxy Sunset & Consumer Migration**: Final audit verifying zero dead legacy imports or `OutputLayoutBlock` callers remain.
+3. **Pre-Delete Audit**: Verify no orphaned dependencies or unreferenced symbols remain.
+4. **Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+5. **As-Built Architectural Sync**: Execute `/tier7-describe-architecture @[docs/epic/EPIC_148_tracker.md]` to synchronize directory references and update Knowledge Items.
+6. **Final Reverse Epic Audit**: Execute `/tier8-audit-epic @[docs/epic/EPIC_148_Domain_Model_SSOT_and_Localization_Modernization.md]` to verify full Epic closure against codebase reality.
 
 ## Resume Command
 ```powershell
-# Option A: Execute Tier 2 Frontend Hardening (Flutter Client App)
-/tier5-resume --target="@[docs/epic/EPIC_148_tracker.md], [client_app_v2/lib]" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
+# Option A: Execute As-Built Architectural Sync
+/tier7-describe-architecture @[docs/epic/EPIC_148_tracker.md]
 
 # Option B: Context Reset & Session Handover (if opening fresh window)
 /tier5-session-handover @[docs/epic/EPIC_148_tracker.md]
 ```
-
-
-
 

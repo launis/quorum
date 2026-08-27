@@ -128,11 +128,11 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   ),
                 ),
               if (visibleColumns.contains('quotes'))
-                const Expanded(
+                Expanded(
                   flex: 3,
                   child: Text(
-                    'Lainaukset (quotes)',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    l10n.humanOverrideQuotesTitle,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               if (visibleColumns.contains('normalized_score'))
@@ -516,7 +516,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
-                                    "👨‍⚖️ Ihmisen päätös (EU AI Act)",
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.humanOverrideHumanDecisionBadge,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.amber.shade900,
@@ -528,7 +530,11 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Perustelu: ${atom.humanOverride!.reason}",
+                              AppLocalizations.of(
+                                context,
+                              )!.humanOverrideReasonPrefix(
+                                atom.humanOverride!.reason,
+                              ),
                               style: TextStyle(
                                 fontStyle: FontStyle.italic,
                                 color: Colors.amber.shade900,

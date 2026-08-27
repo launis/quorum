@@ -8004,6 +8004,18 @@ abstract class AppLocalizations {
   /// **'Expert-confirmed observation'**
   String get humanOverrideExpertNote;
 
+  /// No description provided for @humanOverrideHumanDecisionBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'👨‍⚖️ Human Decision (EU AI Act)'**
+  String get humanOverrideHumanDecisionBadge;
+
+  /// No description provided for @humanOverrideReasonPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason: {reason}'**
+  String humanOverrideReasonPrefix(String reason);
+
   /// No description provided for @downloadFrozenContextTooltip.
   ///
   /// In en, this message translates to:

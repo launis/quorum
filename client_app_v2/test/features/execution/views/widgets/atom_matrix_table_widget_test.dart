@@ -288,7 +288,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('👨‍⚖️ Ihmisen päätös (EU AI Act)'), findsOneWidget);
+      expect(find.text('👨‍⚖️ Human Decision (EU AI Act)'), findsOneWidget);
       expect(find.textContaining('Human thinks it is PASS'), findsOneWidget);
       expect(find.byType(RichText), findsWidgets);
 

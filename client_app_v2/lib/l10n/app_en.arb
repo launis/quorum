@@ -2277,6 +2277,15 @@
     }
   },
   "humanOverrideExpertNote": "Expert-confirmed observation",
+  "humanOverrideHumanDecisionBadge": "👨‍⚖️ Human Decision (EU AI Act)",
+  "humanOverrideReasonPrefix": "Reason: {reason}",
+  "@humanOverrideReasonPrefix": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "downloadFrozenContextTooltip": "Download Frozen Context",
   "downloadExcelBtn": "Download Excel",
   "aboutMetricTitle": "About Metric",

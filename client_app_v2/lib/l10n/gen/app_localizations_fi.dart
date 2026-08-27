@@ -4460,6 +4460,15 @@ class AppLocalizationsFi extends AppLocalizations {
   String get humanOverrideExpertNote => 'Asiantuntijan vahvistama huomio';
 
   @override
+  String get humanOverrideHumanDecisionBadge =>
+      '👨‍⚖️ Ihmisen päätös (EU AI Act)';
+
+  @override
+  String humanOverrideReasonPrefix(String reason) {
+    return 'Perustelu: $reason';
+  }
+
+  @override
   String get downloadFrozenContextTooltip => 'Lataa Frozen Context';
 
   @override

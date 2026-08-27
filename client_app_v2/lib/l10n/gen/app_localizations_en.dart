@@ -4426,6 +4426,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get humanOverrideExpertNote => 'Expert-confirmed observation';
 
   @override
+  String get humanOverrideHumanDecisionBadge =>
+      '👨‍⚖️ Human Decision (EU AI Act)';
+
+  @override
+  String humanOverrideReasonPrefix(String reason) {
+    return 'Reason: $reason';
+  }
+
+  @override
   String get downloadFrozenContextTooltip => 'Download Frozen Context';
 
   @override
