@@ -19,6 +19,19 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
+__all__ = [
+    "BANNED_REASON_PLACEHOLDERS",
+    "CommentSuppressor",
+    "GuardrailSeverity",
+    "GuardrailViolation",
+    "QuorumGuardrailVisitor",
+    "format_violations_table",
+    "main",
+    "scan_file_for_guardrails",
+    "scan_files_for_guardrails",
+    "scan_source_code_for_guardrails",
+]
+
 # Force UTF-8 encoding for stdout to support emojis on Windows without reflection
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
