@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -137,3 +137,62 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
     # Verify what arguments acompletion was called with
     called_kwargs = provider.router.acompletion.call_args[1]
     assert called_kwargs["vertex_location"] == "europe-west3"
+
+
+@pytest.mark.asyncio
+async def test_lite_llm_provider_model_info_id_registration(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify that LiteLLMProvider populates model_info.id and generate() does not trigger register_model warnings."""
+    import logging
+
+    from backend_v2.settings import get_settings
+
+    # Clear class-level cache to ensure Router initialization runs
+    LiteLLMProvider._router_cache.clear()
+
+    mock_usage_service = MagicMock()
+    mock_usage_service.track_usage = AsyncMock()
+
+    with caplog.at_level(logging.WARNING):
+        provider = LiteLLMProvider(
+            model_name="vertex_ai/gemini-2.5-flash",
+            api_key=None,
+            limits={"tpm": 100, "rpm": 10},
+            settings=get_settings(),
+            usage_service=mock_usage_service,
+        )
+
+        deployment = provider.router.model_list[0]
+        assert "model_info" in deployment
+        assert deployment["model_info"]["id"] == "vertex_ai/gemini-2.5-flash"
+        assert "not in built-in cost map" not in caplog.text
+
+        mock_usage = MagicMock(
+            prompt_tokens=10,
+            completion_tokens=5,
+            total_tokens=15,
+            prompt_tokens_details=MagicMock(cached_tokens=0),
+            completion_tokens_details=MagicMock(reasoning_tokens=0),
+        )
+        mock_response = MagicMock(
+            choices=[
+                MagicMock(message=MagicMock(content="Hello response", tool_calls=None, provider_specific_fields=None))
+            ],
+            usage=mock_usage,
+            system_fingerprint="fp_123",
+            _hidden_params={},
+            model_extra={},
+        )
+        mock_response.model_dump.return_value = {}
+
+        provider.router.acompletion = AsyncMock(return_value=mock_response)
+        await provider.generate(
+            prompt="Hello",
+            temperature=0.0,
+            max_tokens=100,
+            top_p=0.0,
+            top_k=1,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+        )
+
+    assert "not in built-in cost map" not in caplog.text

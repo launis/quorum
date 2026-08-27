@@ -3,62 +3,13 @@
 import logging
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel
 
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
-
-
-class AnthropicTokenUsage(TokenUsage):
-    """Subclass of TokenUsage supporting Anthropic-specific caching telemetry and savings.
-
-    Attributes:
-        cache_creation_input_tokens: Tokens spent creating the ephemeral cache.
-        estimated_savings_usd: FinOps ROI estimated savings in USD.
-    """
-
-    cache_creation_input_tokens: int = Field(default=0, description="Tokens spent creating the ephemeral cache.")
-    estimated_savings_usd: float = Field(default=0.0, description="FinOps ROI estimated savings in USD.")
-
-    @field_validator("cache_creation_input_tokens")
-    @classmethod
-    def validate_cache_tokens_ge_zero(cls, v: int) -> int:
-        """Validate that cache creation tokens are non-negative.
-
-        Args:
-            v: Token count.
-
-        Returns:
-            Validated token count.
-
-        Raises:
-            ValueError: If negative.
-        """
-        if v < 0:
-            raise ValueError("cache_creation_input_tokens must be >= 0")
-        return v
-
-    @field_validator("estimated_savings_usd")
-    @classmethod
-    def validate_savings_ge_zero(cls, v: float) -> float:
-        """Validate that savings are non-negative.
-
-        Args:
-            v: Savings amount.
-
-        Returns:
-            Validated savings amount.
-
-        Raises:
-            ValueError: If negative.
-        """
-        if v < 0.0:
-            raise ValueError("estimated_savings_usd must be >= 0.0")
-        return v
 
 
 class AnthropicCacheAdapter(BaseLLMAdapter):
@@ -78,19 +29,10 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
                 - The list of formatted messages (potentially with Anthropic cache blocks).
                 - A dictionary of extra keyword arguments (empty for Anthropic).
         """
-        total_static_chars = 0
-        for msg in compiled_prompt.static_messages:
-            content = msg.get("content")
-            if isinstance(content, str):
-                total_static_chars += len(content)
-            elif isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        total_static_chars += len(block.get("text", ""))
-            elif content is not None:
-                total_static_chars += len(str(content))
+        estimated_tokens, _ = self.estimate_static_tokens(compiled_prompt, exclude_system=False)
 
-        if total_static_chars < 4000:
+        # Minimum threshold for Anthropic cache block creation (approx 1000 tokens / 4000 chars)
+        if estimated_tokens < 1000:
             return compiled_prompt.to_flat_messages(), {}
 
         system_msgs = [m for m in compiled_prompt.static_messages if m.get("role") == "system"]
@@ -172,54 +114,53 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         """
         pass
 
-    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> TokenUsage:
+    def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         """Calculate the precise Anthropic cost and savings.
 
         Formula:
-            Cost = (regular_input_tokens * P_in) + (cache_creation_input_tokens * P_in * 1.25)
-                   + (cached_tokens * P_in * 0.10) + (output_tokens * P_out)
-            Savings = (cached_tokens * P_in * 0.90) - (cache_creation_input_tokens * P_in * 0.25)
+            Cost = (regular_input_tokens * P_in) + (cache_creation_input_tokens * P_creation)
+                   + (cached_tokens * P_cached) + (output_tokens * P_out)
+            Savings = max(0.0, (cached_tokens * (P_in - P_cached)) - (cache_creation_input_tokens * (P_creation - P_in)))
 
         Args:
             usage: The source TokenUsage object.
             pricing_config: Provider pricing parameters.
 
         Returns:
-            An instance of AnthropicTokenUsage with calculated values.
-
-        Raises:
-            AppException: Triggered with CONFIGURATION_ERROR if pricing configuration fields are missing.
+            An instance of TokenUsage with calculated values.
         """
-        if "input_token_price" not in pricing_config or "output_token_price" not in pricing_config:
-            logger.error("Invalid pricing configuration passed to Anthropic adapter: %s", pricing_config, exc_info=True)
-            raise AppException(
-                message="Invalid pricing configuration: missing input_token_price or output_token_price",
-                status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-
-        p_in = float(pricing_config["input_token_price"])
-        p_out = float(pricing_config["output_token_price"])
+        p_in = pricing_config.input_token_price
+        p_out = pricing_config.output_token_price
+        p_cached = (
+            pricing_config.cached_input_token_price
+            if pricing_config.cached_input_token_price is not None
+            else p_in * 0.10
+        )
+        p_creation = (
+            pricing_config.cache_creation_input_token_price
+            if pricing_config.cache_creation_input_token_price is not None
+            else p_in * 1.25
+        )
 
         prompt_tokens = usage.prompt_tokens
         completion_tokens = usage.completion_tokens
         cached_tokens = usage.cached_tokens
+        cache_creation_input_tokens = usage.cache_creation_input_tokens
 
-        cache_creation_input_tokens = usage.cache_creation_input_tokens if isinstance(usage, AnthropicTokenUsage) else 0
         regular_input = max(0, prompt_tokens - cached_tokens - cache_creation_input_tokens)
 
         cost_regular = regular_input * p_in
-        cost_creation = cache_creation_input_tokens * p_in * 1.25
-        cost_cached = cached_tokens * p_in * 0.10
+        cost_creation = cache_creation_input_tokens * p_creation
+        cost_cached = cached_tokens * p_cached
         cost_output = completion_tokens * p_out
 
         cost_usd = cost_regular + cost_creation + cost_cached + cost_output
 
-        savings_cached = cached_tokens * p_in * 0.90
-        surcharge_creation = cache_creation_input_tokens * p_in * 0.25
-        estimated_savings_usd = max(0.0, savings_cached - surcharge_creation)
+        gross_savings = cached_tokens * max(0.0, p_in - p_cached)
+        creation_surcharge = cache_creation_input_tokens * max(0.0, p_creation - p_in)
+        estimated_savings_usd = max(0.0, gross_savings - creation_surcharge)
 
-        return AnthropicTokenUsage(
+        return TokenUsage(
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=usage.total_tokens,

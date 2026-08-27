@@ -28,7 +28,7 @@ async def test_prepare_caching_payload() -> None:
             model_name="gemini-1.5-pro",
         )
 
-        mock_get.assert_called_once_with("vertex_ai")
+        mock_get.assert_called_once_with("vertex_ai", model_name="gemini-1.5-pro")
         mock_adapter.prepare_caching_payload.assert_called_once_with(compiled_prompt, "gemini-1.5-pro")
         assert messages == [{"role": "user", "content": "mock_messages"}]
         assert kwargs == {"mock": "kwargs"}
@@ -63,3 +63,62 @@ async def test_teardown_workflow_caches_exception() -> None:
                 provider_name="anthropic",
                 workflow_run_id="run_123",
             )
+
+
+@pytest.mark.asyncio
+async def test_pre_cache_document() -> None:
+    """Verify pre_cache_document forwards to prepare_caching_payload."""
+    mock_adapter = AsyncMock()
+    mock_adapter.prepare_caching_payload.return_value = ([], {})
+    compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
+
+    with patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter):
+        await LLMCachingService.pre_cache_document(
+            provider_name="vertex_ai",
+            compiled_prompt=compiled_prompt,
+            model_name="gemini-1.5-pro",
+        )
+        mock_adapter.prepare_caching_payload.assert_called_once_with(compiled_prompt, "gemini-1.5-pro")
+
+
+@pytest.mark.asyncio
+async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify purity scanner logs warning on dynamic traces in system instructions."""
+    import logging
+
+    mock_adapter = AsyncMock()
+    mock_adapter.prepare_caching_payload.return_value = ([], {})
+
+    # UUID in system message
+    uuid_prompt = CompiledPrompt(
+        static_messages=[{"role": "system", "content": "Trace: 12345678-1234-1234-1234-123456789abc"}],
+        dynamic_messages=[],
+    )
+    with (
+        patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter),
+        caplog.at_level(logging.WARNING),
+    ):
+        await LLMCachingService.prepare_caching_payload(
+            provider_name="vertex_ai",
+            compiled_prompt=uuid_prompt,
+            model_name="gemini-1.5-pro",
+        )
+        assert "PROMPT_CACHING_PURITY_VIOLATION" in caplog.text
+
+    caplog.clear()
+
+    # Timestamp in system message
+    ts_prompt = CompiledPrompt(
+        static_messages=[{"role": "system", "content": "Timestamp: 2026-08-27T18:22:00"}],
+        dynamic_messages=[],
+    )
+    with (
+        patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter),
+        caplog.at_level(logging.WARNING),
+    ):
+        await LLMCachingService.prepare_caching_payload(
+            provider_name="vertex_ai",
+            compiled_prompt=ts_prompt,
+            model_name="gemini-1.5-pro",
+        )
+        assert "PROMPT_CACHING_PURITY_VIOLATION" in caplog.text

@@ -11,11 +11,10 @@ import os
 from typing import Any
 
 from arq.connections import RedisSettings, create_pool
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel
 
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import GCPVertexLocation, PromptCacheStatus
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import get_settings
@@ -70,34 +69,6 @@ async def get_redis_client() -> Any:
     return _redis_pool
 
 
-class VertexTokenUsage(TokenUsage):
-    """Subclass of TokenUsage supporting Vertex-specific caching telemetry and savings.
-
-    Attributes:
-        estimated_savings_usd: FinOps ROI estimated savings in USD.
-    """
-
-    estimated_savings_usd: float = Field(default=0.0, description="FinOps ROI estimated savings in USD.")
-
-    @field_validator("estimated_savings_usd")
-    @classmethod
-    def validate_estimated_savings_usd(cls, v: float) -> float:
-        """Validate that the estimated savings are non-negative.
-
-        Args:
-            v: The computed savings in USD.
-
-        Returns:
-            The validated savings value.
-
-        Raises:
-            ValueError: If the savings value is negative.
-        """
-        if v < 0.0:
-            raise ValueError("estimated_savings_usd must be greater than or equal to 0.0")
-        return v
-
-
 class VertexCacheAdapter(BaseLLMAdapter):
     """Caching and pricing adapter for Google Vertex AI Gemini models."""
 
@@ -118,23 +89,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
         # Vertex AI context caching requires caching conversational turns in `contents`.
         # System instructions alone cannot form an explicit cached resource in GCP without conversational content.
         # Calculate token estimate strictly from static non-system messages to prevent GCP 1-token InvalidArgument.
-        total_content_chars = 0
-        has_non_system_static = False
-        for msg in compiled_prompt.static_messages:
-            role = msg.get("role", "user")
-            if role == "system":
-                continue
-            has_non_system_static = True
-            content = msg.get("content")
-            if isinstance(content, str):
-                total_content_chars += len(content)
-            elif isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        total_content_chars += len(block.get("text", ""))
-            elif content is not None:
-                total_content_chars += len(str(content))
-        static_content_token_count = total_content_chars // 4
+        static_content_token_count, has_non_system_static = self.estimate_static_tokens(
+            compiled_prompt, exclude_system=True
+        )
 
         min_threshold = max(get_settings().context_cache_minimum_token_limit, 1024)
 
@@ -328,7 +285,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
         """
         pass
 
-    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> VertexTokenUsage:
+    def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         """Calculate the precise Vertex AI cost and savings.
 
         Gemini Context Caching has a 75% read discount (meaning cached input tokens cost 25% of standard input).
@@ -339,22 +296,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
         Returns:
             The calculated usage metrics including savings.
-
-        Raises:
-            AppException: Triggered with ErrorCodes.CONFIGURATION_ERROR if pricing parameters are missing.
         """
-        if "input_token_price" not in pricing_config or "output_token_price" not in pricing_config:
-            logger.error(
-                "Invalid pricing configuration detected: missing input_token_price or output_token_price", exc_info=True
-            )
-            raise AppException(
-                message="Invalid pricing configuration: missing input_token_price or output_token_price",
-                status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-
-        p_in = float(pricing_config["input_token_price"])
-        p_out = float(pricing_config["output_token_price"])
+        p_in = pricing_config.input_token_price
+        p_out = pricing_config.output_token_price
 
         prompt_tokens = usage.prompt_tokens
         completion_tokens = usage.completion_tokens
@@ -369,7 +313,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
         total_cost = cost_regular + cost_cached + cost_output
         total_savings = cached_tokens * p_in * 0.75
 
-        return VertexTokenUsage(
+        return TokenUsage(
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=usage.total_tokens,
@@ -444,10 +388,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
             The potentially modified call_kwargs dictionary.
         """
         # 1. Resolve Vertex Location
-        config_location = getattr(config, "vertex_location", None) if config else None
+        config_location = config.vertex_location if config is not None else None
 
         # 1.5 Reasoning Parameter Extraction
-        if config and getattr(config, "additional_params", None):
+        if config is not None and config.additional_params is not None:
             thinking_budget = config.additional_params.get("thinking_budget_tokens")
             if thinking_budget:
                 if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
@@ -457,7 +401,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 if "thinkingConfig" not in call_kwargs["extra_body"]["generationConfig"]:
                     call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"] = {}
                 call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] = int(thinking_budget)
-        settings_location = getattr(settings, "vertex_location", None) if settings else None
+        settings_location = settings.vertex_location if settings is not None else None
         env_location = os.getenv("HARDENING_VERTEX_LOCATION")
         active_location = (
             call_kwargs.get("vertex_location")

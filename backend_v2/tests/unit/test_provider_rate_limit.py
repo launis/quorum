@@ -133,7 +133,7 @@ async def test_lite_llm_fail_soft_fallback(mock_settings: Any, monkeypatch: Any)
     import litellm
 
     monkeypatch.setattr(litellm, "acompletion", mock_litellm_acompletion)
-    monkeypatch.setattr(litellm, "completion_cost", lambda **k: 0.0005)
+    monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.0005)
 
     # Disable sleeping to keep the test ultra fast and avoid infinite recursion
     async def mock_sleep(seconds: Any) -> None:

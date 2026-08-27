@@ -68,7 +68,7 @@ class LLMClient:
         adapter_schema: Any = {"type": "json_schema"}
         if self._config and self._config.provider:
             try:
-                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
+                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider, model_name=self.model_name)
                 adapter_schema = adapter.prepare_structured_output(response_model)
             except Exception as e:
                 logger.error(
@@ -303,7 +303,10 @@ class LLMClient:
 
         if self._config and self._config.provider:
             try:
-                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
+                adapter = LLMCacheAdapterFactory.get_adapter(
+                    self._config.provider,
+                    model_name=str(target_model_name),
+                )
                 extra_kwargs.update(adapter.prepare_provider_kwargs(str(target_model_name)))
             except Exception as e:
                 logger.error("Could not fetch adapter for kwargs injection.", exc_info=True)

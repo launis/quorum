@@ -1,12 +1,9 @@
 """Unit and precision cost-calculation tests for AnthropicCacheAdapter."""
 
-from typing import cast
-
 import pytest
 
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.llm.adapters.anthropic_adapter import AnthropicCacheAdapter, AnthropicTokenUsage
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.llm.adapters.anthropic_adapter import AnthropicCacheAdapter
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 
 
@@ -148,22 +145,22 @@ def test_anthropic_precision_calculation_scenarios() -> None:
     """Test multiple distinct mathematical precision and ROI scenarios for AnthropicCacheAdapter."""
     adapter = AnthropicCacheAdapter()
 
-    # Base pricing config
-    pricing = {"input_token_price": 0.000003, "output_token_price": 0.000015}
+    # Base pricing config (using default 1.25x creation and 0.10x cached input rates)
+    pricing = PricingConfig(input_token_price=0.000003, output_token_price=0.000015)
 
     # Scenario 1: All regular tokens (no caching)
     usage = TokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500)
-    result = cast(AnthropicTokenUsage, adapter.calculate_cost(usage, pricing))
-    assert isinstance(result, AnthropicTokenUsage)
+    result = adapter.calculate_cost(usage, pricing)
+    assert isinstance(result, TokenUsage)
     # Cost = 1000 * 0.000003 + 500 * 0.000015 = 0.003 + 0.0075 = 0.0105
     assert result.cost_usd == pytest.approx(0.0105)
     assert result.estimated_savings_usd == 0.0
 
     # Scenario 2: Cache creation only
-    usage_with_creation = AnthropicTokenUsage(
+    usage_with_creation = TokenUsage(
         prompt_tokens=1000, completion_tokens=500, total_tokens=1500, cache_creation_input_tokens=800
     )
-    result = cast(AnthropicTokenUsage, adapter.calculate_cost(usage_with_creation, pricing))
+    result = adapter.calculate_cost(usage_with_creation, pricing)
     # regular = 1000 - 800 = 200
     # Cost = 200 * 0.000003 + 800 * 0.000003 * 1.25 + 500 * 0.000015
     #      = 0.0006 + 0.003 + 0.0075 = 0.0111
@@ -173,7 +170,7 @@ def test_anthropic_precision_calculation_scenarios() -> None:
 
     # Scenario 3: Cache read (hits) only
     usage_with_reads = TokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500, cached_tokens=600)
-    result = cast(AnthropicTokenUsage, adapter.calculate_cost(usage_with_reads, pricing))
+    result = adapter.calculate_cost(usage_with_reads, pricing)
     # regular = 1000 - 600 = 400
     # Cost = 400 * 0.000003 + 600 * 0.000003 * 0.10 + 500 * 0.000015
     #      = 0.0012 + 0.00018 + 0.0075 = 0.00888
@@ -182,14 +179,14 @@ def test_anthropic_precision_calculation_scenarios() -> None:
     assert result.estimated_savings_usd == pytest.approx(0.00162)
 
     # Scenario 4: Mixed Cache Creation and Cache Reads
-    usage_mixed = AnthropicTokenUsage(
+    usage_mixed = TokenUsage(
         prompt_tokens=2000,
         completion_tokens=1000,
         total_tokens=3000,
         cached_tokens=1200,
         cache_creation_input_tokens=500,
     )
-    result = cast(AnthropicTokenUsage, adapter.calculate_cost(usage_mixed, pricing))
+    result = adapter.calculate_cost(usage_mixed, pricing)
     # regular = 2000 - 1200 - 500 = 300
     # Cost = 300 * 0.000003 + 500 * 0.000003 * 1.25 + 1200 * 0.000003 * 0.10 + 1000 * 0.000015
     #      = 0.0009 + 0.001875 + 0.00036 + 0.015 = 0.018135
@@ -198,21 +195,13 @@ def test_anthropic_precision_calculation_scenarios() -> None:
     assert result.cost_usd == pytest.approx(0.018135)
     assert result.estimated_savings_usd == pytest.approx(0.002865)
 
-    # Scenario 5: High priced input scenario
-    pricing_expensive = {"input_token_price": 0.01, "output_token_price": 0.03}
-    usage_mixed_exp = AnthropicTokenUsage(
-        prompt_tokens=200, completion_tokens=100, total_tokens=300, cached_tokens=150, cache_creation_input_tokens=40
+    # Scenario 5: Explicit cache creation and cache read prices provided in PricingConfig
+    pricing_explicit = PricingConfig(
+        input_token_price=0.000003,
+        output_token_price=0.000015,
+        cached_input_token_price=0.0000003,
+        cache_creation_input_token_price=0.00000375,
     )
-    result = cast(AnthropicTokenUsage, adapter.calculate_cost(usage_mixed_exp, pricing_expensive))
-    assert result.cost_usd == pytest.approx(3.75)
-    assert result.estimated_savings_usd == pytest.approx(1.25)
-
-
-def test_missing_pricing_raises_error() -> None:
-    """Verify that Anthropic adapter raises AppException when price configuration is missing."""
-    adapter = AnthropicCacheAdapter()
-    usage = TokenUsage(prompt_tokens=100, completion_tokens=0, total_tokens=100)
-
-    with pytest.raises(AppException) as exc_info:
-        adapter.calculate_cost(usage, {"input_token_price": 0.0001})
-    assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
+    result_exp = adapter.calculate_cost(usage_mixed, pricing_explicit)
+    assert result_exp.cost_usd == pytest.approx(0.018135)
+    assert result_exp.estimated_savings_usd == pytest.approx(0.002865)

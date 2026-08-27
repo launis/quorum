@@ -342,22 +342,21 @@ class BlueprintTransformer:
         total_exec_tokens = 0
         if isinstance(execution.metadata, dict):
             total_exec_cost = float(execution.metadata.get("dag_cost_usd", 0.0))
-            agg_usage = execution.metadata.get("aggregated_usage", {})
             total_exec_tokens = int(
-                agg_usage.get("prompt_tokens", 0)
-                + agg_usage.get("completion_tokens", 0)
-                + agg_usage.get("reasoning_tokens", 0)
+                execution.metadata.get("prompt_tokens", 0)
+                + execution.metadata.get("completion_tokens", 0)
+                + execution.metadata.get("reasoning_tokens", 0)
             )
 
-        combined_cost = total_exec_cost + getattr(execution, "cumulative_synthesis_cost", 0.0)
-        combined_tokens = total_exec_tokens + getattr(execution, "cumulative_synthesis_tokens", 0)
+        combined_cost = total_exec_cost + execution.cumulative_synthesis_cost
+        combined_tokens = total_exec_tokens + execution.cumulative_synthesis_tokens
 
         scoring_engine_val = (
-            getattr(profile.scoring_strategy, "value", str(profile.scoring_strategy))
-            if getattr(profile, "scoring_strategy", None)
+            str(profile.scoring_strategy)
+            if profile.scoring_strategy is not None
             else (
-                getattr(workflow_obj.default_scoring_strategy, "value", str(workflow_obj.default_scoring_strategy))
-                if getattr(workflow_obj, "default_scoring_strategy", None)
+                str(workflow_obj.default_scoring_strategy)
+                if workflow_obj.default_scoring_strategy is not None
                 else "AVERAGE"
             )
         )

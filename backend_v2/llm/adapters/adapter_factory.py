@@ -25,8 +25,11 @@ class LLMCacheAdapterFactory:
     """
 
     @staticmethod
-    def get_adapter(provider_name: LLMProviderName | str) -> BaseLLMAdapter:
-        """Return the appropriate adapter for the given provider_name.
+    def get_adapter(
+        provider_name: LLMProviderName | str,
+        model_name: str | None = None,
+    ) -> BaseLLMAdapter:
+        """Return the appropriate adapter for the given provider_name and optional model_name.
 
         All concrete adapter imports are performed lazily within this method to ensure
         heavy third-party SDK dependencies (e.g. vertexai, anthropic) are not loaded
@@ -34,6 +37,8 @@ class LLMCacheAdapterFactory:
 
         Args:
             provider_name: The name of the LLM provider.
+            model_name: Optional model name identifier used to disambiguate umbrella
+                providers (such as 'google' with 'vertex_ai/' prefix vs 'gemini/' prefix).
 
         Returns:
             An instance of BaseLLMAdapter.
@@ -48,7 +53,7 @@ class LLMCacheAdapterFactory:
 
                 return MockCacheAdapter()
 
-            case LLMProviderName.AI_STUDIO | "ai_studio" | LLMProviderName.GOOGLE | "google":
+            case LLMProviderName.AI_STUDIO | "ai_studio":
                 try:
                     from backend_v2.llm.adapters.ai_studio_adapter import GoogleAIStudioCacheAdapter
 
@@ -73,6 +78,34 @@ class LLMCacheAdapterFactory:
                         status_code=500,
                         details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED},
                     ) from e
+
+            case LLMProviderName.GOOGLE | "google":
+                # Disambiguate umbrella 'google' provider based on model_name
+                is_vertex = model_name is not None and ("vertex_ai/" in model_name or "vertex_ai" in model_name)
+                if is_vertex:
+                    try:
+                        from backend_v2.llm.adapters.vertex_adapter import VertexCacheAdapter
+
+                        return cast(BaseLLMAdapter, VertexCacheAdapter())
+                    except ImportError as e:
+                        logger.error("Vertex AI cache adapter import failed", exc_info=True)
+                        raise AppException(
+                            message=f"Adapter for provider '{provider_name}' is not implemented: {e}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED},
+                        ) from e
+                else:
+                    try:
+                        from backend_v2.llm.adapters.ai_studio_adapter import GoogleAIStudioCacheAdapter
+
+                        return cast(BaseLLMAdapter, GoogleAIStudioCacheAdapter())
+                    except ImportError as e:
+                        logger.error("Google AI Studio cache adapter import failed", exc_info=True)
+                        raise AppException(
+                            message=f"Adapter for provider '{provider_name}' is not implemented: {e}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED},
+                        ) from e
 
             case LLMProviderName.ANTHROPIC:
                 try:
@@ -114,7 +147,7 @@ class LLMCacheAdapterFactory:
                     ) from e
 
             case _:
-                logger.error(f"Unsupported provider encountered in adapter factory: {provider_name}")
+                logger.error("Unsupported provider encountered in adapter factory: %s", provider_name)
                 raise AppException(
                     message=f"Unsupported provider: '{provider_name}'",
                     status_code=400,

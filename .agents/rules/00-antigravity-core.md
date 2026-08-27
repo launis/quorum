@@ -130,6 +130,9 @@ trigger: always_on
     <rule_block id="sdui_contract_fracture_prevention">
         <mandate>Enforce Cross-Domain DTO Parity: Backend Python DTOs (in `models/dtos/`) and Frontend Dart Freezed models (in `client_app_v2/.../models/`) are mathematically coupled via SDUI. Modifying one requires synchronously updating the other and verifying compilation via `backend_audit_loop.py` and `flutter_audit_loop.py`. NEVER modify a model in one domain without updating the other.</mandate>
     </rule_block>
+    <rule_block id="universal_ssot_and_normalization_mandate">
+        <mandate>Enforce Absolute SSOT & Data Normalization: Every piece of state, telemetry metric, token count, pricing registry, financial cost, configuration mapping, and entity relation MUST have exactly ONE authoritative source and ONE canonical storage location across both Backend and Frontend. All data MUST be maximally normalized at rest and in transit (zero duplicate/denormalized sub-dictionaries, zero split-schema payloads). Both Python and Dart layers MUST consume data strictly from this single normalized location. NEVER define secondary shadow tables, local backup dictionaries, or parallel fallback access chains (`a.get('field') or a.get('sub', {}).get('field')`, `data['x'] ?? data['summary']['x']`, or custom pricing dictionaries duplicating an authoritative registry). If data or metadata is missing from the designated canonical SSOT, Fail-Fast loudly rather than guessing or maintaining shadow data.</mandate>
+    </rule_block>
 </architectural_invariants>
 
 <universal_quality_gate>

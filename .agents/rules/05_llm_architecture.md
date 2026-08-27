@@ -127,4 +127,8 @@ trigger: always_on
         3. **Layer 3: Matrix Objective & Extraction Protocol** (Step-level extraction behavior),
         4. **Layer 4: Dynamic User Payload & Execution Variables** (Runtime text payloads, atom aliases, and dynamic inputs at tail).</mandate>
     </rule_block>
+
+    <rule_block id="litellm_pricing_registry_ssot_mandate">
+        <mandate>NEVER define secondary shadow pricing dictionaries in `settings.py`, seed files, or service classes. The LiteLLM Model Pricing Registry (`litellm.model_prices_and_context_window` / `litellm.get_model_info`) is the SOLE authoritative Single Source of Truth (SSOT) for all model unit token rates across the system. Provider adapters MUST extract `PricingConfig` strictly from this single registry and compute `cost_usd` and `estimated_savings_usd` directly without fallback dictionaries.</mandate>
+    </rule_block>
 </architectural_invariants>

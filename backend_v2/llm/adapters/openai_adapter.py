@@ -5,42 +5,13 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel
 
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
-
-
-class OpenAITokenUsage(TokenUsage):
-    """Subclass of TokenUsage supporting OpenAI-specific caching telemetry and savings.
-
-    Attributes:
-        estimated_savings_usd: FinOps ROI estimated savings in USD.
-    """
-
-    estimated_savings_usd: float = Field(default=0.0, description="FinOps ROI estimated savings in USD.")
-
-    @field_validator("estimated_savings_usd")
-    @classmethod
-    def validate_savings_ge_zero(cls, v: float) -> float:
-        """Verify estimated savings are non-negative to bypass Vertex serving limitations.
-
-        Args:
-            v: The float value containing computed savings.
-
-        Returns:
-            The validated non-negative float.
-
-        Raises:
-            ValueError: Raised if the parsed savings are negative.
-        """
-        if v < 0.0:
-            raise ValueError("estimated_savings_usd must be greater than or equal to 0.0")
-        return v
 
 
 class OpenAICacheAdapter(BaseLLMAdapter):
@@ -74,7 +45,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         """
         pass
 
-    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> TokenUsage:
+    def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         """Calculate the precise OpenAI cost and savings.
 
         Formula:
@@ -86,36 +57,19 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             pricing_config: Provider pricing parameters.
 
         Returns:
-            An instance of OpenAITokenUsage with calculated values.
-
-        Raises:
-            AppException: Triggered if standard pricing elements are missing.
+            An instance of TokenUsage with calculated values.
         """
-        if "input_token_price" not in pricing_config or "output_token_price" not in pricing_config:
-            logger.error(
-                "Invalid pricing configuration: missing input_token_price or output_token_price", exc_info=True
-            )
-            raise AppException(
-                message="Invalid pricing configuration: missing input_token_price or output_token_price",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-
-        p_in = float(pricing_config["input_token_price"])
-        p_out = float(pricing_config["output_token_price"])
+        p_in = pricing_config.input_token_price
+        p_out = pricing_config.output_token_price
 
         prompt_tokens = usage.prompt_tokens
         completion_tokens = usage.completion_tokens
         cached_tokens = usage.cached_tokens
         reasoning_tokens = usage.reasoning_tokens
 
-        # Strict fetch for model identifier adhering to zero service layer fallback design rules
-        model_name = pricing_config.get("model_name") or pricing_config.get("model", "")
-
-        is_deepseek = "deepseek" in str(model_name).lower()
-
-        # DeepSeek has 90% read discount, OpenAI has 50% read discount
-        discount_factor = 0.10 if is_deepseek else 0.50
-        savings_factor = 0.90 if is_deepseek else 0.50
+        # OpenAI has fixed 50% read discount and 50% savings factor
+        discount_factor = 0.50
+        savings_factor = 0.50
 
         regular_input = max(0, prompt_tokens - cached_tokens)
 
@@ -128,7 +82,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         estimated_savings_usd = cached_tokens * p_in * savings_factor
         total_tokens = usage.total_tokens
 
-        return OpenAITokenUsage(
+        return TokenUsage(
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,

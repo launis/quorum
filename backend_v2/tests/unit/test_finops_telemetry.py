@@ -72,7 +72,7 @@ async def test_usage_service_adapter_delegation(usage_service: UsageService, mon
 
     class MockFactory:
         @staticmethod
-        def get_adapter(provider_name: str) -> Any:
+        def get_adapter(provider_name: str, model_name: str | None = None) -> Any:
             return mock_adapter
 
     monkeypatch.setattr(

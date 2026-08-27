@@ -383,13 +383,19 @@ class LiteLLMProvider(LLMProvider):
             self.router = self.__class__._router_cache[cache_key]
         else:
             # 2. Build deployment config
+            litellm_params: dict[str, Any] = {
+                "model": model_name,
+                "tpm": tpm,
+                "rpm": rpm,
+            }
+            if self.api_key is not None:
+                litellm_params["api_key"] = self.api_key
+
             model_config = {
                 "model_name": model_name,
-                "litellm_params": {
-                    "model": model_name,
-                    "tpm": tpm,
-                    "rpm": rpm,
-                    "api_key": self.api_key,
+                "litellm_params": litellm_params,
+                "model_info": {
+                    "id": model_name,
                 },
             }
 
@@ -490,7 +496,7 @@ class LiteLLMProvider(LLMProvider):
             from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 
             try:
-                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider)
+                adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider, model_name=self.model_name)
                 final_messages = adapter.sanitize_messages(final_messages)
             except Exception as e:
                 logger.debug("[LiteLLMProvider] No adapter found (provider: %s): %s", self._config.provider, e)
@@ -566,7 +572,7 @@ class LiteLLMProvider(LLMProvider):
             logger.info("[LiteLLM] Calling %s...", self.model_name)
 
             # Prepare arguments
-            call_kwargs = {
+            call_kwargs: dict[str, Any] = {
                 "model": self.model_name,
                 "messages": final_messages,
                 "temperature": temperature,
@@ -576,11 +582,12 @@ class LiteLLMProvider(LLMProvider):
                 "frequency_penalty": frequency_penalty,
                 "presence_penalty": presence_penalty,
                 "response_format": response_format,
-                "api_key": self.api_key,
                 "drop_params": True,
                 # STRICT NETWORK TIMEOUT: Fail fast instead of hanging forever.
                 "timeout": kwargs["timeout"] if "timeout" in kwargs else self.settings.llm_default_timeout,
             }
+            if self.api_key is not None:
+                call_kwargs["api_key"] = self.api_key
 
             # Inject dynamic extra params (top_p, top_k, etc.) provided via kwargs
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.

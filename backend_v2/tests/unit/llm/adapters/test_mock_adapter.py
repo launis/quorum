@@ -2,8 +2,8 @@
 
 import pytest
 
-from backend_v2.llm.adapters.mock_adapter import MockCacheAdapter, MockTokenUsage
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.llm.adapters.mock_adapter import MockCacheAdapter
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 
 
@@ -42,7 +42,7 @@ async def test_mock_adapter_teardown_cache_is_noop() -> None:
 
 
 def test_mock_adapter_cost_calculation() -> None:
-    """Verify MockCacheAdapter cost calculation returns MockTokenUsage with precise 0.05 savings."""
+    """Verify MockCacheAdapter cost calculation returns TokenUsage with precise 0.05 savings."""
     adapter = MockCacheAdapter()
 
     base_usage = TokenUsage(
@@ -54,9 +54,9 @@ def test_mock_adapter_cost_calculation() -> None:
         cost_usd=0.015,
     )
 
-    result_usage = adapter.calculate_cost(base_usage, {})
+    pricing = PricingConfig(input_token_price=0.0, output_token_price=0.0)
+    result_usage = adapter.calculate_cost(base_usage, pricing)
 
-    assert isinstance(result_usage, MockTokenUsage)
     assert isinstance(result_usage, TokenUsage)
     assert result_usage.prompt_tokens == base_usage.prompt_tokens
     assert result_usage.completion_tokens == base_usage.completion_tokens

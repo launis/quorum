@@ -6,41 +6,13 @@ This module implements network-free testing utilities matching the 2026 Enterpri
 import logging
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
-
-
-class MockTokenUsage(TokenUsage):
-    """Extended TokenUsage for testing caching cost calculations.
-
-    Attributes:
-        estimated_savings_usd: The hardcoded simulated savings for performance calculations.
-    """
-
-    estimated_savings_usd: float = Field(default=0.05)
-
-    @field_validator("estimated_savings_usd")
-    @classmethod
-    def validate_savings_ge_zero(cls, val: float) -> float:
-        """Enforce float constraints in a validator rather than Field to avoid Vertex errors.
-
-        Args:
-            val: The input float value to validate.
-
-        Returns:
-            The validated float value.
-
-        Raises:
-            ValueError: If the input value is less than 0.0.
-        """
-        if val < 0.0:
-            raise ValueError("estimated_savings_usd must be greater than or equal to 0.0")
-        return val
 
 
 class MockCacheAdapter(BaseLLMAdapter):
@@ -76,7 +48,7 @@ class MockCacheAdapter(BaseLLMAdapter):
         """
         pass
 
-    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> TokenUsage:
+    def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         """Return TokenUsage with estimated_savings_usd set to 0.05.
 
         Args:
@@ -93,7 +65,7 @@ class MockCacheAdapter(BaseLLMAdapter):
         reasoning_tokens = usage.reasoning_tokens
         cost_usd = usage.cost_usd
 
-        return MockTokenUsage(
+        return TokenUsage(
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,

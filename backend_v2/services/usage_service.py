@@ -13,7 +13,7 @@ from backend_v2.database.interfaces import IAuditRepository, IIdentityRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.domain import UsageRecord
-from backend_v2.models.domain.usage import TokenUsage, UsageReport
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage, UsageReport
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class UsageService:
         finish_reason: str | None = None,
         system_fingerprint: str | None = None,
         provider_name: str | None = None,
-        model_pricing_config: dict[str, Any] | None = None,
+        model_pricing_config: PricingConfig | dict[str, Any] | None = None,
     ) -> UsageRecord:
         """Track and persist a usage record.
 
@@ -83,8 +83,13 @@ class UsageService:
                     estimated_savings_usd=estimated_savings_usd,
                 )
                 try:
-                    adapter = LLMCacheAdapterFactory.get_adapter(provider_name)
-                    final_usage = adapter.calculate_cost(usage_obj, model_pricing_config)
+                    pricing_dto = (
+                        model_pricing_config
+                        if isinstance(model_pricing_config, PricingConfig)
+                        else PricingConfig.model_validate(model_pricing_config)
+                    )
+                    adapter = LLMCacheAdapterFactory.get_adapter(provider_name, model_name=model)
+                    final_usage = adapter.calculate_cost(usage_obj, pricing_dto)
                     cost_usd = final_usage.cost_usd
                     estimated_savings_usd = final_usage.estimated_savings_usd
                 except Exception as e:
@@ -144,8 +149,10 @@ class UsageService:
 
             # --- PROMPT_CACHING_DRIFT_ALERT ---
             caching_strategy = None
-            if model_pricing_config:
+            if isinstance(model_pricing_config, dict):
                 caching_strategy = model_pricing_config.get("caching_strategy")
+            elif isinstance(model_pricing_config, PricingConfig):
+                caching_strategy = getattr(model_pricing_config, "caching_strategy", None)
 
             if caching_strategy == "prompt_caching":
                 # Get recent records (assuming last 5 exist in db)

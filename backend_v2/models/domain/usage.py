@@ -8,6 +8,28 @@ from backend_v2.models.core_base import V2CoreBase
 logger = logging.getLogger(__name__)
 
 
+class PricingConfig(V2CoreBase):
+    """Configuration defining provider unit token pricing and caching rates.
+
+    Attributes:
+        input_token_price: Cost per prompt token in USD.
+        output_token_price: Cost per completion token in USD.
+        cached_input_token_price: Optional cost per cached input token in USD.
+        cache_creation_input_token_price: Optional cost per cache write/creation token in USD.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    input_token_price: Annotated[float, Field(ge=0.0, description="Cost per prompt token in USD.")]
+    output_token_price: Annotated[float, Field(ge=0.0, description="Cost per completion token in USD.")]
+    cached_input_token_price: Annotated[
+        float | None, Field(default=None, ge=0.0, description="Cost per cached input token in USD.")
+    ] = None
+    cache_creation_input_token_price: Annotated[
+        float | None, Field(default=None, ge=0.0, description="Cost per cache write/creation token in USD.")
+    ] = None
+
+
 class TokenUsage(V2CoreBase):
     """Strictly typed token usage statistics.
 

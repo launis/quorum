@@ -9,8 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 
 # Setup mock modules for heavy GCP / Vertex AI SDK libraries BEFORE importing adapter
@@ -42,7 +41,6 @@ sys.modules["vertexai.preview.generative_models"] = cast(Any, MockGenerativeMode
 
 from backend_v2.llm.adapters.vertex_adapter import (  # noqa: E402
     VertexCacheAdapter,
-    VertexTokenUsage,
     get_redis_client,
 )
 
@@ -104,12 +102,12 @@ def test_vertex_adapter_cost_calculation() -> None:
     """Test mathematical precision and ROI scenarios for VertexCacheAdapter with 75% read discount."""
     adapter = VertexCacheAdapter()
 
-    pricing = {"input_token_price": 0.000002, "output_token_price": 0.000006}
+    pricing = PricingConfig(input_token_price=0.000002, output_token_price=0.000006)
 
     # Scenario 1: All regular (no caching hits)
     usage = TokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500)
     result = adapter.calculate_cost(usage, pricing)
-    assert isinstance(result, VertexTokenUsage)
+    assert isinstance(result, TokenUsage)
     # Cost = 1000 * 0.000002 + 500 * 0.000006 = 0.002 + 0.003 = 0.005
     assert result.cost_usd == pytest.approx(0.005)
     assert result.estimated_savings_usd == 0.0
@@ -117,23 +115,13 @@ def test_vertex_adapter_cost_calculation() -> None:
     # Scenario 2: With cached tokens (75% read discount / 25% cost)
     usage_cached = TokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500, cached_tokens=800)
     result = adapter.calculate_cost(usage_cached, pricing)
-    assert isinstance(result, VertexTokenUsage)
+    assert isinstance(result, TokenUsage)
     # regular = 1000 - 800 = 200
     # Cost = 200 * 0.000002 + 800 * 0.000002 * 0.25 + 500 * 0.000006
     #      = 0.0004 + 0.0004 + 0.003 = 0.0038
     # Savings = 800 * 0.000002 * 0.75 = 0.0012
     assert result.cost_usd == pytest.approx(0.0038)
     assert result.estimated_savings_usd == pytest.approx(0.0012)
-
-
-def test_missing_pricing_raises_error() -> None:
-    """Verify that Vertex adapter raises AppException when price configuration is missing."""
-    adapter = VertexCacheAdapter()
-    usage = TokenUsage(prompt_tokens=100, completion_tokens=0, total_tokens=100)
-
-    with pytest.raises(AppException) as exc_info:
-        adapter.calculate_cost(usage, {"output_token_price": 0.0002})
-    assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 @pytest.mark.asyncio
@@ -308,17 +296,6 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     assert kwargs["system_instruction"] == "You are a system evaluator."
 
 
-def test_vertex_token_usage_negative_savings_raises() -> None:
-    """Verify that negative savings in VertexTokenUsage raises a ValueError."""
-    with pytest.raises(ValueError, match="estimated_savings_usd must be greater than or equal to 0.0"):
-        VertexTokenUsage(
-            prompt_tokens=10,
-            completion_tokens=5,
-            total_tokens=15,
-            estimated_savings_usd=-1.0,
-        )
-
-
 def test_vertex_adapter_prepare_provider_kwargs() -> None:
     """Verify prepare_provider_kwargs returns standard Vertex safety settings."""
     adapter = VertexCacheAdapter()
@@ -331,7 +308,7 @@ def test_vertex_adapter_sanitize_messages() -> None:
     """Verify sanitize_messages strips orphaned tool calls and preserves valid ones."""
     adapter = VertexCacheAdapter()
 
-    messages = [
+    messages: list[dict[str, Any]] = [
         {"role": "user", "content": "Hello"},
         {
             "role": "assistant",
@@ -637,3 +614,32 @@ async def test_vertex_adapter_dynamic_location_caching(monkeypatch: pytest.Monke
     assert extra_kwargs == {"cached_content": "projects/mock-proj/locations/us-central1/cachedContents/us-cache-777"}
     assert mock_cached_contents.CachedContent.create.call_count == 1
     assert returned_msgs == prompt.to_dynamic_flat()
+
+
+@pytest.mark.asyncio
+async def test_vertex_adapter_caching_consecutive_system_messages_empty_contents_proof() -> None:
+    """Verify that multiple or single static system messages without non-system static messages never attempt GCP cache creation.
+
+    In DAG synthesis steps (matrix_block is None), CompiledPrompt has static_messages=[{"role": "system", ...}]
+    and dynamic_messages=[{"role": "user", ...}].
+    When static_messages has only system role messages, to_static_flat() yields only system role message(s),
+    which makes vertex_contents empty (`[]`), causing GCP GAPIC RPC 400 InvalidArgument:
+    'The cached content is of 1 tokens. The minimum token count to start explicit caching is 1024.'
+    The adapter MUST bypass caching and return standard flat messages with empty extra kwargs.
+    """
+    adapter = VertexCacheAdapter()
+
+    prompt = CompiledPrompt(
+        static_messages=[
+            {"role": "system", "content": "Static instructions part 1 " * 300},
+            {"role": "system", "content": "Static instructions part 2 " * 300},
+        ],
+        dynamic_messages=[
+            {"role": "user", "content": "User payload text"},
+        ],
+    )
+
+    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-pro")
+
+    assert extra_kwargs == {}
+    assert len(flat_msgs) == 2

@@ -115,12 +115,14 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                     // Metrics
                     final costEstimate = exec.costEstimate ?? 0.0;
                     final metadata = exec.metadata ?? {};
-                    final totalTokens =
-                        (metadata['total_tokens'] as num?)?.toInt() ?? 0;
                     final promptTokens =
                         (metadata['prompt_tokens'] as num?)?.toInt() ?? 0;
                     final completionTokens =
                         (metadata['completion_tokens'] as num?)?.toInt() ?? 0;
+                    final reasoningTokens =
+                        (metadata['reasoning_tokens'] as num?)?.toInt() ?? 0;
+                    final totalTokens =
+                        promptTokens + completionTokens + reasoningTokens;
 
                     String metricsStr = '';
                     if (totalTokens > 0 ||

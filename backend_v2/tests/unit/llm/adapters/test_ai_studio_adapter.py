@@ -11,8 +11,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend_v2.exceptions import AppException
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
 
 # Setup mock modules for google.genai BEFORE importing adapter
@@ -50,7 +49,6 @@ sys.modules["google.genai.types"] = cast(Any, MockGenAITypes)
 
 from backend_v2.llm.adapters.ai_studio_adapter import (  # noqa: E402
     GoogleAIStudioCacheAdapter,
-    GoogleAIStudioTokenUsage,
     get_redis_client,
 )
 
@@ -112,13 +110,13 @@ def test_ai_studio_adapter_cost_calculation() -> None:
         total_tokens=102000,
         cached_tokens=80000,
     )
-    pricing = {
-        "input_token_price": 0.000001,
-        "output_token_price": 0.000004,
-    }
+    pricing = PricingConfig(
+        input_token_price=0.000001,
+        output_token_price=0.000004,
+    )
 
     result = adapter.calculate_cost(usage, pricing)
-    assert isinstance(result, GoogleAIStudioTokenUsage)
+    assert isinstance(result, TokenUsage)
     # regular_input = 20000 * 0.000001 = 0.02
     # cached_input = 80000 * 0.000001 * 0.25 = 0.02
     # output = 2000 * 0.000004 = 0.008
@@ -126,25 +124,6 @@ def test_ai_studio_adapter_cost_calculation() -> None:
     # total_savings = 80000 * 0.000001 * 0.75 = 0.06
     assert pytest.approx(result.cost_usd, rel=1e-5) == 0.048
     assert pytest.approx(result.estimated_savings_usd, rel=1e-5) == 0.06
-
-
-def test_ai_studio_missing_pricing_raises_error() -> None:
-    """Verify error is raised when pricing is missing required keys."""
-    adapter = GoogleAIStudioCacheAdapter()
-    usage = TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150)
-    with pytest.raises(AppException):
-        adapter.calculate_cost(usage, {})
-
-
-def test_ai_studio_token_usage_negative_savings_raises() -> None:
-    """Verify negative estimated savings raises validation error."""
-    with pytest.raises(ValueError, match="estimated_savings_usd must be greater than or equal to 0.0"):
-        GoogleAIStudioTokenUsage(
-            prompt_tokens=100,
-            completion_tokens=50,
-            total_tokens=150,
-            estimated_savings_usd=-0.05,
-        )
 
 
 def test_ai_studio_adapter_prepare_provider_kwargs() -> None:

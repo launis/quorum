@@ -302,6 +302,10 @@ async def execute_workflow_job(
                 updated_meta["execution_summary"] = execution_summary
                 updated_meta["step_metrics"] = step_metrics
                 updated_meta["dag_cost_usd"] = total_cost_usd
+                updated_meta["prompt_tokens"] = total_prompt_tokens
+                updated_meta["completion_tokens"] = total_completion_tokens
+                updated_meta["cached_tokens"] = total_cached_tokens
+                updated_meta["reasoning_tokens"] = total_reasoning_tokens
 
                 updated_exec_record = updated_exec_record.model_copy(
                     update={"models_used": models_used, "cost_estimate": total_cost_usd, "metadata": updated_meta}

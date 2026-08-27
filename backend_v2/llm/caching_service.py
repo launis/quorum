@@ -42,7 +42,7 @@ class LLMCachingService:
         """
         await cls._run_purity_scanner(compiled_prompt.to_flat_messages())
 
-        adapter = LLMCacheAdapterFactory.get_adapter(provider_name)
+        adapter = LLMCacheAdapterFactory.get_adapter(provider_name, model_name=model_name)
         return await adapter.prepare_caching_payload(compiled_prompt, model_name)
 
     @classmethod

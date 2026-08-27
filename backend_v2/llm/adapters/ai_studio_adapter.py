@@ -13,11 +13,10 @@ import os
 from typing import Any
 
 from arq.connections import RedisSettings, create_pool
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel
 
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import PromptCacheStatus
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import get_settings
@@ -70,34 +69,6 @@ async def get_redis_client() -> Any:
     return _redis_pool
 
 
-class GoogleAIStudioTokenUsage(TokenUsage):
-    """Subclass of TokenUsage supporting AI Studio specific caching telemetry and FinOps ROI savings.
-
-    Attributes:
-        estimated_savings_usd: FinOps ROI estimated savings in USD.
-    """
-
-    estimated_savings_usd: float = Field(default=0.0, description="FinOps ROI estimated savings in USD.")
-
-    @field_validator("estimated_savings_usd")
-    @classmethod
-    def validate_estimated_savings_usd(cls, v: float) -> float:
-        """Validate that the estimated savings are non-negative.
-
-        Args:
-            v: The computed savings in USD.
-
-        Returns:
-            The validated savings value.
-
-        Raises:
-            ValueError: If the savings value is negative.
-        """
-        if v < 0.0:
-            raise ValueError("estimated_savings_usd must be greater than or equal to 0.0")
-        return v
-
-
 class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
     """Caching and pricing adapter for Google AI Studio (Direct Gemini API) models."""
 
@@ -116,23 +87,9 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                 - A dictionary of extra keyword arguments containing the cache reference name.
         """
         # Google AI Studio minimum token limit for context caching (typically 32,768 tokens for Gemini 1.5/2.0/3.7)
-        total_content_chars = 0
-        has_non_system_static = False
-        for msg in compiled_prompt.static_messages:
-            role = msg.get("role", "user")
-            if role == "system":
-                continue
-            has_non_system_static = True
-            content = msg.get("content")
-            if isinstance(content, str):
-                total_content_chars += len(content)
-            elif isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        total_content_chars += len(block.get("text", ""))
-            elif content is not None:
-                total_content_chars += len(str(content))
-        static_content_token_count = total_content_chars // 4
+        static_content_token_count, has_non_system_static = self.estimate_static_tokens(
+            compiled_prompt, exclude_system=True
+        )
 
         min_threshold = max(get_settings().context_cache_minimum_token_limit, 32768)
 
@@ -305,7 +262,7 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         """
         pass
 
-    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> GoogleAIStudioTokenUsage:
+    def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         """Calculate the precise Google AI Studio cost and savings.
 
         Gemini Context Caching in AI Studio provides 75% read discount on cached input tokens.
@@ -316,22 +273,9 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
 
         Returns:
             The calculated usage metrics including savings.
-
-        Raises:
-            AppException (ErrorCodes.CONFIGURATION_ERROR): If essential pricing parameters are missing.
         """
-        if "input_token_price" not in pricing_config or "output_token_price" not in pricing_config:
-            logger.error(
-                "Invalid pricing configuration detected: missing input_token_price or output_token_price", exc_info=True
-            )
-            raise AppException(
-                message="Invalid pricing configuration: missing input_token_price or output_token_price",
-                status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-
-        p_in = float(pricing_config["input_token_price"])
-        p_out = float(pricing_config["output_token_price"])
+        p_in = pricing_config.input_token_price
+        p_out = pricing_config.output_token_price
 
         prompt_tokens = usage.prompt_tokens
         completion_tokens = usage.completion_tokens
@@ -346,7 +290,7 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         total_cost = cost_regular + cost_cached + cost_output
         total_savings = cached_tokens * p_in * 0.75
 
-        return GoogleAIStudioTokenUsage(
+        return TokenUsage(
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=usage.total_tokens,
@@ -401,7 +345,7 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         Returns:
             The potentially modified call_kwargs dictionary.
         """
-        if config and getattr(config, "additional_params", None):
+        if config is not None and config.additional_params is not None:
             thinking_budget = config.additional_params.get("thinking_budget_tokens")
             if thinking_budget:
                 if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:

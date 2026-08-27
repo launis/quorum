@@ -14,7 +14,7 @@ from arq.connections import RedisSettings, create_pool
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import get_settings
@@ -156,7 +156,7 @@ class BaseLLMAdapter(ABC):
         pass
 
     @abstractmethod
-    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> TokenUsage:
+    def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         """Calculate the precise financial usage cost and ROI utilizing provider-specific pricing coefficients.
 
         Args:
@@ -167,6 +167,46 @@ class BaseLLMAdapter(ABC):
             TokenUsage structure updated with monetary and evaluation values.
         """
         pass
+
+    def estimate_static_tokens(self, compiled_prompt: CompiledPrompt, exclude_system: bool = False) -> tuple[int, bool]:
+        """Estimate the token count for static prompt content and verify if valid turns exist.
+
+        Calculates token estimate using standard character ratio (total_chars // 4).
+
+        Args:
+            compiled_prompt: The structured prompt payload containing static and dynamic turns.
+            exclude_system: If True, system role messages are excluded from the character count.
+
+        Returns:
+            A tuple containing:
+                - Estimated token count (int) derived from static message characters.
+                - Boolean flag indicating whether non-system static turns are present.
+        """
+        total_chars = 0
+        has_non_system_static = False
+
+        for msg in compiled_prompt.static_messages:
+            role = msg.get("role", "user")
+            if role == "system":
+                if exclude_system:
+                    continue
+            else:
+                has_non_system_static = True
+
+            content = msg.get("content")
+            if isinstance(content, str):
+                total_chars += len(content)
+            elif isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        total_chars += len(block.get("text", ""))
+                    elif isinstance(block, str):
+                        total_chars += len(block)
+            elif content is not None:
+                total_chars += len(str(content))
+
+        estimated_tokens = total_chars // 4
+        return estimated_tokens, has_non_system_static
 
     @abstractmethod
     def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:

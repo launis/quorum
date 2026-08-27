@@ -12,7 +12,7 @@ from backend_v2.llm.adapters.base_adapter import (
     apply_provider_pacing,
     get_redis_client_for_pacing,
 )
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
 from backend_v2.models.prompt import CompiledPrompt
 
@@ -28,7 +28,7 @@ class ConcreteAdapter(BaseLLMAdapter):
     async def teardown_cache(self, workflow_run_id: str) -> None:
         pass
 
-    def calculate_cost(self, usage: TokenUsage, pricing_config: dict[str, Any]) -> TokenUsage:
+    def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         return usage
 
     def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
