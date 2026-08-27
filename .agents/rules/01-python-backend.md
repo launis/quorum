@@ -9,635 +9,434 @@
 
 <catastrophic_system_bans>
     <rule_block id="the_duct_tape_ban">
-        <banned_pattern>"God Blocks" (`except Exception: pass`), returning empty dicts `{}` on failure, using `.get("key", default)` to suppress missing data, or using lazy fallback operators like `or "en"`, `or {}`, `or []`.</banned_pattern>
-        <mandatory_pattern>All errors MUST be caught, logged, and re-raised via `AppException`. Rely strictly on Pydantic validation (schema-level defaults). The architectural mandate strictly forbids "Duct-Tape" programming. If a required value is missing, you MUST fail fast with an `AppException` rather than masking it with a default value in business logic.</mandatory_pattern>
-        <catastrophic_reason>Duct-tape fixes mask root causes, corrupt data flows, and violate the Zero-Compromise Pledge. Masking errors prevents the system from failing fast and exposing the true source of the bug.</catastrophic_reason>
+        <mandate>NEVER catch-all with `except Exception: pass`, return empty dicts `{}`, use `.get("key", default)`, or use lazy fallback operators (`or "en"`, `or {}`, `or []`). ALL errors MUST be caught, logged, and re-raised via `AppException`. Rely strictly on Pydantic validation (schema-level defaults) and Fail-Fast on missing required values.</mandate>
     </rule_block>
     
     <rule_block id="partial_mocking_srp_ban">
-        <banned_pattern>Using "Partial Mocking" in unit tests by stuffing heavy orchestration or AI logic into private methods (e.g., `_execute_rag_preflight`) inside a parent class like `DAGExecutor` just to avoid creating new files or managing dependency injection.</banned_pattern>
-        <mandatory_pattern>Follow the Single Responsibility Principle (SRP). Heavy sub-processes MUST be extracted into their own isolated service classes (e.g., `RAGPreflightService`) and injected via standard Dependency Injection. Tests MUST mock the injected service class, NOT internal methods of the class being tested.</mandatory_pattern>
-        <catastrophic_reason>Partial mocking blinds unit tests to internal integration crashes (like StopIteration) and leads to massive "God Classes" that hide architectural failures.</catastrophic_reason>
+        <mandate>NEVER use "Partial Mocking" in unit tests by stuffing heavy orchestration or AI logic into private methods (e.g., `_execute_rag_preflight`) inside parent classes like `DAGExecutor`. ALWAYS follow Single Responsibility Principle (SRP): extract heavy sub-processes into isolated service classes (e.g., `RAGPreflightService`), inject via Dependency Injection, and mock the injected service class in tests.</mandate>
     </rule_block>
 
     <rule_block id="engine_override_ban">
-        <banned_pattern>Relying on workflow-level override flags (e.g., `engine_override`) or hardcoded strategy aliases to determine execution paths instead of reading the actual Task Blueprint's defined strategy.</banned_pattern>
-        <mandatory_pattern>Enforce "Eager Fetching" and Dynamic Inference. The Orchestrator MUST read the single source of truth directly from the blueprint definition (e.g., `step_def.model_strategy`) to infer execution paths dynamically without requiring external duct-tape flags.</mandatory_pattern>
-        <catastrophic_reason>Override flags fragment the architecture, creating situations where the workflow JSON contradicts the underlying task blueprint, leading to untraceable execution bugs.</catastrophic_reason>
+        <mandate>NEVER rely on workflow-level override flags (e.g., `engine_override`) or hardcoded strategy aliases. ALWAYS enforce Eager Fetching and Dynamic Inference by reading the SSOT directly from the blueprint definition (e.g., `step_def.model_strategy`) to infer execution paths dynamically.</mandate>
     </rule_block>
     
     <rule_block id="prompt_fragmentation_ban">
-        <banned_pattern>Scattering LLM prompt instructions, structural JSON mandates, or logic constraints directly inside business methods or client wrappers (e.g., `client.py`).</banned_pattern>
-        <mandatory_pattern>ALL global prompt instructions MUST be centralized in `directives.py` as explicit string constants. Treat `directives.py` as the absolute Single Source of Truth for LLM constraints.</mandatory_pattern>
-        <catastrophic_reason>Fragmented prompt logic causes undetectable context degradation, violates DRY architecture, and prevents systemic oversight of LLM behavior.</catastrophic_reason>
+        <mandate>NEVER scatter LLM prompt instructions, structural JSON mandates, or logic constraints in business methods or client wrappers (`client.py`). ALL global prompt instructions MUST be centralized in `directives.py` as explicit string constants (SSOT).</mandate>
     </rule_block>
 
     <rule_block id="docstring_fail_fast_ban">
-        <banned_pattern>Documenting `Raises: None` in method docstrings, OR duplicating Python type hints (e.g. `type[BaseModel]:`) inside `Args:` or `Returns:` text.</banned_pattern>
-        <mandatory_pattern>NEVER write `Raises: None`. You MUST explicitly list the exact `AppException` error codes the execution can trigger. Enforce strictly DRY typing (never repeat type hints in text).</mandatory_pattern>
-        <catastrophic_reason>Claiming a function raises nothing creates false confidence in the Fail-Fast architecture, leading to unhandled downstream exceptions. DRY typing violations break doc generators and clutter the context.</catastrophic_reason>
+        <mandate>NEVER write `Raises: None` in method docstrings or duplicate Python type hints (e.g. `type[BaseModel]:`) in `Args:`/`Returns:` text. ALWAYS explicitly list the exact `AppException` error codes the execution can trigger and enforce strictly DRY typing.</mandate>
     </rule_block>
 
     <rule_block id="inline_imports_ban">
-        <banned_pattern>Using inline imports inside methods/functions to avoid circular dependencies.</banned_pattern>
-        <mandatory_pattern>ALL standard imports MUST be declared globally at the top of the file. EXCEPTION: Heavy AI/ML libraries (e.g., `litellm`, `vertexai`, `spacy`) MUST be imported inside methods/functions (lazy loading) to prevent PyO3 failures and Zero Cold Starts.</mandatory_pattern>
-        <catastrophic_reason>Inline imports mask severe circular architectural dependencies and silently crash asynchronous unit tests (`pytest`) when mocking paths.</catastrophic_reason>
+        <mandate>NEVER use inline imports inside methods/functions to avoid circular dependencies. ALL standard imports MUST be declared globally at the top of the file. EXCEPTION: Heavy AI/ML libraries (`litellm`, `vertexai`, `spacy`) MUST be lazily imported inside methods/functions to prevent PyO3 initialization crashes and ensure Zero Cold Starts.</mandate>
     </rule_block>
 
     <rule_block id="slug_data_relation_ban">
-        <banned_pattern>Using `slug`, UI labels, or other informational fields as JSON schema keys, Pydantic field names, for strict data relations, inside logger statements (`logger.info/warning/error`), in exception/error messages, or for business logic conditional branches (`if b.slug == ...`).</banned_pattern>
-        <mandatory_pattern>ALWAYS use the object's canonical Opaque Stripe ID (e.g., `blk_123...`, `stp_123...`, `wor_123...`) for ALL data relations, schema generation, dictionary key bindings, logger outputs, error traces, and business logic. Slugs are strictly human-readable display metadata and MUST NEVER appear in system logs, exception messages, or runtime logic branching.</mandatory_pattern>
-        <catastrophic_reason>Slugs are highly mutable strings meant for SEO/Display. Using slugs in logs fragments the Logfire/forensic audit trail by disassociating log entries from canonical Opaque Stripe IDs. Using slugs in logic branching breaks polymorphic routing and creates brittle shadow dependencies.</catastrophic_reason>
+        <mandate>NEVER use `slug`, UI labels, or informational fields as JSON schema keys, Pydantic field names, strict data relations, inside loggers (`logger.info/warning/error`), in exception messages, or for business logic conditionals (`if b.slug == ...`). ALWAYS use canonical Opaque Stripe IDs (e.g., `blk_...`, `stp_...`, `wor_...`) for all data relations, schema generation, dict key bindings, logger outputs, error traces, and runtime branching.</mandate>
     </rule_block>
 
     <rule_block id="id_backend_generation_authority_mandate">
-        <banned_pattern>Accepting client-defined primary IDs on resource creation endpoints, using sequential/semantic counters, or relying on frontend timestamps for ID generation.</banned_pattern>
-        <mandatory_pattern>All primary and relational entity IDs MUST be generated exclusively on the backend via randomized cryptographic generators (e.g. `f"{prefix}_{uuid.uuid4().hex[:16]}"`). Resources created in draft endpoints MUST have their canonical Opaque Stripe ID pre-assigned by the backend before returning to the frontend. All models MUST enforce strict regex `pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"` on `id` fields.</mandatory_pattern>
-        <catastrophic_reason>Accepting client-supplied IDs exposes the database to injection, ID hijacking, and relational integrity corruption.</catastrophic_reason>
+        <mandate>NEVER accept client-defined primary IDs on resource creation endpoints, use sequential/semantic counters, or rely on frontend timestamps. All primary and relational entity IDs MUST be generated exclusively on the backend via randomized cryptographic generators (`f"{prefix}_{uuid.uuid4().hex[:16]}"`). Resources in draft endpoints MUST have their canonical Opaque Stripe ID pre-assigned by the backend. All models MUST enforce strict regex `pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"` on `id` fields.</mandate>
     </rule_block>
 
     <rule_block id="anemic_routers">
-        <banned_pattern>Putting business logic, database CRUD, or RBAC checks in API routers (`backend_v2/api/`).</banned_pattern>
-        <mandatory_pattern>Routers MUST ONLY handle HTTP parsing, assign an explicit `response_model`, and delegate to the Service layer (`backend_v2/services/`).</mandatory_pattern>
-        <catastrophic_reason>Single Responsibility Principle violation. Business logic execution in routers breaks security isolation layers.</catastrophic_reason>
+        <mandate>NEVER place business logic, database CRUD, or RBAC checks in API routers (`backend_v2/api/`). Routers MUST ONLY handle HTTP parsing, assign an explicit `response_model`, and delegate to the Service layer (`backend_v2/services/`).</mandate>
     </rule_block>
 
     <rule_block id="blocking_the_fastapi_thread">
-        <banned_pattern>Executing long-running AI generation or heavy DAG execution synchronously within a FastAPI request cycle.</banned_pattern>
-        <mandatory_pattern>MUST offload heavy processing to the Arq 2026 async worker queue. The API MUST return 202 Accepted with a TaskID immediately.</mandatory_pattern>
-        <catastrophic_reason>Hangs the internal Node thread and fails remote user requests via timeout.</catastrophic_reason>
+        <mandate>NEVER execute long-running AI generation or heavy DAG execution synchronously within a FastAPI request cycle. ALWAYS offload heavy processing to the Arq 2026 async worker queue and return 202 Accepted with TaskID immediately.</mandate>
     </rule_block>
 
     <rule_block id="anti_fragility_boundaries">
-        <banned_pattern>Using strict "Fail-Fast" exceptions for inter-service communication (e.g., LLM APIs or 3rd party integrations) without opening the circuit during 429/502/503 storms, or allowing unbounded concurrent requests to external services.</banned_pattern>
-        <mandatory_pattern>All heavy I/O operations and external API integrations MUST be isolated using Circuit Breaker and Bulkhead architectures. While `asyncio.Semaphore` provides Bulkhead concurrency limits, you MUST also mandate a Circuit Breaker pattern in your implementation plans. The architecture MUST include logic that stops retrying and "opens the circuit" (immediately rejecting new requests with a Transient Error or safe fallback) if the API fails repeatedly, preventing the internal async worker queues from becoming blocked. Retries MUST be subordinated to the Circuit Breaker.</mandatory_pattern>
-        <catastrophic_reason>Fail-Fast is excellent for data validation but fatal for network boundaries. If hundreds of async workers simultaneously crash or endlessly retry against a failing external service without a Circuit Breaker, it triggers a Cascading Failure that exhausts all internal threads and clogs the Dead-Letter Queue (DLQ).</catastrophic_reason>
+        <mandate>NEVER make unbounded external requests or rely solely on Fail-Fast without circuit breaking during 429/502/503 storms. ALL heavy I/O operations and external API integrations MUST use Circuit Breaker and Bulkhead architectures (`asyncio.Semaphore` for concurrency limits + Circuit Breaker to reject new requests with transient errors when endpoints fail repeatedly). Retries MUST be subordinated to the Circuit Breaker.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_namespace_collisions">
-        <banned_pattern>Defining Pydantic schemas inline within `routers/` or duplicating class names.</banned_pattern>
-        <mandatory_pattern>FastAPI schemas MUST be centralized in `models/` (SSOT). If a schema changes, you MUST instruct the user to run `generate_openapi.py`.</mandatory_pattern>
-        <catastrophic_reason>Duplicate namespaces corrupt the OpenAPI generator and subsequently crash the Flutter Freezed parsers.</catastrophic_reason>
+        <mandate>NEVER define Pydantic schemas inline within `routers/` or duplicate class names. ALWAYS centralize FastAPI schemas in `models/` (SSOT) and run `generate_openapi.py` upon changes.</mandate>
     </rule_block>
 
     <rule_block id="security_logging_ban">
-        <banned_pattern>Logging raw HTTP payloads, user prompts (PII), API keys, or JWT tokens into logs or AppException messages.</banned_pattern>
-        <mandatory_pattern>Log ONLY the mathematical/logical reason for the error and the Opaque System ID (e.g., req_abc123). All external API keys MUST be strictly read via pydantic-settings from environment variables, never hardcoded.</mandatory_pattern>
-        <catastrophic_reason>Logging PII or secrets violates security compliance and exposes the system to catastrophic credential leaks. Furthermore, leaked secrets poison the LLM context if an agent reads `backend_debug.log` to troubleshoot.</catastrophic_reason>
+        <mandate>NEVER log raw HTTP payloads, user prompts (PII), API keys, or JWT tokens into logs or `AppException` messages. ALWAYS log only mathematical/logical reasons and Opaque System IDs (e.g., `req_abc123`). Read external API keys exclusively via `pydantic-settings` from environment variables, never hardcoded.</mandate>
     </rule_block>
 
     <rule_block id="de_generator_mandate_no_xml">
-         <banned_pattern>Using XML tags like `<system_directive>`, `<role>`, or `<objective>` inside `seed_data.json` prompt fields (`ai_description`, `system_prompt`).</banned_pattern>
-         <mandatory_pattern>Enforce the "De-Generator" mandate: write pure business logic using Markdown headings (e.g. `ROLE:`, `OBJECTIVE:`). The backend `prompt_factory.py` automatically handles all necessary XML wrappers for the LLM.</mandatory_pattern>
+        <mandate>NEVER use XML tags (`<system_directive>`, `<role>`, `<objective>`) inside `seed_data.json` prompt fields (`ai_description`, `system_prompt`). ALWAYS write pure business logic using Markdown headings (`ROLE:`, `OBJECTIVE:`); `prompt_factory.py` automatically injects required XML wrappers.</mandate>
     </rule_block>
 
     <rule_block id="internal_language_and_epic_ban">
-        <banned_pattern>Using the term "Epic" (or "EPIC") in any `description`, docstring, or comment. Using Finnish or any non-English language in comments, variable names, or internal descriptions.</banned_pattern>
-        <mandatory_pattern>All internal codebase documentation, inline comments, and Pydantic `description` fields MUST be written exclusively in English. The word "Epic" MUST NOT be used anywhere in the codebase to describe tasks or fields.</mandatory_pattern>
-        <catastrophic_reason>Hardcoding non-English terminology or agile tracking terms like 'Epic' pollutes the codebase with ephemeral/localized metadata that degrades over time and confuses cross-functional developers.</catastrophic_reason>
+        <mandate>NEVER use the term "Epic" (or "EPIC") in any `description`, docstring, or comment, and NEVER use Finnish or non-English in comments, variable names, or internal descriptions. ALL internal codebase documentation, comments, and Pydantic descriptions MUST be written exclusively in English.</mandate>
     </rule_block>
 
     <rule_block id="anti_surface_level_remodeling">
-        <banned_pattern>Proposing the creation of [NEW] DTOs, Enums, Exceptions, or Data Models based purely on encountering a generic type hint (`dict`, `Any`, `str`, `**kwargs`) or loose boundary in existing code.</banned_pattern>
-        <mandatory_pattern>Before drafting a plan to "refactor technical debt" for a generic parameter, you MUST execute a two-step verification:
-        1. TRACE UPSTREAM (Origin Check): You MUST trace the data flow to its actual call-site to mathematically verify what is being passed at runtime. Often, the runtime data is ALREADY a typed Pydantic model or Enum, merely masked by a stale type hint.
-        2. TRACE SSOT (Reuse Check): If a model is truly missing, you MUST aggressively `grep_search` existing files (`models/v2_core.py`, `models/enums.py`, `models/dtos/`) to ensure an equivalent Single Source of Truth (SSOT) does not already exist.
-        If the runtime data is already structured, your fix MUST be strictly limited to surgical type hint correction (e.g. `dict[str, Any]` -> `dict[str, ExistingModel]`). You MUST NOT invent parallel models.</mandatory_pattern>
-        <catastrophic_reason>Symptom-based remodeling (reacting to stale hints instead of tracking real data flow) causes agents to invent redundant, parallel architecture. This bloats the codebase, violates the SSOT principle, and destroys maintainability.</catastrophic_reason>
+        <mandate>NEVER propose [NEW] DTOs, Enums, Exceptions, or Data Models based purely on generic type hints (`dict`, `Any`, `str`, `**kwargs`) or loose boundaries in existing code. ALWAYS execute a two-step verification: 1. TRACE UPSTREAM (Origin Check) to verify runtime data types; 2. TRACE SSOT (Reuse Check) via `grep_search` across `models/v2_core.py`, `models/enums.py`, `models/dtos/` before creating models. If data is structured, surgically correct type hints without inventing parallel models.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_discriminated_union_mandate">
-        <banned_pattern>Creating "Chameleon / Pseudo-Classes" that inherit from BaseModel while attempting to act as a union via __new__ hijacking, overriding model_construct / model_validate with # type: ignore[override], using duplicated if-elif chains with raw string literals (e.g. "matrix", "persona"), or falling back silently to a default subclass.</banned_pattern>
-        <mandatory_pattern>All polymorphic schemas MUST be implemented strictly as Pydantic V2 Discriminated Unions:
-        1. Pure Type Alias: Define `AnyPromptBlock = Annotated[SubA | SubB, Field(discriminator="category_id")]` and alias `PromptBlock = AnyPromptBlock`. NEVER create a class named `PromptBlock(PromptBlockBase)` that fakes union behavior.
-        2. Centralized TypeAdapter: Use `TypeAdapter(AnyPromptBlock)` for all parsing, serialization, and JSON validation.
-        3. Strict Enum Registry: If dynamic/unvalidated instantiation is required (e.g. custom construct), route strictly through an Enum-keyed dictionary (`PROMPT_BLOCK_REGISTRY: dict[PromptBlockCategory, type[PromptBlockBase]]`).
-        4. Absolute Fail-Fast: If the discriminator is missing or invalid, raise an explicit AppException immediately. Zero silent fallbacks (e.g., returning SystemRulePromptBlock as default is strictly prohibited).
-        5. Concrete Instantiation: Business logic and fixtures must instantiate concrete subclasses directly (e.g., `MatrixPromptBlock(...)`).</mandatory_pattern>
-        <catastrophic_reason>Chameleon classes break MyPy/LSP static type analysis, cause false-positive attribute errors, bypass pydantic-core Rust optimizations, hide duct-tape fallbacks, and introduce un-auditable string branches.</catastrophic_reason>
+        <mandate>NEVER create "Chameleon/Pseudo-Classes" inheriting from BaseModel that hijack `__new__`, override `model_construct`/`model_validate` with `# type: ignore[override]`, use `if-elif` chains with raw string literals, or fall back to default subclasses. ALWAYS implement polymorphic schemas strictly as Pydantic V2 Discriminated Unions: 1) Pure Type Alias (`AnyPromptBlock = Annotated[SubA | SubB, Field(discriminator="category_id")]`), 2) Centralized `TypeAdapter(AnyPromptBlock)`, 3) Strict Enum Registry (`PROMPT_BLOCK_REGISTRY: dict[PromptBlockCategory, type[PromptBlockBase]]`), 4) Absolute Fail-Fast with zero silent fallbacks, 5) Concrete instantiation in business logic and fixtures.</mandate>
     </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
     <rule_block id="context_envelope_ssot_predicates">
-        <banned_pattern>
-            1. Adding `@property` or computed methods to API DTOs, database persistence models, or OpenAPI schemas (`backend_v2/models/dtos/`, `backend_v2/models/api/`).
-            2. Adding `@property` methods to Context envelopes that execute I/O, database queries, state mutations, complex multi-branch business logic, or return mutable collections (dicts/lists).
-            3. Defining derived state as writable `Field` attributes on Context envelopes instead of read-only properties.
-            4. Writing repeated multi-level null-checks (e.g. `if context.profile_cache and context.profile_cache.data_starvation is not None:`) across multiple consumer classes instead of querying an encapsulated predicate.
-        </banned_pattern>
-        <mandatory_pattern>
-            Enforce the "Context Envelope Predicate SSOT" pattern under strict boundary constraints:
-            1. SCOPE ISOLATION: Allowed EXCLUSIVELY on in-memory, process-internal context envelopes (specifically `AdapterContext` and `ExecutionContext`). STRICTLY FORBIDDEN on API and Persistence DTOs.
-            2. PURE PREDICATES: The property MUST be side-effect free, O(1) complexity, and return strictly `bool` (named `is_*` or `has_*`) or a typed `Enum`. It MUST derive its value exclusively from existing immutable fields.
-            3. NO SILENT ERROR MASKING: Predicates must only inspect valid state. Incomplete or corrupted context data MUST fail-fast during context construction, not be masked by boolean defaults.
-            4. DERIVED ONLY: The predicate MUST NOT be defined as a Pydantic `Field` in the constructor schema.
-        </mandatory_pattern>
-        <catastrophic_reason>
-            Adding properties to API DTOs breaks OpenAPI generation and corrupts Flutter client serialization. Conversely, leaking deep object traversal across dozens of presentation adapters violates the Law of Demeter, introduces code duplication, and causes untraceable Fail-Fast crashes during valid bypass states.
-        </catastrophic_reason>
+        <mandate>NEVER add `@property` or computed methods to API DTOs, database persistence models, or OpenAPI schemas (`models/dtos/`, `models/api/`); NEVER execute I/O, DB queries, or state mutations in `@property`; NEVER define derived state as writable `Field` attributes; and NEVER write repeated multi-level null checks across consumers. ALWAYS enforce the "Context Envelope Predicate SSOT" pattern exclusively on in-memory context envelopes (`AdapterContext`, `ExecutionContext`) as pure, side-effect-free, O(1) properties returning `bool` (`is_*`, `has_*`) or typed `Enum` derived from immutable fields.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_annotated_fields_mandate">
-        <banned_pattern>Using bare type hints combined with a `Field(...)` assignment in Pydantic settings or models (e.g., `timeout: int = Field(...)`).</banned_pattern>
-        <mandatory_pattern>ALWAYS use PEP 593 `Annotated` syntax to separate pure Python types from Pydantic runtime metadata (e.g., `timeout: Annotated[int, Field(description="...")] = 10`).</mandatory_pattern>
-        <catastrophic_reason>Bare assignments violate strict type-checkers (like Mypy) because they assign a `FieldInfo` object to an `int` type. `Annotated` ensures 100% type purity and compatibility.</catastrophic_reason>
+        <mandate>NEVER use bare type hints combined with `Field(...)` assignments in Pydantic settings or models (e.g., `timeout: int = Field(...)`). ALWAYS use PEP 593 `Annotated` syntax (e.g., `timeout: Annotated[int, Field(description="...")] = 10`).</mandate>
     </rule_block>
 
     <rule_block id="opaque_stripe_id_mandate">
-        <banned_pattern>Using auto-incrementing integers (e.g., `id=1`), raw UUIDs leaking database context, or semantic strings like `slug` as primary keys, database references, or API route identifiers.</banned_pattern>
-        <mandatory_pattern>Enforce the "Opaque Stripe ID" pattern (e.g., `wor_a1b2c3d4`, `usr_x9y8z7`) for ALL database identifiers, cross-model relations, and navigation endpoints. Slugs are for SEO/Display purposes only, NEVER for strict data relationships.</mandatory_pattern>
-        <catastrophic_reason>Intelligible primary keys (slugs) lead to permanently broken foreign relations when a user edits the display name. Auto-increment IDs allow horizontal enumeration attacks (IDOR). Opaque prefix mapping ensures immediate visual typability during debugging and inherently secures the API.</catastrophic_reason>
+        <mandate>NEVER use auto-incrementing integers (`id=1`), raw UUIDs leaking database context, or semantic strings like `slug` as primary keys, database references, or API route identifiers. ALWAYS enforce the "Opaque Stripe ID" pattern (e.g., `wor_a1b2c3d4`, `usr_x9y8z7`) for all database identifiers, cross-model relations, and navigation endpoints.</mandate>
     </rule_block>
 
     <rule_block id="alias_engine_llm_isolation_mandate">
-        <banned_pattern>Passing raw database UUIDs or Opaque Stripe IDs (e.g., `tda_a1b2c3d4`) directly into LLM prompts, JSON schemas, or expecting the LLM to output them back.</banned_pattern>
-        <mandatory_pattern>ALWAYS use the `AliasEngine` to generate short, semantic aliases (e.g., `a0`, `doc1`, `cond0`) before sending data to the LLM. When the LLM responds with these aliases (e.g., `depends_on: ["a0"]`), use `AliasEngine.hydrate_dict_list()` to deterministically map them back to the original Opaque UUIDs.</mandatory_pattern>
-        <catastrophic_reason>LLMs are textual reasoners that hallucinate and lose context when forced to copy 32-character hex strings. Semantic aliases act as explicit "Attention Anchors", drastically reducing hallucination rates, cutting token bloat, and ensuring deterministic Pydantic validation via `AliasEngine.ALIAS_REGEX_PATTERN`.</catastrophic_reason>
+        <mandate>NEVER pass raw database UUIDs or Opaque Stripe IDs (`tda_...`) directly into LLM prompts/schemas or expect them back. ALWAYS use `AliasEngine` to generate short, semantic aliases (`a0`, `doc1`, `cond0`) before sending data to LLM, and use `AliasEngine.hydrate_dict_list()` to map them back to original Opaque UUIDs.</mandate>
     </rule_block>
 
     <rule_block id="strict_pydantic_v2_rust">
-        <banned_pattern>Using legacy V1 instantiation (`MyModel(**data)`), Python standard JSON parsing (`json.loads()`), legacy V1 methods (`.dict()`, `@validator`), or using duck typing / arbitrary type checks like `hasattr(obj, 'key')` and `isinstance(data, dict)` to parse incoming LLM or DB state.</banned_pattern>
-        <mandatory_pattern>Force the Fail-Fast pipeline by using `.model_validate()`, Rust-based `.model_validate_json()`, `.model_dump()`, and `@field_validator`. Use `model_config = ConfigDict(extra='forbid', strict=True)` to reject unstructured AI outputs instantly. Any structure not matching the strict model must CRASH immediately with a `ValidationError`.</mandatory_pattern>
+        <mandate>NEVER use legacy V1 instantiation (`MyModel(**data)`), Python standard JSON parsing (`json.loads()`), legacy methods (`.dict()`, `@validator`), or duck typing/arbitrary checks (`hasattr(obj, 'key')`, `isinstance(data, dict)`). ALWAYS use `.model_validate()`, Rust-based `.model_validate_json()`, `.model_dump()`, and `@field_validator`. Enforce `model_config = ConfigDict(extra='forbid', strict=True)` to Fail-Fast on invalid structures with `ValidationError`.</mandate>
     </rule_block>
 
     <rule_block id="strict_enum_hydration_and_validation">
-        <banned_pattern>Using `.value` to extract strings/ints from Enums when updating or instantiating Pydantic models (e.g., `model_copy(update={"status": Status.PASSED.value})`), or wrapping model hydration in `isinstance(data, dict)` checks.</banned_pattern>
-        <mandatory_pattern>Pydantic models MUST receive the native Enum object so Rust can handle coercion. `.value` is ONLY permitted for primitive variable assignments, standard library logging (e.g. `extra={"error_code": ...}`), and raw `AppException` dictionaries to prevent JSON serialization errors. Hydration points MUST be unconditional (no `isinstance` guarding).</mandatory_pattern>
+        <mandate>NEVER use `.value` when updating or instantiating Pydantic models (e.g. `model_copy(update={"status": Status.PASSED.value})`) or wrap hydration in `isinstance(data, dict)`. ALWAYS pass native Enum objects to Pydantic models for Rust coercion. `.value` is permitted ONLY for primitive assignments, stdlib logging (`extra={"error_code": ...}`), and raw `AppException` dicts.</mandate>
     </rule_block>
 
     <rule_block id="zero_legacy_fallback_hacks">
-        <banned_pattern>Adding `@model_validator(mode="before")` or optional union types (`| None`) to Pydantic models purely to silently scrub or appease old V1 legacy payload fields (e.g., `task_key`) from crashing `extra='forbid'`.</banned_pattern>
-        <mandatory_pattern>NEVER bypass Pydantic `extra='forbid'` strictness to accommodate dirty databases. If historical data causes validation crashes, the root cause MUST be fixed at the source by wiping the seed data (via `uv run python backend_v2/seed/run_seed.py local`). Pydantic models must remain mathematically pure to the V2 spec.</mandatory_pattern>
-        <catastrophic_reason>Writing fallback parsing logic pollutes the domain layer with historical technical debt, destroying the Fail-Fast architecture and silently allowing legacy structures to persist and mutate inside V2 pipelines.</catastrophic_reason>
+        <mandate>NEVER add `@model_validator(mode="before")` or optional union types (`| None`) purely to silently scrub or appease old V1 legacy payload fields (e.g., `task_key`) from crashing `extra='forbid'`. ALWAYS maintain Pydantic `extra='forbid'` strictness; fix dirty historical databases at the source via `uv run python backend_v2/seed/run_seed.py local`.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_pure_hydration_boundary">
-        <banned_pattern>Using `json.dumps(data, default=str)` hacks or temporarily stripping `strict=True` from the Pydantic model's `ConfigDict` just to parse raw database dictionaries containing mixed ISO strings and Python `datetime`/`UUID` objects.</banned_pattern>
-        <mandatory_pattern>Models MUST maintain `model_config = ConfigDict(strict=True)` to strictly firewall the FastAPI incoming API boundary. When hydrating data FROM the trusted internal database (Repository Layer), you MUST use `MyModel.model_validate(data, strict=False)`. This is the pure Pydantic V2 Best Practice, allowing native Rust coercion of strings to datetimes at the database boundary without the massive CPU overhead of double-serialization or permanently polluting the model's strictness configuration.</mandatory_pattern>
-        <catastrophic_reason>Using `json.dumps()` on fully-hydrated Python dicts causes `TypeError: Object of type datetime is not JSON serializable`. Stripping `strict=True` from the global model config breaks the Zero-Trust Fail-Fast architecture at the API layer, allowing malicious user payloads to bypass type safety.</catastrophic_reason>
+        <mandate>NEVER use `json.dumps(data, default=str)` hacks or strip `strict=True` from model `ConfigDict` to parse raw database dictionaries containing mixed ISO strings and datetimes/UUIDs. ALWAYS keep `model_config = ConfigDict(strict=True)` on models for API boundaries, and use `MyModel.model_validate(data, strict=False)` when hydrating data from the trusted internal Repository layer.</mandate>
     </rule_block>
 
     <rule_block id="no_naked_dicts_in_state">
-        <banned_pattern>Pushing parsed LLM outputs directly into `state_delta` or intermediate caches as naked dictionaries simply to appease TinyDB/JSON serialization constraints.</banned_pattern>
-        <mandatory_pattern>ALWAYS intercept raw datastreams with `.model_validate()` immediately at the boundary. If the storage engine requires raw dicts, chain it explicitly: `MyModel.model_validate(data).model_dump(mode='json')`.</mandatory_pattern>
-        <catastrophic_reason>Passing naked dicts delays validation failures to the presentation layer, breaking traceability and defeating the 2026 Fail-Fast mandate.</catastrophic_reason>
+        <mandate>NEVER push parsed LLM outputs directly into `state_delta` or intermediate caches as naked dictionaries. ALWAYS intercept raw datastreams with `.model_validate()` at the boundary. If storage requires dicts, chain explicitly: `MyModel.model_validate(data).model_dump(mode='json')`.</mandate>
     </rule_block>
 
     <rule_block id="schema_convergence_mandate">
-        <banned_pattern>Creating a new DTO/schema class that represents the same logical domain concept as an existing class (e.g., a second "atom evaluation result" model), adding "compatibility properties" to bridge old and new schemas, OR maintaining parallel if/else branches in service/hook layers that dispatch to different model classes based on a mode flag.</banned_pattern>
-        <mandatory_pattern>One Concept = One Schema. When evolving a domain model (e.g., migrating from waterfall to DAG execution):
-        1. EXTRACT a shared Protocol/ABC defining the mandatory interface (e.g., `calculate_rule_satisfied`, `status`, `contextual_override`).
-        2. Make BOTH old and new models implement this Protocol.
-        3. Consumers (e.g., scoring.py) MUST accept ONLY the Protocol type, never concrete model classes.
-        4. Set an explicit SUNSET DEADLINE in the implementation plan for removing the old model. The old model MUST be deleted within the same Epic or the immediately following Epic.
-        5. Fallback chains between schema variants are ABSOLUTELY FORBIDDEN. If validation fails, Fail-Fast immediately.</mandatory_pattern>
-        <catastrophic_reason>Parallel schemas for the same concept create "Shadow Pipelines" where bugs are fixed in one path but silently persist in the other. Compatibility properties bypass type safety, and fallback chains mask data corruption. This is the root cause of the Override Inflation Bug (FAILED + contextual_override: true) scoring 100% in legacy paths while being correctly blocked in DAG paths.</catastrophic_reason>
+        <mandate>NEVER create parallel schemas representing the same logical domain concept, add compatibility properties to bridge schemas, or maintain parallel if/else branches based on mode flags. ALWAYS enforce "One Concept = One Schema": 1) Extract shared Protocol/ABC, 2) Implement Protocol in both models, 3) Consumers accept ONLY the Protocol type, 4) Set explicit SUNSET DEADLINE to delete old models within the same or next Epic, 5) Absolute Fail-Fast with zero fallback chains.</mandate>
     </rule_block>
 
     <rule_block id="structured_state_envelopes_mandate">
-        <banned_pattern>Using naked dictionaries (`dict`) to represent the intermediate execution trace (e.g. `fold_trace` returning dicts) or parsing execution traces using string manipulation (`endswith()`, `split()`).</banned_pattern>
-        <mandatory_pattern>All execution traces and state projections MUST use structured envelopes (`List[StepOutputDTO]`). Downstream consumers must strictly filter by `step_id` and `block_id` natively.</mandatory_pattern>
-        <catastrophic_reason>Dictionary flatteners cause brittle "loose dictionary" traps, and string-parsing lineage leads to fatal reporting bugs.</catastrophic_reason>
+        <mandate>NEVER use naked dictionaries (`dict`) for intermediate execution traces (e.g. `fold_trace` returning dicts) or string manipulation (`endswith()`, `split()`) to parse traces. ALWAYS use structured envelopes (`list[StepOutputDTO]`) and filter by `step_id` and `block_id` natively.</mandate>
     </rule_block>
 
     <rule_block id="polymorphic_dag_payload_handling">
-        <banned_pattern>Assuming that `StepOutputDTO.payload` is always a JSON dictionary (`dict`), or writing downstream consumers/compressors that crash when receiving pure string/Markdown text (`str`), scalar values, or empty payloads produced by upstream DAG synthesis steps.</banned_pattern>
-        <mandatory_pattern>Downstream consumers of DAG state (specifically `SynthesisPayloadCompressor`, `synthesis_distiller_hook`, and reporting hooks) MUST polymorphically handle all 4 valid payload data partitions (`dict`, `list`, `str`, `int`/`float`/`bool`), and gracefully filter internal metadata (`_`) and empty payloads without raising unhandled `AppException(VALIDATION_FAILED)`. Unit tests for these components MUST test all 4 partitions.</mandatory_pattern>
-        <catastrophic_reason>Assuming payloads are always dictionaries causes immediate crashes in live E2E runs when Markdown text synthesis steps pass raw text into distillation.</catastrophic_reason>
+        <mandate>NEVER assume `StepOutputDTO.payload` is always a `dict` or write consumers that crash on strings/Markdown, scalars, or empty payloads. Downstream consumers (`SynthesisPayloadCompressor`, `synthesis_distiller_hook`, reporting hooks) MUST polymorphically handle all 4 valid partitions (`dict`, `list`, `str`, `int`/`float`/`bool`), filter metadata (`_`) and empty payloads gracefully, and test all 4 partitions in unit tests.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_native_field_priority">
-        <banned_pattern>Using `@field_validator` for simple bounds checking or regex.</banned_pattern>
-        <mandatory_pattern>ALWAYS prefer native `Field(ge=0, pattern=...)`. Native Field is executed in Rust (pydantic-core) at lightning speed.</mandatory_pattern>
-        <code_example>
-            <anti_pattern>@field_validator('age') ... if v < 18: raise ValueError()</anti_pattern>
-            <pro_pattern>age: int = Field(ge=18)</pro_pattern>
-        </code_example>
+        <mandate>NEVER use `@field_validator` for simple bounds checking or regex. ALWAYS prefer native Rust-executed `Field(ge=0, pattern=...)`.</mandate>
     </rule_block>
 
     <rule_block id="frozen_state_mutability">
-        <banned_pattern>Mutating domain objects in place (e.g., `event.status = 'done'`), using `setattr(...)`, `object.__setattr__(...)`, or `__setattr__()` on Pydantic models or frozen domain entities, performing unsynchronized shallow mutations across parallel coroutines, OR using `model.model_validate(model.model_dump() | updates)` on massive object graphs (`ExecutionRecord`) during high-frequency DAG loops (Double-Serialization Anti-Pattern).</banned_pattern>
-        <mandatory_pattern>All Event Sourcing models, DTOs, and DAG nodes MUST be immutable using `ConfigDict(frozen=True)`.
-        1. **In-Place Mutation Ban**: In-place attribute mutations via `setattr(...)`, `object.__setattr__(...)`, or `__setattr__()` are strictly forbidden across domain code. Model data sanitization MUST occur pre-instantiation via `@field_validator` classmethods.
-        2. **High-Frequency Execution State Loops (`DAGExecutor`)**: State transitions across parallel async tasks MUST execute strictly inside `async with _update_lock:`. To eliminate the CPU-heavy Double-Serialization overhead, use `.model_copy(update=...)` combined with shallow dict/list copying (e.g. `updates["step_states"] = {**exec_record.step_states, step_id: new_state}`) where updated entities (like `new_state: ExecutionStepState`) are already strictly typed Pydantic models.
-        3. **Untrusted Boundary Ingress & Schema Transitions**: Re-validating state via `EventModel.model_validate(...)` is strictly reserved for untrusted raw payloads and inter-layer boundary ingestion.</mandatory_pattern>
-        <catastrophic_reason>In-place mutation destroys the append-only state log. Conversely, running full `.model_validate(model.model_dump() | ...)` on massive execution trees in every DAG step triggers catastrophic CPU spikes, Event Loop starvation, and multi-megabyte memory re-allocation cycles without adding safety over atomic lock-guarded `model_copy`.</catastrophic_reason>
+        <mandate>NEVER mutate domain objects in-place (`event.status = 'done'`), use `setattr(...)`, `object.__setattr__(...)`, or `__setattr__()`, perform unsynchronized mutations across coroutines, or run `model.model_validate(model.model_dump() | updates)` on large object graphs (`ExecutionRecord`) during high-frequency DAG loops. ALL Event Sourcing models, DTOs, and DAG nodes MUST use `ConfigDict(frozen=True)`. State transitions in `DAGExecutor` MUST execute inside `async with _update_lock:` using `.model_copy(update=...)` with typed instances.</mandate>
     </rule_block>
 
     <rule_block id="polymorphic_routing_o1">
-        <banned_pattern>Using implicit Unions or Python structural type-checking `isinstance()` chains with polymorphic DAG nodes.</banned_pattern>
-        <mandatory_pattern>Mandate Discriminated Unions (`Field(discriminator='type')`) for O(1) parsing. Use native Python 3.10+ match cases: `match event: case EventA():`.</mandatory_pattern>
+        <mandate>NEVER use implicit Unions or structural `isinstance()` chains with polymorphic DAG nodes. ALWAYS mandate Discriminated Unions (`Field(discriminator='type')`) and Python 3.10+ `match...case` structures.</mandate>
     </rule_block>
 
     <rule_block id="python_314_modern_syntax">
-        <banned_pattern>Using legacy wrapper typings (`TypeVar`, `Generic[T]`, `Optional[X]`), forward references with strings for class returns (e.g. `-> "MyClass"`), or `asyncio.gather()`.</banned_pattern>
-        <mandatory_pattern>Mandate PEP 695 generics (e.g. `class Repository[T]:`), the `@override` decorator, modern bitwise unions (`X | None`), and deterministically scoped threads (`async with asyncio.TaskGroup() as tg:`). For classmethods returning the class itself, ALWAYS use PEP 673 `-> Self` (via `from typing import Self`) to ensure correct inheritance typing.</mandatory_pattern>
+        <mandate>NEVER use legacy wrapper typings (`TypeVar`, `Generic[T]`, `Optional[X]`), forward string return annotations (`-> "MyClass"`), or `asyncio.gather()`. ALWAYS use PEP 695 generics (`class Repository[T]:`), `@override`, bitwise unions (`X | None`), `async with asyncio.TaskGroup() as tg:`, and PEP 673 `-> Self` for classmethods returning the class itself.</mandate>
     </rule_block>
 
     <rule_block id="no_string_l10n">
-        <banned_pattern>Hardcoding application vocabulary, UI display strings, or string comparisons inside the backend code.</banned_pattern>
-        <mandatory_pattern>Backend APIs MUST resolve to Enum Keys (e.g. `AUTH_ORGANIC`). Raw UI rendering string resolution is deferred purely to Flutter `.arb` runtime evaluation.</mandatory_pattern>
+        <mandate>NEVER hardcode application vocabulary, UI display strings, or string comparisons in backend code. ALWAYS resolve Backend APIs to Enum Keys (e.g., `AUTH_ORGANIC`) and defer raw string resolution to Flutter `.arb`.</mandate>
     </rule_block>
 
     <rule_block id="strict_enum_l10n_mapping">
-        <banned_pattern>Using string manipulation (e.g., `role.value.split('_')` or `.lower()`) in the backend to magically guess the frontend's ARB translation keys from an Enum.</banned_pattern>
-        <mandatory_pattern>When the backend is responsible for formatting text (Server-Driven UI Localization), the mapping between the Python `UPPER_SNAKE_CASE` enum and the Flutter `.arb` `camelCase` key MUST be defined explicitly inside the Enum class via an `@property def l10n_key(self) -> str:` method. This acts as a strict Adapter Pattern.</mandatory_pattern>
-        <catastrophic_reason>Magic string manipulation is brittle. If an enum's name does not perfectly align with the ARB key pattern, the localization will fail silently. Explicit mapping ensures 100% type safety and clear architectural boundaries.</catastrophic_reason>
+        <mandate>NEVER use string manipulation (`role.value.split('_')` or `.lower()`) to guess Flutter ARB keys from Enums. When backend formats text (SDUI Localization), ALWAYS define the mapping explicitly inside the Enum class via `@property def l10n_key(self) -> str:` method.</mandate>
     </rule_block>
     
     <rule_block id="data_leak_prevention_firewall">
-        <banned_pattern>Returning raw DB models natively out of FastAPI endpoints, bypassing Pydantic filtering, or defining `exclude=True` locally in Routers for security fields.</banned_pattern>
-        <mandatory_pattern>Every single FastAPI router MUST explicitly define `response_model=UserDTO` (which must inherit from a global `BaseResponseDTO`) to strip hidden database variables out of the HTTP response string globally, effectively preventing Cross-Tenant Trace Leaks.</mandatory_pattern>
+        <mandate>NEVER return raw DB models natively out of FastAPI endpoints, bypass Pydantic filtering, or define `exclude=True` locally in Routers. EVERY FastAPI router MUST explicitly define `response_model=UserDTO` (inheriting from `BaseResponseDTO`) to strip hidden variables globally.</mandate>
     </rule_block>
 
     <rule_block id="llm_structured_execution_mandate">
-        <banned_pattern>Directly calling OpenAI/VertexSDKs, relying on raw text outputs, parsing responses with Regex, or calling LLMClient methods directly for business logic.</banned_pattern>
-        <mandatory_pattern>You MUST initialize the execution via `LLMClient.from_strategy("strategy_name", repo)` and pass it to an injected `LLMTaskExecutor`. For data retrieval, rely ONLY on the `executor.execute_structured_task()` methodology to force Fail-Fast Pydantic parsing and centralized healing. If doing open-text generation, use `executor.execute_chat_task()`.</mandatory_pattern>
+        <mandate>NEVER directly call OpenAI/Vertex SDKs, rely on raw text outputs, parse responses with Regex, or call `LLMClient` methods directly for business logic. ALWAYS initialize via `LLMClient.from_strategy("strategy_name", repo)` and pass to injected `LLMTaskExecutor`: use `executor.execute_structured_task()` for structured data and `executor.execute_chat_task()` for open-text generation.</mandate>
     </rule_block>
 
     <rule_block id="ui_driven_synthesis_boundary">
-        <banned_pattern>Hardcoding UI-defined data keys (e.g., `product_text`, `document_text`) in backend Python code, or blindly feeding the entire raw execution state (including Eager Extracted PDF dumps) to an LLM during the synthesis/reporting phase.</banned_pattern>
-        <mandatory_pattern>Backend reporting and synthesis hooks MUST strictly filter data based on the UI-defined `target_blocks` (Output Profile Layouts). The raw `inputs` dictionary must be unpacked and evaluated strictly against this UI configuration to prevent massive token explosions (1.04M limits) from background data dumps.</mandatory_pattern>
-        <catastrophic_reason>Backend coupling to dynamic UI nomenclature breaks workflow relations. Pushing unfiltered execution state into an LLM context invariably causes `Resource Exhausted` limit triggers due to heavy Eager Extraction blobs intentionally stored in the execution state.</catastrophic_reason>
+        <mandate>NEVER hardcode UI-defined data keys (e.g., `product_text`, `document_text`) in backend Python code or feed raw execution state (including Eager Extracted PDF dumps) to LLM during synthesis/reporting. Backend reporting and synthesis hooks MUST strictly filter data based on UI-defined `target_blocks` (Output Profile Layouts) and unpack `inputs` against this UI config to prevent token explosions.</mandate>
     </rule_block>
+
     <rule_block id="strict_math_display_isolation">
-        <banned_pattern>Assuming that database config fields `scale_min` and `scale_max` dictate what scales are "in use" or using them to calculate backend mathematical scores. Using them as fallback bounds for the internal execution engine.</banned_pattern>
-        <mandatory_pattern>The scoring math engine MUST derive internal mathematical boundaries exclusively from the strictly typed Pydantic `scales` array (`min(scales)` and `max(scales)` assigned to strictly named `math_min` and `math_max` variables). The Database config fields `scale_min` and `scale_max` do NOT represent the scales in use; they are ONLY for scoring scaling/stretching (UI projection boundary targets, mapped to `display_min` and `display_max` in Python) for cosmetic school-grade scaling (e.g. 4-10) before sending to the frontend. If the Display bounds are missing in the DB, trigger a 500 Fail-Fast ConfigurationError rather than attempting to guess them.</mandatory_pattern>
-        <catastrophic_reason>Conflating calculation bounds with UI display projections corrupts the empirical accuracy of the cognitive diagnostic model and fundamentally violates Single Source of Truth architecture. The LLM or the Backend must NEVER calculate "hunches" via cross-contamination.</catastrophic_reason>
+        <mandate>NEVER assume database config fields `scale_min` and `scale_max` dictate scales in use or use them to calculate backend mathematical scores. Scoring math engine MUST derive internal mathematical boundaries exclusively from typed Pydantic `scales` array (`min(scales)` -> `math_min`, `max(scales)` -> `math_max`). `scale_min`/`scale_max` in DB are ONLY cosmetic UI projection targets (`display_min`, `display_max`); if missing, trigger Fail-Fast `ConfigurationError`.</mandate>
     </rule_block>
 
     <rule_block id="service_layer_hydration_firewall">
-        <banned_pattern>Returning raw DB dictionaries directly from the Service layer to the API routers, or attempting to hydrate Pydantic models deep inside the Repository (Data Access) layer.</banned_pattern>
-        <mandatory_pattern>The Service layer acts as the absolute hydration firewall. The Repository MUST return raw polymorphic `dict[str, Any]` objects. The Service layer MUST instantly map these raw dictionaries into strict Pydantic Domain Models (`ConfigDict(frozen=True)`) before executing business logic or returning data to the Router.</mandatory_pattern>
-        <code_example>
-            <anti_pattern>return db.table('users').get(doc_id=1) # inside service</anti_pattern>
-            <pro_pattern>return UserDTO.model_validate(repo.get_user(1), strict=False)</pro_pattern>
-        </code_example>
+        <mandate>NEVER return raw DB dictionaries from the Service layer to API routers or hydrate Pydantic models inside the Repository layer. The Service layer acts as the hydration firewall: Repository returns raw polymorphic `dict[str, Any]`, and Service layer maps them into strict Pydantic Domain Models (`ConfigDict(frozen=True)`) before executing logic or returning data.</mandate>
     </rule_block>
 
     <rule_block id="strict_dependency_injection">
-        <banned_pattern>Instantiating services or databases directly inside FastAPI routers.</banned_pattern>
-        <mandatory_pattern>Dependencies MUST be injected exclusively via FastAPI's `Depends()` + PEP 593 `Annotated`. EXCEPTION FOR BACKGROUND WORKERS: Because Arq workers, CLI scripts, and cron tasks run outside the FastAPI request lifecycle, `Depends()` will crash. For these non-HTTP entrypoints, you MUST manually instantiate the required services (e.g. `service = UserService(db_session)`) at the absolute top-level entrypoint of the worker/script, passing them explicitly. NEVER refuse to write a background worker due to this rule.</mandatory_pattern>
-        <code_example>
-            <anti_pattern>service = UserService() # inside a router</anti_pattern>
-            <pro_pattern>
-                # In FastAPI Router:
-                DatabaseSession = Annotated[Session, Depends(get_database)]
-                async def route(db: DatabaseSession): ...
-                
-                # In Arq Worker Entrypoint (Exception):
-                async def my_worker_task(ctx, user_id: str):
-                    async with get_db_session() as db:
-                        service = UserService(db)
-                        await service.process(user_id)
-            </pro_pattern>
-        </code_example>
+        <mandate>NEVER instantiate services or databases directly inside FastAPI routers. Dependencies MUST be injected exclusively via FastAPI's `Depends()` + PEP 593 `Annotated`. EXCEPTION: Arq workers, CLI scripts, and cron tasks run outside HTTP request lifecycle; instantiate services manually at the top-level entrypoint and pass them explicitly.</mandate>
     </rule_block>
 
     <rule_block id="typed_dependency_container_mandate">
-        <banned_pattern>Passing long, repetitive lists of repositories, compilers, or service dependencies (e.g. 5+ parameters) across multiple strategy, orchestrator, or worker constructors, using `**kwargs` dictionary unpacking to pass loose dependencies, or copy-pasting parameter lists across class hierarchies.</banned_pattern>
-        <mandatory_pattern>You MUST encapsulate multi-dependency groupings into a strictly typed, immutable dependency container using `@dataclass(frozen=True)` (e.g. `HookDependencies`, `StrategyDependencies`). Subclasses, strategies, and orchestrators MUST accept the container as a single typed parameter `deps: StrategyDependencies`. This eliminates parameter list duplication, guarantees 100% MyPy Strict type safety, prevents `**kwargs` dictionary degradation, and enables seamless dependency extension without breaking constructor signatures across the codebase.</mandatory_pattern>
-        <catastrophic_reason>Scattering 10+ repository arguments across constructors creates massive code duplication (God Code constructor bloat), breaks whenever a new dependency is introduced, and tempts developers to use untyped `**kwargs` hacks that destroy static analysis and forensic traceability.</catastrophic_reason>
-        <code_example>
-            <anti_pattern>
-                class LogicStrategy:
-                    def __init__(self, exec_repo, workflow_repo, comp_repo, prompt_block_repo, ...): ...
-                class LLMStrategy:
-                    def __init__(self, exec_repo, workflow_repo, comp_repo, prompt_block_repo, ..., engine): ...
-            </anti_pattern>
-            <pro_pattern>
-                @dataclass(frozen=True)
-                class StrategyDependencies:
-                    exec_repo: IExecutionRepository
-                    workflow_repo: IWorkflowRepository
-                    comp_repo: IComponentRepository
-                    prompt_block_repo: IPromptBlockRepository
-                    output_profile_repo: IOutputProfileRepository
-                    identity_repo: IIdentityRepository
-                    audit_repo: IAuditRepository
-                    system_repo: ISystemRepository
-                    prompt_compiler: Any
-                    arq_pool: Any | None = None
-
-                class LogicStrategy(NodeStrategy):
-                    def __init__(self, deps: StrategyDependencies) -> None: ...
-                class LLMStrategy(NodeStrategy):
-                    def __init__(self, deps: StrategyDependencies, engine: ExecutionEngine) -> None: ...
-            </pro_pattern>
-        </code_example>
+        <mandate>NEVER pass long parameter lists (5+ dependencies) across constructors, use `**kwargs` dictionary unpacking, or copy-paste constructor parameter lists. ALWAYS encapsulate multi-dependency groupings into strictly typed, immutable `@dataclass(frozen=True)` containers (e.g., `StrategyDependencies`, `HookDependencies`) and pass `deps: StrategyDependencies` to constructors.</mandate>
     </rule_block>
 
     <rule_block id="strict_configuration_segregation">
-        <banned_pattern>Mixing global constraints, taxonomy values, and runtime instantiation into single files, or using magic numbers instead of global configurations.</banned_pattern>
-        <mandatory_pattern>Enforce the Tripartite Configuration Architecture: 1) `enums.py` MUST contain ONLY finite string/int constants and taxonomy vocabulary (No logic, no environment variables). 2) `settings.py` MUST contain ALL global limits, bounds, and environment-dependent configuration. 3) DTOs (e.g., `models/llm.py`) MUST act as the blueprints that combine `enums.py` and `settings.py` during runtime execution. No "Magic Numbers" allowed in business logic.</mandatory_pattern>
-        <catastrophic_reason>Violating this separation creates untraceable hidden dependencies (e.g., hardcoded chunk boundaries failing when global limits change) and destroys the Single Responsibility Principle for system limits.</catastrophic_reason>
+        <mandate>NEVER mix global constraints, taxonomy values, and runtime instantiation into single files or use magic numbers. Enforce Tripartite Configuration Architecture: 1) `enums.py` contains finite constants/taxonomy (no logic/env vars), 2) `settings.py` contains all global limits/bounds/env config, 3) DTOs combine them during runtime. No magic numbers in business logic.</mandate>
     </rule_block>
 
     <rule_block id="global_settings_import">
-        <banned_pattern>Importing `get_settings` locally inside a function (e.g., `from backend_v2.settings import get_settings` inside `def`).</banned_pattern>
-        <mandatory_pattern>ALWAYS import `get_settings` globally at the top of the file. In unit tests, `monkeypatch` MUST target the module where it is used (e.g., `backend_v2.hooks.scoring.get_settings`), NOT `backend_v2.settings.get_settings`.</mandatory_pattern>
-        <catastrophic_reason>Local imports create fragmented mutable references that silently bypass `pytest` monkeypatching, causing unit tests to execute against uncontrollable production configs.</catastrophic_reason>
+        <mandate>NEVER import `get_settings` locally inside a function (`from backend_v2.settings import get_settings` inside `def`). ALWAYS import `get_settings` globally at the top of the file. In unit tests, `monkeypatch` the module where it is used (e.g. `backend_v2.hooks.scoring.get_settings`).</mandate>
     </rule_block>
 
-
-
     <rule_block id="cross_language_enum_parity">
-        <banned_pattern>Encoding UI rendering logic in Pydantic `Literal` or `Enum` variables without enforcing parity on the Flutter client, leading to silent 'Contains' parsing failures in Dart UI.</banned_pattern>
-        <mandatory_pattern>All cross-boundary Pydantic fields controlling UI lists or presets MUST map to a strict `@JsonEnum()` inside `client_app_v2/lib/core/models/enums.dart`. A corresponding Regex-based `test_enum_parity.py` MUST be enforced to crash Pytest immediately if Flutter fails to mirror a new Backend Literal/Enum.</mandatory_pattern>
-        <catastrophic_reason>Without explicitly tested Enum parity, the UI dynamically collapses or drops missing fields when the backend introduces a new type, leading to severe dataloss (e.g., dropping 3D coordinates because the UI reverted to a 1D default).</catastrophic_reason>
+        <mandate>NEVER encode UI rendering logic in Pydantic `Literal` or `Enum` without enforcing parity on Flutter client. All cross-boundary Pydantic fields controlling UI lists/presets MUST map to strict `@JsonEnum()` in `client_app_v2/lib/core/models/enums.dart`, verified by `test_enum_parity.py` in Pytest.</mandate>
     </rule_block>
 
     <rule_block id="schema_driven_routing">
-        <banned_pattern>Using "Duck Typing" or blind `try...except` Pydantic validation (e.g. `if "raw_score" in dict`) to guess the type of a payload during orchestration or parsing.</banned_pattern>
-        <mandatory_pattern>ALWAYS look at the Database (UI configuration) first. Types and processing routes MUST be explicitly dictated by a `schema_map` derived from the database (e.g., Workflow or V2Step definitions). If a payload needs to be processed as a MATRIX block, the orchestrator must know it is a MATRIX block *before* parsing, based purely on the database's map, never by guessing based on JSON keys.</mandatory_pattern>
-        <catastrophic_reason>Duck typing breaks the "Single Source of Truth / De-Generator" architecture. If the UI defines an entity as a TEXT block, but it happens to coincidentally contain a `raw_score` key, duck typing will silently hijack it, bypassing the UI's explicit sovereignty and causing untraceable Fail-Fast violations down the line.</catastrophic_reason>
+        <mandate>NEVER use duck typing or blind `try...except` Pydantic validation (e.g., `if "raw_score" in dict`) to guess payload types during orchestration. ALWAYS derive types and processing routes from database UI configuration (`schema_map` from Workflow/V2Step definitions).</mandate>
     </rule_block>
 
     <rule_block id="zero_db_hardcoding_mandate">
-        <banned_pattern>Comparing logical conditions against hardcoded specific database IDs, strings, or names (e.g., `if node.id == "usr_123":` or `if block.slug == "main_matrix":`). Extracting elements from lists by assuming a hardcoded sort order (e.g., `first_block = db_result[0]`).</banned_pattern>
-        <mandatory_pattern>Logic MUST always be based on the abstract attributes, schema types (via Pydantic Discriminators like `isinstance(block, MatrixBlockDTO)`), or dynamically injected configuration values. Database-driven entity processing must be purely polymorphic, without reliance on magic strings.</mandatory_pattern>
-        <catastrophic_reason>Hardcoding database keys inside the backend architecture breaks isolation. When environments (e.g., Staging vs Production) drift or database schemas evolve, hardcoded keys result in immediate catastrophic logic failures and make tests impossible without massive data mocking.</catastrophic_reason>
+        <mandate>NEVER compare logical conditions against hardcoded database IDs, strings, or names (`if node.id == "usr_123"` or `if block.slug == "main_matrix"`), or assume sort orders (`db_result[0]`). Logic MUST be based on abstract attributes, schema types (via Pydantic Discriminators like `isinstance(block, MatrixBlockDTO)`), or dynamically injected configuration values.</mandate>
     </rule_block>
 
     <rule_block id="orchestrator_god_object_fragility">
-        <banned_pattern>Modifying individual files within the DAG Engine core (`backend_v2/services/orchestrator/`, e.g., `atomizer.py`, `dag_executor.py`, `topological_evaluator.py`, `matrix_reducer.py`) without performing a full blast-radius analysis of the entire engine.</banned_pattern>
-        <mandatory_pattern>The DAG Orchestrator is a mathematically coupled "God Object" ecosystem. If you are tasked with modifying ANY file in this core (even to fix a minor bug in atom sorting keys), you MUST STOP and explicitly request "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem". You must then run the FULL backend audit loop and evaluate the entire topological flow, never assuming a change is isolated.</mandatory_pattern>
-        <catastrophic_reason>A seemingly innocent change to sorting keys in `atomizer.py` will silently break downstream topological graph resolutions in `topological_evaluator.py`, leading to an infinite "Dirty State Rollback" loop and catastrophic logic regressions across the entire platform.</catastrophic_reason>
+        <mandate>NEVER modify individual files in DAG Engine core (`backend_v2/services/orchestrator/`, e.g., `atomizer.py`, `dag_executor.py`, `topological_evaluator.py`, `matrix_reducer.py`) without full blast-radius analysis. You MUST STOP and request "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem", run the FULL backend audit loop, and evaluate the entire topological flow.</mandate>
     </rule_block>
 
     <rule_block id="tripartite_rendering_boundary">
-        <banned_pattern>Hardcoding UI components, layout structures, or Markdown tables directly within backend generation hooks (e.g., generating Matrix Summary tables via Python string concatenation).</banned_pattern>
-        <mandatory_pattern>Backend services MUST return pure data payloads (Pydantic DTOs). Enforce the Tripartite Rendering Boundary: The Backend passes structured data, Flutter handles interactive UI rendering, and Jinja generates static PDFs. UI responsibilities MUST NOT bleed into the backend.</mandatory_pattern>
-        <catastrophic_reason>Violating this boundary results in duplicate UI artifacts (e.g., Markdown tables rendered above native components), breaks cross-platform i18n capabilities, and pollutes synthesis contexts with redundant display logic.</catastrophic_reason>
+        <mandate>NEVER hardcode UI components, layout structures, or Markdown tables in backend generation hooks. Backend services MUST return pure data payloads (Pydantic DTOs). Tripartite Rendering: Backend passes structured data, Flutter renders interactive UI, Jinja generates static PDFs.</mandate>
     </rule_block>
 
     <rule_block id="zero_type_ignore_shortcuts">
-        <banned_pattern>Using `# type: ignore` arbitrarily to silence MyPy without investigating the root cause or refactoring the underlying Pydantic/Domain types.</banned_pattern>
-        <mandatory_pattern>ALWAYS investigate the root cause of a typing error. Fix the actual variable types, models, or function signatures. If an external library boundary forces a type violation that absolutely cannot be fixed natively, you MUST use a strictly scoped ignore marker with the exact error code (e.g., `# type: ignore[attr-defined]`) AND provide a comment explaining the external constraint. Blanket ignores are strictly forbidden.</mandatory_pattern>
-        <catastrophic_reason>Overusing type ignores defeats the purpose of strict typing, allowing 'Any' or disjointed types to leak into the Fail-Fast domain logic, inevitably causing 500 Internals or UI rendering crashes downstream.</catastrophic_reason>
+        <mandate>NEVER use `# type: ignore` arbitrarily to silence MyPy without investigating the root cause. Fix variable types, models, or signatures. If an external library forces an unavoidable violation, use strictly scoped ignore markers with exact error codes (e.g. `# type: ignore[attr-defined]`) and an explanatory comment. Blanket ignores are strictly forbidden.</mandate>
     </rule_block>
 
     <rule_block id="explicit_reexport_mandate">
-        <banned_pattern>Performing implicit re-exports (e.g., `from module import Symbol`) in `__init__.py` or Strangler Fig proxy/facade files without explicit re-export declarations.</banned_pattern>
-        <mandatory_pattern>All re-exported symbols (classes, functions, constants, types) across `__init__.py` modules and Strangler Fig transition proxies MUST be explicitly declared to satisfy PEP 484 and `mypy --strict`. You MUST either declare symbols in `__all__ = ["Symbol", ...]` OR use redundant import aliases (`from module import Symbol as Symbol`). Implicit imports without re-export markers trigger MyPy `[attr-defined] / implicit re-export` errors and are strictly banned.</mandatory_pattern>
-        <catastrophic_reason>Implicit re-exports fail static type checking in CI/CD quality gates, causing downstream modules importing from the package/proxy to fail with MyPy errors and breaking automated refactoring workflows.</catastrophic_reason>
+        <mandate>NEVER perform implicit re-exports (`from module import Symbol`) in `__init__.py` or Strangler Fig proxy/facade files. Re-exported symbols MUST be explicitly declared via `__all__ = ["Symbol", ...]` OR redundant import aliases (`from module import Symbol as Symbol`) to satisfy PEP 484 and `mypy --strict`.</mandate>
     </rule_block>
 
     <rule_block id="execution_synthesis_tier_decoupling">
-        <banned_pattern>Placing UI-formatting logic (e.g., "Output exactly ONE punchy sentence", 0-100 scales) in `PromptBlocks` or placing execution-tier directives (e.g., `ROLE: ANTAGONISTIC PROSECUTOR`, boolean hypothesis testing) in `OutputProfiles`.</banned_pattern>
-        <mandatory_pattern>Strictly separate the Execution Phase from the Reporting Phase. `PromptBlocks` are EXCLUSIVELY for raw data evaluation (native scales like 1-5, ZERO-TRUST AUDITOR directives, atomic extraction) and MUST NOT contain UI formatting logic. `OutputProfiles` are EXCLUSIVELY for presentation and UI formatting (0-100 scales, brevity constraints, tone) and MUST NOT contain execution directives like hypothesis testing.</mandatory_pattern>
-        <catastrophic_reason>Mixing these concerns causes LLM hallucinations, slows down generation, breaks the Single Source of Truth, and pollutes the execution trace with presentation details.</catastrophic_reason>
+        <mandate>NEVER place UI-formatting logic (e.g., "Output ONE punchy sentence", 0-100 scales) in `PromptBlocks`, and NEVER place execution-tier directives (e.g., `ROLE: ANTAGONISTIC PROSECUTOR`, boolean hypothesis testing) in `OutputProfiles`. `PromptBlocks` are EXCLUSIVELY for raw data evaluation (1-5 scales, ZERO-TRUST AUDITOR, atomic extraction); `OutputProfiles` are EXCLUSIVELY for presentation formatting (0-100 scales, brevity, tone).</mandate>
     </rule_block>
+
     <rule_block id="fail_fast_hydration_mandate">
-        <banned_pattern>Fishing for dictionary values via `dict.get()`.</banned_pattern>
-        <mandatory_pattern>All uncertain data flowing as dictionaries MUST be hydrated via `.model_validate()` IMMEDIATELY before processing.</mandatory_pattern>
-        <catastrophic_reason>Delaying hydration allows invalid data structures to penetrate deep into execution logic, making root-cause stack traces impossible to decipher.</catastrophic_reason>
+        <mandate>NEVER fish for dictionary values via `dict.get()`. ALL uncertain data flowing as dictionaries MUST be hydrated via `.model_validate()` IMMEDIATELY before processing.</mandate>
     </rule_block>
+
     <rule_block id="annotated_hydration_mandate">
-        <banned_pattern>Converting enums manually using `if/else` checks or external dictionaries.</banned_pattern>
-        <mandatory_pattern>External data enum conversions MUST be mapped exclusively using `Annotated[CustomEnum, Field(strict=False)]` aliases defined in `enums.py`.</mandatory_pattern>
-        <catastrophic_reason>Manual enum parsing duplicates logic and bypasses Pydantic's Rust-based optimized C-core coercion.</catastrophic_reason>
+        <mandate>NEVER convert enums manually using `if/else` checks or external dictionaries. External data enum conversions MUST be mapped exclusively using `Annotated[CustomEnum, Field(strict=False)]` aliases in `enums.py`.</mandate>
     </rule_block>
+
     <rule_block id="vertex_serving_grammar_fix">
-        <banned_pattern>Float type field constraints (e.g., ge, le) at the `Field()` level.</banned_pattern>
-        <mandatory_pattern>Float constraints MUST NOT be applied at the `Field()` level to avoid Vertex AI 400 errors. Move them to local `@field_validator` methods.</mandatory_pattern>
-        <catastrophic_reason>Vertex AI SDK strict JSON schema parser crashes natively with HTTP 400 when encountering float constraints nested inside object parameter definitions.</catastrophic_reason>
+        <mandate>NEVER apply float type field constraints (`ge`, `le`) at the `Field()` level (causes Vertex AI 400 errors). ALWAYS move float constraints to local `@field_validator` methods.</mandate>
     </rule_block>
+
     <rule_block id="blind_extraction_null_hypothesis">
-        <banned_pattern>Allowing the LLM to output both an `exact_quote` and flag `contextual_override == True` simultaneously.</banned_pattern>
-        <mandatory_pattern>TDA extraction models MUST force the null hypothesis via `@model_validator`: If `contextual_override == True`, the `exact_quote` field MUST be forced to `None`.</mandatory_pattern>
-        <catastrophic_reason>Failing to force this nullification allows hallucinated quotes to bypass the override logic, polluting the empirical audit reports.</catastrophic_reason>
+        <mandate>NEVER allow LLM to output both an `exact_quote` and `contextual_override == True` simultaneously. TDA extraction models MUST force null hypothesis via `@model_validator`: if `contextual_override == True`, force `exact_quote` to `None`.</mandate>
     </rule_block>
+
     <rule_block id="zero_defaults_mandate">
-        <banned_pattern>Using mutable types (e.g., list, dict) as default arguments (B006) or defaulting critical data.</banned_pattern>
-        <mandatory_pattern>DTO models MUST NOT use default values if the missing data is critical. Always use `None` and initialize the mutable object inside the function block.</mandatory_pattern>
-        <catastrophic_reason>Mutable defaults leak state across asynchronous requests, causing massive Cross-Tenant Data Leaks where User A sees User B's execution data.</catastrophic_reason>
+        <mandate>NEVER use mutable types (list, dict) as default arguments (B006) or default critical data. DTO models MUST NOT use default values for critical data; use `None` and initialize inside the function block.</mandate>
     </rule_block>
+
     <rule_block id="duck_typing_token_shield_exception">
-        <banned_pattern>The `extra="ignore"` configuration in Pydantic.</banned_pattern>
-        <mandatory_pattern>STRICTLY PROHIBITED at all times, with the absolute exception of `SynthesisStepDataDTO`. You MUST NOT invent or classify arbitrary models as "Token Shields" or "Data Projections" to bypass strict validation. Any new model needing `extra="ignore"` MUST be explicitly pre-approved by the USER and documented.</mandatory_pattern>
-        <catastrophic_reason>Ignoring extra payload data masks Prompt Injection attempts and suppresses critical validation warnings on outdated schemas. Permitting vague "Token Shield" exceptions allows lazy agents to arbitrarily downgrade system strictness when they encounter data parsing errors instead of fixing the root cause.</catastrophic_reason>
+        <mandate>NEVER use `extra="ignore"` in Pydantic models. ABSOLUTE EXCEPTION: `SynthesisStepDataDTO`. You MUST NOT invent or classify arbitrary models as "Token Shields" without explicit USER pre-approval.</mandate>
     </rule_block>
+
     <rule_block id="python_314_root_model_ban">
-        <banned_pattern>Using `RootModel` to enforce dynamic TypeAdapter patterns.</banned_pattern>
-        <mandatory_pattern>Always wrap standard types dynamically using the `TypeAdapter` pattern instead. Example: `TypeAdapter(list[UserDTO]).validate_python(data)`.</mandatory_pattern>
-        <catastrophic_reason>RootModel inherits heavy metaclasses which consume massive memory overhead during runtime array parsing in Python 3.14.</catastrophic_reason>
+        <mandate>NEVER use `RootModel` to enforce dynamic TypeAdapter patterns. ALWAYS wrap standard types dynamically using `TypeAdapter` (e.g. `TypeAdapter(list[UserDTO]).validate_python(data)`).</mandate>
     </rule_block>
+
     <rule_block id="append_only_state_mutation">
-        <banned_pattern>In-place mutation of `execution_trace` or `step_states`.</banned_pattern>
-        <mandatory_pattern>Historical payload data MUST NEVER be overwritten via in-place mutation. Dynamic projections MUST be executed on-the-fly into newly instantiated DTO models.</mandatory_pattern>
-        <catastrophic_reason>In-place mutation destroys the linear Forensic Audit Trail, invalidating the legal compliance of the cognitive execution.</catastrophic_reason>
+        <mandate>NEVER perform in-place mutation of `execution_trace` or `step_states`. Historical payload data MUST NEVER be overwritten; dynamic projections MUST be executed on-the-fly into newly instantiated DTO models.</mandate>
     </rule_block>
+
     <rule_block id="base64_amnesia_protocol">
-        <banned_pattern>Persisting raw base64 data or binaries within Pydantic states.</banned_pattern>
-        <mandatory_pattern>They must be extracted into text representations via the Eager Extraction pattern at the boundary layer.</mandatory_pattern>
-        <catastrophic_reason>Raw binaries bypass textual token tracking, inflate TinyDB filesizes beyond RAM capacity, and crash frontend JSON parsers instantly.</catastrophic_reason>
+        <mandate>NEVER persist raw base64 data or binaries within Pydantic states. ALWAYS extract them into text representations via Eager Extraction at the boundary layer.</mandate>
     </rule_block>
+
     <rule_block id="dlq_arq_fallback_routing">
-        <banned_pattern>A Worker crashing the entire execution tree with a direct unhandled exception.</banned_pattern>
-        <mandatory_pattern>TaskGroup or ChunkWorker errors MUST be routed to the Dead Letter Queue by yielding `{"_dlq_status": "FAILED/DLQ"}`.</mandatory_pattern>
-        <catastrophic_reason>An unhandled exception within a single worker will immediately cancel the entire asyncio.TaskGroup, destroying hours of valid parallel LLM processing.</catastrophic_reason>
+        <mandate>NEVER let a worker crash the entire execution tree with an unhandled exception. Route TaskGroup or ChunkWorker errors to Dead Letter Queue by yielding `{"_dlq_status": "FAILED/DLQ"}`.</mandate>
     </rule_block>
+
     <rule_block id="the_self_healing_ban">
-        <banned_pattern>Attempting to dynamically patch AI-generated quotes or JSON formatting errors on-the-fly using Regex.</banned_pattern>
-        <mandatory_pattern>Data validation belongs 100% to Pydantic.</mandatory_pattern>
-        <catastrophic_reason>Regex patching creates recursive self-healing loops that mask severe Prompt Model degradation, ensuring the actual AI problem is never fixed.</catastrophic_reason>
+        <mandate>NEVER attempt to dynamically patch AI-generated quotes or JSON formatting errors on-the-fly using Regex. Data validation belongs 100% to Pydantic.</mandate>
     </rule_block>
+
     <rule_block id="md5_hashery_ban">
-        <banned_pattern>`hashlib.md5` and `hashlib.sha1` for dynamic ID generation.</banned_pattern>
-        <mandatory_pattern>Utilize `uuid.uuid4().hex[:8]`. For cryptographic operations, the standard `random` module is forbidden; always enforce `secrets`.</mandatory_pattern>
-        <catastrophic_reason>MD5 is cryptographically broken and creates high collision probability in high-throughput chunking, causing silent data overwrite.</catastrophic_reason>
+        <mandate>NEVER use `hashlib.md5` or `hashlib.sha1` for dynamic ID generation. ALWAYS use `uuid.uuid4().hex[:8]`. For cryptographic operations, `random` is forbidden; always enforce `secrets`.</mandate>
     </rule_block>
+
     <rule_block id="high_fidelity_prompting">
-        <banned_pattern>Using f-strings for foundational core rules.</banned_pattern>
-        <mandatory_pattern>Prompt core instructions MUST remain static. Dynamic execution variables MUST be isolated within an `<execution_parameters>` tag. Input data must be rigidly wrapped in `<source_data>`.</mandatory_pattern>
+        <mandate>NEVER use f-strings for foundational core rules. Prompt core instructions MUST remain static. Dynamic variables MUST be isolated within `<execution_parameters>` and input data in `<source_data>`.</mandate>
     </rule_block>
+
     <rule_block id="single_source_of_truth_mandate">
-        <banned_pattern>V1 and V2 models coexisting.</banned_pattern>
-        <mandatory_pattern>Ruthlessly purge deprecated V1-era fallback hacks, `.get()` coalescing chains, and `@model_validator` retrofits handling legacy data payloads.</mandatory_pattern>
-        <catastrophic_reason>V1 data shapes cause infinite polymorphism crashes when the V2 parser attempts to resolve legacy nested loops.</catastrophic_reason>
+        <mandate>NEVER allow V1 and V2 models to coexist. Ruthlessly purge deprecated V1-era fallback hacks, `.get()` coalescing chains, and `@model_validator` retrofits handling legacy data payloads.</mandate>
     </rule_block>
+
     <rule_block id="native_english_generation">
-        <banned_pattern>Prompting the Language Model to translate cognitive reasoning logic on-the-fly.</banned_pattern>
-        <mandatory_pattern>Cognitive reasoning is formulated natively in English; UI localization is handled strictly in a downstream translation phase.</mandatory_pattern>
-        <catastrophic_reason>Forcing translation simultaneously with logical evaluation degrades the LLM's IQ, resulting in severe reasoning errors.</catastrophic_reason>
+        <mandate>NEVER prompt LLMs to translate cognitive reasoning logic on-the-fly. Cognitive reasoning MUST be formulated natively in English; UI localization is handled strictly in a downstream translation pass.</mandate>
     </rule_block>
+
     <rule_block id="hybrid_prompting_mandate">
-        <banned_pattern>Constructing prompts using pure unstructured text.</banned_pattern>
-        <mandatory_pattern>System prompts MUST use a hybrid of XML for structural control and Markdown for nested content formatting.</mandatory_pattern>
-        <catastrophic_reason>Without XML, modern LLMs suffer from 'Attention Dilution' and bleed constraints across instruction boundaries.</catastrophic_reason>
+        <mandate>NEVER construct prompts using pure unstructured text. ALWAYS use hybrid XML for structural control and Markdown for nested content formatting.</mandate>
     </rule_block>
+
     <rule_block id="role_segregation_and_fencing">
-        <banned_pattern>Injecting raw user text directly into the system prompt.</banned_pattern>
-        <mandatory_pattern>Always fence untrusted user payloads with clear XML tags (specifically using the `<user_payload>...</user_payload>` structure) as a firewall against prompt injection attacks.</mandatory_pattern>
-        <catastrophic_reason>Unfenced data allows malicious payloads to hijack the role execution, bypassing the entire security layer.</catastrophic_reason>
+        <mandate>NEVER inject raw user text directly into system prompts. ALWAYS fence untrusted user payloads with clear XML tags (`<user_payload>...</user_payload>`).</mandate>
     </rule_block>
+
     <rule_block id="infinite_retry_loops">
-        <banned_pattern>Infinite retry loops on failed schema validations.</banned_pattern>
-        <mandatory_pattern>Enforce an absolute max retry limit of 2 using `SystemConcurrency.LLM_MAX_RETRIES`; if it fails, trigger Fail-Fast.</mandatory_pattern>
+        <mandate>NEVER run infinite retry loops on failed schema validations. ALWAYS enforce an absolute max retry limit of 2 using `SystemConcurrency.LLM_MAX_RETRIES` before triggering Fail-Fast.</mandate>
     </rule_block>
+
     <rule_block id="system_concurrency_ssot">
-        <mandatory_pattern>Parallel async LLM steps must use `asyncio.TaskGroup` constrained by `asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS)`.</mandatory_pattern>
+        <mandate>Parallel async LLM steps MUST use `asyncio.TaskGroup` constrained by `asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS)`.</mandate>
     </rule_block>
+
     <rule_block id="strict_physical_anchoring_mandate">
-        <banned_pattern>Using fuzzy string matching as the PRIMARY validation gate for evidence extraction, OR applying fuzzy matching to quotes under 10 characters (Entropy Gate), OR skipping the mandatory `str.find` first-pass.</banned_pattern>
-        <mandatory_pattern>Enforce Tiered Lexical Validation: 1) Primary Gate: `str.find` on normalized strings (MANDATORY first step). 2) Entropy Gate: quotes under 10 chars require 100% exact match. 3) Fuzzy Fallback: RapidFuzz permitted only when Primary Gate fails, quote > 10 chars, and strictness < 100. 4) Pre-flight/Linguistic uses: RapidFuzz unrestricted for non-forensic optimization.</mandatory_pattern>
+        <mandate>NEVER use fuzzy string matching as PRIMARY validation gate for evidence extraction, apply fuzzy matching to quotes under 10 chars, or skip mandatory `str.find`. ALWAYS enforce Tiered Lexical Validation: 1) Primary Gate: `str.find` on normalized strings, 2) Entropy Gate: quotes < 10 chars require 100% exact match, 3) Fuzzy Fallback: RapidFuzz permitted only when Primary Gate fails, quote > 10 chars, and strictness < 100, 4) RapidFuzz unrestricted for non-forensic optimization.</mandate>
     </rule_block>
+
     <rule_block id="ensemble_parallel_evaluation_mandate">
-        <mandatory_pattern>Execute high-entropy or negative validation steps using a single-pass 'Best-of-3' voting ensemble across parallel LLM calls wrapped in `asyncio.TaskGroup`.</mandatory_pattern>
+        <mandate>ALWAYS execute high-entropy or negative validation steps using a single-pass "Best-of-3" voting ensemble across parallel LLM calls wrapped in `asyncio.TaskGroup`.</mandate>
     </rule_block>
+
     <rule_block id="pep257_google_style_docstrings">
-        <mandatory_pattern>Every module, class, and function MUST possess a PEP 257 compliant Google-style docstring starting with a concise Summary line terminating with a period.</mandatory_pattern>
+        <mandate>Every module, class, and function MUST possess a PEP 257 compliant Google-style docstring starting with a concise Summary line terminating with a period.</mandate>
     </rule_block>
+
     <rule_block id="google_style_functions_args_returns">
-        <mandatory_pattern>Function docstrings MUST EXPLICITLY specify `Args:`, `Returns:`, and/or `Yields:` blocks as applicable, immediately following the summary description.</mandatory_pattern>
+        <mandate>Function docstrings MUST explicitly specify `Args:`, `Returns:`, and/or `Yields:` blocks immediately following the summary description.</mandate>
     </rule_block>
+
     <rule_block id="google_style_classes_separation">
-        <mandatory_pattern>Class-level docstrings contain ONLY the overarching description and public `Attributes:`. The `__init__` method MUST encapsulate `Args:` and `Raises:`.</mandatory_pattern>
+        <mandate>Class-level docstrings contain ONLY description and public `Attributes:`. The `__init__` method MUST encapsulate `Args:` and `Raises:`.</mandate>
     </rule_block>
 
     <rule_block id="free_threading_concurrency">
-        <banned_pattern>Utilizing the `multiprocessing` module.</banned_pattern>
-        <mandatory_pattern>All routines MUST be demonstrably thread-safe (Free-threading architecture). Employ lightweight threads or `asyncio`.</mandatory_pattern>
+        <mandate>NEVER use `multiprocessing`. ALL routines MUST be thread-safe (Free-threading architecture) using lightweight threads or `asyncio`.</mandate>
     </rule_block>
+
     <rule_block id="modern_type_aliases_pep695">
-        <mandatory_pattern>Implement the PEP 695 `type` keyword for type aliases (e.g., `type Point = tuple[float, float]`).</mandatory_pattern>
+        <mandate>ALWAYS use PEP 695 `type` keyword for type aliases (`type Point = tuple[float, float]`).</mandate>
     </rule_block>
+
     <rule_block id="taskgroup_exceptiongroup_mandate">
-        <banned_pattern>`asyncio.gather`.</banned_pattern>
-        <mandatory_pattern>Background routines MUST ALWAYS be orchestrated utilizing the `asyncio.TaskGroup` context. When trapping parallel exceptions, use the `ExceptionGroup` class and native `except*` syntax.</mandatory_pattern>
-        <catastrophic_reason>asyncio.gather silently orphans running tasks when one fails, causing zombie executions that leak memory and keep database locks open.</catastrophic_reason>
+        <mandate>NEVER use `asyncio.gather`. ALWAYS orchestrate background routines via `asyncio.TaskGroup` and trap parallel exceptions with `ExceptionGroup` and native `except*` syntax.</mandate>
     </rule_block>
+
     <rule_block id="idiomatic_pattern_matching">
-        <banned_pattern>Verbose `if-elif` cascades used for data destructuring or type validation.</banned_pattern>
-        <mandatory_pattern>Utilize native `match` and `case` structures.</mandatory_pattern>
-        <catastrophic_reason>Cascades scale poorly in polymorphic routing, reducing readability and increasing the likelihood of unhandled edge cases.</catastrophic_reason>
+        <mandate>NEVER use verbose `if-elif` cascades for data destructuring or type validation. ALWAYS use native Python `match` and `case` structures.</mandate>
     </rule_block>
+
     <rule_block id="pathlib_over_ospath">
-        <banned_pattern>Invoking the legacy `os.path` module.</banned_pattern>
-        <mandatory_pattern>Exclusively leverage the object-oriented `pathlib.Path` standard library module.</mandatory_pattern>
+        <mandate>NEVER invoke legacy `os.path`. ALWAYS exclusively use `pathlib.Path`.</mandate>
     </rule_block>
+
     <rule_block id="pep750_t_strings_only">
-        <banned_pattern>Standard f-strings within critical data ingestion pathways.</banned_pattern>
-        <mandatory_pattern>Construct dynamic LLM prompts and SQL statements exclusively utilizing Python 3.14 t-strings (Template Strings - PEP 750).</mandatory_pattern>
+        <mandate>NEVER use standard f-strings in critical data ingestion pathways. Construct dynamic LLM prompts and SQL statements using Python 3.14 t-strings (Template Strings - PEP 750).</mandate>
     </rule_block>
+
     <rule_block id="pep734_subinterpreters_for_cpu">
-        <mandatory_pattern>Heavyweight CPU-bound background processes MUST be dispatched via the standard library `interpreters` module (subinterpreters) instead of `multiprocessing`.</mandatory_pattern>
+        <mandate>Heavyweight CPU-bound background processes MUST be dispatched via standard library `interpreters` module (subinterpreters) instead of `multiprocessing`.</mandate>
     </rule_block>
+
     <rule_block id="pep742_typeis_over_typeguard">
-        <banned_pattern>Legacy `typing.TypeGuard` for Type Narrowing operations.</banned_pattern>
-        <mandatory_pattern>Always enforce `typing.TypeIs` (PEP 742).</mandatory_pattern>
+        <mandate>NEVER use legacy `typing.TypeGuard` for Type Narrowing. ALWAYS enforce `typing.TypeIs` (PEP 742).</mandate>
     </rule_block>
+
     <rule_block id="anti_hallucination_guardrail">
-        <banned_pattern>Hallucinating or inventing new Pydantic models.</banned_pattern>
-        <mandatory_pattern>NEVER delete existing classes or enums assuming they are unused, as they are likely imported by other files. DO NOT invent import paths.</mandatory_pattern>
+        <mandate>NEVER delete existing classes or enums assuming they are unused; DO NOT invent import paths or hallucinate new Pydantic models.</mandate>
     </rule_block>
+
     <rule_block id="polymorphic_parsing_mandate">
-        <mandatory_pattern>All Data Access Layer (Repository) methods MUST return raw `dict[str, Any]` to embrace NoSQL polymorphism. DO NOT enforce strict Pydantic DTOs at the database boundary.</mandatory_pattern>
+        <mandate>All Data Access Layer (Repository) methods MUST return raw `dict[str, Any]` to embrace NoSQL polymorphism. DO NOT enforce strict Pydantic DTOs at the database boundary.</mandate>
     </rule_block>
+
     <rule_block id="zero_truncation_pledge">
-        <banned_pattern>Truncating existing methods, classes, or complex implementations into `pass` stubs.</banned_pattern>
-        <mandatory_pattern>Code output MUST be a fully functional, complete drop-in replacement that perfectly preserves the original logic.</mandatory_pattern>
+        <mandate>NEVER truncate existing methods, classes, or implementations into `pass` stubs. Code output MUST be fully functional drop-in replacements.</mandate>
     </rule_block>
+
     <rule_block id="strict_attribute_integrity">
-        <banned_pattern>Converting strict dot-notation attribute access into dynamic `getattr(model, "model", "")` fallbacks.</banned_pattern>
-        <mandatory_pattern>Embracing the Fail-Fast protocol requires relying on Pydantic's static structure. EXCEPTIONS: Safe checks using `in` operator.</mandatory_pattern>
+        <mandate>NEVER convert strict dot-notation attribute access into dynamic `getattr(model, "model", "")` fallbacks. ALWAYS rely on Pydantic's static structure (EXCEPTIONS: Safe checks using `in` operator).</mandate>
     </rule_block>
+
     <rule_block id="api_service_separation_mandate">
-        <banned_pattern>ID generation for new or cloned entities at the API Router boundary.</banned_pattern>
-        <mandatory_pattern>MUST occur exclusively within the Service layer (e.g., `StudioService`).</mandatory_pattern>
+        <mandate>ID generation for new or cloned entities MUST occur exclusively within the Service layer (`StudioService`), NEVER at the API Router boundary.</mandate>
     </rule_block>
+
     <rule_block id="setdefault_hydration_mandate">
-        <banned_pattern>Complex conditional logic for hydration (e.g., `if "key" not in kwargs: kwargs["key"] = value`).</banned_pattern>
-        <mandatory_pattern>When safely injecting fallback or configuration values, you MUST utilize Python's native `dict.setdefault("key", value)` method.</mandatory_pattern>
+        <mandate>NEVER use complex conditional logic for hydration (`if "key" not in kwargs:`). ALWAYS use Python's native `dict.setdefault("key", value)`.</mandate>
     </rule_block>
+
     <rule_block id="pydantic_configuration_enforcement">
-        <banned_pattern>Tolerating loose `extra="allow"` or `extra="ignore"` configurations in primary domain models, or simply logging a warning when encountering them.</banned_pattern>
-        <mandatory_pattern>You MUST ruthlessly enforce `model_config = ConfigDict(extra="forbid", strict=True)` on ALL Domain DTOs unless explicitly defined as a Token Shield. Loose models must be fixed immediately.</mandatory_pattern>
-        <catastrophic_reason>Tolerating loose Pydantic configurations creates silent parsing vulnerabilities that bypass the Zero-Trust execution boundaries.</catastrophic_reason>
+        <mandate>NEVER tolerate loose `extra="allow"` or `extra="ignore"` in primary domain models. ALWAYS enforce `model_config = ConfigDict(extra="forbid", strict=True)` on all Domain DTOs unless explicitly defined as a Token Shield.</mandate>
     </rule_block>
+
     <rule_block id="pydantic_v2_computed_field_order">
-        <banned_pattern>`@property` over `@computed_field`.</banned_pattern>
-        <mandatory_pattern>The `@computed_field` decorator MUST strictly be placed ABOVE the `@property` decorator, appending `# type: ignore[prop-decorator]`.</mandatory_pattern>
-        <catastrophic_reason>Inverting the decorators causes Pydantic Core schema generation to crash entirely, breaking the OpenAPI JSON spec.</catastrophic_reason>
+        <mandate>NEVER place `@property` above `@computed_field`. The `@computed_field` decorator MUST strictly be placed ABOVE `@property`, appending `# type: ignore[prop-decorator]`.</mandate>
     </rule_block>
+
     <rule_block id="srp_god_method_mandate">
-        <banned_pattern>Writing monolithic controller or service methods exceeding 50 lines of core logic.</banned_pattern>
-        <mandatory_pattern>You MUST break down methods exceeding 50 lines into isolated, pure, private helper methods to uphold the Single Responsibility Principle.</mandatory_pattern>
-        <catastrophic_reason>God methods are untestable via isolated unit tests and cause cascading logical failures during refactoring.</catastrophic_reason>
+        <mandate>NEVER write monolithic controller or service methods exceeding 50 lines of core logic. ALWAYS break down methods >50 lines into isolated private helper methods to uphold Single Responsibility Principle.</mandate>
     </rule_block>
+
     <rule_block id="fail_fast_payload_length_mandate">
-        <mandatory_pattern>Always enforce a strict minimum character length on extracted user text payloads BEFORE passing them to an LLM context window.</mandatory_pattern>
+        <mandate>ALWAYS enforce strict minimum character length on extracted user text payloads BEFORE passing them to an LLM context window.</mandate>
     </rule_block>
+
     <rule_block id="async_io_lock_isolation_mandate">
-        <banned_pattern>Executing slow asynchronous I/O operations (like database commits) inside an `asyncio.Lock()` block.</banned_pattern>
-        <mandatory_pattern>Implement a Two-Lock Strategy: release the memory lock instantly, trigger event completion, and use a separate commit lock for eventual DB consistency.</mandatory_pattern>
+        <mandate>NEVER execute slow async I/O (like DB commits) inside an `asyncio.Lock()` block. ALWAYS implement a Two-Lock Strategy: release memory lock instantly, trigger event completion, and use a separate commit lock for eventual DB consistency.</mandate>
     </rule_block>
+
     <rule_block id="pydantic_mutation_optimization_mandate">
-        <banned_pattern>Mutating existing Pydantic objects by triggering a full serialization cycle (`model_dump()`) followed by full re-instantiation.</banned_pattern>
-        <mandatory_pattern>ALWAYS use `.model_copy(update={...})` for shallow C-level updates.</mandatory_pattern>
+        <mandate>NEVER mutate Pydantic objects via full serialization (`model_dump()`) followed by full re-instantiation. ALWAYS use `.model_copy(update={...})` for shallow C-level updates.</mandate>
     </rule_block>
+
     <rule_block id="primitive_obsession_evidence_quotes">
-        <banned_pattern>Packing complex data structures (like text + source reference) into a single string using pipe characters (|||).</banned_pattern>
-        <mandatory_pattern>Use structured Pydantic models directly from the LLM output boundary.</mandatory_pattern>
+        <mandate>NEVER pack complex data structures (text + source reference) into a single string using pipe characters (`|||`). ALWAYS use structured Pydantic models directly from the LLM output boundary.</mandate>
     </rule_block>
+
     <rule_block id="immutable_history_snapshot">
-        <banned_pattern>Live queries to the database for display names during render time.</banned_pattern>
-        <mandatory_pattern>The backend presentation layer (BFF / blueprint) MUST produce UI strings from runtime frozen metadata (inputs-snapshot).</mandatory_pattern>
+        <mandate>NEVER execute live queries to the database for display names during render time. Backend presentation layer (BFF / blueprint) MUST produce UI strings from runtime frozen metadata (inputs-snapshot).</mandate>
     </rule_block>
+
     <rule_block id="graceful_degradation_over_fail_fast">
-        <banned_pattern>Allowing the entire execution graph to crash because a single hallucinated string field (like an optional UI label) failed parsing.</banned_pattern>
-        <mandatory_pattern>While core logic follows Fail-Fast, hallucinated *peripheral* fields from stochastic LLMs MUST be defensively scrubbed (cast to `None`) inside `@model_validator` so the expensive run does not crash entirely.</mandatory_pattern>
-        <catastrophic_reason>Crashing a $0.05 LLM execution trace just because an optional metadata field contained a typo destroys system reliability and inflates API costs.</catastrophic_reason>
+        <mandate>NEVER allow the entire execution graph to crash because a single hallucinated peripheral string field (like an optional UI label) failed parsing. Defensively scrub peripheral fields (cast to `None`) inside `@model_validator` while strictly enforcing Fail-Fast on core business logic.</mandate>
     </rule_block>
+
     <rule_block id="declarative_set_logic_mandate">
-        <banned_pattern>Using imperative `if x not in lst: lst.append(x)` loops or multiple `list(set(x))` conversions for uniqueness filtering and list aggregation.</banned_pattern>
-        <mandatory_pattern>ALWAYS use Python's declarative Set operations (e.g. `set(a) | set(b)` or `my_set.update({"x", "y"})`) for uniqueness and aggregation. Convert to a sorted list (`sorted(list(my_set))`) only at the final assignment.</mandatory_pattern>
-        <catastrophic_reason>Imperative list-checking is O(N) leading to O(N^2) loops, and scattered type-casting is memory inefficient and unreadable. Set mathematics guarantees O(1) uniqueness natively.</catastrophic_reason>
+        <mandate>NEVER use imperative `if x not in lst: lst.append(x)` loops or multiple `list(set(x))` conversions. ALWAYS use Python declarative Set operations (`set(a) | set(b)`, `my_set.update(...)`) and convert to `sorted(list(my_set))` only at final assignment.</mandate>
     </rule_block>
+
     <rule_block id="pydantic_discriminator_hallucination_prevention">
-        <banned_pattern>Using `Field(discriminator='...')` in Pydantic Union models without setting a strict JSON schema title for each child model.</banned_pattern>
-        <mandatory_pattern>ALWAYS explicitly set `model_config = ConfigDict(title="<discriminator_value>")` on every polymorphic child model. This guarantees that `model_json_schema()` uses the exact literal value as the title instead of the Python Class Name, preventing LLMs from hallucinating the Python class name in structured JSON generation.</mandatory_pattern>
+        <mandate>NEVER use `Field(discriminator='...')` in Pydantic Union models without setting a strict schema title for each child model. ALWAYS set `model_config = ConfigDict(title="<discriminator_value>")` on every polymorphic child model.</mandate>
     </rule_block>
+
     <rule_block id="graceful_text_truncation_validator">
-        <banned_pattern>Relying solely on `max_length=N` in `Field()` for text generation without providing a truncation mechanism.</banned_pattern>
-        <mandatory_pattern>When setting `max_length` on LLM-generated strings, ALWAYS implement a `@field_validator(..., mode="before")` to silently truncate the string. You MUST round down to the nearest sentence (`.`).</mandatory_pattern>
-        <catastrophic_reason>Without truncation validators, the system falls into infinite self-correction loops when the LLM generates a string that is 1 character too long.</catastrophic_reason>
+        <mandate>NEVER rely solely on `max_length=N` in `Field()` for LLM text generation without a truncation mechanism. ALWAYS implement `@field_validator(..., mode="before")` to truncate strings rounding down to the nearest sentence (`.`).</mandate>
     </rule_block>
 </architectural_invariants>
 
 <agentic_safety_guardrails>
     <rule_block id="architecture_lock_mandate">
-        <banned_pattern>Refactoring, modifying control flow, or changing data traversal logic in code blocks protected by an `ARCHITECTURE LOCK` comment.</banned_pattern>
-        <mandatory_pattern>You MUST strictly preserve these blocks as they contain verified logic. You MAY only add or update PEP 257 docstrings.</mandatory_pattern>
-        <catastrophic_reason>Treating protected algorithmic blocks as "defensive programming" violations breaks human-verified TDD logic.</catastrophic_reason>
+        <mandate>NEVER refactor, modify control flow, or change data traversal logic in code blocks protected by an `ARCHITECTURE LOCK` comment. ALWAYS strictly preserve these blocks (you MAY only add/update PEP 257 docstrings).</mandate>
     </rule_block>
 
     <rule_block id="pydantic_schema_freeze_mandate">
-        <banned_pattern>Autonomously tightening structural types, removing `Optional` (`| None`) bounds, or changing field signatures on existing Pydantic models.</banned_pattern>
-        <mandatory_pattern>If a schema seems improperly typed, DO NOT fix it; instead log a Warning in the audit matrix. Schema mutability is strictly forbidden without explicit instruction.</mandatory_pattern>
-        <catastrophic_reason>Modifying strictness autonomously breaks downstream validation of the SSOT database.</catastrophic_reason>
+        <mandate>NEVER autonomously tighten structural types, remove `Optional` (`| None`) bounds, or change field signatures on existing Pydantic models. Log warnings in audit matrix instead; schema mutability is strictly forbidden without explicit instruction.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_validation_bypass_ban">
-        <banned_pattern>Using `dict(model)`, list comprehensions casting to raw dicts, manually reconstructing an existing model field-by-field (e.g. `Model(field=[dict(x) for x in old.field])`), or mutating objects via full serialization cycles (`type(model)(**model_dump())`) to bypass validation constraints. Furthermore, NEVER use unsynchronized `model.model_copy(update={...})` with raw unstructured dictionaries when mutating state across concurrent coroutines.</banned_pattern>
-        <mandatory_pattern>For mutating frozen models:
-        1. **Domain DTOs & Boundary Objects**: Hydrate and validate untrusted inputs using `Model.model_validate(raw_data)`.
-        2. **Internal High-Throughput DAG State**: Use `model.model_copy(update=...)` with typed instances (e.g., `new_state: ExecutionStepState`) strictly inside `async with _update_lock:` to prevent catastrophic double-serialization bottlenecks.</mandatory_pattern>
-        <catastrophic_reason>Manual reconstruction is verbose and prone to omissions. Unsynchronized shallow copies cause race conditions, while recursive `model_dump() | update` cascades destroy performance in high-frequency execution pipelines.</catastrophic_reason>
+        <mandate>NEVER use `dict(model)`, list comprehensions casting to raw dicts, manual field-by-field reconstruction (`Model(field=[dict(x) for x in old.field])`), or full serialization cycles (`type(model)(**model_dump())`) to bypass validation constraints. NEVER use unsynchronized `model_copy(update={...})` across concurrent coroutines. For mutating frozen models: 1) Hydrate untrusted inputs via `Model.model_validate(raw_data)`, 2) Internal high-throughput DAG state uses `model.model_copy(update=...)` with typed instances inside `async with _update_lock:`.</mandate>
     </rule_block>
 
     <rule_block id="data_and_file_preservation_mandate">
-        <banned_pattern>Autonomously refactoring, truncating, or "simplifying" existing file I/O operations, data extraction loops, string concatenations, or dictionary traversals purely for aesthetics.</banned_pattern>
-        <mandatory_pattern>Your mandate is strictly architectural (typing, docstrings, modern syntax), NOT algorithmic optimization. You MUST preserve functional I/O and parsing logic entirely.</mandatory_pattern>
-        <catastrophic_reason>Deleting or altering working File I/O or parsing loops causes catastrophic Fail-Fast bypasses.</catastrophic_reason>
+        <mandate>NEVER autonomously refactor, truncate, or "simplify" existing file I/O operations, data extraction loops, string concatenations, or dictionary traversals purely for aesthetics. Architectural mandate is strictly typing, docstrings, and modern syntax; ALWAYS preserve functional I/O and parsing logic entirely.</mandate>
     </rule_block>
 
     <rule_block id="backend_quality_gate_delegation">
-        <banned_pattern>Running generic pytest without the global audit script, or relying on memory of AGENTS.md for quality gate definitions.</banned_pattern>
-        <mandatory_pattern>If you modify `.py` files, you MUST run: `uv run python scripts/backend_audit_loop.py <target_path> --test` after every single code mutation. NEVER assume a change is too small to test.</mandatory_pattern>
-        <catastrophic_reason>The audit loop enforces Ruff formatting and MyPy strict typing simultaneously with Pytest. Bypassing it degrades static quality and breaks the CI/CD pipeline.</catastrophic_reason>
+        <mandate>NEVER run generic pytest without the global audit script. If you modify `.py` files, you MUST run: `uv run python scripts/backend_audit_loop.py <target_path> --test` after every single code mutation.</mandate>
     </rule_block>
-</architectural_invariants>
 </agentic_safety_guardrails>

@@ -105,6 +105,7 @@
         <tier id="3_db" path="/tier3-database-reset">Database wipes and re-seeding tweaks.</tier>
         <tier id="3_refactor" path="/tier3-feature-refactor">Single feature implementation or existing file cleanup.</tier>
         <tier id="3_god" path="/tier3-god-code-decomposition">System 2 Decomposition Planner for Legacy Refactoring.</tier>
+        <tier id="3_minify" path="/tier3-minify-customization">Aggressively compress rule or workflow files while preserving XML hierarchy and exact technical anchors.</tier>
         <tier id="4" path="/tier4-bug-hunting">Deep root cause analysis and bug resolution.</tier>
         <tier id="5_handover" path="/tier5-session-handover">Session Handover Export for context transition.</tier>
         <tier id="5_resume" path="/tier5-resume">Resume & Zero-Shortcut Audit for new sessions.</tier>

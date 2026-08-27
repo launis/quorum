@@ -7,45 +7,34 @@
 
 <catastrophic_system_bans>
     <rule_block id="backend_router_vs_service_separation">
-        <banned_pattern>Writing core business logic, Pydantic data transformations, database querying, or LLM orchestration directly inside `api/routers/` endpoints.</banned_pattern>
-        <mandatory_pattern>FastAPI `api/routers/` MUST ONLY contain HTTP protocol parsing, payload validation mapping, and immediate delegation to a service class. All heavy logic MUST be routed to `services/` (e.g. `studio.py`, `execution.py`).</mandatory_pattern>
-        <catastrophic_reason>Mixing HTTP logic with Business Logic destroys testability, violates the Single Responsibility Principle, and makes the API impossible to refactor.</catastrophic_reason>
+        <mandate>NEVER write business logic, Pydantic data transformations, database querying, or LLM orchestration directly inside `api/routers/`. FastAPI routers MUST ONLY contain HTTP parsing, payload validation mapping, and immediate delegation to `services/` (e.g. `studio.py`, `execution.py`).</mandate>
     </rule_block>
 
     <rule_block id="strict_model_location">
-        <banned_pattern>Defining Pydantic classes or local Enums organically inside service files or routers, or dumping new models into the monolithic `v2_core.py`.</banned_pattern>
-        <mandatory_pattern>ALL Single Source of Truth (SSOT) data structures, requests, and domain models MUST be placed inside `backend_v2/models/` using strict Interface Segregation. You MUST separate pure business/domain models into `domain/` (NEVER ORM or direct DB shapes; DB returns raw dicts for Service-layer hydration), API payloads into `dtos/`, and static LLM instructions into `prompts/`. No models can live outside this boundary.</mandatory_pattern>
-        <catastrophic_reason>Scattered models cause circular import crashes. Dumping API requests and SSOT domains into the same "God File" (like `v2_core.py`) destroys boundary isolation and causes router-to-service import deadlocks.</catastrophic_reason>
+        <mandate>NEVER define Pydantic classes or local Enums organically inside service files/routers, or dump new models into monolithic `v2_core.py`. ALL SSOT data structures MUST be placed in `backend_v2/models/`: pure business models in `domain/` (raw dicts from DB hydrated in Service layer, NO ORM shapes), API payloads in `dtos/`, and static LLM instructions in `prompts/`.</mandate>
     </rule_block>
 
     <rule_block id="frontend_feature_isolation">
-        <banned_pattern>Mixing specific UI feature code (e.g. Studio Canvas) or feature-specific SDUI Freezed models into `lib/core/` or `lib/shared/` folders, or cross-importing deep between different features.</banned_pattern>
-        <mandatory_pattern>Flutter code MUST strictly adhere to Feature-First isolation in `client_app_v2/lib/features/` (e.g., `execution/models/` and `execution/providers/`). Shared abstract logic belongs in `core/` or `shared/`. Legacy monolithic proxy models are strictly banned; all models must be decoupled Freezed classes to enable strict UI decoupling and Riverpod O(1) lookups.</mandatory_pattern>
-        <catastrophic_reason>Cross-feature spaghetti imports break the Riverpod reactive dependency tree and cause massive compilation bottlenecks. Monolithic models prevent strict UI decoupling and O(1) state resolution.</catastrophic_reason>
+        <mandate>NEVER mix feature UI code (e.g. Studio Canvas) or feature-specific SDUI Freezed models into `lib/core/` or `lib/shared/`, or cross-import deep between features. Flutter code MUST adhere to Feature-First isolation in `client_app_v2/lib/features/` (e.g., `execution/models/`, `execution/providers/`). Shared abstract logic belongs in `core/` or `shared/`.</mandate>
     </rule_block>
 
     <rule_block id="ephemeral_storage_mandate">
-        <banned_pattern>Creating ad-hoc testing scripts, JSON data dumps, or Python debug runners randomly in the root folder, source folders, or the legacy `tmp\` folder. Listing ephemeral scratch scripts in Epics or plans as `TARGET Files`.</banned_pattern>
-        <mandatory_pattern>All AI-generated temporary sandbox files, debugging scripts, and scratchpads MUST be written exclusively to the IDE's conversation artifact directory: `<appDataDir>\brain\<conversation-id>\scratch\`. Epics and Implementation Plans MUST NOT list scratch files in their Target boundaries.</mandatory_pattern>
-        <catastrophic_reason>Dumping scratch files across the workspace pollutes the Git repository, confuses human developers, and breaks automated quality gate scanning.</catastrophic_reason>
+        <mandate>NEVER create ad-hoc testing scripts, JSON data dumps, or Python debug runners in root, source folders, or legacy `tmp\`. ALL AI temporary files, debug scripts, and scratchpads MUST be written exclusively to `<appDataDir>\brain\<conversation-id>\scratch\`. Epics and Implementation Plans MUST NOT list scratch files in Target boundaries.</mandate>
     </rule_block>
 
     <rule_block id="test_directory_isolation">
-        <banned_pattern>Placing test files alongside production code (e.g., `services/test_auth.py`), or placing tests directly into the `tests/` root without a test pyramid category (e.g., `tests/services/test_auth.py`).</banned_pattern>
-        <mandatory_pattern>Test files MUST strictly mirror the production directory structure, BUT they MUST first be categorized into a test pyramid root (`unit/`, `integration/`, or `e2e/`):
+        <mandate>NEVER place test files alongside production code or directly into `tests/` root without test pyramid categorization. Test files MUST strictly mirror production structure categorized into test pyramid roots:
         - Python Backend: `backend_v2/tests/unit/...`, `backend_v2/tests/integration/...`, `backend_v2/tests/e2e/...`
-        - Flutter Frontend: `client_app_v2/test/unit/...`, `client_app_v2/test/integration/...`, `client_app_v2/test/e2e/...`
-        </mandatory_pattern>
-        <catastrophic_reason>Without `unit/`, `integration/`, or `e2e/` categorization, CI/CD pipelines cannot run test tiers separately. Mixing test files with production code creates bloat and risks deploying mock data logic into production.</catastrophic_reason>
+        - Flutter Frontend: `client_app_v2/test/unit/...`, `client_app_v2/test/integration/...`, `client_app_v2/test/e2e/...`</mandate>
     </rule_block>
 </catastrophic_system_bans>
 
 <master_system_index>
-    <instruction>The High-Level Abstraction Map. Do not expect every file to be listed here. Use this to orient your search and navigation.</instruction>
+    <instruction>High-Level Abstraction Map for search and navigation.</instruction>
 
     <module path="backend_v2/api/routers/">
         <responsibility>HTTP REST ENDPOINTS ONLY</responsibility>
-        <key_domains>execution/, iam/ (Auth Orphan), studio/, system/, output_profiles.py</key_domains>
+        <key_domains>execution/, iam/, studio/, system/, output_profiles.py</key_domains>
     </module>
     
     <module path="backend_v2/services/">
@@ -56,18 +45,18 @@
           - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/ (authenticity_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
           - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py
           - Pillar 6 (Atom Graph): document_extraction.py, chat_parser.py, source_verification_service.py, matrix_domain_parser.py, orchestrator/ (anchor_validation_service.py, two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py)
-          - Orphan (Missing Capability): auth.py
+          - Orphan: auth.py
         </key_domains>
     </module>
     
     <module path="backend_v2/worker.py">
         <responsibility>BACKGROUND EXECUTION (PILLAR 3)</responsibility>
-        <key_domains>Arq 2026 async task processing and DAG initiation (workers MUST be isolated in their own files)</key_domains>
+        <key_domains>Arq 2026 async task processing and DAG initiation (isolated worker files)</key_domains>
     </module>
     
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
-        <key_domains>core_base.py (I18nText SSOT), domain/ (Pure Business/Domain Models, NO ORM shapes), dtos/ (API boundaries like output_profile.py, matrix_scorecard.py, studio.py, engine.py, source_extraction_schema.py), view/ (SDUI Polymorphic Blocks), prompts/ (LLM directives SSOT: synthesis_directives.py, directives.py), v2_core.py, state.py, enums.py</key_domains>
+        <key_domains>core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries), view/ (SDUI Blocks), prompts/ (LLM directives SSOT), v2_core.py, state.py, enums.py</key_domains>
     </module>
 
     <module path="backend_v2/core/">
@@ -87,7 +76,7 @@
 
     <module path="backend_v2/hooks/">
         <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS (PILLAR 1/3)</responsibility>
-        <key_domains>scoring.py, interaction_hook.py, validation.py, and all pre/post processing hooks.</key_domains>
+        <key_domains>scoring.py, interaction_hook.py, validation.py, pre/post processing hooks</key_domains>
     </module>
 
     <module path="backend_v2/llm/">
@@ -97,12 +86,12 @@
 
     <module path="backend_v2/utils/">
         <responsibility>MATHEMATICAL ENGINES & SYSTEM INVARIANTS (PILLAR 1)</responsibility>
-        <key_domains>alias_engine.py, math_utils.py, ranked_round_robin.py, scoring/ (mathematical engines)</key_domains>
+        <key_domains>alias_engine.py, math_utils.py, ranked_round_robin.py, scoring/</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
-        <key_domains>studio/ (Pillar 2/4 Workflow & Profile Editors: views/workflow_builder_view.dart, views/step_builder_view.dart, views/output_profile_crud_view.dart, views/widgets/workflow/ [workflow_general_tab.dart, workflow_inputs_tab.dart, workflow_step_card.dart, workflow_steps_tab.dart], views/widgets/profile/tabs/ [profile_general_tab.dart, profile_scoring_tab.dart, profile_layouts_tab.dart], views/widgets/profile/blocks/ [base_block_card.dart, block_card_registry.dart, metadata_block_card.dart, synthesis_text_block_card.dart, matrix_graphs_block_card.dart, matrix_summary_table_card.dart, xai_extensions_block_card.dart, bibliography_block_card.dart, simple_toggle_block_card.dart]), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Global Presentation), auth/ (Orphan), settings/ (Orphan)</key_domains>
+        <key_domains>studio/ (Pillar 2/4 Workflow & Profile Editors), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Presentation), auth/, settings/</key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">
@@ -112,7 +101,7 @@
     
     <module path="client_app_v2/lib/shared/">
         <responsibility>SHARED UI WIDGETS & CROSS-DOMAIN MODELS</responsibility>
-        <key_domains>widgets/ (e.g. i18n_text_field.dart), models/ (e.g. i18n_text.dart, sdui_block_dto.dart)</key_domains>
+        <key_domains>widgets/ (i18n_text_field.dart), models/ (i18n_text.dart, sdui_block_dto.dart)</key_domains>
     </module>
     
     <module path="client_app_v2/lib/l10n/">
@@ -122,26 +111,26 @@
 
     <module path="docs/architecture/">
         <responsibility>CONSOLIDATED ARCHITECTURE MANIFESTOS</responsibility>
-        <key_domains>00_README_META_ARCHITECTURE.md (Meta-Governance), 6 Capability-Driven Pillar documents (System Context, Ontology, Orchestration, SDUI, Resilience, Enriched Atom Graph Engine).</key_domains>
+        <key_domains>00_README_META_ARCHITECTURE.md, 6 Capability-Driven Pillar documents</key_domains>
     </module>
     
     <module path=".agents/rules/">
         <responsibility>GLOBAL IDE RULES & ARCHITECTURAL INVARIANTS</responsibility>
-        <key_domains>00-antigravity-core.md, language-specific constraints, directory reference.</key_domains>
+        <key_domains>00-antigravity-core.md, language constraints, directory reference</key_domains>
     </module>
 
     <module path=".agents/workflows/">
         <responsibility>AGENTIC EXECUTION PLAYBOOKS & QUARANTINE PROTOCOLS</responsibility>
-        <key_domains>Tier 0 (Planning) to Tier 8 (Auditing) slash commands and Hybrid XML Sandwich schemas.</key_domains>
+        <key_domains>Tier 0 (Planning) to Tier 8 (Auditing) slash commands</key_domains>
     </module>
 
     <module path="<appDataDir>\knowledge\">
         <responsibility>AI AGENT KNOWLEDGE BASE & LONG-TERM MEMORY</responsibility>
-        <key_domains>Knowledge Items (KIs), architectural snapshots, and patterns. Agents MUST use this directory instead of creating random docs/ or root folders.</key_domains>
+        <key_domains>Knowledge Items (KIs), architectural snapshots, and patterns</key_domains>
     </module>
 
     <module path="scratch/">
         <responsibility>SANDBOX FOR AI EXPERIMENTS & DEBUGGING</responsibility>
-        <key_domains>Disposable test scripts, JSON dumps, log extraction.</key_domains>
+        <key_domains>Disposable test scripts, JSON dumps, log extraction</key_domains>
     </module>
 </master_system_index>
