@@ -409,6 +409,7 @@ class MatrixDomainParser:
                                             structural_location=None,
                                             chart_display_label="N/A",
                                             visual_intent=VisualIntent.NEUTRAL,
+                                            human_override=None,
                                         )
 
                                     except Exception as e:
@@ -446,6 +447,7 @@ class MatrixDomainParser:
                                         structural_location=None,
                                         chart_display_label="N/A",
                                         visual_intent=VisualIntent.NEUTRAL,
+                                        human_override=None,
                                     )
                                     evaluated_atoms_list.append(s_atom)
                                     step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
@@ -492,6 +494,7 @@ class MatrixDomainParser:
                 clustered_row_sources=clustered_row_sources,
                 used_evidence_ids=[],
                 inner_sdui_blocks=inner_sdui_blocks,
+                tda_state=None,
             )
 
             unique_k = f"{step_id}_{b_id}"

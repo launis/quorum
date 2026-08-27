@@ -11,7 +11,7 @@ from typing import Any, cast
 
 import logfire
 from arq.connections import RedisSettings
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 import backend_v2.hooks  # noqa: F401
 import backend_v2.utils.scoring.variance_engine as variance_engine
@@ -98,6 +98,8 @@ __all__ = [
 
 class VarianceExplanationResult(BaseModel):
     """Result model for cognitive-mechanical variance explanation."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     row_explanation: str
 
@@ -191,9 +193,7 @@ async def execute_workflow_job(
             exec_record = ExecutionRecord.model_validate(execution_data, strict=False)
 
             # Dynamic Strictness Level resolution
-            profile_id = exec_record.output_profile_id
-            if not profile_id and hasattr(workflow_def, "default_profile_id"):
-                profile_id = workflow_def.default_profile_id
+            profile_id = exec_record.output_profile_id or workflow_def.default_profile_id
 
             p_dict = await repository.get_output_profile_by_id(profile_id) if profile_id else None
             active_profile_dto = OutputProfile.model_validate(p_dict, strict=False) if p_dict else None
@@ -243,23 +243,24 @@ async def execute_workflow_job(
                     if event.event_type != "output":
                         continue
 
-                    step_meta = event.content.get("_step_metadata", {})
-                    usage = step_meta.get("token_usage", {})
-                    model_strategy = step_meta.get("model_strategy", "unknown")
-                    chunk_size = step_meta.get("chunk_size", 1)
+                    step_meta = event.content["_step_metadata"] if "_step_metadata" in event.content else {}
+                    usage = step_meta["token_usage"] if "token_usage" in step_meta else {}
+                    model_strategy = step_meta["model_strategy"] if "model_strategy" in step_meta else "unknown"
+                    chunk_size = step_meta["chunk_size"] if "chunk_size" in step_meta else 1
 
-                    p_tokens = usage.get("prompt_tokens", 0)
-                    c_tokens = usage.get("completion_tokens", 0)
-                    t_tokens = usage.get("total_tokens", 0)
-                    c_cost = usage.get("cost_usd", 0.0)
+                    p_tokens = usage["prompt_tokens"] if "prompt_tokens" in usage else 0
+                    c_tokens = usage["completion_tokens"] if "completion_tokens" in usage else 0
+                    t_tokens = usage["total_tokens"] if "total_tokens" in usage else 0
+                    c_cost = usage["cost_usd"] if "cost_usd" in usage else 0.0
 
                     total_prompt_tokens += p_tokens
                     total_completion_tokens += c_tokens
-                    total_cached_tokens += usage.get("cached_tokens", 0)
-                    total_reasoning_tokens += usage.get("reasoning_tokens", 0)
+                    total_cached_tokens += usage["cached_tokens"] if "cached_tokens" in usage else 0
+                    total_reasoning_tokens += usage["reasoning_tokens"] if "reasoning_tokens" in usage else 0
                     total_cost_usd += c_cost
 
-                    models_used[model_strategy] = models_used.get(model_strategy, 0) + t_tokens
+                    curr_model_tokens = models_used[model_strategy] if model_strategy in models_used else 0
+                    models_used[model_strategy] = curr_model_tokens + t_tokens
 
                     step_id = event.step_name
                     if step_id not in step_metrics:
@@ -274,13 +275,13 @@ async def execute_workflow_job(
                     step_metrics[step_id]["chunk_count"] += chunk_size
 
                 updated_meta = dict(updated_exec_record.metadata) if updated_exec_record.metadata else {}
-                actual_locale = updated_meta.get("target_locale") or getattr(workflow_def, "default_locale", "fi")
+                actual_locale = updated_meta["target_locale"] if "target_locale" in updated_meta else "fi"
 
                 # Execution fingerprint snapshot
                 execution_summary = {
                     "strictness_level": strictness_level,
                     "target_locale": actual_locale,
-                    "is_ensemble_run": getattr(workflow_def, "default_strictness_level", 1) >= 3,
+                    "is_ensemble_run": workflow_def.default_strictness_level >= 3,
                     "system_concurrency_snapshot": {
                         "LLM_MAX_CHUNK_SIZE": get_settings().llm_max_chunk_size,
                         "SCHEMA_MAX_EVALUATIONS": get_settings().schema_max_evaluations,
@@ -312,11 +313,7 @@ async def execute_workflow_job(
                 redis = ctx.get("redis")
                 if redis:
                     # Enqueue job to generate Synthesis cache and Static PDF
-                    has_profile = hasattr(updated_exec_record, "output_profile_id")
-                    has_val = has_profile and updated_exec_record.output_profile_id
-                    profile_id = updated_exec_record.output_profile_id if has_val else None
-                    if not profile_id and hasattr(workflow_def, "default_profile_id"):
-                        profile_id = workflow_def.default_profile_id
+                    profile_id = updated_exec_record.output_profile_id or workflow_def.default_profile_id
 
                     v_step_id = f"sys_render_{profile_id}"
                     v_step = ExecutionStepState(
@@ -373,7 +370,7 @@ async def execute_workflow_job(
                 "duration_ms": duration_ms if exec_id else 0,
             }
 
-        except Exception as e:
+        except Exception as e:  # noqa: QGR003 [REASON: Background worker top-level DLQ catch-all]
             if not isinstance(e, AppException):
                 msg = f"Workflow {workflow_id} failed: {e}"
                 logger.error(
@@ -394,7 +391,7 @@ async def execute_workflow_job(
                             "completed_at": datetime.now(UTC).isoformat(),
                         },
                     )
-                except Exception as update_err:
+                except Exception as update_err:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
                     update_msg = f"Failed to update execution failure status: {update_err}"
                     logger.error(
                         "[Worker] %s",
@@ -415,7 +412,7 @@ async def execute_workflow_job(
                             "completed_at": datetime.now(UTC).isoformat(),
                         },
                     )
-                except Exception as update_err:
+                except Exception as update_err:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
                     update_msg = f"Failed to update execution cancellation status: {update_err}"
                     logger.error(
                         "[Worker] %s",
@@ -446,7 +443,7 @@ async def generate_pdf_job(
     except asyncio.CancelledError:
         logger.warning(f"[Worker] generate_pdf_job cancelled for {execution_id}")
         return {"_dlq_status": "FAILED/DLQ"}
-    except Exception as e:
+    except Exception as e:  # noqa: QGR003 [REASON: Background job top-level DLQ handler]
         logger.error(f"[Worker] generate_pdf_job failed for {execution_id}: {e}", exc_info=True)
         return {"_dlq_status": "FAILED/DLQ"}
 
@@ -559,7 +556,7 @@ async def generate_pdf_task(
                 updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
 
             await repo.update_execution(execution_id, updates)
-        except Exception:
+        except Exception:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
             logger.error(
                 "[Task] Failed to update execution failure status",
                 exc_info=True,
@@ -588,7 +585,7 @@ async def render_profile_job(
     except asyncio.CancelledError:
         logger.warning(f"[Worker] render_profile_job cancelled for {execution_id}")
         return {"_dlq_status": "FAILED/DLQ"}
-    except Exception as e:
+    except Exception as e:  # noqa: QGR003 [REASON: Background job top-level DLQ handler]
         logger.error(f"[Worker] render_profile_job failed for {execution_id}: {e}", exc_info=True)
         return {"_dlq_status": "FAILED/DLQ"}
 
@@ -734,16 +731,13 @@ async def generate_profile_synthesis_and_pdf_task(
                 strictness_level = workflow_def.default_strictness_level
 
             if active_profile_dto.scoring_strategy is not None:
-                prof_strat = active_profile_dto.scoring_strategy
-                scoring_strategy_val = prof_strat.value if hasattr(prof_strat, "value") else prof_strat
+                scoring_strategy_val = str(active_profile_dto.scoring_strategy)
             elif workflow_def:
-                wf_strat = workflow_def.default_scoring_strategy
-                scoring_strategy_val = wf_strat.value if hasattr(wf_strat, "value") else wf_strat
+                scoring_strategy_val = str(workflow_def.default_scoring_strategy)
         else:
             if workflow_def:
                 strictness_level = workflow_def.default_strictness_level
-                wf_strat = workflow_def.default_scoring_strategy
-                scoring_strategy_val = wf_strat.value if hasattr(wf_strat, "value") else wf_strat
+                scoring_strategy_val = str(workflow_def.default_scoring_strategy)
 
         # Calculate scores dynamically for all matrices
         engine = get_scoring_engine(scoring_strategy_val)
@@ -810,7 +804,7 @@ async def generate_profile_synthesis_and_pdf_task(
                                     if pb_id in trace_evt.content:
                                         trace_evt.content[pb_id] = new_payload
                                         break
-                except Exception as e:
+                except Exception as e:  # noqa: QGR003 [REASON: Resilient best-effort dynamic matrix calculation]
                     logger.warning(f"Failed to calculate dynamic score for {pb_id}: {e}")
 
         # Temporarily inject target_profile_id and language into metadata to guide hook correctly
@@ -866,7 +860,7 @@ async def generate_profile_synthesis_and_pdf_task(
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
-        raw_matrices = distilled_data.get("matrices_to_explain", [])
+        raw_matrices = distilled_data["matrices_to_explain"] if "matrices_to_explain" in distilled_data else []
         matrices_to_explain: list[MatrixExplanationContextDTO] = [
             m if isinstance(m, MatrixExplanationContextDTO) else MatrixExplanationContextDTO.model_validate(m)
             for m in raw_matrices
@@ -962,8 +956,8 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 # 2. Dedicated Matrix Synthesis Groups tasks
                 if active_profile_dto and active_profile_dto.matrix_synthesis_groups:
-                    language = distilled_data.get("language", "en")
-                    title_map = distilled_data.get("title_map", {})
+                    language = distilled_data["language"] if "language" in distilled_data else "en"
+                    title_map = distilled_data["title_map"] if "title_map" in distilled_data else {}
 
                     for grp in active_profile_dto.matrix_synthesis_groups:
                         grp_id = grp.id
@@ -1290,8 +1284,10 @@ async def generate_profile_synthesis_and_pdf_task(
         current_syntheses[pid] = cache
         dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
 
-        new_cum_tokens = (getattr(execution, "cumulative_synthesis_tokens", 0) or 0) + synth_tokens
-        new_cum_cost = (getattr(execution, "cumulative_synthesis_cost", 0.0) or 0.0) + synth_cost
+        prev_tokens = execution.cumulative_synthesis_tokens or 0
+        prev_cost = execution.cumulative_synthesis_cost or 0.0
+        new_cum_tokens = prev_tokens + synth_tokens
+        new_cum_cost = prev_cost + synth_cost
 
         update_payload: dict[str, Any] = {
             "profile_syntheses": dict_syntheses,
@@ -1359,7 +1355,7 @@ async def generate_profile_synthesis_and_pdf_task(
                 updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
 
             await repo.update_execution(execution_id, updates)
-        except Exception:
+        except Exception:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
             logger.error(
                 "[Task] Failed to update execution failure status",
                 exc_info=True,
