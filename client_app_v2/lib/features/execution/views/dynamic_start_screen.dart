@@ -10,6 +10,7 @@ import 'package:client_app/shared/widgets/omni_input_box.dart';
 
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 // Riverpod Provider for UI Schema. Replaces manual `_fetchSchema()` side-effects.
 final workflowUiSchemaProvider = FutureProvider.autoDispose
@@ -118,18 +119,15 @@ class DynamicStartScreen extends HookConsumerWidget {
 
                   // I18n fallback for label
                   final labelRaw = details['label'];
-                  final labelObj = labelRaw is Map ? labelRaw : {};
-                  final transRaw = labelObj['translations'];
-                  final translations = transRaw is Map ? transRaw : {};
-
-                  final dlRaw = labelObj['default_locale']?.toString() ?? 'en';
-                  final defaultLocale = dlRaw.isEmpty ? 'en' : dlRaw;
-
-                  String label = translations['fi']?.toString() ?? '';
-                  if (label.isEmpty) {
-                    label = translations[defaultLocale]?.toString() ?? '';
+                  final locale = Localizations.localeOf(context).languageCode;
+                  String label = semanticRole.toUpperCase();
+                  if (labelRaw is Map) {
+                    label = I18nText.fromJson(
+                      Map<String, dynamic>.from(labelRaw),
+                    ).get(locale);
+                  } else if (labelRaw is String && labelRaw.isNotEmpty) {
+                    label = labelRaw;
                   }
-                  if (label.isEmpty) label = semanticRole.toUpperCase();
 
                   final modesRaw = details['input_modes'];
                   final inputModes = (modesRaw is List ? modesRaw : [])
@@ -200,6 +198,8 @@ class DynamicStartScreen extends HookConsumerWidget {
       collectedInputs[semanticRole] = <String, dynamic>{};
     }
 
+    final locale = Localizations.localeOf(context).languageCode;
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -223,18 +223,15 @@ class DynamicStartScreen extends HookConsumerWidget {
               final def = defInput is Map ? defInput : {};
               final qId = def['question_id']?.toString() ?? '';
               final qLabelRaw = def['question'];
-              final qLabelObj = qLabelRaw is Map ? qLabelRaw : {};
-              final qTransRaw = qLabelObj['translations'];
-              final qTranslations = qTransRaw is Map ? qTransRaw : {};
 
-              final dl = qLabelObj['default_locale']?.toString() ?? 'en';
-              final qDefaultLocale = dl.isEmpty ? 'en' : dl;
-
-              String qLabel = qTranslations['fi']?.toString() ?? '';
-              if (qLabel.isEmpty) {
-                qLabel = qTranslations[qDefaultLocale]?.toString() ?? '';
+              String qLabel = qId;
+              if (qLabelRaw is Map) {
+                qLabel = I18nText.fromJson(
+                  Map<String, dynamic>.from(qLabelRaw),
+                ).get(locale);
+              } else if (qLabelRaw is String && qLabelRaw.isNotEmpty) {
+                qLabel = qLabelRaw;
               }
-              if (qLabel.isEmpty) qLabel = qId;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),

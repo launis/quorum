@@ -16,6 +16,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 part 'new_execution_view.g.dart';
 
@@ -292,22 +293,24 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                   final id = wf['id']?.toString() ?? '';
 
                   final nmRaw = wf['name'];
-                  final nameMap = nmRaw is Map ? nmRaw : {};
-                  final titleStr = nameMap.isNotEmpty
-                      ? (nameMap['translations']?[nameMap['default_locale']] ??
-                            nameMap['default_locale'] ??
-                            id)
-                      : ((wf['name']?.toString() ?? '').isNotEmpty
-                            ? (wf['name']?.toString() ?? '')
-                            : id);
+                  String titleStr = id;
+                  if (nmRaw is Map) {
+                    titleStr = I18nText.fromJson(
+                      Map<String, dynamic>.from(nmRaw),
+                    ).get(Localizations.localeOf(context).languageCode);
+                  } else if (nmRaw is String && nmRaw.isNotEmpty) {
+                    titleStr = nmRaw;
+                  }
 
                   final descRaw = wf['description'];
-                  final descMap = descRaw is Map ? descRaw : {};
-                  final descStr = descMap.isNotEmpty
-                      ? (descMap['translations']?[descMap['default_locale']] ??
-                            descMap['default_locale'] ??
-                            '')
-                      : (wf['description']?.toString() ?? '');
+                  String descStr = '';
+                  if (descRaw is Map) {
+                    descStr = I18nText.fromJson(
+                      Map<String, dynamic>.from(descRaw),
+                    ).get(Localizations.localeOf(context).languageCode);
+                  } else if (descRaw is String) {
+                    descStr = descRaw;
+                  }
 
                   final isSelected = _selectedWorkflow?['id'] == id;
 
@@ -363,14 +366,14 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
     // Prepare localized title for the header
     final nmRaw = _selectedWorkflow!['name'];
-    final nameMap = nmRaw is Map ? nmRaw : {};
-    final titleStr = nameMap.isNotEmpty
-        ? (nameMap['translations']?[nameMap['default_locale']] ??
-              nameMap['default_locale'] ??
-              id)
-        : ((_selectedWorkflow!['name']?.toString() ?? '').isNotEmpty
-              ? (_selectedWorkflow!['name']?.toString() ?? '')
-              : id);
+    String titleStr = id;
+    if (nmRaw is Map) {
+      titleStr = I18nText.fromJson(
+        Map<String, dynamic>.from(nmRaw),
+      ).get(Localizations.localeOf(context).languageCode);
+    } else if (nmRaw is String && nmRaw.isNotEmpty) {
+      titleStr = nmRaw;
+    }
 
     if (expectedInputsList.isEmpty) {
       return Center(
@@ -537,15 +540,16 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     final defsRaw = item['questionnaire_definition'];
     final defs = defsRaw is List ? defsRaw : [];
     final labelRaw = item['label'];
-    final labelObj = labelRaw is Map ? labelRaw : {};
-    final transRaw = labelObj['translations'];
-    final translations = transRaw is Map ? transRaw : {};
+    final locale = Localizations.localeOf(context).languageCode;
 
-    final dlRaw = labelObj['default_locale']?.toString() ?? 'en';
-    final defaultLocale = dlRaw.isEmpty ? 'en' : dlRaw;
-    String title = translations['fi']?.toString() ?? '';
-    if (title.isEmpty) title = translations[defaultLocale]?.toString() ?? '';
-    if (title.isEmpty) title = inputKey;
+    String title = inputKey;
+    if (labelRaw is Map) {
+      title = I18nText.fromJson(
+        Map<String, dynamic>.from(labelRaw),
+      ).get(locale);
+    } else if (labelRaw is String && labelRaw.isNotEmpty) {
+      title = labelRaw;
+    }
 
     return Card(
       elevation: 0,
@@ -569,20 +573,15 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
               final def = defInput is Map ? defInput : {};
               final qId = def['question_id']?.toString() ?? '';
               final qLabelRaw = def['question'];
-              final qLabelObj = qLabelRaw is Map ? qLabelRaw : {};
-              final qTransRaw = qLabelObj['translations'];
-              final qTranslations = qTransRaw is Map ? qTransRaw : {};
-              final dl = qLabelObj['default_locale']?.toString() ?? 'en';
-              final qDefaultLocale = dl.isEmpty ? 'en' : dl;
 
-              String qLabel = '';
-              if (qTranslations.isNotEmpty) {
-                qLabel = qTranslations['fi']?.toString() ?? '';
-                if (qLabel.isEmpty) {
-                  qLabel = qTranslations[qDefaultLocale]?.toString() ?? '';
-                }
+              String qLabel = qId;
+              if (qLabelRaw is Map) {
+                qLabel = I18nText.fromJson(
+                  Map<String, dynamic>.from(qLabelRaw),
+                ).get(locale);
+              } else if (qLabelRaw is String && qLabelRaw.isNotEmpty) {
+                qLabel = qLabelRaw;
               }
-              if (qLabel.isEmpty) qLabel = qId;
 
               // Use custom key with separator
               final mapKey = "$inputKey|||$qId";
@@ -626,15 +625,11 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       if (value is Map) {
         final nameObj = value['name'];
         if (nameObj is Map) {
-          final trans = nameObj['translations'];
-          if (trans is Map) {
-            final defLocale = nameObj['default_locale']?.toString() ?? 'en';
-            name =
-                trans[locale]?.toString() ??
-                trans[defLocale]?.toString() ??
-                trans['en']?.toString() ??
-                name;
-          }
+          name = I18nText.fromJson(
+            Map<String, dynamic>.from(nameObj),
+          ).get(locale);
+        } else if (nameObj is String && nameObj.isNotEmpty) {
+          name = nameObj;
         }
       }
       profiles.add(MapEntry(key.toString(), name));
@@ -723,15 +718,11 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                   final profileObj = outputProfiles[currentId];
                   final descObj = profileObj['description'];
                   if (descObj is Map) {
-                    final trans = descObj['translations'];
-                    if (trans is Map) {
-                      final defLocale =
-                          descObj['default_locale']?.toString() ?? 'en';
-                      descriptionText =
-                          trans[locale]?.toString() ??
-                          trans[defLocale]?.toString() ??
-                          trans['en']?.toString();
-                    }
+                    descriptionText = I18nText.fromJson(
+                      Map<String, dynamic>.from(descObj),
+                    ).get(locale);
+                  } else if (descObj is String && descObj.isNotEmpty) {
+                    descriptionText = descObj;
                   }
                 }
 

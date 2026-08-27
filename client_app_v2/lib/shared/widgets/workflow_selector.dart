@@ -1,4 +1,5 @@
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:flutter/material.dart';
 
 class WorkflowSelector extends StatelessWidget {
@@ -18,11 +19,21 @@ class WorkflowSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
 
     final items = workflows.map((wf) {
+      final nameRaw = wf['name'];
+      String nameStr = l10n.sharedUnknown;
+      if (nameRaw is Map) {
+        nameStr = I18nText.fromJson(
+          Map<String, dynamic>.from(nameRaw),
+        ).get(locale);
+      } else if (nameRaw is String && nameRaw.isNotEmpty) {
+        nameStr = nameRaw;
+      }
       return DropdownMenuItem<String>(
         value: wf['id']?.toString() ?? '',
-        child: Text(wf['name']?.toString() ?? l10n.sharedUnknown),
+        child: Text(nameStr),
       );
     }).toList();
 

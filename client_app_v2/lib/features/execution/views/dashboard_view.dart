@@ -6,6 +6,7 @@ import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -149,19 +150,15 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                           .where((w) => w['id']?.toString() == workflowId)
                           .firstOrNull;
                       if (wf != null) {
-                        final nameMapRaw = wf['name'];
-                        final nameMap = nameMapRaw is Map ? nameMapRaw : {};
-                        final titleStr = nameMap.isNotEmpty
-                            ? (nameMap['translations']?[nameMap['default_locale']] ??
-                                  nameMap['default_locale'] ??
-                                  (throw AppException.validation(
-                                    'Fail-Fast: Missing required translation.',
-                                  )))
-                            : ((wf['name']?.toString() ?? '').isNotEmpty
-                                  ? wf['name']?.toString() ?? ''
-                                  : (throw AppException.validation(
-                                      'Fail-Fast: Missing required translation.',
-                                    )));
+                        final nameRaw = wf['name'];
+                        String titleStr = id;
+                        if (nameRaw is Map) {
+                          titleStr = I18nText.fromJson(
+                            Map<String, dynamic>.from(nameRaw),
+                          ).get(Localizations.localeOf(context).languageCode);
+                        } else if (nameRaw is String && nameRaw.isNotEmpty) {
+                          titleStr = nameRaw;
+                        }
                         workflowDisplay = AppLocalizations.of(
                           context,
                         )!.workflowPrefixLabel(titleStr);
@@ -396,16 +393,12 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     if (profile is Map) {
       final nameObj = profile['name'];
       if (nameObj is Map) {
-        final translations = nameObj['translations'];
         final locale = Localizations.localeOf(context).languageCode;
-
-        if (translations is Map) {
-          return translations[locale]?.toString() ??
-              translations['en']?.toString() ??
-              (throw AppException.validation(
-                'Fail-Fast: Missing required translation for key $key.',
-              ));
-        }
+        return I18nText.fromJson(
+          Map<String, dynamic>.from(nameObj),
+        ).get(locale);
+      } else if (nameObj is String && nameObj.isNotEmpty) {
+        return nameObj;
       }
     }
     throw AppException.validation(

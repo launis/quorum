@@ -15,6 +15,7 @@ import 'package:client_app/router/router.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 /// **Studio Dashboard View**
 ///
@@ -43,18 +44,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     final nameVal = entity['name'] ?? entity['label'];
     if (nameVal is String) return nameVal;
     if (nameVal is Map) {
-      final translations = nameVal['translations'];
-      if (translations is Map) {
-        if (translations[currentLocale] != null &&
-            translations[currentLocale].toString().isNotEmpty) {
-          return translations[currentLocale].toString();
-        }
-        final defaultLocale = nameVal['default_locale']?.toString() ?? 'en';
-        if (translations[defaultLocale] != null &&
-            translations[defaultLocale].toString().isNotEmpty) {
-          return translations[defaultLocale].toString();
-        }
-      }
+      return I18nText.fromJson(
+        Map<String, dynamic>.from(nameVal),
+      ).get(currentLocale);
     }
     return entity['id']?.toString() ?? 'Unknown';
   }
