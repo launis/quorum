@@ -1099,6 +1099,21 @@ class AppLocalizationsFi extends AppLocalizations {
   String get temperatureLabel => 'Lämpötila (Temperature)';
 
   @override
+  String get thinkingBudgetTokensLabel => 'Päättelytokenit (Thinking Budget)';
+
+  @override
+  String get thinkingBudgetHelper =>
+      '0 = Pois, 2048 = Matala, 4096 = Keskitaso, 8192 = Korkea';
+
+  @override
+  String get reasoningModelNotice =>
+      'Päättelymalli aktiivinen: Perinteiset otantaparametrit (lämpötila, top_p, top_k, sakot) ohitetaan tai ylikirjoitetaan mallintarjoajan suositusten mukaisesti.';
+
+  @override
+  String get legacyParameterNotice =>
+      'Huom: Parametria ei käytetä tai moderni päättelymalli ylikirjoittaa sen.';
+
+  @override
   String get frequencyPenaltyLabel => 'Toistuvuussakko (Frequency Penalty)';
 
   @override

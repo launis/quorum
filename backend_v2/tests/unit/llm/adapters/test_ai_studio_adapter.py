@@ -11,8 +11,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from backend_v2.llm.adapters.ai_studio_adapter import (  # noqa: E402
+    GoogleAIStudioCacheAdapter,
+    get_redis_client,
+)
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ModelProfile
 
 # Setup mock modules for google.genai BEFORE importing adapter
 if not hasattr(sys, "_mock_genai_client"):
@@ -158,11 +163,14 @@ def test_ai_studio_adapter_prepare_provider_kwargs() -> None:
 
 
 def test_ai_studio_adapter_prepare_kwargs_thinking_and_cached_content() -> None:
-    """Verify prepare_kwargs maps thinking budget and cached content to extra_body."""
+    """Verify prepare_kwargs maps thinking tokens and scrubs stray system messages for caching."""
     adapter = GoogleAIStudioCacheAdapter()
 
-    config_mock = MagicMock()
-    config_mock.additional_params = {"thinking_budget_tokens": 2048}
+    config = ModelProfile(
+        provider="google",
+        model_name="gemini/gemini-3.7-flash",
+        thinking_budget_tokens=2048,
+    )
 
     call_kwargs: dict[str, Any] = {
         "cached_content": "cachedContents/ai-studio-cache-123",
@@ -172,13 +180,40 @@ def test_ai_studio_adapter_prepare_kwargs_thinking_and_cached_content() -> None:
         ],
     }
 
-    result = adapter.prepare_kwargs(call_kwargs, config=config_mock)
+    result = adapter.prepare_kwargs(call_kwargs, config=config)
 
     assert result["extra_body"]["cachedContent"] == "cachedContents/ai-studio-cache-123"
     assert result["extra_body"]["cached_content"] == "cachedContents/ai-studio-cache-123"
     assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 2048
     assert len(result["messages"]) == 1
     assert result["messages"][0]["role"] == "user"
+
+
+def test_ai_studio_adapter_prepare_kwargs_gemini_37_sanitization() -> None:
+    """Verify prepare_kwargs sanitizes deprecated parameters and forces temp=1.0 for gemini-3."""
+    adapter = GoogleAIStudioCacheAdapter()
+
+    config = ModelProfile(
+        provider="google",
+        model_name="gemini/gemini-3.7-flash",
+        additional_params={"thinking_budget_tokens": 4096},
+    )
+
+    call_kwargs: dict[str, Any] = {
+        "model": "gemini/gemini-3.7-flash",
+        "temperature": 0.4,
+        "top_k": 40,
+        "frequency_penalty": 0.5,
+        "presence_penalty": 0.5,
+    }
+
+    result = adapter.prepare_kwargs(call_kwargs, config=config)
+
+    assert result["temperature"] == 1.0
+    assert "top_k" not in result
+    assert "frequency_penalty" not in result
+    assert "presence_penalty" not in result
+    assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 4096
 
 
 @pytest.mark.asyncio

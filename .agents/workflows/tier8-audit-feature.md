@@ -101,17 +101,20 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
         2. Flutter Frontend: Hardcoded Finnish strings (missing `.arb`), magic hex colors (`Color(0x...)`), manual `substring()` clippings, missing `AppErrorBoundary` / `AsyncValue` guards.
         3. ISTQB Testing: Missing negative ISTQB partitions (boundary values, error paths) or legacy dictionary test fixtures.
       SECTION 6: TRI-AXIS DIALECTICAL AUDIT (Cross-Examination)
-      - You MUST execute a rigorous 3-way dialectical cross-examination and persist it directly in the `feature_audit_[feature_name].md` artifact:
+      - You MUST execute a rigorous 3-way dialectical cross-examination as your internal System 2 reasoning engine:
         1. PROSECUTION (Over-Engineering & YAGNI Advocate): Is this proposed feature over-designed, over-abstracted, adding unneeded layers, or solving non-existent edge cases? Answer: "If 30% of the proposed architecture had to be removed, what gets cut?"
         2. DEFENSE (Architectural Sovereignty & Fail-Fast Advocate): How does this proposal mathematically protect type safety, immutability, Pydantic V2 strictness, and separation of concerns against Agentic Drift?
         3. REALIST (Duct-Tape & Blast Radius Interrogator): Does this proposal hide technical debt under quick patches, fallback chains, loose type hints, or un-synchronized frontend/backend state? Inspect 1-hop dependencies.
-      - BINDING VERDICT: Output an explicit 3-column decision matrix: [Approved Best Practice] | [Pruned Over-Engineering] | [Eradicated Duct-Tape].
+      - 5-COLUMN DIRECTIVE SYNTHESIS: Synthesize the debate directly into the 5-column table rows: (1) Scope, (2) Eradicated Duct-Tape, (3) Approved Best Practice, (4) Pruned Over-Engineering, (5) Fail-Fast Proof Anchor.
     </step>
 
-    <step id="3">SYNTHESIS & BEST-PRACTICE SOLUTION MODEL:
+    <step id="3">SYNTHESIS & 5-COLUMN DIRECTIVES TABLE:
       - Formulate a clean, future-proof architectural recommendation.
+      - Output an explicit **5-Column Architectural Directive Table**:
+        | 1. Kohdealue & Skoopit (Target Scope) | 2. 🚫 KIELLETTY PURKKA (Eradicated Duct-Tape) | 3. 🎯 TEE NÄIN (Approved Best Practice) | 4. ✂️ KARSITTU YLISUUNNITTELU (Pruned Over-Engineering) | 5. 🔒 VERIFIOINTI & FAIL-FAST (Proof Anchor) |
+        | :--- | :--- | :--- | :--- | :--- |
+        | **[Tiedosto / Rajapinta / Kerros]** | *[Kielletty purkka, laiskat fallbackit (`.get()`, `or`), tai hiljainen virheenvaimennus (`except: pass`)]* | *[Pakollinen hyväksytty invariantti, Pydantic V2 / Freezed schema, tai suvereeni Fail-Fast -toteutus]* | *[Karsittu turha abstraktio, ylimääräiset DTO-kääreet tai spekulatiiviset geneeriset tehdasluokat]* | *[Miten Fail-Fast todistetaan matemaattisesti: tarkka yksikkötesti, poikkeustyyppi tai laatuporttikomento]* |
       - Clearly define the recommended target components, DTO contracts, and layer responsibilities.
-      - Detail the explicit trade-offs and justifications for the recommended approach over naive implementations.
     </step>
 
     <step id="4">PERSISTENT ARTIFACT CREATION:

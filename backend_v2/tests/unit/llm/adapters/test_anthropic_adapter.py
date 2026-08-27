@@ -1,10 +1,10 @@
-"""Unit and precision cost-calculation tests for AnthropicCacheAdapter."""
-
 import pytest
+from pydantic import BaseModel, Field
 
 from backend_v2.llm.adapters.anthropic_adapter import AnthropicCacheAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ModelProfile
 
 
 def test_lazy_import_proof() -> None:
@@ -205,3 +205,47 @@ def test_anthropic_precision_calculation_scenarios() -> None:
     result_exp = adapter.calculate_cost(usage_mixed, pricing_explicit)
     assert result_exp.cost_usd == pytest.approx(0.018135)
     assert result_exp.estimated_savings_usd == pytest.approx(0.002865)
+
+
+def test_anthropic_adapter_prepare_provider_kwargs() -> None:
+    """Verify prepare_provider_kwargs returns empty dictionary."""
+    adapter = AnthropicCacheAdapter()
+    assert adapter.prepare_provider_kwargs("claude-3-7-sonnet-20250219") == {}
+
+
+def test_anthropic_adapter_prepare_kwargs_thinking_and_temperature() -> None:
+    """Verify prepare_kwargs sets thinking and normalizes temperature for Claude 3.7."""
+    adapter = AnthropicCacheAdapter()
+
+    config = ModelProfile(
+        provider="anthropic",
+        model_name="claude-3-7-sonnet-20250219",
+        temperature=0.3,
+        thinking_budget_tokens=4096,
+    )
+    call_kwargs = {
+        "model": "claude-3-7-sonnet-20250219",
+        "temperature": 0.3,
+    }
+
+    result = adapter.prepare_kwargs(call_kwargs, config=config)
+
+    assert result["temperature"] == 1.0
+    assert result["thinking"] == {"type": "enabled", "budget_tokens": 4096}
+
+
+def test_anthropic_adapter_prepare_structured_output() -> None:
+    """Verify prepare_structured_output converts Pydantic model into strict json_schema dictionary."""
+    adapter = AnthropicCacheAdapter()
+
+    class SampleOutputModel(BaseModel):
+        summary: str = Field(description="Summary of text")
+        score: int = Field(description="Score value")
+
+    result = adapter.prepare_structured_output(SampleOutputModel)
+
+    assert isinstance(result, dict)
+    assert result["type"] == "json_schema"
+    assert result["json_schema"]["name"] == "SampleOutputModel"
+    assert result["json_schema"]["strict"] is True
+    assert "properties" in result["json_schema"]["schema"]

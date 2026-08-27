@@ -16,12 +16,13 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            availableModelsProvider.overrideWith(
-              (ref, _) async => mockModels,
-            ),
+            availableModelsProvider.overrideWith((ref, _) async => mockModels),
             supportedLocationsProvider.overrideWith(
               (ref) async => [
-                {'id': 'europe-north1', 'label': 'Hamina, Finland (europe-north1)'},
+                {
+                  'id': 'europe-north1',
+                  'label': 'Hamina, Finland (europe-north1)',
+                },
               ],
             ),
 
@@ -74,61 +75,123 @@ void main() {
       expect(find.text('gpt-3.5-turbo').last, findsOneWidget);
     });
 
-    testWidgets('renders properly when vertex_location is raw env template or unmapped string', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            availableModelsProvider.overrideWith(
-              (ref, _) async => ['vertex_ai/gemini-2.5-pro'],
-            ),
-            supportedLocationsProvider.overrideWith(
-              (ref) async => [
-                {'id': 'europe-north1', 'label': 'Hamina, Finland (europe-north1)'},
-                {'id': 'europe-west1', 'label': 'St. Ghislain, Belgium (europe-west1)'},
-              ],
-            ),
-            modelRegistryByIdProvider('syscfg_raw').overrideWith(
-              (ref) async => const ModelConfig(
-                id: 'syscfg_raw',
-                slug: 'syscfg_raw_slug',
-                type: 'model_registry',
-                models: {
-                  'deep': LlmModelConfig(
-                    modelName: 'vertex_ai/gemini-2.5-pro',
-                    provider: 'google',
-                    additionalParams: {
-                      'vertex_location': r'${VERTEX_LOCATION}',
-                    },
-                    isActive: true,
-                  ),
-                },
+    testWidgets(
+      'renders properly when vertex_location is raw env template or unmapped string',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              availableModelsProvider.overrideWith(
+                (ref, _) async => ['vertex_ai/gemini-2.5-pro'],
               ),
+              supportedLocationsProvider.overrideWith(
+                (ref) async => [
+                  {
+                    'id': 'europe-north1',
+                    'label': 'Hamina, Finland (europe-north1)',
+                  },
+                  {
+                    'id': 'europe-west1',
+                    'label': 'St. Ghislain, Belgium (europe-west1)',
+                  },
+                ],
+              ),
+              modelRegistryByIdProvider('syscfg_raw').overrideWith(
+                (ref) async => const ModelConfig(
+                  id: 'syscfg_raw',
+                  slug: 'syscfg_raw_slug',
+                  type: 'model_registry',
+                  models: {
+                    'deep': LlmModelConfig(
+                      modelName: 'vertex_ai/gemini-2.5-pro',
+                      provider: 'google',
+                      additionalParams: {
+                        'vertex_location': r'${VERTEX_LOCATION}',
+                      },
+                      isActive: true,
+                    ),
+                  },
+                ),
+              ),
+              modelRegistryControllerProvider.overrideWith(
+                () => MockModelRegistryController(),
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const ModelRegistryView(id: 'syscfg_raw'),
             ),
-            modelRegistryControllerProvider.overrideWith(
-              () => MockModelRegistryController(),
-            ),
-          ],
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: const ModelRegistryView(id: 'syscfg_raw'),
           ),
-        ),
-      );
+        );
 
-      await tester.runAsync(() async {
-        await Future.delayed(const Duration(milliseconds: 100));
-      });
-      await tester.pumpAndSettle();
+        await tester.runAsync(() async {
+          await Future.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
 
-      // Look for the dropdown or verify it rendered without throwing AssertionError
-      expect(find.byType(DropdownButtonFormField<String>), findsWidgets);
-    });
+        // Look for the dropdown or verify it rendered without throwing AssertionError
+        expect(find.byType(DropdownButtonFormField<String>), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'renders reasoning notice and thinking budget tokens for Gemini 3.7 model',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              availableModelsProvider.overrideWith(
+                (ref, _) async => ['vertex_ai/gemini-3.7-flash'],
+              ),
+              supportedLocationsProvider.overrideWith(
+                (ref) async => [
+                  {
+                    'id': 'europe-north1',
+                    'label': 'Hamina, Finland (europe-north1)',
+                  },
+                ],
+              ),
+              modelRegistryByIdProvider('syscfg_gemini37').overrideWith(
+                (ref) async => const ModelConfig(
+                  id: 'syscfg_gemini37',
+                  slug: 'syscfg_gemini37_slug',
+                  type: 'model_registry',
+                  models: {
+                    'reasoning': LlmModelConfig(
+                      modelName: 'vertex_ai/gemini-3.7-flash',
+                      provider: 'google',
+                      thinkingBudgetTokens: 8192,
+                      isActive: true,
+                    ),
+                  },
+                ),
+              ),
+              modelRegistryControllerProvider.overrideWith(
+                () => MockModelRegistryController(),
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const ModelRegistryView(id: 'syscfg_gemini37'),
+            ),
+          ),
+        );
+
+        await tester.runAsync(() async {
+          await Future.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        // Verify reasoning notice icon and text are present
+        expect(find.byIcon(Icons.psychology), findsOneWidget);
+        // Verify thinking budget field is present with initial value
+        expect(find.text('8192'), findsOneWidget);
+      },
+    );
   });
 }
-
 
 class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
     implements ModelRegistryController {

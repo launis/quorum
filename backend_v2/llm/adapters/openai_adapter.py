@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ModelProfile
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,47 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             An empty dictionary as no special static arguments are needed.
         """
         return {}
+
+    def prepare_kwargs(
+        self, call_kwargs: dict[str, Any], config: Any | None = None, settings: Any | None = None
+    ) -> dict[str, Any]:
+        """Prepare OpenAI specific kwargs, translating reasoning effort and stripping unsupported sampling params.
+
+        Args:
+            call_kwargs: The dictionary of arguments to pass to litellm.
+            config: Optional config object for the provider.
+            settings: Optional app settings.
+
+        Returns:
+            The potentially modified call_kwargs dictionary.
+        """
+        model_name = str(
+            call_kwargs.get("model") or (config.model_name if isinstance(config, ModelProfile) else "")
+        ).lower()
+        is_reasoning_model = any(prefix in model_name for prefix in ("o1", "o3", "o4"))
+
+        thinking_budget: int | None = None
+        if isinstance(config, ModelProfile):
+            if config.thinking_budget_tokens is not None:
+                thinking_budget = int(config.thinking_budget_tokens)
+            elif config.additional_params and "thinking_budget_tokens" in config.additional_params:
+                thinking_budget = int(config.additional_params["thinking_budget_tokens"])
+
+        if is_reasoning_model:
+            # Map thinking budget tokens to reasoning effort
+            if thinking_budget is not None and thinking_budget > 0:
+                if thinking_budget <= 2048:
+                    call_kwargs["reasoning_effort"] = "low"
+                elif thinking_budget <= 4096:
+                    call_kwargs["reasoning_effort"] = "medium"
+                else:
+                    call_kwargs["reasoning_effort"] = "high"
+
+            # Strip sampling parameters that OpenAI reasoning models reject (400 Bad Request)
+            for param in ("temperature", "top_p", "frequency_penalty", "presence_penalty"):
+                call_kwargs.pop(param, None)
+
+        return call_kwargs
 
     def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
         """Convert a Pydantic model into OpenAI specific strict structured output format.

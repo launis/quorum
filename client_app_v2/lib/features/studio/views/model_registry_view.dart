@@ -391,10 +391,54 @@ class ModelRegistryView extends HookConsumerWidget {
                               cfg.additionalParams,
                             );
                             updatedParams['platform'] = val;
+
+                            String newLocation = currentLocation;
+                            if (val == 'vertex_ai') {
+                              if (!updatedParams.containsKey(
+                                    'vertex_location',
+                                  ) ||
+                                  (updatedParams['vertex_location'] as String?)
+                                          ?.isEmpty ==
+                                      true) {
+                                updatedParams['vertex_location'] =
+                                    'europe-north1';
+                              }
+                              newLocation =
+                                  updatedParams['vertex_location'] as String;
+                            } else {
+                              updatedParams.remove('vertex_location');
+                            }
+
+                            // Pre-resolve default model for target platform
+                            final modelsForNewPlatform =
+                                ref
+                                    .read(
+                                      availableModelsProvider(
+                                        platform: val,
+                                        location: val == 'vertex_ai'
+                                            ? newLocation
+                                            : null,
+                                      ),
+                                    )
+                                    .value ??
+                                [];
+
+                            final String updatedModelName =
+                                modelsForNewPlatform.isNotEmpty
+                                ? modelsForNewPlatform.first
+                                : (val == 'vertex_ai'
+                                      ? 'vertex_ai/gemini-3.7-flash'
+                                      : (val == 'ai_studio'
+                                            ? 'gemini/gemini-3.7-flash'
+                                            : (val == 'openai'
+                                                  ? 'gpt-4o'
+                                                  : 'claude-3-7-sonnet-20250219')));
+
                             updateModel(
                               modelId,
                               cfg.copyWith(
                                 provider: newProvider,
+                                modelName: updatedModelName,
                                 additionalParams: updatedParams,
                               ),
                             );
@@ -531,7 +575,72 @@ class ModelRegistryView extends HookConsumerWidget {
                         ),
                       ),
 
+                      // Reasoning model banner
+                      if (cfg.modelName.toLowerCase().contains('gemini-3') ||
+                          cfg.modelName.toLowerCase().contains('claude-3-7') ||
+                          cfg.modelName.toLowerCase().contains('claude-3.7') ||
+                          cfg.modelName.toLowerCase().contains('o1') ||
+                          cfg.modelName.toLowerCase().contains('o3') ||
+                          cfg.modelName.toLowerCase().contains('o4'))
+                        Container(
+                          margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+                          padding: const EdgeInsets.all(AppSpacing.s12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(ref.context)
+                                .colorScheme
+                                .primaryContainer
+                                .withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Theme.of(
+                                ref.context,
+                              ).colorScheme.primary.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.psychology,
+                                color: Theme.of(
+                                  ref.context,
+                                ).colorScheme.primary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: AppSpacing.s8),
+                              Expanded(
+                                child: Text(
+                                  l10n.reasoningModelNotice,
+                                  style: Theme.of(ref.context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          ref.context,
+                                        ).colorScheme.onSurface,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      _buildIntField(
+                        ValueKey(
+                          '${modelId}_thinkingBudgetTokens_${currentPlatform}_${cfg.thinkingBudgetTokens}',
+                        ),
+                        cfg.thinkingBudgetTokens,
+                        l10n.thinkingBudgetTokensLabel,
+                        l10n,
+                        (val) => updateModel(
+                          modelId,
+                          cfg.copyWith(thinkingBudgetTokens: val),
+                        ),
+                        helperText: l10n.thinkingBudgetHelper,
+                      ),
                       _buildDoubleField(
+                        ValueKey(
+                          '${modelId}_temperature_${currentPlatform}_${cfg.temperature}',
+                        ),
                         cfg.temperature,
                         l10n.temperatureLabel,
                         l10n,
@@ -540,7 +649,49 @@ class ModelRegistryView extends HookConsumerWidget {
                           cfg.copyWith(temperature: val),
                         ),
                       ),
+                      _buildIntField(
+                        ValueKey(
+                          '${modelId}_maxTokens_${currentPlatform}_${cfg.maxTokens}',
+                        ),
+                        cfg.maxTokens,
+                        l10n.maxTokensLabel,
+                        l10n,
+                        (val) =>
+                            updateModel(modelId, cfg.copyWith(maxTokens: val)),
+                      ),
+                      _buildStringField(
+                        ValueKey(
+                          '${modelId}_parsingMode_${currentPlatform}_${cfg.parsingMode}',
+                        ),
+                        cfg.parsingMode,
+                        l10n.parsingModeLabel,
+                        (val) => updateModel(
+                          modelId,
+                          cfg.copyWith(parsingMode: val),
+                        ),
+                      ),
                       _buildDoubleField(
+                        ValueKey(
+                          '${modelId}_topP_${currentPlatform}_${cfg.topP}',
+                        ),
+                        cfg.topP,
+                        l10n.topPLabel,
+                        l10n,
+                        (val) => updateModel(modelId, cfg.copyWith(topP: val)),
+                      ),
+                      _buildIntField(
+                        ValueKey(
+                          '${modelId}_topK_${currentPlatform}_${cfg.topK}',
+                        ),
+                        cfg.topK,
+                        l10n.topKLabel,
+                        l10n,
+                        (val) => updateModel(modelId, cfg.copyWith(topK: val)),
+                      ),
+                      _buildDoubleField(
+                        ValueKey(
+                          '${modelId}_freqPenalty_${currentPlatform}_${cfg.frequencyPenalty}',
+                        ),
                         cfg.frequencyPenalty,
                         l10n.frequencyPenaltyLabel,
                         l10n,
@@ -550,6 +701,9 @@ class ModelRegistryView extends HookConsumerWidget {
                         ),
                       ),
                       _buildDoubleField(
+                        ValueKey(
+                          '${modelId}_presPenalty_${currentPlatform}_${cfg.presencePenalty}',
+                        ),
                         cfg.presencePenalty,
                         l10n.presencePenaltyLabel,
                         l10n,
@@ -559,33 +713,9 @@ class ModelRegistryView extends HookConsumerWidget {
                         ),
                       ),
                       _buildIntField(
-                        cfg.maxTokens,
-                        l10n.maxTokensLabel,
-                        l10n,
-                        (val) =>
-                            updateModel(modelId, cfg.copyWith(maxTokens: val)),
-                      ),
-                      _buildStringField(
-                        cfg.parsingMode,
-                        l10n.parsingModeLabel,
-                        (val) => updateModel(
-                          modelId,
-                          cfg.copyWith(parsingMode: val),
+                        ValueKey(
+                          '${modelId}_tpmLimit_${currentPlatform}_${cfg.tpmLimit}',
                         ),
-                      ),
-                      _buildDoubleField(
-                        cfg.topP,
-                        l10n.topPLabel,
-                        l10n,
-                        (val) => updateModel(modelId, cfg.copyWith(topP: val)),
-                      ),
-                      _buildIntField(
-                        cfg.topK,
-                        l10n.topKLabel,
-                        l10n,
-                        (val) => updateModel(modelId, cfg.copyWith(topK: val)),
-                      ),
-                      _buildIntField(
                         cfg.tpmLimit,
                         l10n.tpmLimitLabel,
                         l10n,
@@ -593,6 +723,9 @@ class ModelRegistryView extends HookConsumerWidget {
                             updateModel(modelId, cfg.copyWith(tpmLimit: val)),
                       ),
                       _buildIntField(
+                        ValueKey(
+                          '${modelId}_rpmLimit_${currentPlatform}_${cfg.rpmLimit}',
+                        ),
                         cfg.rpmLimit,
                         l10n.rpmLimitLabel,
                         l10n,
@@ -601,6 +734,9 @@ class ModelRegistryView extends HookConsumerWidget {
                       ),
 
                       _buildStringField(
+                        ValueKey(
+                          '${modelId}_cachingStrategy_${currentPlatform}_${cfg.cachingStrategy}',
+                        ),
                         cfg.cachingStrategy,
                         l10n.cachingStrategyLabel,
                         (val) => updateModel(
@@ -611,6 +747,9 @@ class ModelRegistryView extends HookConsumerWidget {
                         ),
                       ),
                       _buildJsonField(
+                        ValueKey(
+                          '${modelId}_additionalParams_${currentPlatform}_${cfg.additionalParams.hashCode}',
+                        ),
                         cfg.additionalParams,
                         l10n.additionalParamsLabel,
                         l10n,
@@ -647,6 +786,7 @@ class ModelRegistryView extends HookConsumerWidget {
   }
 
   Widget _buildJsonField(
+    Key? key,
     Map<String, dynamic>? initialValue,
     String label,
     AppLocalizations l10n,
@@ -658,6 +798,7 @@ class ModelRegistryView extends HookConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s12),
       child: TextFormField(
+        key: key,
         initialValue: initialText,
         maxLines: 4,
         decoration: InputDecoration(
@@ -693,6 +834,7 @@ class ModelRegistryView extends HookConsumerWidget {
   }
 
   Widget _buildStringField(
+    Key? key,
     String? initialValue,
     String label,
     Function(String) onChanged,
@@ -700,6 +842,7 @@ class ModelRegistryView extends HookConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s12),
       child: TextFormField(
+        key: key,
         initialValue: initialValue ?? '',
         decoration: InputDecoration(
           labelText: label,
@@ -711,18 +854,22 @@ class ModelRegistryView extends HookConsumerWidget {
   }
 
   Widget _buildDoubleField(
+    Key? key,
     double? initialValue,
     String label,
     AppLocalizations l10n,
-    Function(double) onChanged,
-  ) {
+    Function(double) onChanged, {
+    String? helperText,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s12),
       child: TextFormField(
+        key: key,
         initialValue: initialValue?.toString() ?? '',
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
           labelText: label,
+          helperText: helperText,
           border: const OutlineInputBorder(),
         ),
         validator: (val) {
@@ -740,18 +887,22 @@ class ModelRegistryView extends HookConsumerWidget {
   }
 
   Widget _buildIntField(
+    Key? key,
     int? initialValue,
     String label,
     AppLocalizations l10n,
-    Function(int) onChanged,
-  ) {
+    Function(int) onChanged, {
+    String? helperText,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s12),
       child: TextFormField(
+        key: key,
         initialValue: initialValue?.toString() ?? '',
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
           labelText: label,
+          helperText: helperText,
           border: const OutlineInputBorder(),
         ),
         validator: (val) {

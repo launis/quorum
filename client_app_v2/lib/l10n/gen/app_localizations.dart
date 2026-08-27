@@ -2108,6 +2108,30 @@ abstract class AppLocalizations {
   /// **'Temperature'**
   String get temperatureLabel;
 
+  /// No description provided for @thinkingBudgetTokensLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking Budget Tokens'**
+  String get thinkingBudgetTokensLabel;
+
+  /// No description provided for @thinkingBudgetHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'0 = Off, 2048 = Low, 4096 = Medium, 8192 = High'**
+  String get thinkingBudgetHelper;
+
+  /// No description provided for @reasoningModelNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning Model active: Legacy sampling parameters (temperature, top_p, top_k, penalties) are bypassed or overridden per provider best practices.'**
+  String get reasoningModelNotice;
+
+  /// No description provided for @legacyParameterNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: Parameter is not utilized or is overridden by modern reasoning models.'**
+  String get legacyParameterNotice;
+
   /// No description provided for @frequencyPenaltyLabel.
   ///
   /// In en, this message translates to:

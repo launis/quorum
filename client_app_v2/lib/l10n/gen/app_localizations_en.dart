@@ -1095,6 +1095,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get temperatureLabel => 'Temperature';
 
   @override
+  String get thinkingBudgetTokensLabel => 'Thinking Budget Tokens';
+
+  @override
+  String get thinkingBudgetHelper =>
+      '0 = Off, 2048 = Low, 4096 = Medium, 8192 = High';
+
+  @override
+  String get reasoningModelNotice =>
+      'Reasoning Model active: Legacy sampling parameters (temperature, top_p, top_k, penalties) are bypassed or overridden per provider best practices.';
+
+  @override
+  String get legacyParameterNotice =>
+      'Note: Parameter is not utilized or is overridden by modern reasoning models.';
+
+  @override
   String get frequencyPenaltyLabel => 'Frequency Penalty';
 
   @override

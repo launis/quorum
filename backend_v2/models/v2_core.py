@@ -370,6 +370,10 @@ class ModelProfile(V2CoreBase):
     caching_strategy: str | None = Field(
         default=None, description="Cache strategy identifier (e.g. 'anthropic_ephemeral')"
     )
+    # Phase 1: Strongly-typed thinking/reasoning token budget
+    thinking_budget_tokens: int | None = Field(
+        default=None, description="Reasoning/thinking token budget for reasoning models (e.g. Gemini 3.7, Claude 3.7)"
+    )
     # Phase 1, Milestone 1: Add additional_params dict field to ModelProfile
     additional_params: dict[str, Any] = Field(
         default_factory=dict, description="Additional provider-specific parameters."

@@ -1,3 +1,5 @@
+> **STATUS: COMPLETED / TOTEUTETTU (100% Implemented & Verified)**
+
 # IMPLEMENTATION PLAN: Unified Model Registry Platform & Multi-Region Discovery
 
 <required_context_rules>
@@ -42,11 +44,11 @@ Provide a unified, highly intuitive Model Registry interface and robust backend 
 ## 3. Touched Scope & Bounded Files
 
 ### TARGET Files
-- `[MODIFY]` @[backend_v2/models/enums.py#L442-L450]
+- `[MODIFY]` @[backend_v2/models/enums.py#L442-L451]
 - `[MODIFY]` @[backend_v2/models/dtos/studio.py]
-- `[MODIFY]` @[backend_v2/llm/handler.py#L29-L525]
-- `[MODIFY]` @[backend_v2/api/routers/studio/model_registry.py#L19-L36]
-- `[MODIFY]` @[backend_v2/services/studio/system_config_service.py#L21-L413]
+- `[MODIFY]` @[backend_v2/llm/handler.py#L35-L613]
+- `[MODIFY]` @[backend_v2/api/routers/studio/model_registry.py#L21-L44]
+- `[MODIFY]` @[backend_v2/services/studio/system_config_service.py#L23-L481]
 - `[MODIFY]` @[client_app_v2/lib/core/api/studio_client.dart]
 - `[MODIFY]` @[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]
 - `[MODIFY]` @[client_app_v2/lib/features/studio/views/model_registry_view.dart]
@@ -55,8 +57,8 @@ Provide a unified, highly intuitive Model Registry interface and robust backend 
 - `[NEW]` @[backend_v2/tests/unit/test_model_registry_discovery.py]
 
 ### CONTEXT Files (Read-Only)
-- `[READ]` @[backend_v2/settings.py#L51-L723]
-- `[READ]` @[backend_v2/llm/provider.py#L1212-L1376]
+- `[READ]` @[backend_v2/settings.py#L51-L746]
+- `[READ]` @[backend_v2/llm/provider.py#L1219-L1383]
 - `[READ]` @[backend_v2/models/v2_core.py#L380-L390]
 - `[READ]` @[client_app_v2/lib/features/studio/models/model_config.dart]
 
@@ -226,3 +228,14 @@ Provide a unified, highly intuitive Model Registry interface and robust backend 
 - Switch to `Google AI Studio` -> verify that Location dropdown disappears and models are listed as `gemini/...`.
 - Select `OpenAI` -> verify models list shows GPT models.
 - Save a strategy and verify that it persists and executes properly.
+
+# Session Handover Context
+- achieved:
+  - Implemented Unified Model Registry Discovery engine with dual-path Google AI Studio (`gemini/...`) and Vertex AI multi-region (`vertex_ai/...`) support.
+  - Added dynamic location filtering across 6 GCP regions (`europe-north1`, `europe-west1`, `europe-west4`, `europe-west3`, `us-central1`, `us-east4`) in `LLMHandler`, `StudioSystemConfigService`, and `ModelRegistryView`.
+  - Added UI platform selector and dynamic location dropdowns with complete English & Finnish localization (`app_en.arb`, `app_fi.arb`).
+  - Passed Universal Quality Gate with 100% pass rate across backend and Flutter audit loops.
+- learned:
+  - Decoupling platform selection (`LLMPlatformType`) from region resolution guarantees clean Zero-Fallback routing and deterministic caching in `LLMCacheAdapterFactory`.
+- remaining:
+  - Plan successfully executed, verified, and certified.

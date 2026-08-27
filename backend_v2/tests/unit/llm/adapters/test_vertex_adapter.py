@@ -11,6 +11,7 @@ import pytest
 
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ModelProfile
 
 # Setup mock modules for heavy GCP / Vertex AI SDK libraries BEFORE importing adapter
 if not hasattr(sys, "_mock_cached_contents"):
@@ -334,12 +335,15 @@ def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
     """Verify prepare_kwargs resolves vertex location and maps thinking budget tokens."""
     adapter = VertexCacheAdapter()
 
-    config_mock = MagicMock()
-    config_mock.vertex_location = "europe-west1"
-    config_mock.additional_params = {"thinking_budget_tokens": 1024}
+    config = ModelProfile(
+        provider="google",
+        model_name="vertex_ai/gemini-3.7-flash",
+        thinking_budget_tokens=1024,
+        additional_params={"vertex_location": "europe-west1"},
+    )
 
     call_kwargs: dict[str, Any] = {}
-    result = adapter.prepare_kwargs(call_kwargs, config=config_mock)
+    result = adapter.prepare_kwargs(call_kwargs, config=config)
 
     assert result["vertex_location"] == "europe-west1"
     assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 1024

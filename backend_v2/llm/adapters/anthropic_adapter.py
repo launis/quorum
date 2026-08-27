@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ModelProfile
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +182,38 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
             An empty dictionary as no special static arguments are needed.
         """
         return {}
+
+    def prepare_kwargs(
+        self, call_kwargs: dict[str, Any], config: Any | None = None, settings: Any | None = None
+    ) -> dict[str, Any]:
+        """Prepare Anthropic specific kwargs, handling thinking budgets and parameter constraints.
+
+        Args:
+            call_kwargs: The dictionary of arguments to pass to litellm.
+            config: Optional config object for the provider.
+            settings: Optional app settings.
+
+        Returns:
+            The potentially modified call_kwargs dictionary.
+        """
+        model_name = str(
+            call_kwargs.get("model") or (config.model_name if isinstance(config, ModelProfile) else "")
+        ).lower()
+        is_claude_37 = "claude-3-7" in model_name or "claude-3.7" in model_name
+
+        thinking_budget: int | None = None
+        if isinstance(config, ModelProfile):
+            if config.thinking_budget_tokens is not None:
+                thinking_budget = int(config.thinking_budget_tokens)
+            elif config.additional_params and "thinking_budget_tokens" in config.additional_params:
+                thinking_budget = int(config.additional_params["thinking_budget_tokens"])
+
+        if is_claude_37 and thinking_budget is not None and thinking_budget > 0:
+            call_kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+            # Anthropic strictly requires temperature = 1.0 when extended thinking is enabled
+            call_kwargs["temperature"] = 1.0
+
+        return call_kwargs
 
     def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
         """Convert a Pydantic model into Anthropic specific strict structured output format.

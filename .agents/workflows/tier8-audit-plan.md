@@ -96,7 +96,11 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
         1. PROSECUTION (Over-Engineering & YAGNI Advocate): Did the execution create redundant abstractions, excessive DTO transformations, premature optimizations, or unused helper functions? Answer: "If 30% of the newly added code had to be removed, what would be deleted without breaking the core requirement?"
         2. DEFENSE (Architectural Sovereignty & Fail-Fast Advocate): Does the as-built code strictly uphold DDD boundaries, RFC-7807 Fail-Fast error handling, Pydantic V2 strictness, and AST guardrail contracts against Agentic Drift?
         3. REALIST (Duct-Tape & Blast Radius Interrogator): Were any temporary patches, commented-out tests, in-memory mutable bypasses, lazy `.get()` defaults, or legacy fixture traps left behind in touched files or 1-hop callers?
-        4. BINDING VERDICT: Output an explicit 3-column decision matrix: [Pruned Over-Engineering] | [Eradicated Duct-Tape] | [Approved Best Practice].
+        4. 5-COLUMN AS-BUILT VERIFICATION TABLE:
+           Output an explicit **5-Column Architectural Verification Table**:
+           | 1. Kohdealue & Skoopit (Target Scope) | 2. 🚫 KIELLETTY PURKKA (Eradicated Duct-Tape) | 3. 🎯 TOTEUTETTU BEST PRACTICE (As-Built Invariant) | 4. ✂️ KARSITTU YLISUUNNITTELU (Pruned Over-Engineering) | 5. 🔒 VERIFIOINTI & FAIL-FAST (Proof Anchor) |
+           | :--- | :--- | :--- | :--- | :--- |
+           | **[Tiedosto / Rajapinta / Kerros]** | *[Kielletty purkka, laiskat fallbackit (`.get()`, `or`), tai hiljainen virheenvaimennus (`except: pass`)]* | *[Pakollinen hyväksytty invariantti, Pydantic V2 / Freezed schema, tai suvereeni Fail-Fast -toteutus]* | *[Karsittu turha abstraktio, ylimääräiset DTO-kääreet tai spekulatiiviset geneeriset tehdasluokat]* | *[Miten Fail-Fast todistetaan matemaattisesti: tarkka yksikkötesti, poikkeustyyppi tai laatuporttikomento]* |
     </step>
 
     <step id="5">COMPLETION GAP ANALYSIS: 

@@ -17,6 +17,7 @@ from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import GCPVertexLocation, PromptCacheStatus
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ModelProfile
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
@@ -392,19 +393,52 @@ class VertexCacheAdapter(BaseLLMAdapter):
             The potentially modified call_kwargs dictionary.
         """
         # 1. Resolve Vertex Location
-        config_location = config.vertex_location if config is not None else None
+        config_location = None
+        if isinstance(config, ModelProfile):
+            if "vertex_location" in config.additional_params:
+                config_location = config.additional_params["vertex_location"]
+        elif config is not None and isinstance(config, BaseModel):
+            if "vertex_location" in config.__dict__:
+                config_location = config.__dict__["vertex_location"]
 
-        # 1.5 Reasoning Parameter Extraction
-        if config is not None and config.additional_params is not None:
-            thinking_budget = config.additional_params.get("thinking_budget_tokens")
-            if thinking_budget:
-                if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
-                    call_kwargs["extra_body"] = {}
-                if "generationConfig" not in call_kwargs["extra_body"]:
-                    call_kwargs["extra_body"]["generationConfig"] = {}
-                if "thinkingConfig" not in call_kwargs["extra_body"]["generationConfig"]:
-                    call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"] = {}
-                call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] = int(thinking_budget)
+        # 1.5 Reasoning & Thinking Parameter Extraction / Sanitization
+        model_name = str(
+            call_kwargs.get("model") or (config.model_name if isinstance(config, ModelProfile) else "")
+        ).lower()
+        is_gemini_3 = "gemini-3" in model_name or "gemini-3." in model_name
+
+        thinking_budget: int | None = None
+        if isinstance(config, ModelProfile):
+            if config.thinking_budget_tokens is not None:
+                thinking_budget = int(config.thinking_budget_tokens)
+            elif config.additional_params and "thinking_budget_tokens" in config.additional_params:
+                thinking_budget = int(config.additional_params["thinking_budget_tokens"])
+
+        if thinking_budget is not None:
+            if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
+                call_kwargs["extra_body"] = {}
+            if "generationConfig" not in call_kwargs["extra_body"]:
+                call_kwargs["extra_body"]["generationConfig"] = {}
+            if "thinkingConfig" not in call_kwargs["extra_body"]["generationConfig"]:
+                call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"] = {}
+            call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] = thinking_budget
+
+        if is_gemini_3:
+            # Enforce temperature = 1.0 to prevent infinite thought loops / degradation
+            passed_temp = call_kwargs.get("temperature")
+            if passed_temp is not None and passed_temp < 1.0:
+                logger.warning(
+                    "[VertexAdapter] Modern reasoning model (%s) requested temperature %s < 1.0. "
+                    "Enforcing temperature=1.0 per Google recommendation.",
+                    model_name,
+                    passed_temp,
+                )
+                call_kwargs["temperature"] = 1.0
+
+            # Strip unsupported/deprecated sampling parameters for reasoning models
+            for deprecated_key in ("top_k", "frequency_penalty", "presence_penalty"):
+                call_kwargs.pop(deprecated_key, None)
+
         settings_location = settings.vertex_location if settings is not None else None
         env_location = os.getenv("HARDENING_VERTEX_LOCATION")
         active_location = (

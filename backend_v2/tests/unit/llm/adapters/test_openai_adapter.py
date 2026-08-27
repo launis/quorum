@@ -1,10 +1,10 @@
-"""Unit and precision cost-calculation tests for OpenAICacheAdapter."""
-
 import pytest
+from pydantic import BaseModel, Field
 
 from backend_v2.llm.adapters.openai_adapter import OpenAICacheAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ModelProfile
 
 
 def test_lazy_import_proof() -> None:
@@ -63,3 +63,53 @@ def test_openai_precision_calculation_scenarios() -> None:
     # Savings = 600 * 0.000005 * 0.50 = 0.0015
     assert result_cached.cost_usd == pytest.approx(0.011)
     assert result_cached.estimated_savings_usd == pytest.approx(0.0015)
+
+
+def test_openai_adapter_prepare_provider_kwargs() -> None:
+    """Verify prepare_provider_kwargs returns empty dictionary."""
+    adapter = OpenAICacheAdapter()
+    assert adapter.prepare_provider_kwargs("gpt-4o") == {}
+
+
+def test_openai_adapter_prepare_kwargs_reasoning_and_param_stripping() -> None:
+    """Verify prepare_kwargs maps thinking budget to reasoning effort and strips unsupported params."""
+    adapter = OpenAICacheAdapter()
+
+    config = ModelProfile(
+        provider="openai",
+        model_name="o3-mini",
+        temperature=0.7,
+        thinking_budget_tokens=8192,
+    )
+    call_kwargs = {
+        "model": "o3-mini",
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "frequency_penalty": 0.5,
+        "presence_penalty": 0.5,
+    }
+
+    result = adapter.prepare_kwargs(call_kwargs, config=config)
+
+    assert result["reasoning_effort"] == "high"
+    assert "temperature" not in result
+    assert "top_p" not in result
+    assert "frequency_penalty" not in result
+    assert "presence_penalty" not in result
+
+
+def test_openai_adapter_prepare_structured_output() -> None:
+    """Verify prepare_structured_output converts Pydantic model into strict json_schema dictionary."""
+    adapter = OpenAICacheAdapter()
+
+    class SampleOutputModel(BaseModel):
+        summary: str = Field(description="Summary of text")
+        score: int = Field(description="Score value")
+
+    result = adapter.prepare_structured_output(SampleOutputModel)
+
+    assert isinstance(result, dict)
+    assert result["type"] == "json_schema"
+    assert result["json_schema"]["name"] == "SampleOutputModel"
+    assert result["json_schema"]["strict"] is True
+    assert "properties" in result["json_schema"]["schema"]
