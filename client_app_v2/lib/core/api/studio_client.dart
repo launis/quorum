@@ -175,10 +175,30 @@ class StudioClient {
   }
   // --- Model Registry ---
 
-  /// Retrieves available models.
-  Future<List<String>> getAvailableModels() async {
-    final response = await _dio.get('studio/model-registry/available-models');
+  /// Retrieves available models filtered by platform and location.
+  Future<List<String>> getAvailableModels({
+    String? platform,
+    String? location,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (platform != null) {
+      queryParameters['platform'] = platform;
+    }
+    if (location != null) {
+      queryParameters['location'] = location;
+    }
+
+    final response = await _dio.get(
+      'studio/model-registry/available-models',
+      queryParameters: queryParameters.isNotEmpty ? queryParameters : null,
+    );
     return List<String>.from(response.data as List);
+  }
+
+  /// Retrieves all supported GCP Vertex AI locations.
+  Future<List<Map<String, dynamic>>> getSupportedLocations() async {
+    final response = await _dio.get('studio/model-registry/locations');
+    return List<Map<String, dynamic>>.from(response.data as List);
   }
 
   /// Retrieves all system configs (Model Registries).

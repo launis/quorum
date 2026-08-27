@@ -149,12 +149,12 @@ final class ModelRegistryByIdFamily extends $Family
   String toString() => r'modelRegistryByIdProvider';
 }
 
-/// Fetches the list of available models from the backend.
+/// Fetches the list of available models from the backend filtered by platform and location.
 
 @ProviderFor(availableModels)
-final availableModelsProvider = AvailableModelsProvider._();
+final availableModelsProvider = AvailableModelsFamily._();
 
-/// Fetches the list of available models from the backend.
+/// Fetches the list of available models from the backend filtered by platform and location.
 
 final class AvailableModelsProvider
     extends
@@ -164,20 +164,27 @@ final class AvailableModelsProvider
           FutureOr<List<String>>
         >
     with $FutureModifier<List<String>>, $FutureProvider<List<String>> {
-  /// Fetches the list of available models from the backend.
-  AvailableModelsProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'availableModelsProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+  /// Fetches the list of available models from the backend filtered by platform and location.
+  AvailableModelsProvider._({
+    required AvailableModelsFamily super.from,
+    required ({String? platform, String? location}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'availableModelsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
   @override
   String debugGetCreateSourceHash() => _$availableModelsHash();
+
+  @override
+  String toString() {
+    return r'availableModelsProvider'
+        ''
+        '$argument';
+  }
 
   @$internal
   @override
@@ -187,11 +194,102 @@ final class AvailableModelsProvider
 
   @override
   FutureOr<List<String>> create(Ref ref) {
-    return availableModels(ref);
+    final argument = this.argument as ({String? platform, String? location});
+    return availableModels(
+      ref,
+      platform: argument.platform,
+      location: argument.location,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AvailableModelsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
   }
 }
 
-String _$availableModelsHash() => r'956bc100e67bb3b7af43cd19d9b02b5c3ad1dd2d';
+String _$availableModelsHash() => r'1c7d3a1fe06a00cfa6d87c59dfcf5ec2d82aad99';
+
+/// Fetches the list of available models from the backend filtered by platform and location.
+
+final class AvailableModelsFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<List<String>>,
+          ({String? platform, String? location})
+        > {
+  AvailableModelsFamily._()
+    : super(
+        retry: null,
+        name: r'availableModelsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Fetches the list of available models from the backend filtered by platform and location.
+
+  AvailableModelsProvider call({String? platform, String? location}) =>
+      AvailableModelsProvider._(
+        argument: (platform: platform, location: location),
+        from: this,
+      );
+
+  @override
+  String toString() => r'availableModelsProvider';
+}
+
+/// Fetches supported GCP Vertex AI locations.
+
+@ProviderFor(supportedLocations)
+final supportedLocationsProvider = SupportedLocationsProvider._();
+
+/// Fetches supported GCP Vertex AI locations.
+
+final class SupportedLocationsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Map<String, dynamic>>>,
+          List<Map<String, dynamic>>,
+          FutureOr<List<Map<String, dynamic>>>
+        >
+    with
+        $FutureModifier<List<Map<String, dynamic>>>,
+        $FutureProvider<List<Map<String, dynamic>>> {
+  /// Fetches supported GCP Vertex AI locations.
+  SupportedLocationsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'supportedLocationsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$supportedLocationsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Map<String, dynamic>>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Map<String, dynamic>>> create(Ref ref) {
+    return supportedLocations(ref);
+  }
+}
+
+String _$supportedLocationsHash() =>
+    r'75c69997bf538d1b4d8813bb1ef83c5d407d953f';
 
 @ProviderFor(ModelRegistryForm)
 final modelRegistryFormProvider = ModelRegistryFormFamily._();

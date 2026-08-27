@@ -1,5 +1,11 @@
 {
   "appTitle": "Kognitiivinen Kvorumi Asiakas",
+  "platformLabel": "Alusta",
+  "locationLabel": "Alue / Lokaatio",
+  "platformVertexAi": "Google Vertex AI (GCP)",
+  "platformAiStudio": "Google AI Studio (Gemini API)",
+  "platformOpenAi": "OpenAI",
+  "platformAnthropic": "Anthropic (Direct)",
   "sduiMetadataCosts": "Kustannukset",
   "sduiMetadataTokens": "Tokenit",
   "delete": "Poista",

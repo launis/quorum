@@ -50,7 +50,25 @@ __all__ = [
     "WorkflowDeleteResponse",
     "WorkflowAvailableExtensionsResponse",
     "OutputProfileListResponse",
+    "GCPLocationDTO",
 ]
+
+
+class GCPLocationDTO(BaseDTO):
+    """Data Transfer Object representing a supported GCP location for Vertex AI.
+
+    Attributes:
+        id: Canonical GCP region string (e.g., 'europe-north1').
+        label: Human-readable location label.
+        description: Informational description of region location.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    id: Annotated[str, Field(description="Canonical GCP region identifier")]
+    label: Annotated[str, Field(description="Human-readable regional label")]
+    description: Annotated[str, Field(description="Informational region description")]
+
 
 
 class WorkflowCreateDTO(V2CoreBase):

@@ -20,8 +20,6 @@ class ModelRegistryView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final formKey = useMemoized(() => GlobalKey<FormState>());
-    final availableModelsAsync = ref.watch(availableModelsProvider);
-    final availableModels = availableModelsAsync.value ?? [];
 
     // 1. Data and loading states are read from Riverpod!
     final formState = ref.watch(modelRegistryFormProvider(id));
@@ -47,7 +45,6 @@ class ModelRegistryView extends HookConsumerWidget {
         formKey,
         formState,
         payload,
-        availableModels,
       ),
     };
   }
@@ -59,7 +56,6 @@ class ModelRegistryView extends HookConsumerWidget {
     GlobalKey<FormState> formKey,
     AsyncValue<ModelConfig> formState,
     ModelConfig payload,
-    List<String> availableModels,
   ) {
     Future<void> deleteRegistry() async {
       final String idToDelete = payload.id;
@@ -176,7 +172,7 @@ class ModelRegistryView extends HookConsumerWidget {
           children: [
             _buildSystemAttributes(l10n, payload),
             AppSpacing.h24,
-            _buildModelsSection(ref, l10n, payload, availableModels),
+            _buildModelsSection(ref, l10n, payload),
           ],
         ),
       ),
@@ -216,8 +212,10 @@ class ModelRegistryView extends HookConsumerWidget {
     WidgetRef ref,
     AppLocalizations l10n,
     ModelConfig payload,
-    List<String> availableModels,
   ) {
+    final locationsAsync = ref.watch(supportedLocationsProvider);
+    final supportedLocations = locationsAsync.value ?? [];
+
     final Map<String, Map<String, LlmModelConfig>> providerGroups = {};
     for (final entry in payload.models.entries) {
       final provider = entry.value.provider.isNotEmpty
@@ -249,8 +247,16 @@ class ModelRegistryView extends HookConsumerWidget {
                 final newModels = Map<String, LlmModelConfig>.from(
                   payload.models,
                 );
-                final tempId = 'new_strategy_${newModels.length + 1}';
-                newModels[tempId] = const LlmModelConfig();
+                final newKey =
+                    'custom_${DateTime.now().millisecondsSinceEpoch}';
+                newModels[newKey] = const LlmModelConfig(
+                  provider: 'google',
+                  modelName: 'vertex_ai/gemini-2.5-pro',
+                  additionalParams: {
+                    'platform': 'vertex_ai',
+                    'vertex_location': 'europe-north1',
+                  },
+                );
                 ref
                     .read(modelRegistryFormProvider(id).notifier)
                     .forceRebuild(payload.copyWith(models: newModels));
@@ -274,6 +280,39 @@ class ModelRegistryView extends HookConsumerWidget {
               children: providerModels.entries.map((modelEntry) {
                 final modelId = modelEntry.key;
                 final cfg = modelEntry.value;
+
+                // Determine active platform
+                String currentPlatform = 'vertex_ai';
+                if (cfg.provider == 'google') {
+                  if (cfg.modelName.startsWith('gemini/') ||
+                      (cfg.additionalParams['platform'] == 'ai_studio')) {
+                    currentPlatform = 'ai_studio';
+                  } else {
+                    currentPlatform = 'vertex_ai';
+                  }
+                } else if (cfg.provider == 'ai_studio') {
+                  currentPlatform = 'ai_studio';
+                } else if (cfg.provider == 'openai') {
+                  currentPlatform = 'openai';
+                } else if (cfg.provider == 'anthropic') {
+                  currentPlatform = 'anthropic';
+                }
+
+                // Determine active location
+                final String currentLocation =
+                    cfg.additionalParams['vertex_location'] as String? ??
+                    'europe-north1';
+
+                // Query models dynamically for this strategy's platform & location
+                final strategyModelsAsync = ref.watch(
+                  availableModelsProvider(
+                    platform: currentPlatform,
+                    location: currentPlatform == 'vertex_ai'
+                        ? currentLocation
+                        : null,
+                  ),
+                );
+                final dynamicModels = strategyModelsAsync.value ?? [];
 
                 return Padding(
                   padding: AppSpacing.p16,
@@ -311,31 +350,157 @@ class ModelRegistryView extends HookConsumerWidget {
                         ],
                       ),
                       AppSpacing.h8,
-                      // Strategy Config fields
+
+                      // 1. Platform Selector Dropdown
                       Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.s12),
-                        child: TextFormField(
-                          initialValue: cfg.provider,
+                        child: DropdownButtonFormField<String>(
+                          initialValue: currentPlatform,
+                          isExpanded: true,
                           decoration: InputDecoration(
-                            labelText: l10n.providerPlaceholder,
+                            labelText: l10n.platformLabel,
                             border: const OutlineInputBorder(),
                           ),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'vertex_ai',
+                              child: Text(l10n.platformVertexAi),
+                            ),
+                            DropdownMenuItem(
+                              value: 'ai_studio',
+                              child: Text(l10n.platformAiStudio),
+                            ),
+                            DropdownMenuItem(
+                              value: 'openai',
+                              child: Text(l10n.platformOpenAi),
+                            ),
+                            DropdownMenuItem(
+                              value: 'anthropic',
+                              child: Text(l10n.platformAnthropic),
+                            ),
+                          ],
                           onChanged: (val) {
-                            updateModel(modelId, cfg.copyWith(provider: val));
+                            if (val == null) return;
+                            String newProvider = val;
+                            if (val == 'vertex_ai') {
+                              newProvider = 'google';
+                            } else if (val == 'ai_studio') {
+                              newProvider = 'google';
+                            }
+                            final updatedParams = Map<String, dynamic>.from(
+                              cfg.additionalParams,
+                            );
+                            updatedParams['platform'] = val;
+                            updateModel(
+                              modelId,
+                              cfg.copyWith(
+                                provider: newProvider,
+                                additionalParams: updatedParams,
+                              ),
+                            );
                           },
                         ),
                       ),
 
+                      // 2. Location Dropdown (Visible only for Google Vertex AI)
+                      if (currentPlatform == 'vertex_ai')
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: AppSpacing.s12,
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            initialValue: currentLocation,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: l10n.locationLabel,
+                              border: const OutlineInputBorder(),
+                            ),
+                            items: () {
+                              final baseLocations =
+                                  supportedLocations.isNotEmpty
+                                  ? supportedLocations
+                                  : [
+                                      {
+                                        'id': 'europe-north1',
+                                        'label':
+                                            'Hamina, Finland (europe-north1)',
+                                      },
+                                      {
+                                        'id': 'europe-west1',
+                                        'label':
+                                            'St. Ghislain, Belgium (europe-west1)',
+                                      },
+                                      {
+                                        'id': 'europe-west4',
+                                        'label':
+                                            'Eemshaven, Netherlands (europe-west4)',
+                                      },
+                                      {
+                                        'id': 'europe-west3',
+                                        'label':
+                                            'Frankfurt, Germany (europe-west3)',
+                                      },
+                                      {
+                                        'id': 'us-central1',
+                                        'label':
+                                            'Council Bluffs, Iowa (us-central1)',
+                                      },
+                                      {
+                                        'id': 'us-east4',
+                                        'label': 'Ashburn, Virginia (us-east4)',
+                                      },
+                                    ];
+
+                              final existingIds = baseLocations
+                                  .map((loc) => loc['id'] as String? ?? '')
+                                  .toSet();
+
+                              return [
+                                if (currentLocation.isNotEmpty &&
+                                    !existingIds.contains(currentLocation))
+                                  DropdownMenuItem(
+                                    value: currentLocation,
+                                    child: Text(currentLocation),
+                                  ),
+                                ...baseLocations.map((loc) {
+                                  final locId =
+                                      loc['id'] as String? ?? 'europe-north1';
+                                  final locLabel =
+                                      loc['label'] as String? ?? locId;
+                                  return DropdownMenuItem(
+                                    value: locId,
+                                    child: Text(locLabel),
+                                  );
+                                }),
+                              ];
+                            }(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                final updatedParams = Map<String, dynamic>.from(
+                                  cfg.additionalParams,
+                                );
+                                updatedParams['vertex_location'] = val;
+                                updateModel(
+                                  modelId,
+                                  cfg.copyWith(additionalParams: updatedParams),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+
+                      // 3. Model Name Dropdown
                       Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.s12),
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue:
                               (cfg.modelName.isNotEmpty &&
-                                  (availableModels.contains(cfg.modelName) ||
-                                      availableModels.isEmpty))
+                                  (dynamicModels.contains(cfg.modelName) ||
+                                      dynamicModels.isEmpty))
                               ? cfg.modelName
-                              : (availableModels.isNotEmpty
-                                    ? availableModels.first
+                              : (dynamicModels.isNotEmpty
+                                    ? dynamicModels.first
                                     : null),
                           decoration: InputDecoration(
                             labelText: l10n.modelNameLabel,
@@ -344,11 +509,9 @@ class ModelRegistryView extends HookConsumerWidget {
                           items:
                               {
                                     if (cfg.modelName.isNotEmpty &&
-                                        !availableModels.contains(
-                                          cfg.modelName,
-                                        ))
+                                        !dynamicModels.contains(cfg.modelName))
                                       cfg.modelName,
-                                    ...availableModels,
+                                    ...dynamicModels,
                                   }
                                   .map(
                                     (m) => DropdownMenuItem(

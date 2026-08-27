@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, field_validator
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import PromptCacheStatus
+from backend_v2.models.enums import GCPVertexLocation, PromptCacheStatus
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
@@ -200,7 +200,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
                 settings = get_settings()
                 project = os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
-                location = settings.vertex_location or "europe-north1"
+                location = settings.vertex_location or GCPVertexLocation.EUROPE_NORTH1.value
                 clean_model_name = model_name.split("/")[-1]
                 # V3 Cache Fix: Upload ONLY static content to cache
                 static_flat = compiled_prompt.to_static_flat()
@@ -458,9 +458,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
             or config_location
             or settings_location
             or env_location
-            or "europe-north1"
+            or GCPVertexLocation.EUROPE_NORTH1.value
         )
         os.environ["VERTEX_LOCATION"] = active_location
+
         os.environ["VERTEXAI_LOCATION"] = active_location
         call_kwargs["vertex_location"] = active_location
 

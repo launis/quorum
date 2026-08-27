@@ -4,11 +4,13 @@ Provides endpoints to manage global model registry configurations.
 """
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from backend_v2.api.dependencies import CurrentUserDep, LLMHandlerDep, StudioSystemConfigServiceDep
-from backend_v2.models.dtos.studio import ModelRegistryDeleteResponse
+from backend_v2.models.dtos.studio import GCPLocationDTO, ModelRegistryDeleteResponse
+from backend_v2.models.enums import LLMPlatformType
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -18,7 +20,11 @@ router = APIRouter(prefix="/model-registry", tags=["Admin Studio V2 - Model Regi
 
 @router.get("/available-models", response_model=list[str])
 def get_available_models(
-    current_user: CurrentUserDep, llm_handler: LLMHandlerDep, studio_service: StudioSystemConfigServiceDep
+    current_user: CurrentUserDep,
+    llm_handler: LLMHandlerDep,
+    studio_service: StudioSystemConfigServiceDep,
+    platform: Annotated[LLMPlatformType, Query(description="Target LLM platform")] = LLMPlatformType.ALL,
+    location: Annotated[str | None, Query(description="Target GCP region for Vertex AI")] = None,
 ) -> list[str]:
     """Retrieve all available LLM models discovered by the LLM Handler.
 
@@ -26,6 +32,8 @@ def get_available_models(
         current_user: The authenticated user making the request.
         llm_handler: The LLM handler dependency.
         studio_service: The studio service dependency.
+        platform: Target platform filter (vertex_ai, ai_studio, openai, anthropic, all).
+        location: Target GCP region location (e.g. europe-north1).
 
     Returns:
         A list of available model names.
@@ -33,7 +41,27 @@ def get_available_models(
     Raises:
         AppException: If fetching available models fails.
     """
-    return studio_service.get_available_models(current_user, llm_handler)
+    return studio_service.get_available_models(current_user, llm_handler, platform=platform, location=location)
+
+
+@router.get("/locations", response_model=list[GCPLocationDTO])
+def get_supported_locations(
+    current_user: CurrentUserDep,
+    studio_service: StudioSystemConfigServiceDep,
+) -> list[GCPLocationDTO]:
+    """Retrieve all supported GCP Vertex AI locations and regions.
+
+    Args:
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        A list of supported GCP locations.
+
+    Raises:
+        AppException: If user is unauthorized or listing fails.
+    """
+    return studio_service.get_supported_locations(current_user)
 
 
 @router.get("/", response_model=list[SystemConfigModelRegistry])

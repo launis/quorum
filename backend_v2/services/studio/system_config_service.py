@@ -9,6 +9,8 @@ from typing import Any
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
+from backend_v2.models.dtos.studio import GCPLocationDTO
+from backend_v2.models.enums import GCPVertexLocation, LLMPlatformType
 from backend_v2.models.v2_core import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
@@ -29,12 +31,20 @@ class StudioSystemConfigService:
         """
         self.system_repo = system_repo
 
-    def get_available_models(self, initiator: TokenData, llm_handler: Any) -> list[str]:
-        """Get available models.
+    def get_available_models(
+        self,
+        initiator: TokenData,
+        llm_handler: Any,
+        platform: LLMPlatformType = LLMPlatformType.ALL,
+        location: str | None = None,
+    ) -> list[str]:
+        """Get available models filtered by platform and location.
 
         Args:
             initiator: The authenticated user initiating the request.
             llm_handler: The underlying LLM registry handler.
+            platform: Target platform type (e.g. vertex_ai, ai_studio, openai, anthropic, all).
+            location: Optional GCP region location for Vertex AI models.
 
         Returns:
             A sorted list of available AI models.
@@ -56,7 +66,11 @@ class StudioSystemConfigService:
             )
             raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
 
-        result = llm_handler.fetch_all_available_models()
+        platform_val = platform.value if isinstance(platform, LLMPlatformType) else str(platform)
+        result = llm_handler.fetch_all_available_models(
+            location=location,
+            platform=platform_val,
+        )
 
         flat_list: list[str] = []
         for models in result.values():
@@ -66,6 +80,60 @@ class StudioSystemConfigService:
                 flat_list.append(models)
 
         return sorted(list(set(flat_list)))
+
+    def get_supported_locations(self, initiator: TokenData) -> list[GCPLocationDTO]:
+        """Get all supported GCP Vertex AI locations and regions.
+
+        Args:
+            initiator: The authenticated user initiating the request.
+
+        Returns:
+            List of supported GCP locations.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If user is not authorized.
+        """
+        if initiator.role not in [UserRole.ROOT, UserRole.ADMIN]:
+            logger.error(
+                "[StudioSystemConfigService] %s: User %s attempted to list locations without ROOT/ADMIN permissions.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
+            )
+            raise PermissionDeniedError("Only ROOT or ADMIN can access supported locations.")
+
+        return [
+            GCPLocationDTO(
+                id=GCPVertexLocation.EUROPE_NORTH1.value,
+                label="Hamina, Finland (europe-north1)",
+                description="Google Cloud Nordic flagship datacenter with 100% carbon-free energy.",
+            ),
+            GCPLocationDTO(
+                id=GCPVertexLocation.EUROPE_WEST1.value,
+                label="St. Ghislain, Belgium (europe-west1)",
+                description="Primary Western European Google Cloud region with broad Gemini availability.",
+            ),
+            GCPLocationDTO(
+                id=GCPVertexLocation.EUROPE_WEST4.value,
+                label="Eemshaven, Netherlands (europe-west4)",
+                description="Netherlands enterprise datacenter hub.",
+            ),
+            GCPLocationDTO(
+                id=GCPVertexLocation.EUROPE_WEST3.value,
+                label="Frankfurt, Germany (europe-west3)",
+                description="Central European financial and enterprise cloud hub.",
+            ),
+            GCPLocationDTO(
+                id=GCPVertexLocation.US_CENTRAL1.value,
+                label="Council Bluffs, Iowa (us-central1)",
+                description="Primary Google Cloud AI and Model Garden launch region.",
+            ),
+            GCPLocationDTO(
+                id=GCPVertexLocation.US_EAST4.value,
+                label="Ashburn, Virginia (us-east4)",
+                description="US East enterprise corridor with extensive compute capacity.",
+            ),
+        ]
 
     async def get_all_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
         """Get all system configs.

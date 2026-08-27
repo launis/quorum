@@ -12,6 +12,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Cognitive Quorum Client';
 
   @override
+  String get platformLabel => 'Platform';
+
+  @override
+  String get locationLabel => 'Location / Region';
+
+  @override
+  String get platformVertexAi => 'Google Vertex AI (Enterprise)';
+
+  @override
+  String get platformAiStudio => 'Google AI Studio (Gemini Developer API)';
+
+  @override
+  String get platformOpenAi => 'OpenAI';
+
+  @override
+  String get platformAnthropic => 'Anthropic (Direct)';
+
+  @override
   String get delete => 'Delete';
 
   @override

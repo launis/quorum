@@ -1,5 +1,11 @@
 {
   "appTitle": "Cognitive Quorum Client",
+  "platformLabel": "Platform",
+  "locationLabel": "Location / Region",
+  "platformVertexAi": "Google Vertex AI (Enterprise)",
+  "platformAiStudio": "Google AI Studio (Gemini Developer API)",
+  "platformOpenAi": "OpenAI",
+  "platformAnthropic": "Anthropic (Direct)",
   "delete": "Delete",
   "errorUnknown": "Unknown error",
   "errorSseConnectionAborted": "Connection dropped unexpectedly (Server crashed or shut down). You can safely resume the execution using the 'Try again' button.",

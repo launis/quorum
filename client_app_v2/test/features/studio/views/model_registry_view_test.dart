@@ -16,7 +16,15 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            availableModelsProvider.overrideWith((ref) async => mockModels),
+            availableModelsProvider.overrideWith(
+              (ref, _) async => mockModels,
+            ),
+            supportedLocationsProvider.overrideWith(
+              (ref) async => [
+                {'id': 'europe-north1', 'label': 'Hamina, Finland (europe-north1)'},
+              ],
+            ),
+
             modelRegistryByIdProvider('syscfg_123').overrideWith(
               (ref) async => const ModelConfig(
                 id: 'syscfg_123',
@@ -65,8 +73,62 @@ void main() {
       // Verify that 'gpt-3.5-turbo' is available in the dropdown list
       expect(find.text('gpt-3.5-turbo').last, findsOneWidget);
     });
+
+    testWidgets('renders properly when vertex_location is raw env template or unmapped string', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            availableModelsProvider.overrideWith(
+              (ref, _) async => ['vertex_ai/gemini-2.5-pro'],
+            ),
+            supportedLocationsProvider.overrideWith(
+              (ref) async => [
+                {'id': 'europe-north1', 'label': 'Hamina, Finland (europe-north1)'},
+                {'id': 'europe-west1', 'label': 'St. Ghislain, Belgium (europe-west1)'},
+              ],
+            ),
+            modelRegistryByIdProvider('syscfg_raw').overrideWith(
+              (ref) async => const ModelConfig(
+                id: 'syscfg_raw',
+                slug: 'syscfg_raw_slug',
+                type: 'model_registry',
+                models: {
+                  'deep': LlmModelConfig(
+                    modelName: 'vertex_ai/gemini-2.5-pro',
+                    provider: 'google',
+                    additionalParams: {
+                      'vertex_location': r'${VERTEX_LOCATION}',
+                    },
+                    isActive: true,
+                  ),
+                },
+              ),
+            ),
+            modelRegistryControllerProvider.overrideWith(
+              () => MockModelRegistryController(),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const ModelRegistryView(id: 'syscfg_raw'),
+          ),
+        ),
+      );
+
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pumpAndSettle();
+
+      // Look for the dropdown or verify it rendered without throwing AssertionError
+      expect(find.byType(DropdownButtonFormField<String>), findsWidgets);
+    });
   });
 }
+
 
 class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
     implements ModelRegistryController {

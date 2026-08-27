@@ -12,6 +12,24 @@ class AppLocalizationsFi extends AppLocalizations {
   String get appTitle => 'Kognitiivinen Kvorumi Asiakas';
 
   @override
+  String get platformLabel => 'Alusta';
+
+  @override
+  String get locationLabel => 'Alue / Lokaatio';
+
+  @override
+  String get platformVertexAi => 'Google Vertex AI (GCP)';
+
+  @override
+  String get platformAiStudio => 'Google AI Studio (Gemini API)';
+
+  @override
+  String get platformOpenAi => 'OpenAI';
+
+  @override
+  String get platformAnthropic => 'Anthropic (Direct)';
+
+  @override
   String get delete => 'Poista';
 
   @override

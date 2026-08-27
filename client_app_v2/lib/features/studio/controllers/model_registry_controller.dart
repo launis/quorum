@@ -187,11 +187,22 @@ Future<ModelConfig> modelRegistryById(Ref ref, String id) async {
   return safeIsolateRun(() => ModelConfig.fromJson(rawData));
 }
 
-/// Fetches the list of available models from the backend.
+/// Fetches the list of available models from the backend filtered by platform and location.
 @riverpod
-Future<List<String>> availableModels(Ref ref) async {
+Future<List<String>> availableModels(
+  Ref ref, {
+  String? platform,
+  String? location,
+}) async {
   final client = ref.watch(studioClientProvider);
-  return client.getAvailableModels();
+  return client.getAvailableModels(platform: platform, location: location);
+}
+
+/// Fetches supported GCP Vertex AI locations.
+@riverpod
+Future<List<Map<String, dynamic>>> supportedLocations(Ref ref) async {
+  final client = ref.watch(studioClientProvider);
+  return client.getSupportedLocations();
 }
 
 // --- Gold Standard Form State (Flat MVC) ---

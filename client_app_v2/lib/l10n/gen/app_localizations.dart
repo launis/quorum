@@ -104,6 +104,42 @@ abstract class AppLocalizations {
   /// **'Cognitive Quorum Client'**
   String get appTitle;
 
+  /// No description provided for @platformLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform'**
+  String get platformLabel;
+
+  /// No description provided for @locationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Location / Region'**
+  String get locationLabel;
+
+  /// No description provided for @platformVertexAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Vertex AI (Enterprise)'**
+  String get platformVertexAi;
+
+  /// No description provided for @platformAiStudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Google AI Studio (Gemini Developer API)'**
+  String get platformAiStudio;
+
+  /// No description provided for @platformOpenAi.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenAI'**
+  String get platformOpenAi;
+
+  /// No description provided for @platformAnthropic.
+  ///
+  /// In en, this message translates to:
+  /// **'Anthropic (Direct)'**
+  String get platformAnthropic;
+
   /// No description provided for @delete.
   ///
   /// In en, this message translates to:

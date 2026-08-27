@@ -8,12 +8,18 @@ from typing import Any
 import openai
 import requests
 
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes, ServiceUnavailableError
+from backend_v2.exceptions import (
+    AppException,
+    ConfigurationError,
+    ErrorCodes,
+    ResourceNotFoundError,
+    ServiceUnavailableError,
+)
 from backend_v2.llm.provider import LLMFactory
+from backend_v2.models.enums import LLMPlatformType, LLMProviderName
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.settings import get_settings
-from backend_v2.utils.pydantic_utils import inflate
 
 try:
     import google.auth
@@ -69,10 +75,12 @@ class LLMHandler:
 
     def _fetch_mock_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
         if settings.use_mock_llm or "mock" in providers:
-            if "google" in providers or "mock" in providers:
+            if "google" in providers or "vertex_ai" in providers or "ai_studio" in providers or "mock" in providers:
                 models["google"] = ["mock-model-a", "mock-model-b"]
             if "openai" in providers or "mock" in providers:
                 models["openai"] = ["mock-gpt-a"]
+            if "anthropic" in providers or "mock" in providers:
+                models["anthropic"] = ["mock-claude-a"]
 
             # Return early logic
             if settings.use_mock_llm and "mock" not in providers:
@@ -81,155 +89,213 @@ class LLMHandler:
             if len(providers) == 1 and "mock" in providers:
                 return
 
+    def _fetch_vertex_models(self, target_location: str, settings: Any) -> list[str]:
+        """Discovers and validates models available in Google Cloud Vertex AI in target_location.
+
+        Args:
+            target_location: Target GCP region (e.g. 'europe-north1').
+            settings: Central application settings.
+
+        Returns:
+            Sorted list of validated model identifiers prefixed with 'vertex_ai/'.
+
+        Raises:
+            ConfigurationError: If discovery configuration or credentials are missing/invalid.
+            ServiceUnavailableError: If communication with Vertex AI endpoints fails.
+        """
+        try:
+            source_region = settings.discovery_location
+            if not source_region:
+                raise ConfigurationError(
+                    message="Strict Fail-Fast: 'discovery_location' is required in settings.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+            logger.debug(
+                "[LLMHandler] Initiating Vertex AI Model Discovery (Source: %s, Target: %s)...",
+                source_region,
+                target_location,
+            )
+
+            if not GOOGLE_DEPS_AVAILABLE:
+                raise ConfigurationError(
+                    message="Missing required dependencies for Google Vertex AI discovery.",
+                    details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+                )
+
+            import litellm
+
+            # Get all candidates (Gemini, Claude, Llama, Mistral for Vertex AI)
+            all_models = litellm.model_list
+            candidates: list[str] = []
+            for m in all_models:
+                if not isinstance(m, str):
+                    continue
+                m_lower = m.lower()
+                if m_lower.startswith("vertex_ai/") or m_lower.startswith("gemini"):
+                    if any(kw in m_lower for kw in ["gemini", "claude", "llama", "mistral"]):
+                        candidates.append(m)
+
+            candidates = sorted(list(set(candidates)))
+
+            try:
+                credentials, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+            except Exception as auth_err:
+                raise ConfigurationError(
+                    message="Google Authentication failed during Vertex AI discovery.",
+                    details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "original_error": str(auth_err)},
+                ) from auth_err
+
+            def check_model(model_id: str) -> str | None:
+                clean_id = model_id
+                for prefix in ["vertex_ai/", "gemini/", "models/"]:
+                    if clean_id.startswith(prefix):
+                        clean_id = clean_id[len(prefix) :]
+
+                clean_lower = clean_id.lower()
+                if "claude" in clean_lower:
+                    publisher = "anthropic"
+                elif "llama" in clean_lower:
+                    publisher = "meta"
+                elif "mistral" in clean_lower:
+                    publisher = "mistralai"
+                else:
+                    publisher = "google"
+
+                if publisher == "google":
+                    try:
+                        from google import genai
+
+                        modern_client = genai.Client(vertexai=True, project=project, location=target_location)
+                        _ = modern_client.models.get(model=clean_id)
+                        return f"vertex_ai/{clean_id}"
+                    except Exception:
+                        return None
+                else:
+                    try:
+                        auth_request = google.auth.transport.requests.Request()
+                        credentials.refresh(auth_request)  # type: ignore[no-untyped-call]
+                        headers = {"Authorization": f"Bearer {credentials.token}"}
+
+                        url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/{publisher}/models/{clean_id}"
+                        resp = requests.get(url, headers=headers, timeout=5)
+                        if resp.status_code == 200:
+                            return f"vertex_ai/{clean_id}"
+
+                        url_project = f"https://{target_location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{target_location}/publishers/{publisher}/models/{clean_id}"
+                        resp_project = requests.get(url_project, headers=headers, timeout=5)
+                        if resp_project.status_code == 200:
+                            return f"vertex_ai/{clean_id}"
+
+                        return None
+                    except Exception:
+                        return None
+
+            logger.info(
+                "[LLMHandler] Discovering %d Vertex candidates; validating in %s...", len(candidates), target_location
+            )
+            final_list: list[str] = []
+
+            with ThreadPoolExecutor(max_workers=20) as executor:
+                future_to_model = {executor.submit(check_model, m): m for m in candidates}
+                for future in as_completed(future_to_model):
+                    result = future.result()
+                    if result:
+                        final_list.append(result)
+
+            final_list = sorted(final_list)
+            if not final_list:
+                logger.error("[LLMHandler] Regional Vertex validation in %s returned 0 models.", target_location)
+
+            logger.info(
+                "[LLMHandler] Discovered & Validated %d Vertex AI models in %s.", len(final_list), target_location
+            )
+            return final_list
+
+        except Exception as e:
+            if isinstance(e, AppException):
+                raise e
+
+            logger.error(
+                "[LLMHandler] %s: Error fetching/validating Vertex AI models: %s",
+                ErrorCodes.MODEL_LIST_FAILED.name,
+                e,
+                exc_info=True,
+            )
+            raise ServiceUnavailableError(
+                message=f"Vertex AI Model Discovery Failed: {e}",
+                details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
+            ) from e
+
+    def _fetch_ai_studio_models(self, settings: Any) -> list[str]:
+        """Discovers and validates models available via direct Google AI Studio API key.
+
+        Args:
+            settings: Central application settings.
+
+        Returns:
+            Sorted list of validated model identifiers prefixed with 'gemini/'.
+
+        Raises:
+            ConfigurationError: If Google AI Studio API key is missing.
+            ServiceUnavailableError: If communication with Google AI Studio fails.
+        """
+        api_key = settings.google_api_key
+        if not api_key:
+            import os
+
+            api_key = os.environ.get("GEMINI_API_KEY")
+
+        if not api_key:
+            raise ConfigurationError(
+                message="GOOGLE_API_KEY / GEMINI_API_KEY not found in environment or settings for AI Studio discovery.",
+                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+            )
+
+        try:
+            from google import genai
+
+            client = genai.Client(api_key=api_key)
+            discovered: list[str] = []
+            for m in client.models.list():
+                model_name = getattr(m, "name", None) or ""
+                # Strip models/ prefix if present
+                clean_name = model_name[7:] if model_name.startswith("models/") else model_name
+                if "gemini" in clean_name.lower():
+                    discovered.append(f"gemini/{clean_name}")
+
+            if not discovered:
+                # Fallback to standard known Gemini models in LiteLLM catalog
+                import litellm
+
+                for lm in litellm.model_list:
+                    if isinstance(lm, str) and lm.startswith("gemini/") and "gemini" in lm.lower():
+                        discovered.append(lm)
+
+            return sorted(list(set(discovered)))
+
+        except Exception as e:
+            if isinstance(e, AppException):
+                raise e
+
+            logger.error(
+                "[LLMHandler] %s: Error fetching Google AI Studio models: %s",
+                ErrorCodes.MODEL_LIST_FAILED.name,
+                e,
+                exc_info=True,
+            )
+            raise ServiceUnavailableError(
+                message=f"Google AI Studio Model Discovery Failed: {e}",
+                details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
+            ) from e
+
     def _fetch_google_models(
         self, providers: list[str], target_location: str, settings: Any, models: dict[str, list[str] | str]
     ) -> None:
-        if "google" in providers:
-            try:
-                # 1. Discovery (Source of Truth: LiteLLM / "West" equivalent)
-                # We log the source region for auditability.
-                source_region = settings.discovery_location
-                if not source_region:
-                    raise ConfigurationError(
-                        message="Strict Fail-Fast: 'discovery_location' is required in settings.",
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                    )
-                logger.debug("[LLMHandler] Initiating Model Discovery (Source: %s)...", source_region)
-
-                if not GOOGLE_DEPS_AVAILABLE:
-                    raise ConfigurationError(
-                        message="Missing required dependencies for Google discovery.",
-                        details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
-                    )
-
-                import litellm
-
-                # Get all candidates (Gemini, Claude, Llama, Mistral for Vertex AI)
-                all_models = litellm.model_list
-                candidates = []
-                for m in all_models:
-                    if not isinstance(m, str):
-                        continue
-                    m_lower = m.lower()
-                    if m_lower.startswith("vertex_ai/") or m_lower.startswith("gemini"):
-                        if any(kw in m_lower for kw in ["gemini", "claude", "llama", "mistral"]):
-                            candidates.append(m)
-
-                candidates = sorted(list(set(candidates)))
-
-                # 2. Validation (Target Region: Finland / europe-north1)
-                final_list = []
-
-                # Setup Auth (once)
-                try:
-                    credentials, project = google.auth.default(
-                        scopes=["https://www.googleapis.com/auth/cloud-platform"]
-                    )
-                except Exception as auth_err:
-                    # Fail Fast: If we can't authenticate, we can't discover or use models.
-                    raise ConfigurationError(
-                        message="Google Authentication failed during discovery.",
-                        details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "original_error": str(auth_err)},
-                    ) from auth_err
-
-                def check_model(model_id: str) -> str | None:
-                    # Clean model ID for API call
-                    clean_id = model_id
-                    for prefix in ["vertex_ai/", "gemini/", "models/"]:
-                        if clean_id.startswith(prefix):
-                            clean_id = clean_id[len(prefix) :]
-
-                    # Luokitellaan julkaisija nimen perusteella
-                    clean_lower = clean_id.lower()
-                    if "claude" in clean_lower:
-                        publisher = "anthropic"
-                    elif "llama" in clean_lower:
-                        publisher = "meta"
-                    elif "mistral" in clean_lower:
-                        publisher = "mistralai"
-                    else:
-                        publisher = "google"
-
-                    if publisher == "google":
-                        try:
-                            from google import genai
-
-                            # Initialize modern GenAI client with V2 SDK
-                            modern_client = genai.Client(vertexai=True, project=project, location=target_location)
-                            # Get model metadata to verify availability
-                            _ = modern_client.models.get(model=clean_id)
-                            return f"vertex_ai/{clean_id}"
-                        except Exception:
-                            return None
-                    else:
-                        # Kolmansien osapuolien Model Garden -mallit
-                        try:
-                            # Refresh token for REST API usage
-                            auth_request = google.auth.transport.requests.Request()
-                            credentials.refresh(auth_request)  # type: ignore[no-untyped-call]
-                            headers = {"Authorization": f"Bearer {credentials.token}"}
-
-                            # Varmistetaan olemassaolo dynaamisen julkaisija-osoitteen kautta
-                            url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/{publisher}/models/{clean_id}"
-                            resp = requests.get(url, headers=headers, timeout=5)
-                            if resp.status_code == 200:
-                                return f"vertex_ai/{clean_id}"
-
-                            # Kokeillaan myös täydellistä projektipolkua varalta
-                            url_project = f"https://{target_location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{target_location}/publishers/{publisher}/models/{clean_id}"
-                            resp_project = requests.get(url_project, headers=headers, timeout=5)
-                            if resp_project.status_code == 200:
-                                return f"vertex_ai/{clean_id}"
-
-                            return None
-                        except Exception:
-                            return None
-
-                # Parallel Validation
-                logger.info("[LLMHandler] discovering %d models; validating in %s...", len(candidates), target_location)
-
-                with ThreadPoolExecutor(max_workers=20) as executor:
-                    future_to_model = {executor.submit(check_model, m): m for m in candidates}
-                    for future in as_completed(future_to_model):
-                        result = future.result()
-                        if result:
-                            final_list.append(result)
-
-                final_list = sorted(final_list)
-
-                # Fallback if validation fails hard (empty list)
-                if not final_list:
-                    # STRICT: We do not fallback. We return empty.
-                    # Caller (frontend) decides if empty is an error (it probably is).
-                    # But if we genuinely found nothing, we shouldn't lie.
-                    logger.error("[LLMHandler] Regional validation in %s returned 0 models.", target_location)
-                    final_list = []
-
-                models["google"] = final_list
-                self._cached_google_models = final_list
-
-                logger.info(
-                    "[LLMHandler] Discovered & Validated %d Gemini models in %s.", len(final_list), target_location
-                )
-
-            except Exception as e:
-                # If it's already an AppException, re-raise
-                if isinstance(e, AppException):
-                    raise e
-
-                # Otherwise wrap in ServiceUnavailable (upstream failure)
-                logger.error(
-                    "[LLMHandler] %s: Error fetching/validating Google models: %s",
-                    ErrorCodes.MODEL_LIST_FAILED.name,
-                    e,
-                    exc_info=True,
-                )
-
-                # STRICT: Do not return error strings. Raise.
-                raise ServiceUnavailableError(
-                    message=f"Google Model Discovery Failed: {e}",
-                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
-                ) from e
+        if "google" in providers or "vertex_ai" in providers:
+            final_list = self._fetch_vertex_models(target_location, settings)
+            models["google"] = final_list
+            models["vertex_ai"] = final_list
+            self._cached_google_models = final_list
 
     def _fetch_openai_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
         if "openai" in providers:
@@ -296,92 +362,114 @@ class LLMHandler:
                 ) from e
 
     def fetch_all_available_models(
-        self, providers: list[str] | None = None, location: str | None = None
+        self,
+        providers: list[str] | None = None,
+        location: str | None = None,
+        platform: str | None = None,
     ) -> dict[str, list[str] | str]:
-        """Queries External APIs (Vertex AI, OpenAI) for available models.
+        """Queries External APIs (Vertex AI, Google AI Studio, OpenAI, Anthropic) for available models.
 
         Respects 'use_mock_llm' setting by returning mock data if enabled.
 
         Args:
-            providers (List[str]): List of providers to query ('google', 'openai', 'mock'). Defaults to all.
-            location (str | None): Optional target location to validate against. Defaults to settings value.
+            providers: List of providers to query ('google', 'openai', 'anthropic', 'mock').
+            location: Optional target GCP region to validate against (e.g. 'europe-north1').
+            platform: Optional platform filter ('vertex_ai', 'ai_studio', 'openai', 'anthropic', 'all').
 
-        Logic for Google:
-        1. Fetch Master List from 'us-central1' (Model Garden root).
-        2. Iterate and Validate against Target Location (if different from us-central1).
-
+        Returns:
+            Dictionary mapping provider/platform keys to lists of available model strings.
         """
         settings = get_settings()
         models: dict[str, list[str] | str] = {}
 
-        # Resolve Target Location from Settings (Robust .env loading)
+        # Resolve Target Location from Settings or argument
         target_location = location if location else settings.vertex_location
         if not target_location:
             raise ValueError(
                 "CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Model Discovery."
             )
 
-        # Normalize providers list
-        if not providers:
-            # Zero-Fallback: We do not assume default providers.
-            # Use configured providers from settings.
-            providers = settings.enabled_providers
-            if not providers:
-                # If strictly nothing executed, we return empty.
-                return {}
-
-        providers = [p.lower() for p in providers]
-        # Strict checking: Only add mock if explicitly requested
-        if "mock" in providers or settings.use_mock_llm:
-            # Only then we consider mock logic
-            pass
-
-        # Delegate to helpers
-        if settings.use_mock_llm or "mock" in providers:
-            self._fetch_mock_models(providers, settings, models)
-            if settings.use_mock_llm and "mock" not in providers:
+        # Handle Mock Mode
+        if settings.use_mock_llm or (providers and "mock" in providers):
+            self._fetch_mock_models(providers or ["mock"], settings, models)
+            if settings.use_mock_llm and (not providers or "mock" not in providers):
                 return models
-            if len(providers) == 1 and "mock" in providers:
+            if providers and len(providers) == 1 and "mock" in providers:
                 return models
 
-        if "google" in providers:
-            self._fetch_google_models(providers, target_location, settings, models)
+        # If explicit platform is provided, route directly
+        norm_platform = platform.lower() if platform else LLMPlatformType.ALL.value
 
-        if "openai" in providers:
-            self._fetch_openai_models(providers, settings, models)
+        if norm_platform == LLMPlatformType.VERTEX_AI.value:
+            vertex_models = self._fetch_vertex_models(target_location, settings)
+            models[LLMPlatformType.VERTEX_AI.value] = vertex_models
+            models[LLMProviderName.GOOGLE.value] = vertex_models
+            return models
 
-        if "anthropic" in providers:
-            self._fetch_anthropic_models(providers, settings, models)
+        if norm_platform == LLMPlatformType.AI_STUDIO.value:
+            ai_studio_models = self._fetch_ai_studio_models(settings)
+            models[LLMPlatformType.AI_STUDIO.value] = ai_studio_models
+            models[LLMProviderName.GOOGLE.value] = ai_studio_models
+            return models
+
+        if norm_platform == LLMPlatformType.OPENAI.value:
+            self._fetch_openai_models([LLMProviderName.OPENAI.value], settings, models)
+            return models
+
+        if norm_platform == LLMPlatformType.ANTHROPIC.value:
+            self._fetch_anthropic_models([LLMProviderName.ANTHROPIC.value], settings, models)
+            return models
+
+        # Standard Multi-Provider Aggregation
+        active_providers = providers or settings.enabled_providers
+        if not active_providers:
+            return {}
+
+        active_providers = [p.lower() for p in active_providers]
+
+        if LLMProviderName.GOOGLE.value in active_providers or LLMProviderName.VERTEX_AI.value in active_providers:
+            self._fetch_google_models(active_providers, target_location, settings, models)
+
+        if LLMProviderName.OPENAI.value in active_providers:
+            self._fetch_openai_models(active_providers, settings, models)
+
+        if LLMProviderName.ANTHROPIC.value in active_providers:
+            self._fetch_anthropic_models(active_providers, settings, models)
 
         return models
 
     async def get_active_model_registry(self) -> dict[str, Any]:
         """Fetches the 'global_model_registry' from the 'system_config' table in the database.
 
+        Validates the configuration using the Pydantic SystemConfigModelRegistry schema.
+
         Returns:
-            Dict[str, Any]: configuration mapping (flat map of ModelProfiles).
+            The raw dictionary representation of the validated configuration.
 
         Raises:
-            ConfigurationError: If the registry is missing or fails to parse (ErrorCodes.CONFIGURATION_ERROR).
+            ResourceNotFoundError: If the configuration is missing.
+            AppException: If validation fails.
         """
-        try:
-            res = await self.repo.get_model_registry()
-
-            parsed = inflate(res, SystemConfigModelRegistry)
-            if not isinstance(parsed, SystemConfigModelRegistry):
-                raise ValueError("Parsed registry is not a valid SystemConfigModelRegistry")
-            dump = parsed.model_dump()
-            models: dict[str, Any] = dump["models"]
-            return models
-        except Exception as e:
-            logger.error(
-                "[LLMHandler] %s: Failed to parse active model registry: %s",
-                ErrorCodes.CONFIGURATION_ERROR.name,
-                e,
-                exc_info=True,
+        record = await self.repo.get_system_config("global_model_registry")
+        if not record:
+            raise ResourceNotFoundError(
+                resource_type="SystemConfig",
+                resource_id="global_model_registry",
             )
-            raise ConfigurationError(
-                message=f"Model Registry is corrupt: {e}", details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+
+        raw_config = record.get("config", {})
+
+        # Pydantic V2 Validation
+        try:
+            # Model config already defined in SystemConfigModelRegistry (v2_core.py)
+            validated = SystemConfigModelRegistry.model_validate(raw_config)
+            return validated.model_dump()
+        except Exception as e:
+            logger.error("[LLMHandler] %s: Schema validation failed: %s", ErrorCodes.VALIDATION_FAILED.name, e)
+            raise AppException(
+                message=f"Model registry validation failed: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
     async def get_model_config(self, provider: str, mode: str) -> dict[str, Any] | None:
@@ -395,39 +483,40 @@ class LLMHandler:
             Optional[Dict[str, Any]]: Configuration dictionary if found, else None.
         """
         registry = await self.get_active_model_registry()
-
-        # V2 schema uses 'mode' (strategy) as the top-level keys
-        config = registry.get(mode)
+        models = registry.get("models", {})
+        config = models.get(mode)
 
         if config:
             return dict(config)
         return None
 
-    async def call_llm(self, provider: str, mode: str, prompt: str, system_instruction: str | None = None) -> str:
-        """High-level helper to call an LLM (Ad-hoc usage).
-
-        Resolves configuration from DB based on provider/mode and delegates to LLMFactory.
+    async def create_provider_for_strategy(self, mode: str) -> Any:
+        """Dynamically instantiates and returns an LLM Provider configured for a specific strategy.
 
         Args:
-            provider (str): 'gemini' or 'openai' or 'mock'.
-            mode (str): 'fast', 'smart', etc.
-            prompt (str): Text prompt.
-            system_instruction (Optional[str]): System context.
+            mode (str): The strategy name (e.g., 'primary', 'fast', 'creative', 'embedding').
 
         Returns:
-            str: Generated text response.
+            LLMProvider: Configured and validated provider instance.
 
         Raises:
-            ConfigurationError: If strategy configuration is missing (ErrorCodes.CONFIGURATION_ERROR).
-            ServiceUnavailableError: If the model strategy is deactivated or execution fails (ErrorCodes.SERVICE_DISABLED, ErrorCodes.UNKNOWN_ERROR).
+            AppException: If configuration is invalid, missing, or model is not available.
         """
+        registry = await self.get_active_model_registry()
+        models = registry.get("models", {})
+
+        if mode not in models:
+            raise ConfigurationError(
+                message=f"Strategy '{mode}' not configured in global model registry.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
+        model_profile = models[mode]
+        provider = model_profile["provider"]
+        cd = model_profile
+
+        # Validate structure against LLMProviderConfig implicitly via extraction
         settings = get_settings()
-        config = await self.get_model_config(provider, mode)
-
-        if not config:
-            raise ValueError(f"STRICT CONFIG ERROR: No configuration found for strategy '{provider}/{mode}' ")
-
-        cd = config
 
         # Pydantic has already validated these via SystemConfigModelRegistry in get_active_model_registry
         model_name = cd["model_name"]
@@ -435,23 +524,31 @@ class LLMHandler:
         max_tokens = cd["max_tokens"]
         api_key = cd.get("api_key")
 
-        # STRICT VALIDATION (Jan 2026 Decree):
-        # Ensure the configured model name actually exists in the target region.
-        # This prevents "blind" 404s from the provider.
-        if provider == "google" and mode != "mock":
-            available_models_map = await asyncio.to_thread(self.fetch_all_available_models, providers=[provider])
-            valid_models = available_models_map[provider] if provider in available_models_map else []
+        # Dynamic location resolution from additional_params or settings
+        add_params = cd.get("additional_params") or {}
+        target_location = add_params.get("vertex_location") or settings.vertex_location
 
-            # DB stores "vertex_ai/foo", discovery returns "vertex_ai/foo"
+        # STRICT VALIDATION: Ensure the configured model name actually exists in the target region.
+        # This prevents "blind" 404s from the provider.
+        if provider in (LLMProviderName.GOOGLE.value, LLMProviderName.VERTEX_AI.value) and mode != "mock":
+            available_models_map = await asyncio.to_thread(
+                self.fetch_all_available_models,
+                providers=[provider],
+                location=target_location,
+                platform=LLMPlatformType.VERTEX_AI.value
+                if model_name.startswith("vertex_ai/")
+                else (LLMPlatformType.AI_STUDIO.value if model_name.startswith("gemini/") else None),
+            )
+
+            valid_models = available_models_map.get(provider, [])
+            if not isinstance(valid_models, list):
+                valid_models = [valid_models] if valid_models else []
+
             if model_name not in valid_models:
-                # Force refresh once if not found, just in case cache is stale?
-                # No, "Strict Strictness" implies we trust our validator.
-                # But maybe we should warn logic.
-                # Actually, checking if it is a "mock" environment or not.
                 if "mock" not in model_name.lower():
                     error_msg = (
                         f"STRICT VALIDATION ERROR: Model '{model_name}' configured for strategy '{mode}' "
-                        f"is NOT available in the current region ('{settings.vertex_location}'). "
+                        f"is NOT available in the target region ('{target_location}'). "
                         f"Available models: {valid_models[:5]}..."
                     )
                     logger.error("[LLMHandler] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, error_msg)
@@ -502,24 +599,15 @@ class LLMHandler:
                 api_key=api_key,  # Pass explicit key if needed, but config has it
             )
 
-            response = await llm_provider.generate(
-                prompt=prompt,
-                system_instruction=system_instruction,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-
-            # Response is now LLMResponse object
-            if response.reasoning_token:
-                logger.info("[LLMHandler] Captured Reasoning Token: %s...", response.reasoning_token[:20])
-
-            # Return content string to maintain backward compatibility for this ad-hoc method
-            return response.content
+            return llm_provider
 
         except Exception as e:
             if isinstance(e, (AppException, ServiceUnavailableError, ConfigurationError)):
                 raise e
-            logger.error("[LLMHandler] %s: Unified Call Failed: %s", ErrorCodes.UNKNOWN_ERROR.name, e, exc_info=True)
+            logger.error(
+                "[LLMHandler] %s: Unified Provider Creation Failed: %s", ErrorCodes.UNKNOWN_ERROR.name, e, exc_info=True
+            )
             raise ServiceUnavailableError(
-                message=f"LLM Handler Unified Call Failed: {e}", details={"error_code": ErrorCodes.UNKNOWN_ERROR.value}
+                message=f"LLM Handler Provider Creation Failed: {e}",
+                details={"error_code": ErrorCodes.UNKNOWN_ERROR.value},
             ) from e

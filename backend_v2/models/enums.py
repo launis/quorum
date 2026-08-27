@@ -450,6 +450,27 @@ class LLMProviderName(StrEnum):
     MOCK = "mock_llm_99"
 
 
+class GCPVertexLocation(StrEnum):
+    """Supported GCP Vertex AI deployment locations and regions."""
+
+    EUROPE_NORTH1 = "europe-north1"  # Hamina, Finland
+    EUROPE_WEST1 = "europe-west1"  # St. Ghislain, Belgium
+    EUROPE_WEST4 = "europe-west4"  # Eemshaven, Netherlands
+    EUROPE_WEST3 = "europe-west3"  # Frankfurt, Germany
+    US_CENTRAL1 = "us-central1"  # Council Bluffs, Iowa
+    US_EAST4 = "us-east4"  # Ashburn, Virginia
+
+
+class LLMPlatformType(StrEnum):
+    """Target platform type for LLM model discovery and execution routing."""
+
+    VERTEX_AI = "vertex_ai"
+    AI_STUDIO = "ai_studio"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    ALL = "all"
+
+
 class PromptCacheStatus(StrEnum):
     """Status states for prompt caching in shared ledger."""
 
