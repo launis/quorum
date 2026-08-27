@@ -1,3 +1,12 @@
+"""Core Base Models for Quorum V2 Architecture.
+
+Provides foundational Pydantic V2 base models (V2CoreBase) and structured
+multilingual text representations (I18nText) enforcing strict mode, fail-fast
+validation, and cross-domain localization parity.
+"""
+
+from __future__ import annotations
+
 import logging
 import re
 from typing import Annotated
@@ -6,6 +15,8 @@ from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
+
+__all__ = ["I18nText", "V2CoreBase"]
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +29,8 @@ class V2CoreBase(BaseModel):
     immutability.
 
     Attributes:
-        model_config (ConfigDict): Pydantic configuration dictionary.
+        model_config: Pydantic configuration dictionary enforcing strictness,
+            frozen immutability, and forbidding extra fields.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid", str_strip_whitespace=True)
@@ -63,8 +75,7 @@ class I18nText(V2CoreBase):
             clean_key = raw_key.strip().lower()
             sanitized[clean_key] = raw_val
 
-        en_trans = sanitized.get("en")
-        if not en_trans or not en_trans.strip():
+        if "en" not in sanitized or not sanitized["en"].strip():
             msg = (
                 f"I18nText must contain a valid English ('en') translation as a baseline fallback. Payload: {sanitized}"
             )
@@ -106,7 +117,7 @@ class I18nText(V2CoreBase):
             f"I18nText failed to resolve localization for target '{target_locale}' and fallback '{fallback_locale}'. "
             f"Available keys: {list(self.translations.keys())}"
         )
-        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -122,5 +133,8 @@ class I18nText(V2CoreBase):
 
         Returns:
             The resolved string.
+
+        Raises:
+            AppException: If no valid non-empty translation is resolved.
         """
         return self.resolve(target_locale=lang_code, fallback_locale=fallback)

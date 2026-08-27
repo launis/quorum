@@ -18,7 +18,10 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from scripts._ast_guardrails import GuardrailViolation, scan_files_for_guardrails
+try:
+    from scripts._ast_guardrails import GuardrailViolation, scan_files_for_guardrails
+except ModuleNotFoundError:
+    from _ast_guardrails import GuardrailViolation, scan_files_for_guardrails
 
 # Force UTF-8 encoding for stdout on Windows without reflection
 if isinstance(sys.stdout, io.TextIOWrapper):

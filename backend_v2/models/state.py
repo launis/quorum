@@ -55,8 +55,9 @@ __all__ = [
 
 
 class StepExecutionEnvelope(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Base envelope for execution traces to prevent repetition and enforce DRY architecture."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     execution_id: str | None = Field(default=None)
     workflow_id: str | None = Field(default=None)
@@ -68,8 +69,9 @@ class StepExecutionEnvelope(V2CoreBase):
 
 
 class ReasoningTrace(V2CoreBase):
+    """Stores hidden Chain-of-Thought (preserves 'Thinking Tokens')."""
+
     model_config = ConfigDict(strict=True, extra="forbid")
-    """Stores hidden Chain-of-Thought (preserves "Thinking Tokens")."""
 
     thought_process: str = Field(
         min_length=1,
@@ -115,8 +117,9 @@ class ReasoningTrace(V2CoreBase):
 
 
 class EvidenceOverrideDTO(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Payload for evidence override events."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     evq_id: str = Field(description="The opaque evidence quote ID.")
     user_rejected: bool = Field(description="Whether the user explicitly rejected this evidence.")
@@ -126,8 +129,9 @@ class EvidenceOverrideDTO(V2CoreBase):
 
 
 class TraceEvent(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Immutable event log item representing a distinct step or state change."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     event_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique event identifier.")
     v: int = Field(default=1, description="Schema version for forward compatibility and lazy upcasting.")
@@ -152,8 +156,9 @@ class TraceEvent(V2CoreBase):
 
 
 class ErrorTraceEvent(TraceEvent):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Specific event representing a fail-fast error katkos."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     event_type: Literal["error"] = "error"
     error_code: str = Field(description="The standard ErrorCode string.")
@@ -161,16 +166,18 @@ class ErrorTraceEvent(TraceEvent):
 
 
 class TombstoneEvent(TraceEvent):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Specific event representing GDPR-redacted or deleted data."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     event_type: Literal["tombstone"] = "tombstone"
     redacted_hash: str = Field(description="Cryptographic hash or identifier of the original redacted data.")
 
 
 class StepOutputDTO(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Strict execution trace payload format."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     step_id: str = Field(description="The opaque DAG Step ID.")
     block_id: str = Field(description="The opaque PromptBlock ID.")
@@ -199,8 +206,9 @@ ExecutionRecord.model_rebuild(_types_namespace=_state_localns)
 
 
 class WorkflowState(ExecutionCoreFields):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Aggregate root containing the execution trace and current state."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     execution_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
     workflow_id: str = Field(
@@ -448,19 +456,12 @@ class StateProjector:
 
 
 class ExecutionState(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Headless, strongly-typed Pydantic model representing the overall execution state."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     executive_summary: str = Field(description="Concise overview of findings from execution run.")
     evidence_quotes: list[QuoteEvidenceDTO] = Field(
         default_factory=list, description="Selected quotes to support the findings."
     )
     urgency_level: int = Field(description="Urgency or severity level.")
-
-
-_state_types = {
-    "ErrorTraceEvent": ErrorTraceEvent,
-    "TombstoneEvent": TombstoneEvent,
-    "TraceEvent": TraceEvent,
-}
-ExecutionCoreFields.model_rebuild(_types_namespace=_state_types)

@@ -51,50 +51,61 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = [
+    "AcceptanceCriterion",
+    "AllowedMCPTool",
+    "AntiPattern",
+    "AtomResultDTO",
+    "BaseMatrixXAI",
+    "BaseTDAExtraction",
+    "BlockDataType",
+    "ChatMessageDTO",
+    "ChatHistoryDTO",
+    "ComponentType",
+    "DataDictionaryField",
+    "DataStarvationEvent",
+    "ErrorDetailsDTO",
+    "EvidenceRejectionRequest",
+    "ExecutionCoreFields",
+    "ExecutionCreate",
+    "ExecutionMetricsDTO",
+    "ExecutionRecord",
+    "ExecutionStatus",
+    "ExecutionStepState",
+    "ExpectedInput",
+    "ExtensionMetricsDTO",
+    "ExtractedValueDTO",
+    "FrozenContext",
+    "HumanOverrideDTO",
+    "HumanOverrideRequest",
+    "HydratedAtomDTO",
     "I18nText",
-    "ModelProfile",
-    "SystemConfigModelRegistry",
-    "SystemConfigMCPGateways",
-    "SystemConfigPerformativeLexicons",
+    "JobAcceptedDTO",
     "LexiconConfigPayload",
     "LexiconSuggestionListDTO",
-    "AllowedMCPTool",
     "MCPAuditTrace",
+    "MatrixClaim",
+    "MatrixRow",
+    "MatrixScale",
+    "MatrixScorecardRowDTO",
+    "MatrixSynthesisGroup",
+    "ModelProfile",
+    "OutputProfile",
+    "QuestionnaireItem",
+    "RenderedSynthesisCache",
+    "ReportDataDTO",
+    "Role",
+    "ScorecardAtomDTO",
     "Step",
     "StepRule",
-    "Role",
-    "Workflow",
-    "ComponentType",
-    "BlockDataType",
-    "ExecutionStatus",
-    "ExecutionCoreFields",
-    "FrozenContext",
-    "ExecutionCreate",
-    "ExecutionRecord",
-    "ExpectedInput",
-    "WorkflowInputs",
-    "QuestionnaireItem",
-    "MatrixSynthesisGroup",
     "SynthesisConfigDTO",
-    "OutputProfile",
-    "JobAcceptedDTO",
+    "SystemConfigMCPGateways",
+    "SystemConfigModelRegistry",
+    "SystemConfigPerformativeLexicons",
     "TDAAssertion",
-    "MatrixClaim",
-    "BaseTDAExtraction",
-    "HumanOverrideRequest",
-    "HumanOverrideDTO",
-    "ScorecardAtomDTO",
-    "MatrixScorecardRowDTO",
-    "ErrorDetailsDTO",
-    "HydratedAtomDTO",
-    "ExtractedValueDTO",
-    "AtomResultDTO",
-    "ExecutionMetricsDTO",
-    "ExtensionMetricsDTO",
-    "ReportDataDTO",
+    "TheoryGrounding",
+    "Workflow",
+    "WorkflowInputs",
     "XaiHighlightItem",
-    "RenderedSynthesisCache",
-    "DataStarvationEvent",
 ]
 
 
@@ -115,16 +126,18 @@ class TheoryGrounding(V2CoreBase):
 
 
 class AcceptanceCriterion(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Structured acceptance criterion with bilingual instruction."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     instruction: str = Field(description="Structured monolingual instruction.")
     requires_contextual_override: bool = Field(default=False)
 
 
 class AntiPattern(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Known anti-pattern with bilingual description."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     pattern: str = Field(description="Known anti-pattern with monolingual description.")
     allows_contextual_excuse: bool = Field(default=False)
@@ -325,8 +338,9 @@ class ChatHistoryDTO(V2CoreBase):
 
 
 class DataDictionaryField(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """UI Hints mapping for dynamic form generation (SDUI)."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     field_id: str
     component_type: LaxComponentType = Field(description="E.g., 'slider', 'text_input', 'dropdown'")
@@ -335,8 +349,9 @@ class DataDictionaryField(V2CoreBase):
 
 
 class ModelProfile(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """A flattened physical AI model representation."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     provider: str = Field(description="E.g., 'google', 'openai'")
     model_name: str = Field(description="The underlying API model name")
@@ -363,8 +378,9 @@ class ModelProfile(V2CoreBase):
 
 
 class SystemConfigModelRegistry(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """V2 Flattened Model Registry System Config."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
     type: str = Field(description="Type of config")
@@ -375,8 +391,9 @@ class SystemConfigModelRegistry(V2CoreBase):
 
 
 class AllowedMCPTool(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Declares a single MCP tool available for LLM function calling."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     tool_id: str = Field(description="Unique slug (e.g. 'mcp_tavily_search').")
     name: I18nText = Field(description="Localized display name.")
@@ -387,8 +404,9 @@ class AllowedMCPTool(V2CoreBase):
 
 
 class MCPAuditTrace(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Immutable audit log entry for a single MCP tool invocation."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str | None = Field(default=None, description="Unique identifier for the trace injected by the driver.")
     tool_id: str = Field(description="Which tool was called.")
@@ -410,8 +428,9 @@ class MCPAuditTrace(V2CoreBase):
 
 
 class SystemConfigMCPGateways(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """System-level registry of available MCP tool gateways."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
     type: str = Field(description="Config type discriminator.")
@@ -422,8 +441,9 @@ class SystemConfigMCPGateways(V2CoreBase):
 
 
 class LexiconConfigPayload(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Configuration for a single language lexicon."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     language_code: str = Field(description="ISO language code (e.g., 'en', 'fi').")
     language_name: str = Field(description="Human readable language name.")
@@ -432,8 +452,9 @@ class LexiconConfigPayload(V2CoreBase):
 
 
 class SystemConfigPerformativeLexicons(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """System configuration for multi-language performative lexicons."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
     type: Literal["performative_lexicons"] = Field(
@@ -446,8 +467,9 @@ class SystemConfigPerformativeLexicons(V2CoreBase):
 
 
 class LexiconSuggestionListDTO(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Structured DTO for LLM returned performative phrases."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     suggested_phrases: list[str] = Field(
         default_factory=list, description="List of suggested performative or slop phrases."
@@ -606,8 +628,9 @@ class Role(V2CoreBase):
 
 
 class QuestionnaireItem(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """A single question definition within a dynamic questionnaire."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     question_id: str = Field(description="Unique identifier for the question (e.g., 'q1').")
     question: I18nText = Field(description="Localized question text.")
@@ -615,8 +638,9 @@ class QuestionnaireItem(V2CoreBase):
 
 
 class ExpectedInput(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Definition of an input required by a workflow."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     input_key: str = Field(pattern=r"^[A-Za-z0-9_]{1,32}$", description="System identifier for the input.")
     label: I18nText = Field(description="Localized label for the UI.")
@@ -690,8 +714,9 @@ from backend_v2.models.dtos.matrix_scorecard import (  # noqa: F401
 
 
 class SynthesisConfigDTO(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Configuration for LLM output synthesis length, masking, and formatting."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     system_prompt: str | None = Field(default=None, description="Optional system prompt overriding default synthesis.")
     synthesis_block_id: str | None = Field(
@@ -891,8 +916,9 @@ class ReportDataDTO(V2CoreBase):
 
 
 class MatrixSynthesisGroup(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Represents a comparative matrix synthesis group for 2D/3D graphs and multi-matrix synthesis."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(
         default_factory=lambda: f"grp_{uuid.uuid4().hex[:16]}",
@@ -909,8 +935,9 @@ class MatrixSynthesisGroup(V2CoreBase):
 
 
 class OutputProfile(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """A distinct report variant containing a sequence of layout blocks."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Profile ID")
     slug: str = Field(min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Fallback slug identifier")
@@ -1050,8 +1077,9 @@ class OutputProfile(V2CoreBase):
 
 
 class Workflow(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Dynamic Directed Acyclic Graph orchestrator model."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Workflow ID")
     slug: str
@@ -1180,8 +1208,9 @@ class Workflow(V2CoreBase):
 
 
 class FrozenContext(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Deep copy of context state at execution time for auditability."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     compiled_prompts: dict[str, str] = Field(default_factory=dict, description="Prompts sent to LLM.")
     injected_theory: dict[str, Any] = Field(default_factory=dict, description="Fetched theory texts.")
@@ -1195,8 +1224,9 @@ class FrozenContext(V2CoreBase):
 
 
 class ExecutionCreate(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Schema for initiating a new workflow execution."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     workflow_id: str = Field(description="ID of the workflow to execute")
     target_locale: str = Field(
@@ -1220,8 +1250,9 @@ class ExecutionCreate(V2CoreBase):
 
 
 class ExecutionStepState(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Real-time status tracking for a single DAG node."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z0-9_]{2,15})_[a-zA-Z0-9_-]+$", description="Step ID")
     label: str = Field(description="Localized label for UI tracking")
@@ -1236,8 +1267,9 @@ class ExecutionStepState(V2CoreBase):
 
 
 class ExtensionMetricsDTO(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Pre-calculated numeric or boolean metrics for UI adapters."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     authenticity_score: float | None = None
     performative_phrases_count: float | None = None
@@ -1246,8 +1278,9 @@ class ExtensionMetricsDTO(V2CoreBase):
 
 
 class RenderedSynthesisCache(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Cached synthesis results tied to a specific OutputProfile ID."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     section_syntheses: dict[str, list[AnySduiBlock]] = Field(
         default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis blocks"
@@ -1272,8 +1305,9 @@ class RenderedSynthesisCache(V2CoreBase):
 
 
 class ExecutionRecord(ExecutionCoreFields):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Record of a workflow execution, including the frozen context and results."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     if TYPE_CHECKING:
         status: LaxExecutionStatus = Field(default=ExecutionStatus.PENDING)
@@ -1333,8 +1367,9 @@ class ExecutionRecord(ExecutionCoreFields):
 
 
 class JobAcceptedDTO(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Omni-channel render endpoint accepted response."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     status: str
     message: str
@@ -1342,8 +1377,9 @@ class JobAcceptedDTO(V2CoreBase):
 
 
 class EvidenceRejectionRequest(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Request DTO for rejecting a specific evidence quote."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     rejection_reason: str = Field(description="Reason for rejecting the evidence quote.")
 
@@ -1393,9 +1429,8 @@ class BaseTDAExtraction(BaseModel):
             return data
 
         is_override = data.get("contextual_override") is True
-        quotes = data.get("exact_quotes", [])
-        if quotes is None:
-            quotes = []
+        raw_quotes = data.get("exact_quotes")
+        quotes = raw_quotes if isinstance(raw_quotes, list) else []
 
         if is_override:
             data["exact_quotes"] = []
