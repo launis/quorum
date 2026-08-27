@@ -382,6 +382,15 @@
   - Audited, hardened, and verified 5 files: `@[backend_v2/models/core_base.py]`, `@[backend_v2/models/dtos/matrix_scorecard.py]`, `@[backend_v2/models/dtos/output_profile.py]`, `@[backend_v2/models/state.py]`, and `@[backend_v2/models/v2_core.py]`.
   - Neuro-symbolic audit matrices strictly verified for all 5 targets (157/157 rules passed with 0 violations and 0 suppressions).
   - Universal Quality Gate passed cleanly with 100% AST compliance, MyPy strict typing, and >90% coverage across all 5 targets.
+- Executed `/tier2-hardening-backend` on Batch 2 & Batch 3 (Services, SDUI Adapters, Worker & Scripts):
+  - Audited, hardened, and verified all 15 remaining backend targets: `@[backend_v2/services/localization.py]`, `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`, `@[backend_v2/services/pdf_generator.py]`, `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`, `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`, `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]`, `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`, `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`, `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`, `@[backend_v2/services/sdui/adapters/variance_adapter.py]`, `@[backend_v2/services/sdui/adapters/warning_card_adapter.py]`, `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`, `@[backend_v2/templates/report_template.jinja2]`, `@[backend_v2/worker.py]`, and `@[scripts/_ast_guardrails.py]`.
+  - Added `user_role_label` key to `backend_v2/l10n/en.json` and `fi.json` ("User Role" / "Käyttäjärooli"), maintaining 100% l10n parity.
+  - Eliminated duck-typing `getattr()`, `hasattr()`, and `.get()` fallback violations across SDUI adapters and `worker.py`.
+  - Enforced `ErrorCodes.<ENUM>.value` across all SDUI presentation adapters and worker error handling with `exc_info=True`.
+  - Hardened `matrix_domain_parser.py` with strict `ScorecardAtomDTO` (`human_override=None`) and `MatrixScorecardRowDTO` (`tda_state=None`) typings.
+  - Rebuilt and verified neuro-symbolic audit matrices for all 20 backend target files (157/157 rules PASS, 0 violations).
+  - Executed Universal Quality Gate (`backend_audit_loop.py target.py --test --ast-strict`) for every file with atomic git commits.
+  - Tier 2 Hardening (Backend) is **100% COMPLETE** and marked as `[x] [OK]`.
 
 ## Learned
 - **Phase 1 Insights & Invariants**:
@@ -420,48 +429,48 @@
   - Fail-Fast `raise_unrecognized_sdui_block` handler bound in `PdfReportService` environment guarantees that unhandled synthetic blocks halt PDF compilation with RFC 7807 structured errors rather than falling back silently.
   - `TheoryGrounding` schema SSOT is anchored at `@[backend_v2/models/v2_core.py#L112-L125]` (re-exported cleanly across domain layers).
   - Markdown AST scanner (`audit_markdown_boundaries.py`) strictly enforces MBD001 (banning ambiguous `e.g.`) and MBD004 (verifying physical class/function line bounds in `@-references`).
-- **Tier 2 Backend Hardening (Batch 1 - Domain Models & DTOs)**:
+- **Tier 2 Backend Hardening (All 20 Targets)**:
   - `core_base.py`: Enforcing `__all__ = ["I18nText", "V2CoreBase"]` and `exc_info=True` on `logger.error` guarantees RFC 7807 Fail-Fast trace logging.
   - `matrix_scorecard.py`: Declaring full `__all__` and converting all fields to PEP 593 `Annotated` syntax guarantees strict typing and decouples scorecards from `v2_core.py`.
   - `output_profile.py`: Server-side ID authority verified by `QGR011` AST guardrail; all fields annotated and custom scale bounds validated.
   - `state.py`: Consolidating `ExecutionCoreFields` and `ExecutionRecord` rebuilds into a single typed local namespace avoids overriding forward-referenced types.
   - `v2_core.py`: Replacing `.get("exact_quotes", [])` with explicit check in `validate_override_logic` eliminates `QGR002` violations.
+  - `base_adapter.py`: Forward references in `AdapterContext.model_rebuild()` require passing `_types_namespace` containing `TraceEvent`, `TombstoneEvent`, and `ErrorTraceEvent`.
+  - `executive_summary_adapter.py`: Added fallback `user_role_label` to `en.json` and `fi.json` to guarantee translation resolution when `user_role_label` is omitted on `OutputProfile`.
+  - `worker.py`: Cleaned `getattr()`, `hasattr()`, and `.get()` calls to ensure fail-fast dictionary indexing and explicit null-checking. Added `ConfigDict(strict=True, extra="forbid")` to `VarianceExplanationResult`.
+  - `_ast_guardrails.py`: Exported `__all__`, strictly verified zero-reflection compliance (no getattr/hasattr), all 52 unit tests passing cleanly.
 
-## Discovered Technical Debt (Resolved in Phase 3 & Inter-Phase Bugfixes)
-1. **`client_app_v2/lib/features/studio/views/profile_editor_view.dart#L124-L134`**: Resolved - replaced generic exception with `AppException.validation` and bound background color to primary theme.
-2. **`backend_v2/models/core_base.py#L39`**: Resolved - wrapped description in `Field(description=...)` under 120 chars.
-3. **`backend_v2/models/dtos/matrix_scorecard.py`**: Resolved - added module and union wrapper docstrings.
-4. **`client_app_v2/lib/features/studio/controllers/output_profile_controller.dart`**: Resolved - removed unused `i18n_text.dart` import.
-5. **`client_app_v2/test/features/studio/views/widgets/profile/blocks/block_card_registry_test.dart`**: Resolved - cleaned unused local `updatedProfile` variable.
-6. **`client_app_v2/lib/utils/i18n_resolver.dart`**: Resolved - removed obsolete dead file throwing non-standard `FormatException`.
+## Discovered Technical Debt (Resolved in Hardening)
+1. **`backend_v2/services/matrix_domain_parser.py#L391-L498`**: Resolved - passed explicit `human_override=None` and `tda_state=None` to satisfy strict MyPy typing after `matrix_scorecard.py` hardening.
+2. **`backend_v2/l10n/en.json` & `fi.json`**: Resolved - added missing `user_role_label` key with 100% bilingual parity.
+3. **`backend_v2/worker.py`**: Resolved - removed `hasattr` reflection in profile/scoring strategy resolution and added `ConfigDict(strict=True, extra="forbid")` to `VarianceExplanationResult`.
 
 ## Remaining
 - Complete Post-Implementation Gates:
-  1. **Backend Tier 2 Hardening (Batch 2)**: Execute `/tier2-hardening-backend @[docs/epic/EPIC_148_tracker.md]` across remaining backend services and adapters:
-     - `@[backend_v2/services/localization.py]`
-     - `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`
-     - `@[backend_v2/services/pdf_generator.py]`
-     - `@[backend_v2/services/sdui/adapters/authenticity_adapter.py]`
-     - `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`
-     - `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]`
-     - `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`
-     - `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`
-     - `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`
-     - `@[backend_v2/services/sdui/adapters/variance_adapter.py]`
-     - `@[backend_v2/services/sdui/adapters/warning_card_adapter.py]`
-     - `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`
-     - `@[backend_v2/worker.py]`
-     - `@[scripts/_ast_guardrails.py]`
-  2. **Frontend Tier 2 Hardening**: Execute `/tier2-hardening-frontend @[docs/epic/EPIC_148_tracker.md]` across all 12 modified Flutter files.
-  3. **Golden Master & Test Restoration Audit**: Verify zero commented-out or bypassed tests across touched domains.
-  4. **Proxy Sunset & Consumer Migration**: Final audit verifying zero dead legacy imports or `OutputLayoutBlock` callers remain.
-  5. **As-Built Architectural Sync**: Execute `/tier7-describe-architecture` to synchronize directory references and update Knowledge Items.
-  6. **Final Reverse Epic Audit**: Execute `/tier8-audit-epic @[docs/epic/EPIC_148_Domain_Model_SSOT_and_Localization_Modernization.md]` to verify full Epic closure against codebase reality.
+  1. **Frontend Tier 2 Hardening**: Execute `/tier2-hardening-frontend @[docs/epic/EPIC_148_tracker.md]` across all 14 modified Flutter files:
+     - `@[client_app_v2/lib/features/execution/views/execution_report_view.dart]`
+     - `@[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]`
+     - `@[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]`
+     - `@[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart]`
+     - `@[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart]`
+     - `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]`
+     - `@[client_app_v2/lib/features/studio/models/output_profile.dart]`
+     - `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`
+     - `@[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]`
+     - `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart]`
+     - `@[client_app_v2/lib/l10n/app_en.arb]`
+     - `@[client_app_v2/lib/l10n/app_fi.arb]`
+     - `@[client_app_v2/lib/shared/models/i18n_text.dart]`
+     - `@[client_app_v2/lib/shared/widgets/specialist_section.dart]`
+  2. **Golden Master & Test Restoration Audit**: Verify zero commented-out or bypassed tests across touched domains.
+  3. **Proxy Sunset & Consumer Migration**: Final audit verifying zero dead legacy imports or `OutputLayoutBlock` callers remain.
+  4. **As-Built Architectural Sync**: Execute `/tier7-describe-architecture` to synchronize directory references and update Knowledge Items.
+  5. **Final Reverse Epic Audit**: Execute `/tier8-audit-epic @[docs/epic/EPIC_148_Domain_Model_SSOT_and_Localization_Modernization.md]` to verify full Epic closure against codebase reality.
 
 ## Resume Command
 ```powershell
-# Option A: Continue Tier 2 Backend Hardening (Batch 2: Services & SDUI Adapters)
-/tier5-resume --target="@[docs/epic/EPIC_148_tracker.md], [backend_v2/services]" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+# Option A: Execute Tier 2 Frontend Hardening (Flutter Client App)
+/tier5-resume --target="@[docs/epic/EPIC_148_tracker.md], [client_app_v2/lib]" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
 
 # Option B: Context Reset & Session Handover (if opening fresh window)
 /tier5-session-handover @[docs/epic/EPIC_148_tracker.md]
