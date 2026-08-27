@@ -7,7 +7,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import RoleClassification, TargetBlockType
 from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
 from backend_v2.services.localization import LocalizationService
@@ -92,11 +92,11 @@ class ExecutiveSummaryAdapter:
                 parsed_role = RoleClassification(profile_cache.user_role)
             except ValueError as e:
                 msg = f"Invalid user_role '{profile_cache.user_role}'"
-                logger.error("[ExecutiveSummaryAdapter] VALIDATION_FAILED: %s", msg, exc_info=True)
+                logger.error("[ExecutiveSummaryAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=500,
-                    details={"error_code": "VALIDATION_FAILED"},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
             # Fail-Fast: strict key access, NO .get() fallback
@@ -104,11 +104,13 @@ class ExecutiveSummaryAdapter:
                 _ = EXECUTIVE_SUMMARY_RULES[parsed_role]
             except KeyError as e:
                 msg = f"Missing role mapping for {parsed_role}"
-                logger.error("[ExecutiveSummaryAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
+                logger.error(
+                    "[ExecutiveSummaryAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True
+                )
                 raise AppException(
                     message=msg,
                     status_code=500,
-                    details={"error_code": "CONFIGURATION_ERROR"},
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 ) from e
 
             # 3. ASSEMBLE: Resolve translation and construct role badge block

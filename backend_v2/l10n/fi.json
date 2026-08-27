@@ -20,6 +20,7 @@
   "role_navigator": "Navigaattori",
   "role_driver": "Kuljettaja",
   "role_architect": "Arkkitehti",
+  "user_role_label": "Käyttäjärooli",
   "col_label": "Osa-alue",
   "col_distribution": "Jakauma",
   "col_row_explanation": "Selite",

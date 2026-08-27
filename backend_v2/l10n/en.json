@@ -20,6 +20,7 @@
   "role_navigator": "Navigator",
   "role_driver": "Driver",
   "role_architect": "Architect",
+  "user_role_label": "User Role",
   "col_label": "Area",
   "col_distribution": "Distribution",
   "col_row_explanation": "Explanation",
