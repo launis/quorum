@@ -36,10 +36,9 @@ __all__ = [
 
 
 class OutputProfileCreateDTO(V2CoreBase):
-    """DTO for creating a new Output Profile.
+    """DTO for creating a new Output Profile without client-specified ID.
 
     Attributes:
-        id: Unique string ID for the profile. Must follow Stripe Pattern.
         slug: Human-readable routing identifier.
         workflow_id: References the execution DAG to scope Target Matrices.
         organization_id: Tenant organization scope.
@@ -59,14 +58,6 @@ class OutputProfileCreateDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: Annotated[
-        str,
-        Field(
-            ...,
-            pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
-            description="Unique string ID for the profile. Must follow Stripe Pattern",
-        ),
-    ]
     slug: Annotated[str, Field(..., description="Human-readable routing identifier.")]
     workflow_id: Annotated[str, Field(..., description="References the execution DAG to scope Target Matrices.")]
     organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
@@ -163,14 +154,14 @@ class OutputProfileCreateDTO(V2CoreBase):
         if self.display_scale in (DisplayScale.CUSTOM, "custom"):
             if self.custom_scale_min is None or self.custom_scale_max is None:
                 msg = (
-                    f"OutputProfileCreateDTO '{self.id}': custom_scale_min and custom_scale_max "
+                    "OutputProfileCreateDTO: custom_scale_min and custom_scale_max "
                     "are required when display_scale is CUSTOM."
                 )
                 logger.error("[DTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             if self.custom_scale_max <= self.custom_scale_min:
                 msg = (
-                    f"OutputProfileCreateDTO '{self.id}': custom_scale_max ({self.custom_scale_max}) "
+                    f"OutputProfileCreateDTO: custom_scale_max ({self.custom_scale_max}) "
                     f"must be strictly greater than custom_scale_min ({self.custom_scale_min})."
                 )
                 logger.error("[DTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)

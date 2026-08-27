@@ -36,7 +36,7 @@ def mock_repo() -> MagicMock:
             "organization_id": "root",
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_test",
+                    "id": "grp_1234567890123456",
                     "title": {"translations": {"en": "Test"}},
                     "target_blocks": ["*"],
                 }

@@ -18,7 +18,7 @@ def test_output_profile_response_dto_schema_parity() -> None:
         "target_block_order": [TargetBlockType.METADATA_BLOCK],
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1",
+                "id": "grp_1111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
                 "target_blocks": ["blk_1", "blk_2"],
             }
@@ -27,7 +27,7 @@ def test_output_profile_response_dto_schema_parity() -> None:
 
     dto = OutputProfileResponseDTO.model_validate(payload)
     assert len(dto.matrix_synthesis_groups) == 1
-    assert dto.matrix_synthesis_groups[0].id == "grp_1"
+    assert dto.matrix_synthesis_groups[0].id == "grp_1111111111111111"
 
 
 def test_output_profile_response_dto_target_block_order_parity() -> None:
@@ -55,7 +55,7 @@ def test_embedded_output_profile_schema_parity() -> None:
         "target_block_order": [TargetBlockType.METADATA_BLOCK],
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1",
+                "id": "grp_1111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
                 "target_blocks": ["blk_1", "blk_2"],
             }

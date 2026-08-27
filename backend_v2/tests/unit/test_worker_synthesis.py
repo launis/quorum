@@ -128,7 +128,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         },
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1",
+                "id": "grp_1111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
                 "target_blocks": ["blk_1"],
             }
@@ -511,7 +511,7 @@ async def test_worker_synthesis_matrix_layout_directives(
         },
         "matrix_synthesis_groups": [
             {
-                "id": "grp_test",
+                "id": "grp_1234567890123456",
                 "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
                 "target_blocks": ["blk_1"],
                 "synthesis_directive": synthesis_directive,
@@ -540,7 +540,7 @@ async def test_worker_synthesis_matrix_layout_directives(
                 MatrixSectionSynthesesResult(
                     sections=[
                         SynthesisSectionDTO(
-                            layout_id="grp_test",
+                            layout_id="grp_1234567890123456",
                             content_blocks=[ParagraphBlock(text="Section Content", exact_quotes=[], citations=[])],
                         )
                     ]
@@ -756,7 +756,7 @@ async def test_worker_synthesis_multi_section_aggregation(
         },
         "matrix_synthesis_groups": [
             {
-                "id": "grp_causality",
+                "id": "grp_c5804a9143c34cb1",
                 "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
                 "target_blocks": ["blk_1"],
             }
@@ -815,10 +815,10 @@ async def test_worker_synthesis_multi_section_aggregation(
 
     assert found_payload is not None
     sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
-    assert "grp_causality" in sec_synth
-    assert len(sec_synth["grp_causality"]) == 2
-    assert sec_synth["grp_causality"][0]["text"] == "Paragraph 1 text"
-    assert sec_synth["grp_causality"][1]["text"] == "Paragraph 2 text"
+    assert "grp_c5804a9143c34cb1" in sec_synth
+    assert len(sec_synth["grp_c5804a9143c34cb1"]) == 2
+    assert sec_synth["grp_c5804a9143c34cb1"][0]["text"] == "Paragraph 1 text"
+    assert sec_synth["grp_c5804a9143c34cb1"][1]["text"] == "Paragraph 2 text"
 
 
 @pytest.mark.asyncio
@@ -852,7 +852,7 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
         },
         "matrix_synthesis_groups": [
             {
-                "id": "grp_empty",
+                "id": "grp_0000000000000000",
                 "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
                 "target_blocks": ["blk_1"],
             }
@@ -900,4 +900,4 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
 
     assert found_payload is not None
     sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
-    assert "grp_empty" not in sec_synth
+    assert "grp_0000000000000000" not in sec_synth

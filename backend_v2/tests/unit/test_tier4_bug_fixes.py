@@ -12,7 +12,7 @@ def test_bug_metric_mappings_silent_override() -> None:
         name={"translations": {"en": "Name"}},  # type: ignore
         matrix_synthesis_groups=[
             {
-                "id": "grp_test",
+                "id": "grp_1234567890123456",
                 "title": {"translations": {"en": "Group"}},
                 "target_blocks": ["*"],
             }
@@ -43,4 +43,4 @@ def test_bug_metric_mappings_silent_override() -> None:
 
     # Validation: The saved profile should NOT have lost matrix_synthesis_groups
     assert len(saved_profile.matrix_synthesis_groups) == 1
-    assert saved_profile.matrix_synthesis_groups[0].id == "grp_test"
+    assert saved_profile.matrix_synthesis_groups[0].id == "grp_1234567890123456"

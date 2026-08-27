@@ -299,11 +299,14 @@
     - Git Commit: `f162d4e6`.
   - **Step 5 (Seed Vault OutputProfile Migration, Test Fixture Updates & Universal Quality Gate Verification)**:
     - Modernized all remaining unit test fixtures across `test_blueprint.py`, `test_blueprint_sdui_crash.py`, `test_matrix_domain_parser.py`, `test_output_profile_service.py`, `test_workflow_service.py`, `test_output_profiles.py`, `test_scoring.py`, `strategies/test_llm.py`, `test_synthesis_distiller_wiring.py`, `test_synthesis_distiller_hook.py`, `test_api_clone_endpoints.py`, `test_concurrency_fuzzer.py`, `test_dag_executor_prompt_blocks.py`, `test_llm_context_bounds.py`, `test_tier4_bug_fixes.py`, `test_tier4_profile_dto_bug.py`.
+    - Enforced strict Opaque Stripe ID validation (`pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"`) on `MatrixSynthesisGroup.id` in `backend_v2/models/v2_core.py`.
+    - Updated `seed_data.json` synthesis groups to 16-hex Opaque IDs (`grp_440a5fef9331451b`, `grp_c5804a9143c34cb1`, `grp_6b8c766185294f7e`).
+    - Migrated Flutter ID generators in `matrix_graphs_block_card.dart` and `layout_editor_card.dart` to generate 16-hex Opaque IDs via `Uuid()`.
     - Updated architectural guardrail tests in `test_seed_architectural_guardrails.py` asserting 0 legacy dictionaries and 100% presence of dynamic metric keys in `en.json` and `fi.json`.
     - Cleanly re-seeded local development database (`uv run python backend_v2/seed/run_seed.py local`).
     - Cleaned unused imports and test variables in Flutter (`output_profile_controller.dart`, `block_card_registry_test.dart`).
     - Executed Universal Quality Gate audits:
-      - Backend Audit Loop (`backend_audit_loop.py backend_v2 --test`): Ruff, MyPy, AST Guardrails, Jinja template validation, Seed validation, and Pytest (2,135 passed, 0 failed).
+      - Backend Audit Loop (`backend_audit_loop.py backend_v2 --test`): Ruff, MyPy, AST Guardrails, Jinja template validation, Seed validation, and Pytest (2,135 passed, 0 failed, 90% coverage).
       - Flutter Audit Loop (`flutter_audit_loop.py client_app_v2 --test`): Formatting, Analyzer, and Flutter test suite (224 passed, 0 failed).
     - Phase 3 marked as `[x] [OK]` for Execution and Test Coverage Assertions.
 
@@ -323,10 +326,17 @@
 - **Phase 3 Insights & Invariants**:
   - `OutputProfile` modernization replaces `layouts: list[OutputLayoutBlock]` with `matrix_synthesis_groups: list[MatrixSynthesisGroup]`, eliminating the `OutputLayoutBlock` zombie DTO across Python and Flutter (`the_no_legacy_mandate`).
   - Strict Pydantic cross-field validator `@model_validator(mode="after") def validate_matrix_graphs_coherence(self)` asserts that IF `TargetBlockType.MATRIX_GRAPHS_BLOCK` is in `target_block_order`, THEN `len(matrix_synthesis_groups) >= 1`. All mock fixtures returning `OutputProfile` dictionaries or objects MUST include valid `matrix_synthesis_groups`.
+  - Enforce Opaque Stripe ID standard: `MatrixSynthesisGroup.id` MUST strictly adhere to `pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"`. Slugs are strictly forbidden as identifiers.
   - In `blueprint.py`, `scoring_strategy` and `s_strat` attributes on steps must be resolved with safe fallback inspection to handle both Enum instances and raw mock strings (`getattr(s_strat, "value", s_strat)`).
   - Static UI dictionaries (`metric_mappings`, `matrix_column_labels`, `user_role_mappings`, `extension_labels`) are permanently extracted from backend persistence into `backend_v2/l10n/*.json` (for backend SDUI generation) and Flutter `.arb` (for client UI chrome).
   - SDUI adapters act as pure Dumb Painters: the backend pre-formats and pre-localizes all labels, dates, costs, scores, and percentages via `LocalizationService`, ensuring Jinja2 HTML templates and Flutter renderers never perform inline calculations or fallback guessing.
   - Removing `state.py` imports from `v2_core.py` and executing `ExecutionCoreFields.model_rebuild()` directly in `state.py` eliminates import graph cycles during pytest collection under Python 3.14.
+  - **Server-Generated ID Authority & Request/Response DTO Separation Mandate**:
+    - Creation Ban on Client IDs: Clients (Flutter UI and external REST API consumers) MUST NEVER provide an `id` field when creating new root resources (`Workflow`, `OutputProfile`, `Step`, `PromptBlock`) or sub-elements (`StepRule`, `MatrixSynthesisGroup`).
+    - DTO Schema Separation: All `*CreateDTO` models MUST NOT contain an `id` field (`extra="forbid"` rejects any incoming `id`).
+    - Backend ID Authority: The backend exclusively generates canonical, randomized 16-hex Opaque Stripe IDs (`uuid.uuid4().hex[:16]`).
+    - Frontend Decoupling: All client-side `Uuid().v4()` calls and ID-generation fallbacks are eliminated from Flutter Studio views and models.
+    - AST Guardrail (`QGR011`): Static AST verification in Phase 4 ensures no `*CreateDTO` contains an `id` field and domain models enforce standard Opaque Stripe ID patterns.
 
 ## Discovered Technical Debt (Resolved in Phase 3)
 1. **`client_app_v2/lib/features/studio/views/profile_editor_view.dart#L124-L134`**: Resolved - replaced generic exception with `AppException.validation` and bound background color to primary theme.
@@ -336,14 +346,16 @@
 5. **`client_app_v2/test/features/studio/views/widgets/profile/blocks/block_card_registry_test.dart`**: Resolved - cleaned unused local `updatedProfile` variable.
 
 ## Remaining
+- Execute and verify Server-Side ID Generation Mandate & Request/Response DTO Separation Plan (`@[implementation_plan.md]`).
 - Audit Phase 3 implementation (`/tier8-audit-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]`).
 - Plan and execute Phase 4 (AST Guardrails, Parity Suites & Final Audit): `@[docs/epic/tasks_EPIC_148/04_placeholder_phase4_ast_guardrails_parity_suites_and_final_audit.md]`.
 - Complete Post-Implementation Gates: Backend & Frontend Tier 2 Hardening, As-Built Architectural Sync (`/tier7-describe-architecture`), and Reverse Epic Audit (`/tier8-audit-epic`).
 
 ## Resume Command
 ```powershell
-# Audit Phase 3 implementation:
-/tier8-audit-plan @[docs/epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity.md] @[docs/epic/EPIC_148_tracker.md]
+# Execute the Server-Side ID Generation Mandate Plan:
+/tier2-execute
 ```
+
 
 

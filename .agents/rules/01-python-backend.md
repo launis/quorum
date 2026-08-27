@@ -50,6 +50,12 @@
         <catastrophic_reason>Slugs are highly mutable strings meant for SEO/Display. Using slugs in logs fragments the Logfire/forensic audit trail by disassociating log entries from canonical Opaque Stripe IDs. Using slugs in logic branching breaks polymorphic routing and creates brittle shadow dependencies.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="id_backend_generation_authority_mandate">
+        <banned_pattern>Accepting client-defined primary IDs on resource creation endpoints, using sequential/semantic counters, or relying on frontend timestamps for ID generation.</banned_pattern>
+        <mandatory_pattern>All primary and relational entity IDs MUST be generated exclusively on the backend via randomized cryptographic generators (e.g. `f"{prefix}_{uuid.uuid4().hex[:16]}"`). Resources created in draft endpoints MUST have their canonical Opaque Stripe ID pre-assigned by the backend before returning to the frontend. All models MUST enforce strict regex `pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"` on `id` fields.</mandatory_pattern>
+        <catastrophic_reason>Accepting client-supplied IDs exposes the database to injection, ID hijacking, and relational integrity corruption.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="anemic_routers">
         <banned_pattern>Putting business logic, database CRUD, or RBAC checks in API routers (`backend_v2/api/`).</banned_pattern>
         <mandatory_pattern>Routers MUST ONLY handle HTTP parsing, assign an explicit `response_model`, and delegate to the Service layer (`backend_v2/services/`).</mandatory_pattern>

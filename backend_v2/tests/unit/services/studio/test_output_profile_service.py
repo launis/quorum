@@ -54,7 +54,7 @@ async def test_save_output_profile_allows_target_block_types(service: Any, mock_
         "organization_id": "root",
         "matrix_synthesis_groups": [
             {
-                "id": "grp_test",
+                "id": "grp_1234567890123456",
                 "title": {"translations": {"en": "Test"}},
                 "target_blocks": ["*"],
             }
@@ -71,7 +71,7 @@ async def test_save_output_profile_allows_target_block_types(service: Any, mock_
         target_block_order=[TargetBlockType.GLOBAL_SCORE_BLOCK],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_test",
+                id="grp_1234567890123456",
                 title=I18nText(translations={"en": "Test Group"}),
                 target_blocks=[TargetBlockType.GLOBAL_SCORE_BLOCK],
             )
@@ -107,7 +107,7 @@ async def test_save_output_profile_fails_wrong_workflow_block(service: Any, mock
         "organization_id": "root",
         "matrix_synthesis_groups": [
             {
-                "id": "grp_wrong",
+                "id": "grp_2222222222222222",
                 "title": {"translations": {"en": "Wrong"}},
                 "target_blocks": ["blk_wrong_workflow"],
             }
@@ -146,7 +146,7 @@ async def test_save_output_profile_fails_invalid_block(service: Any, mock_workfl
         "organization_id": "root",
         "matrix_synthesis_groups": [
             {
-                "id": "grp_invalid",
+                "id": "grp_3333333333333333",
                 "title": {"translations": {"en": "Invalid"}},
                 "target_blocks": ["invalid_block_123"],
             }

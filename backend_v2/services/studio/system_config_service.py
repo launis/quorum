@@ -235,7 +235,7 @@ class StudioSystemConfigService:
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
 
-        new_id = f"sys_{uuid.uuid4().hex}"
+        new_id = f"sys_{uuid.uuid4().hex[:16]}"
 
         cloned_data = SystemConfigModelRegistry.model_validate(data, strict=False).model_dump(mode="json")
         cloned_data["id"] = new_id
@@ -349,7 +349,7 @@ class StudioSystemConfigService:
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
 
-        new_id = f"mcp_{uuid.uuid4().hex[:16]}"
+        new_id = f"sys_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {"id": new_id, "slug": new_id, "type": "mcp_gateways", "tools": []}
         draft = SystemConfigMCPGateways.model_validate(draft_dict, strict=False)
         return await self.save_mcp_gateways(initiator, new_id, draft)
@@ -385,7 +385,7 @@ class StudioSystemConfigService:
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
 
-        new_id = f"mcp_{uuid.uuid4().hex}"
+        new_id = f"sys_{uuid.uuid4().hex[:16]}"
 
         cloned_data = SystemConfigMCPGateways.model_validate(data, strict=False).model_dump(mode="json")
         cloned_data["id"] = new_id

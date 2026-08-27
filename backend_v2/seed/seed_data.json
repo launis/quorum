@@ -8474,7 +8474,7 @@
       "scoring_strategy": "AVERAGE",
       "matrix_synthesis_groups": [
         {
-          "id": "grp_critical_thinking",
+          "id": "grp_440a5fef9331451b",
           "title": {
             "translations": {
               "fi": "Kriittinen ajattelu ja oivallus",
@@ -8488,7 +8488,7 @@
           "synthesis_directive": null
         },
         {
-          "id": "grp_causality_falsification",
+          "id": "grp_c5804a9143c34cb1",
           "title": {
             "translations": {
               "fi": "Kausaalisuus ja falsifioitavuus",
@@ -8502,7 +8502,7 @@
           "synthesis_directive": null
         },
         {
-          "id": "grp_traceability_anchoring",
+          "id": "grp_6b8c766185294f7e",
           "title": {
             "translations": {
               "fi": "Jäljitettävyys ja ankkurointi",

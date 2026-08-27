@@ -91,6 +91,12 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
       - MATHEMATICAL PROOF MANDATE: You MUST physically execute the universal quality gate scripts. You MUST enforce the Two-Stage Testing Pipeline from `fragmented_quality_gates_prevention`: First run localized tests on the modified directories for rapid feedback. Then, BEFORE declaring the audit PASSED, you MUST run the GLOBAL completion gate (`uv run python scripts/backend_audit_loop.py backend_v2/ --test` for backend, `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build` for frontend). A localized-only audit is NEVER sufficient for final sign-off.
       - LINTER &amp; DOCSTRING GATE AUDIT: For every `[MODIFY]` and `[NEW]` file listed in the implementation plan, run `uv run python -m ruff check --select D,E501 <file>` to verify zero pep257 docstring and line-length errors. Verify that no `CheckedFromJsonException` bypass patterns exist in target files via `grep_search`. Report any violations in the Gap Analysis table.
       - SCRIPT CRASH FALLBACK: If the quality gate script crashes due to an environment error rather than producing a normal test/linter failure, you MUST explicitly document it as an "Environment/Infrastructure Failure" in your report. Do not incorrectly fail the codebase implementation audit due to a local environment crash.
+      - TRI-AXIS DIALECTICAL AUDIT (Post-Implementation As-Built Check):
+        You MUST execute a rigorous 3-Way Cross-Examination Debate across three opposing axes and persist it directly inside the `red_team_audit_[target_name].md` artifact:
+        1. PROSECUTION (Over-Engineering & YAGNI Advocate): Did the execution create redundant abstractions, excessive DTO transformations, premature optimizations, or unused helper functions? Answer: "If 30% of the newly added code had to be removed, what would be deleted without breaking the core requirement?"
+        2. DEFENSE (Architectural Sovereignty & Fail-Fast Advocate): Does the as-built code strictly uphold DDD boundaries, RFC-7807 Fail-Fast error handling, Pydantic V2 strictness, and AST guardrail contracts against Agentic Drift?
+        3. REALIST (Duct-Tape & Blast Radius Interrogator): Were any temporary patches, commented-out tests, in-memory mutable bypasses, lazy `.get()` defaults, or legacy fixture traps left behind in touched files or 1-hop callers?
+        4. BINDING VERDICT: Output an explicit 3-column decision matrix: [Pruned Over-Engineering] | [Eradicated Duct-Tape] | [Approved Best Practice].
     </step>
 
     <step id="5">COMPLETION GAP ANALYSIS: 
@@ -99,8 +105,8 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
     </step>
 
     <step id="6">RETROSPECTIVE REPORT GENERATION & HANDOVER: 
-      - Produce a final `red_team_audit_[target_name].md` artifact containing a strict Pass/Fail traceability matrix.
-      - Provide a concrete list of required fixes.
+      - Produce a final `red_team_audit_[target_name].md` artifact containing a strict Pass/Fail traceability matrix and the complete Tri-Axis Dialectical Audit.
+      - ARTIFACT-FIRST REPORTING PROTOCOL: In accordance with global Planning Mode guidelines, do NOT re-summarize or dump full artifact content into the chat response. Point the user directly to the generated audit artifact.
       - MANDATORY ROUTING: You MUST provide the exact `/tier5-resume` command for the user's next action. 
         - IF the audit FAILED: Provide a command to resume `/tier2-execute` to implement the fixes.
         - IF the audit PASSED: Look at the Epic Tracker (if provided) and provide a command to resume `/tier2-execute` on the NEXT plan in the sequence.

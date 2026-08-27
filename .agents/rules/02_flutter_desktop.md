@@ -53,6 +53,12 @@
         <catastrophic_reason>Legacy providers leak memory aggressively and lack reliable AsyncValue tracking capabilities.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="id_backend_authority_and_frontend_read_only_mandate">
+        <banned_pattern>Allowing entity IDs (e.g. `workflow.id`, `step.id`, `prompt_block.id`, `profile.id`) to be editable in the frontend, generating IDs client-side without randomized crypto generators, or sending custom user-crafted ID strings in creation payloads.</banned_pattern>
+        <mandatory_pattern>All canonical entity IDs MUST be issued and generated exclusively by the backend using randomized Opaque Stripe IDs (e.g. `uuid.uuid4().hex[:16]`). In the Flutter frontend, all ID fields MUST be strictly read-only (`readOnly: true` or un-editable display chips). The frontend MUST NEVER allow users to manually type, modify, or override entity IDs.</mandatory_pattern>
+        <catastrophic_reason>Allowing frontend ID mutations breaks relational foreign keys, corrupts event logs, and invites ID collision vulnerabilities.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="3rd_party_semantic_sandboxing">
         <banned_pattern>Allowing 3rd-party visual libraries (like `fl_chart`) to synthesize English accessibility texts (e.g. "X: 0.5"), or feeding localized backend strings to complex chart components to try to fix it.</banned_pattern>
         <mandatory_pattern>All complex 3rd-party visual decorations (e.g., Radar/Scatter charts) MUST be wrapped in `ExcludeSemantics()`. The accessibility content MUST be rendered separately as standard text widgets (like a list or table) adjacent to the chart, purely driven by the backend SDUI payload.</mandatory_pattern>

@@ -9,7 +9,6 @@ import logging
 from fastapi import APIRouter, status
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioOutputProfileServiceDep
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.output_profile import (
     OutputProfileCreateDTO,
@@ -102,23 +101,10 @@ async def upsert_output_profile(
     Raises:
         AppException: With error code ID_MISMATCH if the URL path ID does not match the payload ID.
     """
-    # Ensure ID match
-    if dto.id != profile_id:
-        msg = "Path ID does not match Payload ID"
-        logger.error(
-            "[OutputProfilesRouter] %s",
-            msg,
-            exc_info=True,
-            extra={
-                "error_code": ErrorCodes.ID_MISMATCH,
-                "path_id": profile_id,
-                "payload_id": dto.id,
-            },
-        )
-        raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.ID_MISMATCH})
-
-    # Domain conversion (hydrates DTO -> Domain)
-    profile_data = OutputProfile.model_validate(dto.model_dump())
+    # Domain conversion (hydrates DTO -> Domain with server-validated path ID)
+    profile_dict = dto.model_dump()
+    profile_dict["id"] = profile_id
+    profile_data = OutputProfile.model_validate(profile_dict)
 
     # StudioService enforces Tenant boundaries and Repo interaction
     saved_profile = await service.save_output_profile(initiator=initiator, id=profile_id, data=profile_data)

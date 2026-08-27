@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:uuid/uuid.dart';
 import 'workflow_step_card.dart';
 
 /// **WorkflowStepsTab**
@@ -25,7 +26,7 @@ class WorkflowStepsTab extends StatelessWidget {
     final steps = List<StepRule>.from(workflow.steps);
     steps.add(
       StepRule(
-        id: 'step_${DateTime.now().millisecondsSinceEpoch}',
+        id: 'sr_${const Uuid().v4().replaceAll('-', '').substring(0, 16)}',
         taskBlueprint: '',
         dependsOn: const [],
         inputMappings: const {'inputs': r'$inputs'},

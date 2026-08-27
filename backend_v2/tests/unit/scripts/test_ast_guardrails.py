@@ -641,3 +641,61 @@ def test_zero_reflection_self_verification() -> None:
             if isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name) and node.func.id in ("getattr", "hasattr"):
                     pytest.fail(f"Banned reflection call `{node.func.id}()` found in {path} at line {node.lineno}")
+
+
+# ==============================================================================
+# Partition 36: QGR011 Creation DTO & Request ID Banning Tests
+# ==============================================================================
+
+
+def test_qgr011_detects_id_in_create_dto() -> None:
+    code = """
+class ItemCreateDTO(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+    id: str
+    name: str
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/item.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR011"
+    assert "ItemCreateDTO" in violations[0].message
+
+
+def test_qgr011_detects_id_in_create_request() -> None:
+    code = """
+class ItemCreateRequest(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+    id: str = Field(description="Custom ID")
+    name: str
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/item.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR011"
+    assert "ItemCreateRequest" in violations[0].message
+
+
+def test_qgr011_allows_id_in_response_or_domain() -> None:
+    code = """
+class ItemResponseDTO(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+    id: str
+    name: str
+
+class DomainItem(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+    id: str
+    name: str
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/item.py")
+    assert len(violations) == 0
+
+
+def test_qgr011_allows_create_dto_without_id() -> None:
+    code = """
+class ItemCreateDTO(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+    name: str
+    description: str | None = None
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/item.py")
+    assert len(violations) == 0

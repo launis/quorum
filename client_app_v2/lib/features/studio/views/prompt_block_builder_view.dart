@@ -7,7 +7,6 @@ import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
-import 'package:uuid/uuid.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
 import 'package:client_app/features/studio/views/widgets/row_editor_modal.dart';
@@ -246,10 +245,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
         return;
       }
 
-      final uuidHex = const Uuid().v4().replaceAll('-', '');
-      final currentId = payload.id.isNotEmpty ? payload.id : 'blk_$uuidHex';
-
-      final savingPayload = payload.copyWith(id: currentId);
+      final savingPayload = payload;
 
       try {
         await ref

@@ -62,7 +62,7 @@ async def test_create_output_profile_draft(mock_studio_service):
         organization_id="root",
         matrix_synthesis_groups=[
             {
-                "id": "grp_test",
+                "id": "grp_1234567890123456",
                 "title": {"translations": {"en": "test"}},
                 "target_blocks": ["*"],
             }
@@ -84,7 +84,7 @@ async def test_get_output_profile(mock_studio_service):
         organization_id="root",
         matrix_synthesis_groups=[
             {
-                "id": "grp_test",
+                "id": "grp_1234567890123456",
                 "title": {"translations": {"en": "test"}},
                 "target_blocks": ["*"],
             }
@@ -106,7 +106,7 @@ async def test_save_output_profile(mock_studio_service):
         organization_id="root",
         matrix_synthesis_groups=[
             {
-                "id": "grp_test",
+                "id": "grp_1234567890123456",
                 "title": {"translations": {"en": "test"}},
                 "target_blocks": ["*"],
             }
@@ -133,7 +133,7 @@ async def test_clone_output_profile(mock_studio_service):
         organization_id="root",
         matrix_synthesis_groups=[
             {
-                "id": "grp_test",
+                "id": "grp_1234567890123456",
                 "title": {"translations": {"en": "test"}},
                 "target_blocks": ["*"],
             }

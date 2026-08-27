@@ -4,15 +4,206 @@ These models define API Response boundaries enforcing Data Sovereignty.
 Verified Phase 1 Decoupled TDA schema propagation.
 """
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
 
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
-from backend_v2.models.v2_core import Step, Workflow
+from backend_v2.models.enums import (
+    BlockDataType,
+    LaxHistoricalContextMode,
+    LaxStepType,
+    PromptBlockCategory,
+    StepType,
+)
+from backend_v2.models.v2_core import (
+    ExpectedInput,
+    I18nText,
+    MatrixRow,
+    MatrixScale,
+    Step,
+    StepRule,
+    TheoryGrounding,
+    Workflow,
+)
+
+__all__ = [
+    "WorkflowCreateDTO",
+    "StepCreateDTO",
+    "PromptBlockCreateDTO",
+    "WorkflowResponseDTO",
+    "StepResponseDTO",
+    "PromptBlockResponseDTO",
+    "MCPGatewayDeleteResponse",
+    "ModelRegistryDeleteResponse",
+    "PromptBlockSimulationResponse",
+    "PromptBlockDeleteResponse",
+    "PromptBlockSimulationRequest",
+    "StepSimulationResponse",
+    "StepDeleteResponse",
+    "StepSimulationRequest",
+    "WorkflowSimulationResponse",
+    "WorkflowDeleteResponse",
+    "WorkflowAvailableExtensionsResponse",
+    "OutputProfileListResponse",
+]
+
+
+class WorkflowCreateDTO(V2CoreBase):
+    """DTO for creating a new Workflow without client-specified ID.
+
+    Attributes:
+        slug: Human-readable routing identifier.
+        name: Localized name of the workflow.
+        description: Localized description of the workflow.
+        expected_inputs: Sequence of expected input variable schemas.
+        steps: Sequence of step routing rules.
+        allowed_exports: Permitted export formats.
+        historical_context_mode: Historical context retention mode.
+        organization_id: Optional tenant organization scope.
+        default_profile_id: Optional default output profile ID.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    slug: Annotated[str, Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Routing identifier.")]
+    name: Annotated[I18nText | str, Field(..., description="Localized name of the workflow.")]
+    description: Annotated[I18nText | str | None, Field(default=None, description="Detailed workflow description.")]
+    expected_inputs: Annotated[
+        list[ExpectedInput], Field(default_factory=list, description="Expected input variables.")
+    ]
+    steps: Annotated[list[StepRule], Field(default_factory=list, description="Sequence of step routing rules.")]
+    allowed_exports: Annotated[
+        list[Literal["pdf", "docx", "raw_json", "xlsx"]],
+        Field(default_factory=lambda: ["pdf"], description="Permitted export formats."),
+    ]
+    historical_context_mode: Annotated[
+        LaxHistoricalContextMode,
+        Field(default="DISABLED", description="Historical context mode."),
+    ]
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
+    default_profile_id: Annotated[str | None, Field(default=None, description="Default output profile ID.")]
+
+
+class StepCreateDTO(V2CoreBase):
+    """DTO for creating a new Step blueprint without client-specified ID.
+
+    Attributes:
+        slug: Human-readable identifier.
+        name: Localized step name.
+        description: Detailed step context.
+        type: Step execution type.
+        role_block_id: Optional role block reference.
+        extraction_protocol_block_id: Optional extraction protocol block reference.
+        execution_persona_block_id: Optional execution persona block reference.
+        criteria_block_ids: List of criteria block references.
+        pre_hooks: List of pre-execution hooks.
+        post_hooks: List of post-execution hooks.
+        safety: Safety execution rating.
+        allowed_mcp_tools: List of allowed MCP tools.
+        model_strategy: Optional cognitive strategy profile override.
+        hook: Optional native hook name if type is logic.
+        expected_inputs: List of expected input keys.
+        output_schema: Optional JSON schema for step output.
+        is_system_core: Whether the step is protected system core.
+        organization_id: Tenant organization scope.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    slug: Annotated[str, Field(..., description="Human-readable identifier (e.g., 'step_guard')")]
+    name: Annotated[I18nText, Field(..., description="Localized step name")]
+    description: Annotated[I18nText | None, Field(default=None, description="Detailed step context")]
+    type: Annotated[LaxStepType, Field(default=StepType.LLM, description="Step execution type (llm or native logic)")]
+    hook: Annotated[str | None, Field(default=None, description="Native Python hook to execute if type is 'logic'")]
+    role_block_id: Annotated[
+        str | None,
+        Field(default=None, pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Role block reference"),
+    ]
+    extraction_protocol_block_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            description="Global evidence extraction protocol reference",
+        ),
+    ]
+    execution_persona_block_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            description="Reference to Execution Persona PromptBlock",
+        ),
+    ]
+    criteria_block_ids: Annotated[
+        list[str], Field(default_factory=list, description="References to matrix or text blocks")
+    ]
+    pre_hooks: Annotated[list[str], Field(default_factory=list, description="Pre-execution hooks")]
+    post_hooks: Annotated[list[str], Field(default_factory=list, description="Post-execution hooks")]
+    safety: Annotated[Literal["safe", "unsafe"], Field(default="safe", description="Safety execution rating")]
+    allowed_mcp_tools: Annotated[list[str], Field(default_factory=list, description="Allowed MCP tools")]
+    model_strategy: Annotated[str | None, Field(default=None, description="Cognitive strategy profile override")]
+    expected_inputs: Annotated[list[str], Field(default_factory=list, description="List of expected input keys")]
+    output_schema: Annotated[dict[str, Any] | None, Field(default=None, description="Output JSON schema")]
+    is_system_core: Annotated[bool, Field(default=False, description="Protected system core flag")]
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID")]
+
+
+class PromptBlockCreateDTO(V2CoreBase):
+    """DTO for creating a new PromptBlock without client-specified ID.
+
+    Attributes:
+        slug: URL routing identifier.
+        label: Localizable label.
+        description: Localizable description.
+        category_id: Block category enum value.
+        type: Block data type enum value.
+        output_extensions: List of XAI output extensions.
+        ai_description: English cognitive instructions for LLM.
+        theory_grounding: Theory grounding context.
+        is_evaluative: Evaluative flag.
+        allow_decimals: Allow decimals flag.
+        allow_contextual_override: Allow contextual override flag.
+        is_lightweight_protocol: Lightweight protocol flag.
+        scales: BARS scale definitions if matrix.
+        rows: Rows if matrix.
+        columns: Columns if matrix.
+        instruction_text: Instruction text if system rule.
+        role_enforcement: Role enforcement text if persona.
+        tone_directives: Tone directives if persona.
+        protocol_instructions: Protocol instructions if protocol.
+        organization_id: Tenant organization scope.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    slug: Annotated[str, Field(..., min_length=1, description="URL routing helper field")]
+    label: Annotated[I18nText, Field(..., description="Localizable label for the UI")]
+    description: Annotated[I18nText, Field(..., description="Localizable description or help text")]
+    category_id: Annotated[PromptBlockCategory, Field(..., description="Prompt block category")]
+    type: Annotated[BlockDataType, Field(default=BlockDataType.INSTRUCTION, description="Block data type")]
+    output_extensions: Annotated[list[str], Field(default_factory=list, description="Requested XAI extensions")]
+    ai_description: Annotated[str | None, Field(default=None, description="English cognitive instructions")]
+    theory_grounding: Annotated[TheoryGrounding | None, Field(default=None, description="Theory grounding metadata")]
+    is_evaluative: Annotated[bool, Field(default=False, description="Whether the block evaluates claims")]
+    allow_decimals: Annotated[bool, Field(default=False, description="Whether decimal scores are allowed")]
+    allow_contextual_override: Annotated[
+        bool, Field(default=False, description="Whether contextual override is allowed")
+    ]
+    is_lightweight_protocol: Annotated[bool, Field(default=False, description="Lightweight protocol flag")]
+    scales: Annotated[list[MatrixScale] | None, Field(default=None, description="BARS scale definitions")]
+    rows: Annotated[list[MatrixRow] | None, Field(default=None, description="Matrix rows")]
+    columns: Annotated[list[I18nText] | None, Field(default=None, description="Matrix columns")]
+    instruction_text: Annotated[str | None, Field(default=None, description="Instruction text for system rules")]
+    role_enforcement: Annotated[str | None, Field(default=None, description="Role enforcement for personas")]
+    tone_directives: Annotated[list[str], Field(default_factory=list, description="Tone directives for personas")]
+    protocol_instructions: Annotated[str | None, Field(default=None, description="Protocol instructions for protocols")]
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope")]
 
 
 class WorkflowResponseDTO(BaseResponseDTO, Workflow):

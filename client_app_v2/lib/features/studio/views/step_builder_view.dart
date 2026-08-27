@@ -405,12 +405,7 @@ class StepBuilderView extends HookConsumerWidget {
                             labelText: l10n.stepIdLabel,
                             border: const OutlineInputBorder(),
                           ),
-                          enabled: payload.id.isEmpty && !payload.isSystemCore,
-                          onChanged: (val) {
-                            ref
-                                .read(stepFormProvider(stepId).notifier)
-                                .forceRebuild(payload.copyWith(id: val.trim()));
-                          },
+                          readOnly: true,
                         ),
                         AppSpacing.h16,
                         TextFormField(

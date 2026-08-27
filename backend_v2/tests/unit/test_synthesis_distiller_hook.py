@@ -63,7 +63,7 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         "name": {"translations": {"en": "Prof 1"}},
         "matrix_synthesis_groups": [
             {
-                "id": "grp_default",
+                "id": "grp_0000000000000001",
                 "title": {"translations": {"en": "Default"}},
                 "target_blocks": ["*"],
             }
@@ -135,7 +135,7 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
         "name": {"translations": {"en": "Prof 1"}},
         "matrix_synthesis_groups": [
             {
-                "id": "grp_default",
+                "id": "grp_0000000000000001",
                 "title": {"translations": {"en": "Default"}},
                 "target_blocks": ["*"],
             }

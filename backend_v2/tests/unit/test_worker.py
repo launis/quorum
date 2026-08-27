@@ -624,7 +624,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 },
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_1",
+                        "id": "grp_1111111111111111",
                         "title": {
                             "translations": {"en": "Matrix Section", "fi": "Matriisiosio"},
                         },

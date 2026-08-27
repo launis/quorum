@@ -359,7 +359,7 @@ class StudioWorkflowService:
 
         for p in all_profiles:
             if p.get("workflow_id") == id:
-                new_profile_id = f"prof_{uuid.uuid4().hex[:30]}"
+                new_profile_id = f"prf_{uuid.uuid4().hex[:16]}"
                 profile_mapping[p.get("id")] = new_profile_id
 
                 cloned_profile = p.copy()
@@ -569,7 +569,7 @@ class StudioWorkflowService:
                 details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
             )
 
-        new_id = f"step_{uuid.uuid4().hex[:16]}"
+        new_id = f"sp_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
             "slug": new_id,
@@ -617,7 +617,7 @@ class StudioWorkflowService:
         step = Step.model_validate(data, strict=False)
         enforce_tenant_isolation(initiator, step.organization_id, "step", step.id)
 
-        new_id = f"step_{uuid.uuid4().hex[:16]}"
+        new_id = f"sp_{uuid.uuid4().hex[:16]}"
 
         cloned_data = step.model_dump(mode="json")
         cloned_data["id"] = new_id

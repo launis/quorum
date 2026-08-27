@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR010).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR011).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -437,6 +437,28 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         f"Pydantic model `{node.name}` is missing `model_config = ConfigDict(strict=True, extra='forbid')`.",
                         "Add `model_config = ConfigDict(strict=True, extra='forbid')` to enforce strict validation and reject hallucinated fields.",
                     )
+
+            # QGR011: Banned id field in CreateDTO / CreateRequest models
+            if not self._is_test_file and node.name.endswith(("CreateDTO", "CreateRequest")):
+                for item in node.body:
+                    has_id_target = False
+                    match item:
+                        case ast.AnnAssign(target=ast.Name(id="id")):
+                            has_id_target = True
+                        case ast.Assign(targets=targets):
+                            for t in targets:
+                                if isinstance(t, ast.Name) and t.id == "id":
+                                    has_id_target = True
+                                    break
+                        case _:
+                            pass
+                    if has_id_target:
+                        self._add_violation(
+                            item,
+                            "QGR011",
+                            f"Banned `id` field declaration in creation model `{node.name}`.",
+                            "Remove client-provided `id` field from creation DTO/Request models. IDs must be generated exclusively by the backend.",
+                        )
 
         self.generic_visit(node)
 

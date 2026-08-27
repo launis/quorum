@@ -126,7 +126,7 @@ class MockRepository:
             "scoring_strategy": "WATERFALL",
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_default",
+                    "id": "grp_0000000000000001",
                     "title": {"translations": {"en": "Default", "fi": "Default"}},
                     "target_blocks": ["*"],
                 }
@@ -217,7 +217,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
                 "scoring_strategy": "WATERFALL",
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_default",
+                        "id": "grp_0000000000000001",
                         "title": {"translations": {"en": "Default", "fi": "Default"}},
                         "target_blocks": ["*"],
                     }
@@ -325,7 +325,7 @@ class MockRepoWaterfall:
             "scoring_strategy": "WATERFALL",
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_default",
+                    "id": "grp_0000000000000001",
                     "title": {"translations": {"en": "Default", "fi": "Default"}},
                     "target_blocks": ["*"],
                 }
@@ -381,7 +381,7 @@ class MockRepoWaterfallMixed:
             "scoring_strategy": "WATERFALL",
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_default",
+                    "id": "grp_0000000000000001",
                     "title": {"translations": {"en": "Default", "fi": "Default"}},
                     "target_blocks": ["*"],
                 }
@@ -627,7 +627,7 @@ class MockRepoWaterfallSimulation:
             "scoring_strategy": "AVERAGE",
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_default",
+                    "id": "grp_0000000000000001",
                     "title": {"translations": {"en": "Default", "fi": "Default"}},
                     "target_blocks": ["*"],
                 }
@@ -991,7 +991,7 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_default",
+                        "id": "grp_0000000000000001",
                         "title": {"translations": {"en": "Default", "fi": "Default"}},
                         "target_blocks": ["*"],
                     }
@@ -1066,7 +1066,7 @@ async def test_scoring_matrix_namespace_isolation() -> None:
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_default",
+                        "id": "grp_0000000000000001",
                         "title": {"translations": {"en": "Default", "fi": "Default"}},
                         "target_blocks": ["*"],
                     }
@@ -1137,7 +1137,7 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_default",
+                        "id": "grp_0000000000000001",
                         "title": {"translations": {"en": "Default", "fi": "Default"}},
                         "target_blocks": ["*"],
                     }
@@ -1209,7 +1209,7 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_default",
+                        "id": "grp_0000000000000001",
                         "title": {"translations": {"en": "Default", "fi": "Default"}},
                         "target_blocks": ["*"],
                     }

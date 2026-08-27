@@ -100,27 +100,28 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
         1. Python Backend: `getattr/hasattr`, `.get(`, silent `except Exception:`, unvalidated `model_copy(update=)`, hardcoded magic numbers or timeouts, missing `@model_validator` / strict Pydantic DTOs.
         2. Flutter Frontend: Hardcoded Finnish strings (missing `.arb`), magic hex colors (`Color(0x...)`), manual `substring()` clippings, missing `AppErrorBoundary` / `AsyncValue` guards.
         3. ISTQB Testing: Missing negative ISTQB partitions (boundary values, error paths) or legacy dictionary test fixtures.
+      SECTION 6: TRI-AXIS DIALECTICAL AUDIT (Cross-Examination)
+      - You MUST execute a rigorous 3-way dialectical cross-examination and persist it directly in the `feature_audit_[feature_name].md` artifact:
+        1. PROSECUTION (Over-Engineering & YAGNI Advocate): Is this proposed feature over-designed, over-abstracted, adding unneeded layers, or solving non-existent edge cases? Answer: "If 30% of the proposed architecture had to be removed, what gets cut?"
+        2. DEFENSE (Architectural Sovereignty & Fail-Fast Advocate): How does this proposal mathematically protect type safety, immutability, Pydantic V2 strictness, and separation of concerns against Agentic Drift?
+        3. REALIST (Duct-Tape & Blast Radius Interrogator): Does this proposal hide technical debt under quick patches, fallback chains, loose type hints, or un-synchronized frontend/backend state? Inspect 1-hop dependencies.
+      - BINDING VERDICT: Output an explicit 3-column decision matrix: [Approved Best Practice] | [Pruned Over-Engineering] | [Eradicated Duct-Tape].
     </step>
 
-    <step id="3">SYNTHESIS &amp; BEST-PRACTICE SOLUTION MODEL:
+    <step id="3">SYNTHESIS & BEST-PRACTICE SOLUTION MODEL:
       - Formulate a clean, future-proof architectural recommendation.
       - Clearly define the recommended target components, DTO contracts, and layer responsibilities.
       - Detail the explicit trade-offs and justifications for the recommended approach over naive implementations.
     </step>
 
     <step id="4">PERSISTENT ARTIFACT CREATION:
-      - Use `write_to_file` to save the complete evaluation report to the artifact directory: `<appDataDir>\brain\<conversation-id>\feature_audit_[feature_name].md`.
+      - Use `write_to_file` to save the complete evaluation report (including the 7 mandatory sections) to the artifact directory: `<appDataDir>\brain\<conversation-id>\feature_audit_[feature_name].md`.
     </step>
 
-    <step id="5">FINAL REPORT PRESENTATION &amp; NEXT STEPS:
+    <step id="5">ARTIFACT-FIRST PRESENTATION & NEXT STEPS:
       - Close the `<thinking_process>` block.
-      - Output the structured architectural analysis in clean Markdown with the following mandatory sections:
-        1. **Executive Summary &amp; First Principles (Juurisyy &amp; Ensiperiaatteet)**
-        2. **Panel of Experts Audit (Backend, LLM/Konteksti, SDUI/Frontend)**
-        3. **Falsification &amp; Red-Teaming (Tuotantoriskit &amp; Sivuvaikutukset)**
-        4. **Quorum Modernity Gate Verification (Purkkaratkaisujen karsinta)**
-        5. **Touched Scope Technical Debt &amp; Anti-Pattern Sweep (Teknisen velan kartoitus)**
-        6. **Recommended Architectural Model &amp; Roadmap (Suositeltava ratkaisumalli &amp; Askelmerkit)**
+      - In accordance with global Planning Mode guidelines, do NOT dump or re-summarize the entire artifact in your chat response.
+      - Point the user directly to the generated `feature_audit_[feature_name].md` artifact, highlighting only the high-level verdict and any critical open decisions.
       - Conclude by providing the recommended next workflow command (e.g. `/tier0-create-epic` or `/tier0-create-plan`) for formalizing and planning the feature once approved.
     </step>
   </execution_protocol>

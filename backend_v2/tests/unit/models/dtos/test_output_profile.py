@@ -11,7 +11,6 @@ from backend_v2.models.dtos.output_profile import (
 from backend_v2.models.enums import DisplayScale, TargetBlockType, XaiExtensionType
 
 _VALID_CREATE_PAYLOAD: dict[str, Any] = {
-    "id": "prf_1234abcd",
     "slug": "my-profile",
     "workflow_id": "wf_123",
     "name": {"translations": {"en": "Name", "fi": "Name"}},
@@ -20,7 +19,7 @@ _VALID_CREATE_PAYLOAD: dict[str, Any] = {
 
 
 def test_output_profile_create_dto_strictness() -> None:
-    """Test Create DTO validation, ID pattern and immutability."""
+    """Test Create DTO validation, field parsing, and immutability."""
     dto = OutputProfileCreateDTO.model_validate(
         {
             **_VALID_CREATE_PAYLOAD,
@@ -30,10 +29,19 @@ def test_output_profile_create_dto_strictness() -> None:
             "display_scale": DisplayScale.ORIGINAL,
         }
     )
-    assert dto.id == "prf_1234abcd"
+    assert dto.slug == "my-profile"
     assert XaiExtensionType.CITATION in dto.visible_block_extensions
     assert dto.performativity_detector_step_id == "sp_123"
     assert dto.display_scale == DisplayScale.ORIGINAL
+
+    # Server ID Authority: Reject client-provided ID
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        OutputProfileCreateDTO.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "id": "prf_client_injected_id",
+            }
+        )
 
     # Immutability check
     with pytest.raises(ValidationError, match="Instance is frozen"):
@@ -220,6 +228,7 @@ def test_output_profile_response_dto_accepts_string_enums_from_storage_payload()
     """Regression test: OutputProfileResponseDTO must accept string-based enum representations."""
     payload = {
         **_VALID_CREATE_PAYLOAD,
+        "id": "prf_1234abcd",
         "display_scale": "normalized_100",
         "target_block_order": ["metadata_block", "global_score_block"],
     }

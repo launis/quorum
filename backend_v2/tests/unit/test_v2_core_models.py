@@ -184,18 +184,18 @@ def test_matrix_synthesis_group_validation() -> None:
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.v2_core import MatrixSynthesisGroup
 
-    # Valid group
+    # Valid group with 16-hex Opaque ID
     group = MatrixSynthesisGroup(
-        id="group_1",
+        id="grp_1111111111111111",
         title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
         target_blocks=["blk_1", "blk_2"],
         synthesis_directive="Custom directive",
     )
-    assert group.id == "group_1"
+    assert group.id == "grp_1111111111111111"
     assert group.target_blocks == ["blk_1", "blk_2"]
     assert group.synthesis_directive == "Custom directive"
 
-    # Invalid id pattern
+    # Invalid id pattern: spaces
     with pytest.raises(ValidationError):
         MatrixSynthesisGroup(
             id="invalid id with spaces!",
@@ -203,10 +203,18 @@ def test_matrix_synthesis_group_validation() -> None:
             target_blocks=["blk_1"],
         )
 
+    # Invalid id pattern: semantic slug
+    with pytest.raises(ValidationError):
+        MatrixSynthesisGroup(
+            id="grp_critical_thinking",
+            title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
+            target_blocks=["blk_1"],
+        )
+
     # Empty target_blocks
     with pytest.raises(ValidationError):
         MatrixSynthesisGroup(
-            id="group_1",
+            id="grp_1111111111111111",
             title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
             target_blocks=[],
         )
@@ -219,7 +227,7 @@ def test_output_profile_validate_matrix_graphs_coherence() -> None:
     from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
 
     group = MatrixSynthesisGroup(
-        id="grp_1",
+        id="grp_1111111111111111",
         title=I18nText(translations={"en": "Grp", "fi": "Ryhmä"}),
         target_blocks=["blk_1"],
     )

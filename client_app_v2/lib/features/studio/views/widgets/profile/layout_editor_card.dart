@@ -5,6 +5,7 @@ import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:uuid/uuid.dart';
 
 /// LayoutEditorCard for configuring matrix synthesis groups.
 class LayoutEditorCard extends ConsumerWidget {
@@ -26,7 +27,7 @@ class LayoutEditorCard extends ConsumerWidget {
     final nextIdx = newList.length + 1;
     newList.add(
       MatrixSynthesisGroup(
-        id: 'grp_${DateTime.now().millisecondsSinceEpoch}',
+        id: 'grp_${const Uuid().v4().replaceAll('-', '').substring(0, 16)}',
         title: I18nText(
           translations: {'en': 'Group $nextIdx', 'fi': 'Ryhmä $nextIdx'},
         ),

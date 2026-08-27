@@ -22,7 +22,8 @@ def test_output_profile_dtos_accept_content_blocks() -> None:
     assert resp_dto.content_blocks is not None
     assert len(resp_dto.content_blocks) == 1
 
-    create_dto = OutputProfileCreateDTO.model_validate(data)
+    create_data = {k: v for k, v in data.items() if k != "id"}
+    create_dto = OutputProfileCreateDTO.model_validate(create_data)
     assert create_dto.content_blocks is not None
 
     update_data: dict[str, Any] = {"content_blocks": []}

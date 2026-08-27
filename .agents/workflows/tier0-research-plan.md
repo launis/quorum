@@ -108,10 +108,32 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
         2. Flutter Frontend: Hardcoded strings (missing `.arb`), hex colors (`Color(0x...)`), manual `substring()` clippings, missing `AppErrorBoundary` / `AsyncValue` guards.
         3. ISTQB Testing: Missing negative ISTQB partitions (boundary values, error paths) or legacy dictionary fixtures.
       </constraint>
+      <constraint name="TRI_AXIS_DIALECTICAL_AUDIT">
+        You MUST execute a rigorous 3-Way Cross-Examination Debate across three conflicting architectural forces as part of your analysis and persist the findings directly into the `implementation_plan.md` (or `research_notes.md`) artifact:
+        
+        1. PROSECUTION (Over-Engineering & YAGNI Advocate):
+           - Attack the proposed plan aggressively.
+           - Identify where the plan introduces unnecessary DTO layers, redundant AST guardrail rules, overly granular abstractions, or premature optimization for scale that creates maintenance overhead without proportional risk reduction.
+           - Mandatory Deletion Test: Answer explicitly: "If 30% of the proposed new classes/functions had to be deleted, what gets cut and what breaks?"
+        
+        2. DEFENSE (Architectural Sovereignty & Fail-Fast Advocate):
+           - Counter-attack the Prosecution with mathematical and architectural proof.
+           - Demonstrate why strict Pydantic V2 DTO separation, AST guardrails, and rigid boundary contracts are strictly mandatory to eliminate 'Agentic Drift', prevent circular dependencies, and guarantee deterministic Fail-Fast stability in an autonomous multi-agent environment.
+        
+        3. REALIST (Duct-Tape & Blast Radius Interrogator):
+           - Interrogate both sides: Does this plan truly fix the underlying root cause, or is it building golden cathedrals on top of rotten data pipelines?
+           - Blast Radius Audit: Inspect 1-hop dependencies, test fixtures, and client-side forms for surviving fallback chains, silent `try/except` swallowing, lazy `.get()`/`or` defaults, or un-synchronized in-memory state mutations.
+           - Legacy Fixture Trap: Verify that existing test files/fixtures are explicitly updated so they do not preserve dead structures or bypass strict validation.
+        
+        4. BINDING VERDICT & MANDATORY PLAN MUTATION:
+           - Render a binding, un-sugarcoated architectural verdict.
+           - Provide a concrete decision matrix: (A) Approved Best Practice, (B) Pruned Over-Engineering, (C) Eradicated Duct-Tape.
+           - If over-engineering or duct-tape is identified, you MUST physically mutate the `implementation_plan.md` immediately in Step 6 to strip the fluff or inject pre-requisite tech debt cleanups.
+      </constraint>
       <action>Evaluate if we are fixing the right problem (The XY Problem). Compare the solution against global industry best practices, particularly LLM provider recommendations.</action>
     </step>
 
-    <step id="3" name="FALSIFICATION &amp; RED-TEAMING (CHECKLIST)">
+    <step id="3" name="FALSIFICATION & RED-TEAMING (CHECKLIST)">
       <action>Attack the plan with a "Red-Team" mindset. You MUST find and document at least two potential weaknesses or failure points in the original plan.</action>
       <constraint name="MANDATORY QUESTIONS">
         Before proceeding, answer these mandatory questions for every major architectural change:
@@ -123,7 +145,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
         - If we modify the backend data model, how do we ensure the Flutter client or the LLM parser does not break (second-order effects)?
         - How does the planned LLM functionality handle potential failure states (e.g., rate limits, token limits, failed JSON schema validations, or hallucinations) without compromising system stability?
         - CONTEXT WINDOW AUDIT: Does this plan overload the Context Window by trying to modify too many files (>4) in a single session without scheduling a Session Handover tracker update?
-        - UPSTREAM PARITY &amp; GOAL ALIGNMENT: Does this plan perfectly align with the broader goals, architectural invariants, and exact specifications (including data payloads and identifiers) of the upstream Epic and `docs/architecture/` documents? You MUST verify that the planner did not hallucinate new behavior, drop requirements, or subtly alter constraints to take a 'path of least resistance'.
+        - UPSTREAM PARITY & GOAL ALIGNMENT: Does this plan perfectly align with the broader goals, architectural invariants, and exact specifications (including data payloads and identifiers) of the upstream Epic and `docs/architecture/` documents? You MUST verify that the planner did not hallucinate new behavior, drop requirements, or subtly alter constraints to take a 'path of least resistance'.
       </constraint>
     </step>
 
@@ -131,16 +153,16 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <action>Perform "dry-runs" for your best corrective proposals. If possible, execute local commands or simulated code walkthroughs to confirm that the proposed new logic will actually function as intended within the current Quorum environment.</action>
     </step>
 
-    <step id="5" name="SYNTHESIS &amp; FUTURE-PROOFING">
+    <step id="5" name="SYNTHESIS & FUTURE-PROOFING">
       <action>Based on your findings, draft a clear synthesis on how to achieve a guaranteed, straightforward, and working solution. Ensure the solution is future-proof, easily extensible, and strictly adheres to all local architectural rules.</action>
     </step>
 
-    <step id="6" name="PLAN MUTATION &amp; ANALYSIS SEPARATION (WRITE SAFETY)">
-      <action>Update the actual `[implementation_plan]` document based on your validated findings so that the plan document itself remains clean and contains only straightforward execution instructions.</action>
+    <step id="6" name="PLAN MUTATION & ARTIFACT PERSISTENCE (WRITE SAFETY)">
+      <action>Update the actual `[implementation_plan]` document based on your validated findings so that the plan document itself contains the updated execution instructions and incorporates the Tri-Axis Dialectical Audit / Red-Team justifications.</action>
       <action name="TECH_DEBT_PRE_REQUISITE_INJECTION">If technical debt was discovered in touched files, you MUST mutate the implementation plan to inject explicit `### Pre-Implementation Technical Debt Cleanups` pre-requisite steps into Phase 1 before new business logic is added.</action>
       <action name="EPIC SSOT SYNC">If your analysis uncovered a significant architectural flaw, a missing dependency, or a change in strategy that affects the broader scope of the project, you MUST ALSO update the main parent Epic document (`docs/epic/EPIC_XXX.md`) and the Tracker file to document this new learning. The Epic must remain the accurate Single Source of Truth for future phases.</action>
       <constraint>You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation of the granular execution steps. Full file overwrites (`write_to_file`) are strictly forbidden.</constraint>
-      <action>PRESENT SEPARATELY (e.g., in your response or a separate analysis artifact) a short and concise justification for the architectural choices and changes you made.</action>
+      <action>ARTIFACT-FIRST REPORTING PROTOCOL: In accordance with global Planning Mode guidelines, do NOT re-summarize or dump full artifact content into the chat response. Point the user directly to the updated artifact, highlighting only key decisions or open questions needing feedback.</action>
       <constraint name="CONTEXT AMNESIA PREVENTION">Because this deep analysis heavily saturates the context window, you MUST conclude your response by instructing the user to start a brand NEW chat session and execute `/tier2-execute` from there. Do not allow execution to continue in this saturated context.</constraint>
     </step>
   </execution_protocol>

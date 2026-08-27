@@ -560,7 +560,7 @@ def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
         update={
             "matrix_synthesis_groups": [
                 MatrixSynthesisGroup(
-                    id="grp_matrix",
+                    id="grp_1234567890123456",
                     title=I18nText(translations={"en": "Matrix"}),
                     target_blocks=["blk_1234567890abcdef1234567890abcdef"],
                 )

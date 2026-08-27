@@ -68,7 +68,7 @@ def _build_mock_deps() -> HookDependencies:
         "name": {"translations": {"en": "Standard Profile"}},
         "matrix_synthesis_groups": [
             {
-                "id": "grp_default",
+                "id": "grp_0000000000000001",
                 "title": {"translations": {"en": "Default"}},
                 "target_blocks": ["*"],
             }
@@ -569,7 +569,7 @@ async def test_synthesis_distiller_wiring_forwards_synthesis_config() -> None:
         "name": {"translations": {"en": "Standard Profile"}},
         "matrix_synthesis_groups": [
             {
-                "id": "grp_default",
+                "id": "grp_0000000000000001",
                 "title": {"translations": {"en": "Default"}},
                 "target_blocks": ["*"],
             }

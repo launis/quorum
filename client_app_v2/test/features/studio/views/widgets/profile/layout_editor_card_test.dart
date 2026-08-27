@@ -12,7 +12,7 @@ void main() {
       'LayoutEditorCard renders MatrixSynthesisGroup without crashing',
       (WidgetTester tester) async {
         final group = const MatrixSynthesisGroup(
-          id: 'grp_1',
+          id: 'grp_1111111111111111',
           title: I18nText(translations: {'en': 'Matrix Synthesis Group 1'}),
           targetBlocks: [],
         );

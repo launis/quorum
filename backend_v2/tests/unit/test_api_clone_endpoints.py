@@ -98,7 +98,7 @@ def mock_studio_service() -> AsyncMock:
         name=I18nText(translations={"en": "Profile (Copy)", "fi": "Profile (Copy)"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_default",
+                id="grp_0000000000000001",
                 title=I18nText(translations={"en": "Default"}),
                 target_blocks=["*"],
             )

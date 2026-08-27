@@ -545,7 +545,9 @@ class StepRule(V2CoreBase):
     """Execution step mapping (DAG Router Node)."""
 
     id: str = Field(
-        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique node ID in the workflow (e.g. blk_node_1)."
+        default_factory=lambda: f"sr_{uuid.uuid4().hex[:16]}",
+        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        description="Unique node ID in the workflow (e.g. blk_node_1).",
     )
     task_blueprint: str = Field(
         min_length=1, description="ID reference to the isolated Step (e.g., 'step_f15853d2584e4096aeb60f11a3e6ea7c')"
@@ -882,7 +884,11 @@ class MatrixSynthesisGroup(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
     """Represents a comparative matrix synthesis group for 2D/3D graphs and multi-matrix synthesis."""
 
-    id: str = Field(min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Unique group identifier")
+    id: str = Field(
+        default_factory=lambda: f"grp_{uuid.uuid4().hex[:16]}",
+        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        description="Unique Opaque Synthesis Group ID (e.g. grp_440a5fef9331451b)",
+    )
     title: I18nText = Field(description="Localized title for the synthesis group")
     target_blocks: list[str] = Field(min_length=1, description="List of prompt block IDs targeted by this group")
     synthesis_directive: str | None = Field(default=None, description="Optional custom synthesis directive")

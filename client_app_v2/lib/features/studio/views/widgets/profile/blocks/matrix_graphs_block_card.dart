@@ -8,6 +8,7 @@ import 'package:client_app/features/studio/views/widgets/profile/blocks/base_blo
 import 'package:client_app/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:uuid/uuid.dart';
 
 /// Collection Builder card for matrix synthesis group entries in payload.matrixSynthesisGroups.
 class MatrixGraphsBlockCard extends StatelessWidget {
@@ -109,7 +110,7 @@ class MatrixGraphsBlockCard extends StatelessWidget {
                 final newIndex = newGroups.length + 1;
                 newGroups.add(
                   MatrixSynthesisGroup(
-                    id: 'grp_${DateTime.now().millisecondsSinceEpoch}',
+                    id: 'grp_${const Uuid().v4().replaceAll('-', '').substring(0, 16)}',
                     title: I18nText(
                       translations: {
                         'en': 'Group $newIndex',

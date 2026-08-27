@@ -25,7 +25,7 @@ def fix_mock_dict(d: Any) -> Any:
                 "matrix_synthesis_groups",
                 [
                     MatrixSynthesisGroup(
-                        id="grp_default", title=I18nText(translations={"en": "Default"}), target_blocks=["*"]
+                        id="grp_0000000000000001", title=I18nText(translations={"en": "Default"}), target_blocks=["*"]
                     )
                 ],
             )
@@ -42,7 +42,7 @@ def fix_mock_dict(d: Any) -> Any:
             if "matrix_synthesis_groups" not in d or not d["matrix_synthesis_groups"]:
                 d["matrix_synthesis_groups"] = [
                     {
-                        "id": "grp_default",
+                        "id": "grp_0000000000000001",
                         "title": {"translations": {"en": "Default", "fi": "Oletus"}},
                         "target_blocks": ["*"],
                     }
@@ -290,7 +290,7 @@ def mock_repo_transformer() -> Any:
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
                 matrix_synthesis_groups=[
                     MatrixSynthesisGroup(
-                        id="grp_default",
+                        id="grp_0000000000000001",
                         title=I18nText(translations={"en": "Default", "fi": "Oletus"}),
                         target_blocks=["blk_1234abcd1234abcd", "grouped_extensions_block"],
                     )
@@ -1272,7 +1272,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_default",
+                id="grp_0000000000000001",
                 title=I18nText(translations={"en": "Default"}),
                 target_blocks=["*"],
             )
@@ -1366,7 +1366,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_default",
+                id="grp_0000000000000001",
                 title=I18nText(translations={"en": "Default"}),
                 target_blocks=["*"],
             )
@@ -1551,7 +1551,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
                 matrix_synthesis_groups=[
                     MatrixSynthesisGroup(
-                        id="grp_default",
+                        id="grp_0000000000000001",
                         title=I18nText(translations={"en": "Default"}),
                         target_blocks=["*"],
                     )
@@ -1659,7 +1659,7 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
                 matrix_synthesis_groups=[
                     MatrixSynthesisGroup(
-                        id="grp_default",
+                        id="grp_0000000000000001",
                         title=I18nText(translations={"en": "Default"}),
                         target_blocks=["*"],
                     )
@@ -1735,7 +1735,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_matrix",
+                id="grp_1111111111111111",
                 title=I18nText(translations={"en": "Matrix"}),
                 target_blocks=["matrix_logic1234"],
             )
@@ -1886,7 +1886,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_test",
+                id="grp_2222222222222222",
                 title=I18nText(translations={"en": "test"}),
                 target_blocks=["*"],
             )
@@ -2110,7 +2110,7 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
                 target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
                 matrix_synthesis_groups=[
                     MatrixSynthesisGroup(
-                        id="grp_default",
+                        id="grp_0000000000000001",
                         title=I18nText(translations={"en": "Default"}),
                         target_blocks=["*"],
                     )
@@ -2178,7 +2178,7 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         ],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_metrics",
+                id="grp_3333333333333333",
                 title=I18nText(translations={"fi": "Mittarit", "en": "Metrics"}),
                 target_blocks=["*"],
             )
@@ -2773,7 +2773,7 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         content_blocks=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_default",
+                id="grp_0000000000000001",
                 title=I18nText(translations={"en": "Default"}),
                 target_blocks=["*"],
             )

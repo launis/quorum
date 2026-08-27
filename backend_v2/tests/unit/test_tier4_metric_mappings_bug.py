@@ -12,7 +12,7 @@ def test_worker_db_hydration_metric_mappings_bug() -> None:
         "name": {"translations": {"en": "Title", "fi": "Title"}},
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1",
+                "id": "grp_1111111111111111",
                 "title": {"translations": {"en": "Group 1"}},
                 "target_blocks": ["blk_1"],
             }

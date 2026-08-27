@@ -49,7 +49,7 @@ def test_matrix_graphs_adapter_single_group_1d() -> None:
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_1",
+                id="grp_1111111111111111",
                 title=I18nText(translations={"en": "Metrics 1D"}),
                 target_blocks=["m1"],
             )
@@ -95,7 +95,7 @@ def test_matrix_graphs_adapter_single_group_2d() -> None:
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_2",
+                id="grp_2222222222222222",
                 title=I18nText(translations={"en": "Compare 2D"}),
                 target_blocks=["m1", "m2"],
             )
@@ -149,7 +149,7 @@ def test_matrix_graphs_adapter_success_3d() -> None:
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_3",
+                id="grp_3333333333333333",
                 title=I18nText(translations={"en": "Graph 3D"}),
                 target_blocks=["m1", "m2", "m3"],
             )
@@ -215,7 +215,7 @@ def test_matrix_graphs_adapter_wildcard_target_blocks() -> None:
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_all",
+                id="grp_4444444444444444",
                 title=I18nText(translations={"en": "All Matrices"}),
                 target_blocks=["*"],
             )
@@ -278,7 +278,7 @@ def test_matrix_graphs_adapter_with_section_syntheses() -> None:
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_synth",
+                id="grp_5555555555555555",
                 title=I18nText(translations={"en": "Synthesized Group"}),
                 target_blocks=["m1"],
             )
@@ -286,7 +286,9 @@ def test_matrix_graphs_adapter_with_section_syntheses() -> None:
     )
     cache = RenderedSynthesisCache(
         section_syntheses={
-            "grp_synth": [ParagraphBlock(text="Section synthesis summary text.", exact_quotes=[], citations=[])]
+            "grp_5555555555555555": [
+                ParagraphBlock(text="Section synthesis summary text.", exact_quotes=[], citations=[])
+            ]
         }
     )
     context = AdapterContext(

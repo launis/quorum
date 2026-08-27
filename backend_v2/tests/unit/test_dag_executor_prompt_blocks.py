@@ -69,7 +69,7 @@ def mock_repo() -> Any:
         "visible_workflow_extensions": [],
         "matrix_synthesis_groups": [
             {
-                "id": "grp_default",
+                "id": "grp_0000000000000001",
                 "title": {"translations": {"en": "Default"}},
                 "target_blocks": ["*"],
             }

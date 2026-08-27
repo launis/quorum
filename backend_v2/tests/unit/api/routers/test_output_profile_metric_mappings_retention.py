@@ -23,7 +23,7 @@ def test_output_profile_response_dto_serializes_matrix_synthesis_groups() -> Non
         "name": {"translations": {"fi": "Testi", "en": "Test"}},
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1",
+                "id": "grp_1111111111111111",
                 "title": {"translations": {"fi": "Ryhmä 1", "en": "Group 1"}},
                 "target_blocks": ["blk_1", "blk_2"],
                 "synthesis_directive": "Directive",
@@ -42,7 +42,7 @@ def test_output_profile_response_dto_serializes_matrix_synthesis_groups() -> Non
         "matrix_synthesis_groups was excluded from serialized OutputProfileResponseDTO JSON response!"
     )
     assert len(serialized["matrix_synthesis_groups"]) == 1
-    assert serialized["matrix_synthesis_groups"][0]["id"] == "grp_1"
+    assert serialized["matrix_synthesis_groups"][0]["id"] == "grp_1111111111111111"
 
 
 def test_output_profile_roundtrip_preserves_matrix_synthesis_groups() -> None:
@@ -55,7 +55,7 @@ def test_output_profile_roundtrip_preserves_matrix_synthesis_groups() -> None:
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_1",
+                id="grp_1111111111111111",
                 title=I18nText(translations={"fi": "Ryhmä 1", "en": "Group 1"}),
                 target_blocks=["blk_1"],
             )
@@ -66,13 +66,15 @@ def test_output_profile_roundtrip_preserves_matrix_synthesis_groups() -> None:
     response_dto = OutputProfileResponseDTO.model_validate(db_profile.model_dump(mode="json"), strict=False)
     api_get_json = response_dto.model_dump(mode="json")
 
-    # 2. Flutter client parses api_get_json and sends back PUT payload
-    put_payload = api_get_json
+    # 2. Flutter client parses api_get_json and sends back PUT payload (without id in body)
+    put_payload = {k: v for k, v in api_get_json.items() if k != "id"}
 
-    # 3. Backend receives PUT payload in OutputProfileCreateDTO
+    # 3. Backend receives PUT payload in OutputProfileCreateDTO and hydrates with path ID
     create_dto = OutputProfileCreateDTO.model_validate(put_payload)
-    saved_profile = OutputProfile.model_validate(create_dto.model_dump())
+    profile_dict = create_dto.model_dump()
+    profile_dict["id"] = "prf_1111111111111111"
+    saved_profile = OutputProfile.model_validate(profile_dict)
 
     # 4. Verify matrix_synthesis_groups is preserved
     assert len(saved_profile.matrix_synthesis_groups) == 1
-    assert saved_profile.matrix_synthesis_groups[0].id == "grp_1"
+    assert saved_profile.matrix_synthesis_groups[0].id == "grp_1111111111111111"

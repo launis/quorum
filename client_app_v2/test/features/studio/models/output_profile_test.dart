@@ -7,7 +7,7 @@ void main() {
   group('MatrixSynthesisGroup JSON Parsing', () {
     test('Should parse MatrixSynthesisGroup with valid fields', () {
       final jsonPayload = {
-        'id': 'grp_1',
+        'id': 'grp_1111111111111111',
         'title': {
           'translations': {'fi': 'Otsikko', 'en': 'Title'},
         },
@@ -18,7 +18,7 @@ void main() {
       final group = MatrixSynthesisGroup.fromJson(jsonPayload);
 
       expect(group, isNotNull);
-      expect(group.id, 'grp_1');
+      expect(group.id, 'grp_1111111111111111');
       expect(group.title.translations['en'], 'Title');
       expect(group.targetBlocks, ['blk_1', 'blk_2']);
       expect(group.synthesisDirective, 'Focus on logic');
@@ -26,7 +26,7 @@ void main() {
 
     test('Should throw on unrecognized keys in MatrixSynthesisGroup', () {
       final jsonPayload = {
-        'id': 'grp_1',
+        'id': 'grp_1111111111111111',
         'title': {
           'translations': {'en': 'Title'},
         },
@@ -168,7 +168,7 @@ void main() {
         'language': 'en',
         'matrix_synthesis_groups': [
           {
-            'id': 'grp_1',
+            'id': 'grp_1111111111111111',
             'title': {
               'translations': {'en': 'Group 1'},
             },
@@ -208,7 +208,7 @@ void main() {
       expect(profile.targetBlockOrder.first, TargetBlockType.metadataBlock);
       expect(profile.targetBlockOrder.last, TargetBlockType.auditTrailBlock);
       expect(profile.matrixSynthesisGroups.length, 1);
-      expect(profile.matrixSynthesisGroups.first.id, 'grp_1');
+      expect(profile.matrixSynthesisGroups.first.id, 'grp_1111111111111111');
       expect(profile.synthesis?.synthesisBlockId, 'blk_syn_1');
       expect(profile.synthesis?.lengthConstraint, 300);
       expect(profile.visibleBlockExtensions, [

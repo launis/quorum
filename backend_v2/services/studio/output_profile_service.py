@@ -204,7 +204,7 @@ class StudioOutputProfileService:
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        new_id = f"opt_{uuid.uuid4().hex[:16]}"
+        new_id = f"prf_{uuid.uuid4().hex[:16]}"
         draft_dict: dict[str, Any] = {
             "id": new_id,
             "slug": new_id,
@@ -244,7 +244,7 @@ class StudioOutputProfileService:
         profile = OutputProfile.model_validate(data, strict=False)
         enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
 
-        new_id = f"prof_{uuid.uuid4().hex}"
+        new_id = f"prf_{uuid.uuid4().hex[:16]}"
 
         cloned_data = profile.model_dump(mode="json")
         cloned_data["id"] = new_id
