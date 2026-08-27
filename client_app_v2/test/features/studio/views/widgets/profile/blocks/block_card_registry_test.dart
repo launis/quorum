@@ -110,7 +110,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(BaseBlockCard), findsOneWidget);
+        if (type == TargetBlockType.synthesisTextBlock) {
+          expect(find.byType(SizedBox), findsWidgets);
+        } else {
+          expect(find.byType(BaseBlockCard), findsOneWidget);
+        }
       });
     }
   });

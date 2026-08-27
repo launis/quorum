@@ -87,6 +87,10 @@ class ProfileLayoutsTab extends ConsumerWidget {
       );
     }
 
+    final activeBlocks = payload.targetBlockOrder
+        .where((b) => b != TargetBlockType.synthesisTextBlock)
+        .toList();
+
     final inactiveBlocks = TargetBlockType.values
         .where(
           (b) =>
@@ -108,7 +112,7 @@ class ProfileLayoutsTab extends ConsumerWidget {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             Text(
-              l10n.activeBlocksCount(payload.targetBlockOrder.length),
+              l10n.activeBlocksCount(activeBlocks.length),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -126,12 +130,12 @@ class ProfileLayoutsTab extends ConsumerWidget {
             if (oldIndex < newIndex) {
               newIndex -= 1;
             }
-            final list = List<TargetBlockType>.from(payload.targetBlockOrder);
+            final list = List<TargetBlockType>.from(activeBlocks);
             final item = list.removeAt(oldIndex);
             list.insert(newIndex, item);
             updatePayload(payload.copyWith(targetBlockOrder: list));
           },
-          children: payload.targetBlockOrder.asMap().entries.map((entry) {
+          children: activeBlocks.asMap().entries.map((entry) {
             final idx = entry.key;
             final blockType = entry.value;
 

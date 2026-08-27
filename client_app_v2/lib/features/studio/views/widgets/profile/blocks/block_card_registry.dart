@@ -96,7 +96,7 @@ class BlockCardRegistry {
         dragHandle: dragHandle,
         syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
-      TargetBlockType.synthesisTextBlock => const SizedBox.shrink(),
+      TargetBlockType.synthesisTextBlock => SizedBox.shrink(key: key),
       TargetBlockType.matrixGraphsBlock => MatrixGraphsBlockCard(
         key: key,
         payload: payload,
