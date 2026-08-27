@@ -209,3 +209,27 @@ def test_build_whitespace_and_empty_strings_in_sources_filtered(
     assert len(blocks) == 1
     assert isinstance(blocks[0], MarkdownBlock)
     assert blocks[0].text == "### Sources and Bibliography\n- Valid Source"
+
+
+def test_build_starved_returns_empty(valid_output_profile_fixture: OutputProfile) -> None:
+    """Boundary: starved context returns []."""
+    from backend_v2.models.dtos.trace import DataStarvationEvent
+
+    cache = RenderedSynthesisCache(
+        data_starvation=DataStarvationEvent(total_atoms=0, reason="insufficient_tokens"),
+        cited_sources=["Source 1"],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+    )
+    blocks = PrintableSourcesAdapter.build(context)
+    assert blocks == []
+
