@@ -1,0 +1,1448 @@
+[
+  {
+    "block_id": "blk_440a5fef9331451b",
+    "slug": "matrix_toulmin",
+    "atoms": [
+      {
+        "tda_id": "tda_34259a6c02b74917b12f74b5f3839a66",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "LOCATE an assertive claim that is presented entirely without supporting Data or evidence.",
+        "rule": "no empirical data or external reference exists in the same paragraph.",
+        "anchor": "Find dogmatic absolute markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_69cc84e0b0c44996a8a95e09b356c692",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "IDENTIFY a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.",
+        "rule": "it connects two facts but lacks any explanatory mechanism. Do not accept explicit causal mechanisms.",
+        "anchor": "Find abrupt transition markers.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_d9cb646741ba4750ab561bf766c94f03",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.",
+        "rule": "the sentence makes a future prediction or subjective assessment using these markers. Mathematical facts.",
+        "anchor": "Find 100% certainty markers.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_f348220a3bea450b8e7e87b5f5117a1c",
+        "score": 2,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY the baseline presence of a Claim and some supporting Data.",
+        "rule": "a claim is explicitly linked to any data point. Chronological sequences.",
+        "anchor": "Find basic causal connectors.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_3613ef7137cc4e48a2d62b9921e5583c",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: LOCATE an instance where the provided Data is logically disconnected or objectively too weak to support the Claim.",
+        "rule": "an anecdote is used to justify a systemic rule or broad policy. Do not flag rigorous case studies.",
+        "anchor": "Find anecdotal markers.",
+        "example": "ACCEPTABLE: \"Individual X experienced Y, so society must do Z\" (Abstract anecdotal leap).\nUNACCEPTABLE: \"Study X shows Y, so society must do Z\" (Rigorous backing, not anecdote)."
+      },
+      {
+        "tda_id": "tda_b03e802130ef46c781ff49c6a71d6ada",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY a one-sided argument that completely ignores obvious counter-arguments or limitations.",
+        "rule": "complexity or opposing views are dismissed without data. Data-driven rebuttals.",
+        "anchor": "Find thought-terminating clichés.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_6e3e3aa6b9134a01838c3b70a35b4f32",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: FIND an argument where the Claim and Data are present, and the Warrant exists but remains implicit.",
+        "rule": "it connects Data to a Claim without defining the exact causal mechanism. Precise causal mechanisms.",
+        "anchor": "Find weak associative language.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_25f0540101174b66a09fe7770a28d110",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: LOCATE an instance where the author mentions a counter-argument but dismisses it superficially without dismantling it.",
+        "rule": "a counter-argument is mentioned but dismissed without presenting counter-data. Rebuttals that provide counter-data.",
+        "anchor": "Find rhetorical bypasses.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_1d7531b5f5944175bb1eee7eaed44f69",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY a structural weakness where the Warrant is stated but lacks deeper Backing.",
+        "rule": "consensus is the ONLY backing for a logical rule. Verifiable empirical sources.",
+        "anchor": "Find generic consensus markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_10dd47750c9244139c394ca875f160e6",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: LOCATE a robust, explicitly stated Warrant that clearly bridges the Data to the Claim.",
+        "rule": "the bridging rule between Data and Claim is explicitly stated. Do not evaluate the quality of the bridging rule.",
+        "anchor": "Find or equivalent explicit rules.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_4a8347422e464965a6e9206dcc240c26",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: FIND epistemological humility where the author explicitly uses Qualifiers to limit the scope of their Claim.",
+        "rule": "boundaries or probabilities are explicitly defined for the claim. Vague filler words. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "anchor": "Find conditional qualifiers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_47bade191cf346ec818757f081f6aef3",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: EXTRACT an instance where the author actively engages with a Rebuttal and systematically addresses it.",
+        "rule": "a specific counter-argument is addressed using empirical counter-data. Rhetorical dismissals without data.",
+        "anchor": "Find contrast markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_9da28945325e4486a8b4941c561299fa",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: LOCATE an argument where the Warrant is fortified by explicit Backing from external expert sources.",
+        "rule": "the logical rule is explicitly backed by a verifiable external methodology or study. Vague references to or.",
+        "anchor": "Find formal citations.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_9a08254fb47a46fdb8a78030ed68f853",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation where the author acts as their own prosecutor.",
+        "rule": "the author explicitly attempts to falsify their own Claim with a test/data before accepting it. Simple pros/cons lists.",
+        "anchor": "Find dialectical reasoning markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_dff85ed8a43a4ca99c34873b2fe44d89",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed Claim-Data-Warrant triad that leaves zero room for logical fallacy.",
+        "rule": "a Claim is supported by empirical Data AND the exact mechanism is defined. Implicit connections.",
+        "anchor": "Find precise causal language.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_f921c7c0989b47e8",
+    "slug": "matrix_bloom",
+    "atoms": [
+      {
+        "tda_id": "tda_b36d3ec7b1f94fe9ad4b45795a8a104b",
+        "score": 1,
+        "is_inverse": false,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "the sentence states a standalone fact without explanatory conjunctions. Do not accept sentences that attempt to explain the or.",
+        "anchor": "Find a declarative verb.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_d29b77c237394ccab4b8d52502f873f9",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "a fact is presented with zero preceding context or framing. Do not accept facts that are logically connected to the previous sentence.",
+        "anchor": "Find abrupt transition markers or the absence of them (e.g., starting a new paragraph directly with a proper noun or number).",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_216cc3fd45284deb8d51ea4cf2b2fd93",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "the absolute claim is presented without any citations or stated limitations. Do not accept absolute statements that are mathematically proven or properly cited.",
+        "anchor": "Find absolute words.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_131403148eab4c739149e6bd29164ce2",
+        "score": 2,
+        "is_inverse": false,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "found, the author is paraphrasing. Do not accept verbatim copy-pasting of definitions.",
+        "anchor": "Find reformulation markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_b7dfe23403db4db5b92a29a8bda9957c",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "Juxtaposition of concepts or entities listed in succession without explaining their relational connection or synthesis.",
+        "rule": "Extract the exact quote IF AND ONLY IF two nouns or noun phrases are joined by the conjunction WITHOUT any relational verb describing their interaction in the same sentence.",
+        "anchor": "Find generic listing conjunctions. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_4ba32055738247d28e00a597f505ce9e",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "Extract the quote IF the text uses these markers to force a complex situation into exactly one or two absolute options.",
+        "anchor": "Find binary reduction markers. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_6a779cd5e9714994b83168dd0fef0ef7",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "an abstract framework or rule is explicitly linked to a physical, real-world noun (e.g., a specific project, person, or physical action). Do not accept purely theoretical analogies without actionable context.",
+        "anchor": "Find application markers.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_20e76f768d24458fb2cc131b2bde4e04",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "a rule is enforced explicitly despite stated contextual evidence that it might be suboptimal. Do not accept justifiable adherence to safety or compliance protocols where no counter-evidence is presented.",
+        "anchor": "Find blind procedural markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_eec00de564394e9dbcc5744ca77f8e60",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "a single method is pushed without mentioning any alternatives. Do not accept solutions that have explicitly evaluated and dismissed alternatives with data.",
+        "anchor": "Find exclusionary solution markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_10f455c36f754d33a3a551e9e7b61da4",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "a single overarching concept is explicitly split into at least two named sub-components. Do not accept simple bullet-point lists of unrelated features.",
+        "anchor": "Find structural breakdown verbs.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_bfbe65b639b54106913902d5bd0ae6ab",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "the text identifies a mechanism or assumption that is not immediately visible on the surface. Do not accept superficial observations of visible symptoms.",
+        "anchor": "Find revelation markers.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_a3d407a71ade4ea4aa3afeaf1bb61b3c",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "the text delivers a defensible judgment on the validity or utility of an idea. Do not accept subjective emotional opinions.",
+        "anchor": "Find evaluative judgment verbs.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_5198e13cde3447fe9d0737a80abe458c",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "an evaluation explicitly links its judgment to a stated benchmark or metric. Do not accept floating evaluations with unstated goalposts.  NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "anchor": "Find criteria anchoring markers.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_b3c69e002634430ca9f2e2a33f7b280e",
+        "score": 6,
+        "is_inverse": false,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "the text explicitly merges at least two disparate elements into a completely new, named framework or solution. Do not accept mere combinations of existing ideas without a novel theoretical leap.",
+        "anchor": "Find synthesis verbs.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_40c435f393cb4357b31cf835ca601a54",
+        "score": 6,
+        "is_inverse": false,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "the text generates a new hypothesis and explicitly documents the step-by-step logical friction or trade-offs in its creation. Do not accept hypotheses presented as sudden epiphanies without documented reasoning.",
+        "anchor": "Find hypothesis generation markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_d95b263f55504cc38901001296374825",
+        "score": 6,
+        "is_inverse": true,
+        "concept": "DEPRECATED - V4 uses tda_assertions directly.",
+        "rule": "a synthesized framework floats purely in abstraction without ANY citations or anchoring to concrete prior expert literature. Do not accept grounded hypotheses that cite valid external precedents.",
+        "anchor": "Find absolute novelty claims.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_109dab5b6b3f403a",
+    "slug": "matrix_kahneman",
+    "atoms": [
+      {
+        "tda_id": "tda_3a362e01de66444c813e5b79adec27bf",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "the conclusion is presented without a multi-step logical deduction.",
+        "rule": "",
+        "anchor": "Find absolute conclusion words.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_7b88a578c3824b31b83a5154f7d3667a",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "EXTRACT evidence of cognitive biases or mental shortcuts.",
+        "rule": "the text draws a definitive conclusion based solely on this limited visible evidence while actively ignoring unknowns. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "anchor": "Find causal leaps connecting unrelated traits (Halo Effect) or prioritizing only visible evidence.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_2d12f15e1c2d4488b7c2ef32d0ccfa26",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "Expression of absolute, unhedged certainty regarding outcomes or facts without empirical data, uncertainty margins, or epistemic qualifiers.",
+        "rule": "this absolute certainty (regarding facts, methodologies, or sources) is presented without empirical data or epistemic qualifiers.",
+        "anchor": "Find absolute certainty markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" OR \"Method Z was used because it accounts for variable W\" (Epistemic grounding).\nUNACCEPTABLE: \"Claim X is true because of common sense\" OR \"Source Z is absolutely infallible and requires no scrutiny\" (Methodological absolute certainty / Blind trust)."
+      },
+      {
+        "tda_id": "tda_5568f81c93bc4d1fb524fbfc1d9f0e04",
+        "score": 2,
+        "is_inverse": false,
+        "concept": "Scan the document. present. <ambiguity_protocol>ABSOLUTE EXCLUSION ENFORCEMENT: You must actively locate a sentence where the author explicitly dismisses alternative perspectives or dogmatically asserts exclusive truth. General one-sided arguments that merely lack alternatives DO NOT trigger this rule; there MUST be a physical marker of active refusal, dogmatic exclusivity, or explicit dismissal. If such a marker is absent, you MUST conclude and return JSON null. </ambiguity_protocol>.",
+        "rule": "",
+        "anchor": "Find a proposal, claim, or argument.",
+        "example": "ACCEPTABLE: \"X is argued, but Y provides evidence otherwise\" (Abstract universal rebuttal).\nUNACCEPTABLE: \"X is completely wrong\" (Dismissive without counter-data)."
+      },
+      {
+        "tda_id": "tda_5257ba1edae34afe8b837c8c238cf743",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "the text physically separates a complex problem into at least three distinct, testable sub-components.",
+        "rule": "",
+        "anchor": "Find structural breakdown markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_64cce5cf564a497dbbc2341248cea637",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY where the structured logic is explicitly tethered to external expert references.",
+        "rule": "the logical deduction is strictly tied to a specific named methodology, framework, or external dataset.",
+        "anchor": "Find external citation markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_53f32679aa514fcb",
+    "slug": "matrix_goodhart",
+    "atoms": [
+      {
+        "tda_id": "tda_85ef05fdcd2f48afb925fd03b6c54d4d",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "IDENTIFY if the user treats the AI's probabilistic generation as an infallible oracle.",
+        "rule": "the user asks the AI to act as an infallible oracle without providing an external source or document to ground it. Requests grounded in explicitly provided documents.",
+        "anchor": "Find user requests for absolute truth without external verification.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_a9c96a0c55fe4ac884795440c722eb5d",
+        "score": 2,
+        "is_inverse": false,
+        "concept": "IDENTIFY active corrections limited to factual, stylistic, or formatting details.",
+        "rule": "the user ONLY requests formatting or minor lexical changes without challenging the logic. Do not accept if the user challenges the underlying reasoning.",
+        "anchor": "Find superficial correction commands by the user.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_8275735bde0244e2bdbf3ab915838d59",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data.",
+        "rule": "the user demands optimization of a surface metric without linking it to a qualitative real-world outcome. Do not accept if the metric is explicitly tied back to a measure of effectiveness.",
+        "anchor": "Find explicit optimization commands for proxy metrics.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_c17684acfcbe4a918e5ae0705b452b06",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data.",
+        "rule": "the user focuses solely on the performativity (tone/style) while ignoring substantive factual gaps. Revisions containing factual additions.",
+        "anchor": "Find user commands focused on tone.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_a08f0bc1e4f14623ab2248528ae42a3d",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE (FATAL FLAW): Scan ONLY the Target Data.",
+        "rule": "the user actively refuses to explore counter-arguments or alternative models. Do not accept if the user asks for pros and cons.",
+        "anchor": "Find single-path commands.",
+        "example": "ACCEPTABLE: \"X is argued, but Y provides evidence otherwise\" (Abstract universal rebuttal).\nUNACCEPTABLE: \"X is completely wrong\" (Dismissive without counter-data)."
+      },
+      {
+        "tda_id": "tda_bd85f009b0fb4f7899b40ff0e763dee7",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY where the user actively prevents Goodhart's Law by questioning the reliability of the metric.",
+        "rule": "Extract the quote IF the user explicitly questions the reliability of a proxy metric in relation to the true qualitative goal.",
+        "anchor": "Find tension markers between metrics and goals. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_657fb164be984788a760eed250b3bc61",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY where the user actively coaches the AI by providing concrete examples of desired formats or styles.",
+        "rule": "The user provides a concrete linguistic model or structurally detailed template to direct the AI. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema..",
+        "anchor": "Find examples or model structures provided by the user.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_86b9e792dd604b37a3443bffe25de8dd",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY where the user demands acknowledgment of uncertainties.",
+        "rule": "the user explicitly commands the AI to state its uncertainties or missing data. Demands for absolute certainty.",
+        "anchor": "Find demands for epistemological humility.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_71e60846894545b2bc43a3361b7a5a9c",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY where the user acts as a Socratic steer, probing assumptions and demanding logical arguments.",
+        "rule": "The user actively probes the foundational reasoning or forces the AI to defend its logic. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema.. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "anchor": "Find Socratic conceptual questions by the user.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_9fd2fff3ab4a46d29b5df31488561dd4",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY where the user demands external grounding and concrete expert verification.",
+        "rule": "the user explicitly restricts the AI to an external, objective anchor. Acceptance of unsourced hallucinated facts. NEGATIVE BOUNDARY: General questions or requests for explanation DO NOT count as external grounding unless they explicitly demand a citation or source material restriction.",
+        "anchor": "Find demands for external grounding.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_fb15f8dcf23f4865",
+    "slug": "matrix_archivist",
+    "atoms": [
+      {
+        "tda_id": "tda_7d0ef5f0be004974801b53d2af317bbe",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "IDENTIFY blatant fabrication where the output contradicts foundational constraints.",
+        "rule": "",
+        "anchor": "Find explicit rejection markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_5b0573225735409b8ef3d3eac041236d",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "EXTRACT an assertion presented as absolute truth without verifiable provenance.",
+        "rule": "",
+        "anchor": "Find dogmatic absolute markers.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_ce5f175f1eb341d1bcfe97d31028605d",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "LOCATE an instance where sensitive or restricted information is exposed or mishandled.",
+        "rule": "",
+        "anchor": "Find explicit exposure actions.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_82698279c7bd44b9a763f56423b86bda",
+        "score": 2,
+        "is_inverse": false,
+        "concept": "IDENTIFY the baseline presence of isolated compliance without overarching structural integrity.",
+        "rule": "",
+        "anchor": "Find physical actions of organizing or saving data.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_eb8a7a13bbe54bcca5474cc8219229e2",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: EXTRACT evidence where a required standard operating procedure is explicitly bypassed.",
+        "rule": "",
+        "anchor": "Find shortcut markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_e078baa92bf14cf19d8f4adce74c3fcf",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: LOCATE an execution that blindly follows one rule while completely ignoring conflicting constraints.",
+        "rule": "",
+        "anchor": "Find absolute exclusion markers.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_24bdc98709e84de984aabd67b597239b",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Extract explicit procedural execution steps that lack analytical or synthesis terminology.",
+        "rule": "Extract the paragraph IF AND ONLY IF it contains these procedural markers AND LACKS any synthesis/deduction verbs.",
+        "anchor": "Find procedural sequential markers. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_aa0b85a7febe4a3d9f580223c36a1646",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "BANNED PATTERN: Retrospective comments or technical observations about errors, missing data, or operational flaws in the source material/process (e.g. 'error in source data', 'missing source files'). These retrospective audit notes are NOT absolute compliance claims.",
+        "rule": "Identify explicit absolute status declarations that completely ignore challenges and risks.",
+        "anchor": "Find explicit absolute status declarations.",
+        "example": "ACCEPTABLE: \"The source material contained layout formatting errors, which were corrected.\" (Retrospective observation of a technical error, not an absolute claim ignoring risks).\nUNACCEPTABLE: \"Our system has achieved 100% perfect compliance and is completely without risk.\" (Absolute claim ignoring risks)."
+      },
+      {
+        "tda_id": "tda_b7e1fb5427384bb6866e224a0013ed2d",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "BANNED PATTERN: Describing purely formatting actions (e.g. shortening text, removing empty rows, converting tables to markdown) as source-criticism violations or appeals to authority.",
+        "rule": "Identify instances where editorial, structural, or formatting decisions are presented as content-level source claims.",
+        "anchor": "Find implicit authority markers.",
+        "example": "ACCEPTABLE: \"I reformatted the table layout and trimmed empty lines.\" (Purely editorial/formatting action without modifying source intent).\nUNACCEPTABLE: \"This statement must be true because I personally adjusted the text.\" (Claiming authority over content verification)."
+      },
+      {
+        "tda_id": "tda_23df983a5c6e4eb9b8a28f2287267bd8",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: LOCATE explicit adherence to structured directives where the chain of reasoning is clearly verifiable.",
+        "rule": "",
+        "anchor": "Find explicit methodology links.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_09a80d0f657a4a449417bdbc82059578",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: FIND epistemological humility where limitations and boundary conditions are explicitly stated.",
+        "rule": "",
+        "anchor": "Find boundary definition markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_643f6ce553754f8290d392356afdefba",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: EXTRACT an instance where potential compliance conflicts are systematically addressed.",
+        "rule": "",
+        "anchor": "Find conflict resolution markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_96354dbfd9d247f49237952ead7cacaf",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: FIND evidence of 'System 2' deliberation detailing why specific compliance tradeoffs were made.",
+        "rule": "",
+        "anchor": "Find explicit dialectical reasoning.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_10f55e6f5920473eabd081f5a94c8a89",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: LOCATE where the execution is fortified by explicit backing from external expert frameworks.",
+        "rule": "",
+        "anchor": "Find formal citation markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_0ab09c0daa9f4aeaad264c00944c5332",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: EXTRACT a masterfully constructed resolution that seamlessly balances strict compliance with operational goals.",
+        "rule": "",
+        "anchor": "Find integration markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_c5804a9143c34cb1",
+    "slug": "matrix_causal_analyst",
+    "atoms": [
+      {
+        "tda_id": "tda_bd90e5a66c5d433a9ed650f295132625",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "Do not evaluate.",
+        "rule": "the causal claim is backed ONLY by a statistical correlation or simultaneous occurrence without any physical mechanism.",
+        "anchor": "Find causal words.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_51a1544a321e4a18b3f4ea09b5bbe02e",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "Do not evaluate.",
+        "rule": "the text claims A caused B SOLELY because A happened before B.",
+        "anchor": "Find chronological sequence markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_3eed2113bd9842f3b8fd050046505e4d",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
+        "rule": "If role prefixes exist, the exact quote MUST be located in an block.",
+        "anchor": "Find causal claims relying on metaphysical or subjective vocabulary.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_8ecd3f17b3984e4fa1bb6a8cb5576b65",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "Find instances attributing a complex outcome to a single, isolated factor.",
+        "rule": "Extract the quote IF a highly complex outcome is attributed to a SINGLE cause.",
+        "anchor": "Find absolute causal words. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_728cd0dff7384300bc55622fa7dfffc0",
+        "score": 2,
+        "is_inverse": false,
+        "concept": "Do not evaluate accuracy.",
+        "rule": "the text explicitly states the direction of influence (which variable affects which).",
+        "anchor": "Find a claim connecting two variables.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_97ec90b4d90e4fee94b071f3e0007921",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "Do not evaluate relevance.",
+        "rule": "a universal causal rule is explicitly derived SOLELY from a single personal anecdote.",
+        "anchor": "Find personal anecdotes.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_c607024dbf524f7a9d68af443901c40e",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
+        "rule": "If role prefixes exist, the exact quote MUST be located in an block.",
+        "anchor": "Find an explicit causal claim.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_fda64d221181411fa70843a88689b27b",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "Identification and naming of potential confounding variables or alternative factors that could explain the observed outcome.",
+        "rule": "the text explicitly names a potential third variable that could also explain the outcome. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "anchor": "Find words indicating alternatives.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_01edff70b75047ec9f6df0c49745f46e",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "Do not evaluate humility.",
+        "rule": "a causal claim derived from a specific, limited context is applied to all contexts universally without acknowledging boundaries. <ambiguity_protocol>ABSOLUTE BOUNDARY ENFORCEMENT: You must check if the causal claim is bounded. If the sentence or immediate context contains explicit boundary-setting vocabulary, limitations, or environmental constraints, the absolute overgeneralization is falsified, the boundary is acknowledged, and you MUST conclude and return JSON null. </ambiguity_protocol>",
+        "anchor": "Find universal terms.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_7e0d493a62234375b180d942cb6e0bcd",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
+        "rule": "If role prefixes exist, the exact quote MUST be located in an block.",
+        "anchor": "Find conditional or action-oriented intervention markers.",
+        "example": "ACCEPTABLE: \"X might occur under condition Y\" (Abstract qualifier).\nUNACCEPTABLE: \"X will definitely occur\" (Lacks qualifier)."
+      },
+      {
+        "tda_id": "tda_41c34ee72a5e4afc9875d446b2e2dab4",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "Do not evaluate perfection.",
+        "rule": "the text explicitly states that an external variable was deliberately held constant or mathematically isolated to prove the cause.",
+        "anchor": "Find control markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_b110906545324d1f80bf3ec3b81b2b05",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "If no prefixes exist, scan the entire text. BANNED SOURCES: Any matches under prefix are REJECTED.",
+        "rule": "If role prefixes exist, the exact quote MUST be located in an block.",
+        "anchor": "Find boundary or limitation markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_6e53ee50b3524c70ba8b087abe8a0b05",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Do not evaluate creativity.",
+        "rule": "",
+        "anchor": "Find counterfactual markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_38f7965197f842f1a793194ae818765a",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Do not evaluate.",
+        "rule": "the text explicitly uses a formal model or strict structural logic to map the causality.",
+        "anchor": "Find mathematical or structural causal terms.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_14ce2d7744ed49868250c6aaeaccdf97",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Do not evaluate.",
+        "rule": "the specific causal mechanism is explicitly anchored to an established theoretical law.",
+        "anchor": "Find references to established scientific theories, formal logic principles, or physical laws.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_b476f89fb732448c",
+    "slug": "matrix_falsifier",
+    "atoms": [
+      {
+        "tda_id": "tda_236ebf69629e41a58b0f13eb82b44875",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept legitimate, statistically proven outlier exclusions (e.g., p-value tests).",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept legitimate, statistically proven outlier exclusions (e.g., p-value tests). STEP 1: Find dismissal markers. STEP 2 (Bounding Box): Scan the paragraph. If these markers are used to protect the original premise from contradictory data without changing the premise, extract the quote. Otherwise, return null.",
+        "anchor": "Find dismissal markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_c7e3a26277674d2aa8ab38d1ee7afb05",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept mathematical axioms.",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept mathematical axioms. STEP 1: Find dogmatic certainty markers. STEP 2 (Bounding Box): Scan the sentence. If it explicitly blocks further empirical testing or questioning, extract the quote. Otherwise, return null. NEGATIVE BOUNDARY: Rhetorical exaggeration or strong statements like DO NOT count as dogmatism unless the author explicitly forbids further empirical testing or questioning.",
+        "anchor": "Find dogmatic certainty markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_873a1fab603544048f95e612773f0574",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not evaluate.",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not evaluate. STEP 1: Find a counter-argument transition. STEP 2 (Bounding Box): Scan the paragraph. If the presented counter-argument lacks specific citations, named sources, or numerical data, AND is immediately dismissed, extract the quote. Otherwise, return null.",
+        "anchor": "Find a counter-argument transition.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_a42e3168877240ad90ccd2abb37c4597",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag caveats that result in a mathematically or conceptually altered conclusion.",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag caveats that result in a mathematically or conceptually altered conclusion. STEP 1: Find concessive conjunctions. STEP 2 (Bounding Box): Scan the sentence. If the concession is immediately followed by a return to the original unmodified premise, extract the quote. Otherwise, return null.",
+        "anchor": "Find concessive conjunctions.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_ce2566987e8f44819102d6eb1d28857d",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag open-ended questions explicitly left for future research.",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag open-ended questions explicitly left for future research. STEP 1: Find a question mark used by the author to question their own premise. STEP 2 (Bounding Box): Scan the following 2 sentences. If the author answers their own question confirming the premise without citing new data, extract the quote. Otherwise, return null.",
+        "anchor": "Find a question mark used by the author to question their own premise.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_3b951170f9f54f649b7da95fb9f121e6",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept explicit hypothesis testing.",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept explicit hypothesis testing. STEP 1: Find descriptive reporting verbs. STEP 2 (Bounding Box): Scan the paragraph. If the observation lacks a formulated hypothesis that could be tested or disproven, extract the quote. Otherwise, return null.",
+        "anchor": "Find descriptive reporting verbs.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_611db266856848b68fda02dd9f602ce5",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag limitations that were actively tested or corrected for in the dataset.",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag limitations that were actively tested or corrected for in the dataset. STEP 1: Find limitation markers. STEP 2 (Bounding Box): Scan the paragraph. If the limitations are stated passively without a corresponding mitigation action or test, extract the quote. Otherwise, return null.",
+        "anchor": "Find limitation markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_0af46ca3de69431e8a3eea89df104507",
+        "score": 3,
+        "is_inverse": true,
+        "concept": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag dialectical synthesis that mathematically resolves the conflict.",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not flag dialectical synthesis that mathematically resolves the conflict. STEP 1: Find conflict identification markers. STEP 2 (Bounding Box): Scan the paragraph. If the conflict is left unresolved using passive synthesis without falsifying one, extract the quote. Otherwise, return null.",
+        "anchor": "Find conflict identification markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_52ffb15768ba4a62ac3a8be5824a8aa6",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept vague statements about future research.",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept vague statements about future research. STEP 1: Find boundary condition markers. STEP 2 (Bounding Box): Scan the paragraph. If a specific measurable condition is defined that would falsify the claim, extract the quote. Otherwise, return null.",
+        "anchor": "Find boundary condition markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_43516f120e4a415bb0ee3a878a53a5bc",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "Identification of specific structural flaws or methodological weaknesses in one's own proposal or analysis.",
+        "rule": "Find evidence. role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept generic statements. STEP 1: Find methodological critique markers. STEP 2 (Bounding Box): Scan the paragraph. If a specific structural flaw in the methodology is explicitly identified, extract the quote. Otherwise, return null.",
+        "anchor": "Find methodological critique markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_ff72c2d79edb4ebf",
+    "slug": "matrix_judge",
+    "atoms": [
+      {
+        "tda_id": "tda_282059a3bea94b6c94e5f290a9cb75a7",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "BANNED SOURCES: Never read AI outputs. Do not look for absence of critique.",
+        "rule": "Scan ONLY the user prompts. the user accepts the AI output fully in one sentence WITHOUT any modifications or follow-up tasks in the same prompt.",
+        "anchor": "Find active acceptance words.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_d2e04ccdc7df428380b667e21217224a",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "Do not evaluate or.",
+        "rule": "Scan ONLY user prompts. the user explicitly asks the AI to make a final subjective choice or decision on their behalf.",
+        "anchor": "Find delegation verbs.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_2c3c394f7c07417c9754b54602bf1353",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "Scan ONLY user prompts. the user actively acknowledges an incomplete or erroneous AI response but instructs to move forward anyway.",
+        "rule": "",
+        "anchor": "Find dismissive phrases.",
+        "example": "ACCEPTABLE: \"X is argued, but Y provides evidence otherwise\" (Abstract universal rebuttal).\nUNACCEPTABLE: \"X is completely wrong\" (Dismissive without counter-data)."
+      },
+      {
+        "tda_id": "tda_46b1a8e3c2304438b82420fc40c3dbc1",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "Do not evaluate.",
+        "rule": "Scan ONLY user prompts. the user's ONLY request is a stylistic or formatting change, completely ignoring substantive logic.",
+        "anchor": "Find formatting terms.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_bb3511daf31f437f9be8f0abebd11c83",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "Scan ONLY user prompts. the user adds a new critical constraint that they forgot to specify in the previous prompt.",
+        "rule": "",
+        "anchor": "Find reactive anchors.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_fa4667af98f84790af9b9a12cd9d7bd0",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "Scan ONLY user prompts. the command lacks any specific constraints and allows the AI to freely decide what is important.",
+        "rule": "",
+        "anchor": "Find broad summary commands.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_10b1f2aff7b6426fb2e8e6002dbef2bc",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "Scan ONLY user prompts. the user provides at least one measurable or structural constraint for the output.",
+        "rule": "",
+        "anchor": "Find constraint markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_1897cd57db7c4e9b9ffc086ee544f643",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "Scan ONLY user prompts. the user defines the situational context or role for the AI before asking for output.",
+        "rule": "",
+        "anchor": "Find context markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_08c5a8eca0bb41a49d60b849503da2bb",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "Scan ONLY user prompts. the user corrects the AI and explicitly states the logical reason for the correction.",
+        "rule": "",
+        "anchor": "Find causal feedback markers.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_6ecd649b48c24e68824e27e30ed8a63e",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "Do not accept generic requests.",
+        "rule": "Scan ONLY user prompts. the user explicitly names a method or analytical framework the AI MUST follow.",
+        "anchor": "Find methodology anchors.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_b4e82bca48654f9ab948d4b3004abf81",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "Scan ONLY user prompts. the user explicitly forces the AI to stop and wait for human validation before proceeding to the next step.",
+        "rule": "",
+        "anchor": "Find sequence constraints.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_3a65513aa717469a8d2c3b821a69c4ab",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Scan ONLY user prompts. the user rejects the AI's reasoning and injects their own superior logical or empirical correction.",
+        "rule": "",
+        "anchor": "Find override phrases.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_a9b23e07d30a4422bcc983f4308ad212",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Scan ONLY user prompts. the user forces the AI to rigorously critique its own previous output or identify fatal flaws.",
+        "rule": "",
+        "anchor": "Find audit anchors.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_3af2d6bfe99c4119a301706c63920524",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: IDENTIFY where the user actively cross-checks the AI's generated output against target sources.",
+        "rule": "The user actively flags discrepancies between AI claims and source materials. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema..",
+        "anchor": "Find active verification markers comparing output against raw documents.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_6b8c766185294f7e",
+    "slug": "matrix_xai_reporter",
+    "atoms": [
+      {
+        "tda_id": "tda_b120e2c0a40840358df1e64a4b788b30",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "BANNED PATTERN: Strong declarative statements that do not build on prior probabilistic qualifiers.",
+        "rule": "Identify logical leaps where a probabilistic statement or uncertain assumption is converted into an absolute, definitive conclusion without facts. a definitive conclusion is drawn from these markers as an absolute truth.",
+        "anchor": "Find probabilistic markers.",
+        "example": "ACCEPTABLE: \"In conclusion, the transition is permanent.\" (Direct declarative claim without prior probabilistic assumptions).\nUNACCEPTABLE: \"The data might suggest a trend, which proves that the outcome is 100% certain.\" (Leaping from 'might/suggest' to an absolute conclusion)."
+      },
+      {
+        "tda_id": "tda_353aa6c896db47fb9d29b06a69bf77d4",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "alternative hypotheses are dismissed without empirical evidence.",
+        "rule": "",
+        "anchor": "Find dismissive markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_80732a33fe1947ee",
+    "slug": "matrix_taskguard",
+    "atoms": [
+      {
+        "tda_id": "tda_7577d7ee8a484c64ae3968aa4ec298dc",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "the acceptance is presented without an explicit verification step mentioned.",
+        "rule": "",
+        "anchor": "Find an absolute acceptance phrase.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_e0bf5617f4804a0d98a6b2d91dcd21ce",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "Do not accept generic errors; must be an absolute fabrication (LLM09 Overreliance).",
+        "rule": "the claim is demonstrably false or fabricated but presented with absolute certainty. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "anchor": "Find a factual claim (dates, names, specific data points).",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_83c3a1f41fb94c8d802a60e00ad2550f",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "security measures are ONLY described as post-incident responses without any pre-incident checks.",
+        "rule": "",
+        "anchor": "Find temporal reactive markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_453ddf8b14a442e988836098e3c7b55c",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "the risk is identified but no physical action verb follows to mitigate it. <ambiguity_protocol>ABSOLUTE MITIGATION ENFORCEMENT: You must strictly scan the paragraph containing the risk identification marker. If the paragraph contains a physical action verb that describes a technical, administrative, or physical mitigation or control, the absence of mitigation is falsified, the risk is mitigated, and you MUST conclude and return JSON null. Proposing future plans to mitigate or dismissing the risk as without physical control verbs DOES NOT satisfy the mitigation requirement and the rule remains satisfied. </ambiguity_protocol> NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "rule": "",
+        "anchor": "Find risk identification markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_c760c738451d4ca0af3bc507a2687e20",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "it describes a concrete data validation rule being applied to input or output.",
+        "rule": "",
+        "anchor": "Find explicit physical validation actions.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_715eb98a6f4a4a1e944db99f5eaaded9",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Verify awareness of system limitations.",
+        "rule": "Extract the quote IF the AI explicitly outputs a disclaimer acknowledging its own limitations.",
+        "anchor": "Find epistemic boundary markers. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_793b7078035645f0a9df32e58b6de0b9",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "Do not accept generic terms like.",
+        "rule": "the text physically demonstrates adherence to a named standard.",
+        "anchor": "Find explicit references to standard security protocols.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_1c195553935e4b8aaa4ee2a86feda9e4",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "a security constraint is described as a structural, automatic mechanism rather than a manual check.",
+        "rule": "",
+        "anchor": "Find proactive structural markers.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_82f0d074668043b3a0a64aa9f8506ff2",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "it describes physically rejecting invalid input or defaulting to a safe state without crashing.",
+        "rule": "",
+        "anchor": "Find error handling markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_131ffcb70bbc4c29bef079047002bc91",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "the processing demonstrates explicit zero-trust architecture where every input/output is treated as potentially hostile.",
+        "rule": "",
+        "anchor": "Find zero-trust markers.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_76df73280fc943cc9434d44efc8116e8",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "a security action is paired with an explicit, documented risk assessment.",
+        "rule": "",
+        "anchor": "Find causal justification markers.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_65cb33b82c54425aa86df7e84b66ffde",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Reject superficial mentions of frameworks.",
+        "rule": "the specific framework clause is directly linked to the physical security action taken. <ambiguity_protocol> ABSOLUTE LEXICAL ENFORCEMENT: You are a mechanical parser, not a forgiving judge. If a rule demands multiple conditions (e.g., A AND B AND C), and condition C is physically missing, you MUST return NULL. You are strictly forbidden from accepting 'close enough' semantic matches. BANNED MATCHES: Academic institutions (e.g., Stanford) and research reports (e.g., TTL) DO NOT count as formal standard frameworks (ISO/ARMA). </ambiguity_protocol>",
+        "anchor": "Find exact framework citations.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_c3bc5f3eb8e74110",
+    "slug": "matrix_causal_abductive",
+    "atoms": [
+      {
+        "tda_id": "tda_1361cf5ec5b5420c905cd2a1f80893a7",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: Extract retrospective claims of intent where the originally claimed parameters are physically missing from the preceding instruction.",
+        "rule": "Extract the retrospective claim IF AND ONLY IF the preceding text DOES NOT physically contain the parameters being claimed.",
+        "anchor": "Find explicit retrospective claims of intent. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_d262dd4421bd4af68191eb1f4d0faf26",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "EXTRACTION CONDITION: role prefixes exist, focus on output compared to input. .",
+        "rule": "role prefixes exist, focus on output compared to input. . STEP 1: Identify a novel concept, specific methodology, or data point introduced by the AI. STEP 2 (Bounding Box): Scan the preceding prompt. If the user requested it. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "anchor": "Identify a novel concept, specific methodology, or data point introduced by the AI.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_0b7512034e6f40db9b4ea46b64af4e0d",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "Focus on blocks EXTRACTION CONDITION: prefixes exist. Do not judge subjectively.",
+        "rule": "prefixes exist. Do not judge subjectively. STEP 1: Find a directive verb. STEP 2 (Bounding Box): Scan the sentence containing the verb. If specific metrics exist.",
+        "anchor": "Find a directive verb.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_c512ea7305614bfabf468fe838420dda",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "the text lists supporting evidence but completely omits any mention of edge cases, failures, or limitations in the same section.",
+        "rule": "",
+        "anchor": "Find an evaluation of an outcome.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_1473cecaeb4c495c9bd0d28710e602b4",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Verify baseline causal alignment.",
+        "rule": "The user MUST explicitly verify those EXACT constraints (e.g., explicitly stating that Constraint A was met, but Constraint B failed).",
+        "anchor": "Find an explicit user instruction with at least two specific constraints (e.g., format, length, tone).",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_65541c8fa62649038b52553cad9eab8a",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "Do not accept implicit alternatives.",
+        "rule": "the text explicitly names at least two distinct approaches before selecting one.",
+        "anchor": "Find a comparative marker.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_e407bc0297324a5da95c9091d08b88bc",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "the text quotes the exact measurable goal and confirms it with a physical measurement or count.",
+        "rule": "",
+        "anchor": "Find a stated objective containing a measurable goal.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_049eb80a94164c519d5a322d55499707",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Verify pre-generation friction.",
+        "rule": "The friction MUST be physically written BEFORE the action or generation it refers to.",
+        "anchor": "Find friction markers. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_86ccd40936bb4dfc9a6d1f532568c05c",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "the text explicitly links at least three distinct sequential actions where each depends entirely on the previous one.",
+        "rule": "",
+        "anchor": "Find a multi-step sequence marker.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_680dc2c703b3425fa0b0d943dbd5af16",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Extract physical architectural blueprints that include multi-variable constraints and explicit conflict terminology prior to the AI response.",
+        "rule": "The SAME paragraph MUST ALSO contain constraint vocabulary.",
+        "anchor": "Find a structural blueprint. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_9eff656db790437dafb7f75be5f64b0c",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Do not accept brief dismissals.",
+        "rule": "the text dismantles the alternative model by citing specific data points or logical contradictions that render it invalid in this context.",
+        "anchor": "Find an explicit reference to an established alternative model or framework.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_832ed2ffa597406e8606d2bbfda57e84",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Verify mandatory source anchoring.",
+        "rule": "the causal reasoning is explicitly justified by applying the rules of this named external framework.",
+        "anchor": "Find a formal citation, academic framework, or recognized methodology.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_f6e286f050c94d60",
+    "slug": "matrix_taskxai_clarity",
+    "atoms": [
+      {
+        "tda_id": "tda_a935aa7d237849259142a2a8936bdec0",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "EXTRACTION CONDITION: role prefixes exist, focus on the block. .",
+        "rule": "role prefixes exist, focus on the block. . STEP 1: Find a definitive conclusion or final answer. STEP 2 (Bounding Box): Scan the preceding text. If steps exist.",
+        "anchor": "Find a definitive conclusion or final answer.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_45885ef98e7d481084b4378d5b3f2f3f",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "the phrase is used to justify a decision WITHOUT citing a specific dataset, numerical weight, or verifiable rule.",
+        "rule": "",
+        "anchor": "Find heuristic or dismissive phrases.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_41c6b31cee074d05b3024bb3437bedc1",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "the justification DOES NOT contain any specific domain variables, numbers, or exact verbatim quotes from the input data (relying only on generic templates).",
+        "rule": "",
+        "anchor": "Find a justification sentence.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_18fd37ad3f1f4903a812c12346d0ca8e",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "the exact input variable is explicitly named and connected to the specific output. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "rule": "",
+        "anchor": "Find a direct causal linkage statement.",
+        "example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality)."
+      },
+      {
+        "tda_id": "tda_44793a48813843f0b48364e890eeba1e",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "Do not accept vague lists.",
+        "rule": "at least two distinct variables or weights are physically defined in the text.",
+        "anchor": "Find an explicit listing of factors or variables.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_19e1957773db4cfd820cb167ae1d8ec3",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Verify acknowledgment of system limits.",
+        "rule": "The text MUST physically identify a scenario where its OWN logic or model fails or is limited.",
+        "anchor": "Find epistemic boundary markers. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_fcdde66df02c4edb9e090172c3e2b956",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "a continuous, unbroken chain of at least three explicit logical steps is documented. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+        "rule": "",
+        "anchor": "Find sequential logic markers.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_ae5dd6ac930544f4abd77d3438c59ddd",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "Do not accept post-decision doubt.",
+        "rule": "the alternatives are explicitly compared and evaluated BEFORE the final decision is stated.",
+        "anchor": "Find an option-weighing or friction marker.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_6f4f8fc663c241acad6da5bff5abe321",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "the warning specifies EXACTLY what the model or logic cannot do using specific domain terms.",
+        "rule": "",
+        "anchor": "Find an explicit warning or certainty boundary.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_6e904f7c369a410ab9988e49ca3213e0",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Verify flawless dialectical synthesis.",
+        "rule": "the scenario is systematically dismantled with specific data points or mathematical proofs to validate the primary conclusion.",
+        "anchor": "Find a counterfactual scenario.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_a18475703cc541fda2a9af6757b86005",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "the text rigorously defines the EXACT quantitative or structural boundary of its own certainty.",
+        "rule": "",
+        "anchor": "Find a quantitative confidence metric or strict certainty boundary.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_ac3b078498e048889ad3bc46b634c2ee",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Verify mandatory source anchoring.",
+        "rule": "Extract the sentence IF AND ONLY IF the logic is explicitly tethered to this source (e.g., actively applying a rule from the source).",
+        "anchor": "Find an academic citation, mathematical theorem, or academic framework. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      }
+    ]
+  },
+  {
+    "block_id": "blk_22e3598e06414409",
+    "slug": "matrix_epistemic_humility",
+    "atoms": [
+      {
+        "tda_id": "tda_92680081ffb244d8abbdc99120a3291f",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "BANNED SOURCES: Reject matches from user inputs or prefixes.",
+        "rule": "Scan the target document. no empirical data is provided within that exact paragraph to justify the claim. Do not evaluate.",
+        "anchor": "Find an absolute certainty marker.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_003f932abb9642fc8c3147b04fac95c5",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: Identify declarations of exhaustive or complete knowledge.",
+        "rule": "Extract the sentence IF AND ONLY IF it explicitly claims there are zero unknown variables or alternatives remaining.",
+        "anchor": "Find absolute completeness markers. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_c2968c987f1a4ac5824f15653df3dc8f",
+        "score": 1,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: Identify active dismissal of alternative perspectives without data.",
+        "rule": "the dismissal occurs without citing an external verifiable source or empirical data.",
+        "anchor": "Find dismissive markers towards alternatives.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_00245380f839424abfe3d923c1ae322f",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: Identify superficial performative hedging.",
+        "rule": "the following sentence immediately returns to an absolute certainty marker.",
+        "anchor": "Find performative hedging markers.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_84b7784951c84e948c131c189261f564",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "CRITICAL DIRECTIVE: Identify immediate rationalization of constraints.",
+        "rule": "Extract the quote IF AND ONLY IF a limitation anchor is followed by a dismissive transition word that rationalizes away the limitation.",
+        "anchor": "Find limitation markers. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X is argued, but Y provides evidence otherwise\" (Abstract universal rebuttal).\nUNACCEPTABLE: \"X is completely wrong\" (Dismissive without counter-data)."
+      },
+      {
+        "tda_id": "tda_72d297df24fb45c3a85dc0b8248b9188",
+        "score": 2,
+        "is_inverse": true,
+        "concept": "Scan the document. the alternative is mentioned but the paragraph contains exactly 0 counter-arguments or comparative data points. Do not evaluate, simply count the data points.",
+        "rule": "",
+        "anchor": "Find a named alternative model or theory.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_cb7637a8eae04303ae9a3e8085b075b4",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "Scan the document. present AND absolute markers are strictly absent in the same sentence.",
+        "rule": "",
+        "anchor": "Find a factual claim.",
+        "example": "ACCEPTABLE: \"X is absolutely the only way to achieve Y\" (Abstract dogmatic statement).\nUNACCEPTABLE: \"X is absolutely the only way to achieve Y, based on Z\" (Contains external backing)."
+      },
+      {
+        "tda_id": "tda_a946688e5f5549e8ac30584d1a02ad26",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Identify purely passive informational delivery.",
+        "rule": "You MUST extract the text IF AND ONLY IF the count of first-person markers is EXACTLY ZERO.",
+        "anchor": "Target paragraphs with statistical/factual reporting.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_ca74247488fe49d49c70e96cf74a31a7",
+        "score": 3,
+        "is_inverse": false,
+        "concept": "Scan the document. terms like, or are completely missing.",
+        "rule": "",
+        "anchor": "Find a citation or data source introduction.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_f29c602444b446a3a6973aa9953a0b01",
+        "score": 4,
+        "is_inverse": false,
+        "concept": "CRITICAL DIRECTIVE: Verify explicit boundary setting.",
+        "rule": "Extract the quote containing the qualifier.",
+        "anchor": "Find contextual qualifiers. If absent, FAIL FAST and return null.",
+        "example": "ACCEPTABLE: \"X might occur under condition Y\" (Abstract qualifier).\nUNACCEPTABLE: \"X will definitely occur\" (Lacks qualifier)."
+      },
+      {
+        "tda_id": "tda_c642cbc768fa4f54a8718452d779c607",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Scan the document. 3 or more exist.",
+        "rule": "",
+        "anchor": "Locate a section dedicated to methodology or limitations.",
+        "example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage)."
+      },
+      {
+        "tda_id": "tda_fba3218b2c5443d89ad105d945f71255",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Scan the document. both the risk and the empirical counter-data are found.",
+        "rule": "",
+        "anchor": "Locate a risk assessment or structure.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      },
+      {
+        "tda_id": "tda_a0cd26d7749c412d92aff072e34f512d",
+        "score": 5,
+        "is_inverse": false,
+        "concept": "Scan the document. an external citation is used specifically to justify why a variable remains unknown.",
+        "rule": "",
+        "anchor": "Find explicit external anchoring for uncertainty.",
+        "example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data)."
+      }
+    ]
+  }
+]
