@@ -1,3 +1,5 @@
+> **STATUS: READY FOR EXECUTION / ODOTTAA TOTEUTUSTA**
+
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
@@ -42,17 +44,24 @@
   1. *Layer 1 (Static System Directives):* Sisältää globaalit päätöksentekosäännöt (`<epistemic_decision_protocol>`).
   2. *Layer 4 (Dynamic User Payload & Assertions):* Erotetaan puhtaat ontologiset konseptikuvaukset (`concept_description` = mitä käsite tarkoittaa loppukäyttäjälle ja teorialle) ja operatiiviset heuristiikat (`extraction_rule` = IF/THEN-tarkastusaskeleet sensorille) luonnollisella englannin kielellä ilman raakaa XML-koodia tai kehittäjäkomentoja.
 - **Täysi Tietokannan Prompt-Kattavuus (Full Database Verification):** Tarkastusmoottori ei rajoitu vain atomeihin, vaan tarkastaa kaikki 4 prompt-dataa syöttävää kokoelmaa (`prompt_blocks`, `steps`, `workflows`, `output_profiles`), varmistaen referentiaalisen eheyden ja syöterouttauksen.
-- **Deterministic Epistemic Threshold & Oikeudellinen Syyttömyysolettama (Burden of Proof):**
-  Kielimallien luontainen *Hyper-Kriittisyysharha (Hyper-Criticality Bias)* ratkaistaan injektoimalla `<epistemic_decision_protocol>`:
-  > `"- INVERSE / NEGATIVE CLAIMS (Inverse Evidence): An error, fallacy, or structural weakness is considered present (is_true = true) ONLY if it is actively committed and unhedged. If the author acknowledges constraints, provides counter-evidence, or expresses appropriate epistemic humility, the negative claim is not substantiated (is_true = false)."`
-  Tämä luo deterministisen loogisen kynnyksen, jossa kirjoittajan osoittama tiedostettu epävarmuus vapauttaa hänet virhesyytteestä.
-- **Kaksipuolinen Tasapainotettu Symmetria:**
+- **Deterministic Epistemic Threshold & Oikeudellinen Syyttömyysolettama (Burden of Proof & Anti-Hedging Loophole):**
+  Kielimallien luontainen *Hyper-Kriittisyysharha (Hyper-Criticality Bias)* ja toisaalta *Semantic Bypassing / Hedging Loophole* -haavoittuvuus ratkaistaan injektoimalla lokaalisti ankkuroitu `<epistemic_decision_protocol>`:
+  > `"- POSITIVE CLAIMS (Standard Evidence): Evaluate whether the required analytical, empirical, or methodological structure is explicitly substantiated in the context."`
+  > `"- INVERSE / NEGATIVE CLAIMS (Inverse Evidence): An error, fallacy, or structural weakness is considered present (is_true = true) ONLY if it is actively committed and unhedged within the specific local argument."`
+  > `"- SUBSTANTIVE HEDGING CRITERIA: A negative claim is refuted (is_true = false) ONLY if the author provides substantive, context-specific delimitation (e.g., explicit boundary conditions, empirical counter-arguments, or defined scope limitations)."`
+  > `"- BANNED META-HEDGING: Generic disclaimers, boilerplate statements of uncertainty, superficial hedging words (e.g., merely adding 'maybe' or 'possibly' to an ungrounded absolute claim), or global declarations of epistemic humility do NOT negate an active logical fallacy or methodological error."`
+  Tämä luo deterministisen loogisen kynnyksen: varauman on oltava *paikallinen ja substantiivinen*. Geneeriset vastuuvapauslausekkeet ja "disclaimer-loitsut" hylätään eksplisiittisesti.
+- **Kaksipuolinen Tasapainotettu Symmetria & Kovan Compliancen Kaksitasoinen Suojaus:**
   1. *Positiivisilta väitteiltä (`is_inverse: false`)* vaaditaan aktiivinen rakenteellinen näyttö (poistaa positiiviset hallusinaatiot).
-  2. *Käänteisiltä väitteiltä (`is_inverse: true`)* vaaditaan aktiivinen, korjaamaton virhe (poistaa stokastisen heilahtelun).
+  2. *Käänteisiltä väitteiltä (`is_inverse: true`)* vaaditaan aktiivinen, lokaalisti rajaamaton virhe (poistaa stokastisen heilahtelun ja suojaa injektioilta).
+  3. *Kovan compliancen matriiseissa (tietoturva, lait)* puolustus on kaksitasoinen: 1) Päivitetty episteeminen protokolla estää semanttisen sokeutumisen disclaimer-teksteille, ja 2) `allow_contextual_override = false` pakottaa 1:1 sanatarkan leksikaalisen lainausvaatimuksen (`str.find()`).
+- **Dart Freezed Pariteetti & Pydantic Serialization SSOT (`feature_audit_dart_freezed_serialization_bloat.md`):**
+  1. *Kanoninen Pydantic-sarjallistus:* Sanitointiskriptissä ja tietokannan käsittelyssä käytetään pakollisesti `model.model_dump(mode="json", exclude_none=True)` pitäen `exclude_unset=False`. Tämä poistaa tyhjät `None`-kentät estäen `"field": null` -bloatin ja Dart `CheckedFromJsonException`/`TypeError` -kaatumiset, mutta säilyttää skeematason oletusarvot (`evaluation_track="COGNITIVE_JUDGEMENT"`, `bounding_box_scope="paragraph"`, `acceptance_criteria: []`).
+  2. *Atomaarinen SSOT-tallennus:* `seed_data.json` kirjoitetaan atomaarisesti väliaikaistiedoston kautta (`tempfile.NamedTemporaryFile` samassa hakemistossa -> `os.fsync()` -> `json.load()` -syntaksitarkastus -> `os.replace()`), jolloin tietokannan päälähde ei voi koskaan korruptoitua prosessin katketessa kesken.
 - **Automatisoitu Zero-Trust -linttaus:** `audit_database_atoms.py` varmistaa, ettei koodikantaan voi enää koskaan päätyä rikkinäisiä tokeneita, tyhjiä sääntöjä, viallisia input mappingeja tai injektiojäänteitä.
 
 #### 🔭 Realisti (The Realist - Ground Truth & Pragmatic Execution Synthesis)
-- **Synthesized Mandate:** Toteutetaan kattava monitauluinen tarkastusmoottori (`scripts/audit_database_atoms.py`), suoritetaan `seed_data.json` -tiedoston kirurginen sanitointi (13 matriisin 152 atomia sekä workflow/step/output_profile -kentät) vault-varmuuskopioinnin kautta ja päivitetään `matrix_evaluation.py` staattisella episteemisellä protokollalla. Todistetaan varianssin romahdus tilastollisella E2E-testillä.
+- **Synthesized Mandate:** Toteutetaan kattava monitauluinen tarkastusmoottori (`scripts/audit_database_atoms.py`), suoritetaan `seed_data.json` -tiedoston kirurginen sanitointi (13 matriisin 152 atomia sekä workflow/step/output_profile -kentät) deterministisellä in-memory -skriptillä (`scratch/sanitize_seed_atoms.py`), joka käyttää Pydantic V2 `model_dump(mode="json", exclude_none=True)` -sarjallistusta ja atomaarista `os.replace()`-tallennusta vault-varmuuskopioinnin kautta, ja päivitetään `matrix_evaluation.py` staattisella, lokaalisti ankkuroidulla episteemisellä protokollalla (sis. `SUBSTANTIVE HEDGING CRITERIA` ja `BANNED META-HEDGING`). Todistetaan varianssin romahdus tilastollisella E2E-testillä ja varmistetaan Dart Freezed -deserialisaatio `domain_parity_test.dart` -testillä.
 
 ---
 
@@ -152,10 +161,11 @@ Kahden peräkkäisen 2-ajon tilastollisen varianssitestin tulokset osoittavat ko
 
 | 1. Kohdealue & Skoopit (Target Scope) | 2. 🚫 KIELLETTY PURKKA (Eradicated Duct-Tape) | 3. 🎯 TEE NÄIN (Approved Best Practice) | 4. ✂️ KARSITTU YLISUUNNITTELU (Pruned Over-Engineering) | 5. 🔒 VERIFIOINTI & FAIL-FAST (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
-| **`seed_data.json` Sanitointimenetelmä (13 matriisia, 152 atomia sekä Persona-, Synteesi-, Workflow- ja Step-lohkot)**<br>`@[backend_v2/seed/seed_data.json#L312-L6500]` | Massiivisen 8 499 rivin JSON-tiedoston paloittelu ja sokea korvaaminen tekstinä `multi_replace_file_content` -työkalulla (altis aaltosulkeiden/pilkkujen hukkumiselle ja LLM-kontekstin leikkaantumiselle). Kertakäyttöiset inline-komentosarjat (`python -c`, `sed`). Tyhjät arviointisäännöt (`extraction_rule: ""`), meta-ohjeet (`BANNED SOURCES`), pseudokoodi (`STEP 1: ...`), huutavat komennot (`FAIL FAST`, `CRITICAL DIRECTIVE: LOCATE`), kielto-ohjeet (`Do not judge`), raaka XML (`<ambiguity_protocol>`, `<role_enforcement>`, `<global_framework>`, `<section_rules>`), sekä chatbot-kovakoodaus (`Scan ONLY user prompts`, `Reject AI outputs`, `role prefixes (user: ai:) exist`, `located in an block`). | Suoritetaan sanitointi deterministisellä Python-migraatioskriptillä (`scratch/sanitize_seed_atoms.py`), joka lataa JSON-puun muistiin, päivittää kaikki 152 atomia eksplisiittisestä suljetusta sanakirjakartasta (Ontologia vs. Heuristiikka, tyhjien sääntöjen täyttö, chatbot-viitteiden yleistys, XML-stripit), validoi `steps`-, `workflows`- ja `output_profiles`-kenttien eheydet, validoi jokaisen entiteetin `seed_registry.py`:n `STANDARD_REGISTRY`-malleilla ja tallentaa UTF-8 -muodossa. | Ei luoda dynaamista tietokanta-ajonaikaista välikerrosta, monimutkaista ORM-migraatiokehystä tai rinnakkaisia "chatti-" ja "dokumenttimatriiseja"; yksinkertainen muistissa tapahtuva JSON-käsittely `scratch/`-kansiossa riittää. | `backend_v2/seed/backups/` varmuuskopiointi ennen ajoa, Pydantic V2 `validate_python()` jokaiselle entiteetille, `json.load()`-syntaksitarkastus heti tallennuksen jälkeen, sekä `uv run python scripts/audit_database_atoms.py --strict` (0 virhettä kaikissa 4 kokoelmassa). |
+| **`seed_data.json` Sanitointimenetelmä (13 matriisia, 152 atomia sekä Persona-, Synteesi-, Workflow- ja Step-lohkot)**<br>`@[backend_v2/seed/seed_data.json#L312-L6500]` | Massiivisen 8 499 rivin JSON-tiedoston paloittelu ja sokea korvaaminen tekstinä `multi_replace_file_content` -työkalulla (altis aaltosulkeiden/pilkkujen hukkumiselle ja LLM-kontekstin leikkaantumiselle). Kertakäyttöiset inline-komentosarjat (`python -c`, `sed`). Sokea `model_dump()` ilman `exclude_none=True` (tuottaa tuhansia `"field": null` -rivejä ja altistaa Dart Freezedin kaatumiselle) tai sokea `exclude_unset=True` (kadottaa skeematason oletusarvot). Suora `open(w)` -ylikirjoitus ilman atomaarista puskurointia. Tyhjät arviointisäännöt (`extraction_rule: ""`), meta-ohjeet (`BANNED SOURCES`), pseudokoodi (`STEP 1: ...`), huutavat komennot (`FAIL FAST`, `CRITICAL DIRECTIVE: LOCATE`), kielto-ohjeet (`Do not judge`), raaka XML (`<ambiguity_protocol>`, `<role_enforcement>`, `<global_framework>`, `<section_rules>`), sekä chatbot-kovakoodaus (`Scan ONLY user prompts`, `Reject AI outputs`, `role prefixes (user: ai:) exist`, `located in an block`). | Suoritetaan sanitointi deterministisellä Python-migraatioskriptillä (`scratch/sanitize_seed_atoms.py`), joka lataa JSON-puun muistiin, päivittää kaikki 152 atomia eksplisiittisestä suljetusta sanakirjakartasta (Ontologia vs. Heuristiikka, tyhjien sääntöjen täyttö, chatbot-viitteiden yleistys, XML-stripit), validoi `steps`-, `workflows`- ja `output_profiles`-kenttien eheydet, validoi jokaisen entiteetin `seed_registry.py`:n `STANDARD_REGISTRY`-malleilla, purkaa entiteetit `model.model_dump(mode="json", exclude_none=True)` -asetuksella (pitäen `exclude_unset=False`) ja tallentaa atomaarisesti `tempfile` + `os.fsync()` + `os.replace()` -mekanismilla UTF-8 -muodossa. | Ei luoda dynaamista tietokanta-ajonaikaista välikerrosta, monimutkaista ORM-migraatiokehystä tai rinnakkaisia "chatti-" ja "dokumenttimatriiseja"; yksinkertainen muistissa tapahtuva JSON-käsittely `scratch/`-kansiossa ja natiivi `os.replace()` riittävät. | `backend_v2/seed/backups/` varmuuskopiointi ennen ajoa, Pydantic V2 `validate_python()` jokaiselle entiteetille, `json.load()`-syntaksitarkastus väliaikaistiedostosta ennen `os.replace()`-korvausta, `client_app_v2/test/models/domain_parity_test.dart` (Dart Freezed Isolate -deserialisaatiotesti), sekä `uv run python scripts/audit_database_atoms.py --strict` (0 virhettä kaikissa 4 kokoelmassa). |
 | **Synteesikerros & Output Profiles**<br>`@[backend_v2/models/prompts/synthesis_directives.py]` & `output_profiles` | Oletus, että sensoriatomin (Phase 1) pitää osata puhutella käyttäjää tai valmentaa häntä suoraan. Raaka XML `output_profiles`-synteesiohjeissa. | Synteesikerros ottaa vastaan puhtaan `StepOutputDTO`-tuloksen ja personoi palautteen (`"Sinä johtajana..."`, `"Analysoidussa aineistossa..."`) vastaanottajalle `OutputProfile`-konfiguraation mukaisesti. Puhdas deklaratiivinen teksti synteesiohjeissa. | Ei generoida uutta arviointidataa synteesissä; vain olemassa olevan datan kielellinen ja pedagoginen paketointi. | Unit-testit `test_synthesis_distiller.py`, `audit_database_atoms.py` ja snapshot-testit generoivat kohdennetun valmennusraportin ilman sensoritason saastumista. |
 | **Workflow Input Routing & Step Governance**<br>`workflows` & `steps` kokoelmat | Virheelliset tai olemattomiin syötekenttiin viittaavat `$inputs.x` -polut `input_mappings`-määrityksissä; puuttuvat `model_strategy`-määritykset; orvot lohkoviitteet (`role_block_id`, `extraction_protocol_block_id`). | `audit_database_atoms.py` tarkastaa, että jokainen `steps[].input_mappings` viittaa olemassa olevaan `expected_inputs`-avaimeen tai upstream-steppiin, ja että kaikki lohkoviitteet ratkeavat `prompt_blocks`-kokoelmaan. | Ei monimutkaisia ajonaikaisia heittoliitäntöjä; staattinen verifiointi takaa syöteputken determinismin. | `audit_database_atoms.py --strict` verifioi `workflows` ja `steps` referentiaalisen eheyden. |
-| **`matrix_evaluation.py` (`MATRIX_SENSOR_SYSTEM_PROMPT`)**<br>`@[backend_v2/models/prompts/matrix_evaluation.py]` | Epäselvä arviointiohje ilman episteemistä kynnystä ja käänteisen todistusaineiston käsittelyä. Avointen esimerkkilistojen käyttö kehotteessa. | Injektoidaan staattinen `<epistemic_decision_protocol>` XML-osio: positiivisille väitteille vaaditaan eksplisiittinen rakenteellinen/empiirinen tuki; käänteisille väitteille (`is_inverse: true`) virhe katsotaan läsnä olevaksi vain, jos se on aktiivinen ja korjaamaton. Korvataan epämääräiset esimerkit täsmällisillä suljetuilla säännöillä. | Ei luoda dynaamisia ehtoja tai runtime-muokkauksia; pidetään kehote 100 % staattisena Context Caching -yhteensopivana. | `uv run pytest backend_v2/tests/unit/models/prompts/test_matrix_evaluation.py` |
+| **`matrix_evaluation.py` (`MATRIX_SENSOR_SYSTEM_PROMPT`)**<br>`@[backend_v2/models/prompts/matrix_evaluation.py]` | Epäselvä arviointiohje ilman episteemistä kynnystä ja käänteisen todistusaineiston käsittelyä. Sokea sääntö *"if author acknowledges constraints... is_true = false"*, joka sallii geneerisen vastuuvapauslausekkeen sokeuttaa koko arviointimoottorin (Hedging Loophole / Epistemic Jailbreak). Avointen esimerkkilistojen käyttö kehotteessa. | Injektoidaan staattinen 4-kohtainen `<epistemic_decision_protocol>` XML-osio: 1) Positiivisille väitteille vaaditaan eksplisiittinen rakenteellinen/empiirinen tuki, 2) Käänteisille väitteille (`is_inverse: true`) virhe katsotaan läsnä olevaksi vain, jos se on aktiivinen ja rajaamaton lokaalissa kontekstissa, 3) `SUBSTANTIVE HEDGING CRITERIA`: kumoaminen vaatii substantiivisen ja lokaalisti ankkuroidun rajauksen, 4) `BANNED META-HEDGING`: kielletään geneeriset disclaimerit ja episteemisen nöyryyden julistukset. Korvataan epämääräiset esimerkit täsmällisillä suljetuilla säännöillä. | Ei luoda dynaamisia ehtoja tai runtime-muokkauksia; pidetään kehote 100 % staattisena Context Caching -yhteensopivana. | `uv run pytest backend_v2/tests/unit/models/prompts/test_matrix_evaluation.py` |
+| **Kovan Compliancen Matriisit (Tietoturva, Lait)**<br>`seed_data.json` & `ki_llm_extraction_architecture.md` | Luottamus siihen, että pelkkä `allow_contextual_override = false` estää LLM:ää vapauttamasta virhettä disclaimerin perusteella. | Toteutetaan **kaksitasoinen puolustuslinja (Defense in Depth)**: 1) Päivitetty episteeminen protokolla estää semanttisen sokeutumisen, 2) `allow_contextual_override = false` pakottaa 1:1 sanatarkan leksikaalisen lainauksen (`str.find()`). | Ei luoda erillistä "compliance-moottoria"; hyödynnetään Quorumin olemassa olevaa Zero-Trust Lexical Verifieriä ja staattista järjestelmäkehotetta. | `audit_database_atoms.py` ja unit-testit varmistavat, että compliance-matriiseissa `allow_contextual_override: false` pysyy lukittuna ja säännöt ovat puhtaita. |
 | **`scripts/audit_database_atoms.py`** (Täyden tietokannan tarkastusmoottori)<br>`[NEW] @[scripts/audit_database_atoms.py]` | Manuaalinen tai pistokoeluontoinen JSON-tarkistus; `grep_search` CRLF-tiedostoihin ilman rivirajoja; vain atomeihin rajoittuva suppea tarkastus; salliva linttaus, joka ohittaa XML-merkit, tyhjät säännöt tai chat-spesifit kovakoodaukset; reflection-kutsujen (`getattr`, `hasattr`) käyttö. | Luodaan deterministinen Pydantic V2 -pohjainen tarkastusmoottori, joka tarkastaa kaikki 4 prompt-kokoelmaa (`prompt_blocks`, `steps`, `workflows`, `output_profiles`): 1) Kielletyt haamutekstit (`BANNED SOURCES`, `EXTRACTION CONDITION:`, `FAIL FAST`, `Do not evaluate...`, `DEPRECATED`), 2) Rikkinäiset tokenit ja chat-kovakoodaukset (`in an block`, `Scan ONLY user prompts`, `Scan ONLY`, `role prefixes`, `user prompt`, `user inputs`, `AI output`), 3) Raaka XML kaikissa datakentissä (`if "<" in val and ">" in val`), 4) Tyhjät säännöt (`extraction_rule` ja `concept_description` min_length >= 10 pakollinen kaikille 152 atomille), 5) Referentiaalinen eheys ja syöterouttaus (`input_mappings` -> `expected_inputs`, lohkoviitteet). Täysi Zero Reflection -noudattaminen. | Ei rakenneta tietokantayhteyksiä tai raskaita riippuvuuksia; luetaan suoraan `seed_data.json` Pydantic-validoituna DTO-rakenteena. | `uv run python scripts/audit_database_atoms.py --strict` palauttaa exit code 0 puhtaalla datalla ja exit code 1 virheillä; `uv run pytest backend_v2/tests/unit/scripts/test_audit_database_atoms.py` todistaa kaikki ISTQB-partitiot. |
 
 ---
@@ -166,7 +176,7 @@ Kahden peräkkäisen 2-ajon tilastollisen varianssitestin tulokset osoittavat ko
     <step id="1.1" name="Inject epistemic decision protocol into MATRIX_SENSOR_SYSTEM_PROMPT">
       <target>@[backend_v2/models/prompts/matrix_evaluation.py]</target>
       <action>
-        Update `MATRIX_SENSOR_SYSTEM_PROMPT` to include `<epistemic_decision_protocol>` and eliminate ambiguous examples:
+        Update `MATRIX_SENSOR_SYSTEM_PROMPT` to include robust 4-part `<epistemic_decision_protocol>` and eliminate ambiguous examples:
         ```python
         MATRIX_SENSOR_SYSTEM_PROMPT = (
             "<evaluation_directives>\n"
@@ -175,7 +185,9 @@ Kahden peräkkäisen 2-ajon tilastollisen varianssitestin tulokset osoittavat ko
             "</evaluation_directives>\n"
             "<epistemic_decision_protocol>\n"
             "- POSITIVE CLAIMS (Standard Evidence): Evaluate whether the required analytical, empirical, or methodological structure is explicitly substantiated in the context.\n"
-            "- INVERSE / NEGATIVE CLAIMS (Inverse Evidence): An error, fallacy, or structural weakness is considered present (is_true = true) ONLY if it is actively committed and unhedged. If the author acknowledges constraints, provides counter-evidence, or expresses appropriate epistemic humility, the negative claim is not substantiated (is_true = false).\n"
+            "- INVERSE / NEGATIVE CLAIMS (Inverse Evidence): An error, fallacy, or structural weakness is considered present (is_true = true) ONLY if it is actively committed and unhedged within the specific local argument.\n"
+            "- SUBSTANTIVE HEDGING CRITERIA: A negative claim is refuted (is_true = false) ONLY if the author provides substantive, context-specific delimitation (e.g., explicit boundary conditions, empirical counter-arguments, or defined scope limitations).\n"
+            "- BANNED META-HEDGING: Generic disclaimers, boilerplate statements of uncertainty, superficial hedging words (e.g., merely adding 'maybe' or 'possibly' to an ungrounded absolute claim), or global declarations of epistemic humility do NOT negate an active logical fallacy or methodological error.\n"
             "</epistemic_decision_protocol>\n"
             "<reasoning_constraints>\n"
             "- CONCISE CHAIN-OF-THOUGHT: Provide concise, high-density reasoning (maximum 2-3 sentences per claim).\n"
@@ -191,7 +203,7 @@ Kahden peräkkäisen 2-ajon tilastollisen varianssitestin tulokset osoittavat ko
         )
         ```
         Key changes:
-        1. Added `<epistemic_decision_protocol>` section with symmetric positive/inverse burden of proof.
+        1. Added robust `<epistemic_decision_protocol>` section with symmetric burden of proof, local substantive hedging requirements, and explicit bans on meta-hedging/disclaimer boilerplate.
         2. Replaced ambiguous open-ended alias example on L6 with closed list `(specifically: a0, a1, a2)`.
         3. Removed open-ended repetition word enumeration on L13 — anchor terms are self-evident from context.
       </action>
@@ -271,7 +283,7 @@ Kahden peräkkäisen 2-ajon tilastollisen varianssitestin tulokset osoittavat ko
       <constraint invariant="tdd_mandate">Ensure test suite achieves >90% coverage under `backend_audit_loop.py`.</constraint>
       <constraint invariant="anti_happy_path_mandate">Cover all collection inspection gates with dedicated negative test functions.</constraint>
     </step>
-
+    
     <step id="2.3" name="Verify baseline failure before seed data sanitization">
       <action>
         Execute `uv run python scripts/audit_database_atoms.py --strict` to verify it correctly flags legacy defects across all collections.
@@ -291,10 +303,15 @@ Kahden peräkkäisen 2-ajon tilastollisen varianssitestin tulokset osoittavat ko
            a. Loads `backend_v2/seed/seed_data.json` into memory as a UTF-8 JSON structure.
            b. Iterates through `prompt_blocks` (sanitizes 152 atoms across 13 matrices: populating 49 empty extraction rules, eliminating chatbot hardcoding, separating ontology vs heuristics, stripping raw XML from blocks and atoms).
            c. Iterates through `steps`, `workflows`, and `output_profiles` (validates referential integrity, cleans raw XML, ensures valid `input_mappings`).
-           d. Validates every mutated block/entity through `backend_v2.seed.seed_registry.STANDARD_REGISTRY[collection]["model"].validate_python(entity)` to guarantee strict Pydantic V2 conformance before writing to disk.
-           e. Safely dumps the sanitized JSON back to `backend_v2/seed/seed_data.json` with UTF-8 encoding and 2-space indentation.
-           f. Immediately executes a dry-run `json.load()` validation on the saved file to verify syntax integrity.
+           d. Validates every mutated block/entity through `backend_v2.seed.seed_registry.STANDARD_REGISTRY[collection]["model"].validate_python(entity)` to guarantee strict Pydantic V2 conformance.
+           e. Re-serializes validated models strictly via `model.model_dump(mode="json", exclude_none=True)` (keeping `exclude_unset=False`) to eradicate all `"field": null` bloat while preserving schema default values and empty collections (`[]`).
+           f. Implements Atomic File Replacement (`atomic_save_seed_data`):
+              - Writes sanitized JSON into `tempfile.NamedTemporaryFile("w", dir=seed_path.parent, delete=False, encoding="utf-8")` with 2-space indentation.
+              - Flushes and executes `os.fsync(tf.fileno())` ensuring OS disk cache persistence.
+              - Validates the temporary file syntax via `json.load(temp_file)` before moving.
+              - Atomically moves the temporary file over `backend_v2/seed/seed_data.json` using `os.replace(temp_name, seed_path)`.
         4. Execute the script via `uv run python scratch/sanitize_seed_atoms.py`.
+        5. Run Dart Freezed parity test to verify zero deserialization regressions: `cd client_app_v2; dart test test/models/domain_parity_test.dart; cd ..`.
       </action>
       <constraint invariant="prompt_preservation_mandate">Preserve user intellectual property while cleansing architectural corruptions. NEVER rewrite coaching philosophy or conceptual intent.</constraint>
       <constraint invariant="database_schema_hallucination">Do NOT alter root persistence array structures in seed_data.json.</constraint>
@@ -347,9 +364,10 @@ uv run python scripts/audit_database_atoms.py --strict
 uv run python scripts/backend_audit_loop.py backend_v2 --test
 ```
 
-### Database Seeding Gate
+### Database Seeding & Dart Parity Gates
 ```powershell
 uv run python backend_v2/seed/run_seed.py local
+cd client_app_v2; dart test test/models/domain_parity_test.dart; cd ..
 ```
 
 ### Live E2E Variance Gate

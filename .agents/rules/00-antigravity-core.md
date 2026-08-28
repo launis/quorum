@@ -11,7 +11,7 @@ trigger: always_on
 
 <ide_orchestration_protocol>
     <rule_block id="permission_granted_workflow">
-        <mandate>ALWAYS STOP after completing a single step in a plan. NEVER proceed until the user explicitly says "PERMISSION GRANTED" or "PROCEED".</mandate>
+        <mandate>STOP after completing a single step in a plan by default, UNLESS the user explicitly invokes Continuous Full-Auto Mode (e.g., via `/tier2-execute --full-auto` or explicit continuous permission). In Continuous Mode, proceed autonomously across steps as long as quality gates pass 100%, and halt immediately on failure or when triggering `context_amnesia_prevention` handover.</mandate>
     </rule_block>
     <rule_block id="strict_execution_mode_mandate">
         <mandate>NEVER write domain code to execute an implementation plan without the user explicitly providing an execution slash command like `/tier2-execute` or `/tier2-hardening-backend`. Force the user to invoke the required execution workflow tier before execution starts.</mandate>

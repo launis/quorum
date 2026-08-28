@@ -1,3 +1,5 @@
+> **STATUS: COMPLETED / TOTEUTETTU (100% Implemented & Verified)**
+
 # Implementation Plan: Gemini 3.7 Flash Migration & Multi-Provider Parameter Normalization
 
 Migrate all Quorum Model Registry strategies (`fast`, `strict`, `deep`, `reasoning`, `synthesis`) in `seed_data.json` to **Gemini 3.7 Flash**, implement defensive parameter sanitization and `thinking_budget_tokens` normalization in the Backend Adapter layer across all providers (Google AI Studio, Vertex AI, Anthropic, OpenAI), and update the Flutter Admin Studio UI with a dedicated Thinking Budget control and explanatory parameter notices.

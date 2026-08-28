@@ -62,8 +62,11 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
     </rule_block>
   </context_rules>
   <execution_protocol level="2">
-    <step id="1" name="ISOLATION & PRE-FLIGHT VERIFICATION">
-      <action>Execute the plan ATOMICALLY. Work on one single Milestone/Step at a time.</action>
+    <step id="1" name="ISOLATION, EXECUTION MODE & PRE-FLIGHT VERIFICATION">
+      <action>Determine Execution Mode:
+        - Step-by-Step Mode (Default): Stop after each cohesive step and wait for user's explicit `PROCEED` / `PERMISSION GRANTED`.
+        - Continuous Full-Auto Mode (Triggered by `--full-auto`, `--auto-proceed`, or explicit user mandate): Progress autonomously across milestones/phases as long as Universal Quality Gates are 100% PASS with exit code 0.
+      </action>
       <gate name="PRE-FLIGHT CODEBASE SCAN">Before starting implementation of each milestone, you MUST execute the `codebase_state_verification_mandate` protocol. Run `git log --oneline -n 30` and use `grep_search` on the target files to verify whether the planned changes already exist. If a task is already implemented, mark it `[x] (VERIFIED_EXISTING)` in `task.md` and proceed to the next milestone without re-implementing.</gate>
     </step>
     
@@ -98,8 +101,12 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       </constraint>
     </step>
 
-    <step id="5" name="TASK MANAGEMENT & STATE RECOVERY">
-      <action>When a milestone is successfully completed and verified, you MUST create an atomic commit using `run_command` (e.g., `git add .` and `git commit -m "feat: complete milestone X"`). Then update the `task.md` file dynamically as you complete each part of the implementation plan, marking them with `[x]` to ensure absolute visibility of progress.</action>
+    <step id="5" name="TASK MANAGEMENT, CONTINUOUS LOOP &amp; STATE RECOVERY">
+      <action>When a milestone is successfully completed and verified, you MUST create an atomic commit using `run_command` (e.g., `git add [files]` and `git commit -m "feat: complete milestone X"`). Then update the `task.md` file dynamically as you complete each part of the implementation plan, marking them with `[x]` to ensure absolute visibility of progress.</action>
+      <action name="CONTINUOUS_TRANSITION_GATE">
+        - If in Continuous Full-Auto Mode AND quality gates passed: Immediately proceed to the next milestone/phase without waiting for manual confirmation.
+        - If in Step-by-Step Mode: Stop and request explicit "PERMISSION GRANTED" or "PROCEED" before starting the next step.
+      </action>
       <fallback trigger="trip the circuit_breaker_protocol (3 consecutive test failures) or encounter an unresolvable error">You MUST NOT leave the workspace in a broken state. You MUST execute the rollback YOURSELF via `run_command` using `git restore . ; git clean -fd` to rollback the dirty working directory to the last atomic commit. CRITICALLY: You MUST execute the rollback FIRST, and ONLY THEN update `task.md` to reflect the failure before halting. Reversing this order causes the rollback to wipe the tracker update.</fallback>
     </step>
 
@@ -126,8 +133,14 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <gate>You MUST enforce a mandatory System 2 Red-Team audit of your own work by instructing the user to run the `/tier8-audit-plan` workflow in a fresh context window. Provide the exact command (e.g., `/tier5-resume --target="@[docs\epic\tasks_EPIC_XXX\01_feature_plan.md]" --workflow=/tier8-audit-plan`).</gate>
     </step>
 
-    <step id="9" name="MID-EXECUTION HANDOVER">
-      <fallback trigger="execution session becomes too long or context window approaches its limits">You MUST initiate a session handover. Update `task.md` completely. CRITICALLY: Append a `# Session Handover Context` block at the bottom of `task.md` containing exhaustive bullet points for: Achieved, Learned, and Remaining.</fallback>
+    <step id="9" name="CONTEXT BUDGET WATCHDOG &amp; MID-EXECUTION HANDOVER">
+      <fallback trigger="execution session processes >8 user turns, completes 3 atomic git commits, modifies >5 complex files, or context window approaches saturation">
+        You MUST proactively initiate a session handover to prevent Context Amnesia and truncated code generation.
+        1. Run quality gates to guarantee clean working tree.
+        2. Create atomic git commit for the last completed milestone.
+        3. Update `task.md` completely and append a `# Session Handover Context` block at the bottom containing exhaustive bullet points for: Achieved, Learned, and Remaining.
+        4. STOP execution cleanly.
+      </fallback>
       <action>Provide the exact `/tier5-resume` command instructing the user to continue in a fresh context. The command MUST explicitly include the absolute path to BOTH the tracker artifact (`task.md`) AND the implementation plan (`implementation_plan.md`), the workflow, and the rules, formatted exactly like this: `/tier5-resume --target="@[absolute_path_to_task.md] @[absolute_path_to_implementation_plan.md]" --workflow=/tier2-execute`. Do NOT include a `--rules` parameter; rules are self-hydrating.</action>
     </step>
   </execution_protocol>
