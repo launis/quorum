@@ -1,19 +1,17 @@
-# Task: Gemini 3.7 Flash Migration & Multi-Provider Parameter Normalization
+# Task: Full Database Verification Engine & Complete Prompt/Seed Sanitization
 
-- [x] **Phase 1: Pre-Implementation Cleanups & Schemas**
-  - [x] Step 1.1: Eradicate untyped `additional_params.get("thinking_budget_tokens")` in `vertex_adapter.py` and `ai_studio_adapter.py`
-  - [x] Step 1.2: Add `thinking_budget_tokens: int | None = Field(default=None)` to `ModelProfile` in `v2_core.py`
-  - [x] Step 1.3: Add `thinkingBudgetTokens` to `LlmModelConfig` in `model_config.dart` and run build runner
-- [x] **Phase 2: Adapter Parameter Sanitization & Normalization**
-  - [x] Step 2.1: Update `VertexAdapter` and `AIStudioAdapter` parameter sanitization & thinking translation
-  - [x] Step 2.2: Update `AnthropicAdapter` and `OpenAIAdapter` parameter normalizations
-  - [x] Step 2.3: Relax provider `temperature is None` check for reasoning models in `provider.py`
-  - [x] Step 2.4: Create unit tests in `test_adapter_parameter_sanitization.py` and verify quality gate
-- [x] **Phase 3: Seed Data Vault Mutation**
-  - [x] Step 3.1: Backup and mutate `seed_data.json` with `gemini-3.7-flash` and re-seed local database
-- [x] **Phase 4: Frontend UI & Localization**
-  - [x] Step 4.1: Update localization `.arb` files (`app_en.arb`, `app_fi.arb`) and run `flutter gen-l10n`
-  - [x] Step 4.2: Update `model_registry_view.dart` with thinking budget controls and reasoning notices
-  - [x] Step 4.3: Update and verify `model_registry_view_test.dart`
-- [x] **Phase 5: Final Completion Gate**
-  - [x] Step 5.1: Run full system audit loops (`backend_audit_loop.py` & `flutter_audit_loop.py`)
+- [x] **Phase 1: Pre-Implementation Cleanups & Prompt Protocol Hardening**
+  - [x] Step 1.1: Inject epistemic decision protocol into `MATRIX_SENSOR_SYSTEM_PROMPT` in `@[backend_v2/models/prompts/matrix_evaluation.py]`
+  - [x] Step 1.2: Update and expand unit tests with ISTQB negative partitions in `@[backend_v2/tests/unit/models/prompts/test_matrix_evaluation.py]`
+
+- [ ] **Phase 2: Automated Full Database Prompt Verification Engine & Test Suite**
+  - [ ] Step 2.1: Build `@[scripts/audit_database_atoms.py]` with 4-Collection Inspection Gates
+  - [ ] Step 2.2: Build comprehensive unit test suite in `@[backend_v2/tests/unit/scripts/test_audit_database_atoms.py]`
+  - [ ] Step 2.3: Verify baseline failure before seed data sanitization (`uv run python scripts/audit_database_atoms.py --strict`)
+- [ ] **Phase 3: Complete 4-Collection Seed Data Sanitization via Deterministic In-Memory Migration**
+  - [ ] Step 3.1: Vault backup & comprehensive seed sanitization via `@[scratch/sanitize_seed_atoms.py]` and Dart parity test
+  - [ ] Step 3.2: Execute verification engine on sanitized seed vault (`uv run python scripts/audit_database_atoms.py --strict`)
+  - [ ] Step 3.3: Re-seed local database (`uv run python backend_v2/seed/run_seed.py local`)
+- [ ] **Phase 4: Quality Gates & Statistical E2E Variance Validation**
+  - [ ] Step 4.1: Execute backend quality gate (`uv run python scripts/backend_audit_loop.py backend_v2 --test`)
+  - [ ] Step 4.2: Execute live E2E variance test on real PDF data (`$env:DEV_EXECUTION_MODE="full"; uv run python scripts/run_e2e_variance_test.py docs\jwdatat`)
