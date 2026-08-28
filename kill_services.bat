@@ -7,7 +7,9 @@ echo.
 
 echo [1/4] Killing Python processes (FastAPI Backend / Workers)...
 :: Kill only Quorum-related python processes to spare VS Code IDE extensions
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | ? { $_.Name -eq 'python.exe' -and $_.CommandLine -match 'backend_v2|uvicorn|arq' } | Stop-Process -Force -ErrorAction SilentlyContinue"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | ? { ($_.Name -eq 'python.exe' -or $_.Name -eq 'uv.exe') -and $_.CommandLine -match 'backend_v2|run_worker|uvicorn|arq' } | Stop-Process -Force -ErrorAction SilentlyContinue"
+taskkill /F /T /FI "WINDOWTITLE eq CQ Worker V2*" 2>nul
+taskkill /F /T /FI "WINDOWTITLE eq CQ Backend V2*" 2>nul
 taskkill /F /IM uvicorn.exe /T 2>nul
 taskkill /F /IM arq.exe /T 2>nul
 
