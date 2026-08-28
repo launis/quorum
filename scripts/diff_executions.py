@@ -7,6 +7,7 @@ Shannon entropy calculations, and Markdown report synthesis.
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 import math
 import subprocess
@@ -22,9 +23,41 @@ __all__ = [
     "get_all_evals",
     "get_state",
     "get_trace",
+    "main",
     "run_diff",
     "uses_contextual_override",
 ]
+
+
+def _inspect_input_file(file_path: Path) -> dict[str, str]:
+    """Computes SHA-256 hash and detects injected Unicode noise variants in an input file.
+
+    Args:
+        file_path: Path to the input file.
+
+    Returns:
+        Dictionary containing 'sha256' and 'noise' description.
+    """
+    raw_bytes = file_path.read_bytes()
+    sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
+    text = raw_bytes.decode("utf-8", errors="replace")
+
+    known_variants = {
+        "\u00a0": "No-Break Space (U+00A0)",
+        "\u2002": "En Space (U+2002)",
+        "\u2003": "Em Space (U+2003)",
+        "\u202f": "Narrow No-Break Space (U+202F)",
+    }
+    found_variants: list[str] = []
+    for char, name in known_variants.items():
+        if char in text:
+            found_variants.append(name)
+
+    noise_desc = ", ".join(found_variants) if found_variants else "Standard ASCII"
+    return {
+        "sha256": sha256_hash,
+        "noise": noise_desc,
+    }
 
 
 def get_all_evals(path: str | Path) -> dict[str, dict[str, Any]]:
@@ -669,13 +702,17 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
 
             inputs_dir = run_dir / "inputs"
             if inputs_dir.is_dir():
-                inputs_files = [f.name for f in inputs_dir.iterdir() if f.is_file()]
+                inputs_files = sorted([f.name for f in inputs_dir.iterdir() if f.is_file()])
                 if inputs_files:
                     f.write("  - **Käytetyt syötetiedostot:**\n")
                     for in_file in inputs_files:
                         in_path = inputs_dir / in_file
                         abs_in = str(in_path.resolve()).replace("\\", "/")
-                        f.write(f"    - [{in_file}](file:///{abs_in})\n")
+                        info = _inspect_input_file(in_path)
+                        f.write(
+                            f"    - [{in_file}](file:///{abs_in}) "
+                            f"(SHA-256: `{info['sha256'][:16]}...`, Variaatio: `{info['noise']}`)\n"
+                        )
         f.write("\n")
 
         f.write("## Globaalit Metriikat\n")
@@ -778,6 +815,11 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
     return str(report_path)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """CLI entry point for execution diff tool."""
     cli_args = sys.argv[1:] if len(sys.argv) > 1 else None
     run_diff(cli_args)
+
+
+if __name__ == "__main__":
+    main()

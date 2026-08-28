@@ -189,21 +189,36 @@ def test_pillar4_forensic_disk_artifacts_and_telemetry_extraction(tmp_path: Path
             f.write(json.dumps(t) + "\n")
 
     # Forensic frozen context
-    (run1 / "frozen_context.json").write_text(json.dumps({"ui_hints_snapshot": {}}), encoding="utf-8")
+    (run1 / "frozen_context.json").write_text(
+        json.dumps(
+            {
+                "ui_hints_snapshot": {
+                    "blk_f6e286f050c94d60": {
+                        "options": [
+                            {"label": {"translations": {"fi": "Avoimuus", "en": "Transparency"}}}
+                        ]
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
 
-    # Forensic inputs directory
+    # Forensic inputs directory with injected Unicode space
     inputs_dir = run1 / "inputs"
     inputs_dir.mkdir()
-    (inputs_dir / "doc.txt").write_text("Forensic test document", encoding="utf-8")
+    (inputs_dir / "doc.txt").write_text("Forensic\u00a0test document", encoding="utf-8")
 
     report_path = run_diff([str(run1), str(run2)])
     assert Path(report_path).exists()
     report_text = Path(report_path).read_text(encoding="utf-8")
 
-    # Verify report cites physical files and telemetric properties
+    # Verify report cites physical files, SHA-256 hashes, noise variants, and telemetric properties
     assert "exe_forensic_1" in report_text
     assert "exe_forensic_2" in report_text
     assert "API-kutsut" in report_text
+    assert "SHA-256" in report_text
+    assert "No-Break Space (U+00A0)" in report_text
 
 
 def test_pillar5_statistical_metrics_and_transition_matrix(tmp_path: Path) -> None:
@@ -263,3 +278,53 @@ def test_pillar5_statistical_metrics_and_transition_matrix(tmp_path: Path) -> No
 def test_run_diff_missing_or_empty() -> None:
     with pytest.raises(SystemExit):
         run_diff(["nonexistent/path/1", "nonexistent/path/2"])
+
+
+def test_inspect_input_file_variants(tmp_path: Path) -> None:
+    """Test SHA-256 and detection of all Unicode space variants in _inspect_input_file."""
+    from scripts.diff_executions import _inspect_input_file
+
+    f1 = tmp_path / "ascii.txt"
+    f1.write_text("Hello World", encoding="utf-8")
+    info1 = _inspect_input_file(f1)
+    assert info1["noise"] == "Standard ASCII"
+    assert len(info1["sha256"]) == 64
+
+    f2 = tmp_path / "nobreak.txt"
+    f2.write_text("Hello\u00a0World", encoding="utf-8")
+    info2 = _inspect_input_file(f2)
+    assert "No-Break Space (U+00A0)" in info2["noise"]
+
+    f3 = tmp_path / "en.txt"
+    f3.write_text("Hello\u2002World", encoding="utf-8")
+    info3 = _inspect_input_file(f3)
+    assert "En Space (U+2002)" in info3["noise"]
+
+
+def test_main_cli_execution(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test CLI main() execution with simulated execution paths."""
+    from scripts.diff_executions import main
+
+    run1 = tmp_path / "exe_cli_1"
+    run2 = tmp_path / "exe_cli_2"
+    run1.mkdir()
+    run2.mkdir()
+    valid_trace = [
+        {
+            "step_id": "stp_1",
+            "content": {
+                "evaluations": [
+                    {
+                        "atom_id": "tda_216cc3fd45284deb8d51ea4cf2b2fd93",
+                        "status": "PASSED",
+                        "evaluation_reasoning": "Reasoning 1",
+                    }
+                ]
+            },
+        }
+    ]
+    (run1 / "execution_trace.json").write_text(json.dumps(valid_trace), encoding="utf-8")
+    (run2 / "execution_trace.json").write_text(json.dumps(valid_trace), encoding="utf-8")
+
+    monkeypatch.setattr("sys.argv", ["diff_executions.py", str(run1), str(run2)])
+    main()
