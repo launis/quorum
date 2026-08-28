@@ -389,7 +389,18 @@ class ExtractiveSensorService:
                                 f"- {step}" for step in eval_result.remediation_steps
                             )
 
-                        status = ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
+                        is_inverse = False
+                        if matrix_context and matrix_context.matrix_assertions:
+                            for a in matrix_context.matrix_assertions:
+                                if a.atom_id == call_tda_id:
+                                    is_inverse = a.is_inverse
+                                    break
+
+                        if is_inverse:
+                            status = ExecutionStatus.FAILED if eval_result.is_true else ExecutionStatus.PASSED
+                        else:
+                            status = ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
+
                         call_results[call_tda_id] = (status, eval_result.reasoning, extensions)
 
                     return call_results, usage

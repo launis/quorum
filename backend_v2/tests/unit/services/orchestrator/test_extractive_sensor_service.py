@@ -7,7 +7,7 @@ from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
-from backend_v2.models.dtos.engine import MatrixEvaluationContext
+from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -26,6 +26,7 @@ def test_extractive_sensor_service_fallback_llm() -> None:
         concept_description="Concept description valid",
         inverse_evidence=False,
         aggregation_mode="EXISTS",
+        depends_on=(),
     )
 
     result = ExtractiveSensorService.pre_evaluate(tda, "Test text")
@@ -43,6 +44,7 @@ def test_extractive_sensor_service_aggregation_exists_delegate() -> None:
         logical_expression="Fakta",
         concept_description="Concept description valid",
         inverse_evidence=False,
+        depends_on=(),
     )
 
     # Ankkuri löytyy -> Ei voida tehdä pre-flight päätöstä (pitää antaa LLM arvioida Bounding Box)
@@ -61,6 +63,7 @@ def test_extractive_sensor_service_aggregation_exists_fail() -> None:
         logical_expression="Fakta",
         concept_description="Concept description valid",
         inverse_evidence=False,
+        depends_on=(),
     )
 
     # Yhtäkään ankkuria ei löydy -> Voidaan hylätä suoraan ilman LLM:ää
@@ -81,6 +84,7 @@ def test_extractive_sensor_service_aggregation_all_must_comply_fail() -> None:
         logical_expression="Fakta",
         concept_description="Concept description valid",
         inverse_evidence=False,
+        depends_on=(),
     )
 
     result = ExtractiveSensorService.pre_evaluate(tda, "Text with only anchor1 present.")
@@ -99,6 +103,7 @@ def test_extractive_sensor_service_inverse_evidence_early_exit() -> None:
         facts_to_find=["Fakta"],
         logical_expression="Fakta",
         concept_description="Concept description valid",
+        depends_on=(),
     )
 
     # Poison ei löydy -> Voidaan päättää heti. Koska se on inverse, puuttuminen on PASS.
@@ -122,6 +127,7 @@ def test_extractive_sensor_service_fuzzy_match() -> None:
         logical_expression="Fakta",
         concept_description="Concept description valid",
         inverse_evidence=False,
+        depends_on=(),
     )
 
     # 1. Pitäisi delegoida LLM:lle (decided=False), koska ankkuri "löytyy" sumeasti (typo "must_fiind_this")
@@ -202,7 +208,7 @@ async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
 def test_extractive_sensor_service_resolve_majority_vote() -> None:
 
     # Success case (2 PASS)
-    results = [
+    results: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None] = [
         {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "r1", {})},
         {"tda_11111111111111111111111111111111": (ExecutionStatus.FAILED, "r2", {})},
         {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "r3", {})},
@@ -219,7 +225,7 @@ def test_extractive_sensor_service_resolve_majority_vote() -> None:
 
     # Split vote without consensus (if min_consensus was 2, but we only have 3 different? Actually booleans only have 2 states)
     # But if an atom was missing from responses
-    results_split = [
+    results_split: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None] = [
         {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "r1", {})},
         {"tda_22222222222222222222222222222222": (ExecutionStatus.FAILED, "r2", {})},
         {"tda_33333333333333333333333333333333": (ExecutionStatus.PASSED, "r3", {})},
@@ -295,6 +301,7 @@ def test_extractive_sensor_service_allow_contextual_override() -> None:
         logical_expression="Fakta",
         concept_description="Concept description valid",
         inverse_evidence=False,
+        depends_on=(),
     )
 
     # 1. strictly set to False -> early fail
@@ -362,4 +369,134 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
 
         assert "tda_11111111111111111111111111111111" in results
         assert results["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
+        assert usage.total_tokens == 180
+
+
+@pytest.mark.asyncio
+async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evidence_passed() -> None:
+    """Verifies that an atom with is_inverse=True results in ExecutionStatus.PASSED when is_true=False (no penalty)."""
+    tda_id = "tda_11111111111111111111111111111111"
+    atom = ExtractedAtom(
+        tda_id=tda_id,
+        reasoning="Negative condition evaluated.",
+        resolved_claim="Penalty claim.",
+        source_quote=None,
+        is_logical_deduction=True,
+        source_id="src",
+        source_sequence_index=0,
+    )
+    node = LinkedAtomGraph(atom=atom, depends_on=[])
+
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+
+    class MockResult(BaseModel):
+        alias: str
+        reasoning: str
+        is_true: bool
+        contextual_override: bool | None = None
+        coaching: str | None = None
+        falsification: str | None = None
+        remediation_steps: list[str] | None = None
+
+    class MockResponse(BaseModel):
+        results: list[MockResult]
+
+    # LLM confirms poison/penalty is FALSE -> should map to PASSED for inverse_evidence
+    executor.execute_structured_task.return_value = (
+        MockResponse(results=[MockResult(alias="a1", reasoning="No penalty found", is_true=False)]),
+        TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
+    )
+
+    flattened = FlattenedAtom(
+        atom_id=tda_id,
+        question="Penalty claim question.",
+        extraction_rule="",
+        anchor_target="",
+        is_inverse=True,
+        depends_on=(),
+    )
+    matrix_context = MatrixEvaluationContext(
+        matrix_assertions=[flattened],
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.register", return_value="a1"),
+        patch(
+            "backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.resolve_alias",
+            return_value=tda_id,
+        ),
+    ):
+        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+            [node], executor, client, "context", matrix_context=matrix_context
+        )
+
+        assert tda_id in results
+        assert results[tda_id][0] == ExecutionStatus.PASSED
+        assert results[tda_id][1] == "No penalty found"
+        assert usage.total_tokens == 180
+
+
+@pytest.mark.asyncio
+async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evidence_failed() -> None:
+    """Verifies that an atom with is_inverse=True results in ExecutionStatus.FAILED when is_true=True (penalty detected)."""
+    tda_id = "tda_11111111111111111111111111111111"
+    atom = ExtractedAtom(
+        tda_id=tda_id,
+        reasoning="Negative condition evaluated.",
+        resolved_claim="Penalty claim.",
+        source_quote=None,
+        is_logical_deduction=True,
+        source_id="src",
+        source_sequence_index=0,
+    )
+    node = LinkedAtomGraph(atom=atom, depends_on=[])
+
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+
+    class MockResult(BaseModel):
+        alias: str
+        reasoning: str
+        is_true: bool
+        contextual_override: bool | None = None
+        coaching: str | None = None
+        falsification: str | None = None
+        remediation_steps: list[str] | None = None
+
+    class MockResponse(BaseModel):
+        results: list[MockResult]
+
+    # LLM confirms poison/penalty is TRUE -> should map to FAILED for inverse_evidence
+    executor.execute_structured_task.return_value = (
+        MockResponse(results=[MockResult(alias="a1", reasoning="Penalty detected in text", is_true=True)]),
+        TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
+    )
+
+    flattened = FlattenedAtom(
+        atom_id=tda_id,
+        question="Penalty claim question.",
+        extraction_rule="",
+        anchor_target="",
+        is_inverse=True,
+        depends_on=(),
+    )
+    matrix_context = MatrixEvaluationContext(
+        matrix_assertions=[flattened],
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.register", return_value="a1"),
+        patch(
+            "backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.resolve_alias",
+            return_value=tda_id,
+        ),
+    ):
+        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+            [node], executor, client, "context", matrix_context=matrix_context
+        )
+
+        assert tda_id in results
+        assert results[tda_id][0] == ExecutionStatus.FAILED
+        assert results[tda_id][1] == "Penalty detected in text"
         assert usage.total_tokens == 180
