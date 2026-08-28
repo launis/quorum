@@ -320,6 +320,7 @@ def run_variance_test(
     inputs_target: str | None = None,
     num_runs: int = 2,
     timeout_seconds: int = 7200,
+    db_path: str | Path | None = None,
 ) -> list[str]:
     """Execute automated end-to-end variance test suite across multiple runs.
 
@@ -327,6 +328,7 @@ def run_variance_test(
         inputs_target: File or directory path containing test inputs.
         num_runs: Number of consecutive runs to compare.
         timeout_seconds: Maximum polling timeout per execution in seconds.
+        db_path: Optional path to the database file (defaults to data/db_v2.json).
 
     Returns:
         List of generated execution IDs.
@@ -338,6 +340,7 @@ def run_variance_test(
         if not inputs_target:
             inputs_target = "backend_v2/tests/test_data/exe_c0bc_inputs.json"
 
+    target_db_path = Path(db_path) if db_path else Path("data/db_v2.json")
     print(f"Using inputs path: {inputs_target}")
     execution_ids: list[str] = []
 
@@ -395,14 +398,13 @@ def run_variance_test(
             execution_ids.append(exec_id)
 
         print(f"Polling database for execution {exec_id} completion (max {timeout_seconds // 60} mins)...")
-        db_path = Path("data/db_v2.json")
         start = time.time()
         done = False
 
         while time.time() - start < timeout_seconds:
             time.sleep(5)
             try:
-                with db_path.open("r", encoding="utf-8") as f:
+                with target_db_path.open("r", encoding="utf-8") as f:
                     db_data = json.load(f)
                 execs = list(db_data.get("executions", {}).values())
                 if execs:

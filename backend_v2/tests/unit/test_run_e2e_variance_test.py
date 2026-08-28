@@ -208,8 +208,7 @@ def test_run_variance_test_with_dict_fallback(monkeypatch: pytest.MonkeyPatch, t
     with inputs_file.open("w", encoding="utf-8") as f:
         json.dump({"custom_doc": "Test custom string", "numeric": 42}, f)
 
-    db_file = Path("data/db_v2.json")
-    db_file.parent.mkdir(parents=True, exist_ok=True)
+    db_file = tmp_path / "mock_db.json"
     with db_file.open("w", encoding="utf-8") as f:
         json.dump(
             {
@@ -236,7 +235,7 @@ def test_run_variance_test_with_dict_fallback(monkeypatch: pytest.MonkeyPatch, t
     )
 
     monkeypatch.setenv("TEST_INPUTS_PATH", str(inputs_file))
-    ids = run_variance_test(None, num_runs=1, timeout_seconds=10)
+    ids = run_variance_test(None, num_runs=1, timeout_seconds=10, db_path=db_file)
     assert ids == ["exe_test_1"]
 
 
@@ -245,7 +244,7 @@ def test_run_variance_test_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     with inputs_file.open("w", encoding="utf-8") as f:
         json.dump({"product_text": "Sample"}, f)
 
-    db_file = Path("data/db_v2.json")
+    db_file = tmp_path / "mock_empty_db.json"
     with db_file.open("w", encoding="utf-8") as f:
         json.dump({"executions": {}}, f)
 
@@ -265,4 +264,4 @@ def test_run_variance_test_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     )
 
     with pytest.raises(SystemExit):
-        run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=1)
+        run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=1, db_path=db_file)
