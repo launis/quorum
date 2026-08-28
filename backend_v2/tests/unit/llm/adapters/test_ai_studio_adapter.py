@@ -52,11 +52,6 @@ sys.modules["google"] = cast(Any, mock_google)
 sys.modules["google.genai"] = cast(Any, MockGenAIModule)
 sys.modules["google.genai.types"] = cast(Any, MockGenAITypes)
 
-from backend_v2.llm.adapters.ai_studio_adapter import (  # noqa: E402
-    GoogleAIStudioCacheAdapter,
-    get_redis_client,
-)
-
 
 @pytest.fixture(autouse=True)
 def mock_redis_client(monkeypatch: pytest.MonkeyPatch) -> Any:
