@@ -633,7 +633,7 @@ def audit_workflows(
                             parts = map_val.split(".")
                             if len(parts) >= 2:
                                 target_step_id = parts[1]
-                                if target_step_id not in known_wf_step_ids:
+                                if target_step_id not in known_wf_step_ids and target_step_id != "matrix_reducer":
                                     issues.append(
                                         AuditIssue(
                                             collection="workflows",

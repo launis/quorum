@@ -32,6 +32,12 @@ _project_root = Path(__file__).resolve().parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
 
 def check_backend(base_url: str = "http://127.0.0.1:8000/docs", max_retries: int = 45) -> bool:
     """Check if the backend FastAPI service is online and responding.
@@ -477,7 +483,7 @@ def run_variance_test(
         trace_file = Path(f"data/files/executions/{exec_id}/execution_trace.json")
         is_valid, reason = validate_execution_kelvollisuus(target_exec, trace_file)
         if not is_valid:
-            print("\n❌ AJO KESKEYTETTY (KELVOTON AINEISTO / DATA STARVATION):")
+            print("\n[FAILED] AJO KESKEYTETTY (KELVOTON AINEISTO / DATA STARVATION):")
             print(f"   Execution ID: {exec_id}")
             print(f"   Syy: {reason}")
             print("   Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi.")

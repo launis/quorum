@@ -8684,7 +8684,7 @@
           ],
           "input_mappings": {
             "results": "$steps.sr_2fa56dc36614469a",
-            "reduced_matrix": "$steps.sr_2fa56dc36614469a.reduced_atoms"
+            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
           },
           "expected_sdui_type": "markdown",
           "is_synthesis_source": true,
