@@ -16,6 +16,7 @@ def mock_settings() -> MagicMock:
     settings.llm_retry_max_seconds = 0.5
     settings.llm_retry_jitter_exp_base = 2
     settings.llm_default_timeout = 600.0
+    settings.vertex_location = "europe-north1"
     return settings
 
 

@@ -979,7 +979,7 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "DEPRECATED - V4 uses tda_assertions directly.",
+                  "concept_description": "Juxtaposition of concepts or entities listed in succession without explaining their relational connection or synthesis.",
                   "anti_patterns": [
                     {
                       "pattern": "rejection criteria: If ANY verb exists in the sentence that defines a causal or operational relationship between the two...",
@@ -1416,7 +1416,7 @@
                   "inverse_evidence": true,
                   "aggregation_mode": "EXISTS",
                   "high_entropy": true,
-                  "concept_description": "Do not judge subjectively.",
+                  "concept_description": "Expression of absolute, unhedged certainty regarding outcomes or facts without empirical data, uncertainty margins, or epistemic qualifiers.",
                   "anti_patterns": [
                     {
                       "pattern": "accompanied by statistical margins of error",
@@ -2671,7 +2671,7 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": false,
-                  "concept_description": "Do not evaluate completeness.",
+                  "concept_description": "Identification and naming of potential confounding variables or alternative factors that could explain the observed outcome.",
                   "extraction_rule": "the text explicitly names a potential third variable that could also explain the outcome. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
                   "anchor_target": "Find words indicating alternatives.",
                   "bounding_box_scope": "paragraph",
@@ -3226,7 +3226,7 @@
                   "inverse_evidence": false,
                   "aggregation_mode": "ALL_MUST_COMPLY",
                   "high_entropy": true,
-                  "concept_description": "EXTRACTION CONDITION: role prefixes (user: ai:) exist, the exact quote MUST be located in an block. BANNED SOURCES: Any matches under prefix or in user input fields are automatically REJECTED. Do not accept generic statements.",
+                  "concept_description": "Identification of specific structural flaws or methodological weaknesses in one's own proposal or analysis.",
                   "anti_patterns": [
                     {
                       "pattern": "no prefixes exist, scan the entire text",
