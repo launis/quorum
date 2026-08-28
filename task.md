@@ -14,6 +14,7 @@
   - [x] Step 3.2: Execute verification engine on sanitized seed vault (`uv run python scripts/audit_database_atoms.py --strict`)
   - [x] Step 3.3: Re-seed local database (`uv run python backend_v2/seed/run_seed.py local`)
 
-- [ ] **Phase 4: Quality Gates & Statistical E2E Variance Validation**
-  - [ ] Step 4.1: Execute backend quality gate (`uv run python scripts/backend_audit_loop.py backend_v2 --test`)
-  - [ ] Step 4.2: Execute live E2E variance test on real PDF data (`$env:DEV_EXECUTION_MODE="full"; uv run python scripts/run_e2e_variance_test.py docs\jwdatat`)
+- [x] **Phase 4: Quality Gates & Statistical E2E Variance Validation**
+  - [x] Step 4.1: Execute backend quality gate (`uv run python scripts/backend_audit_loop.py backend_v2 --test`)
+  - [x] Step 4.2: Execute live E2E variance test on real PDF data (`$env:DEV_EXECUTION_MODE="full"; uv run python scripts/run_e2e_variance_test.py docs\jwdatat`)
+

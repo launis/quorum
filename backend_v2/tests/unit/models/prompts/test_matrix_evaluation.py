@@ -44,11 +44,9 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
     for phrase in banned_ambiguities:
         assert phrase not in prompt, f"Found banned ambiguous phrase '{phrase}' in prompt."
 
-
     # Negative Partition 2: Assert absence of parenthesized repetition lists
     assert "repeating 'merely'" not in prompt
     assert "repeating anchor terms (e.g." not in prompt
-
 
     # Negative Partition 3: Assert all XML tags are strictly matched and closed
     open_tags = re.findall(r"<([a-z_]+)>", prompt)
