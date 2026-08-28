@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import io
 import json
 import os
 import re
@@ -19,6 +20,17 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any, cast
+
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
+# Force UTF-8 encoding for stdout/stderr on Windows
+if isinstance(sys.stdout, io.TextIOWrapper):
+    sys.stdout.reconfigure(encoding="utf-8")
+if isinstance(sys.stderr, io.TextIOWrapper):
+    sys.stderr.reconfigure(encoding="utf-8")
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
@@ -119,6 +131,30 @@ SPECIFIC_ATOM_HARMONIZATIONS: dict[str, tuple[str, str]] = {
         "The argument presents detailed empirical refutations of alternative models.",
         "Locate and extract substantive counter-arguments identifying contradictions or empirical gaps in alternative models.",
     ),
+    "tda_236ebf69629e41a58b0f13eb82b44875": (
+        "Outlier data points or contradictory evidence are dismissed to preserve the original premise without empirical justification.",
+        "Locate dismissal markers and verify whether contradictory data or outlier observations are rejected without changing the core premise.",
+    ),
+    "tda_873a1fab603544048f95e612773f0574": (
+        "Counter-arguments are introduced and immediately dismissed without citations, named sources, or comparative empirical data.",
+        "Locate counter-argument transitions and extract statements where opposing views are dismissed without substantive evidence.",
+    ),
+    "tda_3b951170f9f54f649b7da95fb9f121e6": (
+        "Empirical observations are reported descriptively without formulating a testable or falsifiable hypothesis.",
+        "Locate descriptive reporting statements and verify whether an explicit testable hypothesis is omitted.",
+    ),
+    "tda_0af46ca3de69431e8a3eea89df104507": (
+        "Conflicting analytical claims or data points are acknowledged but left unresolved through passive synthesis.",
+        "Locate conflict identification statements and extract sections where contradictory claims remain unresolved.",
+    ),
+    "tda_52ffb15768ba4a62ac3a8be5824a8aa6": (
+        "The analysis defines explicit, measurable boundary conditions that would falsify the central claim.",
+        "Locate and extract substantive statements defining specific measurable criteria under which the claim is considered invalid.",
+    ),
+    "tda_43516f120e4a415bb0ee3a878a53a5bc": (
+        "The argument explicitly identifies specific structural flaws or methodological weaknesses in its own proposal or analysis.",
+        "Locate and extract substantive statements where methodological weaknesses or analytical limitations of the proposal are detailed.",
+    ),
 }
 
 
@@ -174,10 +210,13 @@ def clean_mechanical_phrases(text: str) -> str:
     cleaned = cleaned.replace("IF AND ONLY IF", "when")
     cleaned = cleaned.replace("if and only if", "when")
 
-    # Replace mechanical counting
+    # Replace mechanical counting & scanning
     cleaned = re.sub(r"count of [a-zA-Z0-9_\-\s]+ is EXACTLY ZERO", "markers are absent", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"is EXACTLY ZERO", "is absent", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"contains exactly 0", "lacks", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"scan the paragraph and ", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"scan the paragraph for ", "locate ", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"scan the paragraph", "locate text", cleaned, flags=re.IGNORECASE)
 
     # Normalize whitespace
     cleaned = re.sub(r"\s+", " ", cleaned).strip()

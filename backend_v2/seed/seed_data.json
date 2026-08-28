@@ -765,7 +765,7 @@
                   "concept_description": "FIND epistemological humility where the author explicitly uses Qualifiers to limit the scope of their Claim.",
                   "anchor_target": "Find conditional qualifiers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Boundaries or probabilities are explicitly defined for the claim. Vague filler words. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "Boundaries or probabilities are explicitly defined for the claim. Vague filler words. If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -1131,10 +1131,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Juxtaposition of concepts or entities listed in succession without explaining their relational connection or synthesis.",
+                  "concept_description": "Concepts or entities are listed in mere juxtaposition without explaining their relational connection, functional interaction, or synthesis.",
                   "anchor_target": "Find generic listing conjunctions. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the exact quote IF AND ONLY IF two nouns or noun phrases are joined by the conjunction WITHOUT any relational verb describing their interaction in the same sentence.",
+                  "extraction_rule": "Locate sequential listings of entities or nouns and verify if explicit relational verbs or synthesis explanations are omitted.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -1404,7 +1404,7 @@
                   "concept_description": "Uses tda_assertions directly.",
                   "anchor_target": "Find criteria anchoring markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "An evaluation explicitly links its judgment to a stated benchmark or metric. Do not accept floating evaluations with unstated goalposts. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "An evaluation explicitly links its judgment to a stated benchmark or metric. Do not accept floating evaluations with unstated goalposts. If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -1634,7 +1634,7 @@
                   "concept_description": "EXTRACT evidence of cognitive biases or mental shortcuts.",
                   "anchor_target": "Find causal leaps connecting unrelated traits (Halo Effect) or prioritizing only visible evidence.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The text draws a definitive conclusion based solely on this limited visible evidence while actively ignoring unknowns. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "The text draws a definitive conclusion based solely on this limited visible evidence while actively ignoring unknowns. If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -1709,7 +1709,7 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Present. ABSOLUTE EXCLUSION ENFORCEMENT: You must actively locate a sentence where the author explicitly dismisses alternative perspectives or dogmatically asserts exclusive truth. General one-sided arguments that merely lack alternatives DO NOT trigger this rule; there MUST be a physical marker of active refusal, dogmatic exclusivity, or explicit dismissal. If such a marker is absent, you MUST conclude and return JSON null. .",
+                  "concept_description": "Present. ABSOLUTE EXCLUSION ENFORCEMENT: You must actively locate a sentence where the author explicitly dismisses alternative perspectives or dogmatically asserts exclusive.",
                   "anchor_target": "Find a proposal, claim, or argument.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "Locate and extract substantive evidence demonstrating the following requirement: Present. ABSOLUTE EXCLUSION ENFORCEMENT: You must actively locate a sentence where the author explicitly dismisses alternative perspectives or dogmatically asserts exclusive truth. General one-sided arguments that merely lack alternatives DO NOT trigger this rule; there MUST be a physical marker of active refusal, dogmatic exclusivity, or explicit dismissal. If such a marker is absent, you MUST conclude and return JSON null. .",
@@ -2178,7 +2178,7 @@
                   "concept_description": "The argument exhibits where the user acts as a Socratic steer, probing assumptions and demanding logical arguments.",
                   "anchor_target": "Find Socratic conceptual questions by the user.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The author actively probes the foundational reasoning or forces the AI to defend its logic. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema.. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "The author actively probes the foundational reasoning or forces the AI to defend its logic. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema.. If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
                   "acceptance_criteria": [],
                   "anti_patterns": [],
                   "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data).",
@@ -2206,7 +2206,7 @@
                   "concept_description": "The argument exhibits where the user demands external grounding and concrete expert verification.",
                   "anchor_target": "Find demands for external grounding.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The author explicitly restricts the AI to an external, objective anchor. Acceptance of unsourced hallucinated facts. NEGATIVE BOUNDARY: General questions or requests for explanation DO NOT count as external grounding unless they explicitly demand a citation or source material restriction.",
+                  "extraction_rule": "The author explicitly restricts the AI to an external, objective anchor. Acceptance of unsourced hallucinated facts. General questions or requests for explanation DO NOT count as external grounding unless they explicitly demand a citation or source material restriction.",
                   "acceptance_criteria": [],
                   "anti_patterns": [],
                   "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data).",
@@ -2624,10 +2624,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text contains explicit procedural execution steps that lack analytical or synthesis terminology.",
+                  "concept_description": "The text contains procedural execution steps that lack analytical framing or synthesis terminology.",
                   "anchor_target": "Find procedural sequential markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Extract the paragraph IF AND ONLY IF it contains these procedural markers AND LACKS any synthesis/deduction verbs.",
+                  "extraction_rule": "Locate sequential procedural markers and verify whether analytical framing and synthesis explanations are absent.",
                   "acceptance_criteria": [],
                   "anti_patterns": [],
                   "contrastive_example": "ACCEPTABLE: \"X directly results in Y\" (Abstract universal causal link).\nUNACCEPTABLE: \"X and Y exist\" (Lacks strict linkage).",
@@ -2652,10 +2652,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "BANNED PATTERN: Retrospective comments or technical observations about errors, missing data, or operational flaws in the source material/process (e.g. 'error in source data', 'missing source files'). These retrospective audit notes are NOT absolute compliance claims.",
+                  "concept_description": "The text provides unconditional status assertions that omit acknowledged operational risks.",
                   "anchor_target": "Find explicit absolute status declarations.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Identify explicit absolute status declarations that completely ignore challenges and risks.",
+                  "extraction_rule": "Locate status declarations asserting absolute operational certainty while omitting documented system challenges.",
                   "acceptance_criteria": [],
                   "anti_patterns": [],
                   "contrastive_example": "ACCEPTABLE: \"The source material contained layout formatting errors, which were corrected.\" (Retrospective observation of a technical error, not an absolute claim ignoring risks).\nUNACCEPTABLE: \"Our system has achieved 100% perfect compliance and is completely without risk.\" (Absolute claim ignoring risks).",
@@ -2680,7 +2680,7 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": false,
-                  "concept_description": "BANNED PATTERN: Describing purely formatting actions (e.g. shortening text, removing empty rows, converting tables to markdown) as source-criticism violations or appeals to authority.",
+                  "concept_description": "BANNED PATTERN: Describing purely formatting actions (e.g. shortening text, removing empty rows, converting tables to markdown) as source-criticism violations or appeals to.",
                   "anchor_target": "Find implicit authority markers.",
                   "bounding_box_scope": "sentence",
                   "extraction_rule": "Identify instances where editorial, structural, or formatting decisions are presented as content-level source claims.",
@@ -3187,7 +3187,7 @@
                   "concept_description": "Identification and naming of potential confounding variables or alternative factors that could explain the observed outcome.",
                   "anchor_target": "Find words indicating alternatives.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The text explicitly names a potential third variable that could also explain the outcome. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "The text explicitly names a potential third variable that could also explain the outcome. If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
                   "acceptance_criteria": [],
                   "anti_patterns": [],
                   "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data).",
@@ -3212,10 +3212,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Evaluates explicit structural indicators. humility.",
+                  "concept_description": "A causal inference derived from a limited domain is applied universally without boundary conditions.",
                   "anchor_target": "Find universal terms.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "A causal claim derived from a specific, limited context is applied to all contexts universally without acknowledging boundaries. ABSOLUTE BOUNDARY ENFORCEMENT: You must check if the causal claim is bounded. If the sentence or immediate context contains explicit boundary-setting vocabulary, limitations, or environmental constraints, the absolute overgeneralization is falsified, the boundary is acknowledged, and you MUST conclude and return JSON null.",
+                  "extraction_rule": "Locate causal claims extrapolated across distinct operational domains without explicit qualification.",
                   "acceptance_criteria": [],
                   "anti_patterns": [],
                   "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality).",
@@ -3519,10 +3519,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Context markers (user: ai:) exist, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. g., p-value tests).",
+                  "concept_description": "Outlier data points or contradictory evidence are dismissed to preserve the original premise without empirical justification.",
                   "anchor_target": "Find dismissal markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Find evidence. context markers, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Do not accept legitimate, statistically proven outlier exclusions (e.g., p-value tests). Find dismissal markers. STEP 2 (Bounding Box): Scan the paragraph. If these markers are used to protect the original premise from contradictory data without changing the premise, extract the quote. Otherwise, return null.",
+                  "extraction_rule": "Locate dismissal markers and verify whether contradictory data or outlier observations are rejected without changing the core premise.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -3555,7 +3555,7 @@
                   "concept_description": "Context markers (user: ai:) exist, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED.",
                   "anchor_target": "Find dogmatic certainty markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Find evidence. context markers, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Do not accept mathematical axioms. Find dogmatic certainty markers. STEP 2 (Bounding Box): Scan the sentence. If it explicitly blocks further empirical testing or questioning, extract the quote. Otherwise, return null. NEGATIVE BOUNDARY: Rhetorical exaggeration or strong statements like DO NOT count as dogmatism unless the author explicitly forbids further empirical testing or questioning.",
+                  "extraction_rule": "Find evidence. context markers, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Do not accept mathematical axioms. Find dogmatic certainty markers. STEP 2 (Bounding Box): Scan the sentence. If it explicitly blocks further empirical testing or questioning, extract the quote. Otherwise, return null. Rhetorical exaggeration or strong statements like DO NOT count as dogmatism unless the author explicitly forbids further empirical testing or questioning.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -3597,10 +3597,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Context markers (user: ai:) exist, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Evaluates explicit structural indicators.",
+                  "concept_description": "Counter-arguments are introduced and immediately dismissed without citations, named sources, or comparative empirical data.",
                   "anchor_target": "Find a counter-argument transition.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Find evidence. context markers, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Do not evaluate. Find a counter-argument transition. STEP 2 (Bounding Box): Scan the paragraph. If the presented counter-argument lacks specific citations, named sources, or numerical data, AND is immediately dismissed, extract the quote. Otherwise, return null.",
+                  "extraction_rule": "Locate counter-argument transitions and extract statements where opposing views are dismissed without substantive evidence.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -3708,10 +3708,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Context markers (user: ai:) exist, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED.",
+                  "concept_description": "Empirical observations are reported descriptively without formulating a testable or falsifiable hypothesis.",
                   "anchor_target": "Find descriptive reporting verbs.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Find evidence. context markers, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Do not accept explicit hypothesis testing. Find descriptive reporting verbs. STEP 2 (Bounding Box): Scan the paragraph. If the observation lacks a formulated hypothesis that could be tested or disproven, extract the quote. Otherwise, return null.",
+                  "extraction_rule": "Locate descriptive reporting statements and verify whether an explicit testable hypothesis is omitted.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -3741,10 +3741,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Context markers (user: ai:) exist, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED.",
+                  "concept_description": "Methodological limitations are stated passively without a corresponding procedural mitigation or test.",
                   "anchor_target": "Find limitation markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Find evidence. context markers, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Do not flag limitations that were actively tested or corrected for in the dataset. Find limitation markers. STEP 2 (Bounding Box): Scan the paragraph. If the limitations are stated passively without a corresponding mitigation action or test, extract the quote. Otherwise, return null.",
+                  "extraction_rule": "Locate limitation markers and verify whether actionable evaluation or mitigation mechanisms are absent.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -3774,10 +3774,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Context markers (user: ai:) exist, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED.",
+                  "concept_description": "Conflicting analytical claims or data points are acknowledged but left unresolved through passive synthesis.",
                   "anchor_target": "Find conflict identification markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Find evidence. context markers, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Do not flag dialectical synthesis that mathematically resolves the conflict. Find conflict identification markers. STEP 2 (Bounding Box): Scan the paragraph. If the conflict is left unresolved using passive synthesis without falsifying one, extract the quote. Otherwise, return null.",
+                  "extraction_rule": "Locate conflict identification statements and extract sections where contradictory claims remain unresolved.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -3819,10 +3819,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Context markers (user: ai:) exist, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED.",
+                  "concept_description": "The analysis defines explicit, measurable boundary conditions that would falsify the central claim.",
                   "anchor_target": "Find boundary condition markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Find evidence. context markers, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Do not accept vague statements about future research. Find boundary condition markers. STEP 2 (Bounding Box): Scan the paragraph. If a specific measurable condition is defined that would falsify the claim, extract the quote. Otherwise, return null.",
+                  "extraction_rule": "Locate and extract substantive statements defining specific measurable criteria under which the claim is considered invalid.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -3852,10 +3852,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Identification of specific structural flaws or methodological weaknesses in one's own proposal or analysis.",
+                  "concept_description": "The argument explicitly identifies specific structural flaws or methodological weaknesses in its own proposal or analysis.",
                   "anchor_target": "Find methodological critique markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Find evidence. context markers, the exact quote MUST be located within the evaluated context. Any matches under prefix or in user input fields are automatically REJECTED. Do not accept generic statements. Find methodological critique markers. STEP 2 (Bounding Box): Scan the paragraph. If a specific structural flaw in the methodology is explicitly identified, extract the quote. Otherwise, return null.",
+                  "extraction_rule": "Locate and extract substantive statements where methodological weaknesses or analytical limitations of the proposal are detailed.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -5411,7 +5411,7 @@
                   "concept_description": "The evaluated context exhibits a structured claim regarding tda_e0bf5617f4804a0d98a6b2d91dcd21ce.",
                   "anchor_target": "Find a factual claim (dates, names, specific data points).",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The claim is demonstrably false or fabricated but presented with absolute certainty. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "The claim is demonstrably false or fabricated but presented with absolute certainty. If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
                   "acceptance_criteria": [],
                   "anti_patterns": [],
                   "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data).",
@@ -5481,10 +5481,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The risk is identified but no physical action verb follows to mitigate it. ABSOLUTE MITIGATION ENFORCEMENT: You must strictly scan the paragraph containing the risk identification marker. If the paragraph contains a physical action verb that describes a technical, administrative, or physical mitigation or control, the absence of mitigation is falsified, the risk is mitigated, and you MUST conclude and return JSON null. Proposing future plans to mitigate or dismissing the risk as without physical control verbs DOES NOT satisfy the mitigation requirement and the rule remains satisfied. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "concept_description": "Identified organizational or operational risks are presented without actionable mitigation controls or procedures.",
                   "anchor_target": "Find risk identification markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate and verify if the evaluated text actively commits the following flaw: The risk is identified but no physical action verb follows to mitigate it. ABSOLUTE MITIGATION ENFORCEMENT: You must strictly scan the paragraph containing the risk identification marker. If the paragraph contains a physical action verb that describes a technical, administrative, or physical mitigation or control, the absence of mitigation is falsified, the risk is mitigated, and you MUST conclude and return JSON null. Proposing future plans to mitigate or dismissing the risk as without physical control verbs DOES NOT satisfy the mitigation requirement and the rule remains satisfied. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "Locate risk identification markers and verify if concrete technical, administrative, or physical mitigation actions are absent.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -5781,10 +5781,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Reject superficial mentions of frameworks.",
+                  "concept_description": "The argument explicitly couples framework clauses with physical security actions taken.",
                   "anchor_target": "Find exact framework citations.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The specific framework clause is directly linked to the physical security action taken. ABSOLUTE LEXICAL ENFORCEMENT: You are a mechanical parser, not a forgiving judge. If a rule demands multiple conditions (e.g., A AND B AND C), and condition C is physically missing, you MUST return NULL. You are strictly forbidden from accepting 'close enough' semantic matches. BANNED MATCHES: Academic institutions (e.g., Stanford) and research reports (e.g., TTL) DO NOT count as formal standard frameworks (ISO/ARMA).",
+                  "extraction_rule": "Locate and extract substantive evidence demonstrating the specific framework clause directly linked to the physical security action taken.",
                   "acceptance_criteria": [],
                   "anti_patterns": [],
                   "contrastive_example": "ACCEPTABLE: \"X affects Y via mechanism Z\" (Abstract universal mechanism).\nUNACCEPTABLE: \"X is associated with Y\" (Lacks explicit mechanism/causality).",
@@ -5997,10 +5997,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text contains retrospective claims of intent where the originally claimed parameters are physically missing from the preceding instruction.",
+                  "concept_description": "The argument exhibits retrospective claims of intent where the claimed parameters are absent from preceding instructions.",
                   "anchor_target": "Find explicit retrospective claims of intent. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Extract the retrospective claim IF AND ONLY IF the preceding text DOES NOT physically contain the parameters being claimed.",
+                  "extraction_rule": "Locate retrospective claims of intent and verify whether the referenced parameters were physically omitted in preceding context.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -6033,7 +6033,7 @@
                   "concept_description": "Contextual indicators exist, focus on output compared to input. .",
                   "anchor_target": "Identify a novel concept, specific methodology, or data point introduced by the AI.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Focus on output compared to input. . Identify a novel concept, specific methodology, or data point introduced by the AI. STEP 2 (Bounding Box): Scan the preceding prompt. If the author requested it. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "Focus on output compared to input. . Identify a novel concept, specific methodology, or data point introduced by the AI. STEP 2 (Bounding Box): Scan the preceding prompt. If the author requested it. If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -6231,10 +6231,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text quotes the exact measurable goal and confirms it with a physical measurement or count.",
+                  "concept_description": "The text presents measurable operational targets confirmed with quantitative metrics.",
                   "anchor_target": "Find a stated objective containing a measurable goal.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate and extract substantive evidence demonstrating the following requirement: The text quotes the exact measurable goal and confirms it with a physical measurement or count.",
+                  "extraction_rule": "Locate and extract substantive evidence demonstrating verified quantitative metrics aligned with stated goals.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -6313,10 +6313,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text explicitly links at least three distinct sequential actions where each depends entirely on the previous one.",
+                  "concept_description": "The reasoning explicitly connects at least three sequential actions where each step depends on the output of the prior step.",
                   "anchor_target": "Find a multi-step sequence marker.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate and extract substantive evidence demonstrating the following requirement: The text explicitly links at least three distinct sequential actions where each depends entirely on the previous one.",
+                  "extraction_rule": "Locate and extract substantive multi-step operational chains where each subsequent action explicitly consumes previous findings.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -6395,10 +6395,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Requires detailed counter-arguments dismantling alternative models.",
+                  "concept_description": "The argument presents detailed empirical refutations of alternative models.",
                   "anchor_target": "Find an explicit reference to an established alternative model or framework.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The text dismantles the alternative model by citing specific data points or logical contradictions that render it invalid in this context.",
+                  "extraction_rule": "Locate and extract substantive counter-arguments identifying contradictions or empirical gaps in alternative models.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -6765,10 +6765,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The exact input variable is explicitly named and connected to the specific output. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "concept_description": "The input variables are explicitly connected to their resulting analytical outputs.",
                   "anchor_target": "Find a direct causal linkage statement.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate and extract substantive evidence demonstrating the following requirement: The exact input variable is explicitly named and connected to the specific output. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "Locate and extract substantive sections mapping specific input parameters directly to generated conclusions.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -6880,10 +6880,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "A continuous, unbroken chain of at least three explicit logical steps is documented. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "concept_description": "A continuous chain of sequential logical derivations is documented.",
                   "anchor_target": "Find sequential logic markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate and extract substantive evidence demonstrating the following requirement: A continuous, unbroken chain of at least three explicit logical steps is documented. NEGATIVE BOUNDARY: If the semantic context implies generic rhetorical exaggeration rather than literal evidence, reject. Do not infer unstated conclusions.",
+                  "extraction_rule": "Locate and extract multi-step reasoning pathways where each inference builds directly on the prior conclusion.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -6950,10 +6950,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The warning specifies EXACTLY what the model or logic cannot do using specific domain terms.",
+                  "concept_description": "The warning specifies concrete operational boundaries and unsupported capabilities using domain terminology.",
                   "anchor_target": "Find an explicit warning or certainty boundary.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Locate and extract substantive evidence demonstrating the following requirement: The warning specifies EXACTLY what the model or logic cannot do using specific domain terms.",
+                  "extraction_rule": "Locate and extract substantive warning notices delineating explicit analytical and operational limits.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -7069,10 +7069,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The context substantiates mandatory source anchoring.",
+                  "concept_description": "The context substantiates mandatory source anchoring across analytical claims.",
                   "anchor_target": "Find an academic citation, mathematical theorem, or academic framework. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the sentence IF AND ONLY IF the logic is explicitly tethered to this source (e.g., actively applying a rule from the source).",
+                  "extraction_rule": "Locate and extract substantive statements where analytical deductions are explicitly tethered to verified sources.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -7648,7 +7648,7 @@
                   "concept_description": "The argument exhibits declarations of exhaustive or complete knowledge.",
                   "anchor_target": "Find absolute completeness markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the sentence IF AND ONLY IF it explicitly claims there are zero unknown variables or alternatives remaining.",
+                  "extraction_rule": "Locate and extract substantive sections asserting total certainty or the absolute absence of unknown variables.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -7751,10 +7751,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The argument exhibits immediate rationalization of constraints.",
+                  "concept_description": "The argument exhibits immediate rationalization or dismissal of recognized operational constraints.",
                   "anchor_target": "Find limitation markers. If absent, FAIL FAST and return null.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Extract the quote IF AND ONLY IF a limitation anchor is followed by a dismissive transition word that rationalizes away the limitation.",
+                  "extraction_rule": "Locate and extract sections where an acknowledged constraint is immediately followed by a dismissive rationalization.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
@@ -7784,10 +7784,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The alternative is mentioned but the paragraph contains exactly 0 counter-arguments or comparative data points. Evaluates explicit structural indicators., simply count the data points.",
+                  "concept_description": "The alternative hypothesis is mentioned without presenting comparative data or counter-arguments.",
                   "anchor_target": "Find a named alternative model or theory.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate and verify if the evaluated text actively commits the following flaw: The alternative is mentioned but the paragraph contains exactly 0 counter-arguments or comparative data points. Evaluates explicit structural indicators., simply count the data points.",
+                  "extraction_rule": "Locate mentions of alternative hypotheses and verify whether comparative metrics or counter-arguments are omitted.",
                   "acceptance_criteria": [],
                   "anti_patterns": [],
                   "contrastive_example": "ACCEPTABLE: \"Claim X is supported by explicit data point Y\" (Abstract universal example).\nUNACCEPTABLE: \"Claim X is true because of common sense\" (Lacks empirical data).",
@@ -7852,10 +7852,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The argument exhibits purely passive informational delivery.",
+                  "concept_description": "The argument delivers objective, impersonal propositions without subjective or first-person anchoring.",
                   "anchor_target": "Target paragraphs with statistical/factual reporting.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "You MUST extract the text IF AND ONLY IF the count of first-person markers is EXACTLY ZERO.",
+                  "extraction_rule": "Locate and extract substantive sections where informational delivery is formulated in an impersonal, third-person factual style.",
                   "acceptance_criteria": [],
                   "anti_patterns": [
                     {
