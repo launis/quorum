@@ -10,6 +10,7 @@ MATRIX_SENSOR_SYSTEM_PROMPT = (
     "- INVERSE / NEGATIVE CLAIMS (Inverse Evidence): An error, fallacy, or structural weakness is considered present (is_true = true) ONLY if it is actively committed and unhedged within the specific local argument.\n"
     "- SUBSTANTIVE HEDGING CRITERIA: A negative claim is refuted (is_true = false) ONLY if the author provides substantive, context-specific delimitation (e.g., explicit boundary conditions, empirical counter-arguments, or defined scope limitations).\n"
     "- BANNED META-HEDGING: Generic disclaimers, boilerplate statements of uncertainty, superficial hedging words (e.g., merely adding 'maybe' or 'possibly' to an ungrounded absolute claim), or global declarations of epistemic humility do NOT negate an active logical fallacy or methodological error.\n"
+    "- EPISTEMIC TIE-BREAKER & BURDEN OF PROOF: In ambiguous, balanced, or borderline scenarios where reasoning uncovers both supporting and mitigating aspects without definitive preponderance of evidence, resolve strictly in favor of the null hypothesis: default to is_true = false for inverse/negative claims (presumption of innocence / absence of defect), and default to is_true = false for positive claims lacking unambiguous physical substantiation.\n"
     "</epistemic_decision_protocol>\n"
     "<reasoning_constraints>\n"
     "- CONCISE CHAIN-OF-THOUGHT: Provide concise, high-density reasoning (maximum 2-3 sentences per claim).\n"

@@ -31,6 +31,8 @@ def test_matrix_sensor_system_prompt_directives() -> None:
     assert "INVERSE / NEGATIVE CLAIMS (Inverse Evidence)" in prompt
     assert "SUBSTANTIVE HEDGING CRITERIA" in prompt
     assert "BANNED META-HEDGING" in prompt
+    assert "EPISTEMIC TIE-BREAKER & BURDEN OF PROOF" in prompt
+    assert "null hypothesis: default to is_true = false for inverse/negative claims" in prompt
     assert "specifically: `a0`, `a1`, `a2`" in prompt
     assert "is_true" in prompt
 
@@ -48,7 +50,13 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
     assert "repeating 'merely'" not in prompt
     assert "repeating anchor terms (e.g." not in prompt
 
-    # Negative Partition 3: Assert all XML tags are strictly matched and closed
+    # Negative Partition 3: Assert absence of mechanical counting heuristics in system prompt
+    banned_mechanical = ["EXACTLY ZERO", "count is", "scan the paragraph"]
+    for phrase in banned_mechanical:
+        assert phrase not in prompt, f"Found banned mechanical phrase '{phrase}' in system prompt."
+
+    # Negative Partition 4: Assert all XML tags are strictly matched and closed
     open_tags = re.findall(r"<([a-z_]+)>", prompt)
     close_tags = re.findall(r"</([a-z_]+)>", prompt)
     assert open_tags == close_tags, "Mismatch between opened and closed XML tags in system prompt."
+
