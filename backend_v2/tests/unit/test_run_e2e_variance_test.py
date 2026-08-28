@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -34,6 +36,95 @@ def test_make_noise_injector_replaces_first_space() -> None:
     injector_1 = make_noise_injector(1)
     res_1 = injector_1("Hello world test")
     assert res_1 == "Hello\u2002world test"
+
+
+def test_pillar1_process_isolation_wmi_and_pid_protection(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pillar 1: Mathematical proof of WMI process termination and PID protection."""
+    executed_commands: list[str | list[str]] = []
+
+    def mock_run(cmd: Any, *args: Any, **kwargs: Any) -> Any:
+        executed_commands.append(cmd)
+        return type("Res", (), {"stdout": "12345\n", "stderr": ""})()
+
+    monkeypatch.setattr("subprocess.run", mock_run)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    force_kill_services()
+
+    # Verify powershell CIM command was invoked with current PID exclusion
+    current_pid = os.getpid()
+    ps_calls = [c for c in executed_commands if isinstance(c, list) and "powershell" in c[0]]
+    assert len(ps_calls) >= 2, "Expected at least 2 PowerShell commands (kill + verification)"
+
+    kill_cmd_str = ps_calls[0][-1]
+    assert f"$_.ProcessId -ne {current_pid}" in kill_cmd_str, "Runner's own PID must be protected"
+    assert "backend_v2|run_worker|uvicorn|arq" in kill_cmd_str, "Must filter relevant background workers"
+
+    # Verify Redis flushes
+    assert any("redis-cli flushall" in str(c) for c in executed_commands)
+    assert any("FLUSHALL" in str(c) for c in executed_commands)
+
+
+def test_pillar2_unicode_noise_hash_perturbation() -> None:
+    """Pillar 2: Mathematical proof that Unicode perturbation changes SHA-256 hash to bypass LLM cache."""
+    original_text = "This is a comprehensive evaluation of cognitive reasoning."
+    injector_run1 = make_noise_injector(0)
+    injector_run2 = make_noise_injector(1)
+
+    text_run1 = injector_run1(original_text)
+    text_run2 = injector_run2(original_text)
+
+    hash_run1 = hashlib.sha256(text_run1.encode("utf-8")).hexdigest()
+    hash_run2 = hashlib.sha256(text_run2.encode("utf-8")).hexdigest()
+
+    # Hashes must differ to force LLM provider cache miss
+    assert hash_run1 != hash_run2, "Hashes must differ across runs to ensure fresh provider inference"
+
+    # Semantic content must remain identical when normalized
+    assert text_run1.split() == text_run2.split() == original_text.split(), "Word sequence must remain identical"
+    assert "\u00a0" in text_run1
+    assert "\u2002" in text_run2
+
+
+def test_pillar3_dev_execution_mode_parity_propagation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Pillar 3: Verify DEV_EXECUTION_MODE is captured and propagated to backend subprocess."""
+    inputs_file = tmp_path / "inputs.json"
+    with inputs_file.open("w", encoding="utf-8") as f:
+        json.dump({"product_text": "Sample text"}, f)
+
+    db_file = tmp_path / "mock_db.json"
+    with db_file.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "executions": {
+                    "exe_1": {"id": "exe_1", "status": "PASSED"},
+                }
+            },
+            f,
+        )
+
+    spawned_environments: list[dict[str, str]] = []
+
+    class MockPopen:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            if "env" in kwargs and kwargs["env"] is not None:
+                spawned_environments.append(kwargs["env"])
+
+    monkeypatch.setattr("scripts.run_e2e_variance_test.force_kill_services", lambda: None)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.check_backend", lambda: True)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.trigger_execution", lambda inp: "exe_1")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    monkeypatch.setattr("subprocess.Popen", MockPopen)
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: type("Res", (), {"stdout": "OK", "stderr": ""})(),
+    )
+
+    monkeypatch.setenv("DEV_EXECUTION_MODE", "full")
+    run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=10, db_path=db_file)
+
+    assert len(spawned_environments) == 1
+    assert spawned_environments[0].get("DEV_EXECUTION_MODE") == "full"
 
 
 def test_load_inputs_from_path_json(tmp_path: Path) -> None:
