@@ -68,6 +68,7 @@ class PromptFactory:
         has_shuffled_atoms: bool = False,
         execution_id: str | None = None,
         alias_engine: Any = None,
+        global_context_vars: dict[str, Any] | None = None,
     ) -> PromptPayload:
         """Compiles criteria blocks and context variables into optimized static/dynamic prompts.
 
@@ -85,6 +86,7 @@ class PromptFactory:
             has_shuffled_atoms: Whether evaluation assets were randomized to mitigate LLM bias.
             execution_id: Parent execution tracking ID.
             alias_engine: Optional alias engine for source document IDs.
+            global_context_vars: Optional global context variables (e.g. external_evidence from pre-hooks).
 
         Returns:
             An immutable PromptPayload containing structured prompt components.
@@ -180,7 +182,17 @@ class PromptFactory:
             alias_engine=alias_engine,
         )
 
-        user_payload = f"{exec_params}\n<source_data>\n{xml_ctx}\n</source_data>"
+        source_data_content = xml_ctx
+        if global_context_vars and "external_evidence" in global_context_vars:
+            evidence_val = global_context_vars["external_evidence"]
+            if evidence_val and isinstance(evidence_val, str):
+                from backend_v2.settings import get_settings
+
+                evidence_budget = get_settings().source_evidence_max_chars
+                truncated_evidence = evidence_val[:evidence_budget].strip()
+                source_data_content = f"{source_data_content}\n\n{truncated_evidence}".strip()
+
+        user_payload = f"{exec_params}\n<source_data>\n{source_data_content}\n</source_data>"
         if dynamic_instructions:
             user_payload += f"\n\n<RUNTIME_AWARENESS>\n{dynamic_instructions}\n</RUNTIME_AWARENESS>"
 

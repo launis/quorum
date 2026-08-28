@@ -227,6 +227,24 @@ class Settings(BaseSettings):
     min_verifiable_text_length: Annotated[
         int, Field(description="Minimum text character length required to trigger source verification.")
     ] = 15
+    source_extraction_max_chars: Annotated[
+        int, Field(description="Maximum character budget for input text truncation in source claim extraction.")
+    ] = 30000
+    source_evidence_max_chars: Annotated[
+        int,
+        Field(
+            description="Maximum character budget for evidence XML injected into prompts to prevent token explosion."
+        ),
+    ] = 8000
+    source_verification_min_text_length: Annotated[
+        int,
+        Field(
+            description=(
+                "Minimum character length of input text required to run source verification; "
+                "payloads below this threshold short-circuit to prevent ghost executions."
+            )
+        ),
+    ] = 15
     schema_max_localized_anchors: Annotated[int, Field(description="Max localized anchors")] = 15
     schema_max_quotes_target: Annotated[int, Field(description="Target quotes count")] = 5
     schema_max_quote_length: Annotated[int, Field(description="Target quote length")] = 150

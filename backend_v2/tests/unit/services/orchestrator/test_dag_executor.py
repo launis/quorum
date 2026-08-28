@@ -980,3 +980,154 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
         assert record.context_variables.get("custom_var") == "updated_value"
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any, mock_compiler: Any) -> None:
+    """Tests that valid MCPAuditTrace dicts inside decision events are validated and merged into frozen_context."""
+    import datetime
+    from backend_v2.models.state import TraceEvent
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        id="wor_1111222233334444",
+        slug="wf_mcp_audit",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        name=I18nText(translations={"en": "MCP Audit WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        steps=[step1],
+    )
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "stp_1111222233334444",
+        "slug": "logic",
+        "type": "logic",
+        "model_strategy": "logic",
+        "hook": "mock_hook",
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
+    }
+    mock_repo.get_execution.return_value = None
+
+    raw_trace = {
+        "id": "tavily_12345678",
+        "tool_id": "mcp_tavily_search",
+        "step_name": "stp_1111222233334444",
+        "query": "Fact check query",
+        "reasoning": "Verification",
+        "response_summary": "Verified truth",
+        "source_urls": ["https://example.com"],
+        "timestamp": datetime.datetime.now(datetime.timezone.utc),
+        "duration_ms": 150,
+    }
+
+    decision_event = TraceEvent(
+        step_name="stp_1111222233334444",
+        event_type="decision",
+        content={"mcp_audit_traces": [raw_trace]},
+        metadata={"mcp_audit_traces": [raw_trace]},
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
+    ):
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={}))
+        mock_node_execute.return_value = [decision_event]
+
+        record = await executor.execute_workflow(
+            execution_id="exe_1111222233334444",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        )
+
+        assert len(record.frozen_context.mcp_tool_audit) == 1
+        assert record.frozen_context.mcp_tool_audit[0].id == "tavily_12345678"
+        assert record.frozen_context.mcp_tool_audit[0].response_summary == "Verified truth"
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast(
+    mock_repo: Any, mock_compiler: Any
+) -> None:
+    """Tests that invalid MCPAuditTrace payload in decision event triggers Fail-Fast AppException."""
+    from backend_v2.models.state import TraceEvent
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        id="wor_1111222233334444",
+        slug="wf_mcp_audit_fail",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        name=I18nText(translations={"en": "MCP Audit WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        steps=[step1],
+    )
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "stp_1111222233334444",
+        "slug": "logic",
+        "type": "logic",
+        "model_strategy": "logic",
+        "hook": "mock_hook",
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
+    }
+    mock_repo.get_execution.return_value = None
+
+    invalid_decision_event = TraceEvent(
+        step_name="stp_1111222233334444",
+        event_type="decision",
+        content={"mcp_audit_traces": [{"invalid_field": 123}]},
+        metadata={"mcp_audit_traces": [{"invalid_field": 123}]},
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
+    ):
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={}))
+        mock_node_execute.return_value = [invalid_decision_event]
+
+        with pytest.raises(AppException) as exc_info:
+            await executor.execute_workflow(
+                execution_id="exe_1111222233334444",
+                workflow=workflow,
+                raw_inputs=WorkflowInputs(dynamic_inputs={}),
+            )
+
+        assert exc_info.value.status_code == 500
+

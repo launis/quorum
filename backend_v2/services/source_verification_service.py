@@ -8,10 +8,9 @@ import asyncio
 import html
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.mcp import TavilySearchResult
+from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.source_verification import (
     SourceClaimDTO,
     SourceVerificationResultDTO,
@@ -19,20 +18,15 @@ from backend_v2.models.domain.source_verification import (
     VerifiedSourceDTO,
 )
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
+from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
-from backend_v2.services.mcp.tavily_search_client import tavily_search
+from backend_v2.services.mcp.mcp_tool_loop import DISPATCHER
+from backend_v2.services.mcp.tools.tavily import TAVILY_TOOL_ID
 from backend_v2.settings import get_settings
-
-if TYPE_CHECKING:
-    from backend_v2.database.interfaces import IComponentRepository, ISystemRepository
-    from backend_v2.llm.client import LLMClient
 
 __all__ = ["SourceVerificationService"]
 
 logger = logging.getLogger(__name__)
-
-# Cut off text length to avoid token limit explosions in fast models
-MAX_EXTRACTION_CHARS: int = 30000
 
 # Static English XML system instructions for 100% prompt caching efficiency
 _EXTRACTION_SYSTEM_INSTRUCTION: str = (
@@ -64,36 +58,17 @@ class SourceVerificationService:
 
     def __init__(
         self,
-        llm_task_executor: LLMTaskExecutor | None = None,
-        llm_client: LLMClient | None = None,
-        comp_repo: IComponentRepository | None = None,
-        system_repo: ISystemRepository | None = None,
+        llm_task_executor: LLMTaskExecutor,
+        llm_client: LLMClient,
     ) -> None:
-        """Initializes the service.
+        """Initializes the service with strict dependency injection.
 
         Args:
-            llm_task_executor: Injected executor. If None, it initializes via LLMTaskExecutor.
-            llm_client: Injected LLM client. If None, it loads via strategy registry.
-            comp_repo: Optional component repository for strategy lookup.
-            system_repo: Optional system repository for strategy lookup.
+            llm_task_executor: Injected structured task executor.
+            llm_client: Injected LLM client strategy instance.
         """
-        self.task_executor: LLMTaskExecutor | None = llm_task_executor
-        self.llm_client: LLMClient | None = llm_client
-        self.comp_repo: IComponentRepository | None = comp_repo
-        self.system_repo: ISystemRepository | None = system_repo
-
-    async def _ensure_initialized(self) -> None:
-        if self.task_executor and self.llm_client:
-            return
-
-        from backend_v2.llm.client import LLMClient
-        from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-
-        if not self.llm_client:
-            repo = self.system_repo or self.comp_repo
-            self.llm_client = await LLMClient.from_strategy("fast", repository=repo)
-        if not self.task_executor:
-            self.task_executor = LLMTaskExecutor(PromptCompiler())
+        self.task_executor: LLMTaskExecutor = llm_task_executor
+        self.llm_client: LLMClient = llm_client
 
     async def _extract_source_claims(self, text: str) -> list[SourceClaimDTO]:
         """Extracts source claims from text using structured LLM output.
@@ -105,15 +80,13 @@ class SourceVerificationService:
             List of SourceClaimDTO objects.
 
         Raises:
-            AppException: If parsing fails or the LLM request crashes.
+            AppException: If extraction fails due to structural or network errors.
         """
-        if not text or len(text.strip()) < get_settings().min_verifiable_text_length:
+        settings = get_settings()
+        if not text or len(text.strip()) < settings.source_verification_min_text_length:
             return []
 
-        await self._ensure_initialized()
-
-        # Safe truncation and XML escaping
-        safe_text = html.escape(text[:MAX_EXTRACTION_CHARS].strip())
+        safe_text = html.escape(text[: settings.source_extraction_max_chars].strip())
         user_message = f"<source_data>\n{safe_text}\n</source_data>"
 
         try:
@@ -121,12 +94,6 @@ class SourceVerificationService:
                 {"role": "system", "content": _EXTRACTION_SYSTEM_INSTRUCTION},
                 {"role": "user", "content": user_message},
             ]
-            if not self.llm_client or not self.task_executor:
-                raise AppException(
-                    message="Client not initialized",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
-                )
 
             result, _usage = await self.task_executor.execute_structured_task(
                 client=self.llm_client,
@@ -143,14 +110,14 @@ class SourceVerificationService:
                 details={"error_code": ErrorCodes.FETCH_FAILED.value},
             ) from e
 
-    async def _verify_single_claim(self, claim: SourceClaimDTO) -> VerifiedSourceDTO:
+    async def _verify_single_claim(self, claim: SourceClaimDTO) -> tuple[VerifiedSourceDTO, MCPAuditTrace | None]:
         """Verifies a single claim against the Tavily search tool.
 
         Args:
             claim: The claim to verify.
 
         Returns:
-            The verification result.
+            Tuple containing VerifiedSourceDTO and optional MCPAuditTrace.
         """
         query_parts = [f"Verify this claim: {claim.claim_text}"]
         if claim.institution_name:
@@ -160,21 +127,24 @@ class SourceVerificationService:
 
         query = " ".join(query_parts)
 
-        await self._ensure_initialized()
-
         try:
-            search_res: TavilySearchResult = await tavily_search(query)
+            audit_trace: MCPAuditTrace = await DISPATCHER.execute_tool(
+                tool_id=TAVILY_TOOL_ID,
+                query=query,
+                step_name="source_verification",
+                target_language="en",
+                llm_client=self.llm_client,
+                claim_text=claim.claim_text,
+            )
 
             escaped_claim = html.escape(claim.claim_text)
-            escaped_answer = html.escape(search_res.answer or "")
-            escaped_raw = html.escape(search_res.raw_content or "")
+            escaped_answer = html.escape(audit_trace.response_summary or "")
 
             user_msg = (
                 f"<source_data>\n"
                 f"  <claim>{escaped_claim}</claim>\n"
                 f"  <search_results>\n"
                 f"    <answer>{escaped_answer}</answer>\n"
-                f"    <raw_content>{escaped_raw}</raw_content>\n"
                 f"  </search_results>\n"
                 f"</source_data>"
             )
@@ -183,67 +153,78 @@ class SourceVerificationService:
                 {"role": "system", "content": _VERIFICATION_SYSTEM_INSTRUCTION},
                 {"role": "user", "content": user_msg},
             ]
-            if not self.llm_client or not self.task_executor:
-                raise AppException(
-                    message="Client not initialized",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
-                )
 
-            eval_res_tuple = await self.task_executor.execute_chat_task(
+            eval_res = await self.task_executor.execute_chat_task(
                 client=self.llm_client,
                 messages=messages,
             )
-            eval_res_str = eval_res_tuple[0] if isinstance(eval_res_tuple, tuple) else eval_res_tuple
-            if isinstance(eval_res_str, dict):
-                eval_res_str = str(eval_res_str.get("content", ""))
+            if isinstance(eval_res, dict):
+                content_val = eval_res.get("content", "")
+                status_str = str(content_val).strip().upper()
+            else:
+                status_str = str(eval_res).strip().upper()
 
-            status_str = eval_res_str.strip().upper() if isinstance(eval_res_str, str) else ""
             if status_str not in ["VERIFIED", "HALLUCINATION", "INCONCLUSIVE"]:
                 status = SourceVerificationStatus.INCONCLUSIVE
             else:
                 status = SourceVerificationStatus(status_str)
 
-            return VerifiedSourceDTO(
-                claim_text=claim.claim_text,
-                status=status,
-                source_urls=search_res.source_urls,
-                tavily_answer=search_res.answer,
+            return (
+                VerifiedSourceDTO(
+                    claim_text=claim.claim_text,
+                    status=status,
+                    source_urls=audit_trace.source_urls,
+                    tavily_answer=audit_trace.response_summary,
+                ),
+                audit_trace,
             )
 
         except Exception as e:
-            # If search fails (e.g. rate limit), mark as INCONCLUSIVE and log
+            # Circuit Breaker degradation for per-claim Tavily API failures
             logger.error(
                 "Failed to verify claim '%s': %s",
                 claim.claim_text,
                 e,
+                extra={"error_code": ErrorCodes.FETCH_FAILED.name},
                 exc_info=True,
             )
-            return VerifiedSourceDTO(
-                claim_text=claim.claim_text,
-                status=SourceVerificationStatus.INCONCLUSIVE,
+            return (
+                VerifiedSourceDTO(
+                    claim_text=claim.claim_text,
+                    status=SourceVerificationStatus.INCONCLUSIVE,
+                    source_urls=[],
+                    tavily_answer=None,
+                ),
+                None,
             )
 
-    async def verify_claims(self, claims: list[SourceClaimDTO]) -> list[VerifiedSourceDTO]:
+    async def verify_claims(self, claims: list[SourceClaimDTO]) -> tuple[list[VerifiedSourceDTO], list[MCPAuditTrace]]:
         """Concurrently verifies a list of claims using an asyncio TaskGroup.
 
         Args:
             claims: List of claims to verify.
 
         Returns:
-            List of verified claims.
+            Tuple of verified claims list and audit traces list.
+
+        Raises:
+            AppException: If parallel task execution crashes unrecoverably.
         """
         if not claims:
-            return []
+            return [], []
 
-        results: list[VerifiedSourceDTO] = []
+        verified_list: list[VerifiedSourceDTO] = []
+        audit_traces: list[MCPAuditTrace] = []
 
         try:
             async with asyncio.TaskGroup() as tg:
                 tasks = [tg.create_task(self._verify_single_claim(c)) for c in claims]
 
             for t in tasks:
-                results.append(t.result())
+                dto, trace = t.result()
+                verified_list.append(dto)
+                if trace is not None:
+                    audit_traces.append(trace)
         except* Exception as e:
             msg = "Parallel source verification failed fatally."
             logger.error("%s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
@@ -253,7 +234,7 @@ class SourceVerificationService:
                 details={"error_code": ErrorCodes.FETCH_FAILED.value},
             ) from e
 
-        return results
+        return verified_list, audit_traces
 
     async def run_full_verification(self, text: str) -> SourceVerificationResultDTO:
         """Executes the complete extraction and verification pipeline.
@@ -262,19 +243,21 @@ class SourceVerificationService:
             text: Raw input text document.
 
         Returns:
-            The structured verification result.
+            The structured verification result containing verified claims and audit traces.
         """
-        if not text or len(text.strip()) < get_settings().min_verifiable_text_length:
+        settings = get_settings()
+        if not text or len(text.strip()) < settings.source_verification_min_text_length:
             return SourceVerificationResultDTO(
                 claims=[],
                 verification_timestamp=datetime.now(UTC).isoformat(),
                 total_claims=0,
                 verified_count=0,
                 hallucination_count=0,
+                audit_traces=[],
             )
 
         extracted_claims = await self._extract_source_claims(text)
-        verified_claims = await self.verify_claims(extracted_claims)
+        verified_claims, audit_traces = await self.verify_claims(extracted_claims)
 
         total = len(verified_claims)
         verified = sum(1 for c in verified_claims if c.status == SourceVerificationStatus.VERIFIED)
@@ -286,4 +269,5 @@ class SourceVerificationService:
             total_claims=total,
             verified_count=verified,
             hallucination_count=hallucinated,
+            audit_traces=audit_traces,
         )

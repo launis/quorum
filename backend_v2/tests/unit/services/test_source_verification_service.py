@@ -1,16 +1,17 @@
 """Unit tests for SourceVerificationService."""
 
+import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.domain.mcp import TavilySearchResult
 from backend_v2.models.domain.source_verification import (
     SourceClaimDTO,
     SourceVerificationStatus,
 )
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
+from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.source_verification_service import SourceVerificationService
 
 
@@ -18,16 +19,37 @@ from backend_v2.services.source_verification_service import SourceVerificationSe
 def mock_task_executor() -> AsyncMock:
     """Returns a mock LLMTaskExecutor."""
     executor = AsyncMock()
-    executor.llm_client = AsyncMock()
     return executor
 
 
 @pytest.fixture
-def service(mock_task_executor: AsyncMock) -> SourceVerificationService:
-    """Returns a SourceVerificationService with a mocked executor."""
+def mock_llm_client() -> AsyncMock:
+    """Returns a mock LLMClient."""
+    return AsyncMock()
+
+
+@pytest.fixture
+def service(mock_task_executor: AsyncMock, mock_llm_client: AsyncMock) -> SourceVerificationService:
+    """Returns a SourceVerificationService with mocked dependencies."""
     return SourceVerificationService(
         llm_task_executor=mock_task_executor,
-        llm_client=mock_task_executor.llm_client,
+        llm_client=mock_llm_client,
+    )
+
+
+@pytest.fixture
+def mock_audit_trace() -> MCPAuditTrace:
+    """Returns a valid MCPAuditTrace fixture."""
+    return MCPAuditTrace(
+        id="tavily_12345678",
+        tool_id="mcp_tavily_search",
+        step_name="source_verification",
+        query="Verify this claim: Test claim 1",
+        reasoning="Fact checking claim",
+        response_summary="Yes, it is true.",
+        source_urls=["http://test.com"],
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        duration_ms=100,
     )
 
 
@@ -53,10 +75,10 @@ async def test_extract_source_claims_success(service: SourceVerificationService,
 async def test_extract_source_claims_empty_or_short_text(
     service: SourceVerificationService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Tests that empty or short text (< min_verifiable_text_length) returns empty list without calling LLM."""
+    """Tests that empty or short text (< source_verification_min_text_length) returns empty list without calling LLM."""
     monkeypatch.setattr(
         "backend_v2.services.source_verification_service.get_settings",
-        lambda: type("Settings", (), {"min_verifiable_text_length": 15})(),
+        lambda: type("Settings", (), {"source_verification_min_text_length": 15, "source_extraction_max_chars": 30000})(),
     )
     claims_empty = await service._extract_source_claims("   ")
     assert claims_empty == []
@@ -87,17 +109,6 @@ async def test_extract_source_claims_xml_injection_escaped(
 
 
 @pytest.mark.asyncio
-async def test_extract_source_claims_uninitialized_client_raises() -> None:
-    """Tests that missing LLM client raises 500 SYSTEM_INTEGRITY_VIOLATION."""
-    service_uninit = SourceVerificationService()
-    # Mock _ensure_initialized to no-op so client remains None
-    with patch.object(service_uninit, "_ensure_initialized", new_callable=AsyncMock):
-        with pytest.raises(AppException) as exc:
-            await service_uninit._extract_source_claims("A long valid text document to test error path.")
-        assert exc.value.status_code == 502 or exc.value.status_code == 500
-
-
-@pytest.mark.asyncio
 async def test_extract_source_claims_failure(service: SourceVerificationService, mock_task_executor: AsyncMock) -> None:
     """Tests failure during extraction raises AppException."""
     mock_task_executor.execute_structured_task.side_effect = Exception("LLM Error")
@@ -109,50 +120,52 @@ async def test_extract_source_claims_failure(service: SourceVerificationService,
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.tavily_search")
+@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
 async def test_verify_single_claim_verified(
-    mock_tavily: AsyncMock, service: SourceVerificationService, mock_task_executor: AsyncMock
+    mock_execute_tool: AsyncMock,
+    service: SourceVerificationService,
+    mock_task_executor: AsyncMock,
+    mock_audit_trace: MCPAuditTrace,
 ) -> None:
     """Tests verifying a single claim successfully."""
     claim = SourceClaimDTO(claim_text="Test claim 1", institution_name="Inst A", publication_year=2023)
 
-    mock_tavily.return_value = TavilySearchResult(
-        query="Verify this claim: Test claim 1 by Inst A (2023)",
-        answer="Yes, it is true.",
-        source_urls=["http://test.com"],
-        raw_content="Content",
-        duration_ms=100,
-    )
-    mock_task_executor.execute_chat_task.return_value = ("VERIFIED", None)
+    mock_execute_tool.return_value = mock_audit_trace
+    mock_task_executor.execute_chat_task.return_value = "VERIFIED"
 
-    result = await service._verify_single_claim(claim)
+    dto, trace = await service._verify_single_claim(claim)
 
-    assert result.status == SourceVerificationStatus.VERIFIED
-    assert result.source_urls == ["http://test.com"]
-    assert result.tavily_answer == "Yes, it is true."
-    mock_tavily.assert_called_once()
+    assert dto.status == SourceVerificationStatus.VERIFIED
+    assert dto.source_urls == ["http://test.com"]
+    assert dto.tavily_answer == "Yes, it is true."
+    assert trace is mock_audit_trace
+    mock_execute_tool.assert_called_once()
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.tavily_search")
+@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
 async def test_verify_single_claim_inconclusive_fallback(
-    mock_tavily: AsyncMock, service: SourceVerificationService
+    mock_execute_tool: AsyncMock, service: SourceVerificationService
 ) -> None:
-    """Tests that a failure in search results in INCONCLUSIVE status."""
+    """Tests that a failure in search results in INCONCLUSIVE status via circuit breaker."""
     claim = SourceClaimDTO(claim_text="Test claim")
-    mock_tavily.side_effect = AppException(message="Search timeout", status_code=502, details={})
+    mock_execute_tool.side_effect = AppException(message="Search timeout", status_code=502, details={})
 
-    result = await service._verify_single_claim(claim)
+    dto, trace = await service._verify_single_claim(claim)
 
-    assert result.status == SourceVerificationStatus.INCONCLUSIVE
+    assert dto.status == SourceVerificationStatus.INCONCLUSIVE
+    assert trace is None
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.tavily_search")
+@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
 async def test_run_full_verification(
-    mock_tavily: AsyncMock, service: SourceVerificationService, mock_task_executor: AsyncMock
+    mock_execute_tool: AsyncMock,
+    service: SourceVerificationService,
+    mock_task_executor: AsyncMock,
+    mock_audit_trace: MCPAuditTrace,
 ) -> None:
-    """Tests the full orchestration method."""
+    """Tests the full orchestration method returning claims and audit traces."""
     # 1. Mock Extraction
     mock_task_executor.execute_structured_task.return_value = (
         SourceExtractionResponseSchema(
@@ -165,12 +178,10 @@ async def test_run_full_verification(
     )
 
     # 2. Mock Search
-    mock_tavily.return_value = TavilySearchResult(
-        query="test", answer="answer", source_urls=[], raw_content="raw", duration_ms=10
-    )
+    mock_execute_tool.return_value = mock_audit_trace
 
     # 3. Mock Evaluation (1 VERIFIED, 1 HALLUCINATION)
-    mock_task_executor.execute_chat_task.side_effect = [("VERIFIED", None), ("HALLUCINATION", None)]
+    mock_task_executor.execute_chat_task.side_effect = ["VERIFIED", "HALLUCINATION"]
 
     result = await service.run_full_verification("This is a full document with sufficient length for testing.")
 
@@ -178,6 +189,7 @@ async def test_run_full_verification(
     assert result.verified_count == 1
     assert result.hallucination_count == 1
     assert len(result.claims) == 2
+    assert len(result.audit_traces) == 2
 
 
 @pytest.mark.asyncio
@@ -189,62 +201,52 @@ async def test_run_full_verification_short_text_returns_empty_envelope(service: 
     assert result.verified_count == 0
     assert result.hallucination_count == 0
     assert result.claims == []
+    assert result.audit_traces == []
     assert result.verification_timestamp != ""
 
 
 @pytest.mark.asyncio
 async def test_verify_claims_empty(service: SourceVerificationService) -> None:
-    """Tests that verifying empty claims list returns empty list immediately."""
-    res = await service.verify_claims([])
-    assert res == []
+    """Tests that verifying empty claims list returns empty lists immediately."""
+    dtos, traces = await service.verify_claims([])
+    assert dtos == []
+    assert traces == []
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.tavily_search")
+@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
 async def test_verify_single_claim_inconclusive_dict_response(
-    mock_tavily: AsyncMock, service: SourceVerificationService, mock_task_executor: AsyncMock
+    mock_execute_tool: AsyncMock,
+    service: SourceVerificationService,
+    mock_task_executor: AsyncMock,
+    mock_audit_trace: MCPAuditTrace,
 ) -> None:
     """Tests that dict content response from execute_chat_task is correctly parsed."""
     claim = SourceClaimDTO(claim_text="Test claim with dict response")
-    mock_tavily.return_value = TavilySearchResult(
-        query="test", answer="answer", source_urls=[], raw_content="raw", duration_ms=10
-    )
-    mock_task_executor.execute_chat_task.return_value = ({"content": "INCONCLUSIVE"}, None)
+    mock_execute_tool.return_value = mock_audit_trace
+    mock_task_executor.execute_chat_task.return_value = {"content": "INCONCLUSIVE"}
 
-    result = await service._verify_single_claim(claim)
-    assert result.status == SourceVerificationStatus.INCONCLUSIVE
+    dto, trace = await service._verify_single_claim(claim)
+    assert dto.status == SourceVerificationStatus.INCONCLUSIVE
+    assert trace is mock_audit_trace
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.tavily_search")
+@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
 async def test_verify_single_claim_unknown_status_fallback(
-    mock_tavily: AsyncMock, service: SourceVerificationService, mock_task_executor: AsyncMock
+    mock_execute_tool: AsyncMock,
+    service: SourceVerificationService,
+    mock_task_executor: AsyncMock,
+    mock_audit_trace: MCPAuditTrace,
 ) -> None:
     """Tests that unexpected text fallback defaults to INCONCLUSIVE."""
     claim = SourceClaimDTO(claim_text="Test claim with random status")
-    mock_tavily.return_value = TavilySearchResult(
-        query="test", answer="answer", source_urls=[], raw_content="raw", duration_ms=10
-    )
-    mock_task_executor.execute_chat_task.return_value = ("UNKNOWN_STRING", None)
+    mock_execute_tool.return_value = mock_audit_trace
+    mock_task_executor.execute_chat_task.return_value = "UNKNOWN_STRING"
 
-    result = await service._verify_single_claim(claim)
-    assert result.status == SourceVerificationStatus.INCONCLUSIVE
-
-
-@pytest.mark.asyncio
-async def test_ensure_initialized_lazy_loading() -> None:
-    """Tests that _ensure_initialized creates clients when not injected."""
-    mock_system_repo = AsyncMock()
-    service = SourceVerificationService(system_repo=mock_system_repo)
-    with patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_from_strategy:
-        mock_client = AsyncMock()
-        mock_from_strategy.return_value = mock_client
-
-        await service._ensure_initialized()
-
-        assert service.llm_client is mock_client
-        assert service.task_executor is not None
-        mock_from_strategy.assert_called_once_with("fast", repository=mock_system_repo)
+    dto, trace = await service._verify_single_claim(claim)
+    assert dto.status == SourceVerificationStatus.INCONCLUSIVE
+    assert trace is mock_audit_trace
 
 
 def test_source_verification_service_exports() -> None:
@@ -264,12 +266,3 @@ async def test_verify_claims_fatal_exception_handling(service: SourceVerificatio
 
         assert exc_info.value.status_code == 502
 
-
-@pytest.mark.asyncio
-async def test_verify_single_claim_uninitialized_client_raises() -> None:
-    """Tests that _verify_single_claim raises 500 when client is uninitialized."""
-    service_uninit = SourceVerificationService()
-    claim = SourceClaimDTO(claim_text="Test claim")
-    with patch.object(service_uninit, "_ensure_initialized", new_callable=AsyncMock):
-        result = await service_uninit._verify_single_claim(claim)
-        assert result.status == SourceVerificationStatus.INCONCLUSIVE

@@ -7551,7 +7551,7 @@ abstract class AppLocalizations {
   /// No description provided for @studioWorkflowPriorStepsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Prior Step Text Summaries (Optional)'**
+  /// **'Prior Step Context Anchoring (Optional)'**
   String get studioWorkflowPriorStepsTitle;
 
   /// No description provided for @studioWorkflowPriorStepsSubtitle.

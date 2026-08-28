@@ -4151,7 +4151,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get studioWorkflowPriorStepsTitle =>
-      'Prior Step Text Summaries (Optional)';
+      'Prior Step Context Anchoring (Optional)';
 
   @override
   String get studioWorkflowPriorStepsSubtitle =>

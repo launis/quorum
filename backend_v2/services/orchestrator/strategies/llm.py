@@ -407,6 +407,7 @@ class LLMNodeStrategy(NodeStrategy):
             has_shuffled_atoms=has_shuffled_atoms,
             execution_id=context.execution_id,
             alias_engine=alias_engine,
+            global_context_vars=hook_state.global_context_vars,
         )
 
         user_payload = prompt_payload.user_payload

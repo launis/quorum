@@ -671,6 +671,28 @@ class DAGExecutor:
                         match evt:
                             case TraceEvent() if evt.mcp_audit_traces:
                                 step_mcp_traces.extend(evt.mcp_audit_traces)
+                            case TraceEvent() if (
+                                evt.event_type == "decision"
+                                and evt.metadata
+                                and "mcp_audit_traces" in evt.metadata
+                                and evt.metadata["mcp_audit_traces"]
+                            ):
+                                for raw in evt.metadata["mcp_audit_traces"]:
+                                    try:
+                                        trace = MCPAuditTrace.model_validate(raw)
+                                        step_mcp_traces.append(trace)
+                                    except Exception as e:
+                                        logger.error(
+                                            "[DAGExecutor] %s: Invalid MCPAuditTrace payload in decision event: %s",
+                                            ErrorCodes.VALIDATION_FAILED.name,
+                                            e,
+                                            exc_info=True,
+                                        )
+                                        raise AppException(
+                                            message=f"Invalid MCPAuditTrace in pre-hook decision event: {e}",
+                                            status_code=500,
+                                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                        ) from e
                             case TraceEvent() if evt.metadata and "generated_schema" in evt.metadata:
                                 step_generated_schemas[evt.step_name] = evt.metadata["generated_schema"]
 
@@ -682,9 +704,12 @@ class DAGExecutor:
                     if step_mcp_traces:
                         current_traces: list[MCPAuditTrace] = list(exec_record.frozen_context.mcp_tool_audit)
                         seen_ids: set[str] = {t.id for t in current_traces if t.id}
-                        new_unique_traces: list[MCPAuditTrace] = [
-                            t for t in step_mcp_traces if t.id is None or t.id not in seen_ids
-                        ]
+                        new_unique_traces: list[MCPAuditTrace] = []
+                        for t in step_mcp_traces:
+                            if t.id is None or t.id not in seen_ids:
+                                new_unique_traces.append(t)
+                                if t.id:
+                                    seen_ids.add(t.id)
                         if new_unique_traces:
                             fc_updates["mcp_tool_audit"] = current_traces + new_unique_traces
 

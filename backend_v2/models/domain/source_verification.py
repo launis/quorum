@@ -10,6 +10,7 @@ from typing import Annotated
 from pydantic import BeforeValidator, ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.v2_core import MCPAuditTrace
 
 
 class SourceVerificationStatus(StrEnum):
@@ -67,6 +68,7 @@ class SourceVerificationResultDTO(V2CoreBase):
         total_claims: Count of claims extracted.
         verified_count: Count of claims marked as VERIFIED.
         hallucination_count: Count of claims marked as HALLUCINATION.
+        audit_traces: Audit traces of external searches executed.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -76,3 +78,7 @@ class SourceVerificationResultDTO(V2CoreBase):
     total_claims: Annotated[int, Field(description="Count of claims extracted.")]
     verified_count: Annotated[int, Field(description="Count of claims marked as VERIFIED.")]
     hallucination_count: Annotated[int, Field(description="Count of claims marked as HALLUCINATION.")]
+    audit_traces: Annotated[
+        list[MCPAuditTrace], Field(default_factory=list, description="Audit traces of external searches executed.")
+    ]
+

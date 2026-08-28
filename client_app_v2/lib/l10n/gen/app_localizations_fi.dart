@@ -4180,7 +4180,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get studioWorkflowPriorStepsTitle =>
-      'Edeltävien askeleiden tekstiyhteenvedot (Valinnainen)';
+      'Edeltävien askeleiden kontekstiankkurointi (Valinnainen)';
 
   @override
   String get studioWorkflowPriorStepsSubtitle =>

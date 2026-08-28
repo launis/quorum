@@ -332,7 +332,9 @@ def test_source_verification_hook_registered_and_safe() -> None:
 
     res = scan_file_for_hook_registration(hook_file)
     assert res["is_registered"] is True, f"Hook {hook_file} is not registered with @hook_registry.register"
-    assert "source_verification" in res["registered_names"], "Hook registration name must be 'source_verification'"
+    assert "source_verification_hook" in res["registered_names"] or "source_verification" in res["registered_names"], (
+        "Hook registration name must be 'source_verification_hook' or 'source_verification'"
+    )
     assert res["has_hardcoded_keys"] is False, f"Hardcoded API keys detected in {hook_file}: {res['hardcoded_keys']}"
 
 

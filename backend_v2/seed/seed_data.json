@@ -8469,6 +8469,7 @@
             "sr_0f7947ec7007498c"
           ],
           "input_mappings": {
+            "prior_analysis": "$steps.sr_0f7947ec7007498c",
             "product_text": "$inputs.product_text",
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
@@ -8996,7 +8997,8 @@
       ],
       "pre_hooks": [
         "inject_step_metadata",
-        "atom_flattening_hook"
+        "atom_flattening_hook",
+        "source_verification_hook"
       ],
       "post_hooks": [
         "verify_citation_integrity",
@@ -9315,7 +9317,8 @@
       ],
       "pre_hooks": [
         "inject_step_metadata",
-        "atom_flattening_hook"
+        "atom_flattening_hook",
+        "source_verification_hook"
       ],
       "post_hooks": [
         "matrix_scoring_hook",

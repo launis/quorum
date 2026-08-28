@@ -227,6 +227,16 @@ class NodeStrategy(ABC):
                     new_metadata.update(metadata_updates)
                     hook_state = hook_state.model_copy(update={"metadata": new_metadata})
 
+                    if "mcp_audit_traces" in metadata_updates and metadata_updates["mcp_audit_traces"]:
+                        emitted_events.append(
+                            TraceEvent(
+                                step_name=step.id,
+                                event_type="decision",
+                                content={"mcp_audit_traces": metadata_updates["mcp_audit_traces"]},
+                                metadata={"mcp_audit_traces": metadata_updates["mcp_audit_traces"]},
+                            )
+                        )
+
                 gvars_updates = delta.pop("global_context_vars", None)
                 if gvars_updates:
                     new_gvars = dict(hook_state.global_context_vars)

@@ -2127,7 +2127,7 @@
   "studioWorkflowStep1OutputBadge": "✨ Deconstructs files into atoms and citations for the pipeline.",
   "studioWorkflowAtomicScopeTitle": "Atomized Materials (Select Analyzed Contents)",
   "studioWorkflowAtomicScopeSubtitle": "Decomposed atoms and citations from input screen documents (raw files are excluded):",
-  "studioWorkflowPriorStepsTitle": "Prior Step Text Summaries (Optional)",
+  "studioWorkflowPriorStepsTitle": "Prior Step Context Anchoring (Optional)",
   "studioWorkflowPriorStepsSubtitle": "Enable only if this agent needs to read the narrative analysis. Structured findings are forwarded automatically.",
   "studioWorkflowZoneCAutoTitle": "Automated System Anchor (Protected)",
   "studioWorkflowXaiReporterAggregateBadge": "⚡ Automatic Aggregation: Automatically collects all active workflow specialists above.",

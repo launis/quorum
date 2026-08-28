@@ -6,15 +6,15 @@
 > **Epic**: EPIC 89 Phase 2 Follow-On: Hook Integration
 
 <required_context_rules>
-- @[.agents/rules/00-antigravity-core.md]
-- @[.agents/rules/01-python-backend.md]
-- @[.agents/rules/02_flutter_desktop.md]
-- @[.agents/rules/03_seed_vault.md]
-- @[.agents/rules/05_llm_architecture.md]
-- @[ki_god_code_prevention.md]
-- @[ki_workflow_context_governance.md]
-- @[ki_tripartite_pipeline_architecture.md]
-- @[ki_global_config_sovereignty.md]
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
+  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
+  <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_global_config_sovereignty.md]</knowledge_item>
 </required_context_rules>
 
 <anti_targets>
@@ -113,6 +113,18 @@ sequenceDiagram
 >    - `source_verification_hook.py`: For empty, whitespace, or sub-threshold inputs (`len(text) < settings.source_verification_min_text_length`), return a deterministic empty result `HookResult(success=True, state_delta={"metadata": {"mcp_audit_traces": []}, "global_context_vars": {"external_evidence": ""}})` (avoiding loose `{}` fallbacks while maintaining state schema parity). Text consolidation must avoid `isinstance(p, str)` after typed extraction (`p is not None and p.strip()`).
 > 3. **Settings Sovereignty**: Step 1.0 defines `source_verification_min_text_length: Annotated[int, Field(...)] = 15` alongside `source_extraction_max_chars` (30000) and `source_evidence_max_chars` (8000).
 > 4. **Mandatory Test Fixture Update**: Step 5.2 mandates updating the `service` fixture in `test_source_verification_service.py` to supply mock constructor dependencies, with negative tests for sub-threshold text and XML escaping.
+
+## 5-Column Architectural Directives Table
+
+| 1. Kohdealue & Skoopit (Target Scope) | 2. 🚫 KIELLETTY PURKKA (Eradicated Duct-Tape) | 3. 🎯 TEE NÄIN (Approved Best Practice) | 4. ✂️ KARSITTU YLISUUNNITTELU (Pruned Over-Engineering) | 5. 🔒 VERIFIOINTI & FAIL-FAST (Proof Anchor) |
+| :--- | :--- | :--- | :--- | :--- |
+| **@[backend_v2/settings.py]** | Kovakoodatut merkkimäärärajat (`MAX_EXTRACTION_CHARS = 30000`, `8000`) tai paikalliset taikanumerot palveluluokissa. | Määritellään `source_extraction_max_chars` (30000), `source_evidence_max_chars` (8000) ja `source_verification_min_text_length` (15) Pydantic Settings -kenttinä käyttäen `Annotated[int, Field(...)]`. | Ei dynaamisia token-laskureita tai erillisiä konfiguraatiopalveluita; keskitetty SSOT. | `uv run python scripts/backend_audit_loop.py backend_v2/settings.py --test` |
+| **@[backend_v2/services/source_verification_service.py]** | `getattr(llm_client)`, `_ensure_initialized`, suora `tavily_search` -kutsu ilman ToolDispatcheria, loose `.get()`, silent `except Exception: pass`, suojaamaton XML-injektio. | Puhdas konstruktori-DI (`__init__(llm_task_executor, llm_client)`), staattiset vakiokehotteet `_EXTRACTION_SYSTEM_INSTRUCTION` ja `_VERIFICATION_SYSTEM_INSTRUCTION` (100% Context Caching), `html.escape()`, `ToolDispatcher.execute_tool`, Circuit Breaker yksittäisille hakuvirheille (`INCONCLUSIVE`). | Tiedoston kutistaminen < 150 riviin; karsitaan kaikki `_ensure_initialized` ja runtime-alustushaarautumat. | `uv run python scripts/backend_audit_loop.py backend_v2/services/source_verification_service.py --test` |
+| **@[backend_v2/hooks/source_verification_hook.py]** | Palautetaan löysä sanakirja `{"verified_sources": ...}`, `\n\n` literaalibugi (`\\n\\n`), `isinstance(p, str)` duck-typing, FastAPI `Depends` -importit taustaprosessissa. | Rekisteröidään `@hook_registry.register(name="source_verification_hook")`, `deps.system_repo` Fail-Fast -tarkastus, ghost execution -kytkin palauttaa `HookResult(success=True, state_delta={"metadata": {"mcp_audit_traces": []}, "global_context_vars": {"external_evidence": ""}})`. | Ei ad-hoc hook-tehtaita tai ylimääräisiä kääreluokkia; suora asynkroninen hook-funktio. | `uv run python scripts/backend_audit_loop.py backend_v2/hooks/source_verification_hook.py --test` |
+| **@[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]** | `PromptCompiler.compile()` proxy-indirektiot, raw f-string payload -mutaatiot `llm.py`:ssä, `llm_context_data.get('global_context_vars')` -arvailu. | `global_context_vars: dict[str, Any] | None = None` suora parametri `PromptFactory.build()`:iin, `<external_evidence>` upotus `<source_data>`:n sisälle leikattuna `settings.source_evidence_max_chars` -rajaan, `PromptPayload` säilyy immutaabelina (`frozen=True`). | Ei uusia `EvidencePromptBlock` -tietokantamalleja tai rinnakkaisia prompt-rakentajia. | `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/strategies/llm.py --test` |
+| **@[backend_v2/services/orchestrator/strategies/base.py] & @[backend_v2/services/orchestrator/strategies/llm.py]** | `hook_state.metadata["mcp_audit_traces"]` suora indeksointi `llm.py`:ssä (`KeyError` / `NullReference`), `getattr(step, 'input_mappings')`, dead V1 `mcp_tools` duck-typing silmukat, debug printit. | `base.py.run_pre_hooks()` emittoi automaattisesti `TraceEvent(event_type="decision", metadata={"mcp_audit_traces": ...})`, `LLMNodeStrategy` pysyy täysin erillään hook-metadatasta, siirretty `hook_state.global_context_vars` suoraan `PromptFactory.build()`:iin. | Ei erillistä MCP-tapahtumakuuntelijaa tai väyläkerrosta; hyödynnetään olemassa olevaa `TraceEvent` Event Sourcingia. | `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/strategies/llm.py --test` |
+| **@[backend_v2/services/orchestrator/dag_executor.py]** | Lukitsematon event-silmukka (L693-L703), raw dictien työntäminen `frozen_context`iin ilman validointia, `frozen_context.mcp_tool_audit.append()`, hiljainen virheiden nielentä. | Koko event-loop (L693-L711) siirretty `async with _update_lock:` -lohkon sisälle, `MCPAuditTrace.model_validate(raw)` pydantic-validointi Fail-Fastilla (`AppException(ErrorCodes.VALIDATION_FAILED)`), `model_copy` -päivitys ilman in-place mutaatioita. | Lock-konsolidointi (yksi `_update_lock` kahden erillisen lukituksen sijaan), ei ylimääräistä audit-storage -luokkaa. | `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_audit.py --test` |
+| **@[backend_v2/seed/seed_data.json] & @[client_app_v2/lib/l10n/app_fi.arb]** | Puuttuva `prior_analysis` -datajohto workflow-solmussa `sr_02b7cc1e7c2a4a62`, passiivinen "Edeltävien askeleiden tekstiyhteenvedot" -termi. | Bounded Mutation Protocol, `"source_verification_hook"` lisätty `pre_hooks` -taulukkoihin, `"prior_analysis": "$steps.sr_0f7947ec7007498c"` palautettu, Studio UI lokalisointi "Kontekstiankkurointi" (Context Anchoring). | Ei uusia tietokantatauluja tai UI-widgettejä; käytetään olemassa olevaa `pre_hooks` ja `input_mappings` -arkkitehtuuria. | `uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/views/widgets/workflow/workflow_step_card_test.dart` |
 
 ---
 

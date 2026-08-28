@@ -226,7 +226,7 @@ void main() {
 
         // 6. Categorized Section 2: Prior step reports
         expect(
-          find.text('Edeltävien askeleiden tekstiyhteenvedot (Valinnainen)'),
+          find.text('Edeltävien askeleiden kontekstiankkurointi (Valinnainen)'),
           findsOneWidget,
         );
         expect(

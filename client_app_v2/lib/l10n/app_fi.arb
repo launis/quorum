@@ -1465,7 +1465,7 @@
   "studioWorkflowStep1OutputBadge": "✨ Muuntaa tiedostot puretuiksi atomeiksi loppuketjulle.",
   "studioWorkflowAtomicScopeTitle": "Atomisoidut aineistot (Valitse analysoitavat sisällöt)",
   "studioWorkflowAtomicScopeSubtitle": "Syötenäytöllä määritettyjen dokumenttien puretut atomit ja sitaatit (raakatiedostoja ei raahata mukana):",
-  "studioWorkflowPriorStepsTitle": "Edeltävien askeleiden tekstiyhteenvedot (Valinnainen)",
+  "studioWorkflowPriorStepsTitle": "Edeltävien askeleiden kontekstiankkurointi (Valinnainen)",
   "studioWorkflowPriorStepsSubtitle": "Valitse vain jos agentin pitää lukea laaja sanallinen analyysi. Strukturoitu data ja havainnot siirtyvät aina automaattisesti.",
   "studioWorkflowZoneCAutoTitle": "Automaattinen järjestelmäankkuri (Suojattu)",
   "studioWorkflowXaiReporterAggregateBadge": "⚡ Automaattinen koonti: Kokoaa automaattisesti kaikki yllä määritellyt työnkulun asiantuntijat.",
