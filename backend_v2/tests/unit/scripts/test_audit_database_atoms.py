@@ -101,7 +101,15 @@ def test_audit_clean_pass() -> None:
 
 def test_audit_atoms_banned_phrases() -> None:
     """Test detection of banned phrases: BANNED SOURCES, FAIL FAST, EXTRACTION CONDITION, DEPRECATED."""
-    bad_phrases = ["BANNED SOURCES", "FAIL FAST", "EXTRACTION CONDITION:", "DEPRECATED", "STEP 1:"]
+    bad_phrases = [
+        "BANNED SOURCES",
+        "FAIL FAST",
+        "EXTRACTION CONDITION:",
+        "DEPRECATED",
+        "STEP 1:",
+        "ABSOLUTE MITIGATION ENFORCEMENT",
+        "ABSOLUTE LEXICAL BOUNDARY",
+    ]
     for phrase in bad_phrases:
         block = _create_clean_matrix_block()
         block["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = (
@@ -109,6 +117,44 @@ def test_audit_atoms_banned_phrases() -> None:
         )
         issues, _, _ = audit_prompt_blocks([block])
         assert any(i.issue_type == "BANNED_PHRASE" for i in issues), f"Failed to flag banned phrase: {phrase}"
+
+
+def test_audit_atoms_mechanical_counting() -> None:
+    """Test detection of mechanical counting patterns in concept_description and extraction_rule."""
+    counting_phrases = ["EXACTLY ZERO", "count is 0", "count of markers", "scan the paragraph"]
+    for phrase in counting_phrases:
+        # 1. In concept_description
+        block1 = _create_clean_matrix_block()
+        block1["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = (
+            f"Concept description with {phrase} pattern."
+        )
+        issues1, _, _ = audit_prompt_blocks([block1])
+        assert any(i.issue_type == "MECHANICAL_COUNTING" for i in issues1), f"Failed to flag count in concept: {phrase}"
+
+        # 2. In extraction_rule
+        block2 = _create_clean_matrix_block()
+        block2["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = (
+            f"Extraction rule with {phrase} pattern."
+        )
+        issues2, _, _ = audit_prompt_blocks([block2])
+        assert any(i.issue_type == "MECHANICAL_COUNTING" for i in issues2), f"Failed to flag count in rule: {phrase}"
+
+
+def test_audit_atoms_bloated_and_identical_concepts() -> None:
+    """Test detection of bloated concept descriptions (>180 chars) and identical concept/rule strings."""
+    # 1. Bloated concept description
+    block1 = _create_clean_matrix_block()
+    block1["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "A" * 185
+    issues1, _, _ = audit_prompt_blocks([block1])
+    assert any(i.issue_type == "BLOATED_CONCEPT" for i in issues1), "Failed to flag bloated concept description."
+
+    # 2. Identical concept_description and extraction_rule
+    block2 = _create_clean_matrix_block()
+    same_text = "This exact text is used for both the concept description and extraction rule."
+    block2["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = same_text
+    block2["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = same_text
+    issues2, _, _ = audit_prompt_blocks([block2])
+    assert any(i.issue_type == "IDENTICAL_CONCEPT_AND_RULE" for i in issues2), "Failed to flag identical concept and rule."
 
 
 def test_audit_atoms_negative_guidance() -> None:
@@ -121,6 +167,7 @@ def test_audit_atoms_negative_guidance() -> None:
         )
         issues, _, _ = audit_prompt_blocks([block])
         assert any(i.issue_type == "NEGATIVE_GUIDANCE" for i in issues), f"Failed to flag negative phrase: {phrase}"
+
 
 
 def test_audit_atoms_chat_hardcoding() -> None:

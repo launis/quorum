@@ -91,6 +91,10 @@ BANNED_PHRASES: list[str] = [
     "STEP 1:",
     "STEP 2:",
     "DEPRECATED",
+    "ABSOLUTE MITIGATION ENFORCEMENT",
+    "ABSOLUTE LEXICAL BOUNDARY",
+    "ABSOLUTE LEXICAL ENFORCEMENT",
+    "ABSOLUTE MITIGATION",
 ]
 
 NEGATIVE_GUIDANCE_PATTERNS: list[str] = [
@@ -122,6 +126,15 @@ SCREAMING_IMPERATIVES: list[str] = [
     "Scan the document.",
     "Verify",
     "CHECK",
+    "ABSOLUTE MITIGATION ENFORCEMENT",
+    "ABSOLUTE LEXICAL BOUNDARY",
+]
+
+MECHANICAL_COUNTING_PATTERNS: list[str] = [
+    "EXACTLY ZERO",
+    "count is",
+    "count of",
+    "scan the paragraph",
 ]
 
 
@@ -313,6 +326,31 @@ def audit_prompt_blocks(
                                     )
                                 )
 
+                            # Check Bloated Concept in concept_description
+                            if len(concept_desc) > 180:
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}.concept_description",
+                                        issue_type="BLOATED_CONCEPT",
+                                        message=f"Atom '{tda_id}' concept_description is bloated ({len(concept_desc)} chars > 180 max).",
+                                    )
+                                )
+
+                            # Check Mechanical Counting in concept_description
+                            for mc in MECHANICAL_COUNTING_PATTERNS:
+                                if mc.lower() in concept_lower:
+                                    issues.append(
+                                        AuditIssue(
+                                            collection="prompt_blocks",
+                                            entity_id=tda_id,
+                                            field_path=f"{prefix_path}.concept_description",
+                                            issue_type="MECHANICAL_COUNTING",
+                                            message=f"Atom '{tda_id}' concept_description contains mechanical counting pattern '{mc}'.",
+                                        )
+                                    )
+
                         # 2. Check extraction_rule presence and content
                         if (
                             not extraction_rule
@@ -329,6 +367,18 @@ def audit_prompt_blocks(
                                 )
                             )
                         else:
+                            # Check Identical Concept and Rule
+                            if concept_desc and concept_desc.strip() == extraction_rule.strip():
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}",
+                                        issue_type="IDENTICAL_CONCEPT_AND_RULE",
+                                        message=f"Atom '{tda_id}' has identical concept_description and extraction_rule.",
+                                    )
+                                )
+
                             # Check Banned Phrases in extraction_rule
                             for bp in BANNED_PHRASES:
                                 if bp in extraction_rule:
@@ -353,6 +403,19 @@ def audit_prompt_blocks(
                                             field_path=f"{prefix_path}.extraction_rule",
                                             issue_type="CHAT_HARDCODING",
                                             message=f"Atom '{tda_id}' extraction_rule contains chatbot hardcoding '{ch}'.",
+                                        )
+                                    )
+
+                            # Check Mechanical Counting in extraction_rule
+                            for mc in MECHANICAL_COUNTING_PATTERNS:
+                                if mc.lower() in rule_lower:
+                                    issues.append(
+                                        AuditIssue(
+                                            collection="prompt_blocks",
+                                            entity_id=tda_id,
+                                            field_path=f"{prefix_path}.extraction_rule",
+                                            issue_type="MECHANICAL_COUNTING",
+                                            message=f"Atom '{tda_id}' extraction_rule contains mechanical counting pattern '{mc}'.",
                                         )
                                     )
 
