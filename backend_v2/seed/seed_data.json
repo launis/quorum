@@ -7143,8 +7143,7 @@
           "required": false,
           "is_chat_history": false,
           "input_modes": [
-            "file",
-            "paste"
+            "file"
           ],
           "description": {
             "translations": {
@@ -7153,7 +7152,8 @@
             }
           },
           "ai_description": "SOURCE EVIDENCE DIRECTIVE: This artifact represents the final target output of the audited process. It must be evaluated strictly on its own merits without assuming any external context or hidden intentions. Treat this as the definitive end-result of the cognitive process.",
-          "questionnaire_definition": []
+          "questionnaire_definition": [],
+          "scan_for_performative_patterns": true
         },
         {
           "input_key": "chat_log",
@@ -7166,8 +7166,7 @@
           "required": true,
           "is_chat_history": true,
           "input_modes": [
-            "file",
-            "paste"
+            "file"
           ],
           "description": {
             "translations": {
@@ -7176,7 +7175,8 @@
             }
           },
           "ai_description": "--- AI INSTRUCTION FOR THIS SOURCE ---\nPROCESS EVIDENCE DIRECTIVE: This artifact contains the chronological dialogue unspooled between the human operator and the AI system leading up to the final product. You must analyze this strictly for developmental trajectory, cognitive dependencies, prompt compliance, and the balance of intellectual labor. Do not treat this as the final product itself, but rather the scaffolding that built it.\n\nMANDATE_HUMAN_EVALUATION: You must evaluate ONLY the human user's cognitive level, steering skills, and domain expertise. \n\nEXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines starting with \"user:\". \n\nCONTEXT_RULE: Text starting with \"ai:\" is strictly background context. NEVER use the AI's output, intelligence, or reasoning as evidence of the human's competence.",
-          "questionnaire_definition": []
+          "questionnaire_definition": [],
+          "scan_for_performative_patterns": true
         },
         {
           "input_key": "reflection_text",
@@ -7189,7 +7189,7 @@
           "required": false,
           "is_chat_history": false,
           "input_modes": [
-            "questionnaire"
+            "file"
           ],
           "description": {
             "translations": {
@@ -7198,28 +7198,8 @@
             }
           },
           "ai_description": "META-COGNITIVE EVIDENCE DIRECTIVE: This artifact contains the human operator's post-hoc reflection on the interaction. Analyze this to establish the operator's self-awareness, critical distance, and theoretical grounding regarding the process. Evaluate if the reflection aligns transparently with the actual events logged in the chat history.",
-          "questionnaire_definition": [
-            {
-              "question_id": "ref1",
-              "question": {
-                "translations": {
-                  "fi": "Mikä oli mielestäsi onnistuneinta tässä vuorovaikutuksessa?",
-                  "en": "What do you think was the most successful part of this interaction?"
-                }
-              },
-              "type": "text"
-            },
-            {
-              "question_id": "ref2",
-              "question": {
-                "translations": {
-                  "fi": "Mitä tekisit toisin ensi kerralla?",
-                  "en": "What would you do differently next time?"
-                }
-              },
-              "type": "text"
-            }
-          ]
+          "questionnaire_definition": [],
+          "scan_for_performative_patterns": true
         }
       ],
       "steps": [
