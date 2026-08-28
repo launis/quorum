@@ -19,6 +19,7 @@ from scripts.run_e2e_variance_test import (
     make_noise_injector,
     run_variance_test,
     trigger_execution,
+    validate_execution_kelvollisuus,
 )
 
 
@@ -356,3 +357,117 @@ def test_run_variance_test_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
 
     with pytest.raises(SystemExit):
         run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=1, db_path=db_file)
+
+
+def test_validate_execution_kelvollisuus_valid(tmp_path: Path) -> None:
+    """Test that a clean passed execution without starvation is valid."""
+    target_exec = {
+        "id": "exe_clean_1",
+        "status": "PASSED",
+        "profile_syntheses": {"prf_1": {"section_syntheses": {"sec_1": "Clean summary"}, "data_starvation": None}},
+    }
+    trace_file = tmp_path / "execution_trace.json"
+    trace_file.write_text(json.dumps([{"step_id": "stp_1", "content": {"results": []}}]), encoding="utf-8")
+
+    is_valid, reason = validate_execution_kelvollisuus(target_exec, trace_file)
+    assert is_valid is True
+    assert "valid" in reason.lower()
+
+
+def test_validate_execution_kelvollisuus_non_passed_status() -> None:
+    """Test that failed status is rejected as invalid."""
+    target_exec = {"id": "exe_failed", "status": "FAILED"}
+    is_valid, reason = validate_execution_kelvollisuus(target_exec)
+    assert is_valid is False
+    assert "non-passed status" in reason
+
+
+def test_validate_execution_kelvollisuus_data_starvation_in_profile_syntheses() -> None:
+    """Test that data starvation recorded in profile_syntheses is caught and rejected."""
+    target_exec = {
+        "id": "exe_starved_1",
+        "status": "PASSED",
+        "profile_syntheses": {
+            "prf_1": {
+                "data_starvation": {
+                    "event_type": "starvation",
+                    "total_atoms": 0,
+                    "reason": "Data starvation: zero atoms extracted",
+                }
+            }
+        },
+    }
+    is_valid, reason = validate_execution_kelvollisuus(target_exec)
+    assert is_valid is False
+    assert "data starvation" in reason.lower()
+    assert "prf_1" in reason
+
+
+def test_validate_execution_kelvollisuus_data_starvation_in_trace(tmp_path: Path) -> None:
+    """Test that data starvation event in execution_trace.json is caught and rejected."""
+    target_exec = {
+        "id": "exe_starved_trace",
+        "status": "PASSED",
+        "profile_syntheses": {},
+    }
+    trace_file = tmp_path / "execution_trace.json"
+    trace_data = [
+        {
+            "step_id": "stp_synthesis",
+            "content": {
+                "event_type": "starvation",
+                "total_atoms": 2,
+                "reason": "Data starvation: sparse atoms yielded zero evaluative evidence",
+            },
+        }
+    ]
+    trace_file.write_text(json.dumps(trace_data), encoding="utf-8")
+
+    is_valid, reason = validate_execution_kelvollisuus(target_exec, trace_file)
+    assert is_valid is False
+    assert "stp_synthesis" in reason
+    assert "sparse atoms" in reason
+
+
+def test_run_variance_test_aborts_on_data_starvation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Test that run_variance_test aborts execution immediately when data starvation is detected."""
+    inputs_file = tmp_path / "inputs_starved.json"
+    with inputs_file.open("w", encoding="utf-8") as f:
+        json.dump({"product_text": "Sample"}, f)
+
+    db_file = tmp_path / "mock_starved_db.json"
+    with db_file.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "executions": {
+                    "exe_starved": {
+                        "id": "exe_starved",
+                        "status": "PASSED",
+                        "profile_syntheses": {
+                            "default": {
+                                "data_starvation": {
+                                    "event_type": "starvation",
+                                    "total_atoms": 0,
+                                    "reason": "insufficient observations",
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+            f,
+        )
+
+    monkeypatch.setattr("scripts.run_e2e_variance_test.force_kill_services", lambda: None)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.check_backend", lambda: True)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.trigger_execution", lambda inp: "exe_starved")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    class MockPopen:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+    monkeypatch.setattr("subprocess.Popen", MockPopen)
+
+    with pytest.raises(SystemExit):
+        run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=10, db_path=db_file)

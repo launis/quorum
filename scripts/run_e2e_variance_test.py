@@ -24,6 +24,7 @@ __all__ = [
     "make_noise_injector",
     "run_variance_test",
     "trigger_execution",
+    "validate_execution_kelvollisuus",
 ]
 
 # Ensure project root is in sys.path
@@ -316,6 +317,54 @@ def trigger_execution(raw_inputs: dict[str, Any]) -> str:
     return str(exec_id) if exec_id else ""
 
 
+def validate_execution_kelvollisuus(
+    target_exec: dict[str, Any],
+    trace_path: Path | None = None,
+) -> tuple[bool, str]:
+    """Validate that execution output is valid and did not suffer from data starvation.
+
+    Args:
+        target_exec: Execution record dictionary from database.
+        trace_path: Optional path to execution_trace.json for deep trace event validation.
+
+    Returns:
+        Tuple of (is_valid: bool, reason: str).
+    """
+    status = str(target_exec.get("status", "")).upper()
+    if status != "PASSED":
+        return False, f"Execution ended with non-passed status: '{status}'"
+
+    # 1. Check profile_syntheses for DataStarvationEvent
+    profile_syntheses = target_exec.get("profile_syntheses", {})
+    if isinstance(profile_syntheses, dict):
+        for profile_id, synth in profile_syntheses.items():
+            if isinstance(synth, dict):
+                starvation = synth.get("data_starvation")
+                if starvation and isinstance(starvation, dict):
+                    reason = starvation.get("reason", "Data starvation: insufficient observations")
+                    return False, f"Profile '{profile_id}' data starvation: {reason}"
+
+    # 2. Check execution_trace.json for starvation trace events
+    if trace_path and trace_path.exists():
+        try:
+            with trace_path.open("r", encoding="utf-8") as f:
+                trace_data = json.load(f)
+            if isinstance(trace_data, list):
+                for step in trace_data:
+                    if isinstance(step, dict):
+                        content = step.get("content")
+                        if isinstance(content, dict) and content.get("event_type") == "starvation":
+                            reason = content.get("reason", "Data starvation in step trace")
+                            return (
+                                False,
+                                f"Trace event starvation in step '{step.get('step_id', 'unknown')}': {reason}",
+                            )
+        except Exception:
+            pass
+
+    return True, "Execution is valid and contains sufficient observations"
+
+
 def run_variance_test(
     inputs_target: str | None = None,
     num_runs: int = 2,
@@ -400,6 +449,7 @@ def run_variance_test(
         print(f"Polling database for execution {exec_id} completion (max {timeout_seconds // 60} mins)...")
         start = time.time()
         done = False
+        target_exec: dict[str, Any] | None = None
 
         while time.time() - start < timeout_seconds:
             time.sleep(5)
@@ -408,18 +458,30 @@ def run_variance_test(
                     db_data = json.load(f)
                 execs = list(db_data.get("executions", {}).values())
                 if execs:
-                    target_exec = next((e for e in execs if e.get("id") == exec_id), None)
-                    if target_exec:
-                        status = str(target_exec.get("status")).upper()
+                    found_exec = next((e for e in execs if e.get("id") == exec_id), None)
+                    if found_exec:
+                        status = str(found_exec.get("status")).upper()
                         if status in ["PASSED", "FAILED", "SYSTEM_ERROR"]:
                             print(f"Execution {exec_id} finished with status: {status}")
+                            target_exec = found_exec
                             done = True
                             break
             except Exception:
                 pass
 
-        if not done:
+        if not done or not target_exec:
             print("Timeout waiting for execution!")
+            sys.exit(1)
+
+        # Validate kelvollisuus (Data Starvation & Sufficiency Check)
+        trace_file = Path(f"data/files/executions/{exec_id}/execution_trace.json")
+        is_valid, reason = validate_execution_kelvollisuus(target_exec, trace_file)
+        if not is_valid:
+            print("\n❌ AJO KESKEYTETTY (KELVOTON AINEISTO / DATA STARVATION):")
+            print(f"   Execution ID: {exec_id}")
+            print(f"   Syy: {reason}")
+            print("   Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi.")
+            print("   Varianssitesti keskeytetään, koska kelvottomalla aineistolla ei voida laskea varianssia.")
             sys.exit(1)
 
     print("\n=== FINAL CLEANUP ===")

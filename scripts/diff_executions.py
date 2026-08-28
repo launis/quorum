@@ -658,6 +658,15 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
             f.write(f"  - **Tekniset virheet (Crash):** `{error_count}` kpl\n")
             f.write(f"  - **DLQ-pudotetut atomit:** `{dlq_count}` kpl\n")
 
+            is_starved = '"event_type": "starvation"' in raw_data or any(
+                isinstance(s, dict) and s.get("data_starvation") is not None
+                for s in run_record.get("profile_syntheses", {}).values()
+            )
+            if is_starved:
+                f.write("  - **Kelvollisuus:** ⚠️ `KELVOTON (Data Starvation: Insufficient Data)`\n")
+            else:
+                f.write("  - **Kelvollisuus:** ✅ `KELVOLLINEN`\n")
+
             inputs_dir = run_dir / "inputs"
             if inputs_dir.is_dir():
                 inputs_files = [f.name for f in inputs_dir.iterdir() if f.is_file()]
