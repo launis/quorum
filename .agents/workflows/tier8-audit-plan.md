@@ -100,7 +100,7 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
         5. FAIL-FAST PROOF ANCHOR (Incorruptible Judge): Mathematically prove Fail-Fast adherence via passing AST guardrails, ISTQB negative tests, exact exception types, and passing completion gate loops (`backend_audit_loop.py`).
         6. 5-COLUMN AS-BUILT VERIFICATION TABLE:
            Output an explicit **5-Column Architectural Verification Table**:
-            | 1. Target Scope & Boundaries | 2. 🚫 Eradicated Duct-Tape (Under-Engineering Ban) | 3. 🎯 Implemented Best Practice (As-Built Invariant) | 4. ✂️ Pruned Over-Engineering (Complexity Slayer) | 5. 🔒 Verification & Fail-Fast (Proof Anchor) |
+            | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Implemented Best Practice (As-Built Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
             | :--- | :--- | :--- | :--- | :--- |
             | **[Target File / Interface / Layer]** | *[Banned duct-tape, lazy fallbacks (`.get()`, `or`), or silent error suppression (`except: pass`)]* | *[Mandatory approved invariant, Pydantic V2 / Freezed schema, or sovereign Fail-Fast implementation]* | *[Pruned unnecessary abstractions, excessive DTO wrappers, or speculative generic factories]* | *[How Fail-Fast is mathematically proven: exact unit test, exception type, or quality gate command]* |
     </step>
