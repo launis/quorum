@@ -71,6 +71,7 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.blueprint import BlueprintTransformer
+from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
@@ -213,6 +214,16 @@ async def execute_workflow_job(
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                 )
+
+            # SSOT Language Context Initialization for Background Worker
+            metadata_dict = dict(exec_record.metadata) if exec_record.metadata is not None else {}
+            resolved_lang = (
+                metadata_dict.get("target_locale")
+                or (active_profile_dto.language if active_profile_dto else None)
+                or (inputs_obj.language if inputs_obj else None)
+                or "fi"
+            )
+            set_language(resolved_lang)
 
             redis = ctx.get("redis")
             updated_exec_record = await engine.execute_workflow(
@@ -495,6 +506,9 @@ async def generate_pdf_task(
             if loc and not accept_language:
                 accept_language = loc
 
+        if accept_language:
+            set_language(accept_language)
+
         # 0c. Override default profile dynamically if present in SSOT ExecutionRecord
         if execution_record.output_profile_id:
             profile_id = execution_record.output_profile_id
@@ -672,6 +686,9 @@ async def generate_profile_synthesis_and_pdf_task(
         loc = metadata["target_locale"] if "target_locale" in metadata else None
         if loc and not accept_language:
             accept_language = loc
+
+        if accept_language:
+            set_language(accept_language)
 
         # Check for starvation short-circuit from SynthesisEngine
         starvation_detected = False

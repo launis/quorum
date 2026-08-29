@@ -15,6 +15,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.source_verification import SourceVerificationResultDTO
 from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.source_verification_service import SourceVerificationService
 from backend_v2.settings import get_settings
@@ -134,6 +135,12 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
+
+    meta_dict = dict(state.metadata) if state.metadata is not None else {}
+    global_cv = dict(state.global_context_vars) if state.global_context_vars is not None else {}
+    target_locale = meta_dict.get("target_locale") or global_cv.get("target_language") or global_cv.get("language")
+    if target_locale:
+        set_language(target_locale)
 
     try:
         llm_client = await LLMClient.from_strategy(

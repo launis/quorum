@@ -41,6 +41,7 @@ from backend_v2.models.v2_core import (
     WorkflowInputs,
 )
 from backend_v2.services.execution import create_execution_record
+from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
@@ -429,6 +430,14 @@ class DAGExecutor:
                     id=v_step_id, label="system.virtual.rendering", status=ExecutionStatus.PENDING
                 )
                 exec_record = exec_record.model_copy(update={"step_states": new_states})
+
+        meta_dict = dict(exec_record.metadata) if exec_record.metadata is not None else {}
+        resolved_lang = (
+            meta_dict.get("target_locale")
+            or (exec_record.raw_inputs.language if exec_record.raw_inputs else None)
+            or "fi"
+        )
+        set_language(resolved_lang)
 
         projector = StateProjector()
         for evt in exec_record.execution_trace:
