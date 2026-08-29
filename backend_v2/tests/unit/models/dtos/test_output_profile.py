@@ -8,7 +8,7 @@ from backend_v2.models.dtos.output_profile import (
     OutputProfileResponseDTO,
     OutputProfileUpdateDTO,
 )
-from backend_v2.models.enums import DisplayScale, TargetBlockType, XaiExtensionType
+from backend_v2.models.enums import DisplayScale, SourcesDisplayMode, TargetBlockType, XaiExtensionType
 
 _VALID_CREATE_PAYLOAD: dict[str, Any] = {
     "slug": "my-profile",
@@ -364,3 +364,81 @@ def test_output_profile_update_dto_custom_scale_validation() -> None:
                 "custom_scale_max": 1.0,
             }
         )
+
+
+def test_output_profile_sources_config_defaults() -> None:
+    """Test default values for sources_display_mode and show_sources_summary_box across DTOs and Domain model."""
+    from backend_v2.models.v2_core import OutputProfile
+
+    # 1. CreateDTO defaults
+    create_dto = OutputProfileCreateDTO.model_validate(_VALID_CREATE_PAYLOAD)
+    assert create_dto.show_sources_summary_box is True
+    assert create_dto.sources_display_mode == SourcesDisplayMode.VERIFIED_EVIDENCE
+
+    # 2. ResponseDTO defaults
+    resp_dto = OutputProfileResponseDTO.model_validate(
+        {
+            **_VALID_CREATE_PAYLOAD,
+            "id": "prf_1234567890abcdef",
+        }
+    )
+    assert resp_dto.show_sources_summary_box is True
+    assert resp_dto.sources_display_mode == SourcesDisplayMode.VERIFIED_EVIDENCE
+
+    # 3. Domain Model defaults
+    domain_model = OutputProfile.model_validate(
+        {
+            **_VALID_CREATE_PAYLOAD,
+            "id": "prf_1234567890abcdef",
+        }
+    )
+    assert domain_model.show_sources_summary_box is True
+    assert domain_model.sources_display_mode == SourcesDisplayMode.VERIFIED_EVIDENCE
+
+
+def test_output_profile_sources_config_explicit_values() -> None:
+    """Test explicit custom values and string enum hydration for sources configuration."""
+    from backend_v2.models.v2_core import OutputProfile
+
+    payload = {
+        **_VALID_CREATE_PAYLOAD,
+        "show_sources_summary_box": False,
+        "sources_display_mode": "simple_bibliography",
+    }
+    # CreateDTO
+    create_dto = OutputProfileCreateDTO.model_validate(payload)
+    assert create_dto.show_sources_summary_box is False
+    assert create_dto.sources_display_mode == SourcesDisplayMode.SIMPLE_BIBLIOGRAPHY
+
+    # Domain model
+    domain_model = OutputProfile.model_validate({**payload, "id": "prf_1234567890abcdef"})
+    assert domain_model.show_sources_summary_box is False
+    assert domain_model.sources_display_mode == SourcesDisplayMode.SIMPLE_BIBLIOGRAPHY
+
+    # UpdateDTO
+    update_dto = OutputProfileUpdateDTO.model_validate(
+        {
+            "show_sources_summary_box": False,
+            "sources_display_mode": "simple_bibliography",
+        }
+    )
+    assert update_dto.show_sources_summary_box is False
+    assert update_dto.sources_display_mode == SourcesDisplayMode.SIMPLE_BIBLIOGRAPHY
+
+
+def test_output_profile_sources_display_mode_invalid_string_negative() -> None:
+    """Negative test: Invalid string in sources_display_mode raises ValidationError."""
+    from backend_v2.models.v2_core import OutputProfile
+
+    payload = {
+        **_VALID_CREATE_PAYLOAD,
+        "sources_display_mode": "invalid_mode",
+    }
+    with pytest.raises(ValidationError, match="Input should be"):
+        OutputProfileCreateDTO.model_validate(payload)
+
+    with pytest.raises(ValidationError, match="Input should be"):
+        OutputProfile.model_validate({**payload, "id": "prf_1234567890abcdef"})
+
+    with pytest.raises(ValidationError, match="Input should be"):
+        OutputProfileUpdateDTO.model_validate({"sources_display_mode": "invalid_mode"})

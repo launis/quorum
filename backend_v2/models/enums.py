@@ -57,6 +57,7 @@ __all__ = [
     "LaxSearchStatus",
     "LaxStepType",
     "LaxSimulationType",
+    "LaxSourcesDisplayMode",
     "LaxStrategicDepth",
     "LaxTargetBlockType",
     "LaxUiVariant",
@@ -80,6 +81,7 @@ __all__ = [
     "SelfHealingThresholdRatio",
     "SimulationType",
     "SourceSufficiencyThreshold",
+    "SourcesDisplayMode",
     "SpecialAliasChoices",
     "StepType",
     "StrategicDepth",
@@ -234,6 +236,13 @@ class TargetBlockType(StrEnum):
     MATRIX_SUMMARY_TABLE_BLOCK = "matrix_summary_table_block"
     VARIANCE_VALIDATION_BLOCK = "variance_validation_block"
     AUTHENTICITY_EVALUATION_BLOCK = "authenticity_evaluation_block"
+
+
+class SourcesDisplayMode(StrEnum):
+    """Configuration mode for bibliography and source verification presentation."""
+
+    VERIFIED_EVIDENCE = "verified_evidence"
+    SIMPLE_BIBLIOGRAPHY = "simple_bibliography"
 
 
 class VisualIntent(StrEnum):
@@ -773,6 +782,7 @@ LaxSimulationType = Annotated[SimulationType, Field(strict=False)]
 LaxRoleClassification = Annotated[RoleClassification, Field(strict=False)]
 LaxInteractionStrategy = Annotated[InteractionStrategy, Field(strict=False)]
 LaxTargetBlockType = Annotated[TargetBlockType, Field(strict=False)]
+LaxSourcesDisplayMode = Annotated[SourcesDisplayMode, Field(strict=False)]
 LaxDisplayScale = Annotated[DisplayScale, Field(strict=False)]
 
 

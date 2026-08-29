@@ -15,8 +15,10 @@ from backend_v2.models.enums import (
     DisplayScale,
     LaxDisplayScale,
     LaxScoringStrategy,
+    LaxSourcesDisplayMode,
     LaxTargetBlockType,
     LaxXaiExtensionType,
+    SourcesDisplayMode,
     TargetBlockType,
 )
 from backend_v2.models.v2_core import (
@@ -153,6 +155,17 @@ class OutputProfileCreateDTO(V2CoreBase):
         list[AnySduiBlock],
         Field(default_factory=list, description="Base SDUI content blocks predefined by the profile."),
     ]
+    show_sources_summary_box: Annotated[
+        bool,
+        Field(default=True, description="Whether to show the source verification summary box in the report."),
+    ] = True
+    sources_display_mode: Annotated[
+        LaxSourcesDisplayMode,
+        Field(
+            default=SourcesDisplayMode.VERIFIED_EVIDENCE,
+            description="Display mode for the bibliography and source verification section.",
+        ),
+    ] = SourcesDisplayMode.VERIFIED_EVIDENCE
     target_block_order: Annotated[
         list[LaxTargetBlockType] | None,
         Field(default=None, description="Optional block order override."),
@@ -298,6 +311,14 @@ class OutputProfileUpdateDTO(V2CoreBase):
         list[AnySduiBlock] | None,
         Field(default=None, description="Base SDUI content blocks predefined by the profile."),
     ]
+    show_sources_summary_box: Annotated[
+        bool | None,
+        Field(default=None, description="Optional override to show/hide source verification summary box."),
+    ] = None
+    sources_display_mode: Annotated[
+        LaxSourcesDisplayMode | None,
+        Field(default=None, description="Optional override for sources display mode."),
+    ] = None
     target_block_order: Annotated[
         list[LaxTargetBlockType] | None,
         Field(default=None, description="Optional block order override."),
@@ -413,6 +434,17 @@ class OutputProfileResponseDTO(BaseResponseDTO):
         Field(default_factory=list, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),
     ]
     content_blocks: Annotated[list[AnySduiBlock], Field(default_factory=list, description="Base SDUI content blocks.")]
+    show_sources_summary_box: Annotated[
+        bool,
+        Field(default=True, description="Whether to show the source verification summary box in the report."),
+    ] = True
+    sources_display_mode: Annotated[
+        LaxSourcesDisplayMode,
+        Field(
+            default=SourcesDisplayMode.VERIFIED_EVIDENCE,
+            description="Display mode for the bibliography and source verification section.",
+        ),
+    ] = SourcesDisplayMode.VERIFIED_EVIDENCE
     performativity_detector_step_id: Annotated[
         str | None,
         Field(default=None, description="Optional step ID for the performativity detector"),

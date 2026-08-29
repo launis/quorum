@@ -34,12 +34,14 @@ from backend_v2.models.enums import (
     LaxHistoricalContextMode,
     LaxPresetView,
     LaxScoringStrategy,
+    LaxSourcesDisplayMode,
     LaxStepType,
     LaxTargetBlockType,
     LaxXaiExtensionType,
     PresetView,
     ScoringStrategy,
     SDUIComponentType,
+    SourcesDisplayMode,
     StepType,
     StrictnessAnchor,
     TargetBlockType,
@@ -1039,6 +1041,17 @@ class OutputProfile(V2CoreBase):
     content_blocks: list[AnySduiBlock] = Field(
         default_factory=list, description="Base SDUI content blocks predefined by the profile."
     )
+    show_sources_summary_box: Annotated[
+        bool,
+        Field(default=True, description="Whether to show the source verification summary box in the report."),
+    ] = True
+    sources_display_mode: Annotated[
+        LaxSourcesDisplayMode,
+        Field(
+            default=SourcesDisplayMode.VERIFIED_EVIDENCE,
+            description="Display mode for the bibliography and source verification section.",
+        ),
+    ] = SourcesDisplayMode.VERIFIED_EVIDENCE
     performativity_detector_step_id: str | None = Field(
         default=None, description="Optional step ID for the performativity detector"
     )
