@@ -9,7 +9,9 @@ __all__ = [
     "DEFAULT_COACHING_TONE_MANDATE",
     "SPARSE_DATA_SYNTHESIS_MANDATE",
     "SYNTHESIS_CITATION_RULES",
+    "SYNTHESIS_CITATION_RULES_HARVARD",
     "SYNTHESIS_LENGTH_CONSTRAINT",
+    "SYNTHESIS_NO_CITATION_RULES",
 ]
 
 DEFAULT_COACHING_TONE_MANDATE: str = (
@@ -46,15 +48,29 @@ SYNTHESIS_LENGTH_CONSTRAINT: str = (
     "</length_constraint>"
 )
 
-SYNTHESIS_CITATION_RULES: str = (
+SYNTHESIS_CITATION_RULES_HARVARD: str = (
     "<citation_rules>\n"
-    "Omit internal system identifiers or raw JSON keys. When referring to information, use "
-    "inline numerical tags like [1], [2].\n"
-    "CRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond "
-    "to the items in the `cited_sources` list (1-indexed). ONLY create a numerical citation "
-    "tag AND add an entry to `cited_sources` if the source is an actual literary reference, "
-    "empirical citation, methodology framework, or external document. DO NOT use citation tags for general analysis sections, step titles, "
-    "or internal data dumps. If you mention internal findings, state them directly without "
-    "using it.\n"
+    "HARVARD CITATION STANDARD MANDATE:\n"
+    "- When referencing external empirical evidence, theory frameworks, or literature in the narrative text, "
+    "you MUST use inline Harvard author-date citation format, e.g. (Author, Year) or Author (Year).\n"
+    "- For every inline Harvard citation in the text, you MUST append a matching complete bibliographic entry "
+    "to the `cited_sources` list formatted as 'Author, Initial. (Year). Title. Publisher/URL'.\n"
+    "- STRICT PROHIBITIONS:\n"
+    "  * NEVER use internal system identifiers, DAG step keys (e.g., 'sr_...', 'sp_...'), or raw JSON field names in text or cited_sources.\n"
+    "  * NEVER invent citation tags for internal analysis sections or internal metrics.\n"
+    "  * ONLY cite legitimate external research literature, methodologies, or verified source documents.\n"
     "</citation_rules>"
 )
+
+SYNTHESIS_NO_CITATION_RULES: str = (
+    "<citation_rules>\n"
+    "NO IN-TEXT CITATIONS MANDATE:\n"
+    "- The report bibliography section is disabled. You MUST NOT generate any parenthetical or in-text citations "
+    "(such as '(Author, Year)' or '[1]').\n"
+    "- Write fluent, seamless executive prose presenting all findings directly without citation tags.\n"
+    "- Leave `cited_sources` as an empty list `[]`.\n"
+    "</citation_rules>"
+)
+
+# Canonical alias for backward compatibility
+SYNTHESIS_CITATION_RULES: str = SYNTHESIS_CITATION_RULES_HARVARD
