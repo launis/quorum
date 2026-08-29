@@ -113,9 +113,9 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
     <step id="3">SYNTHESIS & 5-COLUMN DIRECTIVES TABLE:
       - Formulate a clean, future-proof architectural recommendation.
       - Output an explicit **5-Column Architectural Directive Table**:
-        | 1. Kohdealue & Skoopit (Target Scope) | 2. 🚫 KIELLETTY PURKKA (Eradicated Duct-Tape) | 3. 🎯 TEE NÄIN (Approved Best Practice) | 4. ✂️ KARSITTU YLISUUNNITTELU (Pruned Over-Engineering) | 5. 🔒 VERIFIOINTI & FAIL-FAST (Proof Anchor) |
+        | 1. Target Scope & Boundaries | 2. 🚫 Eradicated Duct-Tape (Under-Engineering Ban) | 3. 🎯 Approved Best Practice (Target Invariant) | 4. ✂️ Pruned Over-Engineering (Complexity Slayer) | 5. 🔒 Verification & Fail-Fast (Proof Anchor) |
         | :--- | :--- | :--- | :--- | :--- |
-        | **[Tiedosto / Rajapinta / Kerros]** | *[Kielletty purkka, laiskat fallbackit (`.get()`, `or`), tai hiljainen virheenvaimennus (`except: pass`)]* | *[Pakollinen hyväksytty invariantti, Pydantic V2 / Freezed schema, tai suvereeni Fail-Fast -toteutus]* | *[Karsittu turha abstraktio, ylimääräiset DTO-kääreet tai spekulatiiviset geneeriset tehdasluokat]* | *[Miten Fail-Fast todistetaan matemaattisesti: tarkka yksikkötesti, poikkeustyyppi tai laatuporttikomento]* |
+        | **[Target File / Interface / Layer]** | *[Banned duct-tape, lazy fallbacks (`.get()`, `or`), or silent error suppression (`except: pass`)]* | *[Mandatory approved invariant, Pydantic V2 / Freezed schema, or sovereign Fail-Fast implementation]* | *[Pruned unnecessary abstractions, excessive DTO wrappers, or speculative generic factories]* | *[How Fail-Fast is mathematically proven: exact unit test, exception type, or quality gate command]* |
       - Clearly define the recommended target components, DTO contracts, and layer responsibilities.
     </step>
 
