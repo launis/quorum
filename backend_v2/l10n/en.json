@@ -74,5 +74,15 @@
   "pdfAuditQuery": "Query:",
   "pdfAuditImpactedAxes": "Impacted Axes:",
   "pdfAuditSources": "Sources:",
-  "alert_starvation_insufficient_data": "Evaluation data was insufficient to generate synthesis."
+  "alert_starvation_insufficient_data": "Evaluation data was insufficient to generate synthesis.",
+  "sources_summary_box_title": "Source Material & Fact-Checking Audit",
+  "sources_verified_claims_count": "Verified claims:",
+  "sources_verification_method": "Verification method:",
+  "sources_used_gateways": "Information sources used:",
+  "sources_status_label": "Status:",
+  "sources_status_verified": "Verified with research evidence",
+  "sources_claim_in_text": "Claim in text:",
+  "sources_verified_evidence": "Verified evidence:",
+  "sources_publication_reference": "Source publication:",
+  "sources_direct_citations_count": "Bibliographic references:"
 }

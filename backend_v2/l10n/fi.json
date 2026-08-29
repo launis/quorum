@@ -74,5 +74,15 @@
   "pdfAuditQuery": "Kysely:",
   "pdfAuditImpactedAxes": "Vaikutukset akselilla:",
   "pdfAuditSources": "Lähteet:",
-  "alert_starvation_insufficient_data": "Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi."
+  "alert_starvation_insufficient_data": "Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi.",
+  "sources_summary_box_title": "Lähdeaineiston ja faktantarkistuksen auditointi",
+  "sources_verified_claims_count": "Todennetut väitteet:",
+  "sources_verification_method": "Todennusmenetelmä:",
+  "sources_used_gateways": "Käytetyt tietolähteet:",
+  "sources_status_label": "Tila:",
+  "sources_status_verified": "Vahvistettu tutkimusnäytöllä",
+  "sources_claim_in_text": "Väite tekstissä:",
+  "sources_verified_evidence": "Todennettu näyttö:",
+  "sources_publication_reference": "Lähdejulkaisu:",
+  "sources_direct_citations_count": "Kirjallisuusviitteet:"
 }
