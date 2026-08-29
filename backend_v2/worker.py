@@ -217,12 +217,15 @@ async def execute_workflow_job(
 
             # SSOT Language Context Initialization for Background Worker
             metadata_dict = dict(exec_record.metadata) if exec_record.metadata is not None else {}
-            resolved_lang = (
-                metadata_dict.get("target_locale")
-                or (active_profile_dto.language if active_profile_dto else None)
-                or (inputs_obj.language if inputs_obj else None)
-                or "fi"
+            resolved_lang = metadata_dict.get("target_locale") or (
+                inputs_obj.language if inputs_obj and inputs_obj.language else None
             )
+            if not resolved_lang:
+                msg = f"Strict Fail-Fast Enforced: Execution '{exec_record.id}' is missing mandatory 'target_locale' in metadata."
+                logger.error("[Worker] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                )
             set_language(resolved_lang)
 
             redis = ctx.get("redis")
