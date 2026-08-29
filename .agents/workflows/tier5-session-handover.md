@@ -56,7 +56,7 @@ description: Tier 5 (Session Handover Export) - Generates a context-transition c
 # SCRIPT COMPLETE. TESTS PASSED. CODE COMMITTED.
 # Copy the command below, CLOSE this chat, open a NEW chat, and paste it:
 
-/tier5-resume --target="[Path to Epic, Implementation Plan, or Task.md]" --workflow="[e.g. /tier2-execute]" --rules="[e.g. 01-python-backend.md]"
+/tier5-resume --target="@[docs/path/to/plan_or_epic.md]" --workflow="[e.g. /tier2-execute]" --rules="[e.g. 01-python-backend.md]"
 ```
     </step>
   </execution_protocol>

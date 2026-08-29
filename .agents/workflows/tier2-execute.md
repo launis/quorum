@@ -141,7 +141,7 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
         3. Update `task.md` completely and append a `# Session Handover Context` block at the bottom containing exhaustive bullet points for: Achieved, Learned, and Remaining.
         4. STOP execution cleanly.
       </fallback>
-      <action>Provide the exact `/tier5-resume` command instructing the user to continue in a fresh context. The command MUST explicitly include the absolute path to BOTH the tracker artifact (`task.md`) AND the implementation plan (`implementation_plan.md`), the workflow, and the rules, formatted exactly like this: `/tier5-resume --target="@[absolute_path_to_task.md] @[absolute_path_to_implementation_plan.md]" --workflow=/tier2-execute`. Do NOT include a `--rules` parameter; rules are self-hydrating.</action>
+      <action>Provide the exact `/tier5-resume` command instructing the user to continue in a fresh context. The command MUST explicitly include the workspace-relative path to the implementation plan or tracker file containing the `# Session Handover Context`, formatted like this: `/tier5-resume --target="@[docs/path/to/plan.md]" --workflow=/tier2-execute`. In the new session, the task list is automatically re-hydrated from the plan's `<execution_protocol>` and recent git commits.</action>
     </step>
   </execution_protocol>
 </system_prompt>
