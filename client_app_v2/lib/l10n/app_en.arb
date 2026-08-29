@@ -1380,7 +1380,7 @@
       }
     }
   },
-  "toolIdLabel": "Tool ID (Slug)",
+  "toolIdLabel": "Tool Identifier (tool_id)",
   "uiDisplayNameTitle": "UI Display Name (I18nText)",
   "englishNameLabel": "English Name",
   "finnishNameLabel": "Finnish Name",

@@ -50,7 +50,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <constraint>Do NOT read entire codebase blindly.</constraint>
     </step>
 
-    <step id="2" name="SYSTEM 2 DEEP DECONSTRUCTION &amp; TRI-AXIS ANALYSIS">
+    <step id="2" name="SYSTEM 2 DEEP DECONSTRUCTION &amp; FIVE-AXIS ANALYSIS">
       <action>Open `<thinking_process>` block. Exhaustively deconstruct plan across 4 mandatory phases:</action>
       <constraint name="PHASE_A_SCOPE_AND_TECH_DEBT_DISCOVERY">
         List all TARGET files and 1-hop callers. Execute 7-item debt sweep (getattr/hasattr, .get(, silent except, model_copy, magic numbers, missing .arb, missing AppErrorBoundary, missing ISTQB negative partitions). Queue all debt for `Phase 1: Pre-Implementation Cleanups`.
@@ -62,14 +62,16 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
         - Flutter &amp; SDUI: 1:1 cross-domain DTO parity with Dart Freezed (`@Freezed(unionKey: ...)` without fallback defaults), `AppErrorBoundary` wrapping.
         - Anti-Pattern Sweep: Eradicate "e.g." ambiguity, raw dict passing, hardcoded timeouts/strings, and lazy `.get()`/`or` defaults.
       </constraint>
-      <constraint name="PHASE_C_TRI_AXIS_DIALECTICAL_STRESS_TEST">
-        For every core architectural concept, execute 3-way debate:
-        1. PROSECUTION (Over-Engineering): Identify unnecessary wrapper classes, redundant DTO layers, or speculative factories. Run 30% Deletion Test: "If 30% of new classes/functions are deleted, what gets cut and what breaks?"
-        2. DEFENSE (Sovereignty &amp; Fail-Fast): Prove mathematical necessity of strict Pydantic V2 DTOs, AST guardrails, and deterministic Fail-Fast contracts against Agentic Drift.
-        3. REALIST (Duct-Tape &amp; Blast Radius): Inspect 1-hop dependencies, test fixtures, and UI forms for surviving fallback chains, silent `try/except`, lazy defaults, or un-synchronized state mutations.
+      <constraint name="PHASE_C_FIVE_AXIS_SYSTEM2_DECONSTRUCTION">
+        For every core architectural concept, execute rigorous Five-Axis Adversarial Cross-Examination:
+        1. TARGET SCOPE &amp; BOUNDARY (Scope Inquisitor): Cross-examine target file boundaries and 1-hop callers. Ruthlessly eliminate Scope Creep and define exact blast radius boundaries.
+        2. ERADICATED DUCT-TAPE (Duct-Tape Prosecutor - Under-Engineering Ban): Assume developer laziness / Path of Least Resistance. Hunt down all hidden `.get()`, lazy fallback defaults (`or`), silent `except: pass`, duck-typing (`hasattr`, `isinstance(dict)`), unvalidated `model_copy`, and unsynchronized states to explicitly ban them.
+        3. APPROVED BEST PRACTICE (Type Constitutionalist - Sovereign Target): Lock immutable Pydantic V2 (`ConfigDict(strict=True, extra="forbid")`), Dart 3 Freezed models, SSOT central configurations (`settings.py`, Model Garden), and clean CQRS separation.
+        4. PRUNED OVER-ENGINEERING (Complexity Slayer - 30% Deletion Test): Treat all new abstractions as guilty until proven innocent. Cut speculative factories, redundant wrapper classes, premature helper bloat, and useless DTO layers. Mandatory question: "If 30% of new classes/functions are deleted, what gets cut and what breaks?"
+        5. FAIL-FAST PROOF ANCHOR (Incorruptible Judge - Deterministic Verification): Demand mathematical proof. Reject happy-path promises: specify exact AST guardrails (QGR rules), ISTQB negative boundary partitions (>=2 error cases per feature), exact `AppException` error codes, and automated quality gate loops (`backend_audit_loop.py`).
       </constraint>
-      <constraint name="PHASE_D_DIRECTIVE_AND_PROOF_ANCHOR_SYNTHESIS">
-        Synthesize findings into rows for 5-Column Table: (1) Target Scope, (2) Eradicated Duct-Tape, (3) Approved Best Practice, (4) Pruned Over-Engineering, (5) Fail-Fast Proof Anchor.
+      <constraint name="PHASE_D_5_COLUMN_DIRECTIVE_SYNTHESIS">
+        Synthesize findings directly into rows for 5-Column Table: (1) Target Scope, (2) Eradicated Duct-Tape, (3) Approved Best Practice, (4) Pruned Over-Engineering, (5) Fail-Fast Proof Anchor.
       </constraint>
       <action>Evaluate XY Problem and compare against LLM provider best practices.</action>
     </step>

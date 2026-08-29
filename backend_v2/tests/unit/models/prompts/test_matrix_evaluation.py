@@ -59,4 +59,3 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
     open_tags = re.findall(r"<([a-z_]+)>", prompt)
     close_tags = re.findall(r"</([a-z_]+)>", prompt)
     assert open_tags == close_tags, "Mismatch between opened and closed XML tags in system prompt."
-

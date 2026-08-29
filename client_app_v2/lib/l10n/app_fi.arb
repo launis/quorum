@@ -897,7 +897,7 @@
   "saveFailedError": "Tallennus epäonnistui: {error}",
   "deleteFailedError": "Poistaminen epäonnistui: {error}",
   "toolTitlePrefix": "Työkalu: {name}",
-  "toolIdLabel": "Työkalun ID (Slug)",
+  "toolIdLabel": "Työkalun tunniste (tool_id)",
   "uiDisplayNameTitle": "Käyttöliittymän näyttönimi (I18nText)",
   "englishNameLabel": "Englanninkielinen nimi",
   "finnishNameLabel": "Suomenkielinen nimi",

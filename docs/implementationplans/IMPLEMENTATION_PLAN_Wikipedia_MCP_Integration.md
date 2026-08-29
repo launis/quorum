@@ -7,15 +7,15 @@
 > **Parent Epic**: EPIC 89 Phase 2 Follow-On: MCP Gateway Standardization
 
 <required_context_rules>
-- @[.agents/rules/00-antigravity-core.md]
-- @[.agents/rules/01-python-backend.md]
-- @[.agents/rules/02_flutter_desktop.md]
-- @[.agents/rules/03_seed_vault.md]
-- @[.agents/rules/04_directory_reference.md]
-- @[.agents/rules/05_llm_architecture.md]
-- @[ki_god_code_prevention.md]
-- @[ki_global_config_sovereignty.md]
-- @[ki_tripartite_pipeline_architecture.md]
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_global_config_sovereignty.md]</knowledge_item>
+  <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
 </required_context_rules>
 
 <anti_targets>
@@ -38,6 +38,17 @@ To provide specialized encyclopedic research and peer-reviewed factual anchoring
 Because the core SDUI and audit pipeline established in Phase A (`TraceEvent` -> `dag_executor.py` -> `frozen_context.mcp_tool_audit` -> `PrintableSourcesAdapter`) is 100% tool-agnostic, registering Wikipedia tools requires **zero changes to the execution engine or SDUI presentation adapters**.
 
 Furthermore, Studio V2's `MCP-yhdyskäytävät` view and `StepBuilderView` already dynamically read `SystemConfigMCPGateways` from `seed_data.json`, meaning registering Wikipedia in seed data instantly surfaces it for visual toggle on any specialist step in the Flutter UI.
+
+## Five-Column Architectural Directive Table
+
+| 1. Kohdealue & Skoopit (Target Scope) | 2. 🚫 KIELLETTY PURKKA (Eradicated Duct-Tape) | 3. 🎯 TEE NÄIN (Approved Best Practice) | 4. ✂️ KARSITTU YLISUUNNITTELU (Pruned Over-Engineering) | 5. 🔒 VERIFIOINTI & FAIL-FAST (Proof Anchor) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Asetukset (`backend_v2/settings.py`)** | Kovakoodatut URLit, merkkirajat tai timeoutit asiakasohjelmassa. | Keskitetyt `mcp_wikipedia_*` -asetukset `settings.py` SSOT:ssa. | Ei luoda erillistä monimutkaista config-oliota, vaan lisätään `Settings`-luokkaan. | `test_settings` ja `backend_audit_loop.py` varmistavat tyypityksen ja oletusarvot. |
+| **Domain-mallit (`backend_v2/models/domain/wikipedia.py`)** | Vapaamuotoiset `dict`-palautukset Wikimedia-rajapinnasta. | `WikipediaSearchResultItem` ja `WikipediaPageSummaryResult` `ConfigDict(strict=True, extra="forbid")` -skeemoilla. | Ei ylimääräisiä DTO-käärekerroksia; suorat mallit rajapinnalle. | Pydantic V2 -validointitestit hylkäävät epävalidit JSON-muodot. |
+| **HTTP-asiakas (`backend_v2/services/mcp/wikipedia_client.py`)** | Synkroninen `requests`/`wikipedia`-kirjasto tai puuttuva `User-Agent`. | Asynkroninen `httpx.AsyncClient`, pakollinen `User-Agent` ja aliverkkotunnusten (`fi`/`en`) dynaaminen reititys. | Pidetään luokka alle 150 rivissä ilman turhia välikerroksia. | Mock-testit todistavat 404, 500, timeout ja merkkirajan (8000 char) katkaisun. |
+| **MCP-työkalut (`backend_v2/services/mcp/tools/wikipedia.py`)** | Väljä `.get()`-argumenttien haku ja työkalukohtainen erikoislogiikka. | `WikipediaSearchTool` ja `WikipediaReadTool` noudattaen `BaseTool`-rajapintaa ja palauttaen puhtaan `MCPAuditTrace`-olion. | Ei luoda metatyökaluja; kaksi suoraviivaista työkalua. | Työkalutestit todistavat `MCPAuditTrace.tool_id` -tunnisteiden ja URLien oikeellisuuden. |
+| **Työkalujen rekisteröinti (`backend_v2/services/mcp/mcp_tool_loop.py`)** | Kovakoodattu switch-case tai useat erilliset dispatcherit. | Yhtenäinen `ToolDispatcher(tools=[TavilyTool(), WikipediaSearchTool(), WikipediaReadTool()])`. | Ei monimutkaisia plugin-managereita; suora O(1) rekisteröinti. | `DISPATCHER.get_tool("mcp_wikipedia_search")` palauttaa oikean instanssin. |
+| **Seed Data (`backend_v2/seed/seed_data.json`)** | Suora muokkaus ilman varmuuskopiota tai virheellinen schema. | Rajattu muutos `sys_8172bda70c8641c5` -kokoelmaan noudattaen `AllowedMCPTool`-skeemaa. | Ei lisätä turhia kenttiä skeeman ulkopuolelta. | `audit_database_atoms.py` ja `run_seed.py local` validoivat kannan 100 %. |
 
 ---
 

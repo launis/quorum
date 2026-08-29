@@ -100,12 +100,14 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
         1. Python Backend: `getattr/hasattr`, `.get(`, silent `except Exception:`, unvalidated `model_copy(update=)`, hardcoded magic numbers or timeouts, missing `@model_validator` / strict Pydantic DTOs.
         2. Flutter Frontend: Hardcoded Finnish strings (missing `.arb`), magic hex colors (`Color(0x...)`), manual `substring()` clippings, missing `AppErrorBoundary` / `AsyncValue` guards.
         3. ISTQB Testing: Missing negative ISTQB partitions (boundary values, error paths) or legacy dictionary test fixtures.
-      SECTION 6: TRI-AXIS DIALECTICAL AUDIT (Cross-Examination)
-      - You MUST execute a rigorous 3-way dialectical cross-examination as your internal System 2 reasoning engine:
-        1. PROSECUTION (Over-Engineering & YAGNI Advocate): Is this proposed feature over-designed, over-abstracted, adding unneeded layers, or solving non-existent edge cases? Answer: "If 30% of the proposed architecture had to be removed, what gets cut?"
-        2. DEFENSE (Architectural Sovereignty & Fail-Fast Advocate): How does this proposal mathematically protect type safety, immutability, Pydantic V2 strictness, and separation of concerns against Agentic Drift?
-        3. REALIST (Duct-Tape & Blast Radius Interrogator): Does this proposal hide technical debt under quick patches, fallback chains, loose type hints, or un-synchronized frontend/backend state? Inspect 1-hop dependencies.
-      - 5-COLUMN DIRECTIVE SYNTHESIS: Synthesize the debate directly into the 5-column table rows: (1) Scope, (2) Eradicated Duct-Tape, (3) Approved Best Practice, (4) Pruned Over-Engineering, (5) Fail-Fast Proof Anchor.
+      SECTION 6: FIVE-AXIS SYSTEM 2 DECONSTRUCTION (Adversarial Cross-Examination)
+      - For every core architectural scope in the proposal, execute rigorous Five-Axis Adversarial Cross-Examination:
+        1. TARGET SCOPE & BOUNDARY (Scope Inquisitor): Cross-examine boundaries and 1-hop dependencies. Eliminate Scope Creep.
+        2. ERADICATED DUCT-TAPE (Duct-Tape Prosecutor - Under-Engineering Ban): Assume developer laziness. Hunt down and eliminate all hidden `.get()`, lazy fallback defaults (`or`), silent `try/except`, duck-typing (`hasattr`), and unsynchronized states.
+        3. APPROVED BEST PRACTICE (Type Constitutionalist - Sovereign Target): Lock immutable Pydantic V2 (`ConfigDict(strict=True, extra="forbid")`), Dart 3 Freezed models, SSOT central configurations (`settings.py`, Model Garden), and clean CQRS boundaries.
+        4. PRUNED OVER-ENGINEERING (Complexity Slayer - 30% Deletion Test): Treat all new abstractions as guilty until proven innocent. Cut speculative factories, redundant wrapper classes, and useless DTO layers. Answer: "If 30% of proposed classes/functions were deleted, what gets cut and what breaks?"
+        5. FAIL-FAST PROOF ANCHOR (Incorruptible Judge - Deterministic Verification): Demand mathematical proof. Reject happy-path promises: specify exact AST guardrails, ISTQB negative partitions (>=2 error cases), exact `AppException` codes, and automated quality gate loops.
+      - 5-COLUMN DIRECTIVE SYNTHESIS: Synthesize the 5 axes directly into the 5-column table rows: (1) Scope, (2) Eradicated Duct-Tape, (3) Approved Best Practice, (4) Pruned Over-Engineering, (5) Fail-Fast Proof Anchor.
     </step>
 
     <step id="3">SYNTHESIS & 5-COLUMN DIRECTIVES TABLE:

@@ -114,6 +114,7 @@ class TavilyApiResultItemDTO(V2CoreBase):
     """A single search result item from Tavily API.
 
     Attributes:
+        id: Unique identifier for the search result, if provided.
         title: Title of the search result.
         url: URL of the search result.
         content: Search result content.
@@ -124,6 +125,7 @@ class TavilyApiResultItemDTO(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
+    id: str | None = None
     title: str = ""
     url: str = ""
     content: str = ""

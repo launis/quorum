@@ -154,7 +154,9 @@ def test_audit_atoms_bloated_and_identical_concepts() -> None:
     block2["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = same_text
     block2["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = same_text
     issues2, _, _ = audit_prompt_blocks([block2])
-    assert any(i.issue_type == "IDENTICAL_CONCEPT_AND_RULE" for i in issues2), "Failed to flag identical concept and rule."
+    assert any(i.issue_type == "IDENTICAL_CONCEPT_AND_RULE" for i in issues2), (
+        "Failed to flag identical concept and rule."
+    )
 
 
 def test_audit_atoms_negative_guidance() -> None:
@@ -167,7 +169,6 @@ def test_audit_atoms_negative_guidance() -> None:
         )
         issues, _, _ = audit_prompt_blocks([block])
         assert any(i.issue_type == "NEGATIVE_GUIDANCE" for i in issues), f"Failed to flag negative phrase: {phrase}"
-
 
 
 def test_audit_atoms_chat_hardcoding() -> None:

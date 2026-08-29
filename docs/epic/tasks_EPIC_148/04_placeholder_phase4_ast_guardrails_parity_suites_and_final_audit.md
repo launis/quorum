@@ -120,7 +120,7 @@
     </test>
   </test_contracts>
 
-  <tri_axis_dialectical_audit>
+  <five_axis_system2_audit>
     <prosecution>
       <challenge>AST guardrails and cross-platform golden master parity suites are complex to maintain and risk freezing cosmetic template changes with brittle DOM assertions.</challenge>
       <deletion_test>If 30% of tests were deleted, removing the Jinja AST attribute validator and BeautifulSoup DOM test would save maintenance overhead without breaking core serialization.</deletion_test>
@@ -133,7 +133,7 @@
       <blast_radius>Ensures zero surviving duct tape in Jinja2 templates (`StrictUndefined`) and Flutter switches (`no default wildcards`).</blast_radius>
     </realist>
     <verdict>APPROVED. Implement all 4 test suites and golden master fixtures to lock Epic 148 architectural contracts permanently.</verdict>
-  </tri_axis_dialectical_audit>
+  </five_axis_system2_audit>
 
   <step id="1" name="PRE-IMPLEMENTATION SWEEP &amp; AST GUARDRAILS (THEORY GROUNDING &amp; SEED VAULT)">
     <action>Audit and extend @[backend_v2/tests/unit/test_ast_theory_grounding_guardrails.py] to verify:

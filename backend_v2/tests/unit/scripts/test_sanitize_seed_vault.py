@@ -4,8 +4,8 @@ import ast
 import json
 from pathlib import Path
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.models.enums import PromptBlockCategory
 from scripts.sanitize_seed_vault import (
@@ -235,4 +235,3 @@ def test_sanitize_zero_reflection() -> None:
                 banned_calls.append(node.func.id)
 
     assert len(banned_calls) == 0, f"Found reflection calls {banned_calls} in sanitize_seed_vault.py."
-
