@@ -266,3 +266,27 @@ async def test_verify_claims_fatal_exception_handling(service: SourceVerificatio
 
         assert exc_info.value.status_code == 502
 
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
+async def test_verify_single_claim_passes_centralized_get_language(
+    mock_execute_tool: AsyncMock,
+    service: SourceVerificationService,
+    mock_task_executor: AsyncMock,
+    mock_audit_trace: MCPAuditTrace,
+) -> None:
+    """Tests that DISPATCHER.execute_tool receives the centralized get_language() value."""
+    from backend_v2.services.localization import set_language
+
+    set_language("fi")
+    claim = SourceClaimDTO(claim_text="Test claim for Finnish locale")
+    mock_execute_tool.return_value = mock_audit_trace
+    mock_task_executor.execute_chat_task.return_value = "VERIFIED"
+
+    await service._verify_single_claim(claim)
+
+    mock_execute_tool.assert_called_once()
+    call_kwargs = mock_execute_tool.call_args.kwargs
+    assert call_kwargs["target_language"] == "fi"
+
+

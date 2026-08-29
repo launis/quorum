@@ -20,6 +20,7 @@ from backend_v2.models.domain.source_verification import (
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
 from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.localization import get_language
 from backend_v2.services.mcp.mcp_tool_loop import DISPATCHER
 from backend_v2.services.mcp.tools.tavily import TAVILY_TOOL_ID
 from backend_v2.settings import get_settings
@@ -132,7 +133,7 @@ class SourceVerificationService:
                 tool_id=TAVILY_TOOL_ID,
                 query=query,
                 step_name="source_verification",
-                target_language="en",
+                target_language=get_language(),
                 llm_client=self.llm_client,
                 claim_text=claim.claim_text,
             )
