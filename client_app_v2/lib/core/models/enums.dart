@@ -372,6 +372,15 @@ enum DisplayScale {
   normalized100,
 }
 
+/// Display mode for bibliography and source verification presentation.
+@JsonEnum()
+enum SourcesDisplayMode {
+  @JsonValue('verified_evidence')
+  verifiedEvidence,
+  @JsonValue('simple_bibliography')
+  simpleBibliography,
+}
+
 /// Global systemic UI constraints and bounds.
 enum SystemUiConstraints {
   maxExtensionItemsSliderMin(1),

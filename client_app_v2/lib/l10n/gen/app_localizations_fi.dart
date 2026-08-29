@@ -2710,7 +2710,7 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
-  String get toolIdLabel => 'Työkalun ID (Slug)';
+  String get toolIdLabel => 'Työkalun tunniste (tool_id)';
 
   @override
   String get uiDisplayNameTitle => 'Käyttöliittymän näyttönimi (I18nText)';
@@ -4069,6 +4069,32 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get bibliographyCardHint =>
       'Muotoiltu lähdeluettelo ja tarkat lainaukset esitetään raportin lopussa.';
+
+  @override
+  String get sourcesDisplayModeLabel => 'Lähdeluettelon esitystapa';
+
+  @override
+  String get sourcesDisplayModeVerifiedEvidence =>
+      'Todennetut lähteet ja faktantarkistus';
+
+  @override
+  String get sourcesDisplayModeVerifiedEvidenceDesc =>
+      'Harvard-viitteet sekä todennusmenetelmät, tekstin väitteet ja tutkimusnäyttö.';
+
+  @override
+  String get sourcesDisplayModeSimpleBibliography =>
+      'Pelkkä lähdeluettelo (Harvard)';
+
+  @override
+  String get sourcesDisplayModeSimpleBibliographyDesc =>
+      'Puhdas aakkostettu kirjallisuusluettelo ilman väitekohtaista erittelyä.';
+
+  @override
+  String get showSourcesSummaryBoxLabel => 'Näytä auditointitiivistelmä';
+
+  @override
+  String get showSourcesSummaryBoxDesc =>
+      'Näyttää lähdeosion alussa laatikon, joka tiivistää tarkistetut väitteet ja käytetyt MCP-tietolähteet.';
 
   @override
   String get displayScaleOriginal => 'Alkuperäinen asteikko (Muuttamaton)';

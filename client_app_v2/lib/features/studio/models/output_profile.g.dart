@@ -179,6 +179,8 @@ _OutputProfile _$OutputProfileFromJson(
         'matrix_synthesis_groups',
         'content_blocks',
         'target_block_order',
+        'show_sources_summary_box',
+        'sources_display_mode',
         'synthesis',
         'performativity_detector_step_id',
       ],
@@ -321,6 +323,16 @@ _OutputProfile _$OutputProfileFromJson(
               TargetBlockType.auditTrailBlock,
             ],
       ),
+      showSourcesSummaryBox: $checkedConvert(
+        'show_sources_summary_box',
+        (v) => v as bool? ?? true,
+      ),
+      sourcesDisplayMode: $checkedConvert(
+        'sources_display_mode',
+        (v) =>
+            $enumDecodeNullable(_$SourcesDisplayModeEnumMap, v) ??
+            SourcesDisplayMode.verifiedEvidence,
+      ),
       synthesis: $checkedConvert(
         'synthesis',
         (v) => v == null
@@ -353,6 +365,8 @@ _OutputProfile _$OutputProfileFromJson(
     'matrixSynthesisGroups': 'matrix_synthesis_groups',
     'contentBlocks': 'content_blocks',
     'targetBlockOrder': 'target_block_order',
+    'showSourcesSummaryBox': 'show_sources_summary_box',
+    'sourcesDisplayMode': 'sources_display_mode',
     'performativityDetectorStepId': 'performativity_detector_step_id',
   },
 );
@@ -391,6 +405,9 @@ Map<String, dynamic> _$OutputProfileToJson(
   'target_block_order': instance.targetBlockOrder
       .map((e) => _$TargetBlockTypeEnumMap[e]!)
       .toList(),
+  'show_sources_summary_box': instance.showSourcesSummaryBox,
+  'sources_display_mode':
+      _$SourcesDisplayModeEnumMap[instance.sourcesDisplayMode]!,
   'synthesis': instance.synthesis?.toJson(),
   'performativity_detector_step_id': instance.performativityDetectorStepId,
 };
@@ -439,4 +456,9 @@ const _$TargetBlockTypeEnumMap = {
   TargetBlockType.matrixSummaryTableBlock: 'matrix_summary_table_block',
   TargetBlockType.varianceValidationBlock: 'variance_validation_block',
   TargetBlockType.authenticityEvaluationBlock: 'authenticity_evaluation_block',
+};
+
+const _$SourcesDisplayModeEnumMap = {
+  SourcesDisplayMode.verifiedEvidence: 'verified_evidence',
+  SourcesDisplayMode.simpleBibliography: 'simple_bibliography',
 };

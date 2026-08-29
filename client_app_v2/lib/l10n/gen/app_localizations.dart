@@ -4961,7 +4961,7 @@ abstract class AppLocalizations {
   /// No description provided for @toolIdLabel.
   ///
   /// In en, this message translates to:
-  /// **'Tool ID (Slug)'**
+  /// **'Tool Identifier (tool_id)'**
   String get toolIdLabel;
 
   /// No description provided for @uiDisplayNameTitle.
@@ -7355,6 +7355,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Formatted source document list and exact quote citations will be rendered at the end of the report.'**
   String get bibliographyCardHint;
+
+  /// No description provided for @sourcesDisplayModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bibliography Display Mode'**
+  String get sourcesDisplayModeLabel;
+
+  /// No description provided for @sourcesDisplayModeVerifiedEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified Evidence & Fact-Checking'**
+  String get sourcesDisplayModeVerifiedEvidence;
+
+  /// No description provided for @sourcesDisplayModeVerifiedEvidenceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Harvard citations with verification methods, text claims, and research evidence.'**
+  String get sourcesDisplayModeVerifiedEvidenceDesc;
+
+  /// No description provided for @sourcesDisplayModeSimpleBibliography.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple Bibliography (Harvard)'**
+  String get sourcesDisplayModeSimpleBibliography;
+
+  /// No description provided for @sourcesDisplayModeSimpleBibliographyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean alphabetical literature reference list without claim-by-claim breakdown.'**
+  String get sourcesDisplayModeSimpleBibliographyDesc;
+
+  /// No description provided for @showSourcesSummaryBoxLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Audit Summary Box'**
+  String get showSourcesSummaryBoxLabel;
+
+  /// No description provided for @showSourcesSummaryBoxDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Displays a summary box at the start of the sources section summarizing verified claims and used MCP sources.'**
+  String get showSourcesSummaryBoxDesc;
 
   /// No description provided for @displayScaleOriginal.
   ///

@@ -106,6 +106,12 @@ abstract class OutputProfile with _$OutputProfile {
       TargetBlockType.auditTrailBlock,
     ])
     List<TargetBlockType> targetBlockOrder,
+    @Default(true)
+    @JsonKey(name: 'show_sources_summary_box')
+    bool showSourcesSummaryBox,
+    @Default(SourcesDisplayMode.verifiedEvidence)
+    @JsonKey(name: 'sources_display_mode')
+    SourcesDisplayMode sourcesDisplayMode,
     SynthesisConfigDTO? synthesis,
     @JsonKey(name: 'performativity_detector_step_id')
     String? performativityDetectorStepId,

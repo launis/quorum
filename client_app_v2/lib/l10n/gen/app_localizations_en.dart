@@ -2694,7 +2694,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get toolIdLabel => 'Tool ID (Slug)';
+  String get toolIdLabel => 'Tool Identifier (tool_id)';
 
   @override
   String get uiDisplayNameTitle => 'UI Display Name (I18nText)';
@@ -4041,6 +4041,32 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get bibliographyCardHint =>
       'Formatted source document list and exact quote citations will be rendered at the end of the report.';
+
+  @override
+  String get sourcesDisplayModeLabel => 'Bibliography Display Mode';
+
+  @override
+  String get sourcesDisplayModeVerifiedEvidence =>
+      'Verified Evidence & Fact-Checking';
+
+  @override
+  String get sourcesDisplayModeVerifiedEvidenceDesc =>
+      'Harvard citations with verification methods, text claims, and research evidence.';
+
+  @override
+  String get sourcesDisplayModeSimpleBibliography =>
+      'Simple Bibliography (Harvard)';
+
+  @override
+  String get sourcesDisplayModeSimpleBibliographyDesc =>
+      'Clean alphabetical literature reference list without claim-by-claim breakdown.';
+
+  @override
+  String get showSourcesSummaryBoxLabel => 'Show Audit Summary Box';
+
+  @override
+  String get showSourcesSummaryBoxDesc =>
+      'Displays a summary box at the start of the sources section summarizing verified claims and used MCP sources.';
 
   @override
   String get displayScaleOriginal => 'Original Scale (Unmodified)';
