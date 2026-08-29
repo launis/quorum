@@ -175,6 +175,48 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
 
 
 @pytest.mark.asyncio
+async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> None:
+    """Verify execute_workflow_job fails fast when target_locale is missing in metadata."""
+    mock_repo = AsyncMock()
+    mock_repo.get_workflow.return_value = {
+        "id": "wf_1234567890123456",
+        "slug": "wf-1",
+        "name": {"translations": {"en": "Workflow 1"}},
+        "description": "desc",
+        "status": "draft",
+        "version": 1,
+        "steps": [],
+        "default_profile_id": "prof_1111222233334444",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "default_strictness_level": 85,
+        "default_scoring_strategy": "AVERAGE",
+    }
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111222233334444",
+        "slug": "prof-1",
+        "workflow_id": "wf_1234567890123456",
+        "name": {"translations": {"en": "Profile 1"}},
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
+    }
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "status": "PENDING",
+        "step_states": {},
+        "metadata": {},  # Missing target_locale
+    }
+    ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock(), "redis": None}
+
+    res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
+    assert res == {"_dlq_status": "FAILED/DLQ"}
+
+
+@pytest.mark.asyncio
 async def test_execute_workflow_job_cancelled() -> None:
     """Verify execute_workflow_job handles asyncio.CancelledError gracefully."""
     mock_repo = AsyncMock()
@@ -219,6 +261,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         "workflow_id": "wf_1234567890123456",
         "status": "PENDING",
         "step_states": {},
+        "metadata": {"target_locale": "fi"},
     }
 
     mock_trace = [
@@ -763,6 +806,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         "workflow_id": "wf_1234567890123456",
         "status": "PENDING",
         "step_states": {},
+        "metadata": {"target_locale": "fi"},
     }
 
     mock_exec_record = ExecutionRecord(

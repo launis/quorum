@@ -431,12 +431,8 @@ class DAGExecutor:
                 )
                 exec_record = exec_record.model_copy(update={"step_states": new_states})
 
-        meta_dict = dict(exec_record.metadata) if exec_record.metadata is not None else {}
-        resolved_lang = meta_dict.get("target_locale") or (
-            exec_record.raw_inputs.language if exec_record.raw_inputs and exec_record.raw_inputs.language else None
-        )
-        if resolved_lang:
-            set_language(resolved_lang)
+        if exec_record.metadata and "target_locale" in exec_record.metadata:
+            set_language(exec_record.metadata["target_locale"])
 
         projector = StateProjector()
         for evt in exec_record.execution_trace:

@@ -216,17 +216,13 @@ async def execute_workflow_job(
                 )
 
             # SSOT Language Context Initialization for Background Worker
-            metadata_dict = dict(exec_record.metadata) if exec_record.metadata is not None else {}
-            resolved_lang = metadata_dict.get("target_locale") or (
-                inputs_obj.language if inputs_obj and inputs_obj.language else None
-            )
-            if not resolved_lang:
+            if not exec_record.metadata or "target_locale" not in exec_record.metadata:
                 msg = f"Strict Fail-Fast Enforced: Execution '{exec_record.id}' is missing mandatory 'target_locale' in metadata."
                 logger.error("[Worker] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                 )
-            set_language(resolved_lang)
+            set_language(exec_record.metadata["target_locale"])
 
             redis = ctx.get("redis")
             updated_exec_record = await engine.execute_workflow(
@@ -685,10 +681,8 @@ async def generate_profile_synthesis_and_pdf_task(
         final_inputs = projector._build_dto_list()
 
         # 0b. Get explicit locale via Execution
-        metadata = dict(execution.metadata) if execution.metadata is not None else {}
-        loc = metadata["target_locale"] if "target_locale" in metadata else None
-        if loc and not accept_language:
-            accept_language = loc
+        if execution.metadata and "target_locale" in execution.metadata:
+            accept_language = execution.metadata["target_locale"]
 
         if accept_language:
             set_language(accept_language)
@@ -831,25 +825,19 @@ async def generate_profile_synthesis_and_pdf_task(
                 except Exception as e:  # noqa: QGR003 [REASON: Resilient best-effort dynamic matrix calculation]
                     logger.warning(f"Failed to calculate dynamic score for {pb_id}: {e}")
 
-        # Temporarily inject target_profile_id and language into metadata to guide hook correctly
-        metadata["target_profile_id"] = profile_id
-        if accept_language:
-            metadata["target_locale"] = accept_language
-
-        # V2 Integrity Mandate: Inject step_results explicitly for SynthesisHook
-        metadata["step_results"] = final_inputs
-
         # Extract Synthesis from DAG Execution Trace (Phase 3/4)
         await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
         synthesis_cfg = active_profile_dto.synthesis if active_profile_dto else None
         synthesis_block_id = synthesis_cfg.synthesis_block_id if synthesis_cfg else None
         row_explanations_block_id = synthesis_cfg.row_explanations_block_id if synthesis_cfg else None
 
-        # Inject dynamic locale into metadata so synthesis_distiller translates step titles correctly
-        hook_metadata = dict(metadata)
-        hook_metadata["target_profile_id"] = profile_id
-        if accept_language:
-            hook_metadata["target_locale"] = accept_language
+        # Inject dynamic locale and execution context into hook_metadata for synthesis_distiller
+        hook_metadata: dict[str, Any] = {
+            **execution.metadata,
+            "target_profile_id": profile_id,
+            "target_locale": accept_language,
+            "step_results": final_inputs,
+        }
 
         hook_state = HookState(
             execution_id=execution_id,

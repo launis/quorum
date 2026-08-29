@@ -136,11 +136,8 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
-    meta_dict = dict(state.metadata) if state.metadata is not None else {}
-    global_cv = dict(state.global_context_vars) if state.global_context_vars is not None else {}
-    target_locale = meta_dict.get("target_locale") or global_cv.get("target_language") or global_cv.get("language")
-    if target_locale:
-        set_language(target_locale)
+    if state.metadata and "target_locale" in state.metadata:
+        set_language(state.metadata["target_locale"])
 
     try:
         llm_client = await LLMClient.from_strategy(
