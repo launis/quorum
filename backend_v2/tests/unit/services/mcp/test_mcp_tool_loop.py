@@ -365,3 +365,349 @@ async def test_agentic_self_reflection_failure_raises_error() -> None:
             validation_context={"strictness_level": 100},
         )
     assert "Self-correction failed" in str(exc_info.value.message)
+
+
+def test_validate_query_relevance() -> None:
+    """Tests validate_query_relevance for various contexts and query inputs."""
+    from backend_v2.services.mcp.mcp_tool_loop import validate_query_relevance
+
+    # Empty context or empty query
+    assert validate_query_relevance("test query", "") is True
+    assert validate_query_relevance("  ", "some context") is True
+
+    # Relevant query (words overlap)
+    assert validate_query_relevance("Harvard medical research", "This document contains Harvard clinical findings.") is True
+
+    # Irrelevant query (no words overlap)
+    assert validate_query_relevance("Bitcoin exchange rate", "This document discusses pediatric nutrition exclusively.") is False
+
+
+def test_is_source_sufficient() -> None:
+    """Tests is_source_sufficient against MIN_CHARS threshold."""
+    from backend_v2.models.enums import SourceSufficiencyThreshold
+    from backend_v2.services.mcp.mcp_tool_loop import is_source_sufficient
+
+    short_text = "short text"
+    assert is_source_sufficient(short_text) is False
+
+    long_text = "a" * (SourceSufficiencyThreshold.MIN_CHARS.value + 10)
+    assert is_source_sufficient(long_text) is True
+
+
+def test_build_tool_evidence_message() -> None:
+    """Tests _build_tool_evidence_message formatting for both empty and populated audit traces."""
+    import datetime
+    from backend_v2.models.v2_core import MCPAuditTrace
+    from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
+
+    # Empty response summary and empty sources
+    empty_trace = MCPAuditTrace(
+        id="t1",
+        tool_id="mcp_tavily_search",
+        step_name="step",
+        query="query",
+        reasoning="r",
+        response_summary="",
+        source_urls=[],
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        duration_ms=10,
+    )
+    empty_msg = _build_tool_evidence_message(empty_trace, "call_123")
+    assert empty_msg["role"] == "tool"
+    assert empty_msg["tool_call_id"] == "call_123"
+    assert "Search returned no results" in empty_msg["content"]
+
+    # Populated trace
+    populated_trace = MCPAuditTrace(
+        id="t2",
+        tool_id="mcp_tavily_search",
+        step_name="step",
+        query="verified query",
+        reasoning="r",
+        response_summary="Verified finding summary",
+        source_urls=["https://example.com/source1"],
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        duration_ms=10,
+    )
+    pop_msg = _build_tool_evidence_message(populated_trace, "call_456")
+    assert pop_msg["role"] == "tool"
+    assert "<query>verified query</query>" in pop_msg["content"]
+    assert "<summary>Verified finding summary</summary>" in pop_msg["content"]
+    assert "<url>https://example.com/source1</url>" in pop_msg["content"]
+
+
+@pytest.mark.asyncio
+async def test_execute_tool_loop_with_synthesis_instructions() -> None:
+    """Tests execute_tool_loop injecting synthesis formatting constraints."""
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor(extracted_claims=["valid claim"])
+
+    synthesis_payload = {
+        "synthesis_preamble": "Custom preamble for profile.",
+        "synthesis_length_limit": 200,
+    }
+
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+        import datetime
+        from backend_v2.models.v2_core import MCPAuditTrace
+
+        mock_search.return_value = MCPAuditTrace(
+            tool_id="mcp_tavily_search",
+            step_name="test_synth_step",
+            query="valid claim",
+            response_summary="Evidence summary",
+            source_urls=["https://example.com"],
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            duration_ms=50,
+        )
+
+        result = await execute_tool_loop(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "system", "content": "Base prompt."}],
+            response_model=MockResponseModel,
+            allowed_tools=["mcp_tavily_search"],
+            step_name="test_synth_step",
+            source_context="source document text with valid claim here",
+            synthesis_instructions=synthesis_payload,
+        )
+
+    assert result.result_data["score"] == 4.5
+    call_args = executor.execute_structured_task.call_args.kwargs
+    first_msg = call_args["messages"][0]["content"]
+    assert "<synthesis_preamble>Custom preamble for profile.</synthesis_preamble>" in first_msg
+    assert "<synthesis_length_limit>200</synthesis_length_limit>" in first_msg
+
+
+@pytest.mark.asyncio
+async def test_execute_tool_loop_invalid_synthesis_instructions_raises_app_exception() -> None:
+    """Tests execute_tool_loop raising AppException on invalid synthesis instructions."""
+    from backend_v2.exceptions import AppException
+
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor(extracted_claims=["valid claim"])
+
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+        import datetime
+        from backend_v2.models.v2_core import MCPAuditTrace
+
+        mock_search.return_value = MCPAuditTrace(
+            tool_id="mcp_tavily_search",
+            step_name="test_synth_step",
+            query="valid claim",
+            response_summary="Evidence summary",
+            source_urls=["https://example.com"],
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            duration_ms=50,
+        )
+
+        with pytest.raises(AppException) as exc_info:
+            await execute_tool_loop(
+                llm_client=client,
+                executor=executor,
+                messages=[{"role": "user", "content": "test"}],
+                response_model=MockResponseModel,
+                allowed_tools=["mcp_tavily_search"],
+                step_name="test_synth_step",
+                source_context="source document text with valid claim here",
+                synthesis_instructions="invalid_non_dict_payload",
+            )
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
+    """Tests execute_tool_loop catching unexpected Phase 2 crash and raising AppException."""
+    from backend_v2.exceptions import AppException
+
+    client = _make_mock_llm_client()
+
+    async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        response_model = kwargs.get("response_model")
+        if response_model == CitationExtractionResult:
+            citations = [CitationExtractionItemDTO(claim_text="valid claim", search_query="valid claim", reasoning="r")]
+            return (CitationExtractionResult(citations=citations), TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+        raise RuntimeError("Unexpected LLM crash in Phase 2")
+
+    executor = MagicMock()
+    executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
+
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+        import datetime
+        from backend_v2.models.v2_core import MCPAuditTrace
+
+        mock_search.return_value = MCPAuditTrace(
+            tool_id="mcp_tavily_search",
+            step_name="test_crash_step",
+            query="valid claim",
+            response_summary="Evidence summary",
+            source_urls=[],
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            duration_ms=50,
+        )
+
+        with pytest.raises(AppException) as exc_info:
+            await execute_tool_loop(
+                llm_client=client,
+                executor=executor,
+                messages=[{"role": "user", "content": "test"}],
+                response_model=MockResponseModel,
+                allowed_tools=["mcp_tavily_search"],
+                step_name="test_crash_step",
+                source_context="source document with valid claim here",
+            )
+    assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_ensemble_all_runs_fail_raises_app_exception() -> None:
+    """Tests that Phase 0 raises AppException when all 3 ensemble extractions fail."""
+    from backend_v2.exceptions import AppException
+
+    client = _make_mock_llm_client()
+    executor = MagicMock()
+    executor.execute_structured_task = AsyncMock(side_effect=RuntimeError("Extraction failed"))
+
+    with pytest.raises(AppException) as exc_info:
+        await execute_tool_loop(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "user", "content": "test"}],
+            response_model=MockResponseModel,
+            allowed_tools=["mcp_tavily_search"],
+            step_name="test_step",
+            source_context="source context",
+        )
+    assert exc_info.value.status_code == 502
+
+
+@pytest.mark.asyncio
+async def test_max_tool_calls_limit_reached(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests that max_tool_calls_per_step limit stops further tool calls."""
+    from backend_v2.settings import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_tool_calls_per_step", 1)
+
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor(extracted_claims=["claim1", "claim2", "claim3"])
+
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+        import datetime
+        from backend_v2.models.v2_core import MCPAuditTrace
+
+        mock_search.return_value = MCPAuditTrace(
+            tool_id="mcp_tavily_search",
+            step_name="test_step",
+            query="claim1",
+            response_summary="summary",
+            source_urls=[],
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            duration_ms=10,
+        )
+
+        result = await execute_tool_loop(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "user", "content": "test"}],
+            response_model=MockResponseModel,
+            allowed_tools=["mcp_tavily_search"],
+            step_name="test_step",
+            source_context="claim1 and claim2 and claim3 are in source",
+        )
+
+    assert len(result.audit_traces) == 1
+    assert mock_search.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_extraction_dict_model_validation() -> None:
+    """Tests that a dict returned for CitationExtractionResult is properly model_validated."""
+    client = _make_mock_llm_client()
+
+    async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        response_model = kwargs.get("response_model")
+        if response_model == CitationExtractionResult:
+            # Return raw dictionary instead of Pydantic model instance
+            return (
+                {"citations": [{"claim_text": "claim1", "search_query": "claim1", "reasoning": "r"}]},
+                TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+        mock_result = MockResponseModel(score=4.5, reasoning="Good")
+        return (mock_result, TokenUsage(prompt_tokens=50, completion_tokens=20, total_tokens=70))
+
+    executor = MagicMock()
+    executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
+
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+        import datetime
+        from backend_v2.models.v2_core import MCPAuditTrace
+
+        mock_search.return_value = MCPAuditTrace(
+            tool_id="mcp_tavily_search",
+            step_name="test_step",
+            query="claim1",
+            response_summary="summary",
+            source_urls=[],
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            duration_ms=10,
+        )
+
+        result = await execute_tool_loop(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "user", "content": "test"}],
+            response_model=MockResponseModel,
+            allowed_tools=["mcp_tavily_search"],
+            step_name="test_step",
+            source_context="claim1 is here",
+        )
+
+    assert len(result.audit_traces) == 1
+
+
+@pytest.mark.asyncio
+async def test_phase2_app_exception_passthrough() -> None:
+    """Tests that an AppException raised during Phase 2 is directly re-raised without re-wrapping."""
+    from backend_v2.exceptions import AppException
+
+    client = _make_mock_llm_client()
+
+    async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        response_model = kwargs.get("response_model")
+        if response_model == CitationExtractionResult:
+            citations = [CitationExtractionItemDTO(claim_text="valid claim", search_query="valid claim", reasoning="r")]
+            return (CitationExtractionResult(citations=citations), TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+        raise AppException(message="Specific domain error in phase 2", status_code=422, details={})
+
+    executor = MagicMock()
+    executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
+
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+        import datetime
+        from backend_v2.models.v2_core import MCPAuditTrace
+
+        mock_search.return_value = MCPAuditTrace(
+            tool_id="mcp_tavily_search",
+            step_name="test_crash_step",
+            query="valid claim",
+            response_summary="Evidence",
+            source_urls=[],
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            duration_ms=50,
+        )
+
+        with pytest.raises(AppException) as exc_info:
+            await execute_tool_loop(
+                llm_client=client,
+                executor=executor,
+                messages=[{"role": "user", "content": "test"}],
+                response_model=MockResponseModel,
+                allowed_tools=["mcp_tavily_search"],
+                step_name="test_crash_step",
+                source_context="source document with valid claim here",
+            )
+    assert exc_info.value.status_code == 422
+
+
+
+

@@ -18,6 +18,10 @@ from backend_v2.models.domain.source_verification import (
     VerifiedSourceDTO,
 )
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
+from backend_v2.models.prompts import (
+    SOURCE_EXTRACTION_SYSTEM_INSTRUCTION,
+    SOURCE_VERIFICATION_SYSTEM_INSTRUCTION,
+)
 from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.localization import get_language
@@ -28,30 +32,6 @@ from backend_v2.settings import get_settings
 __all__ = ["SourceVerificationService"]
 
 logger = logging.getLogger(__name__)
-
-# Static English XML system instructions for 100% prompt caching efficiency
-_EXTRACTION_SYSTEM_INSTRUCTION: str = (
-    "<system_directive>\n"
-    "<objective>Read the provided document and extract all explicit references to external sources, research, studies, guidelines, or institutions.</objective>\n"
-    "<role>Expert Fact-Checker</role>\n"
-    "<rules>\n"
-    "  <rule>Extract the exact claim being attributed to external entities.</rule>\n"
-    "  <rule>Do not include internal cross-references.</rule>\n"
-    "  <rule>Return an empty list if none are found.</rule>\n"
-    "</rules>\n"
-    "</system_directive>"
-)
-
-_VERIFICATION_SYSTEM_INSTRUCTION: str = (
-    "<system_directive>\n"
-    "<objective>Compare the original source claim against the search results provided.</objective>\n"
-    "<role>Expert Fact-Checker</role>\n"
-    "<rules>\n"
-    "  <rule>Determine if the claim is VERIFIED (supported by search), HALLUCINATION (contradicted or clearly fabricated), or INCONCLUSIVE (not enough info found).</rule>\n"
-    "  <rule>Return ONLY the exact word: VERIFIED, HALLUCINATION, or INCONCLUSIVE.</rule>\n"
-    "</rules>\n"
-    "</system_directive>"
-)
 
 
 class SourceVerificationService:
@@ -92,7 +72,7 @@ class SourceVerificationService:
 
         try:
             messages = [
-                {"role": "system", "content": _EXTRACTION_SYSTEM_INSTRUCTION},
+                {"role": "system", "content": SOURCE_EXTRACTION_SYSTEM_INSTRUCTION},
                 {"role": "user", "content": user_message},
             ]
 
@@ -151,7 +131,7 @@ class SourceVerificationService:
             )
 
             messages = [
-                {"role": "system", "content": _VERIFICATION_SYSTEM_INSTRUCTION},
+                {"role": "system", "content": SOURCE_VERIFICATION_SYSTEM_INSTRUCTION},
                 {"role": "user", "content": user_msg},
             ]
 

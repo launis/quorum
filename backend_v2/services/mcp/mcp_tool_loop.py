@@ -15,7 +15,6 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
-from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
     CitationExtractionResult,
@@ -24,6 +23,11 @@ from backend_v2.models.domain.mcp import (
 )
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import SourceSufficiencyThreshold
+from backend_v2.models.prompts import (
+    CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION,
+    MCP_EVIDENCE_INJECTION_DIRECTIVE,
+    build_mcp_citation_extraction_directive,
+)
 from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.mcp.tools.tavily import TAVILY_TOOL_ID, TavilyTool
@@ -32,21 +36,6 @@ from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
-
-
-# NOTE (Architecture): Hard cap to prevent infinite LLM↔Tool loops.
-# EPIC §3 "The Infinite Loop Limit". Controlled by SystemOverrides.
-
-_SELF_CORRECTION_SYSTEM_INSTRUCTION = build_system_directive(
-    objective=(
-        "Locate and return the exact physical substring from the source context "
-        "that is semantically equivalent to the failed claim."
-    ),
-    rules=[
-        "The returned corrected_claim MUST be a 100% exact substring match from the source context (including case, spaces, and diacritics).",
-        "Do not paraphrase or summarize.",
-    ],
-)
 
 # Global Dispatcher Instance
 DISPATCHER = ToolDispatcher(tools=[TavilyTool()])
@@ -230,13 +219,7 @@ async def execute_tool_loop[T: BaseModel](
     total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
     if TAVILY_TOOL_ID in allowed_tools:
-        extraction_sys_msg = build_system_directive(
-            objective="Extract factual claims that require external verification.",
-            rules=[
-                "Return a structured list of citations.",
-                f"Provide a short max 100 character reasoning sentence for each extraction in the language code '{target_language}'.",
-            ],
-        )
+        extraction_sys_msg = build_mcp_citation_extraction_directive(target_language)
 
         extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
         for msg in messages:
@@ -357,7 +340,7 @@ async def execute_tool_loop[T: BaseModel](
                         "</source_context>"
                     )
                     correction_messages = [
-                        {"role": "system", "content": _SELF_CORRECTION_SYSTEM_INSTRUCTION},
+                        {"role": "system", "content": CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION},
                         {"role": "user", "content": correction_user_msg},
                     ]
                     try:
@@ -462,10 +445,7 @@ async def execute_tool_loop[T: BaseModel](
             {
                 "role": "user",
                 "content": (
-                    "<external_evidence>\n"
-                    f"{evidence_str}\n"
-                    "</external_evidence>\n\n"
-                    f"{build_system_directive(objective='EVIDENCE INJECTION COMPLETE', rules=['You now have external search evidence above.', 'Complete the evaluation matrix using both the original context AND the search evidence.', 'Output your response strictly in the required JSON schema format.'])}"
+                    f"<external_evidence>\n{evidence_str}\n</external_evidence>\n\n{MCP_EVIDENCE_INJECTION_DIRECTIVE}"
                 ),
             }
         )
