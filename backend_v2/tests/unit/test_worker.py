@@ -6,31 +6,28 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.settings import get_settings
 from backend_v2.tests.unit.test_worker_dlq_fallback import (
-    test_render_profile_job_catches_service_unavailable_error as _test_dlq_service_unavailable,
+    test_render_profile_job_catches_service_unavailable_error,
 )
 from backend_v2.tests.unit.test_worker_synthesis import (
-    test_worker_extracts_synthesis_from_trace as _test_synthesis_extracts_trace,
-)
-from backend_v2.tests.unit.test_worker_synthesis import (
-    test_worker_synthesis_extracts_metrics_from_trace as _test_synthesis_metrics,
-)
-from backend_v2.tests.unit.test_worker_synthesis import (
-    test_worker_synthesis_malformed_metrics_remains_none as _test_synthesis_malformed_metrics,
-)
-from backend_v2.tests.unit.test_worker_synthesis import (
-    test_worker_synthesis_metrics_no_step_metadata as _test_synthesis_no_step_meta,
-)
-from backend_v2.tests.unit.test_worker_synthesis import (
-    test_worker_synthesis_metrics_no_task_blueprint_in_metadata as _test_synthesis_no_task_bp,
-)
-from backend_v2.tests.unit.test_worker_synthesis import (
-    test_worker_synthesis_missing_metrics_remains_none as _test_synthesis_missing_metrics,
+    test_worker_extracts_synthesis_from_trace,
+    test_worker_synthesis_disabled_layout_omits_section_instruction,
+    test_worker_synthesis_empty_sections_not_set_in_cache,
+    test_worker_synthesis_executive_summary_instruction_and_cache,
+    test_worker_synthesis_extracts_metrics_from_trace,
+    test_worker_synthesis_malformed_metrics_remains_none,
+    test_worker_synthesis_matrix_layout_directives,
+    test_worker_synthesis_metrics_no_step_metadata,
+    test_worker_synthesis_metrics_no_task_blueprint_in_metadata,
+    test_worker_synthesis_missing_metrics_remains_none,
+    test_worker_synthesis_multi_section_aggregation,
 )
 from backend_v2.worker import (
     VarianceExplanationResult,
@@ -45,14 +42,20 @@ from backend_v2.worker import (
     startup,
 )
 
-# Re-export module tests for unified coverage run
-test_worker_extracts_synthesis_from_trace = _test_synthesis_extracts_trace
-test_worker_synthesis_extracts_metrics_from_trace = _test_synthesis_metrics
-test_worker_synthesis_missing_metrics_remains_none = _test_synthesis_missing_metrics
-test_worker_synthesis_malformed_metrics_remains_none = _test_synthesis_malformed_metrics
-test_worker_synthesis_metrics_no_step_metadata = _test_synthesis_no_step_meta
-test_worker_synthesis_metrics_no_task_blueprint_in_metadata = _test_synthesis_no_task_bp
-test_render_profile_job_catches_service_unavailable_error = _test_dlq_service_unavailable
+__all__ = [
+    "test_render_profile_job_catches_service_unavailable_error",
+    "test_worker_extracts_synthesis_from_trace",
+    "test_worker_synthesis_disabled_layout_omits_section_instruction",
+    "test_worker_synthesis_empty_sections_not_set_in_cache",
+    "test_worker_synthesis_executive_summary_instruction_and_cache",
+    "test_worker_synthesis_extracts_metrics_from_trace",
+    "test_worker_synthesis_malformed_metrics_remains_none",
+    "test_worker_synthesis_matrix_layout_directives",
+    "test_worker_synthesis_metrics_no_step_metadata",
+    "test_worker_synthesis_metrics_no_task_blueprint_in_metadata",
+    "test_worker_synthesis_missing_metrics_remains_none",
+    "test_worker_synthesis_multi_section_aggregation",
+]
 
 
 @pytest.mark.asyncio
@@ -260,6 +263,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
         "status": "PENDING",
+        "target_locale": "fi",
         "step_states": {},
         "metadata": {"target_locale": "fi"},
     }
@@ -298,6 +302,8 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         id="exe_1234567890123456",
         workflow_id="wf_1234567890123456",
         status=ExecutionStatus.PENDING,
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
         step_states={},
         execution_trace=mock_trace,
     )
@@ -440,6 +446,8 @@ async def test_generate_pdf_task_exception_handling() -> None:
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
+                "target_locale": "en",
+                "metadata": {"target_locale": "en"},
                 "step_states": {
                     "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
                 },
@@ -487,6 +495,8 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached() -> None:
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
+                "target_locale": "fi",
+                "metadata": {"target_locale": "fi"},
                 "step_states": {},
                 "profile_syntheses": {
                     "prof_1111222233334444": {
@@ -520,6 +530,8 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
+                "target_locale": "fi",
+                "metadata": {"target_locale": "fi"},
                 "step_states": {},
                 "profile_syntheses": {},
             }
@@ -563,7 +575,9 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
             }
 
             with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
-                mock_distiller.return_value = MagicMock(state_delta={"distilled_inputs": "Data"})
+                mock_distiller.return_value = HookResult(
+                    success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"})
+                )
                 await generate_profile_synthesis_and_pdf_task(
                     "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
                 )
@@ -586,6 +600,8 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
+                "target_locale": "fi",
+                "metadata": {"target_locale": "fi"},
                 "step_states": {},
                 "profile_syntheses": {},
             }
@@ -645,6 +661,8 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
+                "target_locale": "fi",
+                "metadata": {"target_locale": "fi"},
                 "step_states": {},
                 "profile_syntheses": {},
                 "context_variables": {
@@ -759,21 +777,24 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
             }
 
             with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
-                mock_distiller.return_value = MagicMock(
-                    state_delta={
-                        "distilled_inputs": "Sample analytical summary data.",
-                        "matrices_to_explain": [
-                            {
-                                "real_matrix_id": "blk_1111222233334444",
-                                "matrix_id": "m0",
-                                "matrix_label": "Target Matrix",
-                                "score": 85.0,
-                                "justification": "Evidence verified.",
-                            }
-                        ],
-                        "language": "fi",
-                        "title_map": {"blk_1111222233334444": "Kohdematriisi"},
-                    }
+                mock_distiller.return_value = HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(
+                        delta={
+                            "distilled_inputs": "Sample analytical summary data.",
+                            "matrices_to_explain": [
+                                {
+                                    "real_matrix_id": "blk_1111222233334444",
+                                    "matrix_id": "m0",
+                                    "matrix_label": "Target Matrix",
+                                    "score": 85.0,
+                                    "justification": "Evidence verified.",
+                                }
+                            ],
+                            "language": "fi",
+                            "title_map": {"blk_1111222233334444": "Kohdematriisi"},
+                        }
+                    ),
                 )
 
                 await generate_profile_synthesis_and_pdf_task(
@@ -829,7 +850,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         workflow_id="wf_1234567890123456",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         step_states={},
         output_profile_id="prof_1111222233334444",
     )
@@ -867,6 +888,8 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
+                "target_locale": "fi",
+                "metadata": {"target_locale": "fi"},
                 "step_states": {},
                 "profile_syntheses": {},
                 "context_variables": {},
@@ -991,11 +1014,14 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
             }
 
             with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
-                mock_distiller.return_value = MagicMock(
-                    state_delta={
-                        "distilled_inputs": "Sample summary data.",
-                        "matrices_to_explain": [],
-                    }
+                mock_distiller.return_value = HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(
+                        delta={
+                            "distilled_inputs": "Sample summary data.",
+                            "matrices_to_explain": [],
+                        }
+                    ),
                 )
 
                 await generate_profile_synthesis_and_pdf_task(
@@ -1033,6 +1059,8 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
+                "target_locale": "en",
+                "metadata": {"target_locale": "en"},
                 "step_states": {
                     "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
                 },
@@ -1064,6 +1092,7 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
                 "status": "RUNNING",
+                "target_locale": "en",
                 "execution_trace": [
                     {
                         "step_name": "synthesis_step",

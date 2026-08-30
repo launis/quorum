@@ -15,7 +15,12 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 import backend_v2.hooks  # noqa: F401
 import backend_v2.utils.scoring.variance_engine as variance_engine
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookState,
+)
 from backend_v2.core.registry import TaskRegistry
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
@@ -251,6 +256,9 @@ async def execute_workflow_job(
                     if event.event_type != "output":
                         continue
 
+                    if not isinstance(event.content, dict):
+                        continue
+
                     step_meta = event.content["_step_metadata"] if "_step_metadata" in event.content else {}
                     usage = step_meta["token_usage"] if "token_usage" in step_meta else {}
                     model_strategy = step_meta["model_strategy"] if "model_strategy" in step_meta else "unknown"
@@ -260,11 +268,13 @@ async def execute_workflow_job(
                     c_tokens = usage["completion_tokens"] if "completion_tokens" in usage else 0
                     t_tokens = usage["total_tokens"] if "total_tokens" in usage else 0
                     c_cost = usage["cost_usd"] if "cost_usd" in usage else 0.0
+                    cached_t = usage["cached_tokens"] if "cached_tokens" in usage else 0
+                    reasoning_t = usage["reasoning_tokens"] if "reasoning_tokens" in usage else 0
 
                     total_prompt_tokens += p_tokens
                     total_completion_tokens += c_tokens
-                    total_cached_tokens += usage["cached_tokens"] if "cached_tokens" in usage else 0
-                    total_reasoning_tokens += usage["reasoning_tokens"] if "reasoning_tokens" in usage else 0
+                    total_cached_tokens += cached_t
+                    total_reasoning_tokens += reasoning_t
                     total_cost_usd += c_cost
 
                     curr_model_tokens = models_used[model_strategy] if model_strategy in models_used else 0
@@ -282,7 +292,7 @@ async def execute_workflow_job(
                     step_metrics[step_id]["total_tokens"] += t_tokens
                     step_metrics[step_id]["chunk_count"] += chunk_size
 
-                actual_locale = updated_exec_record.target_locale or exec_record.target_locale
+                actual_locale = updated_exec_record.target_locale
 
                 # Execution fingerprint snapshot
                 execution_summary = {
@@ -501,7 +511,7 @@ async def generate_pdf_task(
         execution_record = ExecutionRecord.model_validate(execution_dict, strict=False)
 
         # 0b. Get explicit locale via Execution
-        if execution_record.target_locale and not accept_language:
+        if not accept_language:
             accept_language = execution_record.target_locale
 
         if accept_language:
@@ -692,7 +702,8 @@ async def generate_profile_synthesis_and_pdf_task(
             if (
                 trace_evt.event_type == "output"
                 and isinstance(trace_evt.content, dict)
-                and trace_evt.content.get("event_type") == "starvation"
+                and "event_type" in trace_evt.content
+                and trace_evt.content["event_type"] == "starvation"
             ):
                 starvation_detected = True
                 break
@@ -840,8 +851,8 @@ async def generate_profile_synthesis_and_pdf_task(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
             metadata=hook_metadata,
-            global_context_vars={},
-            inputs={"steps": final_inputs},
+            global_context_vars=GlobalContextVarsDTO(),
+            inputs=ExecutionInputsDTO(dynamic_inputs={"steps": final_inputs}),
         )
         hook_deps = HookDependencies(
             exec_repo=repo,
@@ -854,21 +865,20 @@ async def generate_profile_synthesis_and_pdf_task(
             system_repo=repo,
         )
         hook_result = await synthesis_distiller_hook(hook_state, hook_deps)
-        distilled_data = hook_result.state_delta
-        if distilled_data is None:
+        if hook_result.state_delta is None or not hook_result.state_delta.delta:
             raise AppException(
                 message="Fail-Fast: hook_result.state_delta cannot be None.",
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
-
-        distilled_inputs = distilled_data.get("distilled_inputs")
-        if distilled_inputs is None:
+        distilled_data = hook_result.state_delta.delta
+        if "distilled_inputs" not in distilled_data:
             raise AppException(
                 message="Fail-Fast: distilled_inputs missing from state_delta.",
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
+        distilled_inputs = distilled_data["distilled_inputs"]
         raw_matrices = distilled_data["matrices_to_explain"] if "matrices_to_explain" in distilled_data else []
         matrices_to_explain: list[MatrixExplanationContextDTO] = [
             m if isinstance(m, MatrixExplanationContextDTO) else MatrixExplanationContextDTO.model_validate(m)
@@ -1089,8 +1099,8 @@ async def generate_profile_synthesis_and_pdf_task(
                 cv = execution.context_variables
 
                 # 1. Linguistics comes from global_context_vars via the linguistics post-hook
-                if cv is not None:
-                    step_ling = cv.get("step_linguistics")
+                if cv is not None and "step_linguistics" in cv:
+                    step_ling = cv["step_linguistics"]
                     if step_ling is not None:
                         ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
                         patterns = ling_out.performative_patterns
@@ -1110,9 +1120,10 @@ async def generate_profile_synthesis_and_pdf_task(
                         if (
                             event.event_type == "decision"
                             and performative_phrases_count is None
+                            and isinstance(event.content, dict)
                             and "step_linguistics" in event.content
                         ):
-                            trace_ling = event.content.get("step_linguistics")
+                            trace_ling = event.content["step_linguistics"]
                             ling_out = LinguisticsResultDTO.model_validate(trace_ling, strict=False)
                             patterns = ling_out.performative_patterns
                             if isinstance(patterns, list):
@@ -1120,16 +1131,17 @@ async def generate_profile_synthesis_and_pdf_task(
 
                         # Extract Performativity Detector output using the canonical step_id from profile
                         if event.event_type == "output" and perf_step_id and authenticity_score is None:
-                            step_meta = event.content.get("_step_metadata")
-                            if isinstance(step_meta, dict):
-                                event_blueprint = step_meta.get("task_blueprint")
-                                if event_blueprint == perf_step_id:
-                                    for key, val in event.content.items():
-                                        if key.startswith("blk_"):
-                                            det_out = LightweightMatrixOutput.model_validate(val, strict=False)
-                                            if det_out.raw_score is not None:
-                                                authenticity_score = float(det_out.raw_score)
-                                            break
+                            if isinstance(event.content, dict) and "_step_metadata" in event.content:
+                                step_meta = event.content["_step_metadata"]
+                                if isinstance(step_meta, dict) and "task_blueprint" in step_meta:
+                                    event_blueprint = step_meta["task_blueprint"]
+                                    if event_blueprint == perf_step_id:
+                                        for key, val in event.content.items():
+                                            if key.startswith("blk_"):
+                                                det_out = LightweightMatrixOutput.model_validate(val, strict=False)
+                                                if det_out.raw_score is not None:
+                                                    authenticity_score = float(det_out.raw_score)
+                                                break
 
                         if authenticity_score is not None and performative_phrases_count is not None:
                             break
@@ -1244,8 +1256,11 @@ async def generate_profile_synthesis_and_pdf_task(
                 if not real_id:
                     continue
 
-                expl = _raw_row_explanations.get(alias_id) or _raw_row_explanations.get(real_id)
-                if not expl:
+                if alias_id in _raw_row_explanations:
+                    expl = _raw_row_explanations[alias_id]
+                elif real_id in _raw_row_explanations:
+                    expl = _raw_row_explanations[real_id]
+                else:
                     # Fail-Fast protection: If the LLM omits a matrix, provide a fallback to prevent pipeline crash
                     expl = " - "
 

@@ -98,10 +98,15 @@
 
 ### Phase 6: Background Workers, Typed Cache Boundary & Storage
 - **Plan:** @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L307-L318] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
-  - [ ] Step 1: Typed Cache Service & Worker Hydration
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L307-L318] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Flight Verification
+  - [x] Step 1: Pre-Implementation Technical Debt Cleanups & Legacy Fixture Remediation
+  - [x] Step 2: Typed Cache Service Implementation (`backend_v2/services/cache/typed_cache.py` & `__init__.py`)
+  - [x] Step 3: Worker Metadata & Trace Metric Refactoring (`backend_v2/worker.py` - `execute_workflow_job`)
+  - [x] Step 4: Worker Profile Synthesis & Typed Cache Integration (`backend_v2/worker.py` - `generate_profile_synthesis_and_pdf_task` & `generate_pdf_task`)
+  - [x] Step 5: Atomic Worker Test Suite Modernization & Quality Gates
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ### Phase 7: AST Guardrail Hardening (Mathematical Drift Prevention)
@@ -115,104 +120,109 @@
 ---
 
 ### Integration Checkpoint: Full-Stack Validation
-- [x] Seed Vault Sanitization Verification: `uv run python scripts/audit_database_atoms.py --strict`
-- [x] Clean-slate Database Seeder Lifecycle: `uv run python backend_v2/seed/run_seed.py local`
-- [x] Backend Quality Audit & Test Suite: `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_main.py backend_v2/tests/unit/seed/test_run_seed.py backend_v2/tests/unit/models/test_execution_core.py backend_v2/tests/unit/core/test_hook_registry.py backend_v2/tests/unit/core/test_registry.py backend_v2/tests/unit/models/dtos/test_hook_state.py --test`
-- [ ] AST Guardrails FATAL Check: `uv run python backend_v2/tests/unit/scripts/test_ast_guardrails.py`
-- [x] Flutter Client Build & Semantic Parity: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/ --build`
-- [x] SDUI Cross-Domain Semantic Parity: `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`
+- [ ] **[NOK] Seed Vault & Database Ingress**: Full verification of `uv run python scripts/audit_database_atoms.py --strict` and clean seeding via `uv run python backend_v2/seed/run_seed.py local`.
+- [ ] **[NOK] Backend Parity & Quality Loop**: Full execution of `uv run python scripts/backend_audit_loop.py backend_v2/ --test` passing Ruff, MyPy, and Pytest coverage gates (>90%).
+- [ ] **[NOK] AST Guardrails FATAL Verification**: Full AST Guardrail audit passing `uv run python scripts/_ast_guardrails.py backend_v2/ --strict` and `uv run python backend_v2/tests/unit/scripts/test_ast_guardrails.py`.
+- [ ] **[NOK] Flutter Client Build & Unit Suite**: Full execution of `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build` passing formatting, analysis, and Freezed code generation.
+- [ ] **[NOK] Cross-Platform SDUI Semantic Parity**: Automated verification of SDUI semantic parity across Flutter and PDF rendering via `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`.
 
 ---
 
 ### Post-Implementation Gates
-
-#### Backend Hardening Gate
-- [x] @[backend_v2/seed/seed_data.json] — Verified explicit `target_locale` across all templates.
-- [x] @[backend_v2/seed/run_seed.py] — Dynamic path resolution via `prod_db_path`.
-- [x] @[backend_v2/main.py] — Lifespan startup pre-flight schema check.
-- [x] @[backend_v2/models/v2_core.py] — Strict mandatory `target_locale` without defaults.
-- [x] @[backend_v2/models/execution_core.py] — Strict `ExecutionMetadata` SSOT.
-- [x] @[backend_v2/core/hook_registry.py] — Strictly typed `HookState` and `HookResult`.
-- [x] @[backend_v2/models/dtos/hook_state.py] — Strict DTO schemas.
-- [x] @[backend_v2/database/repositories/execution.py] — Typed model returns & Rust-level blob hydration.
-- [x] [NEW] @[backend_v2/hooks/scoring/__init__.py] — Decomposed modular scoring package facade.
-- [x] [NEW] @[backend_v2/hooks/scoring/models.py] — Temporary DTOs for scoring decomposition (Mandatory sunset in 3B).
-- [x] [NEW] @[backend_v2/hooks/scoring/falsifier_hook.py] — Falsifier scoring logic hook.
-- [x] [NEW] @[backend_v2/hooks/scoring/passivity_hook.py] — Passivity penalty enforcement hook.
-- [x] [NEW] @[backend_v2/hooks/scoring/matrix_hook.py] — Matrix scoring hook with AST Evaluator.
-- [x] [NEW] @[backend_v2/hooks/scoring/normalization_hook.py] — Score normalization and recalculation hook.
-- [x] @[backend_v2/tests/unit/hooks/test_scoring.py] — Modernized scoring hook unit test suite.
-- [x] @[backend_v2/hooks/validation.py] — Strict validation hooks.
-- [x] @[backend_v2/hooks/source_verification_hook.py] — Strict source verification hook.
-- [x] @[backend_v2/hooks/atom_flattening.py] — Strict matrix atom flattening hook.
-- [x] @[backend_v2/hooks/input_processing.py] — Strict input processing hook.
-- [x] @[backend_v2/hooks/integrity.py] — Strict integrity and citation hooks.
-- [x] @[backend_v2/hooks/linguistics.py] — Strict linguistics pattern detection hook.
-- [x] @[backend_v2/hooks/llm.py] — Strict LLM context configuration hook.
-- [x] @[backend_v2/hooks/context_mapper.py] — Strict context mapper service.
-- [x] @[backend_v2/hooks/archival.py] — Strict archival precedent hook.
-- [x] @[backend_v2/hooks/security.py] — Strict text sanitization hook.
-- [x] @[backend_v2/hooks/hydration.py] — Strict input hydration hook.
-- [x] @[backend_v2/hooks/dlq_guard.py] — Strict DLQ guard hook.
-- [x] @[backend_v2/hooks/metadata.py] — Strict metadata injection hook.
-- [x] @[backend_v2/hooks/metrics.py] — Strict metrics calculation hook.
-- [x] @[backend_v2/hooks/references.py] — Strict reference generation hook.
-- [x] @[backend_v2/hooks/interaction_hook.py] — Strict interaction role hook.
-- [x] @[backend_v2/services/orchestrator/dag_executor.py] — Direct typed dot-notation & _update_lock state transitions.
-- [x] @[backend_v2/services/orchestrator/enriched_dag_executor.py] — Strict typed context execution & fault domain isolation.
-- [x] @[backend_v2/services/orchestrator/strategies/llm.py] — Typed StrategyContext & blackboard access.
-- [x] @[backend_v2/services/orchestrator/strategies/base.py] — Typed HookDeltaDTO integration without .pop().
-- [x] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py] — Typed StepOutputDTO access without reflection.
-- [x] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py] — Typed WorkflowInputs timestamp resolution.
-- [x] @[backend_v2/services/orchestrator/prompt_compiler.py] — Typed I18nText extraction.
-- [x] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py] — Explicit method delegation without QGR001 reflection.
-- [x] @[backend_v2/services/orchestrator/context_router.py] — Strict ConfigDict and typed step_id access.
-- [x] @[backend_v2/services/orchestrator/dag_compiler.py] — Guarded adjacency list traversal without .get() fallbacks.
-- [x] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] — Polymorphic DistilledEvaluation sanitization.
-- [x] @[backend_v2/services/orchestrator/synthesis_distiller.py] — Fail-Fast alias dictionary indexing.
-- [x] @[backend_v2/services/orchestrator/matrix_explanation_service.py] — Strict AtomResultDTO traversal.
-- [x] @[backend_v2/services/orchestrator/rag_preflight_service.py] — Strict ExecutionInputsDTO input extraction.
-- [x] @[backend_v2/services/orchestrator/localization_compiler.py] — Typed I18nText polymorphism.
-- [x] @[backend_v2/services/orchestrator/extraction_schema_factory.py] — Pydantic V2 native field validation.
-- [x] @[backend_v2/services/orchestrator/atomizer.py] — Immutable model_copy updates.
-- [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py] — DLQ worker fault domain isolation & typed atomization.
-- [x] @[backend_v2/services/orchestrator/anchor_validation_service.py] — Immutable model_copy updates.
-- [x] @[backend_v2/services/orchestrator/matrix_reducer.py] — Direct ReducedAtomDTO and QuoteEvidenceDTO iteration.
-- [x] @[backend_v2/services/orchestrator/engines/tda_engine.py] — Typed ErrorCodes and blackboard access.
-- [x] @[backend_v2/services/orchestrator/engines/synthesis_engine.py] — Typed ErrorCodes and blackboard model validation.
-- [x] @[backend_v2/services/orchestrator/extractive_sensor_service.py] — Direct tally updates & typed sensor evaluations.
-- [x] @[backend_v2/services/orchestrator/result_projector.py] — Typed ErrorCodes.VALIDATION_FAILED instantiation.
-- [x] @[backend_v2/services/execution.py] — Direct initiator.organization_id access without getattr reflection.
-- [x] @[backend_v2/services/usage_service.py] — Direct audit_repo method access and PricingConfig SSOT.
-- [x] @[backend_v2/services/llm_task_executor.py] — Direct TokenUsage attribute access without getattr reflection.
-- [x] @[backend_v2/services/translation_service.py] — Structured chat task tuple unpacking.
-- [x] @[backend_v2/services/source_verification_service.py] — Structured chat task tuple unpacking.
-- [x] @[backend_v2/services/blueprint.py] — Direct enum .value resolution without hasattr discovery.
-- [x] @[backend_v2/services/studio/system_config_service.py] — Strict enum value access and typed string checking.
-- [x] @[backend_v2/services/studio/workflow_service.py] — Direct typed PromptBlockBase inspection and I18nText mutation.
-- [x] @[backend_v2/services/studio/output_profile_service.py] — Strict OutputProfile domain model save and I18nText cloning.
-- [x] @[backend_v2/services/studio/prompt_block_service.py] — Typed I18nText prompt block cloning.
-- [x] @[backend_v2/services/mcp/mcp_tool_loop.py] — Explicit repository dependency passing without getattr.
-- [ ] [NEW] @[backend_v2/services/cache/typed_cache.py] — Generic `TypedCacheService` with zombie eviction.
-- [ ] @[scripts/_ast_guardrails.py] — Locked `QGR001`, `QGR002`, `QGR012` at FATAL severity.
-
-#### Frontend Hardening Gate
-- [x] [NEW] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart] — Freezed request model with `disallowUnrecognizedKeys: true`.
-- [x] @[client_app_v2/lib/features/execution/models/execution_record.dart] — Full 1:1 schema parity with backend `ExecutionRecord`.
-- [x] @[client_app_v2/lib/core/api/execution_client.dart] — Strict `startExecution` API ingress.
-- [x] @[client_app_v2/lib/features/execution/controllers/execution_controller.dart] — Removed `allowedKeys` filter and silent error swallowing.
-- [x] @[client_app_v2/lib/features/execution/views/new_execution_view.dart] — Unified execution client calls.
-- [x] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart] — Active `target_locale` propagation.
+- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies (sunset temporary `backend_v2/hooks/scoring/models.py`).
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` on modified backend files:
+  - [ ] @[backend_v2/seed/seed_data.json]
+  - [ ] @[backend_v2/seed/run_seed.py]
+  - [ ] @[backend_v2/main.py]
+  - [ ] @[backend_v2/models/v2_core.py]
+  - [ ] @[backend_v2/models/execution_core.py]
+  - [ ] @[backend_v2/core/hook_registry.py]
+  - [ ] @[backend_v2/models/dtos/hook_state.py]
+  - [ ] @[backend_v2/database/repositories/execution.py]
+  - [ ] [NEW] @[backend_v2/hooks/scoring/__init__.py]
+  - [ ] [NEW] @[backend_v2/hooks/scoring/models.py]
+  - [ ] [NEW] @[backend_v2/hooks/scoring/falsifier_hook.py]
+  - [ ] [NEW] @[backend_v2/hooks/scoring/passivity_hook.py]
+  - [ ] [NEW] @[backend_v2/hooks/scoring/matrix_hook.py]
+  - [ ] [NEW] @[backend_v2/hooks/scoring/normalization_hook.py]
+  - [ ] @[backend_v2/tests/unit/hooks/test_scoring.py]
+  - [ ] @[backend_v2/hooks/validation.py]
+  - [ ] @[backend_v2/hooks/source_verification_hook.py]
+  - [ ] @[backend_v2/hooks/atom_flattening.py]
+  - [ ] @[backend_v2/hooks/input_processing.py]
+  - [ ] @[backend_v2/hooks/integrity.py]
+  - [ ] @[backend_v2/hooks/linguistics.py]
+  - [ ] @[backend_v2/hooks/llm.py]
+  - [ ] @[backend_v2/hooks/context_mapper.py]
+  - [ ] @[backend_v2/hooks/archival.py]
+  - [ ] @[backend_v2/hooks/security.py]
+  - [ ] @[backend_v2/hooks/hydration.py]
+  - [ ] @[backend_v2/hooks/dlq_guard.py]
+  - [ ] @[backend_v2/hooks/metadata.py]
+  - [ ] @[backend_v2/hooks/metrics.py]
+  - [ ] @[backend_v2/hooks/references.py]
+  - [ ] @[backend_v2/hooks/interaction_hook.py]
+  - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
+  - [ ] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
+  - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
+  - [ ] @[backend_v2/services/orchestrator/strategies/base.py]
+  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
+  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
+  - [ ] @[backend_v2/services/orchestrator/prompt_compiler.py]
+  - [ ] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py]
+  - [ ] @[backend_v2/services/orchestrator/context_router.py]
+  - [ ] @[backend_v2/services/orchestrator/dag_compiler.py]
+  - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
+  - [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py]
+  - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
+  - [ ] @[backend_v2/services/orchestrator/rag_preflight_service.py]
+  - [ ] @[backend_v2/services/orchestrator/localization_compiler.py]
+  - [ ] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
+  - [ ] @[backend_v2/services/orchestrator/atomizer.py]
+  - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
+  - [ ] @[backend_v2/services/orchestrator/anchor_validation_service.py]
+  - [ ] @[backend_v2/services/orchestrator/matrix_reducer.py]
+  - [ ] @[backend_v2/services/orchestrator/engines/tda_engine.py]
+  - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
+  - [ ] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
+  - [ ] @[backend_v2/services/orchestrator/result_projector.py]
+  - [ ] @[backend_v2/services/execution.py]
+  - [ ] @[backend_v2/services/usage_service.py]
+  - [ ] @[backend_v2/services/llm_task_executor.py]
+  - [ ] @[backend_v2/services/translation_service.py]
+  - [ ] @[backend_v2/services/source_verification_service.py]
+  - [ ] @[backend_v2/services/blueprint.py]
+  - [ ] @[backend_v2/services/studio/system_config_service.py]
+  - [ ] @[backend_v2/services/studio/workflow_service.py]
+  - [ ] @[backend_v2/services/studio/output_profile_service.py]
+  - [ ] @[backend_v2/services/studio/prompt_block_service.py]
+  - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
+  - [ ] @[backend_v2/worker.py]
+  - [ ] [NEW] @[backend_v2/services/cache/__init__.py]
+  - [ ] [NEW] @[backend_v2/services/cache/typed_cache.py]
+  - [ ] @[scripts/_ast_guardrails.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` on modified Flutter files:
+  - [ ] [NEW] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]
+  - [ ] @[client_app_v2/lib/features/execution/models/execution_record.dart]
+  - [ ] @[client_app_v2/lib/core/api/execution_client.dart]
+  - [ ] @[client_app_v2/lib/features/execution/controllers/execution_controller.dart]
+  - [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
+  - [ ] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]
+- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies or unreferenced symbols remain.
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 
 ---
 
 ### Documentation & Knowledge Item Update
+- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to automatically scan the codebase, anchor the physical implementation map in `docs/architecture/`, create/update relevant Knowledge Items (KIs), and update `.agents/rules/04_directory_reference.md`.
 - [ ] Knowledge Item Updated: @[ki_ast_guardrail_engine.md] (Documenting `QGR012` and FATAL enforcement).
 - [x] Architecture Rule Updated: @[.agents/rules/01-python-backend.md#L176-L178] (`service_layer_hydration_firewall` updated to align with `repository_reconstitution_mandate`).
 
 ---
 
 ### Final Epic Audit
+- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
 - [ ] `uv run python scripts/audit_markdown_boundaries.py --file docs/epic/EPIC_149_tracker.md`
 - [ ] `uv run python scripts/audit_tracker_output.py --tracker docs/epic/EPIC_149_tracker.md --plan-dir docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition`
 - [ ] Full backend test suite passes: `uv run python scripts/backend_audit_loop.py backend_v2/ --test`
@@ -221,10 +231,12 @@
 ---
 
 ## Instructions for the Execution Agent
-1. Treat this Tracker document as the absolute SSOT for Phase status and execution sequencing.
-2. Follow the strict Producer-Before-Consumer dependency ordering: Phase 1 -> Phase 2 -> Phase 3A -> Phase 3B -> Phase 4 -> Phase 5 -> Phase 6 -> Phase 7.
-3. Enforce the Zero-Compromise Invariants: `the_no_legacy_mandate`, `the_duct_tape_ban`, `zero_service_layer_fallbacks`, and `feature_sovereignty_mandate`.
-4. Execute quality gates at every phase completion boundary before marking checkboxes `[x]`.
+1. **Atomic Commit Mandate**: After ANY successful run of the `universal_quality_gate` audit script that passes, you MUST explicitly instruct the user to perform an atomic `git commit` BEFORE proceeding to the next file or logic block. Specify exact relative file paths. Git commit messages MUST ALWAYS be written in English.
+2. **Clean Slate Seeding Mandate**: When database seeds or models are modified, re-seed the local environment using `uv run python backend_v2/seed/run_seed.py local`.
+3. **Workspace Relative Syntax**: All file references MUST use `@-reference` syntax (specifically: `@[backend_v2/models/v2_core.py]`).
+4. **Producer-Before-Consumer Ordering**: Follow the strict dependency ordering: Phase 1 -> Phase 2 -> Phase 3A -> Phase 3B -> Phase 4 -> Phase 5 -> Phase 6 -> Phase 7.
+5. **Zero-Compromise Invariants**: Enforce `the_no_legacy_mandate`, `the_duct_tape_ban`, `zero_service_layer_fallbacks`, and `feature_sovereignty_mandate`.
+6. **Workflow Execution Pipeline**: You MUST update the `/tier5-resume` or `/tier0-research-plan` (or `/tier0-create-plan` if the plan is missing) command at the bottom of this tracker before handing over the session. Execution Mode: Supports both Step-by-Step (default pause per step) and Continuous Full-Auto Mode (invoked via `/tier2-execute --full-auto` or explicit continuous mandate; progresses autonomously across steps as long as quality gates pass 100%, and triggers clean session handover when the context budget limit is reached: >8 turns, 3 atomic commits, or >5 modified files). Additionally, whenever you finish a milestone, pause for user feedback, or complete a session, you MUST automatically output the next command in your chat response so the user can easily copy-paste it to continue. The mandatory workflow loop is: `[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan`. You MUST ALWAYS pass BOTH the plan and the tracker file in ALL commands. Once all Phases are complete, the loop MUST continue through the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`. Note: You do not need to specify `--rules` in the resume command; context rules are self-hydrating.
 
 ---
 
@@ -273,7 +285,11 @@
 | Refactor BlueprintTransformer enum resolution and MCP audit mapping | Phase 5, Step 5 | COMPLETED |
 | Refactor Studio config, workflow, output profile, and prompt block services | Phase 5, Step 6 | COMPLETED |
 | Modernize atomic service unit test suites and verify quality & parity gates | Phase 5, Step 7 | COMPLETED |
-| Build `TypedCacheService` with zombie cache eviction | Phase 6, Step 1 | PENDING |
+| Pre-implementation tech debt cleanups & worker test fixture modernization | Phase 6, Step 1 | COMPLETED |
+| Build `TypedCacheService` with zombie cache auto-eviction firewall | Phase 6, Step 2 | COMPLETED |
+| Worker metadata & trace metric refactoring via immutable model_copy | Phase 6, Step 3 | COMPLETED |
+| Worker profile synthesis & typed cache integration with strict model validation | Phase 6, Step 4 | COMPLETED |
+| Atomic worker test suite modernization and universal quality gates | Phase 6, Step 5 | COMPLETED |
 | Lock `QGR001`, `QGR002`, `QGR012` AST rules at FATAL severity | Phase 7, Step 1 | PENDING |
 
 ---
@@ -462,6 +478,30 @@
   - Confirmed 741/741 service unit tests passing, 100% SDUI cross-domain parity, 0 AST violations, and clean MyPy strict check across 92 files.
   - Generated audit report: `red_team_audit_06_placeholder_phase5_service_layer_and_identity.md`.
   - Marked Phase 5 audit status as `[x] [OK]`.
+- **Phase 6 Implementation Plan (`/tier0-create-plan`) Completed**:
+  - Authored `implementation_plan.md` and created `07_placeholder_phase6_workers_typed_cache_and_storage.md`.
+  - Defined 6 concrete, sequential steps (Steps 0 to 5) to eliminate untyped dictionary mutations in `worker.py` metadata and trace handling, implement generic `TypedCacheService` with auto-eviction on `ValidationError`, lock `ExecutionRecord.profile_syntheses` as `dict[str, RenderedSynthesisCache]`, and modernize all worker unit tests.
+  - Aligned exact AST node line bounds (#Lnn-mm) for all touched worker classes and functions.
+  - Marked Phase 6 Plan Creation status as `[x] [OK]`.
+- **Phase 6 Red-Teaming & Falsification (`/tier0-research-plan`) Completed**:
+  - Conducted deep System 2 Five-Axis deconstruction across all worker jobs, PDF tasks, and cache boundary mechanics.
+  - Formulated the 5-Column Architectural Directives Table covering Worker Core, Typed Cache Service, Synthesis Hydration, PDF Rendering, and Atomic Test Suites.
+  - Verified exact AST node line bounds spanning complete classes/functions against `scripts/audit_markdown_boundaries.py` with 0 findings.
+  - **Phase 6 Execution (`/tier2-execute`) Completed**:
+  - Implemented `TypedCacheService` in `backend_v2/services/cache/typed_cache.py` with generic `get_cached[T: BaseModel]` utilizing Rust-based `model_validate_json()` and auto-eviction on `ValidationError`.
+  - Refactored `backend_v2/worker.py` across `execute_workflow_job`, `generate_pdf_task`, and `generate_profile_synthesis_and_pdf_task`:
+    - Eliminated dictionary mutations in `execution_summary`, `step_metrics`, and `models_used` by updating typed `ExecutionMetadata` via `.model_copy(update={...})`.
+    - Eliminated `.get()` fallback chains in trace extraction, linguistics/performativity resolution, and row explanations lookups.
+    - Wrapped hook state inputs in `ExecutionInputsDTO` and `GlobalContextVarsDTO` for `synthesis_distiller_hook` and parsed `hook_result.state_delta.delta`.
+  - Modernized worker unit tests across `test_worker.py`, `test_worker_synthesis.py`, `test_worker_synthesis_hydration.py`, `test_worker_dlq_fallback.py`, `test_worker_models_used.py`, and `test_typed_cache.py`.
+  - All 65 worker and cache unit tests passing 100%.
+  - Full Universal Quality Gate passed:
+    - Ruff linting & formatting: 100% clean.
+    - MyPy strict type check: 0 errors.
+    - AST Guardrails (`scripts/_ast_guardrails.py backend_v2/worker.py backend_v2/services/cache/ --strict`): 0 violations.
+    - TDD Coverage: 92% on `backend_v2/worker.py`, 95% on `backend_v2/services/cache/`.
+    - SDUI Cross-Domain Semantic Parity (`test_sdui_semantic_parity.py`): 100% PASSED.
+  - Marked Phase 6 execution status as `[x] [OK]`.
 
 ## Learned
 - Repository reconstitution requires updating `backend_v2/database/interfaces.py` in lockstep to avoid Protocol divergence and MyPy strict mode violations.
@@ -499,14 +539,23 @@
 - `ProtocolPromptBlock` strict instantiation requires `slug`, `label: I18nText`, `description: I18nText`, `organization_id`, and `category_id="protocol"`.
 - In `UsageService`, prompt caching capability must be determined by `pricing_cfg.cached_input_token_price is not None` from the LiteLLM registry rather than an ad-hoc `caching_strategy` attribute.
 - In `ReportDataDTO` polyfactory parity tests, unrendered scalar metadata fields (`profile_description`, `custom_preface_md`, `user_name`, `scoring_engine_name`, `org_name`) should be explicitly defaulted to `None` to prevent random faker string assertions from failing against concise Jinja PDF outputs.
+- In worker test suites (`test_worker.py`, `test_worker_synthesis.py`, `test_worker_models_used.py`), legacy test fixtures instantiating `ExecutionRecord` without `target_locale="fi"` and `metadata=ExecutionMetadata(target_locale="fi")` trigger Pydantic V2 `ValidationError`; updating test fixtures to modern SSOT eliminates 27 fixture failures.
+- AST boundary verification (`audit_markdown_boundaries.py`) mandates decorator-adjusted node spans (`node_start = min(d.lineno for d in node.decorator_list)`), requiring exact AST node spans for functions, specifically: `VarianceExplanationResult #L98-L103`, `execute_workflow_job #L117-L438`, `generate_pdf_job #L441-L463`, `generate_pdf_task #L466-L581`, `render_profile_job #L584-L606`, `generate_profile_synthesis_and_pdf_task #L609-L1350`, `startup #L1356-L1417`, and `WorkerSettings #L1441-L1453`.
+- In `TypedCacheService` (`backend_v2/services/cache/typed_cache.py`), implementing generic `get_cached[T: BaseModel](key: str, model_cls: type[T]) -> T | None` with `model_cls.model_validate_json()` and auto-eviction (`await self.redis.delete(key)`) on `ValidationError` provides a zero-compromise firewall against zombie and corrupted Redis cache entries.
+- In `backend_v2/worker.py`, strict AST node line bounds (#L98-L103, #L117-L438, #L441-L463, #L466-L581, #L584-L606, #L609-L1350, #L1356-L1417, #L1441-L1453) guarantee exact target alignment without dropping functions or decorator wrappers.
+- Red-Teaming verified the 2 critical failure modes: (1) Redis serialization poisoning (mitigated by RFC 7807 logging + auto-eviction), and (2) Legacy `ExecutionRecord` fixture instantiation failures across 28 unit tests (mitigated by pre-implementation cleanup in Step 1).
+- `ExecutionMetadata` is defined in and exported from `backend_v2.models.execution_core`; importing directly from `execution_core` prevents MyPy `attr-defined` export errors.
+- `HookState` strictly enforces typed DTOs `inputs: ExecutionInputsDTO` and `global_context_vars: GlobalContextVarsDTO`; consuming `synthesis_distiller_hook` requires unpacking `hook_result.state_delta.delta`.
+- In `backend_v2/worker.py`, trace metric extraction, starvation checks, linguistics/performativity resolution, and row explanations lookups operate via guarded direct key indexing (`in`), eliminating AST Guardrail `QGR002` violations.
+- In `backend_audit_loop.py`, re-exporting synthesis test functions without leading underscores (`test_*` instead of `_test_*`) in `test_worker.py` enables automatic test discovery and achieves 92% strict TDD coverage on `backend_v2/worker.py`.
 
 ## Remaining
-- **Phase 6**: Background Workers, Typed Cache Boundary & Storage (`07_placeholder_phase6_workers_typed_cache_and_storage.md`).
+- **Phase 6 Audit**: System 2 Red-Team Audit of Phase 6 (`/tier8-audit-plan`).
 - **Phase 7**: AST Guardrails Hardening & Global Clean Code Audit (`08_placeholder_phase7_ast_guardrails_hardening.md`).
 
 ## Resume Command
 ```powershell
-/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L307-L318] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]
 ```
 
 

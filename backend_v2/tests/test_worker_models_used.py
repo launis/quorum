@@ -45,6 +45,8 @@ async def test_worker_preserves_models_used() -> None:
         "workflow_id": workflow_id,
         "status": "RUNNING",
         "output_profile_id": "prf_a1b2c3d4e5f67890",
+        "target_locale": "fi",
+        "metadata": {"target_locale": "fi"},
         "models_used": {},
         "created_at": "2026-06-16T12:00:00Z",
         "created_by": "usr_a1b2c3d4e5f678901234",
@@ -55,12 +57,15 @@ async def test_worker_preserves_models_used() -> None:
 
     from datetime import datetime, timezone
 
+    from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.v2_core import ExecutionRecord
 
     mock_updated_record = ExecutionRecord(
         id=execution_id,
         workflow_id=workflow_id,
         status=ExecutionStatus.RUNNING,
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
         output_profile_id="prf_test",
         models_used={"gemini-2.5-flash": 1500},
         created_at=datetime.now(timezone.utc),

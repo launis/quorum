@@ -7,7 +7,7 @@ from backend_v2.worker import render_profile_job
 
 
 @pytest.mark.asyncio
-async def test_render_profile_job_catches_service_unavailable_error():
+async def test_render_profile_job_catches_service_unavailable_error() -> None:
     """Test that render_profile_job catches ServiceUnavailableError (e.g. from 429 RateLimitError)
     and returns a DLQ dictionary as mandated by dlq_arq_fallback_routing,
     instead of bubbling the exception up and crashing the Arq worker.

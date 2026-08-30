@@ -11,6 +11,7 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.prompts import DEFAULT_SYNTHESIS_SYSTEM_PROMPT
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
@@ -35,6 +36,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         workflow_id="wf_1234567812345678",
         output_profile_id="prof_1111111111111111",
         status=ExecutionStatus.PASSED,
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
         execution_trace=[
             TraceEvent(
                 v=1,
@@ -180,6 +183,8 @@ def _setup_mock_repo_for_metrics(
         workflow_id="wf_1234567812345678",
         output_profile_id="prof_1111111111111111",
         status=ExecutionStatus.PASSED,
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
         execution_trace=trace_events,
         context_variables={},
     )
@@ -561,15 +566,17 @@ async def test_worker_synthesis_matrix_layout_directives(
 
     assert mock_client.run_structured_task.called
     assert any(
-        DEFAULT_SYNTHESIS_SYSTEM_PROMPT in m.get("content", "")
+        isinstance(m, dict) and "content" in m and DEFAULT_SYNTHESIS_SYSTEM_PROMPT in m["content"]
         for call in mock_client.run_structured_task.call_args_list
-        for m in call.kwargs.get("messages", [])
-        if isinstance(m, dict) and m.get("role") == "system"
+        if "messages" in call.kwargs
+        for m in call.kwargs["messages"]
+        if isinstance(m, dict) and "role" in m and m["role"] == "system"
     )
     all_user_content = ""
     for call in mock_client.run_structured_task.call_args_list:
-        messages = call.kwargs.get("messages", [])
-        all_user_content += " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+        if "messages" in call.kwargs:
+            messages = call.kwargs["messages"]
+            all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
     assert expected_snippet in all_user_content
 
 
@@ -634,8 +641,9 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     assert mock_client.run_structured_task.called
     all_user_content = ""
     for call in mock_client.run_structured_task.call_args_list:
-        messages = call.kwargs.get("messages", [])
-        all_user_content += " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+        if "messages" in call.kwargs:
+            messages = call.kwargs["messages"]
+            all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
     assert "2D COMPARISON SYNTHESIS MANDATE:" not in all_user_content
 
 
@@ -702,8 +710,9 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     assert mock_client.run_structured_task.called
     all_user_content = ""
     for call in mock_client.run_structured_task.call_args_list:
-        messages = call.kwargs.get("messages", [])
-        all_user_content += " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+        if "messages" in call.kwargs:
+            messages = call.kwargs["messages"]
+            all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
     assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in all_user_content
     assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in all_user_content
 

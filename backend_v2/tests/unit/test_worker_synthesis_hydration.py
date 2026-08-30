@@ -1,78 +1,55 @@
-import json
-from typing import Any
+"""Unit tests for RenderedSynthesisCache Pydantic V2 validation and hydration."""
 
 import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.v2_core import RenderedSynthesisCache
+from backend_v2.models.view.sdui import ParagraphBlock
 
 
 def test_rendered_synthesis_cache_hydration_fails_with_extra() -> None:
-    # Simulate the raw output from SynthesisDistiller / LLM
+    """Verify that RenderedSynthesisCache strictly forbids extra fields."""
     synthesis_payload = {
         "evaluation_notes": "Tekoäly tuotti kattavan...",
         "reasoning_trace": "My reasoning process...",
-        "blk_34def5d628ba4ed4": json.dumps(
-            {"section_syntheses": [{"block_type": "markdown", "text": "Analyysin sisältö..."}]}
-        ),
         "extracted_facts": {},
         "_step_metadata": {"token_usage": {}},
     }
 
-    delta = dict(synthesis_payload)
-    delta["row_explanations"] = {}
-    delta["row_curated_quotes"] = {}
-
     with pytest.raises(ValidationError) as exc_info:
-        RenderedSynthesisCache.model_validate(delta)
+        RenderedSynthesisCache.model_validate(synthesis_payload)
 
-    assert "Extra inputs are not permitted" in str(exc_info.value)
+    assert "extra_forbidden" in str(exc_info.value) or "Extra inputs are not permitted" in str(exc_info.value)
     assert "evaluation_notes" in str(exc_info.value)
 
 
-def test_rendered_synthesis_cache_hydration_success_after_fix() -> None:
-    # Simulate the raw output from SynthesisDistiller / LLM
-    synthesis_payload = {
-        "evaluation_notes": "Tekoäly tuotti kattavan...",
-        "reasoning_trace": "My reasoning process...",
-        "blk_34def5d628ba4ed4": json.dumps(
-            {"section_syntheses": [{"block_type": "markdown", "text": "Analyysin sisältö..."}]}
-        ),
-        "extracted_facts": {},
-        "_step_metadata": {"token_usage": {}},
+def test_rendered_synthesis_cache_valid_hydration() -> None:
+    """Verify clean Pydantic V2 discriminated union hydration for RenderedSynthesisCache."""
+    block = ParagraphBlock(text="Analyysin sisältö...", exact_quotes=[], citations=[])
+    valid_payload = {
+        "section_syntheses": {"blk_34def5d628ba4ed4": [block]},
+        "row_explanations": {"mat_12345678": "Explanation text"},
+        "row_curated_quotes": {},
+        "cited_sources": ["Doc 1"],
     }
 
-    delta = dict(synthesis_payload)
-
-    # --- PROPOSED FIX LOGIC ---
-    clean_delta: dict[str, Any] = {}
-    clean_delta["section_syntheses"] = delta.get("section_syntheses", {})
-
-    for key, value in delta.items():
-        if key.startswith("blk_") and isinstance(value, str):
-            try:
-                parsed = json.loads(value)
-                if "section_syntheses" in parsed:
-                    clean_delta["section_syntheses"][key] = parsed["section_syntheses"]
-                elif isinstance(parsed, list):
-                    clean_delta["section_syntheses"][key] = parsed
-            except Exception:
-                pass
-        elif key.startswith("blk_") and isinstance(value, dict):
-            if "section_syntheses" in value:
-                clean_delta["section_syntheses"][key] = value["section_syntheses"]
-            else:
-                pass
-        elif key.startswith("blk_") and isinstance(value, list):
-            clean_delta["section_syntheses"][key] = value
-        elif key in RenderedSynthesisCache.model_fields and key != "section_syntheses":
-            clean_delta[key] = value
-
-    clean_delta["row_explanations"] = {}
-    clean_delta["row_curated_quotes"] = {}
-    # -------------------------
-
-    cache = RenderedSynthesisCache.model_validate(clean_delta)
+    cache = RenderedSynthesisCache.model_validate(valid_payload)
     assert cache is not None
     assert "blk_34def5d628ba4ed4" in cache.section_syntheses
-    assert cache.section_syntheses["blk_34def5d628ba4ed4"][0].text == "Analyysin sisältö..."
+    first_block = cache.section_syntheses["blk_34def5d628ba4ed4"][0]
+    assert isinstance(first_block, ParagraphBlock)
+    assert first_block.text == "Analyysin sisältö..."
+
+
+def test_rendered_synthesis_cache_serialization_roundtrip() -> None:
+    """Verify JSON serialization round-trip preservation."""
+    block = ParagraphBlock(text="Roundtrip text", exact_quotes=[], citations=[])
+    cache = RenderedSynthesisCache(
+        section_syntheses={"layout_1": [block]},
+        row_explanations={"m1": "Expl"},
+    )
+    raw_json = cache.model_dump_json()
+    rehydrated = RenderedSynthesisCache.model_validate_json(raw_json)
+    rehydrated_block = rehydrated.section_syntheses["layout_1"][0]
+    assert isinstance(rehydrated_block, ParagraphBlock)
+    assert rehydrated_block.text == "Roundtrip text"
