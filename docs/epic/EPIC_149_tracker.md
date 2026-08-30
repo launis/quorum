@@ -69,14 +69,16 @@
 ### Phase 4: Orchestration & Strategy Core Refactoring & Tests
 - **Plan:** @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md]
 - [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L259-L286] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
   - [ ] Step 0: Strategic Alignment Check & Pre-Flight Verification
-  - [ ] Step 1: Strategy Base & Hook Integration Modernization (`base.py`)
-  - [ ] Step 2: LLM Execution & Context Builder Refactoring (`context_builder.py`, `llm.py`, `execution_time_resolver.py`)
-  - [ ] Step 3: Prompt Compiler, Adapter & Context Router Refactoring (`prompt_compiler.py`, `prompt_compiler_adapter.py`, `context_router.py`)
-  - [ ] Step 4: Synthesis & Evaluation Engines Refactoring (`tda_engine.py`, `synthesis_engine.py`, `matrix_explanation_service.py`, `synthesis_payload_compressor.py`, `synthesis_distiller.py`, `matrix_reducer.py`, `anchor_validation_service.py`)
-  - [ ] Step 5: DAG Executor & Reasoning Orchestration Refactoring (`dag_executor.py`, `rag_preflight_service.py`, `localization_compiler.py`, `extraction_schema_factory.py`, `atomizer.py`)
-  - [ ] Step 6: Atomic Test Suite Modernization & Quality Gates (`backend_audit_loop.py`, `_ast_guardrails.py`, `test_sdui_semantic_parity.py`)
+  - [ ] Step 1: Pre-Implementation Technical Debt Cleanups & AST Remediation
+  - [ ] Step 2: Strategy Base & Hook Integration Modernization (`base.py`)
+  - [ ] Step 3: LLM Execution & Context Builder Refactoring (`context_builder.py`, `llm.py`, `execution_time_resolver.py`, `extractive_sensor_service.py`)
+  - [ ] Step 4: Prompt Compiler, Adapter, Context Router & DAG Compiler Refactoring (`prompt_compiler.py`, `prompt_compiler_adapter.py`, `context_router.py`, `dag_compiler.py`)
+  - [ ] Step 5: Synthesis & Evaluation Engines Refactoring (`tda_engine.py`, `synthesis_engine.py`, `matrix_explanation_service.py`, `synthesis_payload_compressor.py`, `synthesis_distiller.py`, `matrix_reducer.py`, `anchor_validation_service.py`, `result_projector.py`)
+  - [ ] Step 6: DAG Executor & Reasoning Orchestration Refactoring (`dag_executor.py`, `enriched_dag_executor.py`, `rag_preflight_service.py`, `localization_compiler.py`, `extraction_schema_factory.py`, `atomizer.py`, `two_pass_atomizer.py`)
+  - [ ] Step 7: Atomic Test Suite Modernization & Quality Gates (`backend_audit_loop.py`, `_ast_guardrails.py`, `test_sdui_semantic_parity.py`)
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ### Phase 5: Service Layer, Utility Services & Service Tests
@@ -147,6 +149,7 @@
 - [x] @[backend_v2/hooks/references.py] — Strict reference generation hook.
 - [x] @[backend_v2/hooks/interaction_hook.py] — Strict interaction role hook.
 - [ ] @[backend_v2/services/orchestrator/dag_executor.py] — Direct typed dot-notation & _update_lock state transitions.
+- [ ] @[backend_v2/services/orchestrator/enriched_dag_executor.py] — Strict typed context execution & fault domain isolation.
 - [ ] @[backend_v2/services/orchestrator/strategies/llm.py] — Typed StrategyContext & blackboard access.
 - [ ] @[backend_v2/services/orchestrator/strategies/base.py] — Typed HookDeltaDTO integration without .pop().
 - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py] — Typed StepOutputDTO access without reflection.
@@ -154,6 +157,7 @@
 - [ ] @[backend_v2/services/orchestrator/prompt_compiler.py] — Typed I18nText extraction.
 - [ ] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py] — Explicit method delegation without QGR001 reflection.
 - [ ] @[backend_v2/services/orchestrator/context_router.py] — Strict ConfigDict and typed step_id access.
+- [ ] @[backend_v2/services/orchestrator/dag_compiler.py] — Guarded adjacency list traversal without .get() fallbacks.
 - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] — Polymorphic DistilledEvaluation sanitization.
 - [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py] — Fail-Fast alias dictionary indexing.
 - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py] — Strict AtomResultDTO traversal.
@@ -161,10 +165,13 @@
 - [ ] @[backend_v2/services/orchestrator/localization_compiler.py] — Typed I18nText polymorphism.
 - [ ] @[backend_v2/services/orchestrator/extraction_schema_factory.py] — Pydantic V2 native field validation.
 - [ ] @[backend_v2/services/orchestrator/atomizer.py] — Immutable model_copy updates.
+- [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py] — DLQ worker fault domain isolation & typed atomization.
 - [ ] @[backend_v2/services/orchestrator/anchor_validation_service.py] — Immutable model_copy updates.
 - [ ] @[backend_v2/services/orchestrator/matrix_reducer.py] — Direct ReducedAtomDTO and QuoteEvidenceDTO iteration.
 - [ ] @[backend_v2/services/orchestrator/engines/tda_engine.py] — Typed ErrorCodes and blackboard access.
 - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py] — Typed ErrorCodes and blackboard model validation.
+- [ ] @[backend_v2/services/orchestrator/extractive_sensor_service.py] — Direct tally updates & typed sensor evaluations.
+- [ ] @[backend_v2/services/orchestrator/result_projector.py] — Typed ErrorCodes.VALIDATION_FAILED instantiation.
 - [ ] [NEW] @[backend_v2/services/cache/typed_cache.py] — Generic `TypedCacheService` with zombie eviction.
 - [ ] @[scripts/_ast_guardrails.py] — Locked `QGR001`, `QGR002`, `QGR012` at FATAL severity.
 
@@ -339,6 +346,13 @@
   - Itemized concrete remediation for all 19 production files across 6 phased steps: Strategy Base & Hook Integration, LLM Execution & Context Builder, Prompt Compiler & Context Router, Synthesis & Evaluation Engines, DAG Executor & Reasoning Orchestration, and Atomic Test Modernization across 43 orchestrator test files.
   - Synchronized `EPIC_149_tracker.md` with all 6 execution steps and appended newly planned targets to the Backend Hardening Gate.
   - Marked Phase 4 Plan Creation status as `[x] [OK]`.
+- **Phase 4 System 2 Research & Red-Teaming (`/tier0-research-plan`) Completed**:
+  - Executed Five-Axis System 2 Deconstruction of Phase 4 plan (`05_placeholder_phase4_orchestration_and_strategy_core.md`).
+  - Itemized concrete AST node spans across all 24 orchestrator files and mapped 65 unit test files under `backend_v2/tests/unit/services/orchestrator/`.
+  - Injected `Step 1: Pre-Implementation Technical Debt Cleanups & AST Remediation` covering peripheral orchestrator utilities (`dag_compiler.py`, `extractive_sensor_service.py`, `result_projector.py`, `two_pass_atomizer.py`, `enriched_dag_executor.py`).
+  - Synthesized 5-Column Architectural Directives Table across Strategy Base, LLM Strategy & Context Builder, Prompt Compiler, Synthesis & Evaluation Engines, DAG Executor, and Orchestrator Utilities.
+  - Verified 100% boundary compliance via `scripts/audit_markdown_boundaries.py` (0 findings).
+  - Marked Phase 4 Red-Teaming status as `[x] [OK]`.
 
 ## Learned
 - Repository reconstitution requires updating `backend_v2/database/interfaces.py` in lockstep to avoid Protocol divergence and MyPy strict mode violations.
@@ -355,6 +369,8 @@
 - In `backend_v2/hooks/input_processing.py`, missing execution context or missing mandatory language raises `AppException` with `ErrorCodes.VALIDATION_FAILED` and `ErrorCodes.CONFIGURATION_ERROR` respectively.
 - For Phase 4 (Consumers), `StrategyContext` and `DAGExecutor` strategies (`base.py`, `logic.py`, `llm.py`) must be refactored to consume typed `ExecutionInputsDTO`, `GlobalContextVarsDTO`, and `HookDeltaDTO` rather than expecting raw dicts.
 - In `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py`, `StepOutputDTO` has direct properties `block_id`, `payload`, `step_id`; eliminating `getattr(dto, ...)` removes 10 reflection violations in one file.
+- AST markdown boundary verification (`audit_markdown_boundaries.py`) enforces decorator-adjusted node boundaries: functions/classes with decorators have `node_start = min(decorator.lineno)` (specifically `synthesis_distiller_hook #L168-L357`).
+- In `backend_v2/services/orchestrator/prompt_compiler_adapter.py`, `__getattr__` dynamic delegation violates `QGR001`; explicit method forwarding to the wrapped `PromptCompiler` provides strict type safety with zero reflection.
 
 ## Remaining
 - **Phase 4**: Orchestration & Strategy Core Refactoring & Tests (`05_placeholder_phase4_orchestration_and_strategy_core.md`).
@@ -364,7 +380,7 @@
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]
+/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]
 ```
 
 
