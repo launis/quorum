@@ -54,7 +54,7 @@ class StudioSystemConfigService:
         """
         if initiator.role not in [UserRole.ROOT, UserRole.ADMIN]:
             logger.error(
-                "[StudioSystemConfigService] %s: User %s (Role: %s) attempted to fetch available models without ROOT or ADMIN.",
+                "[StudioSystemConfigService] %s: User %s (Role: %s) unauthorized to fetch available models.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
                 initiator.role,

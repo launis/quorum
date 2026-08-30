@@ -159,7 +159,20 @@ class ExecutionService:
         system_repo: ISystemRepository,
         usage_service: UsageService,
         executor: DAGExecutor,
-    ):
+    ) -> None:
+        """Initialize the ExecutionService with repository and engine dependencies.
+
+        Args:
+            exec_repo: Repository for execution record persistence.
+            workflow_repo: Repository for workflow definitions.
+            comp_repo: Repository for system components.
+            prompt_block_repo: Repository for prompt blocks.
+            output_profile_repo: Repository for output profiles.
+            identity_repo: Repository for user and organization identity.
+            system_repo: Repository for system configuration.
+            usage_service: Service for usage quota tracking and reporting.
+            executor: Underlying DAG orchestration executor.
+        """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.comp_repo = comp_repo
@@ -594,8 +607,9 @@ class ExecutionService:
         if record.status != ExecutionStatus.FAILED:
             return False
 
-        # Rule 2: Removed Duck-Typing check. Executions that crash before their first 'output' checkpoint MUST be resumable.
-        # This guarantees that early failures (e.g., Pydantic validation on the first LLM call) can be retired via the Event Sourced history.
+        # Rule 2: Removed Duck-Typing check.
+        # Executions that crash before their first 'output' checkpoint MUST be resumable.
+        # This guarantees that early failures (e.g. validation on the first LLM call) can be retried.
 
         # Rule 3: Workflow Blueprint & Seed structural parity check
         workflow_dict = await self.workflow_repo.get_workflow_by_id(record.workflow_id)
@@ -1096,6 +1110,24 @@ class ExecutionService:
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
     ) -> tuple[bytes | list[Any] | dict[str, Any] | Any, str, str | None]:
+        """Render an execution record to requested format (PDF, JSON, flat Markdown).
+
+        Args:
+            initiator: Auth token data of calling user.
+            execution_id: Target execution identifier.
+            format_type: Format to render ("pdf", "json", "flat", "excel").
+            profile_id: Optional output profile identifier.
+            accept_language: Optional request locale header.
+            arq_pool: Arq Redis connection pool.
+            custom_preface_md: Optional markdown preface to prepend.
+            local_time_str: Optional formatted localized timestamp.
+
+        Returns:
+            Tuple of (rendered_payload, mime_type, filename).
+
+        Raises:
+            AppException (ErrorCodes.VALIDATION_FAILED): If execution is not in COMPLETED state.
+        """
         execution = await self.get_execution(initiator=initiator, execution_id=execution_id)
 
         if execution.status != ExecutionStatus.PASSED:

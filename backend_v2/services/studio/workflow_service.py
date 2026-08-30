@@ -492,7 +492,7 @@ class StudioWorkflowService:
             The saved step.
 
         Raises:
-            AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to mutate protected attributes of a system core step.
+            AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to mutate system core step.
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after creation.
         """
         # Direct typed attribute access

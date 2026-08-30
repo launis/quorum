@@ -183,7 +183,10 @@ class BlueprintTransformer:
             locale = exec_metadata.target_locale
 
         if not locale:
-            msg = "Strict Fail-Fast Enforced: 'locale' is mandatory (either via accept_language or execution metadata) and cannot be resolved."
+            msg = (
+                "Strict Fail-Fast Enforced: 'locale' is mandatory "
+                "(either via accept_language or execution metadata) and cannot be resolved."
+            )
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
@@ -240,7 +243,7 @@ class BlueprintTransformer:
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
-            # Note: profile_cache.user_role_justification is internal English reasoning and should not be printed directly.
+            # Note: profile_cache.user_role_justification is internal English reasoning.
 
         if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
             has_warning = True
@@ -260,7 +263,9 @@ class BlueprintTransformer:
                             penalties_applied.append(p_str)
                         else:
                             # Enforce Zero-Compromise Check: fail fast on legacy/unsupported penalty format
-                            msg_legacy = f"Zero-Compromise Check Failed: Legacy or unsupported penalty string detected: '{p_str}'"
+                            msg_legacy = (
+                                f"Zero-Compromise Check Failed: Legacy or unsupported penalty string: '{p_str}'"
+                            )
                             logger.error("[BlueprintTransformer] %s", msg_legacy)
                             raise AppException(
                                 message=msg_legacy,
@@ -503,7 +508,7 @@ class BlueprintTransformer:
 
             if not visualization_blocks:
                 logger.warning(
-                    "[BlueprintTransformer] ALARM: 0 visualization blocks generated for execution %s. UI will render empty.",
+                    "[BlueprintTransformer] ALARM: 0 visualization blocks for execution %s.",
                     execution.id,
                 )
 
