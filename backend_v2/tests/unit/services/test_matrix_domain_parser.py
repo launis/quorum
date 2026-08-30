@@ -601,9 +601,7 @@ def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
     assert matrix.level_breakdown == {"0": "1/2", "1": "2/2"}
 
     # 2. Synthesis expected but missing in row_explanations_cache -> fail-fast
-    profile_synth = profile.model_copy(
-        update={"synthesis": SynthesisConfigDTO(row_explanations_block_id="blk_row_exp")}
-    )
+    profile_synth = profile.model_copy(update={"synthesis": SynthesisConfigDTO()})
     with pytest.raises(AppException) as exc_synth:
         MatrixDomainParser.parse_matrices(
             results=[dto_valid],
@@ -677,9 +675,7 @@ def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache(
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
-    profile_synth = profile.model_copy(
-        update={"synthesis": SynthesisConfigDTO(row_explanations_block_id="blk_row_exp")}
-    )
+    profile_synth = profile.model_copy(update={"synthesis": SynthesisConfigDTO()})
 
     payload_valid = {
         "raw_score": 1.0,
@@ -885,4 +881,3 @@ def test_parse_matrices_axis_collision_coverage() -> None:
     assert len(all_parsed) == 2
     row2 = all_parsed["step2_blk_1234567890abcdef1234567890abcdef"]
     assert "sr_abcdef1234567890" in row2.name
-

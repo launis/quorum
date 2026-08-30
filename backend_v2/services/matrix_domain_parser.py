@@ -329,19 +329,14 @@ class MatrixDomainParser:
 
             ext = matrix_payload.extensions
 
-            synthesis_expected = (
-                profile.synthesis is not None and profile.synthesis.row_explanations_block_id is not None
-            )
+            synthesis_expected = profile.synthesis is not None
             is_data_starved = False
             if execution and execution.profile_syntheses:
                 current_cache = execution.profile_syntheses.get(profile.id) or execution.profile_syntheses.get(
                     "default"
                 )
-                if current_cache:
-                    if getattr(current_cache, "data_starvation", None) is not None:
-                        is_data_starved = True
-                    elif isinstance(current_cache, dict) and current_cache.get("data_starvation") is not None:
-                        is_data_starved = True
+                if current_cache and current_cache.data_starvation is not None:
+                    is_data_starved = True
 
             if synthesis_expected and not is_data_starved:
                 if b_id not in row_explanations_cache:
@@ -354,7 +349,7 @@ class MatrixDomainParser:
                     )
                 final_explanation = row_explanations_cache[b_id]
             else:
-                final_explanation = row_explanations_cache.get(b_id, "")
+                final_explanation = row_explanations_cache[b_id] if b_id in row_explanations_cache else ""
 
             evaluated_atoms_list = []
             clustered_row_sources: list[Any] = []

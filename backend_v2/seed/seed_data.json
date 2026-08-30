@@ -9659,10 +9659,7 @@
       "display_scale": "normalized_100",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
-      "synthesis": {
-        "synthesis_block_id": "blk_1a2b3c4d5e6f7a8b",
-        "row_explanations_block_id": "blk_ad303690b26b413d"
-      },
+      "synthesis": {},
       "target_block_order": [
         "metadata_block",
         "executive_summary_block",

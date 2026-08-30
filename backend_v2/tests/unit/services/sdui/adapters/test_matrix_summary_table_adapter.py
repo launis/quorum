@@ -182,4 +182,3 @@ def test_matrix_summary_table_adapter_filters_unsupported_columns() -> None:
     assert isinstance(blocks[0], SduiMatrixTableBlock)
     assert blocks[0].matrix_visible_columns == ["label", "score"]
     assert set(blocks[0].matrix_column_labels.keys()) == {"label", "score"}
-

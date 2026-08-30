@@ -959,7 +959,10 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
 
     assert "Mechanical" in getattr(grid_block.items[0], "text", "") and "1" in getattr(grid_block.items[0], "text", "")
     assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "4.0" in getattr(grid_block.items[1], "text", "")
-    assert ("Total Dispersion" in getattr(grid_block.items[2], "text", "") or "Variance" in getattr(grid_block.items[2], "text", "")) and "1.2" in getattr(grid_block.items[2], "text", "")
+    assert (
+        "Total Dispersion" in getattr(grid_block.items[2], "text", "")
+        or "Variance" in getattr(grid_block.items[2], "text", "")
+    ) and "1.2" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "warning"
     assert "MISALIGNED" in alert_block.text.upper()
@@ -1244,7 +1247,10 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "2.51" in getattr(
         grid_block.items[1], "text", ""
     )
-    assert ("Total Dispersion" in getattr(grid_block.items[2], "text", "") or "Variance" in getattr(grid_block.items[2], "text", "")) and "0.09" in getattr(grid_block.items[2], "text", "")
+    assert (
+        "Total Dispersion" in getattr(grid_block.items[2], "text", "")
+        or "Variance" in getattr(grid_block.items[2], "text", "")
+    ) and "0.09" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "info"
     assert "ALIGNED" in alert_block.text.upper()

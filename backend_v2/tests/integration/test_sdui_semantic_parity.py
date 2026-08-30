@@ -57,6 +57,10 @@ class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
 
 class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     __model__ = MatrixScorecardRowDTO
+    score: float = 5.0
+    scale_min: float = 0.0
+    scale_max: float = 10.0
+    normalized_score: float | None = None
     scorecard_atoms: dict[str, Any] = {}
     cited_web_citation: str | None = None
     cited_source_id: str | None = None

@@ -11,6 +11,7 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
+from backend_v2.models.prompts import DEFAULT_SYNTHESIS_SYSTEM_PROMPT
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.models.view.sdui import ParagraphBlock
@@ -565,6 +566,12 @@ async def test_worker_synthesis_matrix_layout_directives(
     )
 
     assert mock_client.run_structured_task.called
+    assert any(
+        DEFAULT_SYNTHESIS_SYSTEM_PROMPT in m.get("content", "")
+        for call in mock_client.run_structured_task.call_args_list
+        for m in call.kwargs.get("messages", [])
+        if isinstance(m, dict) and m.get("role") == "system"
+    )
     all_user_content = ""
     for call in mock_client.run_structured_task.call_args_list:
         messages = call.kwargs.get("messages", [])

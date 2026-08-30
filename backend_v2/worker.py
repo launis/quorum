@@ -41,7 +41,9 @@ from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlo
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
     DEFAULT_COACHING_TONE_MANDATE,
+    DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT,
     DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
+    DEFAULT_VARIANCE_SYSTEM_PROMPT,
     EXECUTIVE_SUMMARY_DIRECTIVE,
     EXECUTIVE_SUMMARY_SECTION_ID,
     GLOBAL_MANDATES_XML,
@@ -830,8 +832,6 @@ async def generate_profile_synthesis_and_pdf_task(
         # Extract Synthesis from DAG Execution Trace (Phase 3/4)
         await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
         synthesis_cfg = active_profile_dto.synthesis if active_profile_dto else None
-        synthesis_block_id = synthesis_cfg.synthesis_block_id if synthesis_cfg else None
-        row_explanations_block_id = synthesis_cfg.row_explanations_block_id if synthesis_cfg else None
 
         # Inject dynamic locale and execution context into hook_metadata for synthesis_distiller
         hook_metadata = execution.metadata.model_copy(
@@ -891,26 +891,10 @@ async def generate_profile_synthesis_and_pdf_task(
 
         async with asyncio.TaskGroup() as tg:
             if synthesis_cfg:
-                if not synthesis_block_id:
-                    msg = f"Fail-Fast: OutputProfile '{profile_id}' missing mandatory synthesis_block_id."
-                    logger.error("[Task] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                    raise AppException(
-                        message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
-                    )
-
-                pb_dict = await repo.get_prompt_block(synthesis_block_id)
-                if not pb_dict:
-                    msg = f"Fail-Fast: PromptBlock '{synthesis_block_id}' not found for synthesis."
-                    logger.error("[Task] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                    raise AppException(
-                        message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
-                    )
-
-                pb = PromptBlockAdapter.validate_python(pb_dict, strict=False)
                 # sys_prompt MUST remain 100% static for cache prefix survival
-                sys_prompt = pb.ai_description or DEFAULT_SYNTHESIS_SYSTEM_PROMPT
-                sys_prompt += f"\n\n{SYNTHESIS_SDUI_MANDATES}"
-                sys_prompt += f"\n\n{ANTI_JARGON_MANDATE_BLOCK}"
+                sys_prompt = (
+                    f"{DEFAULT_SYNTHESIS_SYSTEM_PROMPT}\n\n{SYNTHESIS_SDUI_MANDATES}\n\n{ANTI_JARGON_MANDATE_BLOCK}"
+                )
 
                 # Dynamic context parts injected into user message <dynamic_context>
                 base_dynamic_parts: list[str] = [
@@ -1071,36 +1055,32 @@ async def generate_profile_synthesis_and_pdf_task(
                         )
                     )
 
-            if row_explanations_block_id and matrices_to_explain:
-                pb_dict = await repo.get_prompt_block(row_explanations_block_id)
-                if pb_dict:
-                    r_pb = PromptBlockAdapter.validate_python(pb_dict, strict=False)
-                    client = await LLMClient.from_strategy("strict", repository=repo)
-                    # Session 1, Task 1-5: sys_prompt static, dynamic context in user message
-                    row_sys_prompt = r_pb.ai_description or ""
+            if matrices_to_explain:
+                client = await LLMClient.from_strategy("strict", repository=repo)
+                row_sys_prompt = DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT
 
-                    row_lang_ctx = build_linguistic_context(
-                        source_language="Unknown", target_locale=accept_language, include_mandate=True
-                    )
-                    row_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{row_lang_ctx}\n\n{ROW_EXPLANATION_DIRECTIVE}"
+                row_lang_ctx = build_linguistic_context(
+                    source_language="Unknown", target_locale=accept_language, include_mandate=True
+                )
+                row_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{row_lang_ctx}\n\n{ROW_EXPLANATION_DIRECTIVE}"
 
-                    row_messages: list[dict[str, Any]] = [
-                        {"role": "system", "content": row_sys_prompt},
-                        {
-                            "role": "user",
-                            "content": (
-                                f"<dynamic_context>\n{row_dynamic_ctx}\n</dynamic_context>"
-                                f"\n\nMATRICES TO EXPLAIN:\n{MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')}"
-                            ),
-                        },
-                    ]
-                    t_row = tg.create_task(
-                        client.run_structured_task(
-                            messages=row_messages,
-                            response_model=MatrixExplanationsResult,
-                            mock_identity="row_explainer",
-                        )
+                row_messages: list[dict[str, Any]] = [
+                    {"role": "system", "content": row_sys_prompt},
+                    {
+                        "role": "user",
+                        "content": (
+                            f"<dynamic_context>\n{row_dynamic_ctx}\n</dynamic_context>"
+                            f"\n\nMATRICES TO EXPLAIN:\n{MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')}"
+                        ),
+                    },
+                ]
+                t_row = tg.create_task(
+                    client.run_structured_task(
+                        messages=row_messages,
+                        response_model=MatrixExplanationsResult,
+                        mock_identity="row_explainer",
                     )
+                )
 
             if (
                 active_profile_dto
@@ -1173,35 +1153,32 @@ async def generate_profile_synthesis_and_pdf_task(
                         alignment_verdict=str(variance_res["alignment_verdict"]),
                     )
 
-                    pb_var = await repo.get_prompt_block("blk_2d2344ab9d744163")
-                    if pb_var:
-                        r_pb_var = PromptBlockAdapter.validate_python(pb_var, strict=False)
-                        client_var = await LLMClient.from_strategy("strict", repository=repo)
-                        var_sys_prompt = r_pb_var.ai_description or ""
+                    client_var = await LLMClient.from_strategy("strict", repository=repo)
+                    var_sys_prompt = DEFAULT_VARIANCE_SYSTEM_PROMPT
 
-                        var_lang_ctx = build_linguistic_context(
-                            source_language="Unknown", target_locale=accept_language, include_mandate=True
+                    var_lang_ctx = build_linguistic_context(
+                        source_language="Unknown", target_locale=accept_language, include_mandate=True
+                    )
+                    var_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{var_lang_ctx}\n\n{VARIANCE_EXPLANATION_DIRECTIVE}"
+
+                    var_messages: list[dict[str, Any]] = [
+                        {"role": "system", "content": var_sys_prompt},
+                        {
+                            "role": "user",
+                            "content": (
+                                f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>"
+                                f"\n\nSCORES TO EXPLAIN:\nCognitive Score: {authenticity_score}\nMechanical Phrases Count: {performative_phrases_count}"
+                            ),
+                        },
+                    ]
+
+                    t_variance = tg.create_task(
+                        client_var.run_structured_task(
+                            messages=var_messages,
+                            response_model=VarianceExplanationResult,
+                            mock_identity="variance_explainer",
                         )
-                        var_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{var_lang_ctx}\n\n{VARIANCE_EXPLANATION_DIRECTIVE}"
-
-                        var_messages: list[dict[str, Any]] = [
-                            {"role": "system", "content": var_sys_prompt},
-                            {
-                                "role": "user",
-                                "content": (
-                                    f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>"
-                                    f"\n\nSCORES TO EXPLAIN:\nCognitive Score: {authenticity_score}\nMechanical Phrases Count: {performative_phrases_count}"
-                                ),
-                            },
-                        ]
-
-                        t_variance = tg.create_task(
-                            client_var.run_structured_task(
-                                messages=var_messages,
-                                response_model=VarianceExplanationResult,
-                                mock_identity="variance_explainer",
-                            )
-                        )
+                    )
 
         synth_cost = 0.0
         synth_tokens = 0

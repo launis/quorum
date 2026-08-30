@@ -507,8 +507,10 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_and_pdf_task_missing_synthesis_block() -> None:
-    """Negative test: verify missing synthesis_block_id triggers Fail-Fast CONFIGURATION_ERROR."""
+async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesis_block() -> None:
+    """Verify synthesis succeeds cleanly with default system prompt even when synthesis_block_id is omitted."""
+    get_settings().use_mock_llm = True
+    mock_redis = AsyncMock()
     with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
@@ -527,7 +529,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_synthesis_block()
                 "workflow_id": "wf_1234567890123456",
                 "name": {"translations": {"en": "Profile"}},
                 "synthesis": {
-                    "synthesis_block_id": "",
+                    "length_constraint": 500,
                 },
                 "matrix_synthesis_groups": [],
                 "target_block_order": [],
@@ -545,13 +547,33 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_synthesis_block()
                 "default_profile_id": "prof_1111222233334444",
             }
             mock_repo.get_all_prompt_blocks.return_value = []
+            mock_repo.get_model_registry.return_value = {
+                "id": "cfg_1111111111111111",
+                "type": "model_registry",
+                "slug": "model_registry",
+                "models": {
+                    "synthesis": {
+                        "provider": "mock_llm_99",
+                        "model_name": "gemini-2.5-pro",
+                        "temperature": 0.0,
+                        "max_tokens": 1024,
+                        "is_active": True,
+                        "tpm_limit": 100000,
+                        "rpm_limit": 1000,
+                    }
+                },
+            }
 
             with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
                 mock_distiller.return_value = MagicMock(state_delta={"distilled_inputs": "Data"})
-                with pytest.raises((AppException, ExceptionGroup)):
-                    await generate_profile_synthesis_and_pdf_task(
-                        "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
-                    )
+                await generate_profile_synthesis_and_pdf_task(
+                    "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
+                )
+
+                assert mock_repo.update_execution.call_count >= 1
+                mock_redis.enqueue_job.assert_called_once_with(
+                    "generate_pdf_job", "exe_1234567890123456", "fi", "prof_1111222233334444"
+                )
 
 
 @pytest.mark.asyncio
@@ -574,9 +596,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "slug": "prof-1",
                 "workflow_id": "wf_1234567890123456",
                 "name": {"translations": {"en": "Profile"}},
-                "synthesis": {
-                    "synthesis_block_id": "blk_1111222233334444",
-                },
+                "synthesis": {},
                 "visible_workflow_extensions": ["authenticity_evaluation"],
                 "max_extension_items": None,
                 "matrix_synthesis_groups": [],

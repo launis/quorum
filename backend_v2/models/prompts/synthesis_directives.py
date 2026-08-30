@@ -8,7 +8,9 @@ XAI Highlights, and Variance Explanations.
 from backend_v2.models.enums import TargetBlockType
 
 __all__ = [
+    "DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT",
     "DEFAULT_SYNTHESIS_SYSTEM_PROMPT",
+    "DEFAULT_VARIANCE_SYSTEM_PROMPT",
     "EXECUTIVE_SUMMARY_DIRECTIVE",
     "EXECUTIVE_SUMMARY_SECTION_ID",
     "MATRIX_1D_SYNTHESIS_DIRECTIVE",
@@ -24,6 +26,17 @@ DEFAULT_SYNTHESIS_SYSTEM_PROMPT: str = (
     "You are a Senior Executive Coach and Strategic Evaluator. Synthesize the evaluated "
     "cognitive matrix data into structured Server-Driven UI (SDUI) blocks with executive rigor, "
     "mathematical clarity, and actionable developmental feedback."
+)
+
+DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT: str = (
+    "You are a Forensic Evidence Analyst and Strategic Evaluator. Provide ultra-concise, "
+    "evidence-grounded causal explanations for evaluated matrix scores."
+)
+
+DEFAULT_VARIANCE_SYSTEM_PROMPT: str = (
+    "You are a Forensic Evidence Analyst and Cognitive Evaluator. Explain the variance between "
+    "the Cognitive (authenticity and reasoning depth) and Mechanical (performative language patterns) "
+    "evaluation scores in concise, evidence-grounded prose."
 )
 
 EXECUTIVE_SUMMARY_SECTION_ID: str = TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value

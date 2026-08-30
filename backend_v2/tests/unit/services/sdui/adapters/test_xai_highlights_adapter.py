@@ -391,6 +391,3 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
         assert len(blocks) == 1, f"Expected 1 block for extension {ext_type.value} in {locale}, got {len(blocks)}"
         assert isinstance(blocks[0], AccordionBlock)
         assert blocks[0].title != ""
-
-
-
