@@ -9,7 +9,14 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.source_verification import SourceVerificationResultDTO
@@ -29,7 +36,7 @@ def _extract_text_polymorphically(inputs: Any) -> str:
     """Extract candidate text from heterogeneous input state partitions.
 
     Args:
-        inputs: Heterogeneous inputs (str, dict, list, BaseModel).
+        inputs: Heterogeneous inputs (str, dict, list, BaseModel, ExecutionInputsDTO).
 
     Returns:
         Consolidated input text.
@@ -42,6 +49,9 @@ def _extract_text_polymorphically(inputs: Any) -> str:
 
     if isinstance(inputs, str):
         return inputs.strip()
+
+    if isinstance(inputs, ExecutionInputsDTO):
+        return _extract_text_polymorphically(inputs.raw_inputs)
 
     if isinstance(inputs, dict):
         recognized_keys = ("document_text", "prior_analysis", "text", "document")
@@ -110,10 +120,10 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
     if not state.inputs:
         return HookResult(
             success=True,
-            state_delta={
-                "metadata": {"mcp_audit_traces": []},
-                "global_context_vars": {"external_evidence": ""},
-            },
+            state_delta=HookDeltaDTO(
+                delta={"external_evidence": ""},
+                metadata_updates={"mcp_audit_traces": []},
+            ),
         )
 
     candidate_text = _extract_text_polymorphically(state.inputs)
@@ -121,10 +131,10 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
     if len(candidate_text) < settings.source_verification_min_text_length:
         return HookResult(
             success=True,
-            state_delta={
-                "metadata": {"mcp_audit_traces": []},
-                "global_context_vars": {"external_evidence": ""},
-            },
+            state_delta=HookDeltaDTO(
+                delta={"external_evidence": ""},
+                metadata_updates={"mcp_audit_traces": []},
+            ),
         )
 
     if not deps.system_repo:
@@ -166,10 +176,10 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
 
         return HookResult(
             success=True,
-            state_delta={
-                "metadata": {"mcp_audit_traces": raw_traces},
-                "global_context_vars": {"external_evidence": external_evidence_xml},
-            },
+            state_delta=HookDeltaDTO(
+                delta={"external_evidence": external_evidence_xml},
+                metadata_updates={"mcp_audit_traces": raw_traces},
+            ),
         )
     except Exception as e:
         logger.error("[SourceVerificationHook] Failed to verify sources: %s", e, exc_info=True)

@@ -1,8 +1,15 @@
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.dlq_guard import dlq_strict_mode_guard_hook
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 class DummyRepository:
@@ -29,23 +36,25 @@ def test_dlq_guard_success_no_dlqs(dummy_deps: HookDependencies) -> None:
     state = HookState(
         execution_id="exec_123",
         workflow_id="wor_123",
-        inputs={
-            "evaluations": [
-                {"atom_id": "atom_1", "status": "PASS"},
-                {"atom_id": "atom_2", "status": "FAIL"},
-                {"atom_id": "atom_3", "status": "PASS"},
-            ]
-        },
-        metadata={},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "evaluations": [
+                    {"atom_id": "atom_1", "status": "PASS"},
+                    {"atom_id": "atom_2", "status": "FAIL"},
+                    {"atom_id": "atom_3", "status": "PASS"},
+                ]
+            }
+        ),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
     )
 
     result = dlq_strict_mode_guard_hook(state, dummy_deps)
-    from backend_v2.core.hook_registry import HookResult
 
     assert isinstance(result, HookResult)
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 def test_dlq_guard_success_under_threshold(dummy_deps: HookDependencies) -> None:
@@ -54,22 +63,24 @@ def test_dlq_guard_success_under_threshold(dummy_deps: HookDependencies) -> None
     state = HookState(
         execution_id="exec_123",
         workflow_id="wor_123",
-        inputs={
-            "evaluations": [
-                {"atom_id": "atom_1", "status": "DLQ"},
-            ]
-            + [{"atom_id": f"atom_{i}", "status": "PASS"} for i in range(2, 11)]
-        },
-        metadata={},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "evaluations": [
+                    {"atom_id": "atom_1", "status": "DLQ"},
+                ]
+                + [{"atom_id": f"atom_{i}", "status": "PASS"} for i in range(2, 11)]
+            }
+        ),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
     )
 
     result = dlq_strict_mode_guard_hook(state, dummy_deps)
-    from backend_v2.core.hook_registry import HookResult
 
     assert isinstance(result, HookResult)
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 def test_dlq_guard_fails_over_threshold(dummy_deps: HookDependencies) -> None:
@@ -78,15 +89,17 @@ def test_dlq_guard_fails_over_threshold(dummy_deps: HookDependencies) -> None:
     state = HookState(
         execution_id="exec_123",
         workflow_id="wor_123",
-        inputs={
-            "evaluations": [
-                {"atom_id": "atom_1", "status": "DLQ"},
-                {"atom_id": "atom_2", "status": "DLQ"},
-            ]
-            + [{"atom_id": f"atom_{i}", "status": "PASS"} for i in range(3, 11)]
-        },
-        metadata={},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "evaluations": [
+                    {"atom_id": "atom_1", "status": "DLQ"},
+                    {"atom_id": "atom_2", "status": "DLQ"},
+                ]
+                + [{"atom_id": f"atom_{i}", "status": "PASS"} for i in range(3, 11)]
+            }
+        ),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
     )
 
     with pytest.raises(AppException) as exc_info:

@@ -4,7 +4,15 @@ import logging
 
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.models.domain.hydration import HydrationInputSourceDTO
 
 logger = logging.getLogger(__name__)
@@ -26,9 +34,18 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
     """
     logger.debug("[HydrationHook] Running global inputs hydration...")
 
+    if not state:
+        return HookResult(success=True, state_delta=HookDeltaDTO())
+
     hydration_source: HydrationInputSourceDTO | None = None
 
-    for _key, result in state.global_context_vars.items():
+    gvars = (
+        state.global_context_vars.vars
+        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+    )
+
+    for _key, result in gvars.items():
         try:
             # Strict validation attempts to parse the result into the DTO sieve directly
             candidate = HydrationInputSourceDTO.model_validate(result)
@@ -41,20 +58,23 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
 
     if not hydration_source:
         logger.warning("[HydrationHook] No InputProcessorOutput found in data. Skipping hydration.")
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    # HookState strictly enforces inputs as dict[str, Any], eliminating legacy fallback checks
-    inputs = state.inputs.copy()
+    raw_inputs = (
+        state.inputs.raw_inputs.copy()
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs.copy() if isinstance(state.inputs, dict) else {})
+    )
 
     # Extract updates safely via Pydantic model methods
     updates = hydration_source.extract_hydrated_inputs()
 
     if not updates:
         logger.debug("[HydrationHook] Processor output contained no text fields to hydrate.")
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     logger.info("[HydrationHook] Hydrating global inputs with %s", list(updates.keys()))
 
-    inputs.update(updates)
+    raw_inputs.update(updates)
 
-    return HookResult(success=True, state_delta={"inputs": inputs})
+    return HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": raw_inputs}))

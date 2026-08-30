@@ -4,7 +4,14 @@ from typing import Any
 from fastapi import status
 from pydantic import BaseModel, ConfigDict
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
@@ -13,9 +20,10 @@ logger = logging.getLogger(__name__)
 class DLQAtomSchema(BaseModel):
     """Strict schema for DLQ validation."""
 
-    status: str | None = None
+    model_config = ConfigDict(strict=True, extra="forbid")
 
-    model_config = ConfigDict(strict=False, extra="ignore")
+    atom_id: str | None = None
+    status: str | None = None
 
 
 @hook_registry.register(name="dlq_strict_mode_guard")
@@ -39,12 +47,16 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
 
     if not state.inputs:
         logger.info("[DLQGuard] State inputs missing. Bypassing guard.")
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    content_payload: dict[str, Any] = state.inputs
+    content_payload: dict[str, Any] = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
     if "evaluations" not in content_payload:
         logger.info("[DLQGuard] No evaluations found or empty. Bypassing guard.")
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     evaluations = content_payload["evaluations"]
     if not isinstance(evaluations, list):
@@ -86,4 +98,4 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
 
     passed_ratio: float = (dlq_count / total_atoms * 100) if total_atoms > 0 else 0.0
     logger.info("[DLQGuard] DLQ validation passed. Ratio: %.2f%% (%d/%d atoms)", passed_ratio, dlq_count, total_atoms)
-    return HookResult(success=True, state_delta={})
+    return HookResult(success=True, state_delta=HookDeltaDTO())

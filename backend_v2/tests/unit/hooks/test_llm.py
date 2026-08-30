@@ -3,19 +3,33 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.llm import configure_llm_context_hook
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 def test_configure_llm_context_hook_no_state() -> None:
     result = cast(HookResult, configure_llm_context_hook(None, MagicMock(spec=HookDependencies)))  # type: ignore[arg-type]
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 def test_configure_llm_context_hook_no_step_id() -> None:
-    state = HookState(execution_id="exe1", workflow_id="wf1", inputs={}, metadata={}, global_context_vars={})
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
     deps = MagicMock(spec=HookDependencies)
 
     with pytest.raises(AppException) as exc:
@@ -32,7 +46,12 @@ def test_configure_llm_context_hook_no_default_strategy(mock_get_settings: Magic
     mock_get_settings.return_value = mock_settings
 
     state = HookState(
-        execution_id="exe1", workflow_id="wf1", step_id="step_1", inputs={}, metadata={}, global_context_vars={}
+        execution_id="exe1",
+        workflow_id="wf1",
+        step_id="step_1",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
 
@@ -68,11 +87,16 @@ async def test_configure_llm_context_hook_valid(mock_get_settings: MagicMock) ->
     mock_get_settings.return_value = mock_settings
 
     state = HookState(
-        execution_id="exe1", workflow_id="wf1", step_id="step_1", inputs={}, metadata={}, global_context_vars={}
+        execution_id="exe1",
+        workflow_id="wf1",
+        step_id="step_1",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
 
     result = cast(HookResult, configure_llm_context_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert "llm_config" in result.state_delta
+    assert "llm_config" in result.state_delta.delta

@@ -4,7 +4,15 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.models.execution_core import ExecutionMetadata
 
@@ -16,13 +24,13 @@ def test_hook_state_instantiation() -> None:
         workflow_id="wf_1",
         step_id="stp_1",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={"g": "v"},
-        inputs={"in": "1"},
+        global_context_vars=GlobalContextVarsDTO(vars={"g": "v"}),
+        inputs=ExecutionInputsDTO(raw_inputs={"in": "1"}),
     )
     assert state.execution_id == "exec_1"
     assert state.metadata.target_locale == "en"
-    assert state.inputs == {"in": "1"}
-    assert state.global_context_vars == {"g": "v"}
+    assert state.inputs.raw_inputs == {"in": "1"}
+    assert state.global_context_vars.vars == {"g": "v"}
 
 
 def test_hook_state_rejects_invalid_inputs() -> None:
@@ -32,7 +40,7 @@ def test_hook_state_rejects_invalid_inputs() -> None:
             execution_id="exec_1",
             workflow_id="wf_1",
             metadata=ExecutionMetadata(target_locale="en"),
-            global_context_vars={},
+            global_context_vars=GlobalContextVarsDTO(),
             inputs=12345,  # type: ignore[arg-type]
         )
 
@@ -44,22 +52,23 @@ def test_hook_state_strictness() -> None:
             execution_id="exec_1",
             workflow_id="wf_1",
             metadata=ExecutionMetadata(target_locale="en"),
-            global_context_vars={},
-            inputs={},
+            global_context_vars=GlobalContextVarsDTO(),
+            inputs=ExecutionInputsDTO(),
             extra="fail",  # type: ignore[call-arg]
         )
 
 
 def test_hook_result_strictness() -> None:
     """Test HookResult strictness and state_delta typing."""
-    res = HookResult(success=True, state_delta={"test": 123})
+    res = HookResult(success=True, state_delta=HookDeltaDTO(delta={"test": 123}))
     assert res.success is True
-    assert res.state_delta == {"test": 123}
+    assert res.state_delta is not None
+    assert res.state_delta.delta == {"test": 123}
 
     with pytest.raises(ValidationError):
         HookResult(
             success=True,
-            state_delta={"test": 123},
+            state_delta=HookDeltaDTO(delta={"test": 123}),
             extra="fail",  # type: ignore[call-arg]
         )
 
@@ -74,20 +83,20 @@ async def test_hook_registry_register_and_execute_sync_and_async() -> None:
         # Sync hook
         @hook_registry.register("sync_test_hook")
         def sync_hook(state: HookState, deps: HookDependencies) -> HookResult:
-            return HookResult(success=True, state_delta={"sync": "ok"})
+            return HookResult(success=True, state_delta=HookDeltaDTO(delta={"sync": "ok"}))
 
         # Async hook
         @hook_registry.register("async_test_hook")
         async def async_hook(state: HookState, deps: HookDependencies) -> HookResult:
-            return HookResult(success=True, state_delta={"async": "ok"})
+            return HookResult(success=True, state_delta=HookDeltaDTO(delta={"async": "ok"}))
 
         state = HookState(
             execution_id="exec_1",
             workflow_id="wf_1",
             step_id="stp_1",
             metadata=ExecutionMetadata(target_locale="en"),
-            global_context_vars={},
-            inputs={"param": 1},
+            global_context_vars=GlobalContextVarsDTO(),
+            inputs=ExecutionInputsDTO(raw_inputs={"param": 1}),
         )
         deps = HookDependencies(
             exec_repo=MagicMock(),
@@ -102,11 +111,13 @@ async def test_hook_registry_register_and_execute_sync_and_async() -> None:
 
         res_sync = await hook_registry.execute("sync_test_hook", state, deps)
         assert res_sync.success is True
-        assert res_sync.state_delta == {"sync": "ok"}
+        assert res_sync.state_delta is not None
+        assert res_sync.state_delta.delta == {"sync": "ok"}
 
         res_async = await hook_registry.execute("async_test_hook", state, deps)
         assert res_async.success is True
-        assert res_async.state_delta == {"async": "ok"}
+        assert res_async.state_delta is not None
+        assert res_async.state_delta.delta == {"async": "ok"}
 
         assert set(hook_registry.get_all_hooks()) == {"sync_test_hook", "async_test_hook"}
     finally:
@@ -134,8 +145,8 @@ async def test_hook_registry_fail_fast_conditions() -> None:
             execution_id="e",
             workflow_id="w",
             metadata=ExecutionMetadata(target_locale="en"),
-            global_context_vars={},
-            inputs={},
+            global_context_vars=GlobalContextVarsDTO(),
+            inputs=ExecutionInputsDTO(),
         )
         deps = HookDependencies(
             exec_repo=MagicMock(),

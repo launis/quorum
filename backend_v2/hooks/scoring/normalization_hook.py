@@ -5,7 +5,14 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
@@ -50,13 +57,18 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
         msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for normalize_matrix_scores_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
-    if not isinstance(state.inputs, dict):
+    raw_inputs = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
+    if not isinstance(raw_inputs, dict):
         msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in normalize_matrix_scores_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     blueprint_id = state.task_blueprint or state.step_id
 
-    content_payload = state.inputs
+    content_payload = raw_inputs
 
     if not blueprint_id:
         msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id found in execution context for normalization."
@@ -208,7 +220,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             )
 
         if updates_made:
-            return HookResult(success=True, state_delta=new_payload)
+            return HookResult(success=True, state_delta=HookDeltaDTO(delta=new_payload))
 
     except Exception as e:
         if isinstance(e, AppException):
@@ -223,7 +235,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value},
         ) from e
 
-    return HookResult(success=True, state_delta={})
+    return HookResult(success=True, state_delta=HookDeltaDTO())
 
 
 async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: HookDependencies) -> None:

@@ -5,7 +5,13 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.source_verification_hook import source_verification_hook
 from backend_v2.models.domain.source_verification import (
@@ -55,18 +61,16 @@ async def test_source_verification_hook_empty_inputs(mock_deps: HookDependencies
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={}),
     )
 
     result = await source_verification_hook(state, mock_deps)
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "metadata" in result.state_delta
-    assert result.state_delta["metadata"] == {"mcp_audit_traces": []}
-    assert "global_context_vars" in result.state_delta
-    assert result.state_delta["global_context_vars"] == {"external_evidence": ""}
+    assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
+    assert result.state_delta.delta == {"external_evidence": ""}
 
 
 @pytest.mark.asyncio
@@ -76,16 +80,16 @@ async def test_source_verification_hook_empty_prior_analysis(mock_deps: HookDepe
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={"prior_analysis": ""},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"prior_analysis": ""}),
     )
 
     result = await source_verification_hook(state, mock_deps)
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta["metadata"] == {"mcp_audit_traces": []}
-    assert result.state_delta["global_context_vars"] == {"external_evidence": ""}
+    assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
+    assert result.state_delta.delta == {"external_evidence": ""}
 
 
 @pytest.mark.asyncio
@@ -97,16 +101,16 @@ async def test_source_verification_hook_whitespace_prior_analysis_returns_zero_c
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={"prior_analysis": "   \n\t  "},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"prior_analysis": "   \n\t  "}),
     )
 
     result = await source_verification_hook(state, mock_deps)
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta["metadata"] == {"mcp_audit_traces": []}
-    assert result.state_delta["global_context_vars"] == {"external_evidence": ""}
+    assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
+    assert result.state_delta.delta == {"external_evidence": ""}
 
 
 @pytest.mark.asyncio
@@ -116,16 +120,16 @@ async def test_source_verification_hook_short_text_short_circuit(mock_deps: Hook
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={"document_text": "too short"},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"document_text": "too short"}),
     )
 
     result = await source_verification_hook(state, mock_deps)
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta["metadata"] == {"mcp_audit_traces": []}
-    assert result.state_delta["global_context_vars"] == {"external_evidence": ""}
+    assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
+    assert result.state_delta.delta == {"external_evidence": ""}
 
 
 @pytest.mark.asyncio
@@ -176,23 +180,24 @@ async def test_source_verification_hook_success(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={"document_text": "This is a valid long document text discussing quantum supremacy achievements."},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"document_text": "This is a valid long document text discussing quantum supremacy achievements."}
+        ),
     )
 
     result = await source_verification_hook(state, mock_deps)
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "metadata" in result.state_delta
-    assert "mcp_audit_traces" in result.state_delta["metadata"]
-    traces = result.state_delta["metadata"]["mcp_audit_traces"]
+    assert result.state_delta.metadata_updates is not None
+    assert "mcp_audit_traces" in result.state_delta.metadata_updates
+    traces = result.state_delta.metadata_updates["mcp_audit_traces"]
     assert len(traces) == 1
     assert traces[0]["id"] == "tavily_12345678"
 
-    assert "global_context_vars" in result.state_delta
-    assert "external_evidence" in result.state_delta["global_context_vars"]
-    evidence_xml = result.state_delta["global_context_vars"]["external_evidence"]
+    assert "external_evidence" in result.state_delta.delta
+    evidence_xml = result.state_delta.delta["external_evidence"]
     assert '<claim status="VERIFIED" query="Quantum supremacy was demonstrated by Google in 2019">' in evidence_xml
     assert "<answer>Google claimed quantum supremacy in Nature in 2019.</answer>" in evidence_xml
 
@@ -215,8 +220,10 @@ async def test_source_verification_hook_missing_system_repo_raises() -> None:
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={"document_text": "Valid document text that will fail due to missing system repo."},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"document_text": "Valid document text that will fail due to missing system repo."}
+        ),
     )
 
     with pytest.raises(AppException) as exc:
@@ -232,8 +239,8 @@ async def test_source_verification_hook_invalid_input_type(mock_deps: HookDepend
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={"document_text": 12345},  # Invalid type for document_text
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"document_text": 12345}),  # type: ignore[dict-item]
     )
 
     with pytest.raises(AppException) as exc:
@@ -267,8 +274,10 @@ async def test_source_verification_hook_multi_key_string_inputs(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={"section_a": "First paragraph text here.", "section_b": "Second paragraph text here."},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"section_a": "First paragraph text here.", "section_b": "Second paragraph text here."}
+        ),
     )
 
     result = await source_verification_hook(state, mock_deps)
@@ -304,8 +313,8 @@ async def test_source_verification_hook_dto_inputs_handled_safely(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={}),
     )
     object.__setattr__(
         state,
@@ -337,8 +346,10 @@ async def test_source_verification_hook_service_error_propagates(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={"document_text": "This is valid text that encounters service failure."},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"document_text": "This is valid text that encounters service failure."}
+        ),
     )
 
     with pytest.raises(AppException) as exc:
@@ -373,8 +384,8 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={}),
     )
     object.__setattr__(state_str, "inputs", "A direct string input for source checking.")
 
@@ -387,8 +398,8 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={}),
     )
     object.__setattr__(state_list, "inputs", ["Line one of content.", "Line two of content."])
 
@@ -427,8 +438,8 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
-        global_context_vars={},
-        inputs={},
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={}),
     )
     object.__setattr__(state_bm, "inputs", CustomDataModel(text="Generic base model text for verification."))
 

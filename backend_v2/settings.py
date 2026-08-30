@@ -278,6 +278,10 @@ class Settings(BaseSettings):
     default_model_strategy: Annotated[
         str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")
     ] = None
+    model_registry: Annotated[
+        dict[str, Any] | None,
+        Field(default=None, description="System Config Model Registry snapshot (Optional)."),
+    ] = None
     llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 120.0
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 10.0
 

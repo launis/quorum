@@ -9,7 +9,14 @@ import logging
 from fastapi import status
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.hooks.metrics import calculate_behavioral_metrics, calculate_control_ratio
 from backend_v2.llm.client import LLMClient
@@ -50,21 +57,25 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
 
     # 1. Isolation: Extract only current execution chat_log
     try:
-        input_data = InteractionInput.model_validate(state.inputs)
+        inputs_source = (
+            state.inputs.raw_inputs
+            if isinstance(state.inputs, ExecutionInputsDTO)
+            else (state.inputs if isinstance(state.inputs, dict) else {})
+        )
+        input_data = InteractionInput.model_validate(inputs_source)
     except ValidationError as e:
-        error_code = ErrorCodes.INVALID_JSON_PAYLOAD
         msg = f"Invalid inputs schema: {e}"
-        logger.error("[InteractionRoleHook] %s: %s", error_code.name, msg)
+        logger.error("[InteractionRoleHook] %s: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code.value},
+            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value},
         ) from e
 
     chat_log = input_data.chat_log
     if not chat_log or not chat_log.strip():
         logger.debug("[InteractionRoleHook] Empty chat log. Skipping.")
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     # 2. Hard Heuristics (Python)
     control_ratio = calculate_control_ratio(chat_log)
@@ -125,7 +136,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
 
         dumped = response_dto.model_dump(mode="json")
 
-        return HookResult(success=True, state_delta={"interaction_analysis": dumped})
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta={"interaction_analysis": dumped}))
 
     except Exception as e:
         logger.error(

@@ -6,7 +6,15 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.scoring.normalization_hook import recalculate
 from backend_v2.models.domain.prompt_blocks import (
@@ -54,7 +62,12 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for matrix_scoring_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
-    if not isinstance(state.inputs, dict):
+    raw_inputs = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
+    if not isinstance(raw_inputs, dict):
         msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in matrix_scoring_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
@@ -100,7 +113,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         # If no matrix blocks exist, then waterfall scoring natively skips without demanding evaluations
         if not matrix_blocks:
             logger.debug("[ScoringHook] Step '%s' contains no matrix blocks. Skipping waterfall scoring.", blueprint_id)
-            return HookResult(success=True, state_delta={})
+            return HookResult(success=True, state_delta=HookDeltaDTO())
 
         if not state.execution_id or not deps.exec_repo:
             msg = "Strict Fail-Fast Enforced: Missing execution_id or exec_repo in matrix_scoring_hook."
@@ -148,7 +161,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
             )
 
-        content_payload = state.inputs
+        content_payload = raw_inputs
 
         if "results" in content_payload:
             evaluations = content_payload["results"]
@@ -312,7 +325,11 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                     else:
                                         ev_dict = {}
 
-                                    val_context = state.global_context_vars or {}
+                                    val_context = (
+                                        state.global_context_vars.vars
+                                        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
+                                        else (state.global_context_vars or {})
+                                    )
 
                                     try:
                                         ev_dto = AtomResultDTO.model_validate(ev_dict, strict=True, context=val_context)
@@ -460,7 +477,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             deps=deps,
         )
 
-        return HookResult(success=True, state_delta=new_payload)
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=new_payload))
 
     except Exception as e:
         if isinstance(e, AppException):

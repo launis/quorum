@@ -3,7 +3,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookState,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.input_processing import _process_chat_history, process_inputs
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -71,8 +75,8 @@ async def test_process_inputs_missing_context() -> None:
     state = HookState(
         workflow_id="",
         execution_id="",
-        inputs={},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(target_locale="fi"),
     )
     deps = MagicMock()
@@ -80,7 +84,7 @@ async def test_process_inputs_missing_context() -> None:
     with pytest.raises(AppException) as exc:
         await process_inputs(state, deps)
 
-    assert exc.value.details["error_code"] == "MISSING_EXECUTION_CONTEXT"
+    assert exc.value.details["error_code"] == "VALIDATION_FAILED"
 
 
 @pytest.mark.asyncio
@@ -88,9 +92,9 @@ async def test_process_inputs_missing_language() -> None:
     state = HookState(
         workflow_id="w1",
         execution_id="e1",
-        inputs={},
-        global_context_vars={},
-        metadata=ExecutionMetadata(target_locale="fi"),
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(vars={"language": ""}),
+        metadata=ExecutionMetadata(target_locale=""),
     )
 
     mock_workflow_repo = MagicMock()

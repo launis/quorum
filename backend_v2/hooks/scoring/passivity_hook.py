@@ -5,7 +5,14 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
@@ -95,7 +102,12 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
     new_data: dict[str, Any] = {}
 
     judges_to_check = []
-    judges_to_check.append((blueprint_id, state.inputs, True))
+    raw_inputs = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
+    judges_to_check.append((blueprint_id, raw_inputs, True))
 
     for judge_key, judge_model, is_post_hook in judges_to_check:
         if not judge_model or not isinstance(judge_model, dict):
@@ -180,6 +192,6 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
             updates_needed = True
 
     if updates_needed:
-        return HookResult(success=True, state_delta=new_data)
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=new_data))
 
-    return HookResult(success=True, state_delta={})
+    return HookResult(success=True, state_delta=HookDeltaDTO())

@@ -6,7 +6,14 @@ from typing import Any, cast
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.scoring import (
     apply_scoring_logic_hook,
@@ -184,16 +191,18 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={
-            "pb_1234567890123456": {
-                "raw_score": 5.0,
-                "normalized_score": 100.0,
-                "justification": "[INITIALIZING]",
-                "evaluated_atoms": {},
-                "extensions": {},
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "pb_1234567890123456": {
+                    "raw_score": 5.0,
+                    "normalized_score": 100.0,
+                    "justification": "[INITIALIZING]",
+                    "evaluated_atoms": {},
+                    "extensions": {},
+                }
             }
-        },
-        global_context_vars={},
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
@@ -271,19 +280,21 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={
-            "tb_1234567890123456": {
-                "raw_score": 5.0,
-                "normalized_score": 100.0,
-                "justification": "Tämä on perustelu\n\nKitkaa on",
-                "evaluated_atoms": {},
-                "extensions": {
-                    XaiExtensionType.CITATION: "Ote lähteestä",
-                    XaiExtensionType.FALSIFICATION: "Vastalause",
-                },
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "tb_1234567890123456": {
+                    "raw_score": 5.0,
+                    "normalized_score": 100.0,
+                    "justification": "Tämä on perustelu\n\nKitkaa on",
+                    "evaluated_atoms": {},
+                    "extensions": {
+                        XaiExtensionType.CITATION: "Ote lähteestä",
+                        XaiExtensionType.FALSIFICATION: "Vastalause",
+                    },
+                }
             }
-        },
-        global_context_vars={},
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoTapa2()),
@@ -299,7 +310,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
     result = await cast(Awaitable[HookResult], normalize_matrix_scores_hook(state, deps))
 
     assert result.success is True
-    delta = result.state_delta
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
 
     parsed_output = delta["tb_1234567890123456"]
@@ -457,19 +468,21 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={
-            "results": [
-                {
-                    "tda_id": atom_hash,
-                    "status": ExecutionStatus.PASSED,
-                    "evaluation_reasoning": "Valid reasoning",
-                    "source_quote": "mock quote",
-                    "contextual_override": False,
-                }
-            ],
-            "extracted_facts": {},
-        },
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "results": [
+                    {
+                        "tda_id": atom_hash,
+                        "status": ExecutionStatus.PASSED,
+                        "evaluation_reasoning": "Valid reasoning",
+                        "source_quote": "mock quote",
+                        "contextual_override": False,
+                    }
+                ],
+                "extracted_facts": {},
+            }
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfallMixed()),
@@ -509,8 +522,8 @@ async def test_matrix_scoring_hook_pass_all() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),
@@ -525,10 +538,11 @@ async def test_matrix_scoring_hook_pass_all() -> None:
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
-    assert result.state_delta is not None
-    assert result.state_delta["pb_1234567890123456"]["raw_score"] == 5.0
-    assert result.state_delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
-    assert result.state_delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_waterfall_engine_breakdown"
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert delta["pb_1234567890123456"]["raw_score"] == 5.0
+    assert delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
+    assert delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_waterfall_engine_breakdown"
 
 
 @pytest.mark.asyncio
@@ -556,8 +570,8 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),
@@ -571,9 +585,10 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
     )
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
-    assert result.state_delta is not None
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
 
-    assert abs(result.state_delta["pb_1234567890123456"]["raw_score"] - 1.3) < 0.01
+    assert abs(delta["pb_1234567890123456"]["raw_score"] - 1.3) < 0.01
 
 
 @pytest.mark.asyncio
@@ -602,8 +617,8 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),
@@ -751,8 +766,8 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfallSimulation()),
@@ -768,11 +783,12 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
 
     assert result.success is True
-    assert result.state_delta is not None
-    assert result.state_delta["pb_1234567890123456"]["raw_score"] > 1.0
-    assert result.state_delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert delta["pb_1234567890123456"]["raw_score"] > 1.0
+    assert delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
     assert (
-        result.state_delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_pure_average_engine_breakdown"
+        delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_pure_average_engine_breakdown"
     )
 
 
@@ -797,8 +813,8 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),
@@ -850,8 +866,8 @@ async def test_matrix_scoring_hook_contextual_override() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),
@@ -866,9 +882,10 @@ async def test_matrix_scoring_hook_contextual_override() -> None:
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
-    assert result.state_delta is not None
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
 
-    raw_score = result.state_delta["pb_1234567890123456"]["raw_score"]
+    raw_score = delta["pb_1234567890123456"]["raw_score"]
     assert abs(raw_score - 5.0) < 0.01
 
 
@@ -894,8 +911,8 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),
@@ -917,16 +934,18 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
     """Test that matrix_scoring_hook handles empty evaluations list properly."""
     pb = _build_valid_pb_dict("blk_1111111111111111", [_build_valid_scale(1, ["atom_test"])])
     state = HookState(
-        inputs={"results": [], "extracted_facts": {}, "execution_metadata": {}},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": [], "extracted_facts": {}, "execution_metadata": {}}),
         step_id="sp_empty_evals",
         execution_id="exe_1111111111111111",
         workflow_id="wf_1",
         task_blueprint="sp_1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        global_context_vars={
-            "matrix_blocks": [("blk_1111111111111111", MatrixPromptBlock(**pb))],
-            "scoring_profile": {"id": "prof_1", "scoring_strategy": "baseline", "strictness_level": "normal"},
-        },
+        global_context_vars=GlobalContextVarsDTO(
+            vars={
+                "matrix_blocks": [("blk_1111111111111111", MatrixPromptBlock(**pb))],
+                "scoring_profile": {"id": "prof_1", "scoring_strategy": "baseline", "strictness_level": "normal"},
+            }
+        ),
     )
 
     deps = HookDependencies(
@@ -942,8 +961,9 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result is not None
     assert result.success is True
-    assert result.state_delta is not None
-    assert result.state_delta["results"] == []
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert delta["results"] == []
 
 
 @pytest.mark.asyncio
@@ -969,8 +989,8 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
 
     class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
@@ -1007,9 +1027,10 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
 
     assert result.success is True
-    assert result.state_delta is not None
-    assert "pb_1234567890123456" in result.state_delta
-    matrix_output = result.state_delta["pb_1234567890123456"]
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert "pb_1234567890123456" in delta
+    matrix_output = delta["pb_1234567890123456"]
     assert matrix_output is not None
 
     extensions = matrix_output["extensions"]
@@ -1039,8 +1060,8 @@ async def test_scoring_matrix_namespace_isolation() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": [ev_dict], "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": [ev_dict], "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
 
     class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
@@ -1076,9 +1097,10 @@ async def test_scoring_matrix_namespace_isolation() -> None:
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
-    assert result.state_delta is not None
-    assert "pb_1234567890123456" in result.state_delta
-    matrix_output = result.state_delta["pb_1234567890123456"]
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert "pb_1234567890123456" in delta
+    matrix_output = delta["pb_1234567890123456"]
     assert matrix_output["evaluated_atoms"][atom_hash] == ExecutionStatus.FAILED
     assert matrix_output["raw_score"] == 1.0
 
@@ -1105,8 +1127,8 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": [ev_dict], "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": [ev_dict], "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
 
     class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
@@ -1142,9 +1164,10 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
-    assert result.state_delta is not None
-    assert "pb_1234567890123456" in result.state_delta
-    matrix_output = result.state_delta["pb_1234567890123456"]
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert "pb_1234567890123456" in delta
+    matrix_output = delta["pb_1234567890123456"]
     assert atom_hash in matrix_output["evaluated_atoms"]
     assert matrix_output["evaluated_atoms"][atom_hash] == ExecutionStatus.PASSED
 
@@ -1171,8 +1194,8 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": [ev_dict], "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": [ev_dict], "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
 
     class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
@@ -1208,9 +1231,10 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
-    assert result.state_delta is not None
-    assert "pb_1234567890123456" in result.state_delta
-    matrix_output = result.state_delta["pb_1234567890123456"]
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert "pb_1234567890123456" in delta
+    matrix_output = delta["pb_1234567890123456"]
     assert matrix_output["evaluated_atoms"][atom_hash] == ExecutionStatus.FAILED
 
 
@@ -1258,8 +1282,8 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"results": evaluations, "extracted_facts": {}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfallStrict()),
@@ -1274,9 +1298,10 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
 
     result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
     assert result.success is True
-    assert result.state_delta is not None
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
 
-    raw_score = result.state_delta["pb_1234567890123456"]["raw_score"]
+    raw_score = delta["pb_1234567890123456"]["raw_score"]
     assert abs(raw_score - 4.0) < 0.01
 
 
@@ -1312,8 +1337,8 @@ def test_apply_scoring_logic_hook_success() -> None:
         step_id="step_final",
         task_blueprint="step_final",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"steps": [], "inputs": {"_evaluative_matrices": eval_matrices}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "inputs": {"_evaluative_matrices": eval_matrices}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
@@ -1328,9 +1353,10 @@ def test_apply_scoring_logic_hook_success() -> None:
 
     result = apply_scoring_logic_hook(state, deps)
     assert result.success is True
-    assert result.state_delta is not None
-    assert "scoring_result" in result.state_delta
-    scoring_result = result.state_delta["scoring_result"]
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert "scoring_result" in delta
+    scoring_result = delta["scoring_result"]
     assert scoring_result["total_score"] == 85.0
     assert scoring_result["final_score"] == 85.0
     assert scoring_result["penalties_applied"] == []
@@ -1351,8 +1377,8 @@ def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
         step_id="step_final",
         task_blueprint="step_final",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"steps": [step_output.model_dump(mode="json")]},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"steps": [step_output.model_dump(mode="json")]}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
@@ -1367,8 +1393,9 @@ def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
 
     result = apply_scoring_logic_hook(state, deps)
     assert result.success is True
-    assert result.state_delta is not None
-    scoring_result = result.state_delta["scoring_result"]
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    scoring_result = delta["scoring_result"]
     assert scoring_result["final_score"] == 80.0
 
 
@@ -1437,8 +1464,8 @@ def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties(monkeypa
         step_id="step_final",
         task_blueprint="step_final",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs=inputs,
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs=inputs),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
@@ -1453,8 +1480,9 @@ def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties(monkeypa
 
     result = apply_scoring_logic_hook(state, deps)
     assert result.success is True
-    assert result.state_delta is not None
-    scoring_result = result.state_delta["scoring_result"]
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    scoring_result = delta["scoring_result"]
     # Final score should have penalty applied
     assert scoring_result["final_score"] < 100.0
     assert len(scoring_result["penalties_applied"]) >= 1
@@ -1468,11 +1496,13 @@ def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
         step_id="step_final",
         task_blueprint="step_final",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={
-            "matrix_1": {"justification": "[INDETERMINATE] Missing source data"},
-            "steps": [],
-        },
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "matrix_1": {"justification": "[INDETERMINATE] Missing source data"},
+                "steps": [],
+            }
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
@@ -1487,8 +1517,9 @@ def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
 
     result = apply_scoring_logic_hook(state, deps)
     assert result.success is True
-    assert result.state_delta is not None
-    scoring_result = result.state_delta["scoring_result"]
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    scoring_result = delta["scoring_result"]
     assert scoring_result["total_score"] is None
     assert scoring_result["final_score"] is None
     assert "INDETERMINATE" in scoring_result["aggregation_status"]
@@ -1502,8 +1533,8 @@ def test_apply_scoring_logic_hook_missing_evaluative_matrices_raises() -> None:
         step_id="step_final",
         task_blueprint="step_final",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"steps": []},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"steps": []}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
@@ -1545,8 +1576,8 @@ async def test_enforce_passivity_penalty_hook_penalty_triggered() -> None:
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),
@@ -1561,9 +1592,10 @@ async def test_enforce_passivity_penalty_hook_penalty_triggered() -> None:
 
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
-    assert result.state_delta is not None
-    assert "pb_1234567890123456" in result.state_delta
-    updated_matrix = result.state_delta["pb_1234567890123456"]
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert "pb_1234567890123456" in delta
+    updated_matrix = delta["pb_1234567890123456"]
     assert "PASSIVITY PENALTY" in updated_matrix["justification"]
 
 
@@ -1584,8 +1616,8 @@ async def test_enforce_passivity_penalty_hook_no_penalty_when_above_min() -> Non
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),
@@ -1600,7 +1632,8 @@ async def test_enforce_passivity_penalty_hook_no_penalty_when_above_min() -> Non
 
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
-    assert result.state_delta == {}
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta == {}
 
 
 @pytest.mark.asyncio
@@ -1612,8 +1645,8 @@ async def test_enforce_passivity_penalty_hook_legacy_score_card_raises() -> None
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={"score_card": {"dimension_1": 1.0}},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={"score_card": {"dimension_1": 1.0}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),
@@ -1642,8 +1675,8 @@ async def test_enforce_passivity_penalty_hook_missing_workflow_repo_raises() -> 
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
         metadata=ExecutionMetadata(target_locale="fi"),
-        inputs={},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepoWaterfall()),

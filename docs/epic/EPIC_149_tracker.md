@@ -53,10 +53,17 @@
   - [x] Step 4: Decompose Matrix & Normalization Hooks (`matrix_hook.py`, `normalization_hook.py`)
   - [x] Step 5: Strangler Fig Facade & Monolith Purge (`__init__.py`, delete `scoring.py`)
   - [x] Step 6: Universal Quality Gate & AST Audit (`backend_audit_loop.py`, `_ast_guardrails.py`)
-- [ ] **[NOK] Audit (Sub-Phase 3A):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/03_placeholder_phase3a_scoring_god_code_decomposition.md] @[docs/epic/EPIC_149_tracker.md]`
-- [ ] **[NOK] Create Plan (Sub-Phase 3B):** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L234-L258] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
-- [ ] **[NOK] Execution (Sub-Phase 3B):** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
-  - [ ] Step 1: Full Hooks Pydantic V2 Migration
+- [x] **[OK] Audit (Sub-Phase 3A):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/03_placeholder_phase3a_scoring_god_code_decomposition.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Create Plan (Sub-Phase 3B):** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L234-L258] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Red-Teaming (Sub-Phase 3B):** `/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Execution (Sub-Phase 3B):** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Flight Verification
+  - [x] Step 1: Pre-Implementation Technical Debt Cleanups & AST Guardrail Remediation
+  - [x] Step 2: Core Hook Registry & DTO Modernization
+  - [x] Step 3: Validation, Ingress & Security Hooks Migration
+  - [x] Step 4: Extraction, Context & Integrity Hooks Migration
+  - [x] Step 5: Scoring Package Pydantic V2 Transition & Models Sunset
+  - [x] Step 6: Universal Quality Gate, AST Audit & Semantic Parity Verification
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ### Phase 4: Orchestration & Strategy Core Refactoring & Tests
@@ -107,7 +114,7 @@
 - [x] @[backend_v2/main.py] — Lifespan startup pre-flight schema check.
 - [x] @[backend_v2/models/v2_core.py] — Strict mandatory `target_locale` without defaults.
 - [x] @[backend_v2/models/execution_core.py] — Strict `ExecutionMetadata` SSOT.
-- [ ] @[backend_v2/core/hook_registry.py] — Strictly typed `HookState` and `HookResult`.
+- [x] @[backend_v2/core/hook_registry.py] — Strictly typed `HookState` and `HookResult`.
 - [x] @[backend_v2/models/dtos/hook_state.py] — Strict DTO schemas.
 - [x] @[backend_v2/database/repositories/execution.py] — Typed model returns & Rust-level blob hydration.
 - [x] [NEW] @[backend_v2/hooks/scoring/__init__.py] — Decomposed modular scoring package facade.
@@ -117,6 +124,22 @@
 - [x] [NEW] @[backend_v2/hooks/scoring/matrix_hook.py] — Matrix scoring hook with AST Evaluator.
 - [x] [NEW] @[backend_v2/hooks/scoring/normalization_hook.py] — Score normalization and recalculation hook.
 - [x] @[backend_v2/tests/unit/hooks/test_scoring.py] — Modernized scoring hook unit test suite.
+- [x] @[backend_v2/hooks/validation.py] — Strict validation hooks.
+- [x] @[backend_v2/hooks/source_verification_hook.py] — Strict source verification hook.
+- [x] @[backend_v2/hooks/atom_flattening.py] — Strict matrix atom flattening hook.
+- [x] @[backend_v2/hooks/input_processing.py] — Strict input processing hook.
+- [x] @[backend_v2/hooks/integrity.py] — Strict integrity and citation hooks.
+- [x] @[backend_v2/hooks/linguistics.py] — Strict linguistics pattern detection hook.
+- [x] @[backend_v2/hooks/llm.py] — Strict LLM context configuration hook.
+- [x] @[backend_v2/hooks/context_mapper.py] — Strict context mapper service.
+- [x] @[backend_v2/hooks/archival.py] — Strict archival precedent hook.
+- [x] @[backend_v2/hooks/security.py] — Strict text sanitization hook.
+- [x] @[backend_v2/hooks/hydration.py] — Strict input hydration hook.
+- [x] @[backend_v2/hooks/dlq_guard.py] — Strict DLQ guard hook.
+- [x] @[backend_v2/hooks/metadata.py] — Strict metadata injection hook.
+- [x] @[backend_v2/hooks/metrics.py] — Strict metrics calculation hook.
+- [x] @[backend_v2/hooks/references.py] — Strict reference generation hook.
+- [x] @[backend_v2/hooks/interaction_hook.py] — Strict interaction role hook.
 - [ ] [NEW] @[backend_v2/services/cache/typed_cache.py] — Generic `TypedCacheService` with zombie eviction.
 - [ ] @[scripts/_ast_guardrails.py] — Locked `QGR001`, `QGR002`, `QGR012` at FATAL severity.
 
@@ -182,6 +205,7 @@
 | Decompose matrix & normalization scoring hooks | Phase 3, Step 4 | COMPLETED |
 | Strangler Fig facade in __init__.py & monolith deletion | Phase 3, Step 5 | COMPLETED |
 | Universal Quality Gate & AST guardrails verification | Phase 3, Step 6 | COMPLETED |
+| Full hooks Pydantic V2 migration & models.py permanent sunset | Phase 3, Step 6 | COMPLETED |
 | Eliminate duck-typing & reflection from orchestrator and strategies | Phase 4, Step 1 | PENDING |
 | Eliminate `getattr(initiator, "organization_id")` from services | Phase 5, Step 1 | PENDING |
 | Build `TypedCacheService` with zombie cache eviction | Phase 6, Step 1 | PENDING |
@@ -245,14 +269,14 @@
     - `backend_v2/hooks/scoring/__init__.py`: PEP 484 Strangler Fig facade with explicit `__all__` and redundant re-export aliases for all 5 hook functions and 2 DTOs.
   - Validated with `scripts/audit_markdown_boundaries.py` (0 errors) and `scripts/audit_planner_output.py` (100% fidelity).
   - Marked Phase 3A Red-Teaming status as `[x] [OK]`.
-- **Phase 3A God Code Decomposition (`/tier2-execute`) Completed**:
+- **Phase 3A God Code Decomposition (`/tier2-execute`) Completed (Commit `287efa28`)**:
   - Decomposed monolithic 1,348 LOC (64.3 KB) `backend_v2/hooks/scoring.py` into modular package `backend_v2/hooks/scoring/`:
-    - `models.py` (95 LOC, limit <120): Pure extraction DTOs (`ScoringPayloadWrapper`, `StateInputWrapper`, `_extract_payloads`).
-    - `falsifier_hook.py` (235 LOC, limit <250): `apply_scoring_logic_hook` + security & falsifier penalty calculation without reflection.
-    - `passivity_hook.py` (158 LOC, limit <200): `enforce_passivity_penalty_hook` + low-quality score scaling.
-    - `matrix_hook.py` (300 LOC, limit <480): `matrix_scoring_hook` + quote evidence validation + AST Evaluator integration with `isinstance()` narrowing.
-    - `normalization_hook.py` (355 LOC, limit <400): `normalize_matrix_scores_hook` + `recalculate` hybrid calculation engine without hardcoded scales.
-    - `__init__.py` (35 LOC, limit <40): PEP 484 Strangler Fig facade with explicit `__all__` and redundant re-export aliases for all 5 hook functions and 2 temporary DTOs.
+    - `models.py` (105 LOC, limit <120): Pure extraction DTOs (`ScoringPayloadWrapper`, `StateInputWrapper`, `_extract_payloads`) with mandatory sunset in Sub-Phase 3B.
+    - `falsifier_hook.py` (249 LOC, limit <250): `apply_scoring_logic_hook` + security & falsifier penalty calculation without reflection.
+    - `passivity_hook.py` (186 LOC, limit <200): `enforce_passivity_penalty_hook` + low-quality score scaling.
+    - `matrix_hook.py` (475 LOC, limit <480): `matrix_scoring_hook` + quote evidence validation + AST Evaluator integration with `isinstance()` narrowing.
+    - `normalization_hook.py` (384 LOC, limit <400): `normalize_matrix_scores_hook` + `recalculate` hybrid calculation engine without hardcoded scales.
+    - `__init__.py` (37 LOC, limit <40): PEP 484 Strangler Fig facade with explicit `__all__` and redundant re-export aliases for all 5 hook functions and 2 temporary DTOs.
   - Eliminated all 14 AST guardrail violations (`QGR001` reflection, `QGR002` `.get()`) in scoring domain code.
   - Permanently deleted monolithic `backend_v2/hooks/scoring.py`.
   - Modernized `backend_v2/tests/unit/hooks/test_scoring.py`:
@@ -264,6 +288,16 @@
   - Passed Universal Quality Gate: `uv run python scripts/backend_audit_loop.py backend_v2/hooks/scoring/ backend_v2/tests/unit/hooks/test_scoring.py --ast-strict` and `scripts/_ast_guardrails.py --strict` with 0 errors.
   - Validated structural contracts: `audit_markdown_boundaries.py` and `audit_tracker_output.py` passed cleanly (0 errors).
   - Marked Phase 3A Execution status as `[x] [OK]`.
+- **Phase 3B Full Hooks Migration & Models Sunset (`/tier2-execute`) Completed**:
+  - Upgraded `backend_v2/core/hook_registry.py` to strictly typed `HookState(inputs: ExecutionInputsDTO, global_context_vars: GlobalContextVarsDTO)` and `HookResult(state_delta: HookDeltaDTO | None)`.
+  - Migrated all validation and ingress hooks: `validation.py`, `security.py`, `input_processing.py`, `hydration.py`, `interaction_hook.py`.
+  - Migrated all extraction, context and integrity hooks: `source_verification_hook.py`, `atom_flattening.py`, `context_mapper.py`, `integrity.py`, `linguistics.py`, `llm.py`, `archival.py`, `dlq_guard.py`, `metadata.py`, `metrics.py`, `references.py`.
+  - Permanently deleted temporary scaffolding module `backend_v2/hooks/scoring/models.py` (`[DELETE]`), absorbed extraction logic into `falsifier_hook.py`, and cleaned up `backend_v2/hooks/scoring/__init__.py`.
+  - Modernized all 4 scoring modules (`falsifier_hook.py`, `passivity_hook.py`, `matrix_hook.py`, `normalization_hook.py`) to consume `ExecutionInputsDTO` and return `HookDeltaDTO`.
+  - Modernized test fixtures and assertions across all hook test files in `backend_v2/tests/unit/hooks/` and `backend_v2/tests/unit/core/test_hook_registry.py` (93/93 tests passing: 89 passed, 4 xpassed).
+  - Validated AST guardrails: `uv run python scripts/_ast_guardrails.py backend_v2/hooks/ --strict` passed cleanly (0 errors).
+  - Verified SDUI semantic parity: `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py` passed 100%.
+  - Marked Phase 3B Execution status as `[x] [OK]`.
 
 ## Learned
 - Repository reconstitution requires updating `backend_v2/database/interfaces.py` in lockstep to avoid Protocol divergence and MyPy strict mode violations.
@@ -273,17 +307,21 @@
 - In unit test fixtures, `HookState` requires `metadata=ExecutionMetadata(target_locale="fi")` rather than raw empty dict `{}` to satisfy strict Pydantic V2 validation and MyPy `--strict` checking.
 - Pre-flight test analysis revealed that `apply_scoring_logic_hook` and `enforce_passivity_penalty_hook` had zero dedicated unit test coverage in `test_scoring.py`; test expansion with positive/negative boundary partitions is required in Phase 1 before monolith deletion.
 - In `backend_audit_loop.py`, testing decomposed packages requires discovering candidates from parent directory name (`parts[-2]`) when given `__init__.py`, and testing directory paths should check for matching test files under `backend_v2/tests/unit/hooks/test_<module>.py`.
+- Sub-Phase 3B permanently sunsets `backend_v2/hooks/scoring/models.py` by absorbing `ScoringPayloadWrapper` and `_extract_payloads` into `falsifier_hook.py` and strictly updating `HookState` and `HookResult` to consume typed DTOs from `backend_v2/models/dtos/hook_state.py`.
+- `HookState.inputs: ExecutionInputsDTO` provides structured attributes (`raw_inputs`, `dynamic_inputs`, `target_locale`, `user_role`) that replace untyped `.get()` lookups across validation, ingress, security, extraction, and scoring hooks.
+- `HookResult.state_delta: HookDeltaDTO | None` provides clean separation between `delta` (payload dictionary) and `metadata_updates` (metadata dictionary), replacing manual `delta.pop("metadata", None)` hacks.
+- In `backend_v2/settings.py`, declaring optional `model_registry: dict[str, Any] | None = None` provides direct attribute access for `llm.py` hook resolution without requiring reflection `getattr()` calls.
+- In `backend_v2/hooks/input_processing.py`, missing execution context or missing mandatory language raises `AppException` with `ErrorCodes.VALIDATION_FAILED` and `ErrorCodes.CONFIGURATION_ERROR` respectively.
 
 ## Remaining
-- **Phase 3: Hooks Refactoring & God Code Decomposition**:
-  - **Sub-Phase 3A Audit**: System 2 Red-Team Audit of Phase 3A execution (`/tier8-audit-plan`).
-  - **Sub-Phase 3B**: Full Hooks Pydantic V2 Migration across all 11 hook files (`interaction_hook.py`, `validation.py`, `source_verification_hook.py`, `atom_flattening.py`, `input_processing.py`, `integrity.py`, `linguistics.py`, `llm.py`, `context_mapper.py`, `archival.py`, `security.py`), eliminating duck-typing, transitioning `HookState` to typed DTOs, and sunsetting temporary `models.py`.
-- **Phase 4**: Orchestration & Strategy Core Refactoring.
-- **Phase 5**: Service Layer & Identity.
-- **Phase 6**: Background Workers, Typed Cache Boundary & Storage.
-- **Phase 7**: AST Guardrails Hardening.
+- **Phase 3B Audit**:
+  - `[ ]` `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
+- **Phase 4**: Orchestration & Strategy Core Refactoring & Tests (`05_placeholder_phase4_orchestration_and_strategy_core.md`).
+- **Phase 5**: Service Layer, Utility Services & Service Tests (`06_placeholder_phase5_service_layer_and_identity.md`).
+- **Phase 6**: Background Workers, Typed Cache Boundary & Storage (`07_placeholder_phase6_workers_typed_cache_and_storage.md`).
+- **Phase 7**: AST Guardrails Hardening & Global Clean Code Audit (`08_placeholder_phase7_ast_guardrails_hardening.md`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/03_placeholder_phase3a_scoring_god_code_decomposition.md] @[docs/epic/EPIC_149_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]
 ```

@@ -9,7 +9,15 @@ from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
@@ -63,7 +71,11 @@ async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> lis
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
 
     inputs_dict = exec_record.raw_inputs.model_dump()
-    dynamic_inputs = inputs_dict.get("dynamic_inputs", {})
+    dynamic_inputs = (
+        inputs_dict["dynamic_inputs"]
+        if "dynamic_inputs" in inputs_dict and isinstance(inputs_dict["dynamic_inputs"], dict)
+        else {}
+    )
     storage = get_storage_driver()
 
     keys_to_check = set(list(inputs_dict.keys()) + list(dynamic_inputs.keys()))
@@ -80,11 +92,11 @@ async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> lis
     return source_texts
 
 
-def _gather_rag_context(global_vars: dict[str, Any]) -> str:
+def _gather_rag_context(global_vars: GlobalContextVarsDTO | dict[str, Any]) -> str:
     """Extract context precedents and knowledge items from global variables.
 
     Args:
-        global_vars: The global context dictionary from the HookState.
+        global_vars: The global context dictionary or DTO from the HookState.
 
     Returns:
         A formatted string of RAG context.
@@ -93,9 +105,10 @@ def _gather_rag_context(global_vars: dict[str, Any]) -> str:
         AppException: If the step_context structure is invalid.
     """
     rag_text = ""
-    if "step_context" in global_vars:
+    gdict = global_vars.vars if isinstance(global_vars, GlobalContextVarsDTO) else global_vars
+    if "step_context" in gdict:
         try:
-            step_ctx = StepContext.model_validate(global_vars["step_context"])
+            step_ctx = StepContext.model_validate(gdict["step_context"])
             if step_ctx.precedents:
                 rag_text += f"{step_ctx.precedents}\n"
             for item in step_ctx.knowledge_items:
@@ -232,15 +245,26 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         AnalystOutput | EvaluationResult
     )
 
+    inputs_source = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
+
     try:
-        parsed_payload = CitationPayloadAdapter.validate_python(state.inputs)
+        parsed_payload = CitationPayloadAdapter.validate_python(inputs_source)
     except ValidationError:
         # Hook is attached to a non-citation schema step, bypass gracefully
         logger.info("[IntegrityHook] Payload is neither AnalystOutput nor EvaluationResult. Bypassing.")
-        delta = copy.deepcopy(state.inputs)
-        return HookResult(success=True, state_delta=delta)
+        delta = copy.deepcopy(inputs_source)
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))
 
-    system_locale = state.global_context_vars.get("system_locale") if state.global_context_vars else None
+    gvars = (
+        state.global_context_vars.vars
+        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+    )
+    system_locale = gvars["system_locale"] if "system_locale" in gvars else None
     from backend_v2.settings import get_lexical_fuzz_threshold
 
     threshold = get_lexical_fuzz_threshold(system_locale)
@@ -251,13 +275,14 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
 
     if total_count == 0:
         logger.warning("[IntegrityHook] No structured citations found to verify.")
-        return HookResult(success=True, state_delta=parsed_payload.model_dump(mode="json", exclude_none=True))
+        return HookResult(
+            success=True, state_delta=HookDeltaDTO(delta=parsed_payload.model_dump(mode="json", exclude_none=True))
+        )
 
     if not norm_corpus:
-        error_code = ErrorCodes.STATE_INTEGRITY_ERROR
         msg = f"Data Integrity Violation: {total_count} citations found, but Source Corpus is empty."
-        logger.error("[IntegrityHook] %s: %s", error_code.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value})
 
     integrity_score = valid_count / total_count
 
@@ -276,7 +301,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     parsed_payload = parsed_payload.model_copy(update={"integrity_audit": audit})
     delta = parsed_payload.model_dump(mode="json", exclude_none=True)
 
-    return HookResult(success=True, state_delta=delta)
+    return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))
 
 
 @hook_registry.register(name="enforce_hypothesis_linking")
@@ -295,19 +320,23 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
     Raises:
         AppException: If a hypothesis is missing an ID or contains a duplicate ID.
     """
-    payload = state.inputs
+    payload = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
 
     # Strict boundary check: Explicit schema-driven parsing
     try:
         analyst_dto = AnalystOutput.model_validate(payload)
     except ValidationError:
         # Graceful bypass for non-Analyst steps
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     hypotheses = analyst_dto.hypotheses
 
     if not hypotheses:
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     seen_ids = set()
 
@@ -315,22 +344,20 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
         h_id = hyp.id
 
         if not h_id:
-            error_code = ErrorCodes.VALIDATION_FAILED
             msg = f"Hypothesis missing ID: {hyp}"
-            logger.error("[IntegrityHook] %s: %s", error_code.name, msg)
-            raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+            logger.error("[IntegrityHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         if h_id in seen_ids:
-            error_code = ErrorCodes.STATE_INTEGRITY_ERROR
             msg = f"Duplicate Hypothesis ID found: {h_id}."
-            logger.error("[IntegrityHook] %s: %s", error_code.name, msg)
+            logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": error_code.value, "duplicate_id": h_id},
+                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value, "duplicate_id": h_id},
             )
 
         seen_ids.add(h_id)
 
     logger.info("[IntegrityHook] Verified %s opaque hypotheses.", len(hypotheses))
-    return HookResult(success=True, state_delta={})
+    return HookResult(success=True, state_delta=HookDeltaDTO())

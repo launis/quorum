@@ -10,7 +10,14 @@ import logging
 
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.security import SanitizationResultDTO, SecurityPayloadDTO
 from backend_v2.models.dtos.state import I18nStatePayload
@@ -52,8 +59,10 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     threats_summary: list[str] = []
 
     i18n_inputs = {}
-    if state.global_context_vars and "language" in state.global_context_vars:
-        i18n_inputs["language"] = state.global_context_vars["language"]
+    if state.global_context_vars and "language" in state.global_context_vars.vars:
+        i18n_inputs["language"] = state.global_context_vars.vars["language"]
+    elif state.inputs and state.inputs.target_locale:
+        i18n_inputs["language"] = state.inputs.target_locale
     elif state.metadata and state.metadata.target_locale:
         i18n_inputs["language"] = state.metadata.target_locale
 
@@ -72,7 +81,11 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     pii_service = get_pii_service()
 
     try:
-        payload = SecurityPayloadDTO.model_validate(state.inputs)
+        if isinstance(state.inputs, ExecutionInputsDTO):
+            inputs_source = state.inputs.raw_inputs if state.inputs.raw_inputs else state.inputs.model_dump()
+        else:
+            inputs_source = state.inputs
+        payload = SecurityPayloadDTO.model_validate(inputs_source)
     except ValidationError as e:
         msg = f"Strict Fail-Fast Enforced: Security payload failed validation: {e}"
         logger.error("[SecurityHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
@@ -126,4 +139,4 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     else:
         logger.debug("[SecurityHook] No PII detected.")
 
-    return HookResult(success=True, state_delta={"sanitization_result": result})
+    return HookResult(success=True, state_delta=HookDeltaDTO(delta={"sanitization_result": result}))

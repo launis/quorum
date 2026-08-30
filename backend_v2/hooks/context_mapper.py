@@ -8,8 +8,8 @@ across all output profiles, holistic evaluations, and matrices.
 import logging
 from typing import Any
 
-from backend_v2.exceptions import AppException
-from backend_v2.models.domain.prompt_blocks import PromptBlockBase
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockBase
 from backend_v2.models.v2_core import MatrixSynthesisGroup, Workflow
 
 logger = logging.getLogger(__name__)
@@ -54,14 +54,16 @@ class ContextMapper:
                         "Fail-Fast violation: ContextMapper MUST receive strictly typed "
                         "PromptBlock models, not raw dictionaries."
                     )
-                    logger.error("[ContextMapper] DATA_CORRUPTION: %s", msg, exc_info=True)
-                    raise AppException(message="Internal compilation error.", status_code=500, details={})
+                    logger.error("[ContextMapper] %s: %s", ErrorCodes.DATA_CORRUPTION.name, msg, exc_info=True)
+                    raise AppException(
+                        message="Internal compilation error.",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.DATA_CORRUPTION.value},
+                    )
 
                 if str(b.id) == str(block_id):
-                    comp_min = getattr(b, "computed_min", None)
-                    comp_max = getattr(b, "computed_max", None)
-                    if comp_min is not None and comp_max is not None:
-                        extrema_str = f" (Absolute Scale Limits: {comp_min} to {comp_max})"
+                    if isinstance(b, MatrixPromptBlock) and b.computed_min is not None and b.computed_max is not None:
+                        extrema_str = f" (Absolute Scale Limits: {b.computed_min} to {b.computed_max})"
                     break
 
             instruction += f"  {b_idx + 1}. Target Data Element -> ID: {block_id}{extrema_str}\n"

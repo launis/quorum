@@ -14,7 +14,15 @@ from typing import Any
 from fastapi import status
 from pydantic import TypeAdapter, ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
 from backend_v2.models.v2_core import ChatHistoryDTO, ExpectedInput, Workflow
@@ -48,19 +56,30 @@ def _extract_raw_value(key_lower: str, state: HookState) -> Any:
     Returns:
         The extracted raw value, or None if not found.
     """
-    # 1. Check state.inputs
-    for k, v in state.inputs.items():
+    raw_inputs = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
+    dynamic_inputs = state.inputs.dynamic_inputs if isinstance(state.inputs, ExecutionInputsDTO) else {}
+    gvars = (
+        state.global_context_vars.vars
+        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+    )
+
+    # 1. Check raw_inputs
+    for k, v in raw_inputs.items():
         if k.lower() == key_lower:
             return v
 
-    dynamic_inputs = state.inputs.get("dynamic_inputs")
-    if isinstance(dynamic_inputs, dict):
-        for k, v in dynamic_inputs.items():
-            if k.lower() == key_lower:
-                return v
+    # 2. Check dynamic_inputs
+    for k, v in dynamic_inputs.items():
+        if k.lower() == key_lower:
+            return v
 
-    # 2. Check state.global_context_vars
-    for k, v in state.global_context_vars.items():
+    # 3. Check global_context_vars
+    for k, v in gvars.items():
         if k.lower() == key_lower:
             return v
 
@@ -172,13 +191,13 @@ async def _process_chat_history(
                 raise e
             logger.error(
                 "Chat parsing failed.",
-                extra={"error_code": "CHAT_PARSING_FAILED", "input_key": key, "detail": str(e)},
+                extra={"error_code": ErrorCodes.PARSING_FAILED.name, "input_key": key, "detail": str(e)},
                 exc_info=True,
             )
             raise AppException(
                 message=f"Failed to parse unstructured chat for {key} using AI.",
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": "CHAT_PARSING_FAILED"},
+                details={"error_code": ErrorCodes.PARSING_FAILED.value},
             ) from e
 
     # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
@@ -229,7 +248,7 @@ async def _save_forensic_input(execution_id: str, key: str, resolved_text: str) 
         raise AppException(
             message="Failed to save forensic input.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.name, "input_key": key},
+            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "input_key": key},
         ) from e
 
 
@@ -264,12 +283,12 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     if not workflow_repo or not workflow_id or not execution_id:
         logger.error(
             "Missing repository, workflow_id, or execution_id in context.",
-            extra={"error_code": "MISSING_EXECUTION_CONTEXT"},
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
         )
         raise AppException(
             message="Missing execution context for input processing.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": "MISSING_EXECUTION_CONTEXT"},
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
     workflow_dict = await workflow_repo.get_workflow_by_id(workflow_id)
@@ -277,7 +296,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         raise AppException(
             message=f"Workflow {workflow_id} not found.",
             status_code=status.HTTP_404_NOT_FOUND,
-            details={"error_code": "WORKFLOW_NOT_FOUND"},
+            details={"error_code": ErrorCodes.WORKFLOW_NOT_FOUND.value},
         )
 
     workflow = TypeAdapter(Workflow).validate_python(workflow_dict)
@@ -285,13 +304,23 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     expected_inputs = workflow.expected_inputs
     output_dict: dict[str, str] = {}
 
-    language_raw = state.global_context_vars.get("language")
+    gvars = (
+        state.global_context_vars.vars
+        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+    )
+    language_raw = gvars.get("language")
+    if not language_raw and isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.target_locale:
+        language_raw = state.inputs.target_locale
+    if not language_raw and state.metadata and state.metadata.target_locale:
+        language_raw = state.metadata.target_locale
+
     if not language_raw:
         logger.error("Missing language in global context.")
         raise AppException(
             message="System Configuration Error: Missing mandatory 'language' in global_context_vars.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
     language = str(language_raw)
 
@@ -320,7 +349,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                     "but no content was provided or file extraction yielded empty text."
                 ),
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "input_key": key},
             )
 
         # 3. V2 ChatParser LLM Hook (if designated as chat history)
@@ -371,7 +400,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                         f"English instruction for '{key}' cognitive prompt block."
                     ),
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "input_key": key},
                 )
 
             if resolved_text.strip():
@@ -388,5 +417,9 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     estimated_token_count = total_chars // 4
 
     return HookResult(
-        success=True, state_delta={"inputs": output_dict, "metadata": {"estimated_token_count": estimated_token_count}}
+        success=True,
+        state_delta=HookDeltaDTO(
+            delta={"inputs": output_dict},
+            metadata_updates={"estimated_token_count": estimated_token_count},
+        ),
     )

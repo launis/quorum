@@ -11,7 +11,13 @@ import random
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.dtos.dag_models import CausalEdge
@@ -58,7 +64,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
     if not state.task_blueprint:
         logger.warning("[AtomFlatteningHook] No task_blueprint defined for step %s. Skpping.", state.step_id)
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     repo = deps.workflow_repo
     if not repo:
@@ -72,13 +78,13 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
     step_def = await repo.get_step_by_id(state.task_blueprint)
     if not step_def:
         logger.warning("[AtomFlatteningHook] Step blueprint '%s' not found.", state.task_blueprint)
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     step = Step.model_validate(step_def)
     prompt_block_ids = step.criteria_block_ids
 
     if not prompt_block_ids:
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     # 2. Extract Matrix Sampler Metadata limit
     sampling_limit_val = state.metadata.matrix_sampling_strategy
@@ -198,6 +204,6 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
         # Enforce Rule 'No Naked Dicts': explicitly dump the structured model
         output_payload = FlatteningHookOutput(shuffled_atoms=model_list)
-        return HookResult(success=True, state_delta=output_payload.model_dump(mode="json"))
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=output_payload.model_dump(mode="json")))
 
-    return HookResult(success=True, state_delta={})
+    return HookResult(success=True, state_delta=HookDeltaDTO())

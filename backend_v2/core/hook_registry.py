@@ -27,11 +27,15 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO, HookDeltaDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "ExecutionInputsDTO",
+    "GlobalContextVarsDTO",
+    "HookDeltaDTO",
     "HookDependencies",
     "HookFunction",
     "HookRegistry",
@@ -75,15 +79,15 @@ class HookState(V2CoreBase):
     step_id: str | None = None
     task_blueprint: str | None = None
     metadata: ExecutionMetadata = Field(...)
-    global_context_vars: dict[str, Any] = Field(...)
-    inputs: dict[str, Any]
+    global_context_vars: GlobalContextVarsDTO = Field(default_factory=GlobalContextVarsDTO)
+    inputs: ExecutionInputsDTO = Field(default_factory=ExecutionInputsDTO)
 
 
 class HookResult(V2CoreBase):
     """Explicit state delta returned by Hooks for deep merging."""
 
     success: bool
-    state_delta: dict[str, Any] | None = Field(...)
+    state_delta: HookDeltaDTO | None = Field(default=None)
 
 
 # Strict type definition for a hook function

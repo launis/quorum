@@ -1,10 +1,18 @@
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.metadata import inject_step_metadata
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 def test_inject_step_metadata_empty_state() -> None:
@@ -19,19 +27,24 @@ def test_inject_step_metadata_empty_state() -> None:
         audit_repo=MagicMock(),
         system_repo=MagicMock(),
     )
-    from typing import cast
-
-    from backend_v2.core.hook_registry import HookResult
 
     result = cast(HookResult, inject_step_metadata(None, deps))  # type: ignore[arg-type]
 
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 def test_inject_step_metadata_missing_ids_fails() -> None:
     """Test metadata injection fails fast when no IDs are provided."""
-    state = HookState(execution_id="", workflow_id="", step_id="", inputs={}, global_context_vars={}, metadata={})
+    state = HookState(
+        execution_id="",
+        workflow_id="",
+        step_id="",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(),
+        metadata=ExecutionMetadata(target_locale="en"),
+    )
     deps = HookDependencies(
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
@@ -57,9 +70,9 @@ def test_inject_step_metadata_custom_values() -> None:
         execution_id="exec_555",
         workflow_id="wf_999",
         step_id="step_123",
-        inputs={},
-        global_context_vars={"_sys_initiator_id": "usr_777"},
-        metadata={},
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(vars={"_sys_initiator_id": "usr_777"}),
+        metadata=ExecutionMetadata(target_locale="en"),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -72,22 +85,18 @@ def test_inject_step_metadata_custom_values() -> None:
         system_repo=MagicMock(),
     )
 
-    from typing import cast
-
-    from backend_v2.core.hook_registry import HookResult
-
     result = cast(HookResult, inject_step_metadata(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    meta = result.state_delta["_step_metadata"]
-    assert "step_metadata" not in result.state_delta, "Hook must use underscore-prefixed SSOT key"
+    meta = result.state_delta.delta["_step_metadata"]
+    assert "step_metadata" not in result.state_delta.delta, "Hook must use underscore-prefixed SSOT key"
     assert meta["execution_id"] == "exec_555"
     assert meta["workflow_id"] == "wf_999"
     assert meta["step_id"] == "step_123"
     assert meta["initiator_id"] == "usr_777"
 
-    audit_sig = result.state_delta["_audit_signature"]
+    audit_sig = result.state_delta.delta["_audit_signature"]
     assert audit_sig.startswith("step_123:exec_555:")
 
 
@@ -98,9 +107,9 @@ def test_inject_step_metadata_validation_failure() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
-        inputs={},
-        global_context_vars={"_sys_initiator_id": 12345},  # Int instead of str
-        metadata={},
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(vars={"_sys_initiator_id": 12345}),  # Int instead of str
+        metadata=ExecutionMetadata(target_locale="en"),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),

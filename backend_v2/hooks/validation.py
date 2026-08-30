@@ -7,7 +7,13 @@ from typing import Any
 from fastapi import status
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.validation import (
     SystemWarningsStateDTO,
@@ -15,7 +21,6 @@ from backend_v2.models.domain.validation import (
     ValidationResultDTO,
     ValidationWarningDTO,
 )
-from backend_v2.models.dtos.state import HookStateMetadata, I18nStatePayload
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +64,8 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
 
     try:
         # Zero-Compromise: Enforce strict dictionary structure via DTO validation
-        payload = ValidationHookPayloadDTO.model_validate(state.inputs)
+        payload_source = state.inputs.raw_inputs if state.inputs.raw_inputs else state.inputs.model_dump()
+        payload = ValidationHookPayloadDTO.model_validate(payload_source)
     except ValidationError as e:
         msg = "Missing or invalid 'inputs' in state. Expected dict."
         logger.error("[ValidationHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg, exc_info=True)
@@ -82,7 +88,7 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
     if "inputs" in inputs_dict and isinstance(inputs_dict["inputs"], dict):
         fields_to_validate.update(inputs_dict["inputs"])
 
-    # Fallback to the root if it's a flat legacy payload, excluding known container keys
+    # Fallback to the root if it's a flat payload, excluding known container keys
     if not fields_to_validate and not ("steps" in inputs_dict or "raw_inputs" in inputs_dict):
         fields_to_validate = inputs_dict
 
@@ -140,12 +146,11 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
         # Create strict DTO result
         result_dto = ValidationResultDTO(is_valid=len(warnings) == 0, errors=warnings)
     except ValidationError as e:
-        error_code = ErrorCodes.INTERNAL_SERVER_ERROR
         logger.error("[ValidationHook] Failed to create ValidationResult: %s", e, exc_info=True)
         raise AppException(
             message=f"System Error: {e}",
             status_code=500,
-            details={"error_code": error_code.value},
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         ) from e
 
     if not result_dto.is_valid:
@@ -163,7 +168,10 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
     else:
         logger.debug("[ValidationHook] Checks passed.")
 
-    return HookResult(success=True, state_delta={"validation_result": result_dto.model_dump(mode="json")})
+    return HookResult(
+        success=True,
+        state_delta=HookDeltaDTO(delta={"validation_result": result_dto.model_dump(mode="json")}),
+    )
 
 
 @hook_registry.register(name="verify_output_language")
@@ -186,15 +194,22 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
     logger.debug("[ValidationHook] Running output language check...")
 
     if not state:
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     try:
-        payload = ValidationHookPayloadDTO.model_validate(state.inputs)
-        meta = HookStateMetadata.model_validate(state.metadata)
-        i18n_inputs = {"language": state.inputs.get("language")} if "language" in state.inputs else {}
-        _ = I18nStatePayload.model_validate(i18n_inputs)
+        inputs_source = state.inputs.raw_inputs if state.inputs.raw_inputs else state.inputs.model_dump()
+        payload = ValidationHookPayloadDTO.model_validate(inputs_source)
+        if not state.metadata or not state.metadata.target_locale:
+            msg = "Execution state is missing mandatory 'target_locale' metadata."
+            logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        target_locale = state.metadata.target_locale.lower()
     except ValidationError as e:
-        msg = "Execution state is missing mandatory 'target_locale' metadata or 'language' inputs."
+        msg = "Execution state inputs failed validation."
         logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
@@ -202,11 +217,10 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         ) from e
 
-    target_locale = meta.target_locale.lower()
     inputs_dict = payload.root
 
     if target_locale == "en":
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     # Heuristics: Extremely common, unambiguous English stop words.
     english_stops = {"the", "and", "is", "are", "was", "were", "this", "that", "these", "those", "from", "with"}
@@ -238,7 +252,7 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
     delta: dict[str, Any] = {}
     if leakage_detected:
         try:
-            warnings_payload = SystemWarningsStateDTO.model_validate(state.inputs)
+            warnings_payload = SystemWarningsStateDTO.model_validate(inputs_source)
             existing_warnings = list(warnings_payload.system_warnings)
         except ValidationError as e:
             msg = "Invalid '_system_warnings' schema in state inputs."
@@ -259,7 +273,7 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
         existing_warnings.append(new_warning)
         delta["_system_warnings"] = [w.model_dump(mode="json") for w in existing_warnings]
 
-    return HookResult(success=True, state_delta=delta)
+    return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))
 
 
 @hook_registry.register(name="verify_anomaly")
@@ -277,12 +291,16 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
     """
     logger.debug("[ValidationHook] Running LLM Anomaly detection...")
 
-    if not state or not state.inputs:
-        return HookResult(success=True, state_delta={})
+    if not state:
+        return HookResult(success=True, state_delta=HookDeltaDTO())
+
+    inputs_source = state.inputs.raw_inputs if state.inputs.raw_inputs else state.inputs.model_dump()
+    if not inputs_source:
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     anomaly_detected = False
 
-    for block_id, result in state.inputs.items():
+    for block_id, result in inputs_source.items():
         if isinstance(result, list) and len(result) > 0:
             hits_by_level: dict[float, float] = {}
             total_by_level: dict[float, float] = {}
@@ -290,8 +308,10 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
             for atom in result:
                 if isinstance(atom, dict) and "score_level" in atom and "hit" in atom:
                     level = float(atom["score_level"])
-                    hits_by_level[level] = hits_by_level.get(level, 0.0) + (1.0 if atom["hit"] else 0.0)
-                    total_by_level[level] = total_by_level.get(level, 0.0) + 1.0
+                    current_hits = hits_by_level[level] if level in hits_by_level else 0.0
+                    hits_by_level[level] = current_hits + (1.0 if atom["hit"] else 0.0)
+                    current_total = total_by_level[level] if level in total_by_level else 0.0
+                    total_by_level[level] = current_total + 1.0
 
             if len(total_by_level) > 1:
                 sorted_levels = sorted(total_by_level.keys())
@@ -321,6 +341,6 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
             break
 
     if anomaly_detected:
-        return HookResult(success=True, state_delta={"llm_anomaly_retry_requested": True})
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta={"llm_anomaly_retry_requested": True}))
 
-    return HookResult(success=True, state_delta={})
+    return HookResult(success=True, state_delta=HookDeltaDTO())

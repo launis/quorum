@@ -3,8 +3,15 @@
 from typing import cast
 from unittest.mock import MagicMock
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.hooks.hydration import hydrate_global_inputs_hook
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 def test_hydrate_global_inputs_no_source() -> None:
@@ -12,16 +19,17 @@ def test_hydrate_global_inputs_no_source() -> None:
     state = HookState(
         execution_id="exe_123",
         workflow_id="wor_456",
-        metadata={},
-        inputs={"existing": "data"},
-        global_context_vars={"random_var": {"not_a": "source"}},
+        metadata=ExecutionMetadata(target_locale="en"),
+        inputs=ExecutionInputsDTO(raw_inputs={"existing": "data"}),
+        global_context_vars=GlobalContextVarsDTO(vars={"random_var": {"not_a": "source"}}),
     )
     deps = MagicMock(spec=HookDependencies)
 
     result = cast(HookResult, hydrate_global_inputs_hook(state, deps))
 
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 def test_hydrate_global_inputs_empty_updates() -> None:
@@ -29,16 +37,17 @@ def test_hydrate_global_inputs_empty_updates() -> None:
     state = HookState(
         execution_id="exe_123",
         workflow_id="wor_456",
-        metadata={},
-        inputs={"existing": "data"},
-        global_context_vars={"valid_var": {"inputs": {}}},
+        metadata=ExecutionMetadata(target_locale="en"),
+        inputs=ExecutionInputsDTO(raw_inputs={"existing": "data"}),
+        global_context_vars=GlobalContextVarsDTO(vars={"valid_var": {"inputs": {}}}),
     )
     deps = MagicMock(spec=HookDependencies)
 
     result = cast(HookResult, hydrate_global_inputs_hook(state, deps))
 
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 def test_hydrate_global_inputs_success() -> None:
@@ -46,16 +55,19 @@ def test_hydrate_global_inputs_success() -> None:
     state = HookState(
         execution_id="exe_123",
         workflow_id="wor_456",
-        metadata={},
-        inputs={"existing": "data"},
-        global_context_vars={"valid_var": {"inputs": {"new": "data", "existing": "overridden"}}},
+        metadata=ExecutionMetadata(target_locale="en"),
+        inputs=ExecutionInputsDTO(raw_inputs={"existing": "data"}),
+        global_context_vars=GlobalContextVarsDTO(
+            vars={"valid_var": {"inputs": {"new": "data", "existing": "overridden"}}}
+        ),
     )
     deps = MagicMock(spec=HookDependencies)
 
     result = cast(HookResult, hydrate_global_inputs_hook(state, deps))
 
     assert result.success is True
-    assert result.state_delta == {"inputs": {"existing": "overridden", "new": "data"}}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {"inputs": {"existing": "overridden", "new": "data"}}
 
 
 def test_hydrate_global_inputs_ignores_non_dict() -> None:
@@ -63,13 +75,14 @@ def test_hydrate_global_inputs_ignores_non_dict() -> None:
     state = HookState(
         execution_id="exe_123",
         workflow_id="wor_456",
-        metadata={},
-        inputs={"existing": "data"},
-        global_context_vars={"string_var": "I am not a dict"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        inputs=ExecutionInputsDTO(raw_inputs={"existing": "data"}),
+        global_context_vars=GlobalContextVarsDTO(vars={"string_var": "I am not a dict"}),
     )
     deps = MagicMock(spec=HookDependencies)
 
     result = cast(HookResult, hydrate_global_inputs_hook(state, deps))
 
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}

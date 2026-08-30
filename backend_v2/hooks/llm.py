@@ -5,7 +5,14 @@ import logging
 import uuid
 from typing import Any
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.v2_core import SystemConfigModelRegistry
@@ -40,21 +47,24 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     logger.debug("[LLMHook] Running configure_llm_context_hook...")
 
     if not state:
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     # 1. Retrieve Context Variables
     # If no context, nothing to configure, but unusual.
-    ctx = state.global_context_vars
+    ctx = (
+        state.global_context_vars.vars
+        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+    )
 
     # 2. Get Strategy (SSOT)
     # We no longer rely on 'step.config' (which violated SSOT).
     # Instead, we look up the target strategy from the workflow's default_model_mapping,
     # or fallback to the system's global default.
     if not state.step_id:
-        error_code = ErrorCodes.VALIDATION_FAILED
         msg = "state.step_id is strictly required for LLM context configuration."
-        logger.error("[LLMHook] %s: %s", error_code.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+        logger.error("[LLMHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     step_id = state.step_id
 
@@ -67,10 +77,9 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     # We resolve the strategy. If a workflow default_model_mapping was injected into ctx, we could use it.
     # But for strict SSOT, we just use the system default unless explicitly overridden in the execution context.
     if not settings.default_model_strategy:
-        error_code = ErrorCodes.CONFIGURATION_ERROR
         msg = "settings.default_model_strategy is strictly required but missing."
-        logger.error("[LLMHook] %s: %s", error_code.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+        logger.error("[LLMHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
     model_strategy = settings.default_model_strategy
 
@@ -115,7 +124,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             # For now, we perform local resolution using identical Pydantic models.
             pass
 
-        if not hasattr(settings, "model_registry") or not settings.model_registry:
+        if not settings.model_registry:
             raise ConfigurationError("System config 'model_registry' is missing.")
         raw_registry = settings.model_registry
 
@@ -124,7 +133,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             raise ConfigurationError("ModelRegistry is corrupt.")
 
         # V2: Registry is a flat map of Strategy -> ModelProfile
-        target_strategy = registry.models.get(model_strategy)
+        target_strategy = registry.models[model_strategy] if model_strategy in registry.models else None
 
         if not target_strategy:
             raise ConfigurationError(
@@ -165,10 +174,11 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             llm_config.model_name,
         )
 
-        return HookResult(success=True, state_delta={"llm_config": llm_config.model_dump(mode="json")})
+        return HookResult(
+            success=True, state_delta=HookDeltaDTO(delta={"llm_config": llm_config.model_dump(mode="json")})
+        )
 
     except Exception as e:
-        error_code = ErrorCodes.CONFIGURATION_ERROR
         # Distinguish strictly raised ConfigErrors vs generic exceptions
         if isinstance(e, AppException):
             logger.error("[LLMHook] %s: %s", e.error_code, e)
@@ -176,5 +186,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
 
         logger.error("[LLMHook] Failed to resolve LLM config: %s", e, exc_info=True)
         raise AppException(
-            message=f"LLM Hook failed: {e}", status_code=500, details={"error_code": error_code.value, "cause": str(e)}
+            message=f"LLM Hook failed: {e}",
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "cause": str(e)},
         ) from e

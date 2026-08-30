@@ -4,16 +4,16 @@ Exposes the decomposed scoring hooks through a Strangler Fig Facade for seamless
 """
 
 from backend_v2.hooks.scoring.falsifier_hook import (
+    ScoringPayloadWrapper as ScoringPayloadWrapper,
+)
+from backend_v2.hooks.scoring.falsifier_hook import (
+    StateInputWrapper as StateInputWrapper,
+)
+from backend_v2.hooks.scoring.falsifier_hook import (
     apply_scoring_logic_hook as apply_scoring_logic_hook,
 )
 from backend_v2.hooks.scoring.matrix_hook import (
     matrix_scoring_hook as matrix_scoring_hook,
-)
-from backend_v2.hooks.scoring.models import (
-    ScoringPayloadWrapper as ScoringPayloadWrapper,
-)
-from backend_v2.hooks.scoring.models import (
-    StateInputWrapper as StateInputWrapper,
 )
 from backend_v2.hooks.scoring.normalization_hook import (
     normalize_matrix_scores_hook as normalize_matrix_scores_hook,

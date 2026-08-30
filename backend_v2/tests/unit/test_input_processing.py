@@ -1,13 +1,21 @@
-from typing import Any
+from collections.abc import Awaitable
+from typing import Any, cast
 from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.input_processing import process_inputs
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO, QuestionAnswerPair
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 class MockRepository:
@@ -110,20 +118,21 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
         workflow_id="wf_123",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata={},
-        inputs={
-            "QUESTIONNAIRE": {
-                "pairs": [
-                    {"question": "How are you?", "answer": "I am fine."},
-                    {"question": "Why?", "answer": "Just because."},
-                ],
-                "metadata": {},
-            },
-            "DOCUMENT_TEXT": "Plain text input.",
-        },
-        global_context_vars={"language": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "QUESTIONNAIRE": {
+                    "pairs": [
+                        {"question": "How are you?", "answer": "I am fine."},
+                        {"question": "Why?", "answer": "Just because."},
+                    ],
+                    "metadata": {},
+                },
+                "DOCUMENT_TEXT": "Plain text input.",
+            }
+        ),
+        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
     )
-    from typing import cast
 
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -145,15 +154,13 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
 
-    from collections.abc import Awaitable
-
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "inputs" in result.state_delta
+    assert "inputs" in result.state_delta.delta
 
-    processed = result.state_delta["inputs"]
+    processed = result.state_delta.delta["inputs"]
     assert "QUESTIONNAIRE" in processed
     assert "DOCUMENT_TEXT" in processed
 
@@ -180,12 +187,12 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
         workflow_id="wf_123",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata={},
-        inputs={"QUESTIONNAIRE": {"not_a_questionnaire": "This should fail because no Q/A pairs exist."}},
-        global_context_vars={"language": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"QUESTIONNAIRE": {"not_a_questionnaire": "This should fail because no Q/A pairs exist."}}
+        ),
+        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
     )
-    from collections.abc import Awaitable
-    from typing import cast
 
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -241,12 +248,10 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
         workflow_id="wf_features",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata={},
-        inputs={"DOCUMENT_TEXT": "Raw <br> text with PII like Matti Meikäläinen."},
-        global_context_vars={"language": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
+        inputs=ExecutionInputsDTO(raw_inputs={"DOCUMENT_TEXT": "Raw <br> text with PII like Matti Meikäläinen."}),
+        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
     )
-    from collections.abc import Awaitable
-    from typing import cast
 
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -283,7 +288,7 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
 
     assert result.success is True
     assert result.state_delta is not None
-    processed = result.state_delta["inputs"]
+    processed = result.state_delta.delta["inputs"]
     assert "DOCUMENT_TEXT" in processed
     # Due to ordering in the hook, Presidio masks the output of SpaCy.
     assert "Masked text." in processed["DOCUMENT_TEXT"]

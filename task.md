@@ -1,26 +1,55 @@
-# Task: Workflow MCP-Gateway & Output Profile Relational Architecture (Clean Pydantic V2)
+# Task: Phase 3B: Full Hooks Pydantic V2 Migration & Hook Tests (PRODUCERS FIRST)
 
-- [x] **Phase 1: Pre-Implementation Technical Debt Cleanups & Schema Alignment**
-  - [x] Step 1.1: Clean up `PRINTABLE_SOURCES_RULES["mcp_tools"]` in `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`
-  - [x] Step 1.2: Add `mcp_gateway_id` to `Workflow` model in `@[backend_v2/models/v2_core.py]`
-  - [x] Step 1.3: Update `seed_data.json` with `"mcp_gateway_id": "sys_8172bda70c8641c5"` on workflow `wf_9d68c573802341db` in `@[backend_v2/seed/seed_data.json]`
-  - [x] Step 1.4: Run database audit & seed verification
+- [ ] **Step 0: Strategic Alignment Check & Pre-Flight Verification**
+  - [ ] Verify codebase state from Sub-Phase 3A (`models.py` present for sunset, all 11 hook files and 4 scoring modules present)
 
-- [x] **Phase 2: Database Repository, Service Layer & SDUI Integration**
-  - [x] Step 2.1: Update `ISystemRepository.get_mcp_gateways` in `@[backend_v2/database/interfaces.py]`
-  - [x] Step 2.2: Implement ID filtering and `ResourceNotFoundError` in `@[backend_v2/database/repositories/system.py]`
-  - [x] Step 2.3: Clean up `SystemConfigService.get_mcp_gateways` in `@[backend_v2/services/studio/system_config_service.py]`
-  - [x] Step 2.4: Add `mcp_tools_map` to `AdapterContext` in `@[backend_v2/services/sdui/adapters/base_adapter.py]`
-  - [x] Step 2.5: Inject `mcp_tools_map` in `BlueprintTransformer` in `@[backend_v2/services/blueprint.py]`
-  - [x] Step 2.6: Dynamically resolve tool names in `PrintableSourcesAdapter` in `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`
-  - [x] Step 2.7: Update & expand unit tests across `test_printable_sources_adapter.py`, `test_repository.py`, `test_studio.py`
+- [ ] **Step 1: Pre-Implementation Technical Debt Cleanups & AST Guardrail Remediation**
+  - [ ] Fix `QGR001` in `backend_v2/hooks/context_mapper.py` (`getattr` -> `isinstance(b, MatrixPromptBlock)`)
+  - [ ] Fix `QGR002` in `backend_v2/hooks/integrity.py` (`.get("dynamic_inputs", {})` -> direct membership)
+  - [ ] Fix `QGR002` in `backend_v2/hooks/linguistics.py` (`.get(...)` -> direct membership)
+  - [ ] Fix `QGR001` in `backend_v2/hooks/llm.py` (`hasattr` -> direct settings lookup)
+  - [ ] Fix `QGR002` in `backend_v2/hooks/validation.py` (`hits_by_level.get(level, 0.0)` -> direct lookup)
+  - [ ] Fix `QGR007` in `backend_v2/hooks/dlq_guard.py` (add strict `model_config = ConfigDict(strict=True, extra="forbid")` to `DLQAtomSchema`)
+  - [ ] Fix `QGR009` across all hook files (pass typed `ErrorCodes` enum member to `AppException`)
+  - [ ] Update test fixtures across hook tests to pass `ExecutionMetadata(target_locale="fi")`
+  - [ ] Verify 0 AST violations with `uv run python scripts/_ast_guardrails.py backend_v2/hooks/ --strict`
 
-- [x] **Phase 3: Client App Model & UI Support**
-  - [x] Step 3.1: Add `mcpGatewayId` to Flutter `Workflow` Freezed model in `@[client_app_v2/lib/features/studio/models/workflow.dart]` and run Freezed build
-  - [x] Step 3.2: Add MCP Gateway dropdown selector in `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart]`
-  - [x] Step 3.3: Update ARB localization files in `@[client_app_v2/lib/l10n/app_en.arb]` and `@[client_app_v2/lib/l10n/app_fi.arb]`
+- [ ] **Step 2: Core Hook Registry & DTO Modernization**
+  - [ ] Update `HookState` in `backend_v2/core/hook_registry.py` (`inputs: ExecutionInputsDTO`, `global_context_vars: GlobalContextVarsDTO`)
+  - [ ] Update `HookResult` in `backend_v2/core/hook_registry.py` (`state_delta: HookDeltaDTO | None`)
+  - [ ] Modernize `backend_v2/tests/unit/core/test_hook_registry.py`
 
-- [x] **Phase 4: Universal Quality Gates & E2E Validation**
-  - [x] Step 4.1: Run `backend_audit_loop.py` on all modified Python files
-  - [x] Step 4.2: Run `flutter_audit_loop.py` on all modified Dart files
-  - [x] Step 4.3: Run E2E SDUI semantic parity test `test_sdui_semantic_parity.py` and Tavily E2E pipeline test `test_tavily_e2e_full_pipeline.py`
+- [ ] **Step 3: Validation, Ingress & Security Hooks Migration**
+  - [ ] Migrate `backend_v2/hooks/validation.py`
+  - [ ] Migrate `backend_v2/hooks/security.py`
+  - [ ] Migrate `backend_v2/hooks/input_processing.py`
+  - [ ] Migrate `backend_v2/hooks/hydration.py`
+  - [ ] Migrate `backend_v2/hooks/interaction_hook.py`
+  - [ ] Modernize unit tests for validation, security, input processing, hydration, and interaction hooks
+
+- [ ] **Step 4: Extraction, Context & Integrity Hooks Migration**
+  - [ ] Migrate `backend_v2/hooks/source_verification_hook.py`
+  - [ ] Migrate `backend_v2/hooks/atom_flattening.py`
+  - [ ] Migrate `backend_v2/hooks/context_mapper.py`
+  - [ ] Migrate `backend_v2/hooks/integrity.py`
+  - [ ] Migrate `backend_v2/hooks/linguistics.py`
+  - [ ] Migrate `backend_v2/hooks/llm.py`
+  - [ ] Migrate `backend_v2/hooks/archival.py`
+  - [ ] Migrate `backend_v2/hooks/dlq_guard.py`
+  - [ ] Migrate `backend_v2/hooks/metadata.py`
+  - [ ] Migrate `backend_v2/hooks/metrics.py`
+  - [ ] Migrate `backend_v2/hooks/references.py`
+  - [ ] Modernize unit tests for all extraction, context, and integrity hooks
+
+- [ ] **Step 5: Scoring Package Pydantic V2 Transition & Models Sunset**
+  - [ ] Permanently delete `backend_v2/hooks/scoring/models.py`
+  - [ ] Update `backend_v2/hooks/scoring/__init__.py` (remove temporary model re-exports)
+  - [ ] Absorb `ScoringPayloadWrapper` and `_extract_payloads` into `backend_v2/hooks/scoring/falsifier_hook.py`
+  - [ ] Migrate `backend_v2/hooks/scoring/falsifier_hook.py`, `passivity_hook.py`, `matrix_hook.py`, `normalization_hook.py` to `ExecutionInputsDTO` & `HookDeltaDTO`
+  - [ ] Modernize `backend_v2/tests/unit/hooks/test_scoring.py` across all 4 ISTQB partitions
+
+- [ ] **Step 6: Universal Quality Gate, AST Audit & Semantic Parity Verification**
+  - [ ] Run `uv run python scripts/backend_audit_loop.py backend_v2/hooks/ backend_v2/core/hook_registry.py --test`
+  - [ ] Run `uv run python scripts/_ast_guardrails.py --strict` (0 violations)
+  - [ ] Run `uv run pytest backend_v2/tests/unit/hooks/`
+  - [ ] Run `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`

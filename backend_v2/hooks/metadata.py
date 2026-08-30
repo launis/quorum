@@ -3,7 +3,14 @@
 import logging
 from datetime import datetime, timezone
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.metadata import MetadataHookPayloadDTO, MetadataHookResultDTO, StepMetadataDTO
 from backend_v2.models.enums import VirtualSystemStepID
@@ -29,47 +36,47 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
         AppException: If required state fields or global context variables are missing or invalid.
     """
     if not state:
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     if not state.execution_id:
-        error_code = ErrorCodes.VALIDATION_FAILED
         msg = "state.execution_id is strictly required for metadata injection."
-        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     if not state.step_id:
-        error_code = ErrorCodes.VALIDATION_FAILED
         msg = "state.step_id is strictly required for metadata injection."
-        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     if not state.workflow_id:
-        error_code = ErrorCodes.VALIDATION_FAILED
         msg = "state.workflow_id is strictly required for metadata injection."
-        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     if state.global_context_vars is None:
-        error_code = ErrorCodes.VALIDATION_FAILED
         msg = "state.global_context_vars is strictly required but missing."
-        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     execution_id = state.execution_id
     step_id = state.step_id
     workflow_id = state.workflow_id
 
     # Strict Validation via DTO inflation
+    gvars = (
+        state.global_context_vars.vars
+        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+    )
     try:
-        payload = MetadataHookPayloadDTO.model_validate(state.global_context_vars)
+        payload = MetadataHookPayloadDTO.model_validate(gvars)
     except Exception as e:
-        error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
         msg = f"Failed to strictly validate global context for metadata: {e}"
-        logger.error("[MetadataHook] %s: %s", error_code.name, msg)
+        logger.error("[MetadataHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
             status_code=400,
-            details={"error_code": error_code.value},
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         ) from e
 
     unix_time = int(datetime.now(timezone.utc).timestamp())
@@ -91,9 +98,11 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
 
     return HookResult(
         success=True,
-        state_delta={
-            VirtualSystemStepID.STEP_METADATA.value: result_dto.step_metadata.model_dump(mode="json"),
-            # Ensure we always provide a deterministic audit signature
-            "_audit_signature": f"{step_id}:{execution_id}:{unix_time}",
-        },
+        state_delta=HookDeltaDTO(
+            delta={
+                VirtualSystemStepID.STEP_METADATA.value: result_dto.step_metadata.model_dump(mode="json"),
+                # Ensure we always provide a deterministic audit signature
+                "_audit_signature": f"{step_id}:{execution_id}:{unix_time}",
+            }
+        ),
     )

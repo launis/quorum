@@ -6,7 +6,15 @@ import uuid
 from fastapi import status
 from rapidfuzz import fuzz
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.linguistics import (
     LinguisticsPayloadDTO,
@@ -40,41 +48,52 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     logger.debug("[LinguisticsHook] Running detect_performative_patterns...")
 
     if not state:
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
+
+    raw_inputs = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
+    gvars = (
+        state.global_context_vars.vars
+        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+    )
 
     # Check for early exit signal (Workflow override)
-    should_scan = state.inputs.get(
-        "scan_for_performative_patterns", state.global_context_vars.get("scan_for_performative_patterns", True)
-    )
+    should_scan = True
+    if "scan_for_performative_patterns" in raw_inputs:
+        should_scan = raw_inputs["scan_for_performative_patterns"]
+    elif "scan_for_performative_patterns" in gvars:
+        should_scan = gvars["scan_for_performative_patterns"]
+
     if str(should_scan).lower() in ["false", "0"]:
         logger.debug("[LinguisticsHook] Skipping scan due to scan_for_performative_patterns=False.")
         return HookResult(
             success=True,
-            state_delta={
-                "global_context_vars": {
-                    "step_linguistics": LinguisticsResultDTO(performative_patterns=[]).model_dump(mode="json")
-                }
-            },
+            state_delta=HookDeltaDTO(
+                delta={"step_linguistics": LinguisticsResultDTO(performative_patterns=[]).model_dump(mode="json")}
+            ),
         )
 
     # Strict Validation via DTO inflation
     try:
-        payload_data = {"dynamic_inputs": state.inputs}
-        if "language" in state.inputs:
-            payload_data["language"] = state.inputs["language"]
+        payload_data = {"dynamic_inputs": raw_inputs}
+        if "language" in raw_inputs:
+            payload_data["language"] = raw_inputs["language"]
         payload = LinguisticsPayloadDTO.model_validate(payload_data)
     except Exception as e:
-        error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
         msg = f"Failed to strictly validate inputs for linguistics: {e}"
-        logger.error("[LinguisticsHook] %s: %s", error_code.name, msg)
+        logger.error("[LinguisticsHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code.value},
+            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         ) from e
 
     # Extract Language safely without dict.get()
-    lang_simple = payload.extract_language(state.global_context_vars)
+    lang_simple = payload.extract_language(gvars)
 
     # Fetch from DB (Strict Fail-Fast)
     try:
@@ -87,7 +106,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
             )
 
         config = SystemConfigPerformativeLexicons.model_validate(config_data)
-        target_lexicon = config.lexicon_configs.get(lang_simple)
+        target_lexicon = config.lexicon_configs[lang_simple] if lang_simple in config.lexicon_configs else None
         if not target_lexicon or not target_lexicon.words:
             raise AppException(
                 message=f"Fail-Fast: Missing performative lexicon words for language '{lang_simple}'.",
@@ -112,7 +131,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
 
     detected: list[str] = []
 
-    user_only_text = state.inputs.get("chat_log_user_only")
+    user_only_text = raw_inputs["chat_log_user_only"] if "chat_log_user_only" in raw_inputs else None
     if user_only_text and isinstance(user_only_text, str) and user_only_text.strip():
         text_to_scan = user_only_text.lower()
     else:
@@ -146,5 +165,6 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
         logger.debug("   [LinguisticsHook] Detected patterns (%s): %s", lang_simple, detected)
 
     return HookResult(
-        success=True, state_delta={"global_context_vars": {"step_linguistics": result_dto.model_dump(mode="json")}}
+        success=True,
+        state_delta=HookDeltaDTO(delta={"step_linguistics": result_dto.model_dump(mode="json")}),
     )

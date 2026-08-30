@@ -7,11 +7,18 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.interaction_hook import _SYSTEM_INSTRUCTION, analyze_interaction_role
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
 from backend_v2.models.enums import InteractionStrategy, RoleClassification
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 @pytest.fixture
@@ -34,13 +41,13 @@ def test_interaction_hook_system_instruction() -> None:
 
 @pytest.mark.asyncio
 async def test_analyze_interaction_role_empty_chat_log(mock_repository: AsyncMock) -> None:
-    """Test skipping when chat_log is empty."""
+    """Test fail-fast validation when chat_log is empty or whitespace."""
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata={},
-        global_context_vars={},
-        inputs={"chat_log": "   "},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "   "}),
     )
     deps = HookDependencies(
         exec_repo=mock_repository,
@@ -63,9 +70,9 @@ async def test_analyze_interaction_role_invalid_inputs(mock_repository: AsyncMoc
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata={},
-        global_context_vars={},
-        inputs={"wrong_key": "data"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"wrong_key": "data"}),
     )
     deps = HookDependencies(
         exec_repo=mock_repository,
@@ -99,9 +106,9 @@ async def test_analyze_interaction_role_prompt_injection(
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata={},
-        global_context_vars={},
-        inputs={"chat_log": malicious_payload},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": malicious_payload}),
     )
     deps = HookDependencies(
         exec_repo=mock_repository,
@@ -136,7 +143,7 @@ async def test_analyze_interaction_role_prompt_injection(
 
     assert res.success is True
     assert res.state_delta is not None
-    assert "interaction_analysis" in res.state_delta
+    assert "interaction_analysis" in res.state_delta.delta
 
     # Assert Fencing
     mock_execute_structured_task.assert_called_once()
@@ -167,9 +174,9 @@ async def test_analyze_interaction_role_garbage_data(
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata={},
-        global_context_vars={},
-        inputs={"chat_log": garbage_payload},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": garbage_payload}),
     )
     deps = HookDependencies(
         exec_repo=mock_repository,
@@ -221,9 +228,9 @@ async def test_analyze_interaction_role_cognitive_conflict(
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata={},
-        global_context_vars={},
-        inputs={"chat_log": chat_log},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": chat_log}),
     )
     deps = HookDependencies(
         exec_repo=mock_repository,
@@ -280,9 +287,9 @@ async def test_analyze_interaction_role_llm_failure(
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata={},
-        global_context_vars={},
-        inputs={"chat_log": "hello"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "hello"}),
     )
     deps = HookDependencies(
         exec_repo=mock_repository,

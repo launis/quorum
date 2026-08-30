@@ -10,7 +10,14 @@ from typing import Any
 from fastapi import status
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.metrics import (
     BehavioralMetricsDTO,
@@ -230,22 +237,26 @@ def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> Ho
     Raises:
         AppException: If input validation fails.
     """
+    raw_inputs = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
     try:
-        payload = MetricsPayloadDTO.model_validate(state.inputs)
+        payload = MetricsPayloadDTO.model_validate(raw_inputs)
     except ValidationError as e:
-        error_code = ErrorCodes.INVALID_JSON_PAYLOAD
         msg = f"Invalid metrics inputs schema: {e}"
-        logger.error("[MetricsHook] %s: %s", error_code.name, msg, exc_info=True)
+        logger.error("[MetricsHook] %s: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code.value},
+            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value},
         ) from e
 
     inputs = payload.root
     all_text = " ".join(str(v) for v in inputs.values() if v)
     ratio = calculate_control_ratio(all_text)
-    return HookResult(success=True, state_delta={"input_control_ratio": ratio})
+    return HookResult(success=True, state_delta=HookDeltaDTO(delta={"input_control_ratio": ratio}))
 
 
 @hook_registry.register(name="calculate_text_metrics")
@@ -264,16 +275,20 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     """
     logger.debug("[MetricsHook] Running text_metrics hook...")
 
+    raw_inputs = (
+        state.inputs.raw_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO)
+        else (state.inputs if isinstance(state.inputs, dict) else {})
+    )
     try:
-        payload = MetricsPayloadDTO.model_validate(state.inputs)
+        payload = MetricsPayloadDTO.model_validate(raw_inputs)
     except ValidationError as e:
-        error_code = ErrorCodes.INVALID_JSON_PAYLOAD
         msg = f"Invalid metrics inputs schema: {e}"
-        logger.error("[MetricsHook] %s: %s", error_code.name, msg, exc_info=True)
+        logger.error("[MetricsHook] %s: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code.value},
+            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value},
         ) from e
 
     inputs = payload.root
@@ -288,13 +303,12 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     text_for_analysis = user_only if user_only else all_text
 
     if not all_text.strip():
-        error_code = ErrorCodes.EMPTY_INPUT
         msg = "Missing text in inputs for metrics analysis."
-        logger.error("[MetricsHook] %s: %s", error_code.name, msg)
+        logger.error("[MetricsHook] %s: %s", ErrorCodes.EMPTY_INPUT.name, msg)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": error_code.value},
+            details={"error_code": ErrorCodes.EMPTY_INPUT.value},
         )
 
     try:
@@ -321,16 +335,17 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
 
         return HookResult(
             success=True,
-            state_delta={
-                "profiler_metrics": audit_metrics.model_dump(mode="json"),
-            },
+            state_delta=HookDeltaDTO(
+                delta={
+                    "profiler_metrics": audit_metrics.model_dump(mode="json"),
+                }
+            ),
         )
 
     except Exception as e:
-        error_code = ErrorCodes.INTERNAL_SERVER_ERROR
-        logger.error("[MetricsHook] %s: %s", error_code.name, e, exc_info=True)
+        logger.error("[MetricsHook] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, e, exc_info=True)
         raise AppException(
             message=f"Failed to calculate metrics: {e}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": error_code.value},
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         ) from e

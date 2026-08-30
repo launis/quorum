@@ -4,7 +4,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.integrity import (
     _gather_rag_context,
@@ -14,6 +20,7 @@ from backend_v2.hooks.integrity import (
     verify_citation_integrity_hook,
 )
 from backend_v2.models.domain.analyst import AnalystOutput, Hypothesis
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 def test_is_hallucinated() -> None:
@@ -26,16 +33,18 @@ def test_is_hallucinated() -> None:
 
 
 def test_gather_rag_context_empty() -> None:
-    assert _gather_rag_context({}) == ""
+    assert _gather_rag_context(GlobalContextVarsDTO()) == ""
 
 
 def test_gather_rag_context_valid() -> None:
-    global_vars = {
-        "step_context": {
-            "precedents": "Previous cases.",
-            "knowledge_items": [{"term": "AI", "definition": "Artificial Intelligence"}],
+    global_vars = GlobalContextVarsDTO(
+        vars={
+            "step_context": {
+                "precedents": "Previous cases.",
+                "knowledge_items": [{"term": "AI", "definition": "Artificial Intelligence"}],
+            }
         }
-    }
+    )
     result = _gather_rag_context(global_vars)
     assert "Previous cases." in result
     assert "[AI]: Artificial Intelligence" in result
@@ -43,52 +52,63 @@ def test_gather_rag_context_valid() -> None:
 
 def test_enforce_hypothesis_linking_hook_bypass() -> None:
     state = HookState(
-        execution_id="exe1", workflow_id="wf1", inputs={"not_analyst": "data"}, metadata={}, global_context_vars={}
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO(raw_inputs={"not_analyst": "data"}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
 
     result = cast(HookResult, enforce_hypothesis_linking_hook(state, deps))
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 def test_enforce_hypothesis_linking_hook_valid() -> None:
     state = HookState(
         execution_id="exe1",
         workflow_id="wf1",
-        inputs={
-            "thought_process": "Thinking...",
-            "conclusion": "Concluded.",
-            "confidence_score": 0.9,
-            "hypotheses": [
-                {"id": "hyp_1", "claim_text": "C1", "evidence_found": False, "search_query": "Q1", "quotes": []},
-                {"id": "hyp_2", "claim_text": "C2", "evidence_found": False, "search_query": "Q2", "quotes": []},
-            ],
-        },
-        metadata={},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "thought_process": "Thinking...",
+                "conclusion": "Concluded.",
+                "confidence_score": 0.9,
+                "hypotheses": [
+                    {"id": "hyp_1", "claim_text": "C1", "evidence_found": False, "search_query": "Q1", "quotes": []},
+                    {"id": "hyp_2", "claim_text": "C2", "evidence_found": False, "search_query": "Q2", "quotes": []},
+                ],
+            }
+        ),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
 
     result = cast(HookResult, enforce_hypothesis_linking_hook(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 def test_enforce_hypothesis_linking_hook_duplicate_id() -> None:
     state = HookState(
         execution_id="exe1",
         workflow_id="wf1",
-        inputs={
-            "thought_process": "Thinking...",
-            "conclusion": "Concluded.",
-            "confidence_score": 0.9,
-            "hypotheses": [
-                {"id": "hyp_1", "claim_text": "C1", "evidence_found": False, "search_query": "Q1", "quotes": []},
-                {"id": "hyp_1", "claim_text": "C2", "evidence_found": False, "search_query": "Q2", "quotes": []},
-            ],
-        },
-        metadata={},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "thought_process": "Thinking...",
+                "conclusion": "Concluded.",
+                "confidence_score": 0.9,
+                "hypotheses": [
+                    {"id": "hyp_1", "claim_text": "C1", "evidence_found": False, "search_query": "Q1", "quotes": []},
+                    {"id": "hyp_1", "claim_text": "C2", "evidence_found": False, "search_query": "Q2", "quotes": []},
+                ],
+            }
+        ),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
 
@@ -101,7 +121,11 @@ def test_enforce_hypothesis_linking_hook_duplicate_id() -> None:
 @pytest.mark.asyncio
 async def test_verify_citation_integrity_hook_bypass() -> None:
     state = HookState(
-        execution_id="exe1", workflow_id="wf1", inputs={"not_analyst": "data"}, metadata={}, global_context_vars={}
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO(raw_inputs={"not_analyst": "data"}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
     deps.exec_repo = AsyncMock()
@@ -112,7 +136,8 @@ async def test_verify_citation_integrity_hook_bypass() -> None:
             result = await cast(Awaitable[HookResult], verify_citation_integrity_hook(state, deps))
 
     assert result.success is True
-    assert result.state_delta == {"not_analyst": "data"}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {"not_analyst": "data"}
 
 
 def test_verify_payload_citations_analyst() -> None:

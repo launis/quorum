@@ -4,7 +4,13 @@ import logging
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.archival import ArchivalPrecedentDTO
 from backend_v2.models.domain.judge import JudgeOutput
@@ -34,15 +40,14 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
     logger.debug("[ArchivalHook] Running retrieve_precedent_hook...")
 
     if not state:
-        return HookResult(success=True, state_delta={})
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     repository = deps.exec_repo
     if not repository:
         # STRICT CONFIG CHECK
-        error_code = ErrorCodes.CONFIGURATION_ERROR
         msg = "Repository not injected. Cannot retrieve precedents."
-        logger.error(f"[ArchivalHook] {error_code.name}: {msg}")
-        raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+        logger.error("[ArchivalHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
     try:
         # 1. Use Repository to get recent completed executions
@@ -50,10 +55,11 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
 
         # STRICT Enforce: Repository must return List[ExecutionRecord] objects, NOT dicts.
         if recent_executions and isinstance(recent_executions[0], dict):
-            error_code = ErrorCodes.INVALID_OUTPUT_SCHEMA
             msg = "Repository returned dicts instead of Pydantic Models. Strict Pydantic Enforcement Violation."
-            logger.error(f"[ArchivalHook] {error_code.name}: {msg}")
-            raise AppException(message=msg, status_code=500, details={"error_code": error_code.value})
+            logger.error("[ArchivalHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value}
+            )
 
         # 2. Filter and Format
         precedents = []
@@ -62,11 +68,12 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
         for res in recent_executions:
             if not res.updated_at:
                 # Fail Fast Protocol (Part 18): Hard crash on data integrity violation
-                error_code = ErrorCodes.STATE_INTEGRITY_ERROR
                 msg = f"Data Integrity Violation: Execution {res.id} marked complete but missing updated_at timestamp."
-                logger.error(f"[ArchivalHook] {error_code.name}: {msg}", exc_info=False)
+                logger.error("[ArchivalHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg, exc_info=False)
                 raise AppException(
-                    message=msg, status_code=500, details={"error_code": error_code.value, "execution_id": res.id}
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value, "execution_id": res.id},
                 )
 
         for res in recent_executions:
@@ -94,11 +101,12 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                         logger.warning(f"Execution {res.id} has no trace events in DB or Disk. Skipping.")
                         continue
                 except Exception as e:
-                    error_code = ErrorCodes.STATE_INTEGRITY_ERROR
                     msg = f"Failed to load trace events from disk for {res.id}: {e}"
-                    logger.error(f"[ArchivalHook] {error_code.name}: {msg}", exc_info=True)
+                    logger.error("[ArchivalHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg, exc_info=True)
                     raise AppException(
-                        message=msg, status_code=500, details={"error_code": error_code.value, "execution_id": res.id}
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value, "execution_id": res.id},
                     ) from e
 
             judge_outputs: dict[str, JudgeOutput] = {}
@@ -124,12 +132,16 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                             )
                             judge_outputs[label] = judge_candidate
                     except Exception as e:
-                        error_code = ErrorCodes.VALIDATION_FAILED
-                        logger.error(f"[ArchivalHook] {error_code.name}: Output validation failed: {e}", exc_info=True)
+                        logger.error(
+                            "[ArchivalHook] %s: Output validation failed: %s",
+                            ErrorCodes.VALIDATION_FAILED.name,
+                            e,
+                            exc_info=True,
+                        )
                         raise AppException(
                             message=f"Event output validation failed: {e}",
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            details={"error_code": error_code.value, "original_error": str(e)},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "original_error": str(e)},
                         ) from e
 
             if judge_outputs:
@@ -162,16 +174,15 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
         logger.debug(f"[ArchivalHook] Found {len(precedents)} precedents.")
 
         # 4. Return STRUCTURED data matching ArchivalPrecedentDTO schema (dumped to dict for state_delta)
-        return HookResult(success=True, state_delta={"archivist_precedents": precedents})
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta={"archivist_precedents": precedents}))
 
     except AppException:
         raise
     except Exception as e:
         # FAIL FAST - RFC 7807
-        error_code = ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED
-        logger.error(f"[ArchivalHook] {error_code.name}: {e}", exc_info=True)
+        logger.error("[ArchivalHook] %s: %s", ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED.name, e, exc_info=True)
         raise AppException(
             message=f"Failed to retrieve precedents: {e}",
             status_code=500,
-            details={"error_code": error_code.value, "original_error": str(e)},
+            details={"error_code": ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED.value, "original_error": str(e)},
         ) from e

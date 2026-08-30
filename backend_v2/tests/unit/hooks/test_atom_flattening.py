@@ -3,7 +3,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookState,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
@@ -79,8 +84,8 @@ def base_hook_state() -> HookState:
         execution_id="exec_123",
         workflow_id="wf_123",
         task_blueprint="step_0123456789abcdef0123456789abcdef",
-        inputs={},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(target_locale="en", matrix_sampling_strategy=1),
     )
 
@@ -172,19 +177,19 @@ async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, m
         audit_repo=AsyncMock(),
         system_repo=AsyncMock(),
     )
-    # repo)  # type: ignore[arg-type]
 
     # Use STRATIFIED_3
     state = base_hook_state.model_copy(
         update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=3)}
     )
 
-    result = await process_matrix_flattening(state, deps)  # type: ignore[misc]
+    result = await process_matrix_flattening(state, deps)
 
     assert result.success is True
-    assert "shuffled_atoms" in result.state_delta
+    assert result.state_delta is not None
+    assert "shuffled_atoms" in result.state_delta.delta
 
-    shuffled_atoms = result.state_delta["shuffled_atoms"]
+    shuffled_atoms = result.state_delta.delta["shuffled_atoms"]
     assert isinstance(shuffled_atoms, list)
     # 2 scales (1 and 5), 3 samples each = 6 total atoms
     assert len(shuffled_atoms) == 6
@@ -213,19 +218,19 @@ async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookSta
         audit_repo=AsyncMock(),
         system_repo=AsyncMock(),
     )
-    # repo)  # type: ignore[arg-type]
 
     # Use ALL
     state = base_hook_state.model_copy(
         update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=0)}
     )
 
-    result = await process_matrix_flattening(state, deps)  # type: ignore[misc]
+    result = await process_matrix_flattening(state, deps)
 
     assert result.success is True
-    assert "shuffled_atoms" in result.state_delta
+    assert result.state_delta is not None
+    assert "shuffled_atoms" in result.state_delta.delta
 
-    shuffled_atoms = result.state_delta["shuffled_atoms"]
+    shuffled_atoms = result.state_delta.delta["shuffled_atoms"]
     assert isinstance(shuffled_atoms, list)
     # 2 scales (1 and 5), 5 samples each = 10 total atoms
     assert len(shuffled_atoms) == 10
@@ -251,7 +256,8 @@ async def test_atom_flattening_no_task_blueprint(base_hook_state: HookState) -> 
     )
     result = await process_matrix_flattening(state, deps)
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 @pytest.mark.asyncio
@@ -291,7 +297,8 @@ async def test_atom_flattening_step_not_found(base_hook_state: HookState) -> Non
     )
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 @pytest.mark.asyncio
@@ -312,7 +319,8 @@ async def test_atom_flattening_empty_criteria_blocks(base_hook_state: HookState,
     )
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 @pytest.mark.asyncio
@@ -357,7 +365,8 @@ async def test_atom_flattening_no_matching_matrix_blocks(base_hook_state: HookSt
     )
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 @pytest.mark.asyncio
@@ -418,7 +427,8 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
     result = await process_matrix_flattening(state, deps)
 
     assert result.success is True
-    shuffled = result.state_delta["shuffled_atoms"]
+    assert result.state_delta is not None
+    shuffled = result.state_delta.delta["shuffled_atoms"]
     assert len(shuffled) == 2
 
     child_atom = next(a for a in shuffled if a["atom_id"] == "tda_00000000000000010000000000000001")
@@ -513,7 +523,8 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     result = await process_matrix_flattening(state, deps)
 
     assert result.success is True
-    shuffled = result.state_delta["shuffled_atoms"]
+    assert result.state_delta is not None
+    shuffled = result.state_delta.delta["shuffled_atoms"]
     atom_ids = {a["atom_id"] for a in shuffled}
 
     # If atom_c was selected, atom_b and atom_a MUST also be in the output set
