@@ -45,32 +45,32 @@ class TestExecutionCoreFieldsDefaults:
 
     def test_default_status_is_pending(self) -> None:
         """Status must default to ExecutionStatus.PENDING."""
-        instance = ExecutionCoreFields.model_validate({})
+        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
         assert instance.status == ExecutionStatus.PENDING
 
-    def test_default_target_locale_is_en(self) -> None:
-        """Target locale must default to 'en'."""
-        instance = ExecutionCoreFields.model_validate({})
-        assert instance.target_locale == "en"
+    def test_fail_fast_on_missing_target_locale(self) -> None:
+        """Missing mandatory target_locale must fail fast."""
+        with pytest.raises(ValidationError):
+            ExecutionCoreFields.model_validate({})
 
     def test_default_execution_trace_is_empty_list(self) -> None:
         """Execution trace must default to an empty list."""
-        instance = ExecutionCoreFields.model_validate({})
+        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
         assert instance.execution_trace == []
 
     def test_default_execution_trace_storage_path_is_none(self) -> None:
         """Execution trace storage path must default to None."""
-        instance = ExecutionCoreFields.model_validate({})
+        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
         assert instance.execution_trace_storage_path is None
 
     def test_default_context_variables_is_empty_dict(self) -> None:
         """Context variables must default to an empty dict."""
-        instance = ExecutionCoreFields.model_validate({})
+        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
         assert instance.context_variables == {}
 
     def test_default_context_variables_storage_path_is_none(self) -> None:
         """Context variables storage path must default to None."""
-        instance = ExecutionCoreFields.model_validate({})
+        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
         assert instance.context_variables_storage_path is None
 
 
@@ -80,12 +80,12 @@ class TestExecutionCoreFieldsValidation:
     def test_fail_fast_on_invalid_status(self) -> None:
         """Invalid status must crash immediately via Pydantic validation."""
         with pytest.raises(ValidationError):
-            ExecutionCoreFields.model_validate({"status": "INVALID"})
+            ExecutionCoreFields.model_validate({"target_locale": "en", "status": "INVALID"})
 
     def test_fail_fast_on_extra_fields(self) -> None:
         """Extra fields must crash immediately (extra=forbid)."""
         with pytest.raises(ValidationError):
-            ExecutionCoreFields.model_validate({"rogue_field": "should_crash"})
+            ExecutionCoreFields.model_validate({"target_locale": "en", "rogue_field": "should_crash"})
 
     def test_accepts_valid_trace_event_union(self) -> None:
         """Execution trace must accept all union members."""
@@ -93,8 +93,22 @@ class TestExecutionCoreFieldsValidation:
         error_event = ErrorTraceEvent(step_name="test", error_code="ERR_TEST", error_message="fail")
         tombstone_event = TombstoneEvent(step_name="test", redacted_hash="abc123")
 
-        instance = ExecutionCoreFields.model_validate({"execution_trace": [trace_event, error_event, tombstone_event]})
+        instance = ExecutionCoreFields.model_validate(
+            {"target_locale": "en", "execution_trace": [trace_event, error_event, tombstone_event]}
+        )
         assert len(instance.execution_trace) == 3
+
+    def test_execution_record_missing_target_locale_raises_validation_error(self) -> None:
+        """Contract: Verify ExecutionRecord missing target_locale raises ValidationError (Fail-Fast)."""
+        from backend_v2.models.v2_core import ExecutionRecord
+
+        payload = {
+            "id": "exe_1234567890abcdef",
+            "workflow_id": "wor_1234567890abcdef",
+            "metadata": {"target_locale": "en"},
+        }
+        with pytest.raises(ValidationError):
+            ExecutionRecord.model_validate(payload)
 
 
 class TestExecutionMetadata:

@@ -56,9 +56,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+from backend_v2.settings import get_settings
 
-SEED_PATH = PROJECT_ROOT / "backend_v2" / "seed" / "seed_data.json"
-LOCAL_DB_PATH = PROJECT_ROOT / "data" / "db_v2.json"
+SEED_PATH = Path(get_settings().seed_data_path)
+LOCAL_DB_PATH = Path(get_settings().prod_db_path)
 
 # Configure Logging
 logging.basicConfig(
@@ -122,7 +123,7 @@ async def _seed_tinydb(
             # 1. Automatic Backup before dropping the DB
             if db_path.exists():
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                backup_dir = PROJECT_ROOT / "backend_v2" / "seed" / "backups"
+                backup_dir = Path(get_settings().base_dir) / "seed" / "backups"
                 backup_dir.mkdir(parents=True, exist_ok=True)
                 backup_path = backup_dir / f"{db_path.name}.{timestamp}.bak"
                 try:
@@ -144,7 +145,7 @@ async def _seed_tinydb(
 
             # 2. Cleanup orphaned execution files physically
             if "db_v2.json" in db_path.name:
-                executions_dir = PROJECT_ROOT / "data" / "files" / "executions"
+                executions_dir = Path(get_settings().data_dir) / "files" / "executions"
                 if executions_dir.exists():
                     shutil.rmtree(executions_dir, ignore_errors=True)
                 executions_dir.mkdir(parents=True, exist_ok=True)

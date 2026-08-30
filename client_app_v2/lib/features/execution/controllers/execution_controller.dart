@@ -40,6 +40,7 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
   const allowedKeys = {
     'id',
     'workflow_id',
+    'target_locale',
     'status',
     'trace_version',
     'strictness_level',
@@ -85,8 +86,10 @@ class ExecutionController extends _$ExecutionController {
   Future<void> startExecution(
     String workflowId,
     Map<String, dynamic> inputs, {
+    String targetLocale = 'fi',
     int strictnessLevel = 50,
     String scoringStrategy = 'WATERFALL',
+    String? targetProfileId,
   }) async {
     state = const AsyncValue.loading();
     await _sseSubscription?.cancel();
@@ -97,8 +100,10 @@ class ExecutionController extends _$ExecutionController {
       final initialRecord = await client.startExecution(
         workflowId: workflowId,
         rawInputs: inputs,
+        targetLocale: targetLocale,
         strictnessLevel: strictnessLevel,
         scoringStrategy: scoringStrategy,
+        targetProfileId: targetProfileId,
       );
 
       final executionId = initialRecord['id'] as String;

@@ -324,8 +324,7 @@ def test_audit_output_profiles_directives() -> None:
     }
     issues, _ = audit_output_profiles([profile], known_block_ids)
 
-    assert any(i.issue_type == "RAW_XML" and "synthesis.system_prompt" in i.field_path for i in issues)
-    assert any(i.issue_type == "ORPHAN_SYNTHESIS_BLOCK" for i in issues)
+    assert any(i.issue_type == "BANNED_SYNTHESIS_OBJECT" and "synthesis" in i.field_path for i in issues)
     assert any(i.issue_type == "RAW_XML" and "matrix_synthesis_groups" in i.field_path for i in issues)
     assert any(i.issue_type == "ORPHAN_TARGET_BLOCK" for i in issues)
 

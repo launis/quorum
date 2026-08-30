@@ -12,6 +12,7 @@ import os
 import secrets
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 try:
@@ -41,11 +42,59 @@ from backend_v2.context import set_request_context
 from backend_v2.core.rate_limit import rate_limit_exceeded_handler
 from backend_v2.exceptions import AppException, ErrorCodes, format_validation_error
 from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 from backend_v2.services.localization import set_language
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
 # --- 1. Lifespan Management ---
+
+
+def _validate_database_preflight(logger: logging.Logger) -> None:
+    """Validates root database collections against strict Pydantic models at startup.
+
+    Args:
+        logger: Active application logger.
+
+    Raises:
+        RuntimeError: If database records fail strict Pydantic validation.
+    """
+    settings = get_settings()
+    db_path = Path(settings.prod_db_path)
+    if not db_path.exists():
+        logger.warning(
+            "[StartupAudit] Database file '%s' not found. Re-seed via 'uv run python backend_v2/seed/run_seed.py local'.",
+            db_path,
+        )
+        return
+
+    try:
+        from tinydb import TinyDB
+
+        db = TinyDB(str(db_path), encoding="utf-8")
+        collections_to_validate = ["system_config", "workflows", "output_profiles"]
+        for col_name in collections_to_validate:
+            if col_name in STANDARD_REGISTRY:
+                config = STANDARD_REGISTRY[col_name]
+                table_name = str(config["table"])
+                adapter: Any = config["model"]
+                table = db.table(table_name)
+                for item in table.all():
+                    adapter.validate_python(item)
+        db.close()
+        logger.info("[StartupAudit] Pre-flight database schema validation PASSED.")
+    except Exception as exc:
+        logger.critical(
+            "[StartupAudit] Database schema validation FAILED for %s: %s. Please re-seed via 'uv run python backend_v2/seed/run_seed.py local'.",
+            db_path,
+            exc,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+        raise RuntimeError(
+            f"Pre-flight schema validation failed on '{db_path}': {exc}. "
+            "Please run 'uv run python backend_v2/seed/run_seed.py local' to rebuild clean database state."
+        ) from exc
 
 
 @asynccontextmanager
@@ -75,6 +124,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             files = [f for f in os.listdir(workflow_dir) if f.endswith(".json")]
             logger.info(f"[StartupAudit] Workflows Detected: {len(files)} files in {workflow_dir}.")
 
+        _validate_database_preflight(logger)
+
         if "PYTEST_CURRENT_TEST" in os.environ:
             logger.info("Test environment detected. Forcing FakeRedis.")
             app.state.arq_pool = get_patched_fakeredis_pool()
@@ -99,13 +150,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     finally:
         logger.info("Shutting down...")
-        if hasattr(app.state, "arq_pool") and app.state.arq_pool:
+        pool = getattr(app.state, "arq_pool", None)
+        if pool is not None:
             try:
-                if hasattr(app.state.arq_pool, "aclose"):
-                    await app.state.arq_pool.aclose()
-                elif hasattr(app.state.arq_pool, "close"):
-                    await app.state.arq_pool.close()
-            except Exception as close_err:
+                close_callable = getattr(pool, "aclose", None) or getattr(pool, "close", None)
+                if callable(close_callable):
+                    await close_callable()
+            except (OSError, RuntimeError) as close_err:
                 logger.error(
                     "Error closing Arq pool: %s",
                     str(close_err),

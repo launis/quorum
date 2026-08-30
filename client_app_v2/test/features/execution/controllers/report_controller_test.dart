@@ -35,13 +35,14 @@ class MockExecutionClientPending implements ExecutionClient {
     }
   }
 
-  // Add dummy implementations for the rest to satisfy the interface
   @override
   Future<Map<String, dynamic>> startExecution({
     required String workflowId,
     required Map<String, dynamic> rawInputs,
+    String targetLocale = 'fi',
     int strictnessLevel = 50,
     String scoringStrategy = 'WATERFALL',
+    String? targetProfileId,
   }) async => {};
 
   @override

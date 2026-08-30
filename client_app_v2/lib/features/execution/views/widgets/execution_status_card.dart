@@ -70,13 +70,12 @@ class ExecutionStatusCard extends ConsumerWidget {
 
         // Extract Metrics
         final cost = record.costEstimate ?? 0.0;
-        final metadata = record.metadata ?? {};
-        final totalT = (metadata['total_tokens'] as num?)?.toInt() ?? 0;
-        final promptT = (metadata['prompt_tokens'] as num?)?.toInt() ?? 0;
-        final completionT =
-            (metadata['completion_tokens'] as num?)?.toInt() ?? 0;
-        final cachedT = (metadata['cached_tokens'] as num?)?.toInt() ?? 0;
-        final reasoningT = (metadata['reasoning_tokens'] as num?)?.toInt() ?? 0;
+        final metadata = record.metadata;
+        final promptT = metadata?.promptTokens ?? 0;
+        final completionT = metadata?.completionTokens ?? 0;
+        final cachedT = metadata?.cachedTokens ?? 0;
+        final reasoningT = metadata?.reasoningTokens ?? 0;
+        final totalT = promptT + completionT + reasoningT;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

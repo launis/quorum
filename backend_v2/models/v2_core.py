@@ -1372,7 +1372,7 @@ class ExecutionRecord(ExecutionCoreFields):
 
     if TYPE_CHECKING:
         status: LaxExecutionStatus = Field(default=ExecutionStatus.PENDING)
-        target_locale: str = Field(default="en")
+        target_locale: str = Field(...)
         execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(default_factory=list)
         execution_trace_storage_path: str | None = Field(default=None)
         context_variables: dict[str, Any] = Field(default_factory=dict)
@@ -1418,7 +1418,6 @@ class ExecutionRecord(ExecutionCoreFields):
         default_factory=dict, description="Dictionary of models used and their usage count/tokens"
     )
     metadata: ExecutionMetadata = Field(
-        default_factory=lambda: ExecutionMetadata(target_locale="en"),
         description="Strictly typed metadata for the execution",
     )
     error: str | None = Field(default=None, description="Error message if failed")

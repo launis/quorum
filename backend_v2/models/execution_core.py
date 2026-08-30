@@ -105,8 +105,8 @@ class ExecutionCoreFields(V2CoreBase):
     ]
     target_locale: Annotated[
         str,
-        Field(default="en", description="Target locale code for execution outputs, e.g. 'fi'."),
-    ] = "en"
+        Field(description="Target locale code for execution outputs, e.g. 'fi'."),
+    ]
     execution_trace: Annotated[
         list[ErrorTraceEvent | TombstoneEvent | TraceEvent],
         Field(default_factory=list, description="Immutable log of all events."),

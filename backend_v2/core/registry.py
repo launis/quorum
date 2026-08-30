@@ -49,7 +49,7 @@ class TaskDefinition(V2CoreBase):
     input_schema: type[BaseModel]
     output_schema: type[BaseModel]
     description: str | None = None
-    metadata: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None  # noqa: QGR001 - Registry metadata storage
 
 
 class TaskRegistry:

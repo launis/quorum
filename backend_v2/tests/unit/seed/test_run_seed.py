@@ -1,6 +1,7 @@
 """Unit tests for backend_v2/seed/run_seed.py."""
 
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -91,7 +92,7 @@ async def test_seed_database_seed_path_missing() -> None:
 @pytest.mark.asyncio
 async def test_seed_database_local_branch() -> None:
     """Test the main seed_database orchestrator for 'local' target."""
-    fake_data = {"organizations": []}
+    fake_data: dict[str, Any] = {"organizations": []}
     with (
         patch("pathlib.Path.exists", return_value=True),
         patch("builtins.open"),
@@ -118,7 +119,7 @@ async def test_seed_database_firestore_dry_run(capsys: pytest.CaptureFixture[str
 @pytest.mark.asyncio
 async def test_seed_database_firestore_execution() -> None:
     """Test seed_database firestore branch calls _seed_firestore."""
-    fake_data = {"system_config": []}
+    fake_data: dict[str, Any] = {"system_config": []}
     with (
         patch("pathlib.Path.exists", return_value=True),
         patch("builtins.open"),

@@ -3,14 +3,6 @@ from pydantic import ValidationError
 
 from backend_v2.models.v2_core import ReportDataDTO
 
-# Import existing tests so they are included in the coverage run for v2_core.py
-from backend_v2.tests.unit.models.dtos.test_output_profile import *  # noqa: F403, F401
-from backend_v2.tests.unit.models.test_output_profile_regression import *  # noqa: F403, F401
-from backend_v2.tests.unit.test_core_base import *  # noqa: F403, F401
-from backend_v2.tests.unit.test_report_data_dto import *  # noqa: F403, F401
-from backend_v2.tests.unit.test_v2_core_models import *  # noqa: F403, F401
-from backend_v2.tests.unit.test_v2_core_strictness import *  # noqa: F403, F401
-
 
 def test_report_data_dto_strictness_level_validation() -> None:
     dto = ReportDataDTO.model_validate(

@@ -37,7 +37,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
     final val = _ExecutionRecord(
       id: $checkedConvert('id', (v) => v as String),
       workflowId: $checkedConvert('workflow_id', (v) => v as String),
-      targetLocale: $checkedConvert('target_locale', (v) => v as String?),
+      targetLocale: $checkedConvert('target_locale', (v) => v as String),
       status: $checkedConvert('status', (v) => _statusFromJson(v as String)),
       traceVersion: $checkedConvert(
         'trace_version',
@@ -52,7 +52,12 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'cost_estimate',
         (v) => (v as num?)?.toDouble(),
       ),
-      metadata: $checkedConvert('metadata', (v) => v as Map<String, dynamic>?),
+      metadata: $checkedConvert(
+        'metadata',
+        (v) => v == null
+            ? null
+            : ExecutionMetadata.fromJson(v as Map<String, dynamic>),
+      ),
       error: $checkedConvert('error', (v) => v as String?),
       isResumable: $checkedConvert('is_resumable', (v) => v as bool?),
       frozenContext: $checkedConvert(
@@ -100,7 +105,7 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'strictness_level': instance.strictnessLevel,
       'created_at': instance.createdAt,
       'cost_estimate': instance.costEstimate,
-      'metadata': instance.metadata,
+      'metadata': instance.metadata?.toJson(),
       'error': instance.error,
       'is_resumable': instance.isResumable,
       'frozen_context': instance.frozenContext,

@@ -1,42 +1,72 @@
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.core.hook_registry import HookResult, HookState
+from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.exceptions import AppException
 from backend_v2.models.execution_core import ExecutionMetadata
 
 
-def test_hook_state_strictness() -> None:
+def test_hook_state_instantiation() -> None:
+    """Test HookState instantiation and attribute access."""
     state = HookState(
         execution_id="exec_1",
         workflow_id="wf_1",
+        step_id="stp_1",
         metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={"g": "v"},
         inputs={"in": "1"},
     )
     assert state.execution_id == "exec_1"
     assert state.metadata.target_locale == "en"
+    assert state.inputs == {"in": "1"}
+    assert state.global_context_vars == {"g": "v"}
 
+
+def test_hook_state_rejects_invalid_inputs() -> None:
+    """Test that HookState rejects invalid non-mapping inputs."""
     with pytest.raises(ValidationError):
-        HookState(execution_id="exec_1", workflow_id="wf_1", extra="fail")  # type: ignore
+        HookState(
+            execution_id="exec_1",
+            workflow_id="wf_1",
+            metadata=ExecutionMetadata(target_locale="en"),
+            global_context_vars={},
+            inputs=12345,  # type: ignore[arg-type]
+        )
+
+
+def test_hook_state_strictness() -> None:
+    """Test extra fields rejection on HookState."""
+    with pytest.raises(ValidationError):
+        HookState(
+            execution_id="exec_1",
+            workflow_id="wf_1",
+            metadata=ExecutionMetadata(target_locale="en"),
+            global_context_vars={},
+            inputs={},
+            extra="fail",  # type: ignore[call-arg]
+        )
 
 
 def test_hook_result_strictness() -> None:
+    """Test HookResult strictness and state_delta typing."""
     res = HookResult(success=True, state_delta={"test": 123})
     assert res.success is True
+    assert res.state_delta == {"test": 123}
 
     with pytest.raises(ValidationError):
-        HookResult(success=True, state_delta={"test": 123}, extra="fail")  # type: ignore
+        HookResult(
+            success=True,
+            state_delta={"test": 123},
+            extra="fail",  # type: ignore[call-arg]
+        )
 
 
 @pytest.mark.asyncio
 async def test_hook_registry_register_and_execute_sync_and_async() -> None:
     """Test registering and executing both sync and async hooks."""
-    from unittest.mock import MagicMock
-
-    from backend_v2.core.hook_registry import HookDependencies, hook_registry
-
     saved_hooks = dict(hook_registry._hooks)
     try:
         hook_registry.clear()
@@ -86,11 +116,6 @@ async def test_hook_registry_register_and_execute_sync_and_async() -> None:
 @pytest.mark.asyncio
 async def test_hook_registry_fail_fast_conditions() -> None:
     """Test duplicate registration, missing hook, invalid return type, and error wrapping."""
-    from unittest.mock import MagicMock
-
-    from backend_v2.core.hook_registry import HookDependencies, hook_registry
-    from backend_v2.exceptions import AppException
-
     saved_hooks = dict(hook_registry._hooks)
     try:
         hook_registry.clear()

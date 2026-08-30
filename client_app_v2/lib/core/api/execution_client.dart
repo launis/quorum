@@ -26,16 +26,20 @@ class ExecutionClient {
   Future<Map<String, dynamic>> startExecution({
     required String workflowId,
     required Map<String, dynamic> rawInputs,
+    String targetLocale = 'fi',
     int strictnessLevel = 50,
     String scoringStrategy = 'WATERFALL',
+    String? targetProfileId,
   }) async {
     final response = await _dio.post(
       '/execution/executions/',
       data: {
         'workflow_id': workflowId,
         'raw_inputs': rawInputs,
+        'target_locale': targetLocale,
         'strictness_level': strictnessLevel,
         'scoring_strategy': scoringStrategy,
+        if (targetProfileId != null) 'target_profile_id': targetProfileId,
       },
     );
 

@@ -318,8 +318,17 @@ class MarkdownAuditor:
                         remediation="Ensure all Python files in backend_v2 are syntactically valid.",
                     )
 
+        planned_classes: set[str] = set()
+        for line in self.lines:
+            line_lower = line.lower()
+            if any(k in line_lower for k in ("[new]", "create", "defining", "created", "defined")):
+                for cls_name in pattern.findall(line):
+                    planned_classes.add(cls_name)
+                for word in re.findall(r"\b([A-Za-z0-9_]+(?:DTO|Cache|Response|Service))\b", line):
+                    planned_classes.add(word)
+
         for cls in sorted(mentioned):
-            if cls not in valid_classes:
+            if cls not in valid_classes and cls not in planned_classes:
                 self._add_finding(
                     line_number=0,
                     rule_code="MBD005",

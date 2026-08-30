@@ -1,9 +1,10 @@
 // ignore_for_file: invalid_annotation_target
-import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
 
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:client_app/core/utils/safe_isolate.dart';
+import 'package:client_app/features/execution/models/execution_metadata.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'execution_record.freezed.dart';
 part 'execution_record.g.dart';
@@ -22,14 +23,14 @@ abstract class ExecutionRecord with _$ExecutionRecord {
   const factory ExecutionRecord({
     required String id,
     @JsonKey(name: 'workflow_id') required String workflowId,
-    @JsonKey(name: 'target_locale') String? targetLocale,
+    @JsonKey(name: 'target_locale') required String targetLocale,
     @JsonKey(fromJson: _statusFromJson) required String status,
     @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)
     String? traceVersion,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'created_at') String? createdAt,
     @JsonKey(name: 'cost_estimate') double? costEstimate,
-    @JsonKey(name: 'metadata') Map<String, dynamic>? metadata,
+    @JsonKey(name: 'metadata') ExecutionMetadata? metadata,
     @JsonKey(name: 'error') String? error,
     @JsonKey(name: 'is_resumable') bool? isResumable,
     @JsonKey(name: 'frozen_context') Map<String, dynamic>? frozenContext,

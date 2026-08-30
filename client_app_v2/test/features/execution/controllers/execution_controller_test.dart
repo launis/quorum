@@ -11,17 +11,20 @@ class MockExecutionClient implements ExecutionClient {
   Future<Map<String, dynamic>> startExecution({
     required String workflowId,
     required Map<String, dynamic> rawInputs,
-    int? strictnessLevel,
-    String? scoringStrategy,
+    String targetLocale = 'fi',
+    int strictnessLevel = 50,
+    String scoringStrategy = 'WATERFALL',
+    String? targetProfileId,
   }) async {
-    return {'id': 'test_exec', 'workflow_id': 'test_wf', 'status': 'running'};
+    return {'id': 'test_exec', 'workflow_id': 'test_wf', 'target_locale': targetLocale, 'status': 'running'};
   }
 
   @override
   Future<Map<String, dynamic>> resumeExecution(String executionId) async {
-    return {'id': executionId, 'workflow_id': 'test_wf', 'status': 'running'};
+    return {'id': executionId, 'workflow_id': 'test_wf', 'target_locale': 'fi', 'status': 'running'};
   }
 
+  @override
   Future<Map<String, dynamic>> renderExecution(
     String executionId, {
     String lang = 'fi',
@@ -44,7 +47,7 @@ class MockExecutionClient implements ExecutionClient {
 
   @override
   Future<Map<String, dynamic>> getExecutionStatus(String executionId) async {
-    return {'id': executionId, 'workflow_id': 'test_wf', 'status': 'passed'};
+    return {'id': executionId, 'workflow_id': 'test_wf', 'target_locale': 'fi', 'status': 'passed'};
   }
 
   Future<Map<String, dynamic>> getScorecard(String executionId) async {
@@ -67,6 +70,7 @@ class MockSseClient implements SseClient {
     yield {
       'id': executionId,
       'workflow_id': 'test_wf',
+      'target_locale': 'fi',
       'status': 'passed',
       'trace_version': '1.0',
     };
