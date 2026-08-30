@@ -78,6 +78,7 @@ void main() {
             labelI18n: I18nText(translations: {'en': 'Executive Leadership'}),
             rowExplanation: 'Consistent executive leadership demonstrated.',
             scoreDisplayLabel: '8.5 / 10',
+            normalizedScore: 85.0,
             uiPlotRatio: 0.85,
             isEvaluative: true,
             allowContextualOverride: true,
@@ -114,7 +115,7 @@ void main() {
         find.text('Consistent executive leadership demonstrated.'),
         findsOneWidget,
       );
-      expect(find.text('85.0%'), findsOneWidget);
+      expect(find.text('85.0 %'), findsOneWidget);
       expect(find.text('8.5 / 10'), findsOneWidget);
       expect(find.text('- Atom 1 Label'), findsOneWidget);
       expect(find.text('"Verbatim evidence quote from doc"'), findsOneWidget);
