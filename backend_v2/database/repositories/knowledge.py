@@ -1,42 +1,48 @@
-"""Database repository implementation module."""
+"""Database repository implementation module for Knowledge base, Banned phrases and Prompts."""
 
+import logging
 import uuid
 from typing import Any
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
+from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.domain.knowledge import BannedPhrase, Claim, Concept, PromptTemplateDTO, Reference
+
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeRepositoryImpl(BaseRepository):
     """Repository implementation for Knowledge base, Banned phrases and Prompts."""
 
-    async def get_banned_phrases(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+    async def get_banned_phrases(self) -> list[BannedPhrase]:
+        """Retrieves all banned phrases.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated BannedPhrase domain models.
         """
-        return await self.driver.query("banned_phrases")
+        data = await self.driver.query("banned_phrases")
+        phrases: list[BannedPhrase] = []
+        for p in data:
+            try:
+                phrases.append(BannedPhrase.model_validate(p, strict=False))
+            except Exception as e:
+                item_id = p["id"] if "id" in p else "unknown"
+                logger.error(
+                    "[KnowledgeRepository] %s: Skipping corrupted banned phrase %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
+        return phrases
 
     async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
-        """Repository method implementation.
+        """Adds a new banned phrase if not already existing.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            phrase: The phrase string to ban.
+            language: Language code for the phrase.
         """
         existing = await self.driver.query("banned_phrases", [Filter("phrase", "==", phrase)], limit=1)
         if not existing:
@@ -44,153 +50,147 @@ class KnowledgeRepositoryImpl(BaseRepository):
             await self.driver.upsert("banned_phrases", {"phrase": phrase, "language": language, "id": doc_id}, doc_id)
 
     async def delete_banned_phrase(self, phrase: str) -> bool:
-        """Repository method implementation.
+        """Deletes a banned phrase.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            phrase: The phrase string to remove.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            True if removed, False if not found.
         """
         existing = await self.driver.query("banned_phrases", [Filter("phrase", "==", phrase)], limit=1)
         if existing:
             return await self.driver.delete("banned_phrases", existing[0]["id"])
         return False
 
-    async def get_prompt_template(self, template_id: str) -> dict[str, str] | None:
-        """Repository method implementation.
+    async def get_prompt_template(self, template_id: str) -> PromptTemplateDTO | None:
+        """Retrieves a prompt template by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            template_id: Unique identifier for the prompt template.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The validated PromptTemplateDTO if found, otherwise None.
         """
         res = await self.driver.get("prompts", template_id)
         if res:
-            return {"system": res.get("system_prompt", ""), "user": res.get("user_prompt", "")}
+            sys_p = res["system_prompt"] if "system_prompt" in res else ""
+            usr_p = res["user_prompt"] if "user_prompt" in res else ""
+            return PromptTemplateDTO(system=sys_p, user=usr_p)
 
         res_list = await self.driver.query("prompts", [Filter("id", "==", template_id)], limit=1)
         if res_list:
             res = res_list[0]
-            return {"system": res.get("system_prompt", ""), "user": res.get("user_prompt", "")}
+            sys_p = res["system_prompt"] if "system_prompt" in res else ""
+            usr_p = res["user_prompt"] if "user_prompt" in res else ""
+            return PromptTemplateDTO(system=sys_p, user=usr_p)
 
         return None
 
-    async def get_concepts(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+    async def get_concepts(self) -> list[Concept]:
+        """Retrieves all knowledge base concepts.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated Concept domain models.
         """
-        return await self.driver.query("concepts")
+        data = await self.driver.query("concepts")
+        concepts: list[Concept] = []
+        for c in data:
+            try:
+                concepts.append(Concept.model_validate(c, strict=False))
+            except Exception as e:
+                item_id = c["id"] if "id" in c else "unknown"
+                logger.error(
+                    "[KnowledgeRepository] %s: Skipping corrupted concept %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
+        return concepts
 
-    async def get_references(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+    async def get_references(self) -> list[Reference]:
+        """Retrieves all knowledge base references.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated Reference domain models.
         """
-        return await self.driver.query("references")
+        data = await self.driver.query("references")
+        refs: list[Reference] = []
+        for r in data:
+            try:
+                refs.append(Reference.model_validate(r, strict=False))
+            except Exception as e:
+                item_id = r["id"] if "id" in r else "unknown"
+                logger.error(
+                    "[KnowledgeRepository] %s: Skipping corrupted reference %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
+        return refs
 
-    async def get_claims(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+    async def get_claims(self) -> list[Claim]:
+        """Retrieves all knowledge base claims.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated Claim domain models.
         """
-        return await self.driver.query("claims")
+        data = await self.driver.query("claims")
+        claims: list[Claim] = []
+        for c in data:
+            try:
+                claims.append(Claim.model_validate(c, strict=False))
+            except Exception as e:
+                item_id = c["id"] if "id" in c else "unknown"
+                logger.error(
+                    "[KnowledgeRepository] %s: Skipping corrupted claim %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
+        return claims
 
     async def add_concept(self, item: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Adds a concept to knowledge base.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            item: Concept data dictionary.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The created concept ID.
         """
         doc_id = item["id"]
         return await self.driver.upsert("concepts", item, doc_id)
 
     async def add_reference(self, item: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Adds a reference to knowledge base.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            item: Reference data dictionary.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The created reference ID.
         """
         doc_id = item["id"]
         return await self.driver.upsert("references", item, doc_id)
 
     async def add_claim(self, item: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Adds a claim to knowledge base.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            item: Claim data dictionary.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The created claim ID.
         """
         doc_id = item["id"]
         return await self.driver.upsert("claims", item, doc_id)
 
     async def clear_knowledge_base(self) -> None:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
-        """
+        """Clears all concepts, references, and claims from the database."""
         await self.driver.clear("concepts")
         await self.driver.clear("references")
         await self.driver.clear("claims")

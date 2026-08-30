@@ -35,12 +35,16 @@ async def test_execution_repo(mock_driver: AsyncMock) -> None:
     mock_driver.delete.assert_called_with("executions", "exec_123")
 
     mock_driver.get.return_value = {"id": "exec_123", "status": "PENDING"}
-    exec_record = await repo.get_execution("exec_123")
-    assert exec_record is None  # fails because of mock hydration error or invalid model. That's fine for coverage.
+    from backend_v2.exceptions import AppException
 
-    mock_driver.query.return_value = [{"id": "exec_123", "status": "PENDING"}]
-    await repo.get_all_executions(organization_id="org1")
-    await repo.get_recent_completed_executions()
+    with pytest.raises(AppException):
+        await repo.get_execution("exec_123")
+
+    mock_driver.query.return_value = []
+    executions = await repo.get_all_executions(organization_id="org1")
+    assert executions == []
+    recent = await repo.get_recent_completed_executions()
+    assert recent == []
     mock_driver.count.return_value = 5
     assert await repo.count_executions_by_matrix("m1") == 5
 

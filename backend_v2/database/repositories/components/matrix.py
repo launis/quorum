@@ -1,34 +1,64 @@
+"""Extracted Repository for Evaluation Matrices."""
+
 import logging
 from typing import Any
 
 from backend_v2.database.driver import Filter
-from backend_v2.database.interfaces import IMatrixRepository
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 
 
-class MatrixRepositoryImpl(AppendOnlyRepositoryBase, IMatrixRepository):
+class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Evaluation Matrices."""
 
     async def get_all_matrices(self) -> list[dict[str, Any]]:
-        """Repository method implementation."""
+        """Retrieves all evaluation matrix components from the database.
+
+        Returns:
+            List of evaluation matrix dictionaries.
+        """
         filters = [Filter("type", "==", "evaluation_matrix")]
         return await self.driver.query("components", filters)
 
     async def get_matrix_by_id(self, matrix_id: str) -> dict[str, Any] | None:
-        """Repository method implementation."""
+        """Retrieves an evaluation matrix component by its ID.
+
+        Args:
+            matrix_id: Unique identifier for the matrix.
+
+        Returns:
+            The matrix dictionary if found, otherwise None.
+        """
         return await self.driver.get("components", matrix_id)
 
     async def create_matrix(self, matrix_data: dict[str, Any]) -> str:
-        """Repository method implementation."""
+        """Creates a new evaluation matrix component.
+
+        Args:
+            matrix_data: Dictionary containing matrix fields.
+
+        Returns:
+            The created matrix ID.
+        """
         doc_id = matrix_data["id"]
         matrix_data["type"] = "evaluation_matrix"
         return await self.driver.upsert("components", matrix_data, doc_id)
 
     async def update_matrix(self, matrix_id: str, updates: dict[str, Any]) -> str:
-        """Repository method implementation."""
+        """Updates an existing evaluation matrix component.
+
+        Args:
+            matrix_id: Unique identifier for the matrix.
+            updates: Dictionary of fields to update.
+
+        Returns:
+            The updated matrix ID.
+
+        Raises:
+            ResourceNotFoundError: If the matrix does not exist.
+        """
         comp = await self.get_matrix_by_id(matrix_id)
         if not comp:
             raise ResourceNotFoundError(resource_type="Matrix", resource_id=matrix_id)
@@ -36,25 +66,37 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase, IMatrixRepository):
         return matrix_id
 
     async def delete_matrix(self, matrix_id: str) -> bool:
-        """Repository method implementation."""
+        """Deletes an evaluation matrix component by ID.
+
+        Args:
+            matrix_id: Unique identifier for the matrix.
+
+        Returns:
+            True if deleted, False if matrix does not exist.
+        """
         comp = await self.get_matrix_by_id(matrix_id)
         if not comp:
             return False
         return await self.driver.delete("components", matrix_id)
 
     async def get_matrices_using_dimension(self, dimension_id: str) -> list[str]:
-        """Repository method implementation."""
+        """Finds all matrix component IDs referencing a given dimension ID.
+
+        Args:
+            dimension_id: Unique identifier for the dimension.
+
+        Returns:
+            List of matching matrix IDs.
+        """
         matrices = await self.get_all_matrices()
         matches = []
         for m in matrices:
-            content = m.get("content", {})
-            if not isinstance(content, dict):
-                continue
-            criteria = content.get("criteria", [])
-            if not isinstance(criteria, list):
-                continue
-            for crit in criteria:
-                if isinstance(crit, dict) and crit.get("dimension_id") == dimension_id:
-                    matches.append(m["id"])
-                    break
+            if "content" in m and isinstance(m["content"], dict):
+                content = m["content"]
+                if "criteria" in content and isinstance(content["criteria"], list):
+                    for crit in content["criteria"]:
+                        if isinstance(crit, dict) and "dimension_id" in crit and crit["dimension_id"] == dimension_id:
+                            if "id" in m:
+                                matches.append(m["id"])
+                            break
         return matches

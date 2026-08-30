@@ -1,4 +1,4 @@
-"""Database repository implementation module."""
+"""Database repository implementation module for Audit Logs and Usage Data."""
 
 import copy
 import logging
@@ -7,7 +7,9 @@ from typing import Any
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
+from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.domain.base import AuditLogEntry, UsageRecord
 
 logger = logging.getLogger(__name__)
 
@@ -16,19 +18,12 @@ class AuditRepositoryImpl(BaseRepository):
     """Repository implementation for Audit Logs and Usage Data."""
 
     async def log_audit_event(self, event_data: dict[str, Any]) -> None:
-        """Repository method implementation.
+        """Logs an audit event into storage.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            event_data: Dictionary containing audit event fields.
         """
-        doc_id = event_data.get("id") or str(uuid.uuid4())
+        doc_id = event_data["id"] if "id" in event_data else str(uuid.uuid4())
         event_data["id"] = doc_id
         await self.driver.upsert("audit_logs", event_data, doc_id)
 
@@ -38,18 +33,17 @@ class AuditRepositoryImpl(BaseRepository):
         actor_id: str | None = None,
         action: str | None = None,
         limit: int = 100,
-    ) -> list[dict[str, Any]]:
-        """Repository method implementation.
+    ) -> list[AuditLogEntry]:
+        """Retrieves audit logs filtered by organization, actor, or action.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            organization_id: Optional organization filter.
+            actor_id: Optional actor ID filter.
+            action: Optional action filter.
+            limit: Maximum number of records to return.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated AuditLogEntry domain models.
         """
         filters = []
         if organization_id:
@@ -59,46 +53,51 @@ class AuditRepositoryImpl(BaseRepository):
         if action:
             filters.append(Filter("action", "==", action))
 
-        return await self.driver.query(
+        raw_logs = await self.driver.query(
             "audit_logs", filters=filters, limit=limit, order_by="timestamp", descending=True
         )
+        logs: list[AuditLogEntry] = []
+        for entry in raw_logs:
+            try:
+                logs.append(AuditLogEntry.model_validate(entry, strict=False))
+            except Exception as e:
+                item_id = entry["id"] if "id" in entry else "unknown"
+                logger.error(
+                    "[AuditRepository] %s: Skipping corrupted audit log %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
+        return logs
 
     async def log_usage(self, record: Any) -> None:
-        """Repository method implementation.
+        """Logs a resource usage record.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            record: UsageRecord model or dictionary.
         """
         if hasattr(record, "model_dump"):
             data = record.model_dump()
         else:
             data = record
 
-        doc_id = data.get("id") or str(uuid.uuid4())
+        doc_id = data["id"] if "id" in data else str(uuid.uuid4())
         data["id"] = doc_id
         await self.driver.upsert("usage", data, doc_id)
 
     async def get_usage_records(
         self, scope: str, entity_id: str | None = None, since: str | None = None
-    ) -> list[dict[str, Any]]:
-        """Repository method implementation.
+    ) -> list[UsageRecord]:
+        """Retrieves usage records for a specific scope and entity.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            scope: Scope type (e.g. 'organization' or 'user').
+            entity_id: Optional entity ID.
+            since: Optional ISO timestamp filter.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated UsageRecord domain models.
         """
         filters = []
         if scope == "organization" and entity_id:
@@ -109,20 +108,32 @@ class AuditRepositoryImpl(BaseRepository):
         if since:
             filters.append(Filter("timestamp", ">=", since))
 
-        return await self.driver.query("usage", filters)
+        raw_records = await self.driver.query("usage", filters)
+        records: list[UsageRecord] = []
+        for u in raw_records:
+            try:
+                records.append(UsageRecord.model_validate(u, strict=False))
+            except Exception as e:
+                item_id = u["id"] if "id" in u else "unknown"
+                logger.error(
+                    "[AuditRepository] %s: Skipping corrupted usage record %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
+        return records
 
     async def get_usage_aggregate(self, scope: str, entity_id: str | None, period: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+        """Retrieves an aggregated usage summary document.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            scope: Scope type.
+            entity_id: Optional entity ID.
+            period: Aggregation period (e.g. '2026-08' or 'all-time').
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The aggregate dictionary if found, otherwise None.
         """
         agg_id = f"{scope}_{entity_id or 'system'}_{period}"
         return await self.driver.get("usage_aggregates", agg_id)
@@ -130,17 +141,13 @@ class AuditRepositoryImpl(BaseRepository):
     async def upsert_usage_aggregate(
         self, scope: str, entity_id: str | None, period: str, update_data: dict[str, Any]
     ) -> None:
-        """Repository method implementation.
+        """Upserts an aggregated usage record, merging token and execution totals.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            scope: Scope type.
+            entity_id: Optional entity ID.
+            period: Aggregation period.
+            update_data: Dictionary of usage increments.
         """
         agg_id = f"{scope}_{entity_id or 'system'}_{period}"
         update_data["id"] = agg_id
@@ -152,17 +159,25 @@ class AuditRepositoryImpl(BaseRepository):
         existing = await self.get_usage_aggregate(scope, entity_id, period)
         if existing:
             merged = copy.deepcopy(existing)
-            merged["total_executions"] = existing.get("total_executions", 0) + update_data.get("total_executions", 0)
+            ex_execs = existing["total_executions"] if "total_executions" in existing else 0
+            up_execs = update_data["total_executions"] if "total_executions" in update_data else 0
+            merged["total_executions"] = ex_execs + up_execs
 
-            ex_usage = existing.get("usage", {})
-            up_usage = update_data.get("usage", {})
+            ex_usage = existing["usage"] if "usage" in existing else {}
+            up_usage = update_data["usage"] if "usage" in update_data else {}
             merged["usage"] = {
-                "prompt_tokens": ex_usage.get("prompt_tokens", 0) + up_usage.get("prompt_tokens", 0),
-                "completion_tokens": ex_usage.get("completion_tokens", 0) + up_usage.get("completion_tokens", 0),
-                "total_tokens": ex_usage.get("total_tokens", 0) + up_usage.get("total_tokens", 0),
-                "cached_tokens": ex_usage.get("cached_tokens", 0) + up_usage.get("cached_tokens", 0),
-                "reasoning_tokens": ex_usage.get("reasoning_tokens", 0) + up_usage.get("reasoning_tokens", 0),
-                "cost_usd": ex_usage.get("cost_usd", 0.0) + up_usage.get("cost_usd", 0.0),
+                "prompt_tokens": (ex_usage["prompt_tokens"] if "prompt_tokens" in ex_usage else 0)
+                + (up_usage["prompt_tokens"] if "prompt_tokens" in up_usage else 0),
+                "completion_tokens": (ex_usage["completion_tokens"] if "completion_tokens" in ex_usage else 0)
+                + (up_usage["completion_tokens"] if "completion_tokens" in up_usage else 0),
+                "total_tokens": (ex_usage["total_tokens"] if "total_tokens" in ex_usage else 0)
+                + (up_usage["total_tokens"] if "total_tokens" in up_usage else 0),
+                "cached_tokens": (ex_usage["cached_tokens"] if "cached_tokens" in ex_usage else 0)
+                + (up_usage["cached_tokens"] if "cached_tokens" in up_usage else 0),
+                "reasoning_tokens": (ex_usage["reasoning_tokens"] if "reasoning_tokens" in ex_usage else 0)
+                + (up_usage["reasoning_tokens"] if "reasoning_tokens" in up_usage else 0),
+                "cost_usd": (ex_usage["cost_usd"] if "cost_usd" in ex_usage else 0.0)
+                + (up_usage["cost_usd"] if "cost_usd" in up_usage else 0.0),
             }
             await self.driver.upsert("usage_aggregates", merged, agg_id)
         else:
@@ -170,26 +185,24 @@ class AuditRepositoryImpl(BaseRepository):
                 update_data["usage"] = {}
             for k in ["prompt_tokens", "completion_tokens", "total_tokens", "cached_tokens", "reasoning_tokens"]:
                 if k not in update_data["usage"]:
-                    update_data["usage"][k] = update_data.get(k, 0)
+                    update_data["usage"][k] = update_data[k] if k in update_data else 0
             if "cost_usd" not in update_data["usage"]:
-                update_data["usage"]["cost_usd"] = update_data.get("cost_usd", 0.0)
+                update_data["usage"]["cost_usd"] = update_data["cost_usd"] if "cost_usd" in update_data else 0.0
 
             await self.driver.upsert("usage_aggregates", update_data, agg_id)
 
     async def get_detailed_usage(
         self, scope: str, target_id: str | None = None, since: str | None = None
     ) -> dict[str, Any]:
-        """Repository method implementation.
+        """Calculates detailed multi-dimensional usage metrics.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            scope: Scope ('user', 'org', 'system').
+            target_id: Optional ID for the targeted scope.
+            since: Optional ISO timestamp filter.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            Dictionary of calculated metrics including totals, token breakdown, and workflow usage.
         """
         filters = []
         if since:
@@ -209,15 +222,16 @@ class AuditRepositoryImpl(BaseRepository):
         workflows_used: dict[str, int] = {}
 
         for e in execs:
-            total_cost += e.get("cost_estimate", 0.0)
-            total_time += e.get("duration_ms", 0)
-            wid = e.get("workflow_id")
-            if wid:
-                workflows_used[wid] = workflows_used.get(wid, 0) + 1
-            mu = e.get("models_used", {})
-            if isinstance(mu, dict):
-                for m, count in mu.items():
-                    models_used[m] = models_used.get(m, 0) + count
+            if "cost_estimate" in e and e["cost_estimate"] is not None:
+                total_cost += float(e["cost_estimate"])
+            if "duration_ms" in e and e["duration_ms"] is not None:
+                total_time += int(e["duration_ms"])
+            if "workflow_id" in e and e["workflow_id"]:
+                wid = str(e["workflow_id"])
+                workflows_used[wid] = (workflows_used[wid] if wid in workflows_used else 0) + 1
+            if "models_used" in e and isinstance(e["models_used"], dict):
+                for m, count in e["models_used"].items():
+                    models_used[m] = (models_used[m] if m in models_used else 0) + count
 
         if workflows_used:
             try:
@@ -225,13 +239,15 @@ class AuditRepositoryImpl(BaseRepository):
                 if scope == "org" and target_id:
                     wf_filters.append(Filter("organization_id", "in", [target_id, SystemOrganizations.ROOT_SYSTEM]))
                 all_workflows = await self.driver.query("workflows", wf_filters)
-                wf_names = {w["id"]: w.get("name", w["id"]) for w in all_workflows}
+                wf_names = {w["id"]: (w["name"] if "name" in w else w["id"]) for w in all_workflows if "id" in w}
 
                 named_workflows_used: dict[str, int] = {}
                 for wid, count in workflows_used.items():
-                    name = wf_names.get(wid, wid)
+                    name = wf_names[wid] if wid in wf_names else wid
                     name_str = str(name)
-                    named_workflows_used[name_str] = named_workflows_used.get(name_str, 0) + count
+                    named_workflows_used[name_str] = (
+                        named_workflows_used[name_str] if name_str in named_workflows_used else 0
+                    ) + count
                 workflows_used = named_workflows_used
             except Exception as ex:
                 logger.warning("Could not map workflow names: %s", ex)
@@ -255,12 +271,12 @@ class AuditRepositoryImpl(BaseRepository):
         mapped_scope = "organization" if scope == "org" else scope
         agg = await self.get_usage_aggregate(mapped_scope, target_id, period)
         if agg:
-            usage_data = agg.get("usage", {})
-            prompt_tokens = usage_data.get("prompt_tokens", 0)
-            completion_tokens = usage_data.get("completion_tokens", 0)
-            total_tokens = usage_data.get("total_tokens", 0)
-            cached_tokens = usage_data.get("cached_tokens", 0)
-            reasoning_tokens = usage_data.get("reasoning_tokens", 0)
+            usage_data = agg["usage"] if "usage" in agg else {}
+            prompt_tokens = usage_data["prompt_tokens"] if "prompt_tokens" in usage_data else 0
+            completion_tokens = usage_data["completion_tokens"] if "completion_tokens" in usage_data else 0
+            total_tokens = usage_data["total_tokens"] if "total_tokens" in usage_data else 0
+            cached_tokens = usage_data["cached_tokens"] if "cached_tokens" in usage_data else 0
+            reasoning_tokens = usage_data["reasoning_tokens"] if "reasoning_tokens" in usage_data else 0
 
         return {
             "total_cost_usd": total_cost,

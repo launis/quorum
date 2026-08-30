@@ -174,7 +174,7 @@
     </rule_block>
 
     <rule_block id="service_layer_hydration_firewall">
-        <mandate>NEVER return raw DB dictionaries from the Service layer to API routers or hydrate Pydantic models inside the Repository layer. The Service layer acts as the hydration firewall: Repository returns raw polymorphic `dict[str, Any]`, and Service layer maps them into strict Pydantic Domain Models (`ConfigDict(frozen=True)`) before executing logic or returning data.</mandate>
+        <mandate>NEVER return raw DB dictionaries from the Data Access Layer (Repository) or Service layer. The Repository layer acts as the reconstitution firewall: internal database drivers return raw dictionaries, and Repository methods map them into strictly typed Pydantic Domain Models (`ConfigDict(frozen=True)`) before returning to the Service layer or callers.</mandate>
     </rule_block>
 
     <rule_block id="strict_dependency_injection">

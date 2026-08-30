@@ -26,44 +26,65 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         """
         super().__init__(driver)
 
-    async def get_prompt_block_by_id(self, block_id: str) -> dict[str, Any] | None:
+    async def get_prompt_block_by_id(self, block_id: str) -> PromptBlock | None:
         """Retrieves a prompt block by its ID.
 
         Args:
             block_id: The unique identifier of the prompt block.
 
         Returns:
-            A dictionary containing the prompt block data if found, otherwise None.
+            The validated PromptBlock domain model if found, otherwise None.
 
         Raises:
-            AppException: Propagated from driver if the database query fails.
+            AppException: If database query or validation fails.
         """
-        return await self.driver.get("prompt_blocks", block_id)
+        doc = await self.driver.get("prompt_blocks", block_id)
+        if not doc:
+            return None
+        try:
+            return PromptBlockAdapter.validate_python(doc, strict=False)
+        except Exception as e:
+            logger.error("Failed to parse PromptBlock %s: %s", block_id, e, exc_info=True)
+            raise AppException(
+                message=f"Failed to parse PromptBlock {block_id} from database",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
-    async def get_prompt_block(self, block_id: str) -> dict[str, Any] | None:
+    async def get_prompt_block(self, block_id: str) -> PromptBlock | None:
         """Retrieves a prompt block by its ID (alias for get_prompt_block_by_id).
 
         Args:
             block_id: The unique identifier of the prompt block.
 
         Returns:
-            A dictionary containing the prompt block data if found, otherwise None.
-
-        Raises:
-            AppException: Propagated from driver if the database query fails.
+            The validated PromptBlock domain model if found, otherwise None.
         """
         return await self.get_prompt_block_by_id(block_id)
 
-    async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
+    async def get_all_prompt_blocks(self) -> list[PromptBlock]:
         """Retrieves all prompt blocks from the database.
 
         Returns:
-            A list of dictionaries representing the prompt blocks.
+            A list of validated PromptBlock domain models.
 
         Raises:
-            AppException: Propagated from driver if the database query fails.
+            AppException: If database query fails.
         """
-        return await self.driver.query("prompt_blocks")
+        data = await self.driver.query("prompt_blocks")
+        models: list[PromptBlock] = []
+        for b in data:
+            try:
+                models.append(PromptBlockAdapter.validate_python(b, strict=False))
+            except Exception as e:
+                item_id = b["id"] if "id" in b else "unknown"
+                logger.error("Failed to parse PromptBlock %s: %s", item_id, e, exc_info=True)
+                raise AppException(
+                    message=f"Failed to parse PromptBlock {item_id} from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+        return models
 
     async def get_prompt_blocks_by_ids(
         self,
@@ -89,17 +110,9 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         results: list[PromptBlock] = []
 
         for bid in unique_ids:
-            doc = await self.get_prompt_block_by_id(bid)
-            if doc:
-                try:
-                    results.append(PromptBlockAdapter.validate_python(doc, strict=False))
-                except Exception as e:
-                    logger.error("Failed to parse PromptBlock %s: %s", bid, e, exc_info=True)
-                    raise AppException(
-                        message=f"Failed to parse PromptBlock {bid} from database",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
+            model = await self.get_prompt_block_by_id(bid)
+            if model:
+                results.append(model)
 
         found_ids = {b.id for b in results}
         missing_ids = [bid for bid in unique_ids if bid not in found_ids]
@@ -131,24 +144,8 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             A list of PromptBlock models.
-
-        Raises:
-            AppException: With VALIDATION_FAILED if a block cannot be parsed.
         """
-        data = await self.get_all_prompt_blocks()
-        models = []
-        for b in data:
-            try:
-                models.append(PromptBlockAdapter.validate_python(b, strict=False))
-            except Exception as e:
-                logger.error("Failed to parse PromptBlock %s: %s", b.get("id"), e, exc_info=True)
-
-                raise AppException(
-                    message=f"Failed to parse PromptBlock {b.get('id')} from database",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-        return models
+        return await self.get_all_prompt_blocks()
 
     async def create_prompt_block(self, block_data: dict[str, Any]) -> str:
         """Creates a new prompt block.
@@ -178,7 +175,7 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if database operations fail.
         """
-        old_doc = await self.get_prompt_block_by_id(block_id)
+        old_doc = await self.driver.get("prompt_blocks", block_id)
         if not old_doc:
             return False
 
@@ -213,15 +210,15 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             AppException: With ErrorCodes.DELETE_BLOCKED_BY_USAGE if force_delete
                 is False and the prompt block is used by a step.
         """
-        block = await self.get_prompt_block_by_id(block_id)
+        block = await self.driver.get("prompt_blocks", block_id)
         if not block:
             return False
 
         if not force_delete:
             steps = await self.driver.query("steps")
             for s in steps:
-                if block_id in s.get("prompt_blocks", []):
-                    step_ref = str(s.get("id", "unknown"))
+                if "prompt_blocks" in s and isinstance(s["prompt_blocks"], list) and block_id in s["prompt_blocks"]:
+                    step_ref = str(s["id"] if "id" in s else "unknown")
                     raise AppException(
                         message="PromptBlock delete blocked by step usage.",
                         details={

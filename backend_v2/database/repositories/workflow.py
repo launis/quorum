@@ -1,4 +1,4 @@
-"""Database repository implementation module."""
+"""Database repository implementation module for Workflows and Steps."""
 
 import json
 import logging
@@ -9,9 +9,9 @@ from fastapi.concurrency import run_in_threadpool
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.models.auth import SystemOrganizations
-from backend_v2.models.v2_core import Workflow
+from backend_v2.models.v2_core import Step, Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -20,17 +20,16 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Workflows and Steps."""
 
     async def get_workflow_definition(self, workflow_id: str) -> Workflow | None:
-        """Repository method implementation.
+        """Retrieves a workflow definition by its ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            workflow_id: Unique identifier for the workflow.
 
         Returns:
-            The expected result of the operation.
+            The validated Workflow domain model if found, otherwise None.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: If loading from disk or validation fails.
         """
         data = await self.driver.get("workflows", workflow_id)
 
@@ -40,18 +39,6 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
                 try:
 
                     def _read_file() -> dict[str, Any]:
-                        """Repository method implementation.
-
-                        Args:
-                            *args: Positional arguments.
-                            **kwargs: Keyword arguments.
-
-                        Returns:
-                            The expected result of the operation.
-
-                        Raises:
-                            AppException: If a critical operation fails.
-                        """
                         with open(file_path, encoding="utf-8") as f:
                             return cast(dict[str, Any], json.load(f))
 
@@ -68,93 +55,91 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             else:
                 return None
 
-        return Workflow(**data)
+        return Workflow.model_validate(data, strict=False)
 
     async def get_workflow(self, workflow_id: str) -> Workflow | None:
-        """Repository method implementation.
+        """Retrieves a workflow by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            workflow_id: Unique identifier for the workflow.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The validated Workflow domain model if found, otherwise None.
         """
         return await self.get_workflow_definition(workflow_id)
 
-    async def get_all_workflows(
-        self, organization_id: str | None = None, role: str | None = None
-    ) -> list[dict[str, Any]]:
-        """Repository method implementation.
+    async def get_all_workflows(self, organization_id: str | None = None, role: str | None = None) -> list[Workflow]:
+        """Retrieves all workflows accessible to the organization.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            organization_id: Optional organization filter.
+            role: User role (e.g. ROOT).
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated Workflow domain models.
         """
         filters = []
         if role != "ROOT":
             if organization_id:
                 filters.append(Filter("organization_id", "in", [organization_id, SystemOrganizations.ROOT_SYSTEM]))
 
-        return await self.driver.query("workflows", filters)
+        raw_workflows = await self.driver.query("workflows", filters)
+        workflows: list[Workflow] = []
+        for w in raw_workflows:
+            try:
+                workflows.append(Workflow.model_validate(w, strict=False))
+            except Exception as e:
+                item_id = w["id"] if "id" in w else "unknown"
+                logger.error(
+                    "[WorkflowRepository] %s: Skipping corrupted workflow %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
+        return workflows
 
-    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+    async def get_workflow_by_id(self, workflow_id: str) -> Workflow | None:
+        """Retrieves a workflow by ID from storage.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            workflow_id: Unique identifier for the workflow.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The validated Workflow domain model if found, otherwise None.
         """
-        return await self.driver.get("workflows", workflow_id)
+        data = await self.driver.get("workflows", workflow_id)
+        if not data:
+            return None
+        return Workflow.model_validate(data, strict=False)
 
     async def create_workflow(self, workflow_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Creates a new workflow.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            workflow_data: Dictionary containing workflow fields.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The created workflow ID.
         """
         doc_id = workflow_data["id"]
         return await self.driver.upsert("workflows", workflow_data, doc_id)
 
     async def update_workflow(self, workflow_id: str, updates: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Updates a workflow, creating a new versioned entry.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            workflow_id: Unique identifier for the workflow to update.
+            updates: Dictionary of fields to update.
 
         Returns:
-            The expected result of the operation.
+            The new versioned workflow ID.
 
         Raises:
-            AppException: If a critical operation fails.
+            WorkflowNotFoundError: If the existing workflow cannot be found.
         """
-        old_doc = await self.get_workflow_by_id(workflow_id)
+        old_doc = await self.driver.get("workflows", workflow_id)
         if not old_doc:
-            from backend_v2.exceptions import WorkflowNotFoundError
-
             raise WorkflowNotFoundError(workflow_id)
 
         await self.driver.update("workflows", workflow_id, {"is_latest": False})
@@ -172,182 +157,145 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         return new_id
 
     async def update_workflow_definition(self, workflow_id: str, definition_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Updates workflow definition.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            workflow_id: Unique identifier for the workflow.
+            definition_data: Dictionary of fields to update.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The new versioned workflow ID.
         """
         return await self.update_workflow(workflow_id, definition_data)
 
     async def delete_workflow(self, workflow_id: str) -> bool:
-        """Repository method implementation.
+        """Deletes a workflow by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            workflow_id: Unique identifier for the workflow.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            True if deleted, False otherwise.
         """
         return await self.driver.delete("workflows", workflow_id)
 
     async def count_workflows(self) -> int:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+        """Counts total workflows in the database.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            Total workflow count.
         """
         return await self.driver.count("workflows")
 
     # --- Steps ---
 
-    async def get_all_steps(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+    async def get_all_steps(self) -> list[Step]:
+        """Retrieves all steps from storage.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated Step domain models.
         """
-        return await self.driver.query("steps")
+        data = await self.driver.query("steps")
+        steps: list[Step] = []
+        for s in data:
+            try:
+                steps.append(Step.model_validate(s, strict=False))
+            except Exception as e:
+                item_id = s["id"] if "id" in s else "unknown"
+                logger.error(
+                    "[WorkflowRepository] %s: Skipping corrupted step %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
+        return steps
 
-    async def get_step_by_id(self, step_id: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+    async def get_step_by_id(self, step_id: str) -> Step | None:
+        """Retrieves a step by its ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            step_id: Unique identifier for the step.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The validated Step domain model if found, otherwise None.
         """
         step = await self.driver.get("steps", step_id)
         if step:
-            return step
+            return Step.model_validate(step, strict=False)
 
         all_wfs = await self.driver.query("workflows")
         for wf in all_wfs:
-            steps = wf.get("steps", [])
-            if not isinstance(steps, list):
-                continue
-            for s in steps:
-                if isinstance(s, dict) and s.get("id") == step_id:
-                    return s
+            if "steps" in wf and isinstance(wf["steps"], list):
+                for s in wf["steps"]:
+                    if isinstance(s, dict) and "id" in s and s["id"] == step_id:
+                        return Step.model_validate(s, strict=False)
         return None
 
-    async def get_step(self, step_id: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+    async def get_step(self, step_id: str) -> Step | None:
+        """Retrieves a step by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            step_id: Unique identifier for the step.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The validated Step domain model if found, otherwise None.
         """
         return await self.get_step_by_id(step_id)
 
     async def create_step(self, step_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Creates a new step.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            step_data: Dictionary containing step fields.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The created step ID.
         """
         doc_id = step_data["id"]
         return await self.driver.upsert("steps", step_data, doc_id)
 
     async def update_step(self, step_id: str, updates: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Updates an existing step.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            step_id: Unique identifier for the step.
+            updates: Dictionary of fields to update.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The step ID.
         """
         await self.driver.update("steps", step_id, updates)
         return step_id
 
     async def delete_step(self, step_id: str, force_delete: bool = False) -> bool:
-        """Repository method implementation.
+        """Deletes a step by ID after verifying workflow usage.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            step_id: Unique identifier for the step.
+            force_delete: Whether to bypass workflow usage check.
 
         Returns:
-            The expected result of the operation.
+            True if deleted, False if step does not exist.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: If step deletion is blocked by active workflow usage.
         """
-        step = await self.get_step_by_id(step_id)
+        step = await self.driver.get("steps", step_id)
         if not step:
             return False
 
         if not force_delete:
             wfs = await self.get_all_workflows()
             for wf in wfs:
-                wf_steps = wf.get("steps", [])
-                for s in wf_steps:
-                    if isinstance(s, dict) and s.get("id") == step_id:
-                        wf_id = wf.get("id", "unknown")
+                for rule in wf.steps:
+                    if rule.task_blueprint == step_id:
                         raise AppException(
                             message="Step delete blocked by workflow usage.",
                             details={
                                 "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
                                 "step_id": step_id,
-                                "workflow_id": wf_id,
-                            },
-                            status_code=400,
-                        )
-                    elif isinstance(s, str) and s == step_id:
-                        wf_id = wf.get("id", "unknown")
-                        raise AppException(
-                            message="Step delete blocked by workflow usage.",
-                            details={
-                                "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
-                                "step_id": step_id,
-                                "workflow_id": wf_id,
+                                "workflow_id": wf.id,
                             },
                             status_code=400,
                         )

@@ -1,77 +1,63 @@
+"""Extracted Repository for Extraction Protocols."""
+
 import logging
 from typing import Any
 
 from backend_v2.database.driver import Filter
-from backend_v2.database.interfaces import IExtractionProtocolRepository
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 
 
-class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase, IExtractionProtocolRepository):
+class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Extraction Protocols."""
 
     async def get_all_extraction_protocols(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+        """Retrieves all extraction protocols from the database.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of extraction protocol dictionaries.
         """
         filters = [Filter("type", "==", "extraction_protocol")]
         return await self.driver.query("components", filters)
 
     async def get_extraction_protocol_by_id(self, protocol_id: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+        """Retrieves an extraction protocol by its ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            protocol_id: Unique identifier for the extraction protocol.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The extraction protocol dictionary if found, otherwise None.
         """
         return await self.driver.get("components", protocol_id)
 
     async def create_extraction_protocol(self, protocol_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Creates a new extraction protocol.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            protocol_data: Dictionary containing extraction protocol fields.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The created protocol ID.
         """
         doc_id = protocol_data["id"]
         protocol_data["type"] = "extraction_protocol"
         return await self.driver.upsert("components", protocol_data, doc_id)
 
     async def update_extraction_protocol(self, protocol_id: str, updates: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Updates an existing extraction protocol.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            protocol_id: Unique identifier for the extraction protocol.
+            updates: Dictionary of fields to update.
 
         Returns:
-            The expected result of the operation.
+            The updated protocol ID.
 
         Raises:
-            AppException: If a critical operation fails.
+            ResourceNotFoundError: If the protocol does not exist.
         """
         comp = await self.get_extraction_protocol_by_id(protocol_id)
         if not comp:
@@ -80,17 +66,13 @@ class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase, IExtractionProt
         return protocol_id
 
     async def delete_extraction_protocol(self, protocol_id: str) -> bool:
-        """Repository method implementation.
+        """Deletes an extraction protocol by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            protocol_id: Unique identifier for the extraction protocol.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            True if deleted, False if protocol does not exist.
         """
         comp = await self.get_extraction_protocol_by_id(protocol_id)
         if not comp:

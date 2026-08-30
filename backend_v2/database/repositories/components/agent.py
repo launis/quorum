@@ -77,7 +77,7 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if database operations fail.
         """
-        old_doc = await self.get_agent_by_id(agent_id)
+        old_doc = await self.driver.get("agents", agent_id)
         if not old_doc:
             return False
 
@@ -107,7 +107,7 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if database operations fail.
         """
-        agent = await self.get_agent_by_id(agent_id)
+        agent = await self.driver.get("agents", agent_id)
         if not agent:
             return False
         return await self.driver.delete("agents", agent_id)

@@ -25,17 +25,31 @@ def repo(mock_driver: AsyncMock) -> OutputProfileRepositoryImpl:
 @pytest.mark.asyncio
 async def test_output_profile_crud(repo: OutputProfileRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Test CRUD operations for OutputProfiles."""
-    mock_driver.get.return_value = {"id": "op1"}
-    mock_driver.query.return_value = [{"id": "op1"}]
-    mock_driver.upsert.return_value = "op1"
+    sample_doc = {
+        "id": "prf_1234567890abcdef",
+        "slug": "exec-summary",
+        "workflow_id": "wf_1234567890abcdef",
+        "name": {"translations": {"fi": "Tiivistelmä", "en": "Summary"}},
+        "target_block_order": ["executive_summary_block", "global_score_block"],
+    }
+    mock_driver.get.return_value = sample_doc
+    mock_driver.query.return_value = [sample_doc]
+    mock_driver.upsert.return_value = "prf_1234567890abcdef"
     mock_driver.update.return_value = True
     mock_driver.delete.return_value = True
 
-    assert await repo.get_output_profile_by_id("op1") == {"id": "op1"}
-    assert await repo.get_all_output_profiles() == [{"id": "op1"}]
-    assert await repo.create_output_profile({"id": "op1"}) == "op1"
-    assert await repo.update_output_profile("op1", {"foo": "bar"}) is True
-    assert await repo.delete_output_profile("op1") is True
+    model = await repo.get_output_profile_by_id("prf_1234567890abcdef")
+    assert model is not None
+    assert model.id == "prf_1234567890abcdef"
+    assert model.slug == "exec-summary"
+
+    all_models = await repo.get_all_output_profiles()
+    assert len(all_models) == 1
+    assert all_models[0].id == "prf_1234567890abcdef"
+
+    assert await repo.create_output_profile(sample_doc) == "prf_1234567890abcdef"
+    assert await repo.update_output_profile("prf_1234567890abcdef", {"slug": "updated"}) is True
+    assert await repo.delete_output_profile("prf_1234567890abcdef") is True
 
 
 @pytest.mark.asyncio

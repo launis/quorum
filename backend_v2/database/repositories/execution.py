@@ -72,17 +72,13 @@ class ExecutionRepositoryImpl(BaseRepository):
                     ) from e
 
     async def _hydrate_payloads(self, data: dict[str, Any] | None) -> None:
-        """Repository method implementation.
+        """Hydrate storage blob payloads and subcollection audit trails.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
+            data: Execution record dictionary to hydrate in-place.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: If blob trace data is missing or corrupted.
         """
         if not data:
             return
@@ -94,10 +90,27 @@ class ExecutionRepositoryImpl(BaseRepository):
             if path_key in data and data[path_key]:
                 try:
                     blob_data = await driver.read(data[path_key])
-                    decoded = blob_data.decode("utf-8").strip()
-                    if not decoded:
+                    if not blob_data or not blob_data.strip():
                         raise ValueError(f"Hydration payload is empty for {field} at {data[path_key]}")
-                    data[field] = json.loads(decoded)
+
+                    if field == "execution_trace":
+                        from pydantic import TypeAdapter
+
+                        from backend_v2.models.state import StepOutputDTO
+
+                        data[field] = TypeAdapter(list[StepOutputDTO]).validate_json(blob_data)
+                    elif field == "frozen_context":
+                        from backend_v2.models.v2_core import FrozenContext
+
+                        data[field] = FrozenContext.model_validate_json(blob_data)
+                    elif field == "context_variables":
+                        from pydantic import TypeAdapter
+
+                        data[field] = TypeAdapter(dict[str, Any]).validate_json(blob_data)
+                    else:
+                        from pydantic import TypeAdapter
+
+                        data[field] = TypeAdapter(Any).validate_json(blob_data)
                 except Exception as e:
                     logger.warning(
                         "[ExecutionRepository] Failed to hydrate %s from %s. Error: %s",
@@ -112,13 +125,13 @@ class ExecutionRepositoryImpl(BaseRepository):
                         details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": data[path_key]},
                     ) from e
 
-        doc_id = data.get("id")
+        doc_id = data["id"] if "id" in data else None
         if doc_id:
             try:
                 coll_path = f"executions/{doc_id}/audit_trails"
                 trails = await self.driver.query(coll_path)
                 if trails:
-                    trails.sort(key=lambda x: x.get("timestamp", ""))
+                    trails.sort(key=lambda x: x["timestamp"] if "timestamp" in x else "")
                     if "frozen_context" not in data or not isinstance(data["frozen_context"], dict):
                         data["frozen_context"] = {}
                     data["frozen_context"]["mcp_tool_audit"] = trails
@@ -132,17 +145,17 @@ class ExecutionRepositoryImpl(BaseRepository):
                 ) from e
 
     async def get_execution(self, execution_id: str, hydrate: bool = True) -> ExecutionRecord | None:
-        """Repository method implementation.
+        """Retrieves an execution record by its ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            execution_id: The unique identifier of the execution record.
+            hydrate: Whether to hydrate offloaded blob payloads.
 
         Returns:
-            The expected result of the operation.
+            The validated ExecutionRecord instance if found, otherwise None.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: If data corruption prevents parsing the record.
         """
         data = await self.driver.get("executions", execution_id)
         if data:
@@ -154,76 +167,70 @@ class ExecutionRepositoryImpl(BaseRepository):
                 raise
             except Exception as e:
                 logger.error(
-                    "[ExecutionRepository] Data corruption - Failed to parse execution %s: %s",
+                    "[ExecutionRepository] %s: Data corruption - Failed to parse execution %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
                     execution_id,
                     e,
                     exc_info=True,
                 )
-                return None
+                raise AppException(
+                    message=f"Failed to parse execution {execution_id} from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.DATA_CORRUPTION.value},
+                ) from e
         return None
 
     async def get_execution_status(self, execution_id: str) -> str | None:
-        """Repository method implementation.
+        """Retrieves the status of an execution.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            execution_id: The ID of the execution.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The execution status string if found, otherwise None.
         """
         data = await self.driver.get("executions", execution_id)
-        return data.get("status") if data else None
+        return data["status"] if (data and "status" in data) else None
 
     async def create_execution(self, execution_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Creates a new execution record.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            execution_data: Dictionary containing execution fields.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The created execution ID.
         """
-        doc_id = execution_data.get("id") or str(uuid.uuid4())
+        doc_id = execution_data["id"] if "id" in execution_data else str(uuid.uuid4())
         execution_data["id"] = doc_id
         await self._offload_payloads(doc_id, execution_data)
         return await self.driver.upsert("executions", execution_data, doc_id)
 
     async def update_execution(self, execution_id: str, updates: dict[str, Any]) -> bool:
-        """Repository method implementation.
+        """Updates an existing execution record.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            execution_id: The ID of the execution to update.
+            updates: Dictionary of fields to update.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            True if the update succeeded, False otherwise.
         """
         await self._offload_payloads(execution_id, updates)
         return await self.driver.update("executions", execution_id, updates)
 
     async def append_trace_event(self, execution_id: str, event_data: dict[str, Any]) -> bool:
-        """Repository method implementation.
+        """Appends a trace event to the execution trace log.
 
         Args:
             execution_id: The ID of the execution.
             event_data: The TraceEvent dictionary to append.
 
         Returns:
-            The expected result of the operation.
+            True if updated successfully, False if execution not found.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: If hydration or persistence fails.
         """
         data = await self.driver.get("executions", execution_id)
         if not data:
@@ -235,40 +242,33 @@ class ExecutionRepositoryImpl(BaseRepository):
             logger.error("[ExecutionRepository] Failed to hydrate during append: %s", e, exc_info=True)
             raise
 
-        trace = data.get("execution_trace", [])
+        trace = data["execution_trace"] if "execution_trace" in data else []
         trace.append(event_data)
 
         return await self.update_execution(execution_id, {"execution_trace": trace})
 
     async def delete_execution(self, execution_id: str) -> bool:
-        """Repository method implementation.
+        """Deletes an execution record by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            execution_id: The ID of the execution to delete.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            True if deleted, False otherwise.
         """
         return await self.driver.delete("executions", execution_id)
 
     async def get_all_executions(
         self, organization_id: str | None = None, user_id: str | None = None
     ) -> list[ExecutionRecord]:
-        """Repository method implementation.
+        """Retrieves all executions matching optional organization or user filters.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            organization_id: Optional organization filter.
+            user_id: Optional user filter.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated ExecutionRecord instances.
         """
         filters = []
         if organization_id:
@@ -283,27 +283,24 @@ class ExecutionRepositoryImpl(BaseRepository):
             try:
                 parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
             except Exception as e:
+                item_id = r["id"] if "id" in r else "unknown"
                 logger.error(
                     "[ExecutionRepository] %s: Skipping corrupted execution %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
-                    r.get("id"),
+                    item_id,
                     e,
                     exc_info=True,
                 )
         return parsed_results
 
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
-        """Repository method implementation.
+        """Retrieves recent completed executions ordered by completed_at descending.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            limit: Maximum number of records to return.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of validated ExecutionRecord instances.
         """
         filters = [Filter("status", "==", "completed")]
         results = await self.driver.query(
@@ -315,26 +312,23 @@ class ExecutionRepositoryImpl(BaseRepository):
             try:
                 parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
             except Exception as e:
+                item_id = r["id"] if "id" in r else "unknown"
                 logger.error(
                     "[ExecutionRepository] %s: Skipping corrupted execution %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
-                    r.get("id"),
+                    item_id,
                     e,
                     exc_info=True,
                 )
         return parsed_results
 
     async def count_executions_by_matrix(self, matrix_id: str) -> int:
-        """Repository method implementation.
+        """Counts executions associated with a specific matrix ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            matrix_id: The matrix ID to count executions for.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The total count of matching executions.
         """
         return await self.driver.count("executions", [Filter("settings.matrix_id", "==", matrix_id)])

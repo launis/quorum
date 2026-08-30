@@ -102,3 +102,32 @@ async def test_delete_component_not_found(repo: ComponentRepositoryImpl, mock_dr
     mock_driver.get.return_value = None
     res = await repo.delete_component("c1")
     assert res is False
+
+
+@pytest.mark.asyncio
+async def test_update_component_not_found(repo: ComponentRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: update_component raises ResourceNotFoundError when component missing."""
+    from backend_v2.exceptions import ResourceNotFoundError
+
+    mock_driver.get.return_value = None
+    with pytest.raises(ResourceNotFoundError):
+        await repo.update_component("missing_c1", {"foo": "bar"})
+
+
+@pytest.mark.asyncio
+async def test_get_components_using_dimension(repo: ComponentRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Positive: tests searching matrix components referencing a dimension ID."""
+    mock_driver.query.return_value = [
+        {
+            "id": "mat_1",
+            "type": "evaluation_matrix",
+            "content": {"criteria": [{"dimension_id": "dim_target"}]},
+        },
+        {
+            "id": "mat_2",
+            "type": "evaluation_matrix",
+            "content": {"criteria": [{"dimension_id": "other"}]},
+        },
+    ]
+    matches = await repo.get_components_using_dimension("dim_target")
+    assert matches == ["mat_1"]

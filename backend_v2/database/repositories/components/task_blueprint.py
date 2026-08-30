@@ -5,6 +5,8 @@ from typing import Any
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
 
@@ -24,30 +26,51 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
         """
         super().__init__(driver)
 
-    async def get_task_blueprint_by_id(self, blueprint_id: str) -> dict[str, Any] | None:
+    async def get_task_blueprint_by_id(self, blueprint_id: str) -> Step | None:
         """Retrieves a task blueprint by its ID.
 
         Args:
             blueprint_id: The unique identifier of the task blueprint.
 
         Returns:
-            A dictionary containing the task blueprint data if found, otherwise None.
+            The validated Step domain model if found, otherwise None.
 
         Raises:
-            AppException: Propagated from driver if the database query fails.
+            AppException: If parsing fails.
         """
-        return await self.driver.get("task_blueprints", blueprint_id)
+        doc = await self.driver.get("task_blueprints", blueprint_id)
+        if not doc:
+            return None
+        try:
+            return Step.model_validate(doc, strict=False)
+        except Exception as e:
+            logger.error("Failed to parse Step blueprint %s: %s", blueprint_id, e, exc_info=True)
+            raise AppException(
+                message=f"Failed to parse task blueprint {blueprint_id} from database",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
-    async def get_all_task_blueprints(self) -> list[dict[str, Any]]:
+    async def get_all_task_blueprints(self) -> list[Step]:
         """Retrieves all task blueprints from the database.
 
         Returns:
-            A list of dictionaries representing the task blueprints.
-
-        Raises:
-            AppException: Propagated from driver if the database query fails.
+            A list of validated Step domain models.
         """
-        return await self.driver.query("task_blueprints")
+        data = await self.driver.query("task_blueprints")
+        blueprints: list[Step] = []
+        for b in data:
+            try:
+                blueprints.append(Step.model_validate(b, strict=False))
+            except Exception as e:
+                item_id = b["id"] if "id" in b else "unknown"
+                logger.error("Failed to parse Step blueprint %s: %s", item_id, e, exc_info=True)
+                raise AppException(
+                    message=f"Failed to parse task blueprint {item_id} from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+        return blueprints
 
     async def create_task_blueprint(self, blueprint_data: dict[str, Any]) -> str:
         """Creates a new task blueprint.
@@ -77,7 +100,7 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if database operations fail.
         """
-        old_doc = await self.get_task_blueprint_by_id(blueprint_id)
+        old_doc = await self.driver.get("task_blueprints", blueprint_id)
         if not old_doc:
             return False
 
@@ -107,7 +130,7 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if database operations fail.
         """
-        blueprint = await self.get_task_blueprint_by_id(blueprint_id)
+        blueprint = await self.driver.get("task_blueprints", blueprint_id)
         if not blueprint:
             return False
         return await self.driver.delete("task_blueprints", blueprint_id)

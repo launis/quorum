@@ -12,12 +12,12 @@ from backend_v2.exceptions import ResourceNotFoundError
 async def test_get_model_registry_success() -> None:
     """Positive: retrieves model_registry document."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = [{"id": "model_registry", "type": "model_registry"}]
+    mock_driver.query.return_value = [{"id": "sys_1234567890abcdef", "type": "model_registry", "models": {}}]
 
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.get_model_registry()
 
-    assert res["id"] == "model_registry"
+    assert res.id == "sys_1234567890abcdef"
     mock_driver.query.assert_called_once()
 
 
@@ -74,7 +74,7 @@ async def test_get_mcp_gateways_with_id_success() -> None:
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.get_mcp_gateways(id="sys_8172bda70c8641c5")
 
-    assert res["id"] == "sys_8172bda70c8641c5"
+    assert res.id == "sys_8172bda70c8641c5"
     mock_driver.query.assert_called_once()
     filters = mock_driver.query.call_args[0][1]
     assert len(filters) == 1
@@ -91,7 +91,7 @@ async def test_get_mcp_gateways_default_type_success() -> None:
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.get_mcp_gateways()
 
-    assert res["id"] == "sys_8172bda70c8641c5"
+    assert res.id == "sys_8172bda70c8641c5"
     mock_driver.query.assert_called_once()
     filters = mock_driver.query.call_args[0][1]
     assert len(filters) == 1

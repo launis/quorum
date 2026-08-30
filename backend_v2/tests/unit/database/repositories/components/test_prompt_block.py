@@ -24,14 +24,32 @@ def repo(mock_driver: AsyncMock) -> PromptBlockRepositoryImpl:
 @pytest.mark.asyncio
 async def test_prompt_block_crud(repo: PromptBlockRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Test CRUD operations for PromptBlocks."""
-    mock_driver.get.return_value = {"id": "pb1"}
-    mock_driver.query.return_value = [{"id": "pb1"}]
-    mock_driver.upsert.return_value = "pb1"
+    sample_doc = {
+        "id": "blk_1234567890abcdef",
+        "slug": "rule_clean",
+        "label": {"translations": {"en": "Rule", "fi": "Sääntö"}},
+        "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},
+        "category_id": "system_rule",
+        "type": "instruction",
+    }
+    mock_driver.get.return_value = sample_doc
+    mock_driver.query.return_value = [sample_doc]
+    mock_driver.upsert.return_value = "blk_1234567890abcdef"
 
-    assert await repo.get_prompt_block_by_id("pb1") == {"id": "pb1"}
-    assert await repo.get_prompt_block("pb1") == {"id": "pb1"}
-    assert await repo.get_all_prompt_blocks() == [{"id": "pb1"}]
-    assert await repo.create_prompt_block({"id": "pb1"}) == "pb1"
+    model = await repo.get_prompt_block_by_id("blk_1234567890abcdef")
+    assert model is not None
+    assert model.id == "blk_1234567890abcdef"
+    assert model.slug == "rule_clean"
+
+    alias_model = await repo.get_prompt_block("blk_1234567890abcdef")
+    assert alias_model is not None
+    assert alias_model.id == "blk_1234567890abcdef"
+
+    all_models = await repo.get_all_prompt_blocks()
+    assert len(all_models) == 1
+    assert all_models[0].id == "blk_1234567890abcdef"
+
+    assert await repo.create_prompt_block(sample_doc) == "blk_1234567890abcdef"
 
 
 @pytest.mark.asyncio

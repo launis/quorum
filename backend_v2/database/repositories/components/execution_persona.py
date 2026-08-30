@@ -1,77 +1,63 @@
+"""Extracted Repository for Execution Personas."""
+
 import logging
 from typing import Any
 
 from backend_v2.database.driver import Filter
-from backend_v2.database.interfaces import IExecutionPersonaRepository
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 
 
-class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase, IExecutionPersonaRepository):
+class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Execution Personas."""
 
     async def get_all_execution_personas(self) -> list[dict[str, Any]]:
-        """Repository method implementation.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+        """Retrieves all execution personas from the database.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of execution persona dictionaries.
         """
         filters = [Filter("type", "==", "execution_persona")]
         return await self.driver.query("components", filters)
 
     async def get_execution_persona_by_id(self, persona_id: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+        """Retrieves an execution persona by its ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            persona_id: Unique identifier for the execution persona.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The execution persona dictionary if found, otherwise None.
         """
         return await self.driver.get("components", persona_id)
 
     async def create_execution_persona(self, persona_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Creates a new execution persona.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            persona_data: Dictionary containing execution persona fields.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The created persona ID.
         """
         doc_id = persona_data["id"]
         persona_data["type"] = "execution_persona"
         return await self.driver.upsert("components", persona_data, doc_id)
 
     async def update_execution_persona(self, persona_id: str, updates: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Updates an existing execution persona.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            persona_id: Unique identifier for the execution persona.
+            updates: Dictionary of fields to update.
 
         Returns:
-            The expected result of the operation.
+            The updated persona ID.
 
         Raises:
-            AppException: If a critical operation fails.
+            ResourceNotFoundError: If the persona does not exist.
         """
         comp = await self.get_execution_persona_by_id(persona_id)
         if not comp:
@@ -80,17 +66,13 @@ class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase, IExecutionPersona
         return persona_id
 
     async def delete_execution_persona(self, persona_id: str) -> bool:
-        """Repository method implementation.
+        """Deletes an execution persona by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            persona_id: Unique identifier for the execution persona.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            True if deleted, False if persona does not exist.
         """
         comp = await self.get_execution_persona_by_id(persona_id)
         if not comp:

@@ -1,32 +1,29 @@
-"""Database repository implementation module."""
+"""Database repository implementation module for generic Components."""
 
 import logging
 from typing import Any
-
-logger = logging.getLogger(__name__)
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import ResourceNotFoundError
 
+logger = logging.getLogger(__name__)
+
 
 class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
-    """Repository implementation for Components, PromptBlocks, Agents, Blueprints and Output Profiles."""
+    """Repository implementation for generic Components."""
 
     async def get_all_components(
         self, type: str | None = None, exclude_types: list[str] | None = None
     ) -> list[dict[str, Any]]:
-        """Repository method implementation.
+        """Retrieves all components with optional type filter.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            type: Optional component type filter.
+            exclude_types: Optional list of component types to exclude.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of component dictionaries.
         """
         filters = []
         if type:
@@ -35,53 +32,43 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         components = await self.driver.query("components", filters)
 
         if exclude_types:
-            components = [c for c in components if c.get("type") not in exclude_types]
+            components = [c for c in components if ("type" not in c or c["type"] not in exclude_types)]
 
         return components
 
     async def get_component_by_id(self, component_id: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+        """Retrieves a component by its ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            component_id: Unique identifier for the component.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The component dictionary if found, otherwise None.
         """
         return await self.driver.get("components", component_id)
 
     async def get_component_by_name(self, name: str) -> dict[str, Any] | None:
-        """Repository method implementation.
+        """Retrieves a component by name.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            name: Name of the component.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The component dictionary if found, otherwise None.
         """
         res = await self.driver.query("components", [Filter("name", "==", name)], limit=1)
         return res[0] if res else None
 
     async def update_component_metadata(self, component_id: str, module: str, component_class: str) -> bool:
-        """Repository method implementation.
+        """Updates module and class name metadata for a component.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            component_id: Unique identifier for the component.
+            module: Target module path.
+            component_class: Target class name.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            True if updated, False if component does not exist.
         """
         comp = await self.get_component_by_id(component_id)
         if not comp:
@@ -89,48 +76,40 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return await self.driver.update("components", component_id, {"module": module, "class_name": component_class})
 
     async def register_component(self, component_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Registers a component into storage.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            component_data: Dictionary containing component fields.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The component ID.
         """
         doc_id = component_data["id"]
         return await self.driver.upsert("components", component_data, doc_id)
 
     async def create_component(self, component_data: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Creates a new component.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            component_data: Dictionary containing component fields.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            The created component ID.
         """
         return await self.register_component(component_data)
 
     async def update_component(self, component_id: str, updates: dict[str, Any]) -> str:
-        """Repository method implementation.
+        """Updates an existing component.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            component_id: Unique identifier for the component.
+            updates: Dictionary of fields to update.
 
         Returns:
-            The expected result of the operation.
+            The updated component ID.
 
         Raises:
-            AppException: If a critical operation fails.
+            ResourceNotFoundError: If the component does not exist.
         """
         comp = await self.get_component_by_id(component_id)
         if not comp:
@@ -139,17 +118,13 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return component_id
 
     async def delete_component(self, component_id: str) -> bool:
-        """Repository method implementation.
+        """Deletes a component by ID.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            component_id: Unique identifier for the component.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            True if deleted, False if component does not exist.
         """
         comp = await self.get_component_by_id(component_id)
         if not comp:
@@ -157,29 +132,23 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         return await self.driver.delete("components", component_id)
 
     async def get_components_using_dimension(self, dimension_id: str) -> list[str]:
-        """Repository method implementation.
+        """Finds all evaluation matrix component IDs using a given dimension.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            dimension_id: Unique identifier for the dimension.
 
         Returns:
-            The expected result of the operation.
-
-        Raises:
-            AppException: If a critical operation fails.
+            List of matching matrix IDs.
         """
         matrices = await self.get_all_components(type="evaluation_matrix")
         matches = []
         for m in matrices:
-            content = m.get("content", {})
-            if not isinstance(content, dict):
-                continue
-            criteria = content.get("criteria", [])
-            if not isinstance(criteria, list):
-                continue
-            for crit in criteria:
-                if isinstance(crit, dict) and crit.get("dimension_id") == dimension_id:
-                    matches.append(m["id"])
-                    break
+            if "content" in m and isinstance(m["content"], dict):
+                content = m["content"]
+                if "criteria" in content and isinstance(content["criteria"], list):
+                    for crit in content["criteria"]:
+                        if isinstance(crit, dict) and "dimension_id" in crit and crit["dimension_id"] == dimension_id:
+                            if "id" in m:
+                                matches.append(m["id"])
+                            break
         return matches

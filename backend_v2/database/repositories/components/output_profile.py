@@ -25,54 +25,62 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
         """
         super().__init__(driver)
 
-    async def get_all_output_profiles(self) -> list[dict[str, Any]]:
+    async def get_all_output_profiles(self) -> list[OutputProfile]:
         """Retrieves all output profiles from the database.
 
         Returns:
-            A list of dictionaries representing the output profiles.
+            A list of validated OutputProfile domain models.
 
         Raises:
-            AppException: Propagated from driver if the database query fails.
+            AppException: If database query or model validation fails.
         """
-        return await self.driver.query("output_profiles")
+        data = await self.driver.query("output_profiles")
+        models: list[OutputProfile] = []
+        for pd in data:
+            try:
+                models.append(OutputProfile.model_validate(pd, strict=False))
+            except Exception as e:
+                item_id = pd["id"] if "id" in pd else "unknown"
+                logger.error("Failed to parse OutputProfile %s: %s", item_id, e, exc_info=True)
+                raise AppException(
+                    message=f"Failed to parse profile {item_id} from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+        return models
 
     async def get_all_output_profiles_models(self) -> list[OutputProfile]:
         """Retrieves all output profiles and maps them to Pydantic models.
 
         Returns:
             A list of OutputProfile models.
-
-        Raises:
-            AppException: With VALIDATION_FAILED if a profile cannot be parsed.
         """
-        data = await self.get_all_output_profiles()
-        models = []
-        for pd in data:
-            try:
-                models.append(OutputProfile.model_validate(pd, strict=False))
-            except Exception as e:
-                logger.error("Failed to parse OutputProfile %s: %s", pd.get("id"), e, exc_info=True)
+        return await self.get_all_output_profiles()
 
-                raise AppException(
-                    message="Failed to parse profile from database",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-        return models
-
-    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any] | None:
+    async def get_output_profile_by_id(self, profile_id: str) -> OutputProfile | None:
         """Retrieves an output profile by its ID.
 
         Args:
             profile_id: The unique identifier of the output profile.
 
         Returns:
-            A dictionary containing the output profile data if found, otherwise None.
+            The validated OutputProfile domain model if found, otherwise None.
 
         Raises:
-            AppException: Propagated from driver if the database query fails.
+            AppException: If database query or parsing fails.
         """
-        return await self.driver.get("output_profiles", profile_id)
+        doc = await self.driver.get("output_profiles", profile_id)
+        if not doc:
+            return None
+        try:
+            return OutputProfile.model_validate(doc, strict=False)
+        except Exception as e:
+            logger.error("Failed to parse OutputProfile %s: %s", profile_id, e, exc_info=True)
+            raise AppException(
+                message=f"Failed to parse profile {profile_id} from database",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
     async def create_output_profile(self, profile_data: dict[str, Any]) -> str:
         """Creates a new output profile.

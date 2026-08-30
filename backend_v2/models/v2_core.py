@@ -628,6 +628,7 @@ class Role(V2CoreBase):
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Role ID")
     name: I18nText
     model_role: str = Field(description='Maps to SystemConfig.model_mappings (e.g., "analyst_model").')
+    type: str | None = Field(default="role", description="Component type indicator.")
     pre_hooks: list[str] = Field(default_factory=list, description="List of registered hook logic to run BEFORE llm.")
     post_hooks: list[str] = Field(default_factory=list, description="List of registered hook logic to run AFTER llm.")
 
@@ -1556,3 +1557,6 @@ MatrixScorecardRowDTO.model_rebuild(
 )
 ExecutionCreate.model_rebuild()
 TDAAssertion.model_rebuild(_types_namespace={"CausalEdge": CausalEdge})
+
+import backend_v2.models.state  # noqa: F401, E402
+
