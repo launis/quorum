@@ -334,14 +334,68 @@ Nostetaan laatuportin AST-tarkistukset varoituksista estäviksi virheiksi:
 
 ## 5. Siivousvaiheen etenemissuunnitelma (Refactoring Roadmap)
 
-| Vaihe | Kohdealue | Tavoite | Keskeiset tiedostot |
+*Kokonaislaajuus: ~55+ tiedostoa. Luettelo on kattava ja perustuu koodikannan deterministiseen `grep_search`-analyysiin (ei LLM-muistiin).*
+
+| Vaihe | Kohdealue | Tavoite | Keskeiset tiedostot (anti-pattern-tiheys) |
 |---|---|---|---|
-| **Vaihe 1** | **Tietomallit & SSOT** | Lukitse `ExecutionMetadata` kattamaan kaikki telemetriakentät. Poista hiljaiset `target_locale="en"` -oletusarvot `ExecutionRecord`- ja `ExecutionCoreFields`-malleista. Poista `HookStateMetadata` ja `dict` unionit. | `backend_v2/models/execution_core.py`<br>`backend_v2/models/v2_core.py`<br>`backend_v2/core/hook_registry.py`<br>`backend_v2/services/orchestrator/strategies/base.py` |
-| **Vaihe 2** | **Repositoriot & DAL** | Päivitä `ISystemRepository` ja muut repositoriot palauttamaan suoraan tyypitettyjä Pydantic Domain -malleja (`SystemConfigMCPGateways`, `OutputProfile`) tyypittömien sanakirjojen sijaan. | `backend_v2/database/interfaces.py`<br>`backend_v2/database/repositories/system.py`<br>`backend_v2/database/repositories/output_profile.py` |
-| **Vaihe 3** | **Orkestrointi & Strategiat** | Poista kaikki `isinstance(..., dict)` ja `metadata.get()` haarat `DAGExecutor`- ja `strategies/llm.py`-luokista. Siirry 100 % suoraan pistenotaatioon. | `backend_v2/services/orchestrator/dag_executor.py`<br>`backend_v2/services/orchestrator/strategies/llm.py` |
-| **Vaihe 4** | **Koukut (Hooks) & Deltamallit** | Poista `sanitize_text_hook`, `atom_flattening` ja `source_verification_hook` sanakirjaluvut. Siirry tyypitettyihin `HookDeltaDTO`-malleihin. | `backend_v2/hooks/security.py`<br>`backend_v2/hooks/atom_flattening.py`<br>`backend_v2/hooks/source_verification_hook.py` |
-| **Vaihe 5** | **Konteksti- & Apupalvelut** | Korvaa `execution_time_resolver.py` ja `usage_service.py` sanakirjakaivelut tiukasti tyypitetyillä DTO-malleilla. | `backend_v2/services/orchestrator/strategies/llm_execution/`<br>`backend_v2/services/usage_service.py` |
-| **Vaihe 6** | **Taustatyöt & Tallennus** | Päivitä `worker.py` käyttämään `exec_record.metadata.model_copy(...)` tyypitetyillä kentillä ilman `dict()`-välivaiheita. | `backend_v2/worker.py`<br>`backend_v2/database/repositories/execution.py` |
+| **Vaihe 1** | **Tietomallit & SSOT -perusta** | Lukitse `ExecutionMetadata` kattamaan kaikki telemetriakentät. Poista hiljaiset `target_locale="en"` -oletusarvot. Poista `dict[str, Any]` unionit `HookState`- ja `HookResult`-malleista. Luo tyypitetty `HookDeltaDTO`. | `@[backend_v2/models/v2_core.py]` (hiljainen `target_locale="en"` default_factory, rivi 1421)<br>`@[backend_v2/models/execution_core.py]`<br>`@[backend_v2/core/hook_registry.py]` (`inputs: dict[str, Any]`, `state_delta: dict[str, Any]`, `global_context_vars: dict[str, Any]`)<br>`@[backend_v2/core/registry.py]` (9× `dict[str, Any]` metadata/fields) |
+| **Vaihe 2** | **Repositoriot & DAL (Reconstitution Mandate)** | Päivitä KAIKKI repositoriot palauttamaan suoraan tyypitettyjä Pydantic Domain -malleja tyypittömien sanakirjojen sijaan. Alin I/O-ajuri säilyy `dict`-pohjaisena. | `@[backend_v2/database/repositories/system.py]` (5 metodia → dict)<br>`@[backend_v2/database/repositories/workflow.py]` (8 metodia → dict)<br>`@[backend_v2/database/repositories/knowledge.py]` (5 metodia → dict)<br>`@[backend_v2/database/repositories/identity.py]` (3 metodia → dict)<br>`@[backend_v2/database/repositories/audit.py]` (2 metodia → dict)<br>`@[backend_v2/database/repositories/component.py]` (2 metodia → dict)<br>`@[backend_v2/database/repositories/components/task_blueprint.py]` (→ dict)<br>`@[backend_v2/database/repositories/components/role.py]` (→ dict)<br>`@[backend_v2/database/repositories/components/prompt_block.py]` (2 metodia → dict)<br>`@[backend_v2/database/repositories/components/output_profile.py]` (→ dict)<br>`@[backend_v2/database/repositories/components/matrix.py]` (→ dict)<br>`@[backend_v2/database/repositories/components/extraction_protocol.py]` (→ dict)<br>`@[backend_v2/database/repositories/components/execution_persona.py]` (→ dict)<br>`@[backend_v2/database/repositories/components/agent.py]` (→ dict) |
+| **Vaihe 3** | **Orkestrointi & Strategiat** | Poista kaikki `isinstance(..., dict)`, `getattr()`, `.get()` -haarat. Siirry 100 % suoraan pistenotaatioon. | `@[backend_v2/services/orchestrator/dag_executor.py]` (1× isinstance, 1× getattr, 1× hasattr)<br>`@[backend_v2/services/orchestrator/strategies/llm.py]` (6× isinstance, 2× getattr, model_dump → dict)<br>`@[backend_v2/services/orchestrator/strategies/base.py]` (2× isinstance + dict.pop -ketjut)<br>`@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]` (**8× isinstance, 10× getattr** — kriittinen)<br>`@[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]` (4× isinstance nested)<br>`@[backend_v2/services/orchestrator/prompt_compiler.py]` (4× isinstance + model_dump → dict traversal)<br>`@[backend_v2/services/orchestrator/prompt_compiler_adapter.py]` (1× getattr delegation)<br>`@[backend_v2/services/orchestrator/context_router.py]` (2× isinstance, 1× getattr)<br>`@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]` (3× isinstance)<br>`@[backend_v2/services/orchestrator/synthesis_distiller.py]` (2× isinstance)<br>`@[backend_v2/services/orchestrator/matrix_explanation_service.py]` (**6× isinstance** — raskas)<br>`@[backend_v2/services/orchestrator/rag_preflight_service.py]` (2× isinstance)<br>`@[backend_v2/services/orchestrator/localization_compiler.py]` (1× isinstance)<br>`@[backend_v2/services/orchestrator/extraction_schema_factory.py]` (model_dump → dict)<br>`@[backend_v2/services/orchestrator/atomizer.py]` (model_dump -optimointeja)<br>`@[backend_v2/services/orchestrator/anchor_validation_service.py]` (model_dump | dict union)<br>`@[backend_v2/services/orchestrator/matrix_reducer.py]` (2× isinstance + dict nesting)<br>`@[backend_v2/services/orchestrator/engines/tda_engine.py]` (1× isinstance)<br>`@[backend_v2/services/orchestrator/engines/synthesis_engine.py]` (model_dump → dict + dict mutation) |
+| **Vaihe 4** | **Koukut (Hooks) & Deltamallit** | Poista KAIKKI `isinstance(..., dict)`, `.get()` ja `getattr()` haaroista koukuista. `scoring.py` (65 KB) vaatii mahdollisesti God Code -dekomposition ensin. | `@[backend_v2/hooks/scoring.py]` (**20× isinstance, useita .get(), 1× getattr** — 65 KB God Code!)<br>`@[backend_v2/hooks/validation.py]` (3× isinstance, .get())<br>`@[backend_v2/hooks/source_verification_hook.py]` (2× isinstance)<br>`@[backend_v2/hooks/atom_flattening.py]` (sanakirjaluvut)<br>`@[backend_v2/hooks/input_processing.py]` (1× isinstance, .get())<br>`@[backend_v2/hooks/integrity.py]` (.get()-ketjut)<br>`@[backend_v2/hooks/linguistics.py]` (useita .get()-kutsuja)<br>`@[backend_v2/hooks/llm.py]` (1× isinstance, .get())<br>`@[backend_v2/hooks/context_mapper.py]` (2× getattr)<br>`@[backend_v2/hooks/archival.py]` (1× isinstance)<br>`@[backend_v2/hooks/security.py]` (sanakirjaluvut) |
+| **Vaihe 5** | **Palvelukerros & Apupalvelut** | Korvaa kaikki `getattr(initiator, "organization_id", None)` -ketjut, `isinstance(x, dict)` -haarat ja `hasattr()` -tarkistukset tyypitetyillä malleilla. | `@[backend_v2/services/execution.py]` (**15× getattr** `organization_id` + 2× getattr muu — kriittinen)<br>`@[backend_v2/services/usage_service.py]` (1× isinstance, 1× getattr, 4× hasattr)<br>`@[backend_v2/services/llm_task_executor.py]` (4× getattr, 1× hasattr)<br>`@[backend_v2/services/translation_service.py]` (1× isinstance)<br>`@[backend_v2/services/source_verification_service.py]` (1× isinstance)<br>`@[backend_v2/services/blueprint.py]` (2× hasattr — noqa QGR001)<br>`@[backend_v2/services/studio/output_profile_service.py]` (2× isinstance)<br>`@[backend_v2/services/studio/prompt_block_service.py]` (1× isinstance)<br>`@[backend_v2/services/studio/workflow_service.py]` (2× isinstance)<br>`@[backend_v2/services/studio/system_config_service.py]` (2× getattr)<br>`@[backend_v2/services/mcp/mcp_tool_loop.py]` (1× getattr) |
+| **Vaihe 6** | **Taustatyöt & Tallennus** | Päivitä `worker.py` käyttämään `exec_record.metadata.model_copy(...)` tyypitetyillä kentillä ilman `dict()`-välivaiheita. | `@[backend_v2/worker.py]` (dict-mutaatiot metadata-kentissä) |
+| **Vaihe 7** | **Testikannan modernisaatio** | Korvaa KAIKKI testien sanakirja-fixtuurit validoilla Pydantic-instansseilla tai polyfactory-tehtailla. | Kaikki `@[backend_v2/tests/]` -tiedostot, jotka syöttävät `dict[str, Any]` -fixtuureja palvelutesteissä |
+| **Vaihe 8** | **AST Guardrail -tiukennus** | Nosta `QGR001`/`QGR002` `FATAL`-tasolle `services/` ja `hooks/` -hakemistoissa. | `@[scripts/backend_audit_loop.py]` (AST guardrail severity configuration) |
+
+### Puuttuvat arkkityypit katalogissa (Lisäys kooditarkistuksen perusteella)
+
+#### Arkkityyppi 8: `getattr(obj, "field", default)` -heijastusten käyttö palvelukerroksessa (*Reflection Duck-Typing*)
+
+Kun palvelukoodi käyttää `getattr()`:ta olion kenttien lukemiseen, se ohittaa Mypy- ja Pydantic-tyyppitarkastukset kokonaan:
+
+##### Esimerkki 1: `backend_v2/services/execution.py` (15 esiintymää)
+```python
+# NYKYINEN ANTI-PATTERNI:
+org_id = getattr(initiator, "organization_id", None)
+```
+Toistuva kaava, joka esiintyy 15 kertaa samassa tiedostossa. `initiator`-parametrin tyyppiä ei ole rajattu riittävästi, jolloin `getattr()`-fallback on "helpoin tie".
+
+##### Esimerkki 2: `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py` (10+ esiintymää)
+```python
+# NYKYINEN ANTI-PATTERNI:
+key: str | None = getattr(dto, "block_id", None)
+value: Any = getattr(dto, "payload", None)
+desc: str | None = getattr(block, "ai_description", None)
+scales: list[Any] = getattr(block, "scales", None) or []
+```
+
+##### Tavoitetila (Clean Pydantic):
+```python
+# PUHDAS TAVOITETILA:
+# initiator on aina tyypitetty malli, jossa organization_id on kenttä
+org_id = initiator.organization_id
+# dto on aina StepOutputDTO, jonka kenttä on suoraan luettavissa
+key = dto.block_id
+value = dto.payload
+```
+
+#### Arkkityyppi 9: `hasattr()` -tarkistukset rajapintamäärittelyissä (*Interface Discovery Anti-Pattern*)
+
+Kun palvelu tarkistaa `hasattr()`-kutsulla, onko repositoriossa tietty metodi, se tarkoittaa, että rajapinta (`Interface`) on alimitoitettu:
+
+##### Esimerkki: `backend_v2/services/usage_service.py` (4 esiintymää)
+```python
+# NYKYINEN ANTI-PATTERNI:
+if hasattr(self.audit_repo, "upsert_usage_aggregate"):
+    await self.audit_repo.upsert_usage_aggregate(...)
+```
+
+##### Tavoitetila (Clean Pydantic):
+```python
+# PUHDAS TAVOITETILA:
+# IAuditRepository-rajapinta määrittelee KAIKKI metodit eksplisiittisesti
+await self.audit_repo.upsert_usage_aggregate(...)
+```
 
 ---
 
