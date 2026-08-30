@@ -28,6 +28,7 @@
   - [x] Step 2: Foundational Backend Model & DTO Modernization
   - [x] Step 3: Flutter Client Execution Ingress & Freezed Parity
   - [x] Step 4: Atomic Test Suite Modernization & Quality Gates
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/01_phase1_seed_vault_ssot_foundation_and_client_ingress.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ### Phase 2: Repository Reconstitution, Storage Blob Hydration & DAL Tests
 - **Plan:** @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/02_phase2_repository_reconstitution_and_dal_tests.md]
@@ -195,10 +196,11 @@
 - Phased architectural migration safely establishes foundational DTOs (`ExecutionInputsDTO`, `GlobalContextVarsDTO`, `HookDeltaDTO`) and validates them with 100% coverage before Phase 3 and Phase 4 refactor upstream hooks and orchestrators.
 
 ## Remaining
-- **Phase 2 Execution**: Repository Reconstitution, Storage Blob Hydration & DAL Tests (`02_phase2_repository_reconstitution_and_dal_tests.md`).
+- **Phase 1 Audit**: Perform System 2 post-implementation audit via `/tier8-audit-plan`.
+- **Phase 2 Implementation**: Repository Reconstitution, Storage Blob Hydration & DAL Tests (`02_phase2_repository_reconstitution_and_dal_tests.md`) upon Phase 1 audit pass.
 - **Phases 3 through 7**: Progressively research, decompose, and execute remaining phases per the Epic 149 plan.
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/02_phase2_repository_reconstitution_and_dal_tests.md] @[docs/epic/EPIC_149_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/01_phase1_seed_vault_ssot_foundation_and_client_ingress.md] @[docs/epic/EPIC_149_tracker.md]
 ```
