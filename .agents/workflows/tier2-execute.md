@@ -102,12 +102,14 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
     </step>
 
     <step id="5" name="TASK MANAGEMENT, CONTINUOUS LOOP &amp; STATE RECOVERY">
-      <action>When a milestone is successfully completed and verified, you MUST create an atomic commit using `run_command` (e.g., `git add [files]` and `git commit -m "feat: complete milestone X"`). Then update the `task.md` file dynamically as you complete each part of the implementation plan, marking them with `[x]` to ensure absolute visibility of progress.</action>
+      <action>When a milestone is successfully completed and verified, you MUST create an atomic commit using `run_command` (e.g., `git add [files]` and `git commit -m "feat: complete milestone X"`). Then perform Dual-Mode Tracking:
+        1) If an Epic Tracker exists (e.g. `docs/epic/EPIC_XXX_tracker.md`): Update the Tracker document, marking completed steps with `[x]`.
+        2) If NO Epic Tracker exists (Standalone Plan): Update the local `task.md` file dynamically as you complete each part of the implementation plan, marking them with `[x]`.</action>
       <action name="CONTINUOUS_TRANSITION_GATE">
         - If in Continuous Full-Auto Mode AND quality gates passed: Immediately proceed to the next milestone/phase without waiting for manual confirmation.
         - If in Step-by-Step Mode: Stop and request explicit "PERMISSION GRANTED" or "PROCEED" before starting the next step.
       </action>
-      <fallback trigger="trip the circuit_breaker_protocol (3 consecutive test failures) or encounter an unresolvable error">You MUST NOT leave the workspace in a broken state. You MUST execute the rollback YOURSELF via `run_command` using `git restore . ; git clean -fd` to rollback the dirty working directory to the last atomic commit. CRITICALLY: You MUST execute the rollback FIRST, and ONLY THEN update `task.md` to reflect the failure before halting. Reversing this order causes the rollback to wipe the tracker update.</fallback>
+      <fallback trigger="trip the circuit_breaker_protocol (3 consecutive test failures) or encounter an unresolvable error">You MUST NOT leave the workspace in a broken state. You MUST execute the rollback YOURSELF via `run_command` using `git restore . ; git clean -fd` to rollback the dirty working directory to the last atomic commit. CRITICALLY: You MUST execute the rollback FIRST, and ONLY THEN update the tracker/task.md to reflect the failure before halting. Reversing this order causes the rollback to wipe the tracker update.</fallback>
     </step>
 
     <step id="6" name="END-TO-END SMOKE TEST">
@@ -128,7 +130,11 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <constraint>Do NOT update architecture documentation for minor tweaks or localized refactors.</constraint>
     </step>
 
-    <step id="8" name="PLAN WRAP-UP & AUDIT ROUTING">
+    <step id="8" name="PLAN WRAP-UP &amp; AUDIT ROUTING">
+      <action name="DUAL_MODE_WRAPUP_SYNC">
+        1) If an Epic Tracker exists (e.g. `docs/epic/EPIC_XXX_tracker.md`): Update the Tracker document, mark the phase as `[x]`, refresh `# Session Handover Context` (Achieved, Learned, Remaining), and set `Resume Command` to the next phase/audit command.
+        2) If NO Epic Tracker exists (Standalone Plan): Update `task.md` with complete status and `# Session Handover Context`.
+      </action>
       <constraint>When all steps of the current `implementation_plan.md` are completed, you MUST NOT declare the task fully finished. You are strictly FORBIDDEN from proceeding to the next plan or closing the task without routing through the audit gate.</constraint>
       <gate>You MUST enforce a mandatory System 2 Red-Team audit of your own work by instructing the user to run the `/tier8-audit-plan` workflow in a fresh context window. Provide the exact command (e.g., `/tier5-resume --target="@[docs\epic\tasks_EPIC_XXX\01_feature_plan.md]" --workflow=/tier8-audit-plan`).</gate>
     </step>
@@ -138,7 +144,9 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
         You MUST proactively initiate a session handover to prevent Context Amnesia and truncated code generation.
         1. Run quality gates to guarantee clean working tree.
         2. Create atomic git commit for the last completed milestone.
-        3. Update `task.md` completely and append a `# Session Handover Context` block at the bottom containing exhaustive bullet points for: Achieved, Learned, and Remaining.
+        3. Perform Dual-Mode Handover Persistence:
+           - If an Epic Tracker exists: Update `docs/epic/EPIC_XXX_tracker.md` with `# Session Handover Context` (Achieved, Learned, Remaining) and set `Resume Command` to the next incomplete step/phase command.
+           - If NO Epic Tracker exists: Update `task.md` completely and append `# Session Handover Context` block at the bottom (Achieved, Learned, Remaining).
         4. STOP execution cleanly.
       </fallback>
       <action>Provide the exact `/tier5-resume` command instructing the user to continue in a fresh context. The command MUST explicitly include the workspace-relative path to the implementation plan or tracker file containing the `# Session Handover Context`, formatted like this: `/tier5-resume --target="@[docs/path/to/plan.md]" --workflow=/tier2-execute`. In the new session, the task list is automatically re-hydrated from the plan's `<execution_protocol>` and recent git commits.</action>
