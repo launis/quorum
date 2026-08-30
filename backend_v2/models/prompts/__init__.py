@@ -72,6 +72,7 @@ from .synthesis_directives import (
     VARIANCE_EXPLANATION_DIRECTIVE,
     XAI_EXPLANATIONS_DIRECTIVE,
 )
+from .synthesis_registry import SynthesisPromptRegistry
 
 __all__ = [
     "ANTI_ID_MANDATE",
@@ -115,6 +116,7 @@ __all__ = [
     "SYNTHESIS_CITATION_RULES_HARVARD",
     "SYNTHESIS_LENGTH_CONSTRAINT",
     "SYNTHESIS_NO_CITATION_RULES",
+    "SynthesisPromptRegistry",
     "SYNTHESIS_SDUI_MANDATES",
     "SYNTHESIS_SECTION_RULES_PREFIX",
     "SYNTHESIS_XAI_CURATION",
