@@ -71,16 +71,26 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
     assert check_phase_format("no phases")[0].rule_code == "TRK002"
 
     phase_text = (
-        "### Phase 1: Test\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n"
+        "### Phase 1: Test\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
     )
     assert check_phase_format(phase_text) == []
+
+    # Missing Audit step
+    missing_audit_phase = (
+        "### Phase 1: Test\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n"
+    )
+    missing_audit_findings = check_phase_format(missing_audit_phase)
+    assert len(missing_audit_findings) == 1
+    assert missing_audit_findings[0].rule_code == "TRK002"
+    assert "Missing mandatory `Audit:` step line" in missing_audit_findings[0].message
+
     broken_phase = "### Phase 1: Test\nNo plan reference here"
     broken_findings = check_phase_format(broken_phase)
     assert len(broken_findings) > 0
     assert all(f.rule_code == "TRK002" for f in broken_findings)
 
     # Deferred plan format
-    deferred_phase = "### Phase 2: Deferred\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n- [ ] [NOK] Create Plan\n"
+    deferred_phase = "### Phase 2: Deferred\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n- [ ] [NOK] Create Plan\n- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
     assert check_phase_format(deferred_phase) == []
 
     # check_required_context_rules
@@ -334,7 +344,8 @@ def test_tracker_audit_traceability_reverse_map_valid(tmp_path: Path) -> None:
         "### Phase 1: Core Foundation\n"
         "**Plan:** @[docs/epic/tasks/01_phase1_plan.md]\n"
         "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
-        "  - [ ] Step 1: Implementation\n\n"
+        "  - [ ] Step 1: Implementation\n"
+        "- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n\n"
         "### Post-Implementation Gates\n- [ ] Gate\n\n"
         "### Final Epic Audit\n- [ ] Audit\n\n"
         "## Instructions for the Execution Agent\n- Instructions\n\n"
@@ -384,7 +395,8 @@ def test_tracker_audit_main_in_process(tmp_path: Path, monkeypatch: pytest.Monke
         "### Phase 1: Core\n"
         "**Plan:** @[01_phase.md]\n"
         "- [x] **[OK] Execution:** `/tier2-execute`\n"
-        "  - [x] Step 1\n\n"
+        "  - [x] Step 1\n"
+        "- [x] **[OK] Audit:** `/tier8-audit-plan`\n\n"
         "### Post-Implementation Gates\n- [x] Gate\n\n"
         "### Final Epic Audit\n- [x] Audit\n\n"
         "## Instructions for the Execution Agent\n- Run tests\n\n"

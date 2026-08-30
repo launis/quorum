@@ -101,17 +101,31 @@ def check_phase_format(content: str) -> list[TrackerAuditFinding]:
                 )
             )
 
-        has_step_line = bool(
-            re.search(r"-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK)\]\s+(?:Red-Teaming|Execution|Audit)", phase_body, re.IGNORECASE)
+        has_execution = bool(
+            re.search(r"-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK)\]\s+Execution(?:\s*\([^\)]+\))?:", phase_body, re.IGNORECASE)
         )
-        if not has_step_line:
+        if not has_execution:
             findings.append(
                 TrackerAuditFinding(
                     section=section_name,
                     rule_code="TRK002",
-                    message=f"Phase {phase_num}: Missing standard step lines (Red-Teaming/Execution/Audit).",
+                    message=f"Phase {phase_num}: Missing mandatory `Execution:` step line.",
                     severity=GuardrailSeverity.FATAL,
-                    remediation="Add step lines `- [ ] **[NOK] Execution:** /tier2-execute` or similar.",
+                    remediation=f"Add `- [ ] **[NOK] Execution:** /tier2-execute @[plan.md] @[tracker.md]` under '### Phase {phase_num}'.",
+                )
+            )
+
+        has_audit = bool(
+            re.search(r"-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK)\]\s+Audit(?:\s*\([^\)]+\))?:", phase_body, re.IGNORECASE)
+        )
+        if not has_audit:
+            findings.append(
+                TrackerAuditFinding(
+                    section=section_name,
+                    rule_code="TRK002",
+                    message=f"Phase {phase_num}: Missing mandatory `Audit:` step line.",
+                    severity=GuardrailSeverity.FATAL,
+                    remediation=f"Add `- [ ] **[NOK] Audit:** /tier8-audit-plan @[plan.md] @[tracker.md]` under '### Phase {phase_num}'.",
                 )
             )
 
