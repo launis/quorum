@@ -97,12 +97,14 @@ def run_tests_with_strict_coverage(target: str) -> None:
         else:
             if target_clean.endswith("/__init__.py"):
                 cov_target = target_clean.removesuffix("/__init__.py").replace("/", ".")
+                pkg_name = parts[-2] if len(parts) >= 2 else "init"
+                clean_base = filename.removesuffix(".py").lstrip("_")
+                candidates = [f"test_{pkg_name}.py", f"test__{pkg_name}.py", f"test_{clean_base}.py", f"test_{filename}"]
             else:
                 cov_target = target_clean.removesuffix(".py").replace("/", ".")
+                clean_base = filename.removesuffix(".py").lstrip("_")
+                candidates = [f"test_{clean_base}.py", f"test__{clean_base}.py", f"test_{filename}"]
             cov_filter_name = filename
-
-            clean_base = filename.removesuffix(".py").lstrip("_")
-            candidates = [f"test_{clean_base}.py", f"test__{clean_base}.py", f"test_{filename}"]
 
             test_path = ""
             if parts[0] == "scripts":
@@ -112,13 +114,15 @@ def run_tests_with_strict_coverage(target: str) -> None:
                         test_path = str(cand_path).replace("\\", "/")
                         break
             elif parts[0] == "backend_v2":
-                p = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / candidates[0]
-                if p.exists():
-                    test_path = str(p).replace("\\", "/")
-                else:
-                    flat = Path("backend_v2/tests/unit") / candidates[0]
+                for cand in candidates:
+                    p = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / cand
+                    if p.exists():
+                        test_path = str(p).replace("\\", "/")
+                        break
+                    flat = Path("backend_v2/tests/unit") / cand
                     if flat.exists():
                         test_path = str(flat).replace("\\", "/")
+                        break
 
             if not test_path:
                 test_path = "backend_v2/tests/unit/" + "/".join(parts[1:-1]) + "/" + candidates[0]
@@ -145,7 +149,14 @@ def run_tests_with_strict_coverage(target: str) -> None:
             test_path = target_clean
         else:
             if parts[0] == "backend_v2":
-                test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+                test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:])
+                test_file = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / f"test_{parts[-1]}.py"
+                if test_dir.exists():
+                    test_path = str(test_dir).replace("\\", "/")
+                elif test_file.exists():
+                    test_path = str(test_file).replace("\\", "/")
+                else:
+                    test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
             else:
                 if parts == ["."]:
                     test_path = "backend_v2/tests/"
