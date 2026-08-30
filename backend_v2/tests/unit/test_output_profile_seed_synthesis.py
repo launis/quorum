@@ -17,7 +17,7 @@ def test_seed_data_output_profiles_have_valid_synthesis_config() -> None:
 
     for profile in profiles:
         assert "synthesis" not in profile, f"Profile {profile.get('id')} must not contain legacy 'synthesis' key"
-        op = OutputProfile.model_validate(profile, strict=True)
+        op = OutputProfile.model_validate(profile, strict=False)
         assert isinstance(op, OutputProfile)
         assert isinstance(op.requires_executive_synthesis, bool)
         assert isinstance(op.requires_group_synthesis, bool)

@@ -51,7 +51,9 @@ class OutputProfileCreateDTO(V2CoreBase):
         visible_workflow_extensions: Workflow-level global extensions (mathematical engines).
         max_extension_items: Max number of items to show per grouped XAI extension. Sorted by severity.
         display_scale: UI rendering scale instruction (e.g., 'normalized_100').
-        synthesis: Nested definition for synthesis configurations.
+        synthesis_length_constraint: Optional length constraint for synthesized text.
+        max_quotes_per_matrix: Per-profile override for quotes per matrix in explanations.
+        max_unmet_criteria: Per-profile override for unmet criteria per matrix.
         strictness_level: Profile-level strictness override setting.
         scoring_strategy: Profile-level strategy calculation override.
         matrix_synthesis_groups: Sequence of comparative matrix synthesis groups.
@@ -219,7 +221,9 @@ class OutputProfileUpdateDTO(V2CoreBase):
         visible_workflow_extensions: Optional workflow-level global extensions array.
         max_extension_items: Optional max limits per grouped extension payload.
         display_scale: Optional UI rendering instructions flag.
-        synthesis: Optional nested definition mapping synthesis configuration rules.
+        synthesis_length_constraint: Optional length constraint for synthesized text.
+        max_quotes_per_matrix: Optional override for quotes per matrix in explanations.
+        max_unmet_criteria: Optional override for unmet criteria per matrix.
         strictness_level: Optional override strictness bounds.
         scoring_strategy: Optional strategy engine overriding defaults.
         matrix_synthesis_groups: Optional sequence of comparative matrix synthesis groups.
@@ -375,7 +379,9 @@ class OutputProfileResponseDTO(BaseResponseDTO):
         visible_workflow_extensions: Workflow-bound logic output payload arrays.
         max_extension_items: Top limit cap applying constraints to presentation loops.
         display_scale: Exact enumeration of UI rendering modes ('normalized_100').
-        synthesis: Specific payload mapped configuring report output logic.
+        synthesis_length_constraint: Optional length constraint for synthesized text.
+        max_quotes_per_matrix: Per-profile override for quotes per matrix in explanations.
+        max_unmet_criteria: Per-profile override for unmet criteria per matrix.
         strictness_level: Validated override value configuring verification rigor.
         scoring_strategy: Mapped logic algorithm enum mapping engine implementation.
         matrix_synthesis_groups: Ordered array of discrete comparative synthesis groups.

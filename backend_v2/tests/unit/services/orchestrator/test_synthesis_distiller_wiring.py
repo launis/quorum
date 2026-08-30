@@ -16,6 +16,7 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
 
