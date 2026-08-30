@@ -1,3 +1,5 @@
+"""Falsifier and security scoring hook logic."""
+
 import logging
 from typing import Annotated, Any
 

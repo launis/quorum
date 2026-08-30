@@ -1,3 +1,5 @@
+"""Dead Letter Queue (DLQ) guard hook for strict validation."""
+
 import logging
 from typing import Any
 

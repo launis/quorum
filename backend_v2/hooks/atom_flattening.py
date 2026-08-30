@@ -174,7 +174,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                                 included_ids.add(parent_id)
                                 closure_queue.append(parent_atom)
                                 logger.debug(
-                                    "[AtomFlatteningHook] Transitive Causal Closure: Retained ancestor atom '%s' for '%s'",
+                                    "[AtomFlatteningHook] Transitive Closure: Retained ancestor '%s' for '%s'",
                                     parent_id,
                                     current_atom[0],
                                 )

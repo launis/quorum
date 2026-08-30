@@ -100,7 +100,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
         config_data = await deps.system_repo.get_system_config(SystemConfigID.PERFORMATIVE_LEXICONS.value)
         if not config_data:
             raise AppException(
-                message=f"Fail-Fast: Performative Lexicon config '{SystemConfigID.PERFORMATIVE_LEXICONS.value}' missing from database.",
+                message=f"Fail-Fast: Lexicon config '{SystemConfigID.PERFORMATIVE_LEXICONS.value}' missing.",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )

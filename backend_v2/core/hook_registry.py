@@ -71,6 +71,7 @@ class HookDependencies:
 
 class HookState(V2CoreBase):
     """Immutable cognitive data model for hook execution.
+
     Enforces rules: Fail-Fast, Zero Side-Effects (frozen=True).
     """
 
@@ -104,6 +105,7 @@ class HookRegistry:
     _hooks: dict[str, HookFunction]
 
     def __new__(cls) -> HookRegistry:
+        """Create or return the singleton instance of HookRegistry."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._hooks = {}

@@ -2,8 +2,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookState,
+)
 from backend_v2.hooks.references import generate_bibliography_hook
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 @pytest.mark.asyncio
@@ -13,9 +20,9 @@ async def test_generate_bibliography_hook_success() -> None:
         execution_id="123",
         workflow_id="wf1",
         step_id="step1",
-        inputs={"text": "This is a dummy text for testing citations."},
-        global_context_vars={"knowledge_base": {"concepts": []}},
-        metadata={},
+        inputs=ExecutionInputsDTO(raw_inputs={"text": "This is a dummy text for testing citations."}),
+        global_context_vars=GlobalContextVarsDTO(vars={"knowledge_base": {"concepts": []}}),
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
 
     deps = HookDependencies(
@@ -37,9 +44,9 @@ async def test_generate_bibliography_hook_success() -> None:
     result = await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))
 
     assert result.success is True
-    assert result.state_delta is not None
-    assert "bibliography_result" in result.state_delta
-    refs = result.state_delta["bibliography_result"]["references"]
+    assert isinstance(result.state_delta, HookDeltaDTO)
+    assert "bibliography_result" in result.state_delta.delta
+    refs = result.state_delta.delta["bibliography_result"]["references"]
 
     assert len(refs) == 1
     assert refs[0]["source_id"].startswith("ref_")

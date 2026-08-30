@@ -225,7 +225,7 @@ A pre-flight AST audit via `scripts/_ast_guardrails.py` and `scripts/backend_aud
     - [x] `HookState.global_context_vars: dict[str, Any]` replaced with typed `GlobalContextVarsDTO`.
     - [x] `HookResult.state_delta: dict[str, Any] | None` replaced with typed `HookDeltaDTO | None`.
     - [x] All 8 pre-flight AST violations resolved (`getattr`, `hasattr`, `.get()`).
-    - [x] Temporary models module @[backend_v2/hooks/scoring/models.py] permanently deleted.
+    - [x] [DELETE] Temporary models module @[backend_v2/hooks/scoring/models.py] permanently deleted.
     - [x] All 11 hook files and 4 scoring modules migrated to Pydantic V2 HookState and HookDeltaDTO.
     - [x] All hook unit tests in @[backend_v2/tests/unit/hooks/] modernized atomically to cover 4 ISTQB partitions.
     - [x] Quality gate passes: `uv run python scripts/backend_audit_loop.py backend_v2/hooks/ backend_v2/core/hook_registry.py --test`.

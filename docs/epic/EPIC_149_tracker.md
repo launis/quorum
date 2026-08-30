@@ -64,13 +64,19 @@
   - [x] Step 4: Extraction, Context & Integrity Hooks Migration
   - [x] Step 5: Scoring Package Pydantic V2 Transition & Models Sunset
   - [x] Step 6: Universal Quality Gate, AST Audit & Semantic Parity Verification
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ### Phase 4: Orchestration & Strategy Core Refactoring & Tests
 - **Plan:** @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L259-L286] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L259-L286] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
-  - [ ] Step 1: Orchestrator & Strategies Refactoring
+  - [ ] Step 0: Strategic Alignment Check & Pre-Flight Verification
+  - [ ] Step 1: Strategy Base & Hook Integration Modernization (`base.py`)
+  - [ ] Step 2: LLM Execution & Context Builder Refactoring (`context_builder.py`, `llm.py`, `execution_time_resolver.py`)
+  - [ ] Step 3: Prompt Compiler, Adapter & Context Router Refactoring (`prompt_compiler.py`, `prompt_compiler_adapter.py`, `context_router.py`)
+  - [ ] Step 4: Synthesis & Evaluation Engines Refactoring (`tda_engine.py`, `synthesis_engine.py`, `matrix_explanation_service.py`, `synthesis_payload_compressor.py`, `synthesis_distiller.py`, `matrix_reducer.py`, `anchor_validation_service.py`)
+  - [ ] Step 5: DAG Executor & Reasoning Orchestration Refactoring (`dag_executor.py`, `rag_preflight_service.py`, `localization_compiler.py`, `extraction_schema_factory.py`, `atomizer.py`)
+  - [ ] Step 6: Atomic Test Suite Modernization & Quality Gates (`backend_audit_loop.py`, `_ast_guardrails.py`, `test_sdui_semantic_parity.py`)
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ### Phase 5: Service Layer, Utility Services & Service Tests
@@ -140,6 +146,25 @@
 - [x] @[backend_v2/hooks/metrics.py] — Strict metrics calculation hook.
 - [x] @[backend_v2/hooks/references.py] — Strict reference generation hook.
 - [x] @[backend_v2/hooks/interaction_hook.py] — Strict interaction role hook.
+- [ ] @[backend_v2/services/orchestrator/dag_executor.py] — Direct typed dot-notation & _update_lock state transitions.
+- [ ] @[backend_v2/services/orchestrator/strategies/llm.py] — Typed StrategyContext & blackboard access.
+- [ ] @[backend_v2/services/orchestrator/strategies/base.py] — Typed HookDeltaDTO integration without .pop().
+- [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py] — Typed StepOutputDTO access without reflection.
+- [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py] — Typed WorkflowInputs timestamp resolution.
+- [ ] @[backend_v2/services/orchestrator/prompt_compiler.py] — Typed I18nText extraction.
+- [ ] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py] — Explicit method delegation without QGR001 reflection.
+- [ ] @[backend_v2/services/orchestrator/context_router.py] — Strict ConfigDict and typed step_id access.
+- [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] — Polymorphic DistilledEvaluation sanitization.
+- [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py] — Fail-Fast alias dictionary indexing.
+- [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py] — Strict AtomResultDTO traversal.
+- [ ] @[backend_v2/services/orchestrator/rag_preflight_service.py] — Strict ExecutionInputsDTO input extraction.
+- [ ] @[backend_v2/services/orchestrator/localization_compiler.py] — Typed I18nText polymorphism.
+- [ ] @[backend_v2/services/orchestrator/extraction_schema_factory.py] — Pydantic V2 native field validation.
+- [ ] @[backend_v2/services/orchestrator/atomizer.py] — Immutable model_copy updates.
+- [ ] @[backend_v2/services/orchestrator/anchor_validation_service.py] — Immutable model_copy updates.
+- [ ] @[backend_v2/services/orchestrator/matrix_reducer.py] — Direct ReducedAtomDTO and QuoteEvidenceDTO iteration.
+- [ ] @[backend_v2/services/orchestrator/engines/tda_engine.py] — Typed ErrorCodes and blackboard access.
+- [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py] — Typed ErrorCodes and blackboard model validation.
 - [ ] [NEW] @[backend_v2/services/cache/typed_cache.py] — Generic `TypedCacheService` with zombie eviction.
 - [ ] @[scripts/_ast_guardrails.py] — Locked `QGR001`, `QGR002`, `QGR012` at FATAL severity.
 
@@ -288,16 +313,32 @@
   - Passed Universal Quality Gate: `uv run python scripts/backend_audit_loop.py backend_v2/hooks/scoring/ backend_v2/tests/unit/hooks/test_scoring.py --ast-strict` and `scripts/_ast_guardrails.py --strict` with 0 errors.
   - Validated structural contracts: `audit_markdown_boundaries.py` and `audit_tracker_output.py` passed cleanly (0 errors).
   - Marked Phase 3A Execution status as `[x] [OK]`.
-- **Phase 3B Full Hooks Migration & Models Sunset (`/tier2-execute`) Completed**:
+- **Phase 3B Full Hooks Migration & Models Sunset (`/tier2-execute`) Completed (Commit `5915d9aa`)**:
   - Upgraded `backend_v2/core/hook_registry.py` to strictly typed `HookState(inputs: ExecutionInputsDTO, global_context_vars: GlobalContextVarsDTO)` and `HookResult(state_delta: HookDeltaDTO | None)`.
   - Migrated all validation and ingress hooks: `validation.py`, `security.py`, `input_processing.py`, `hydration.py`, `interaction_hook.py`.
   - Migrated all extraction, context and integrity hooks: `source_verification_hook.py`, `atom_flattening.py`, `context_mapper.py`, `integrity.py`, `linguistics.py`, `llm.py`, `archival.py`, `dlq_guard.py`, `metadata.py`, `metrics.py`, `references.py`.
-  - Permanently deleted temporary scaffolding module `backend_v2/hooks/scoring/models.py` (`[DELETE]`), absorbed extraction logic into `falsifier_hook.py`, and cleaned up `backend_v2/hooks/scoring/__init__.py`.
+  - Permanently deleted temporary scaffolding module `[DELETE] backend_v2/hooks/scoring/models.py`, absorbed extraction logic into `falsifier_hook.py`, and cleaned up `backend_v2/hooks/scoring/__init__.py`.
   - Modernized all 4 scoring modules (`falsifier_hook.py`, `passivity_hook.py`, `matrix_hook.py`, `normalization_hook.py`) to consume `ExecutionInputsDTO` and return `HookDeltaDTO`.
   - Modernized test fixtures and assertions across all hook test files in `backend_v2/tests/unit/hooks/` and `backend_v2/tests/unit/core/test_hook_registry.py` (93/93 tests passing: 89 passed, 4 xpassed).
   - Validated AST guardrails: `uv run python scripts/_ast_guardrails.py backend_v2/hooks/ --strict` passed cleanly (0 errors).
   - Verified SDUI semantic parity: `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py` passed 100%.
   - Marked Phase 3B Execution status as `[x] [OK]`.
+- **Phase 3B System 2 Red-Team Audit (`/tier8-audit-plan`) Completed**:
+  - Validated 100% adherence to all Phase 3B DoD items, architectural invariants, and quality gates.
+  - Modernized `backend_v2/tests/unit/test_references.py` to instantiate typed `HookState` with `ExecutionInputsDTO`, `GlobalContextVarsDTO`, and `ExecutionMetadata(target_locale="fi")`.
+  - Fixed PEP 257 docstring warnings and line-length formatting across `hook_registry.py`, `atom_flattening.py`, `dlq_guard.py`, `linguistics.py`, and `falsifier_hook.py`.
+  - Confirmed 100% test pass across all 118 hook tests (`114 passed, 4 xpassed`).
+  - Confirmed 0 errors on AST Guardrails (`uv run python scripts/_ast_guardrails.py backend_v2/hooks/ backend_v2/core/hook_registry.py --strict`).
+  - Confirmed 0 errors on Markdown boundaries (`audit_markdown_boundaries.py` and `audit_tracker_output.py`).
+  - Generated audit report: `red_team_audit_04_placeholder_phase3b_hooks_pydantic_v2_migration.md`.
+  - Marked Phase 3B audit status as `[x] [OK]`.
+
+- **Phase 4 Plan Creation (`/tier0-create-plan`) Completed**:
+  - Authored comprehensive architectural implementation plan for Phase 4: Orchestration & Strategy Core Refactoring & Tests (`05_placeholder_phase4_orchestration_and_strategy_core.md`).
+  - Pre-flight AST analysis of `backend_v2/services/orchestrator/` identified 21 FATAL guardrail violations across reflection (`getattr`/`hasattr` in `dag_executor.py`, `context_builder.py`, `llm.py`, `context_router.py`, `prompt_compiler_adapter.py`), banned lazy fallbacks (`.get()` in `dag_compiler.py`, `synthesis_engine.py`, `tda_engine.py`, `extractive_sensor_service.py`, `llm.py`, `context_builder.py`, `synthesis_distiller.py`), and missing strict `ConfigDict` (`context_router.py`, `base.py`).
+  - Itemized concrete remediation for all 19 production files across 6 phased steps: Strategy Base & Hook Integration, LLM Execution & Context Builder, Prompt Compiler & Context Router, Synthesis & Evaluation Engines, DAG Executor & Reasoning Orchestration, and Atomic Test Modernization across 43 orchestrator test files.
+  - Synchronized `EPIC_149_tracker.md` with all 6 execution steps and appended newly planned targets to the Backend Hardening Gate.
+  - Marked Phase 4 Plan Creation status as `[x] [OK]`.
 
 ## Learned
 - Repository reconstitution requires updating `backend_v2/database/interfaces.py` in lockstep to avoid Protocol divergence and MyPy strict mode violations.
@@ -312,10 +353,10 @@
 - `HookResult.state_delta: HookDeltaDTO | None` provides clean separation between `delta` (payload dictionary) and `metadata_updates` (metadata dictionary), replacing manual `delta.pop("metadata", None)` hacks.
 - In `backend_v2/settings.py`, declaring optional `model_registry: dict[str, Any] | None = None` provides direct attribute access for `llm.py` hook resolution without requiring reflection `getattr()` calls.
 - In `backend_v2/hooks/input_processing.py`, missing execution context or missing mandatory language raises `AppException` with `ErrorCodes.VALIDATION_FAILED` and `ErrorCodes.CONFIGURATION_ERROR` respectively.
+- For Phase 4 (Consumers), `StrategyContext` and `DAGExecutor` strategies (`base.py`, `logic.py`, `llm.py`) must be refactored to consume typed `ExecutionInputsDTO`, `GlobalContextVarsDTO`, and `HookDeltaDTO` rather than expecting raw dicts.
+- In `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py`, `StepOutputDTO` has direct properties `block_id`, `payload`, `step_id`; eliminating `getattr(dto, ...)` removes 10 reflection violations in one file.
 
 ## Remaining
-- **Phase 3B Audit**:
-  - `[ ]` `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]`
 - **Phase 4**: Orchestration & Strategy Core Refactoring & Tests (`05_placeholder_phase4_orchestration_and_strategy_core.md`).
 - **Phase 5**: Service Layer, Utility Services & Service Tests (`06_placeholder_phase5_service_layer_and_identity.md`).
 - **Phase 6**: Background Workers, Typed Cache Boundary & Storage (`07_placeholder_phase6_workers_typed_cache_and_storage.md`).
@@ -323,5 +364,7 @@
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration.md] @[docs/epic/EPIC_149_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]
 ```
+
+
