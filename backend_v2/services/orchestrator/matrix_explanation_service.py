@@ -15,7 +15,7 @@ from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, Lightweight
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import AtomResultDTO, SynthesisConfigDTO
+from backend_v2.models.v2_core import AtomResultDTO
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 from backend_v2.utils.ranked_round_robin import ranked_round_robin_select
@@ -34,7 +34,8 @@ class MatrixExplanationService:
         title_map: dict[str, str],
         blocks_by_id: dict[str, PromptBlock],
         target_locale: str,
-        synthesis_config: SynthesisConfigDTO | None = None,
+        max_quotes_per_matrix: int | None = None,
+        max_unmet_criteria: int | None = None,
     ) -> list[MatrixExplanationContextDTO]:
         """Assemble the matrices_to_explain list by extracting quotes from evaluated_atoms.
 
@@ -43,7 +44,8 @@ class MatrixExplanationService:
             title_map: Map of localized titles.
             blocks_by_id: Map of PromptBlock ID to PromptBlock model.
             target_locale: Target locale for claim label resolution.
-            synthesis_config: Optional OutputProfile synthesis configuration overrides.
+            max_quotes_per_matrix: Optional override for quotes per matrix limit.
+            max_unmet_criteria: Optional override for unmet criteria per matrix limit.
 
         Returns:
             List of MatrixExplanationContextDTO objects.
@@ -54,14 +56,12 @@ class MatrixExplanationService:
         # Hoist limits via Tripartite Configuration Resolution SSOT
         settings_obj = get_settings()
         max_quote_len = settings_obj.max_synthesis_quote_length
-        max_quotes_per_matrix = (
-            synthesis_config.max_quotes_per_matrix
-            if synthesis_config and synthesis_config.max_quotes_per_matrix is not None
-            else settings_obj.max_synthesis_quotes_per_matrix
+        effective_max_quotes = (
+            max_quotes_per_matrix if max_quotes_per_matrix is not None else settings_obj.max_synthesis_quotes_per_matrix
         )
-        max_unmet_criteria = (
-            synthesis_config.max_unmet_criteria
-            if synthesis_config and synthesis_config.max_unmet_criteria is not None
+        effective_max_unmet = (
+            max_unmet_criteria
+            if max_unmet_criteria is not None
             else settings_obj.max_synthesis_unmet_criteria_per_matrix
         )
 
@@ -132,7 +132,7 @@ class MatrixExplanationService:
                         for claim in scale.claims:
                             try:
                                 claim_text = claim.label.resolve(target_locale)
-                            except (KeyError, AttributeError):
+                            except KeyError, AttributeError:
                                 claim_text = ""
                             if claim_text and claim.tda_assertions:
                                 for tda in claim.tda_assertions:
@@ -146,7 +146,7 @@ class MatrixExplanationService:
             if isinstance(lw_matrix.evaluated_atoms, dict):
                 for tda_id, hit_status in lw_matrix.evaluated_atoms.items():
                     if hit_status == ExecutionStatus.PASSED:
-                        claim_name = tda_to_claim.get(tda_id, "General Evidence")
+                        claim_name = tda_to_claim[tda_id] if tda_id in tda_to_claim else "General Evidence"
                         if tda_id in global_quotes_map:
                             for q in global_quotes_map[tda_id]:
                                 if q not in seen_matrix_quotes:
@@ -176,7 +176,7 @@ class MatrixExplanationService:
                     quote_candidates,
                     group_key=lambda item: item["claim_label"],
                     rank_key=lambda item: item["quote_length"],
-                    max_items=max_quotes_per_matrix,
+                    max_items=effective_max_quotes,
                     reverse_rank=True,
                 )
                 selected_quotes = [item["quote"] for item in selected_quote_items]
@@ -185,7 +185,7 @@ class MatrixExplanationService:
                 sorted_unmet_claims = sorted(
                     unmet_claim_to_min_scale.keys(),
                     key=lambda c: (unmet_claim_to_min_scale[c], c),
-                )[:max_unmet_criteria]
+                )[:effective_max_unmet]
 
                 distribution_str = ""
                 if isinstance(raw_level_breakdown, dict):

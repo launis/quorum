@@ -11,7 +11,6 @@ from backend_v2.models.v2_core import (
     I18nText,
     MatrixClaim,
     MatrixScale,
-    SynthesisConfigDTO,
     TDAAssertion,
 )
 from backend_v2.services.orchestrator.matrix_explanation_service import MatrixExplanationService
@@ -811,14 +810,13 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=[scale])}
 
-    # Override: max_quotes_per_matrix = 2, max_unmet_criteria = 1
-    synthesis_config = SynthesisConfigDTO(
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos,
+        title_map={},
+        blocks_by_id=blocks_by_id,
+        target_locale="en",
         max_quotes_per_matrix=2,
         max_unmet_criteria=1,
-    )
-
-    result = MatrixExplanationService.assemble_matrices_to_explain(
-        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en", synthesis_config=synthesis_config
     )
 
     assert len(result) == 1

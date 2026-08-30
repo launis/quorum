@@ -558,7 +558,7 @@ def test_parse_matrices_missing_label_and_scales_fail_fast() -> None:
 def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
     """Test level breakdown parsing, invalid level breakdown, and synthesis cache requirements."""
     from backend_v2.exceptions import AppException, ErrorCodes
-    from backend_v2.models.v2_core import MatrixSynthesisGroup, SynthesisConfigDTO
+    from backend_v2.models.v2_core import MatrixSynthesisGroup
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
@@ -600,8 +600,8 @@ def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.level_breakdown == {"0": "1/2", "1": "2/2"}
 
-    # 2. Synthesis expected but missing in row_explanations_cache -> fail-fast
-    profile_synth = profile.model_copy(update={"synthesis": SynthesisConfigDTO()})
+    # 2. Row explanations expected but missing in row_explanations_cache -> fail-fast
+    profile_synth = profile.model_copy(update={"matrix_visible_columns": ["label", "row_explanation"]})
     with pytest.raises(AppException) as exc_synth:
         MatrixDomainParser.parse_matrices(
             results=[dto_valid],
@@ -670,11 +670,11 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
 def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache() -> None:
     """Test that data starvation bypasses the missing row_explanations_cache check."""
     from backend_v2.models.dtos.trace import DataStarvationEvent
-    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache, SynthesisConfigDTO
+    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
-    profile_synth = profile.model_copy(update={"synthesis": SynthesisConfigDTO()})
+    profile_synth = profile.model_copy(update={"matrix_visible_columns": ["label", "row_explanation"]})
 
     payload_valid = {
         "raw_score": 1.0,

@@ -331,13 +331,14 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         # Inject the SHORT ALIAS instead of the long UID
         consolidated_distilled_parts.append(f'<source id="{short_alias}" title="{step_title}">\n{v_str}\n</source>')
 
-    # Phase 3, Step 2: Forward output_profile.synthesis into MatrixExplanationService
+    # Forward output_profile limits into MatrixExplanationService
     matrices_to_explain = MatrixExplanationService.assemble_matrices_to_explain(
         available_dtos,
         title_map,
         blocks_by_id,
         target_locale=target_locale,
-        synthesis_config=output_profile.synthesis,
+        max_quotes_per_matrix=output_profile.max_quotes_per_matrix,
+        max_unmet_criteria=output_profile.max_unmet_criteria,
     )
 
     return HookResult(

@@ -101,14 +101,28 @@ def test_create_dto_legacy_include_diagnostic_scorecard_raises() -> None:
         OutputProfileCreateDTO.model_validate(payload)
 
 
-def test_create_dto_extra_key_in_synthesis_config_raises() -> None:
-    """Negative test: extra keys in nested SynthesisConfigDTO are strictly forbidden."""
+def test_create_dto_purged_synthesis_key_raises() -> None:
+    """Negative test: purged synthesis key in OutputProfileCreateDTO is strictly forbidden."""
     payload = {
         **_VALID_CREATE_PAYLOAD,
-        "synthesis": {"synthesis_block_id": "blk_1", "ghost_field": "illegal"},
+        "synthesis": {"synthesis_block_id": "blk_1"},
     }
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         OutputProfileCreateDTO.model_validate(payload)
+
+
+def test_create_dto_flattened_synthesis_fields_valid() -> None:
+    """Positive test: flattened synthesis fields validate correctly on OutputProfileCreateDTO."""
+    payload = {
+        **_VALID_CREATE_PAYLOAD,
+        "synthesis_length_constraint": 400,
+        "max_quotes_per_matrix": 5,
+        "max_unmet_criteria": 3,
+    }
+    dto = OutputProfileCreateDTO.model_validate(payload)
+    assert dto.synthesis_length_constraint == 400
+    assert dto.max_quotes_per_matrix == 5
+    assert dto.max_unmet_criteria == 3
 
 
 def test_create_dto_invalid_target_block_raises() -> None:

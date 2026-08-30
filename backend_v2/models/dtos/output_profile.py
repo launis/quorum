@@ -24,7 +24,6 @@ from backend_v2.models.enums import (
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixSynthesisGroup,
-    SynthesisConfigDTO,
 )
 from backend_v2.models.view.sdui import AnySduiBlock
 
@@ -144,9 +143,18 @@ class OutputProfileCreateDTO(V2CoreBase):
     scoring_strategy: Annotated[
         LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
     ]
-    synthesis: Annotated[
-        SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
-    ]
+    synthesis_length_constraint: Annotated[
+        int | None,
+        Field(default=None, description="Optional length constraint for synthesized text."),
+    ] = None
+    max_quotes_per_matrix: Annotated[
+        int | None,
+        Field(default=None, description="Per-profile override for quotes per matrix in explanations."),
+    ] = None
+    max_unmet_criteria: Annotated[
+        int | None,
+        Field(default=None, description="Per-profile override for unmet criteria per matrix."),
+    ] = None
     matrix_synthesis_groups: Annotated[
         list[MatrixSynthesisGroup],
         Field(default_factory=list, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),
@@ -300,9 +308,18 @@ class OutputProfileUpdateDTO(V2CoreBase):
     scoring_strategy: Annotated[
         LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
     ]
-    synthesis: Annotated[
-        SynthesisConfigDTO | None, Field(default=None, description="Nested definition for synthesis configurations.")
-    ]
+    synthesis_length_constraint: Annotated[
+        int | None,
+        Field(default=None, description="Optional length constraint for synthesized text."),
+    ] = None
+    max_quotes_per_matrix: Annotated[
+        int | None,
+        Field(default=None, description="Per-profile override for quotes per matrix in explanations."),
+    ] = None
+    max_unmet_criteria: Annotated[
+        int | None,
+        Field(default=None, description="Per-profile override for unmet criteria per matrix."),
+    ] = None
     matrix_synthesis_groups: Annotated[
         list[MatrixSynthesisGroup] | None,
         Field(default=None, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),
@@ -428,7 +445,9 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     custom_scale_max: float | None = None
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
-    synthesis: SynthesisConfigDTO | None = None
+    synthesis_length_constraint: int | None = None
+    max_quotes_per_matrix: int | None = None
+    max_unmet_criteria: int | None = None
     matrix_synthesis_groups: Annotated[
         list[MatrixSynthesisGroup],
         Field(default_factory=list, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),

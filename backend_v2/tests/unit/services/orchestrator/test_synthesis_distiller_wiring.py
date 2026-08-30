@@ -16,9 +16,7 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import SynthesisConfigDTO
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
 
 
@@ -557,11 +555,10 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
 
 
 @pytest.mark.asyncio
-async def test_synthesis_distiller_wiring_forwards_synthesis_config() -> None:
-    """Contract: Verify output_profile.synthesis is forwarded to MatrixExplanationService."""
+async def test_synthesis_distiller_wiring_forwards_output_profile_limits() -> None:
+    """Contract: Verify output_profile flattened limits are forwarded to MatrixExplanationService."""
     deps = _build_mock_deps()
 
-    synthesis_cfg = SynthesisConfigDTO(max_quotes_per_matrix=3, max_unmet_criteria=2)
     cast(AsyncMock, deps.output_profile_repo.get_output_profile_by_id).return_value = {
         "id": "pro_0123456789abcdef01",
         "slug": "prof_standard",
@@ -575,7 +572,8 @@ async def test_synthesis_distiller_wiring_forwards_synthesis_config() -> None:
             }
         ],
         "max_extension_items": 5,
-        "synthesis": synthesis_cfg.model_dump(mode="json"),
+        "max_quotes_per_matrix": 3,
+        "max_unmet_criteria": 2,
     }
 
     step_output = StepOutputDTO(
@@ -603,6 +601,5 @@ async def test_synthesis_distiller_wiring_forwards_synthesis_config() -> None:
         assert result.success is True
         mock_assemble.assert_called_once()
         kwargs = mock_assemble.call_args[1]
-        assert kwargs["synthesis_config"] is not None
-        assert kwargs["synthesis_config"].max_quotes_per_matrix == 3
-        assert kwargs["synthesis_config"].max_unmet_criteria == 2
+        assert kwargs["max_quotes_per_matrix"] == 3
+        assert kwargs["max_unmet_criteria"] == 2

@@ -329,7 +329,7 @@ class MatrixDomainParser:
 
             ext = matrix_payload.extensions
 
-            synthesis_expected = profile.synthesis is not None
+            synthesis_expected = profile.requires_row_explanations
             is_data_starved = False
             if execution and execution.profile_syntheses:
                 current_cache = execution.profile_syntheses.get(profile.id) or execution.profile_syntheses.get(

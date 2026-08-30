@@ -156,28 +156,58 @@ def test_strict_schema_parity_for_core_execution_fields() -> None:
         assert not missing, f"{child_cls.__name__} is missing inherited core fields: {missing}"
 
 
-@pytest.mark.parametrize(
-    "dead_weight_field",
-    [
-        "model_strategy",
-        "historical_context_mode",
-        "enable_pii_masking",
-        "allowed_exports",
-        "omit_empty_sections",
-        "allowed_mcp_tools",
-    ],
-)
-def test_synthesis_config_dto_rejects_purged_dead_weight_fields(dead_weight_field: str) -> None:
-    """Negative test: SynthesisConfigDTO rejects purged fields with ValidationError under extra='forbid'."""
-    from backend_v2.models.v2_core import SynthesisConfigDTO
+def test_output_profile_rejects_purged_synthesis_field() -> None:
+    """Negative test: OutputProfile rejects purged synthesis field with ValidationError under extra='forbid'."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.v2_core import OutputProfile
 
     payload = {
-        "synthesis_block_id": "blk_synthesis123",
-        dead_weight_field: "unexpected_value",
+        "id": "prf_1234567890abcdef",
+        "slug": "test-profile",
+        "workflow_id": "wf_1234567890abcdef",
+        "name": I18nText(translations={"en": "Test Profile"}),
+        "synthesis": {},
     }
     with pytest.raises(ValidationError) as exc_info:
-        SynthesisConfigDTO.model_validate(payload)
+        OutputProfile.model_validate(payload)
     assert "Extra inputs are not permitted" in str(exc_info.value)
+
+
+def test_output_profile_computed_properties() -> None:
+    """Test computed properties on OutputProfile."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.enums import TargetBlockType
+    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
+
+    profile = OutputProfile(
+        id="prf_1234567890abcdef",
+        slug="test-profile",
+        workflow_id="wf_1234567890abcdef",
+        name=I18nText(translations={"en": "Test Profile"}),
+        target_block_order=[
+            TargetBlockType.METADATA_BLOCK,
+            TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+            TargetBlockType.MATRIX_GRAPHS_BLOCK,
+        ],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_1111111111111111",
+                title=I18nText(translations={"en": "Group 1"}),
+                target_blocks=["blk_1"],
+            )
+        ],
+        matrix_visible_columns=["label", "row_explanation"],
+        synthesis_length_constraint=500,
+        max_quotes_per_matrix=5,
+        max_unmet_criteria=3,
+    )
+    assert profile.requires_executive_synthesis is True
+    assert profile.requires_group_synthesis is True
+    assert profile.requires_row_explanations is True
+    assert profile.is_synthesis_expected is True
+    assert profile.synthesis_length_constraint == 500
+    assert profile.max_quotes_per_matrix == 5
+    assert profile.max_unmet_criteria == 3
 
 
 def test_matrix_synthesis_group_validation() -> None:

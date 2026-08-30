@@ -99,7 +99,6 @@ __all__ = [
     "ScorecardAtomDTO",
     "Step",
     "StepRule",
-    "SynthesisConfigDTO",
     "SystemConfigMCPGateways",
     "SystemConfigModelRegistry",
     "SystemConfigPerformativeLexicons",
@@ -719,36 +718,6 @@ from backend_v2.models.dtos.matrix_scorecard import (  # noqa: F401
 )
 
 
-class SynthesisConfigDTO(V2CoreBase):
-    """Configuration for LLM output synthesis length, masking, and formatting."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    system_prompt: str | None = Field(default=None, description="Optional system prompt overriding default synthesis.")
-    synthesis_block_id: str | None = Field(
-        default=None,
-        description="Optional explicit reference to the extraction block UUID that generates the global synthesis (e.g. blk_8f7e6d5c4b3a2019).",
-    )
-    row_explanations_block_id: str | None = Field(
-        default=None,
-        description="Optional explicit reference to the extraction block UUID that generates row explanations.",
-    )
-    length_constraint: int | None = Field(default=None, description="Length constraint for the synthesized text.")
-    preamble_text: I18nText | None = Field(
-        default=None, description="Multilingual preamble text added before synthesis."
-    )
-    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
-    # Phase 1, Step 2: Per-profile overrides for matrix explanation limits
-    max_quotes_per_matrix: Annotated[
-        int | None,
-        Field(description="Per-profile override for quotes per matrix in explanations."),
-    ] = None
-    max_unmet_criteria: Annotated[
-        int | None,
-        Field(description="Per-profile override for unmet criteria per matrix."),
-    ] = None
-
-
 class ErrorDetailsDTO(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
     error_code: Annotated[str, Field(description="Standardized error code, e.g., LLM_TIMEOUT")]
@@ -1010,9 +979,18 @@ class OutputProfile(V2CoreBase):
     ] = None
     strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
-    synthesis: SynthesisConfigDTO | None = Field(
-        default=None, description="Global synthesis configuration for the executive summary."
-    )
+    synthesis_length_constraint: Annotated[
+        int | None,
+        Field(default=None, description="Optional length constraint for synthesized text."),
+    ] = None
+    max_quotes_per_matrix: Annotated[
+        int | None,
+        Field(default=None, description="Per-profile override for quotes per matrix in explanations."),
+    ] = None
+    max_unmet_criteria: Annotated[
+        int | None,
+        Field(default=None, description="Per-profile override for unmet criteria per matrix."),
+    ] = None
     target_block_order: Annotated[
         list[LaxTargetBlockType],
         Field(
@@ -1091,6 +1069,45 @@ class OutputProfile(V2CoreBase):
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
         return self
+
+    @property
+    def requires_executive_synthesis(self) -> bool:
+        """Check if executive summary synthesis is requested in target block order."""
+        return any(
+            t
+            in (
+                TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+                TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value,
+                "executive_summary_block",
+            )
+            for t in self.target_block_order
+        )
+
+    @property
+    def requires_group_synthesis(self) -> bool:
+        """Check if comparative matrix groups synthesis is requested."""
+        return (
+            any(
+                t
+                in (
+                    TargetBlockType.MATRIX_GRAPHS_BLOCK,
+                    TargetBlockType.MATRIX_GRAPHS_BLOCK.value,
+                    "matrix_graphs_block",
+                )
+                for t in self.target_block_order
+            )
+            and len(self.matrix_synthesis_groups) > 0
+        )
+
+    @property
+    def requires_row_explanations(self) -> bool:
+        """Check if row explanations are configured in visible matrix columns."""
+        return "row_explanation" in self.matrix_visible_columns
+
+    @property
+    def is_synthesis_expected(self) -> bool:
+        """Check if any synthesis phase generation is expected for this profile."""
+        return self.requires_executive_synthesis or self.requires_group_synthesis or self.requires_row_explanations
 
 
 class Workflow(V2CoreBase):
