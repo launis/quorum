@@ -253,18 +253,6 @@ class OutputProfileForm extends _$OutputProfileForm {
         toneInstruction: (profileWithId.toneInstruction?.isEmpty ?? true)
             ? null
             : profileWithId.toneInstruction,
-        synthesis: profileWithId.synthesis == null
-            ? null
-            : profileWithId.synthesis!.copyWith(
-                preambleText:
-                    (profileWithId.synthesis!.preambleText?.isEmpty ?? true)
-                    ? null
-                    : profileWithId.synthesis!.preambleText,
-                toneInstruction:
-                    (profileWithId.synthesis!.toneInstruction?.isEmpty ?? true)
-                    ? null
-                    : profileWithId.synthesis!.toneInstruction,
-              ),
       );
 
       await ref

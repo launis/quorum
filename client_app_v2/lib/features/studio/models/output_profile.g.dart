@@ -70,83 +70,6 @@ const _$PresetViewEnumMap = {
   PresetView.matrixSummary: 'matrix_summary',
 };
 
-_SynthesisConfigDTO _$SynthesisConfigDTOFromJson(Map<String, dynamic> json) =>
-    $checkedCreate(
-      '_SynthesisConfigDTO',
-      json,
-      ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const [
-            'system_prompt',
-            'synthesis_block_id',
-            'row_explanations_block_id',
-            'length_constraint',
-            'preamble_text',
-            'tone_instruction',
-            'max_quotes_per_matrix',
-            'max_unmet_criteria',
-          ],
-        );
-        final val = _SynthesisConfigDTO(
-          systemPrompt: $checkedConvert('system_prompt', (v) => v as String?),
-          synthesisBlockId: $checkedConvert(
-            'synthesis_block_id',
-            (v) => v as String?,
-          ),
-          rowExplanationsBlockId: $checkedConvert(
-            'row_explanations_block_id',
-            (v) => v as String?,
-          ),
-          lengthConstraint: $checkedConvert(
-            'length_constraint',
-            (v) => (v as num?)?.toInt(),
-          ),
-          preambleText: $checkedConvert(
-            'preamble_text',
-            (v) =>
-                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          toneInstruction: $checkedConvert(
-            'tone_instruction',
-            (v) =>
-                v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-          ),
-          maxQuotesPerMatrix: $checkedConvert(
-            'max_quotes_per_matrix',
-            (v) => (v as num?)?.toInt(),
-          ),
-          maxUnmetCriteria: $checkedConvert(
-            'max_unmet_criteria',
-            (v) => (v as num?)?.toInt(),
-          ),
-        );
-        return val;
-      },
-      fieldKeyMap: const {
-        'systemPrompt': 'system_prompt',
-        'synthesisBlockId': 'synthesis_block_id',
-        'rowExplanationsBlockId': 'row_explanations_block_id',
-        'lengthConstraint': 'length_constraint',
-        'preambleText': 'preamble_text',
-        'toneInstruction': 'tone_instruction',
-        'maxQuotesPerMatrix': 'max_quotes_per_matrix',
-        'maxUnmetCriteria': 'max_unmet_criteria',
-      },
-    );
-
-Map<String, dynamic> _$SynthesisConfigDTOToJson(_SynthesisConfigDTO instance) =>
-    <String, dynamic>{
-      'system_prompt': instance.systemPrompt,
-      'synthesis_block_id': instance.synthesisBlockId,
-      'row_explanations_block_id': instance.rowExplanationsBlockId,
-      'length_constraint': instance.lengthConstraint,
-      'preamble_text': instance.preambleText?.toJson(),
-      'tone_instruction': instance.toneInstruction?.toJson(),
-      'max_quotes_per_matrix': instance.maxQuotesPerMatrix,
-      'max_unmet_criteria': instance.maxUnmetCriteria,
-    };
-
 _OutputProfile _$OutputProfileFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -174,6 +97,9 @@ _OutputProfile _$OutputProfileFromJson(
         'custom_scale_max',
         'strictness_level',
         'scoring_strategy',
+        'synthesis_length_constraint',
+        'max_quotes_per_matrix',
+        'max_unmet_criteria',
         'tone_instruction',
         'language',
         'matrix_synthesis_groups',
@@ -181,7 +107,6 @@ _OutputProfile _$OutputProfileFromJson(
         'target_block_order',
         'show_sources_summary_box',
         'sources_display_mode',
-        'synthesis',
         'performativity_detector_step_id',
       ],
     );
@@ -279,6 +204,18 @@ _OutputProfile _$OutputProfileFromJson(
         'scoring_strategy',
         (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
       ),
+      synthesisLengthConstraint: $checkedConvert(
+        'synthesis_length_constraint',
+        (v) => (v as num?)?.toInt(),
+      ),
+      maxQuotesPerMatrix: $checkedConvert(
+        'max_quotes_per_matrix',
+        (v) => (v as num?)?.toInt(),
+      ),
+      maxUnmetCriteria: $checkedConvert(
+        'max_unmet_criteria',
+        (v) => (v as num?)?.toInt(),
+      ),
       toneInstruction: $checkedConvert(
         'tone_instruction',
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
@@ -312,6 +249,7 @@ _OutputProfile _$OutputProfileFromJson(
             const [
               TargetBlockType.metadataBlock,
               TargetBlockType.executiveSummaryBlock,
+              TargetBlockType.synthesisTextBlock,
               TargetBlockType.matrixGraphsBlock,
               TargetBlockType.groupedExtensionsBlock,
               TargetBlockType.penaltiesBlock,
@@ -332,12 +270,6 @@ _OutputProfile _$OutputProfileFromJson(
         (v) =>
             $enumDecodeNullable(_$SourcesDisplayModeEnumMap, v) ??
             SourcesDisplayMode.verifiedEvidence,
-      ),
-      synthesis: $checkedConvert(
-        'synthesis',
-        (v) => v == null
-            ? null
-            : SynthesisConfigDTO.fromJson(v as Map<String, dynamic>),
       ),
       performativityDetectorStepId: $checkedConvert(
         'performativity_detector_step_id',
@@ -361,6 +293,9 @@ _OutputProfile _$OutputProfileFromJson(
     'customScaleMax': 'custom_scale_max',
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
+    'synthesisLengthConstraint': 'synthesis_length_constraint',
+    'maxQuotesPerMatrix': 'max_quotes_per_matrix',
+    'maxUnmetCriteria': 'max_unmet_criteria',
     'toneInstruction': 'tone_instruction',
     'matrixSynthesisGroups': 'matrix_synthesis_groups',
     'contentBlocks': 'content_blocks',
@@ -396,6 +331,9 @@ Map<String, dynamic> _$OutputProfileToJson(
   'custom_scale_max': instance.customScaleMax,
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
+  'synthesis_length_constraint': instance.synthesisLengthConstraint,
+  'max_quotes_per_matrix': instance.maxQuotesPerMatrix,
+  'max_unmet_criteria': instance.maxUnmetCriteria,
   'tone_instruction': instance.toneInstruction?.toJson(),
   'language': instance.language,
   'matrix_synthesis_groups': instance.matrixSynthesisGroups
@@ -408,7 +346,6 @@ Map<String, dynamic> _$OutputProfileToJson(
   'show_sources_summary_box': instance.showSourcesSummaryBox,
   'sources_display_mode':
       _$SourcesDisplayModeEnumMap[instance.sourcesDisplayMode]!,
-  'synthesis': instance.synthesis?.toJson(),
   'performativity_detector_step_id': instance.performativityDetectorStepId,
 };
 

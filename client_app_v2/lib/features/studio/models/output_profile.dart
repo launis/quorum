@@ -28,26 +28,6 @@ abstract class MatrixSynthesisGroup with _$MatrixSynthesisGroup {
 }
 
 @Freezed(equal: false)
-abstract class SynthesisConfigDTO with _$SynthesisConfigDTO {
-  const SynthesisConfigDTO._();
-
-  @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory SynthesisConfigDTO({
-    @JsonKey(name: 'system_prompt') String? systemPrompt,
-    @JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,
-    @JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,
-    @JsonKey(name: 'length_constraint') int? lengthConstraint,
-    @JsonKey(name: 'preamble_text') I18nText? preambleText,
-    @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
-    @JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,
-    @JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,
-  }) = _SynthesisConfigDTO;
-
-  factory SynthesisConfigDTO.fromJson(Map<String, dynamic> json) =>
-      _$SynthesisConfigDTOFromJson(json);
-}
-
-@Freezed(equal: false)
 abstract class OutputProfile with _$OutputProfile {
   const OutputProfile._();
 
@@ -83,6 +63,10 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'custom_scale_max') double? customScaleMax,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
+    @JsonKey(name: 'synthesis_length_constraint')
+    int? synthesisLengthConstraint,
+    @JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,
+    @JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
     String? language,
     @JsonKey(name: 'matrix_synthesis_groups')
@@ -95,6 +79,7 @@ abstract class OutputProfile with _$OutputProfile {
     @Default([
       TargetBlockType.metadataBlock,
       TargetBlockType.executiveSummaryBlock,
+      TargetBlockType.synthesisTextBlock,
       TargetBlockType.matrixGraphsBlock,
       TargetBlockType.groupedExtensionsBlock,
       TargetBlockType.penaltiesBlock,
@@ -112,7 +97,6 @@ abstract class OutputProfile with _$OutputProfile {
     @Default(SourcesDisplayMode.verifiedEvidence)
     @JsonKey(name: 'sources_display_mode')
     SourcesDisplayMode sourcesDisplayMode,
-    SynthesisConfigDTO? synthesis,
     @JsonKey(name: 'performativity_detector_step_id')
     String? performativityDetectorStepId,
   }) = _OutputProfile;

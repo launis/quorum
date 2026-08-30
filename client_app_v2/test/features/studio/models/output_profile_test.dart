@@ -41,99 +41,6 @@ void main() {
     });
   });
 
-  group('SynthesisConfigDTO JSON Parsing', () {
-    test(
-      'Should parse SynthesisConfigDTO with synthesis_block_id and row_explanations_block_id',
-      () {
-        final jsonPayload = {
-          'synthesis_block_id': 'blk_8f7e6d5c4b3a2019',
-          'row_explanations_block_id': 'blk_row_explanation_rules',
-          'length_constraint': 300,
-        };
-
-        final dto = SynthesisConfigDTO.fromJson(jsonPayload);
-        expect(dto.synthesisBlockId, 'blk_8f7e6d5c4b3a2019');
-        expect(dto.rowExplanationsBlockId, 'blk_row_explanation_rules');
-        expect(dto.lengthConstraint, 300);
-      },
-    );
-
-    test(
-      'Should parse SynthesisConfigDTO with max_quotes_per_matrix and max_unmet_criteria',
-      () {
-        final jsonPayload = {
-          'synthesis_block_id': 'blk_8f7e6d5c4b3a2019',
-          'row_explanations_block_id': 'blk_row_explanation_rules',
-          'max_quotes_per_matrix': 5,
-          'max_unmet_criteria': 3,
-        };
-
-        final dto = SynthesisConfigDTO.fromJson(jsonPayload);
-        expect(dto.synthesisBlockId, 'blk_8f7e6d5c4b3a2019');
-        expect(dto.maxQuotesPerMatrix, 5);
-        expect(dto.maxUnmetCriteria, 3);
-      },
-    );
-
-    test('test_synthesis_config_dto_purged_enable_pii_masking_throws', () {
-      final jsonPayload = {'enable_pii_masking': false};
-
-      expect(
-        () => SynthesisConfigDTO.fromJson(jsonPayload),
-        throwsA(isA<CheckedFromJsonException>()),
-      );
-    });
-
-    test('test_synthesis_config_dto_purged_allowed_exports_throws', () {
-      final jsonPayload = {
-        'allowed_exports': ['PDF'],
-      };
-
-      expect(
-        () => SynthesisConfigDTO.fromJson(jsonPayload),
-        throwsA(isA<CheckedFromJsonException>()),
-      );
-    });
-
-    test('test_synthesis_config_dto_purged_allowed_mcp_tools_throws', () {
-      final jsonPayload = {
-        'allowed_mcp_tools': ['search'],
-      };
-
-      expect(
-        () => SynthesisConfigDTO.fromJson(jsonPayload),
-        throwsA(isA<CheckedFromJsonException>()),
-      );
-    });
-
-    test('test_synthesis_config_dto_purged_historical_context_mode_throws', () {
-      final jsonPayload = {'historical_context_mode': 'enabled'};
-
-      expect(
-        () => SynthesisConfigDTO.fromJson(jsonPayload),
-        throwsA(isA<CheckedFromJsonException>()),
-      );
-    });
-
-    test('test_synthesis_config_dto_purged_model_strategy_throws', () {
-      final jsonPayload = {'model_strategy': 'fast'};
-
-      expect(
-        () => SynthesisConfigDTO.fromJson(jsonPayload),
-        throwsA(isA<CheckedFromJsonException>()),
-      );
-    });
-
-    test('test_synthesis_config_dto_purged_omit_empty_sections_throws', () {
-      final jsonPayload = {'omit_empty_sections': true};
-
-      expect(
-        () => SynthesisConfigDTO.fromJson(jsonPayload),
-        throwsA(isA<CheckedFromJsonException>()),
-      );
-    });
-  });
-
   group('OutputProfile JSON Parsing', () {
     test('Should parse fully populated OutputProfile with all fields', () {
       final jsonPayload = {
@@ -162,6 +69,9 @@ void main() {
         'custom_scale_max': 100.0,
         'strictness_level': 85,
         'scoring_strategy': 'WATERFALL',
+        'synthesis_length_constraint': 300,
+        'max_quotes_per_matrix': 5,
+        'max_unmet_criteria': 3,
         'tone_instruction': {
           'translations': {'en': 'Formal'},
         },
@@ -192,10 +102,6 @@ void main() {
           'global_score_block',
           'audit_trail_block',
         ],
-        'synthesis': {
-          'synthesis_block_id': 'blk_syn_1',
-          'length_constraint': 300,
-        },
         'performativity_detector_step_id': 'step_perf_1',
       };
 
@@ -204,13 +110,14 @@ void main() {
       expect(profile.displayScale, DisplayScale.custom);
       expect(profile.maxExtensionItems, 5);
       expect(profile.scoringStrategy, ScoringStrategy.waterfall);
+      expect(profile.synthesisLengthConstraint, 300);
+      expect(profile.maxQuotesPerMatrix, 5);
+      expect(profile.maxUnmetCriteria, 3);
       expect(profile.targetBlockOrder.length, 12);
       expect(profile.targetBlockOrder.first, TargetBlockType.metadataBlock);
       expect(profile.targetBlockOrder.last, TargetBlockType.auditTrailBlock);
       expect(profile.matrixSynthesisGroups.length, 1);
       expect(profile.matrixSynthesisGroups.first.id, 'grp_1111111111111111');
-      expect(profile.synthesis?.synthesisBlockId, 'blk_syn_1');
-      expect(profile.synthesis?.lengthConstraint, 300);
       expect(profile.visibleBlockExtensions, [
         XaiExtensionType.citation,
         XaiExtensionType.coaching,
@@ -292,6 +199,22 @@ void main() {
         'metric'
                 '_mappings':
             {},
+      };
+
+      expect(
+        () => OutputProfile.fromJson(jsonPayload),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    test('test_output_profile_purged_synthesis_key_throws', () {
+      final jsonPayload = {
+        'id': 'op_1234567890abcdef',
+        'workflow_id': 'wf_9d68c573802341db',
+        'name': {
+          'translations': {'en': 'Test Profile'},
+        },
+        'synthesis': {},
       };
 
       expect(

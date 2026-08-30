@@ -39,10 +39,6 @@ void main() {
           toneInstruction: emptyI18n,
           maxExtensionItems: 3,
           displayScale: DisplayScale.original,
-          synthesis: SynthesisConfigDTO(
-            preambleText: emptyI18n,
-            toneInstruction: emptyI18n,
-          ),
           matrixSynthesisGroups: const [],
         );
 
@@ -70,16 +66,6 @@ void main() {
           sanitized.toneInstruction,
           isNull,
           reason: 'toneInstruction should be sanitized',
-        );
-        expect(
-          sanitized.synthesis?.preambleText,
-          isNull,
-          reason: 'profile.synthesis.preambleText should be sanitized',
-        );
-        expect(
-          sanitized.synthesis?.toneInstruction,
-          isNull,
-          reason: 'profile.synthesis.toneInstruction should be sanitized',
         );
         expect(
           sanitized.maxExtensionItems,
