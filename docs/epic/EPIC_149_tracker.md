@@ -171,15 +171,15 @@
 # Session Handover Context
 
 ## Achieved
-- **Phase 1 Backend SSOT Foundation & Lifespan Gates (100% Verified & Passing)**:
-  - Permanently deleted vestigial 0-byte files `data/app.db` and `data/app.sqlite`.
+- **Phase 1 Backend SSOT Foundation & Lifespan Gates (Commit `e1f3937c`)**:
+  - Permanently deleted vestigial 0-byte database files `data/app.db` and `data/app.sqlite`.
   - Sanitized Seed Vault via `scripts/sanitize_seed_vault.py --test` and verified with `scripts/audit_database_atoms.py --strict` (0 errors across 152 atoms, 13 matrices, 19 steps).
   - Modernized `backend_v2/seed/run_seed.py` with `get_settings()` SSOT paths (`prod_db_path`, `seed_data_path`, `base_dir`, `data_dir`) and clean table/directory drop.
   - Added FastAPI Lifespan pre-flight schema validation `_validate_database_preflight` in `backend_v2/main.py`.
   - Created `backend_v2/models/dtos/hook_state.py` [NEW] with strict `ExecutionInputsDTO`, `GlobalContextVarsDTO`, and `HookDeltaDTO` (`frozen=True, extra="forbid", strict=True`).
   - Enforced mandatory `target_locale: str = Field(...)` SSOT across `ExecutionCoreFields` and `ExecutionRecord`.
-  - Unit tests passing 100%: `test_run_seed.py` (24 passed, 95% cov), `test_main.py` (16 passed, 93% cov), `test_execution_core.py` (100% cov), `test_hook_state.py` (100% cov).
-- **Phase 1 Frontend Client Ingress & Freezed Parity Remediation (100% Verified & Passing)**:
+  - Backend unit test suites passing 100% with >90% coverage: `test_run_seed.py` (24 passed, 95% cov), `test_main.py` (16 passed, 93% cov), `test_execution_core.py` (100% cov), `test_hook_state.py` (100% cov).
+- **Phase 1 Frontend Client Ingress & Freezed Parity Remediation (Commit `e33bce98`)**:
   - Created `client_app_v2/lib/features/execution/models/execution_create_request_dto.dart` [NEW] with `@JsonSerializable(disallowUnrecognizedKeys: true)`.
   - Updated `ExecutionRecord` to full 1:1 schema parity matching backend `ExecutionRecord`, adding 18 missing telemetry, synthesis, and storage fields.
   - Refactored `ExecutionClient.startExecution` to accept typed `ExecutionCreateRequestDto` and eliminated legacy parameters (`strictnessLevel`, `scoringStrategy`).
