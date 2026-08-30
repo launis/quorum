@@ -122,11 +122,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "max_extension_items": 3,
-        "synthesis": {
-            "synthesis_block_id": "pb_2222222222222222",
-            "length_constraint": 1000,
-            "tone_instruction": {"translations": {"en": "Professional"}},
-        },
+        "synthesis_length_constraint": 1000,
+        "tone_instruction": {"translations": {"en": "Professional"}},
         "matrix_synthesis_groups": [
             {
                 "id": "grp_1111111111111111",
@@ -505,11 +502,8 @@ async def test_worker_synthesis_matrix_layout_directives(
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
-        "synthesis": {
-            "synthesis_block_id": "pb_2222222222222222",
-            "length_constraint": 1000,
-            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
-        },
+        "synthesis_length_constraint": 1000,
+        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         "matrix_synthesis_groups": [
             {
                 "id": "grp_1234567890123456",
@@ -603,13 +597,10 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
-        "synthesis": {
-            "synthesis_block_id": "pb_2222222222222222",
-            "length_constraint": 1000,
-            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
-        },
+        "synthesis_length_constraint": 1000,
+        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         "matrix_synthesis_groups": [],
-        "target_block_order": [],
+        "target_block_order": ["executive_summary_block"],
     }
 
     mock_client = AsyncMock()
@@ -672,13 +663,10 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
-        "synthesis": {
-            "synthesis_block_id": "pb_2222222222222222",
-            "length_constraint": 1000,
-            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
-        },
+        "synthesis_length_constraint": 1000,
+        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         "matrix_synthesis_groups": [],
-        "target_block_order": [],
+        "target_block_order": ["executive_summary_block"],
     }
 
     mock_client = AsyncMock()
@@ -757,11 +745,8 @@ async def test_worker_synthesis_multi_section_aggregation(
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
-        "synthesis": {
-            "synthesis_block_id": "pb_2222222222222222",
-            "length_constraint": 1000,
-            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
-        },
+        "synthesis_length_constraint": 1000,
+        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         "matrix_synthesis_groups": [
             {
                 "id": "grp_c5804a9143c34cb1",
@@ -853,11 +838,8 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
-        "synthesis": {
-            "synthesis_block_id": "pb_2222222222222222",
-            "length_constraint": 1000,
-            "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
-        },
+        "synthesis_length_constraint": 1000,
+        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000000",

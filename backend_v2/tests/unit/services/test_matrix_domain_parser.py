@@ -32,6 +32,7 @@ def get_dummy_profile(
     display_scale: DisplayScale = DisplayScale.ORIGINAL,
     custom_scale_min: float | None = None,
     custom_scale_max: float | None = None,
+    matrix_visible_columns: list[str] | None = None,
 ) -> OutputProfile:
     if display_scale == DisplayScale.CUSTOM and custom_scale_min is None and custom_scale_max is None:
         custom_scale_min = 4.0
@@ -44,6 +45,9 @@ def get_dummy_profile(
         display_scale=display_scale,
         custom_scale_min=custom_scale_min,
         custom_scale_max=custom_scale_max,
+        matrix_visible_columns=matrix_visible_columns
+        if matrix_visible_columns is not None
+        else ["label", "category", "target", "score", "level_breakdown"],
         target_block_order=[],
     )
 

@@ -528,9 +528,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 "slug": "prof-1",
                 "workflow_id": "wf_1234567890123456",
                 "name": {"translations": {"en": "Profile"}},
-                "synthesis": {
-                    "length_constraint": 500,
-                },
+                "synthesis_length_constraint": 500,
                 "matrix_synthesis_groups": [],
                 "target_block_order": [],
             }
@@ -596,7 +594,6 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "slug": "prof-1",
                 "workflow_id": "wf_1234567890123456",
                 "name": {"translations": {"en": "Profile"}},
-                "synthesis": {},
                 "visible_workflow_extensions": ["authenticity_evaluation"],
                 "max_extension_items": None,
                 "matrix_synthesis_groups": [],
@@ -678,13 +675,9 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "slug": "prof-1",
                 "workflow_id": "wf_1234567890123456",
                 "name": {"translations": {"en": "Profile"}},
-                "synthesis": {
-                    "synthesis_block_id": "blk_1111222233334444",
-                    "row_explanations_block_id": "blk_2222333344445555",
-                    "length_constraint": 500,
-                    "tone_instruction": {
-                        "translations": {"en": "Direct tone", "fi": "Suora sävy"},
-                    },
+                "synthesis_length_constraint": 500,
+                "tone_instruction": {
+                    "translations": {"en": "Direct tone", "fi": "Suora sävy"},
                 },
                 "matrix_synthesis_groups": [
                     {
@@ -900,9 +893,6 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "slug": "prof-1",
                 "workflow_id": "wf_1234567890123456",
                 "name": {"translations": {"en": "Profile"}},
-                "synthesis": {
-                    "synthesis_block_id": "blk_1111222233334444",
-                },
                 "strictness_level": 85,
                 "scoring_strategy": "AVERAGE",
                 "display_scale": "original",

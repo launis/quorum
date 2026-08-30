@@ -44,14 +44,8 @@ from backend_v2.models.prompts import (
     DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT,
     DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
     DEFAULT_VARIANCE_SYSTEM_PROMPT,
-    EXECUTIVE_SUMMARY_DIRECTIVE,
     EXECUTIVE_SUMMARY_SECTION_ID,
     GLOBAL_MANDATES_XML,
-    MATRIX_1D_SYNTHESIS_DIRECTIVE,
-    MATRIX_2D_SYNTHESIS_DIRECTIVE,
-    MATRIX_3D_SYNTHESIS_DIRECTIVE,
-    MATRIX_TEXT_SYNTHESIS_DIRECTIVE,
-    ROW_EXPLANATION_DIRECTIVE,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     SYNTHESIS_CITATION_RULES_HARVARD,
     SYNTHESIS_SDUI_MANDATES,
@@ -59,6 +53,7 @@ from backend_v2.models.prompts import (
     SYNTHESIS_XAI_CURATION,
     VARIANCE_EXPLANATION_DIRECTIVE,
     XAI_EXPLANATIONS_DIRECTIVE,
+    SynthesisPromptRegistry,
     build_linguistic_context,
 )
 from backend_v2.models.state import StateProjector, TraceEvent
@@ -831,7 +826,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
         # Extract Synthesis from DAG Execution Trace (Phase 3/4)
         await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
-        synthesis_cfg = active_profile_dto.synthesis if active_profile_dto else None
+        is_synthesis_expected = active_profile_dto.is_synthesis_expected if active_profile_dto else True
 
         # Inject dynamic locale and execution context into hook_metadata for synthesis_distiller
         hook_metadata = execution.metadata.model_copy(
@@ -890,7 +885,7 @@ async def generate_profile_synthesis_and_pdf_task(
         ext_metrics = None
 
         async with asyncio.TaskGroup() as tg:
-            if synthesis_cfg:
+            if is_synthesis_expected:
                 # sys_prompt MUST remain 100% static for cache prefix survival
                 sys_prompt = (
                     f"{DEFAULT_SYNTHESIS_SYSTEM_PROMPT}\n\n{SYNTHESIS_SDUI_MANDATES}\n\n{ANTI_JARGON_MANDATE_BLOCK}"
@@ -909,13 +904,13 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 compiler = PromptCompiler()
 
-                if synthesis_cfg.length_constraint:
+                if active_profile_dto and active_profile_dto.synthesis_length_constraint:
                     base_dynamic_parts.append(
-                        f"<global_length_constraint_chars>{synthesis_cfg.length_constraint}</global_length_constraint_chars>"
+                        f"<global_length_constraint_chars>{active_profile_dto.synthesis_length_constraint}</global_length_constraint_chars>"
                     )
 
-                if synthesis_cfg.tone_instruction:
-                    tone = compiler.resolve_i18n(synthesis_cfg.tone_instruction, accept_language)
+                if active_profile_dto and active_profile_dto.tone_instruction:
+                    tone = compiler.resolve_i18n(active_profile_dto.tone_instruction, accept_language)
                     if tone:
                         base_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
 
@@ -926,35 +921,39 @@ async def generate_profile_synthesis_and_pdf_task(
                     matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')}"
 
                 # 1. Dedicated Executive Summary task
-                exec_dynamic_parts = list(base_dynamic_parts)
-                exec_section_rule = (
-                    f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
-                    f"{EXECUTIVE_SUMMARY_DIRECTIVE}\n"
-                    "</section_instruction>\n"
-                )
-                exec_dynamic_parts.append(exec_section_rule)
-                exec_dynamic_context = "\n\n".join(exec_dynamic_parts)
-
-                exec_messages: list[dict[str, Any]] = [
-                    {"role": "system", "content": sys_prompt},
-                    {
-                        "role": "user",
-                        "content": (
-                            f"<dynamic_context>\n{exec_dynamic_context}\n</dynamic_context>"
-                            f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
-                        ),
-                    },
-                ]
-                t_exec_summary = tg.create_task(
-                    client.run_structured_task(
-                        messages=exec_messages,
-                        response_model=ExecutiveSummarySectionResult,
-                        mock_identity="ExecutiveSummaryTask",
+                if active_profile_dto is None or active_profile_dto.requires_executive_synthesis:
+                    exec_directive = SynthesisPromptRegistry.get_section_directive(
+                        TargetBlockType.EXECUTIVE_SUMMARY_BLOCK
                     )
-                )
+                    exec_dynamic_parts = list(base_dynamic_parts)
+                    exec_section_rule = (
+                        f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
+                        f"{exec_directive}\n"
+                        "</section_instruction>\n"
+                    )
+                    exec_dynamic_parts.append(exec_section_rule)
+                    exec_dynamic_context = "\n\n".join(exec_dynamic_parts)
+
+                    exec_messages: list[dict[str, Any]] = [
+                        {"role": "system", "content": sys_prompt},
+                        {
+                            "role": "user",
+                            "content": (
+                                f"<dynamic_context>\n{exec_dynamic_context}\n</dynamic_context>"
+                                f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
+                            ),
+                        },
+                    ]
+                    t_exec_summary = tg.create_task(
+                        client.run_structured_task(
+                            messages=exec_messages,
+                            response_model=ExecutiveSummarySectionResult,
+                            mock_identity="ExecutiveSummaryTask",
+                        )
+                    )
 
                 # 2. Dedicated Matrix Synthesis Groups tasks
-                if active_profile_dto and active_profile_dto.matrix_synthesis_groups:
+                if active_profile_dto and active_profile_dto.requires_group_synthesis:
                     language = distilled_data["language"] if "language" in distilled_data else "en"
                     title_map = distilled_data["title_map"] if "title_map" in distilled_data else {}
 
@@ -971,16 +970,8 @@ async def generate_profile_synthesis_and_pdf_task(
 
                         if grp.synthesis_directive:
                             directive_content = grp.synthesis_directive
-                        elif grp.view_type in ("1d_metrics", "metrics1d"):
-                            directive_content = MATRIX_1D_SYNTHESIS_DIRECTIVE
-                        elif grp.view_type in ("2d_compare", "compare2d"):
-                            directive_content = MATRIX_2D_SYNTHESIS_DIRECTIVE
-                        elif grp.view_type in ("3d_matrix", "matrix3d"):
-                            directive_content = MATRIX_3D_SYNTHESIS_DIRECTIVE
-                        elif grp.view_type in ("text_only", "textOnly"):
-                            directive_content = MATRIX_TEXT_SYNTHESIS_DIRECTIVE
                         else:
-                            directive_content = MATRIX_2D_SYNTHESIS_DIRECTIVE
+                            directive_content = SynthesisPromptRegistry.get_section_directive(grp.view_type)
 
                         grp_dynamic_parts = list(base_dynamic_parts)
                         grp_section_rule = (
@@ -1055,14 +1046,17 @@ async def generate_profile_synthesis_and_pdf_task(
                         )
                     )
 
-            if matrices_to_explain:
+            if matrices_to_explain and (active_profile_dto is None or active_profile_dto.requires_row_explanations):
                 client = await LLMClient.from_strategy("strict", repository=repo)
                 row_sys_prompt = DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT
 
                 row_lang_ctx = build_linguistic_context(
                     source_language="Unknown", target_locale=accept_language, include_mandate=True
                 )
-                row_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{row_lang_ctx}\n\n{ROW_EXPLANATION_DIRECTIVE}"
+                row_directive = SynthesisPromptRegistry.get_row_explanation_directive()
+                row_dynamic_ctx = (
+                    f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{row_lang_ctx}\n\n{row_directive}"
+                )
 
                 row_messages: list[dict[str, Any]] = [
                     {"role": "system", "content": row_sys_prompt},
