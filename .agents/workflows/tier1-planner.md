@@ -435,7 +435,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     <action>Look backward: Read the actual codebase state left by the previous phase. Verify it serves the Epic's goal.</action>
     <action>Look forward: Verify if the current plan's assumptions still hold true.</action>
     <constraint>If alignment is broken, STOP and request Course Correction.</constraint>
-    <directive>EPIC &amp; TRACKER SYNC MANDATE: If this plan is mutated during Tier 0 analysis, you MUST simultaneously open the parent Epic document and synchronize architectural corrections back into the Epic. If a Tracker document exists (e.g. `docs/epic/EPIC_XXX_tracker.md`), you MUST update its `# Session Handover Context` and set `Resume Command` to `/tier2-execute @[plan_file.md]`.</directive>
+    <directive>EPIC &amp; TRACKER SYNC MANDATE: If this plan is mutated during Tier 0 analysis, you MUST simultaneously open the parent Epic document and synchronize architectural corrections back into the Epic. If a Tracker document exists (e.g. `docs/epic/EPIC_XXX_tracker.md`), you MUST update its `# Session Handover Context` and set `Resume Command` to `/tier2-execute @[plan_file.md] @[docs/epic/EPIC_XXX_tracker.md]` (ALWAYS passing BOTH the plan file and the tracker file).</directive>
   </step>
 
   <dod_checklist>

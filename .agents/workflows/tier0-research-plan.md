@@ -96,7 +96,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       <action>Update target `[implementation_plan]` using `multi_replace_file_content` (full `write_to_file` strictly forbidden). Inject 5-Column Directives Table, AST-exact line bounds (#Lnn-mm spanning complete Class/Function definitions), and `Phase 1: Pre-Implementation Cleanups` containing all discovered technical debt. If major architectural shift occurred, update parent `docs/epic/EPIC_XXX.md`.</action>
       <action name="MANDATORY_TRACKER_HANDOVER_SYNC">
         DUAL-MODE HANDOVER SYNCHRONIZATION:
-        1) If an Epic Tracker document exists (e.g. `docs/epic/EPIC_XXX_tracker.md`), you MUST unconditionally update its `# Session Handover Context` (Achieved, Learned, Remaining) and set `Resume Command` to `/tier2-execute @[plan_file.md]`.
+        1) If an Epic Tracker document exists (e.g. `docs/epic/EPIC_XXX_tracker.md`), you MUST unconditionally update its `# Session Handover Context` (Achieved, Learned, Remaining) and set `Resume Command` to `/tier2-execute @[plan_file.md] @[docs/epic/EPIC_XXX_tracker.md]` (ALWAYS passing BOTH the target plan and the tracker file).
         2) If NO Tracker document exists (Standalone Plan), provide the execution command directly in the final response (`/tier2-execute @[implementation_plan.md]`).
       </action>
       <action>ARTIFACT-FIRST: Point user directly to updated plan artifact. Close `<thinking_process>`.</action>

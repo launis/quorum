@@ -132,7 +132,7 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
 
     <step id="8" name="PLAN WRAP-UP &amp; AUDIT ROUTING">
       <action name="DUAL_MODE_WRAPUP_SYNC">
-        1) If an Epic Tracker exists (e.g. `docs/epic/EPIC_XXX_tracker.md`): Update the Tracker document, mark the phase as `[x]`, refresh `# Session Handover Context` (Achieved, Learned, Remaining), and set `Resume Command` to the next phase/audit command.
+        1) If an Epic Tracker exists (e.g. `docs/epic/EPIC_XXX_tracker.md`): Update the Tracker document, mark the phase as `[x]`, refresh `# Session Handover Context` (Achieved, Learned, Remaining), and set `Resume Command` to the next phase/audit command (ALWAYS passing BOTH the target plan and the tracker file: e.g. `/tier0-research-plan @[next_plan.md] @[docs/epic/EPIC_XXX_tracker.md]`).
         2) If NO Epic Tracker exists (Standalone Plan): Update `task.md` with complete status and `# Session Handover Context`.
       </action>
       <constraint>When all steps of the current `implementation_plan.md` are completed, you MUST NOT declare the task fully finished. You are strictly FORBIDDEN from proceeding to the next plan or closing the task without routing through the audit gate.</constraint>
