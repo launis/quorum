@@ -51,6 +51,16 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <mandatory_pattern>If the user provides an Epic document, treat it as the absolute Requirements SSOT. Do NOT hallucinate features outside of the Epic's scope. Translate goals directly into file-level modifications.</mandatory_pattern>
       <catastrophic_reason>Hallucinating features creates zombie code paths that bloat the architecture and introduce untrackable bugs.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="audit_report_ingestion_mandate">
+      <banned_pattern>Ignoring or failing to read an existing `docs/epic/EPIC_[num]_audit_report.md` when planning implementation sub-plans for an Epic.</banned_pattern>
+      <mandatory_pattern>During Step 1, the planner MUST actively search for and ingest `docs/epic/EPIC_[num]_audit_report.md` (or similar audit report matching the Epic number/name in `docs/epic/`) if it exists. The audit report contains critical System 2 research findings: the 5-Column Architectural Directive Table, concrete failure modes, 1-hop caller technical debt, and AST guardrail requirements. The planner MUST incorporate these findings directly into the generated sub-plans:
+        1) DISCOVERED TECH DEBT: All technical debt items from the audit report MUST be scheduled into `Phase 1: Pre-Implementation Technical Debt Cleanups`.
+        2) 5-COLUMN DIRECTIVES: All eradicated duct-tape bans and approved best practice invariants MUST be mapped as explicit `<action>` and `<constraint>` tags in the corresponding phase plans.
+        3) TEST CONTRACTS: Concrete failure modes and boundary edge cases identified in the audit report MUST be translated into explicit test contracts in `<test_contracts>`.
+      </mandatory_pattern>
+      <catastrophic_reason>Failing to ingest the Epic audit report causes the planner to drop all System 2 falsification insights, re-introducing banned duct-tape patterns and missing critical pre-implementation cleanups.</catastrophic_reason>
+    </rule_block>
     
     <rule_block id="strict_type_fidelity_mandate">
       <banned_pattern>Dumbing down, simplifying, or generalizing explicit type signatures (e.g., replacing `Annotated[list[FlattenedAtom]]` with `list[Any]` or `dict`) when translating Epic requirements into implementation plans.</banned_pattern>
@@ -244,8 +254,9 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
   </context_rules>
   
   <execution_protocol level="1_epic_planner">
-    <step id="1" name="READ EPIC &amp; TRACKER STATE">
+    <step id="1" name="READ EPIC, TRACKER STATE &amp; AUDIT REPORT">
       <action>Read the user-provided Epic markdown file comprehensively.</action>
+      <action name="AUDIT_REPORT_DISCOVERY">Check for the existence of `docs/epic/EPIC_[num]_audit_report.md` (or `docs/epic/[epic_name]_audit_report.md`). If found, READ and INGEST the audit report. Extract: (1) Discovered technical debt in target files/1-hop callers, (2) The 5-Column Architectural Directive Table, (3) Plausible failure modes, (4) Exact AST guardrail and DoD requirements.</action>
       <action>If you are invoked to plan later phases of an existing Epic, you MUST actively search for and read the existing Tracker file (e.g., `@[docs\epic\[epic_name]_tracker.md]`) to understand which phases are already `[x]` completed and which remain.</action>
       <action>Read the architectural laws from `.agents/rules/`.</action>
       <constraint>Do NOT write code yet.</constraint>
@@ -268,7 +279,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
         2) NEVER mix Backend (Python) and Frontend (Flutter) changes in the same plan. 
         3) You MUST include explicit `@-reference` syntax for all target files in these sub-plans to ensure the executing agent automatically loads them.
         4) HYBRID SANDWICH ARCHITECTURE: Each generated plan MUST have human-readable Markdown at the top (overview, target files), but the actual step-by-step execution instructions MUST be wrapped in the canonical `<execution_protocol>` XML schema inside a fenced ` ```xml ``` ` codeblock. This XML MUST also include `<contract_freeze>`, `<dod_checklist>`, `<anti_targets>`, and end with a mandatory `<validation_gate>`.
-        5) PHASE 1 TECH DEBT ISOLATION: If any target file in the Epic contains pre-existing technical debt or legacy anti-patterns, the Planner MUST isolate these cleanups into Phase 1 ('Pre-Implementation Technical Debt Cleanups') before functional feature logic is scheduled in subsequent phases.
+        5) PHASE 1 TECH DEBT ISOLATION: If any target file in the Epic or the associated `EPIC_[num]_audit_report.md` contains pre-existing technical debt or legacy anti-patterns, the Planner MUST isolate these cleanups into Phase 1 ('Pre-Implementation Technical Debt Cleanups') before functional feature logic is scheduled in subsequent phases.
       </constraint>
       <constraint name="TOUCHED_ARTIFACTS_MANIFEST">
         Every generated sub-plan's XML metadata MUST include an explicit `<touched_artifacts>` block that enumerates ALL production `.py` and `.dart` files that are targets of `[MODIFY]` or `[NEW]` operations in that sub-plan. Format: `<touched_artifacts><backend>@[path/to/file.py]</backend><frontend>@[path/to/file.dart]</frontend></touched_artifacts>`. CRITICAL: Test files (paths containing `/tests/`, `/test/`, or starting/ending with `test_`) MUST NOT be listed in `<touched_artifacts>` because they are executed as quality gate verification evidence rather than production hardening targets. This machine-readable block is consumed by `tier1-tracker-generator.md` to generate granular file-level checklists in the tracker.
