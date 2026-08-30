@@ -209,13 +209,13 @@ abstract class AppLocalizations {
   /// No description provided for @sduiMetadataCosts.
   ///
   /// In en, this message translates to:
-  /// **'Meta Costs'**
+  /// **'Costs'**
   String get sduiMetadataCosts;
 
   /// No description provided for @sduiMetadataTokens.
   ///
   /// In en, this message translates to:
-  /// **'Meta Tokens'**
+  /// **'Tokens'**
   String get sduiMetadataTokens;
 
   /// No description provided for @errorDataMapping.

@@ -1,3 +1,5 @@
+"""Two-pass atomization service for extracting global ontologies and fine-grained claims."""
+
 import asyncio
 import logging
 import uuid
@@ -66,6 +68,8 @@ class TwoPassAtomizer:
         Args:
             client: The LLM client to use.
             hydrated_text: Globally hydrated text with block IDs.
+            progress_callback: Optional async callback reporting progress (completed, total).
+            semaphore: Optional concurrency limiter for async requests.
 
         Returns:
             A tuple of merged GlobalOntologyMap and aggregated TokenUsage.
@@ -150,6 +154,8 @@ class TwoPassAtomizer:
             client: The LLM client.
             hydrated_text: Globally hydrated text with block IDs.
             ontology: The ontology map generated in Phase 0.
+            progress_callback: Optional async callback reporting progress (completed, total).
+            semaphore: Optional concurrency limiter for async requests.
 
         Returns:
             A tuple of ExtractedAtom objects with fully hydrated Opaque Stripe IDs and aggregated TokenUsage.
@@ -295,6 +301,8 @@ class TwoPassAtomizer:
             client: The LLM client.
             hydrated_text: Globally hydrated text with block IDs.
             ontology: The ontology map generated in Phase 0.
+            progress_callback: Optional async callback reporting progress (completed, total).
+            semaphore: Optional concurrency limiter for async requests.
 
         Returns:
             A tuple of DraftAtomList containing DraftExtractedAtom instances and aggregated TokenUsage.

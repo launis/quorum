@@ -126,6 +126,7 @@ class PromptCompiler:
             allowed_dynamic_keys: Dynamic keys loaded from step input mappings.
             allowed_mcp_prefixes: List of dynamic tool prefixes (e.g. tavily_, jira_).
             max_evaluations: Dynamic upper limit for evaluations array.
+            expected_sdui_type: Expected Server-Driven UI component type layout.
             dag_results: Dictionary of previous topological execution results.
 
         Returns:

@@ -1,3 +1,5 @@
+"""Context builder for extracting, sanitizing, and filtering LLM execution context."""
+
 import copy
 import json
 import logging
@@ -222,6 +224,7 @@ class ContextBuilder:
             output_profile: Optional output profile to filter matrix extensions.
             schema_map: Optional map of step IDs to 'MATRIX' or 'TEXT' to dictate parsing logic.
             criteria_blocks: Optional list of PromptBlocks for spatial slicing.
+            blueprint_labels: Optional dictionary of localized step and input labels.
 
         Returns:
             A tuple of (llm_context_data, sanitized_input_mappings).

@@ -54,6 +54,7 @@ class LogicNodeStrategy(NodeStrategy):
             trace: Optional current execution trace lineage.
             semaphore: Asyncio semaphore for concurrency limits.
             running_event: Optional event to track if the execution is still running.
+            progress_callback: Optional async callback reporting execution progress.
 
         Returns:
             An array of new TraceEvents representing the node's outputs or errors.

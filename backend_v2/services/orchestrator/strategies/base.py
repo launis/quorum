@@ -1,3 +1,5 @@
+"""Base execution strategy abstractions and context wrappers for orchestration."""
+
 import asyncio
 import logging
 from abc import ABC, abstractmethod
@@ -101,42 +103,52 @@ class NodeStrategy(ABC):
 
     @property
     def exec_repo(self) -> IExecutionRepository:
+        """Return the execution repository instance."""
         return self.deps.exec_repo
 
     @property
     def workflow_repo(self) -> IWorkflowRepository:
+        """Return the workflow repository instance."""
         return self.deps.workflow_repo
 
     @property
     def comp_repo(self) -> IComponentRepository:
+        """Return the component repository instance."""
         return self.deps.comp_repo
 
     @property
     def prompt_block_repo(self) -> IPromptBlockRepository:
+        """Return the prompt block repository instance."""
         return self.deps.prompt_block_repo
 
     @property
     def output_profile_repo(self) -> IOutputProfileRepository:
+        """Return the output profile repository instance."""
         return self.deps.output_profile_repo
 
     @property
     def identity_repo(self) -> IIdentityRepository:
+        """Return the identity repository instance."""
         return self.deps.identity_repo
 
     @property
     def audit_repo(self) -> IAuditRepository:
+        """Return the audit repository instance."""
         return self.deps.audit_repo
 
     @property
     def system_repo(self) -> ISystemRepository:
+        """Return the system repository instance."""
         return self.deps.system_repo
 
     @property
     def compiler(self) -> Any:
+        """Return the prompt compiler instance."""
         return self.deps.prompt_compiler
 
     @property
     def arq_pool(self) -> Any | None:
+        """Return the background Arq worker connection pool."""
         return self.deps.arq_pool
 
     @abstractmethod

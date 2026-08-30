@@ -111,7 +111,8 @@ class MatrixExplanationService:
             raw_level_breakdown = payload_to_validate.pop("level_breakdown", None)
 
             # Strict Pydantic parsing probe boundary
-            # REVIEWED EXCEPTION to the_duct_tape_ban: probing heterogeneous polymorphic step payloads for LightweightMatrixOutput shape
+            # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating
+            # heterogeneous polymorphic step payloads for LightweightMatrixOutput shape
             try:
                 lw_matrix = LightweightMatrixOutput.model_validate(payload_to_validate, strict=False)
             except (ValidationError, ValueError) as e:
@@ -191,7 +192,8 @@ class MatrixExplanationService:
                 if isinstance(raw_level_breakdown, dict):
                     breakdowns = []
                     for lvl, raw_stats in raw_level_breakdown.items():
-                        # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating untrusted level stats dictionary
+                        # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating
+                        # untrusted level stats dictionary
                         try:
                             stats_dto = LevelStatsDTO.model_validate(raw_stats, strict=False)
                             breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")

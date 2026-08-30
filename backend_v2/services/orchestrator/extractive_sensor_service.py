@@ -193,6 +193,7 @@ class ExtractiveSensorService:
             nodes: The list of LinkedAtomGraph nodes.
             source_text: The source document text.
             locale: Optional target locale.
+            allow_contextual_override: Whether to permit contextual overrides in pre-evaluation.
 
         Returns:
             Tuple containing decided results and undecided nodes.
@@ -235,6 +236,7 @@ class ExtractiveSensorService:
             nodes: The list of LinkedAtomGraph nodes.
             source_text: The source document text.
             locale: Optional target locale.
+            allow_contextual_override: Whether to permit contextual overrides in pre-evaluation.
 
         Returns:
             Tuple containing decided results and undecided nodes.
@@ -314,6 +316,8 @@ class ExtractiveSensorService:
             executor: The LLMTaskExecutor to run the query.
             client: The LLMClient instance.
             context_text: The source document text.
+            matrix_context: Optional evaluation context for matrix-level overrides.
+            current_states: Optional dictionary of current atom execution states.
 
         Returns:
             A tuple of:

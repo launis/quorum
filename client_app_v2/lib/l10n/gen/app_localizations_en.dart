@@ -67,10 +67,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get sduiMetadataCosts => 'Meta Costs';
+  String get sduiMetadataCosts => 'Costs';
 
   @override
-  String get sduiMetadataTokens => 'Meta Tokens';
+  String get sduiMetadataTokens => 'Tokens';
 
   @override
   String errorDataMapping(String field, String detail) {

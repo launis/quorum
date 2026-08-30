@@ -30,6 +30,7 @@ class ResultProjector:
         Args:
             nodes: The topological list of atom graphs.
             states: The dictionary of execution states keyed by tda_id.
+            matrix_id: Optional parent matrix ID for scoping the projected results.
 
         Returns:
             A tuple of (results list, hydrated_references dict).

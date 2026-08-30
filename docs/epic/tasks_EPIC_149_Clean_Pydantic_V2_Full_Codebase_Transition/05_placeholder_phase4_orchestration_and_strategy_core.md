@@ -6,29 +6,29 @@
 **Source Reference:** @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L259-L286] (Phase 4: Orchestration & Strategy Core Refactoring & Tests)
 
 **Target Files** (exhaustive — 24 production files + test suites):
-- `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L299-L925] (`DAGExecutor`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm.py#L61-L815] (`LLMNodeStrategy`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/base.py#L86-L330] (`NodeStrategy`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L15-L392] (`ContextBuilder`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L17-L128] (`ExecutionTimeResolver`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/prompt_compiler.py#L36-L462] (`PromptCompiler`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L307-L949] (`DAGExecutor`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm.py#L66-L885] (`LLMNodeStrategy`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/base.py#L89-L374] (`NodeStrategy`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L20-L400] (`ContextBuilder`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L17-L138] (`ExecutionTimeResolver`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/prompt_compiler.py#L36-L463] (`PromptCompiler`)
 - `[MODIFY]` @[backend_v2/services/orchestrator/prompt_compiler_adapter.py#L10-L139] (`PromptCompilerAdapter`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/context_router.py#L47-L214] (`ContextRouter`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L287] (`SynthesisPayloadCompressor`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/synthesis_distiller.py#L168-L357] (`synthesis_distiller_hook`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/matrix_explanation_service.py#L28-L237] (`MatrixExplanationService`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/context_router.py#L53-L220] (`ContextRouter`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L288] (`SynthesisPayloadCompressor`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/synthesis_distiller.py#L175-L367] (`synthesis_distiller_hook`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/matrix_explanation_service.py#L28-L239] (`MatrixExplanationService`)
 - `[MODIFY]` @[backend_v2/services/orchestrator/rag_preflight_service.py#L79-L230] (`RAGPreflightService`)
 - `[MODIFY]` @[backend_v2/services/orchestrator/localization_compiler.py#L34-L243] (`LocalizationCompiler`)
 - `[MODIFY]` @[backend_v2/services/orchestrator/extraction_schema_factory.py#L82-L147] (`create_extraction_model`)
 - `[MODIFY]` @[backend_v2/services/orchestrator/atomizer.py#L18-L94] (`PromptAtomizer`)
 - `[MODIFY]` @[backend_v2/services/orchestrator/anchor_validation_service.py#L19-L401] (`AnchorValidationService`)
 - `[MODIFY]` @[backend_v2/services/orchestrator/matrix_reducer.py#L17-L154] (`MatrixReducer`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L218] (`TDAEngine`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L221] (`SynthesisEngine`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/dag_compiler.py#L9-L185] (`DAGCompilerService`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/extractive_sensor_service.py#L62-L430] (`ExtractiveSensorService`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/result_projector.py#L17-L131] (`ResultProjector`)
-- `[MODIFY]` @[backend_v2/services/orchestrator/two_pass_atomizer.py#L30-L477] (`TwoPassAtomizer`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L224] (`TDAEngine`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L235] (`SynthesisEngine`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/dag_compiler.py#L9-L190] (`DAGCompilerService`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/extractive_sensor_service.py#L62-L434] (`ExtractiveSensorService`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/result_projector.py#L17-L135] (`ResultProjector`)
+- `[MODIFY]` @[backend_v2/services/orchestrator/two_pass_atomizer.py#L32-L485] (`TwoPassAtomizer`)
 - `[MODIFY]` @[backend_v2/services/orchestrator/enriched_dag_executor.py#L27-L181] (`EnrichedDagExecutor`)
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py]
@@ -48,17 +48,17 @@
 
   <step id="1" name="PRE-IMPLEMENTATION TECHNICAL DEBT CLEANUPS &amp; AST REMEDIATION">
     <action>Clean up pre-flight AST violations in peripheral orchestrator utilities:
-      1. In @[backend_v2/services/orchestrator/dag_compiler.py#L9-L185]: replace `adj_list.get(node, [])` with membership-guarded lookup (`if node in adj_list: for neighbor in adj_list[node]:`).
-      2. In @[backend_v2/services/orchestrator/extractive_sensor_service.py#L62-L430]: replace `tally.get(status, 0) + 1` with `tally[status] = (tally[status] + 1) if status in tally else 1`.
-      3. In @[backend_v2/services/orchestrator/result_projector.py#L17-L131]: pass typed `ErrorCodes.VALIDATION_FAILED` to `AppException`.
-      4. In @[backend_v2/services/orchestrator/two_pass_atomizer.py#L30-L477]: append `# noqa: QGR003 - DLQ Worker error isolation` to worker exception handler.
+      1. In @[backend_v2/services/orchestrator/dag_compiler.py#L9-L190]: replace `adj_list.get(node, [])` with membership-guarded lookup (`if node in adj_list: for neighbor in adj_list[node]:`).
+      2. In @[backend_v2/services/orchestrator/extractive_sensor_service.py#L62-L434]: replace `tally.get(status, 0) + 1` with `tally[status] = (tally[status] + 1) if status in tally else 1`.
+      3. In @[backend_v2/services/orchestrator/result_projector.py#L17-L135]: pass typed `ErrorCodes.VALIDATION_FAILED` to `AppException`.
+      4. In @[backend_v2/services/orchestrator/two_pass_atomizer.py#L32-L485]: append `# noqa: QGR003 - DLQ Worker error isolation` to worker exception handler.
       5. In @[backend_v2/services/orchestrator/enriched_dag_executor.py#L27-L181]: append `# noqa: QGR003 - Best-effort cache teardown` to teardown handler.</action>
     <constraint invariant="the_duct_tape_ban">Eliminate all .get(key, default) lazy fallbacks in domain code.</constraint>
     <constraint invariant="rfc7807_dual_reporting_mandate">AppException instantiated with typed ErrorCodes enum members.</constraint>
   </step>
 
   <step id="2" name="STRATEGY BASE &amp; HOOK INTEGRATION MODERNIZATION">
-    <action>Refactor @[backend_v2/services/orchestrator/strategies/base.py#L86-L330]:
+    <action>Refactor @[backend_v2/services/orchestrator/strategies/base.py#L89-L374]:
       1. Enforce `model_config = ConfigDict(strict=True, extra='forbid')` on `StrategyContext`.
       2. Modernize `run_pre_hooks` and `run_post_hooks` to consume typed `HookDeltaDTO` (`res.state_delta`).
       3. Access `res.state_delta.metadata_updates` and `res.state_delta.delta` directly without `delta.pop("metadata")` or `isinstance(..., dict)` fallbacks.
@@ -68,7 +68,7 @@
   </step>
 
   <step id="3" name="LLM EXECUTION &amp; CONTEXT BUILDER REFAC">
-    <action>Refactor @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L15-L392], @[backend_v2/services/orchestrator/strategies/llm.py#L61-L815], and @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L17-L128]:
+    <action>Refactor @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L20-L400], @[backend_v2/services/orchestrator/strategies/llm.py#L66-L885], and @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L17-L138]:
       1. In `ContextBuilder`: replace `getattr(dto, "block_id", None)` and `getattr(dto, "payload", None)` with direct typed attribute access on `StepOutputDTO` (`dto.block_id`, `dto.payload`, `dto.step_id`).
       2. In `ContextBuilder._collect_rule_descriptions`: replace `getattr()` calls with direct model properties (`block.ai_description`, `block.scales`, `scale.claims`, `claim.tda_assertions`).
       3. In `ContextBuilder.apply_spatial_slicing` &amp; path resolution: replace `.get("steps")` with direct dictionary indexing or validated `StateProjector.snapshot` filtering.
@@ -80,7 +80,7 @@
   </step>
 
   <step id="4" name="PROMPT COMPILER, ADAPTER &amp; CONTEXT ROUTER REFACTORING">
-    <action>Refactor @[backend_v2/services/orchestrator/prompt_compiler.py#L36-L462], @[backend_v2/services/orchestrator/prompt_compiler_adapter.py#L10-L139], and @[backend_v2/services/orchestrator/context_router.py#L47-L214]:
+    <action>Refactor @[backend_v2/services/orchestrator/prompt_compiler.py#L36-L463], @[backend_v2/services/orchestrator/prompt_compiler_adapter.py#L10-L139], and @[backend_v2/services/orchestrator/context_router.py#L53-L220]:
       1. In `PromptCompiler`: replace `model_dump()` to dict traversals in `build_xml_context` with typed `I18nText` model access (`ei.label.resolve(target_locale)`).
       2. In `PromptCompilerAdapter`: wrap delegate calls explicitly rather than bare `__getattr__` reflection that violates QGR001.
       3. In `ContextRouter`: add `model_config = ConfigDict(strict=True, extra='forbid')` to `RoutingModeConfig` and `SnapshotState`.
@@ -90,21 +90,21 @@
   </step>
 
   <step id="5" name="SYNTHESIS &amp; EVALUATION ENGINES REFAC">
-    <action>Refactor @[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L218], @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L221], @[backend_v2/services/orchestrator/matrix_explanation_service.py#L28-L237], @[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L287], @[backend_v2/services/orchestrator/synthesis_distiller.py#L168-L357], @[backend_v2/services/orchestrator/matrix_reducer.py#L17-L154], and @[backend_v2/services/orchestrator/anchor_validation_service.py#L19-L401]:
-      1. In `TDAEngine` and `SynthesisEngine`: update `AppException` calls to pass typed `ErrorCodes.VALIDATION_FAILED` or `ErrorCodes.CONFIGURATION_ERROR` enum members (satisfying QGR009).
-      2. In `TDAEngine`: eliminate `.get()` on blackboard; use typed `GlobalAtomBlackboard.is_data_starved`.
-      3. In `SynthesisEngine`: replace `raw_blackboard = request.context.context_variables.get("__GLOBAL_ATOM_BLACKBOARD__")` with direct lookup and `model_validate()`.
-      4. In `SynthesisPayloadCompressor`: eliminate `isinstance(..., dict)` checks; accept typed `StepOutputDTO` payload models and sanitize through Pydantic V2 `DistilledEvaluation`.
-      5. In `SynthesisDistiller`: replace `uid_to_alias.get(uid, uid)` with direct lookup `uid_to_alias[uid]`.
-      6. In `MatrixExplanationService`: replace polymorphic `isinstance` branches with typed `AtomResultDTO` validation.
-      7. In `MatrixReducer`: iterate directly over typed `ReducedAtomDTO` and `QuoteEvidenceDTO` without raw dictionary nesting.
-      8. In `AnchorValidationService`: eliminate dictionary merges with `model_dump() | {...}`; use typed `model_copy(update={...})`.</action>
+    <action>Refactor @[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L224], @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L235], @[backend_v2/services/orchestrator/matrix_explanation_service.py#L28-L239], @[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L288], @[backend_v2/services/orchestrator/synthesis_distiller.py#L175-L367], @[backend_v2/services/orchestrator/matrix_reducer.py#L17-L154], and @[backend_v2/services/orchestrator/anchor_validation_service.py#L19-L401]:
+    1. In `TDAEngine` and `SynthesisEngine`: update `AppException` calls to pass typed `ErrorCodes.VALIDATION_FAILED` or `ErrorCodes.CONFIGURATION_ERROR` enum members (satisfying QGR009).
+    2. In `TDAEngine`: eliminate `.get()` on blackboard; use typed `GlobalAtomBlackboard.is_data_starved`.
+    3. In `SynthesisEngine`: replace `raw_blackboard = request.context.context_variables.get("__GLOBAL_ATOM_BLACKBOARD__")` with direct lookup and `model_validate()`.
+    4. In `SynthesisPayloadCompressor`: eliminate `isinstance(..., dict)` checks; accept typed `StepOutputDTO` payload models and sanitize through Pydantic V2 `DistilledEvaluation`.
+    5. In `SynthesisDistiller`: replace `uid_to_alias.get(uid, uid)` with direct lookup `uid_to_alias[uid]`.
+    6. In `MatrixExplanationService`: replace polymorphic `isinstance` branches with typed `AtomResultDTO` validation.
+    7. In `MatrixReducer`: iterate directly over typed `ReducedAtomDTO` and `QuoteEvidenceDTO` without raw dictionary nesting.
+    8. In `AnchorValidationService`: eliminate dictionary merges with `model_dump() | {...}`; use typed `model_copy(update={...})`.</action>
     <constraint invariant="pydantic_mutation_optimization_mandate">Use model_copy(update=...) instead of model_dump() serialization cycles.</constraint>
     <constraint invariant="rfc7807_dual_reporting_mandate">AppException instantiated with typed ErrorCodes enum members.</constraint>
   </step>
 
   <step id="6" name="DAG EXECUTOR &amp; REASONING ORCHESTRATION REFACTORING">
-    <action>Refactor @[backend_v2/services/orchestrator/dag_executor.py#L299-L925], @[backend_v2/services/orchestrator/rag_preflight_service.py#L79-L230], @[backend_v2/services/orchestrator/localization_compiler.py#L34-L243], @[backend_v2/services/orchestrator/extraction_schema_factory.py#L82-L147], and @[backend_v2/services/orchestrator/atomizer.py#L18-L94]:
+    <action>Refactor @[backend_v2/services/orchestrator/dag_executor.py#L307-L949], @[backend_v2/services/orchestrator/rag_preflight_service.py#L79-L230], @[backend_v2/services/orchestrator/localization_compiler.py#L34-L243], @[backend_v2/services/orchestrator/extraction_schema_factory.py#L82-L147], and @[backend_v2/services/orchestrator/atomizer.py#L18-L94]:
       1. In `DAGExecutor._resolve_execution_engine`: eliminate `getattr(b, "is_synthesis", False)` by checking typed `PromptBlockCategory` and domain properties on `PromptBlock`.
       2. In `DAGExecutor` exception handler: replace `hasattr(e, "details")` and `e.details.get("error_code")` with typed `isinstance(e, AppException)` and `e.error_code`.
       3. In `DAGExecutor`: ensure all state mutations execute inside `async with _update_lock:` using `.model_copy(update=...)` with typed instances.
@@ -162,29 +162,29 @@
   </required_context_rules>
 
   <touched_artifacts>
-    <backend>@[backend_v2/services/orchestrator/dag_executor.py#L299-L925]</backend>
-    <backend>@[backend_v2/services/orchestrator/strategies/llm.py#L61-L815]</backend>
-    <backend>@[backend_v2/services/orchestrator/strategies/base.py#L86-L330]</backend>
-    <backend>@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L15-L392]</backend>
-    <backend>@[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L17-L128]</backend>
-    <backend>@[backend_v2/services/orchestrator/prompt_compiler.py#L36-L462]</backend>
+    <backend>@[backend_v2/services/orchestrator/dag_executor.py#L307-L949]</backend>
+    <backend>@[backend_v2/services/orchestrator/strategies/llm.py#L66-L885]</backend>
+    <backend>@[backend_v2/services/orchestrator/strategies/base.py#L89-L374]</backend>
+    <backend>@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L20-L400]</backend>
+    <backend>@[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L17-L138]</backend>
+    <backend>@[backend_v2/services/orchestrator/prompt_compiler.py#L36-L463]</backend>
     <backend>@[backend_v2/services/orchestrator/prompt_compiler_adapter.py#L10-L139]</backend>
-    <backend>@[backend_v2/services/orchestrator/context_router.py#L47-L214]</backend>
-    <backend>@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L287]</backend>
-    <backend>@[backend_v2/services/orchestrator/synthesis_distiller.py#L168-L357]</backend>
-    <backend>@[backend_v2/services/orchestrator/matrix_explanation_service.py#L28-L237]</backend>
+    <backend>@[backend_v2/services/orchestrator/context_router.py#L53-L220]</backend>
+    <backend>@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L288]</backend>
+    <backend>@[backend_v2/services/orchestrator/synthesis_distiller.py#L175-L367]</backend>
+    <backend>@[backend_v2/services/orchestrator/matrix_explanation_service.py#L28-L239]</backend>
     <backend>@[backend_v2/services/orchestrator/rag_preflight_service.py#L79-L230]</backend>
     <backend>@[backend_v2/services/orchestrator/localization_compiler.py#L34-L243]</backend>
     <backend>@[backend_v2/services/orchestrator/extraction_schema_factory.py#L82-L147]</backend>
     <backend>@[backend_v2/services/orchestrator/atomizer.py#L18-L94]</backend>
     <backend>@[backend_v2/services/orchestrator/anchor_validation_service.py#L19-L401]</backend>
     <backend>@[backend_v2/services/orchestrator/matrix_reducer.py#L17-L154]</backend>
-    <backend>@[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L218]</backend>
-    <backend>@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L221]</backend>
-    <backend>@[backend_v2/services/orchestrator/dag_compiler.py#L9-L185]</backend>
-    <backend>@[backend_v2/services/orchestrator/extractive_sensor_service.py#L62-L430]</backend>
-    <backend>@[backend_v2/services/orchestrator/result_projector.py#L17-L131]</backend>
-    <backend>@[backend_v2/services/orchestrator/two_pass_atomizer.py#L30-L477]</backend>
+    <backend>@[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L224]</backend>
+    <backend>@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L235]</backend>
+    <backend>@[backend_v2/services/orchestrator/dag_compiler.py#L9-L190]</backend>
+    <backend>@[backend_v2/services/orchestrator/extractive_sensor_service.py#L62-L434]</backend>
+    <backend>@[backend_v2/services/orchestrator/result_projector.py#L17-L135]</backend>
+    <backend>@[backend_v2/services/orchestrator/two_pass_atomizer.py#L32-L485]</backend>
     <backend>@[backend_v2/services/orchestrator/enriched_dag_executor.py#L27-L181]</backend>
     <test>@[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py]</test>
     <test>@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py]</test>
@@ -212,12 +212,12 @@
 
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Strategy Base & Context**<br>@[backend_v2/services/orchestrator/strategies/base.py#L86-L330] | `StrategyContext` missing strict config, `delta.pop("metadata")` hacks, loose dict merging. | `ConfigDict(strict=True, extra='forbid')`, typed `HookDeltaDTO` (`delta.delta`, `delta.metadata_updates`). | Delete manual dictionary popping and shallow string mutations. | Unit tests in `test_base.py` passing 100%.<br>`uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/strategies/base.py --test` |
-| **LLM Strategy & Context Builder**<br>@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L15-L392]<br>@[backend_v2/services/orchestrator/strategies/llm.py#L61-L815]<br>@[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L17-L128] | 8x `isinstance(..., dict)`, 10x `getattr()`, 2x `.get()` on DTOs, loose blackboard dictionaries. | Direct typed dot-notation on `StepOutputDTO` (`dto.block_id`, `dto.payload`, `dto.step_id`), typed `GlobalAtomBlackboard`, `ExecutionInputsDTO`. | Prune recursive dictionary traversal loops; rely on direct model attributes. | AST check: 0 reflection violations.<br>`test_context_builder.py`, `test_llm.py` passing 100%. |
-| **Prompt Compiler, Adapter & Router**<br>@[backend_v2/services/orchestrator/prompt_compiler.py#L36-L462]<br>@[backend_v2/services/orchestrator/prompt_compiler_adapter.py#L10-L139]<br>@[backend_v2/services/orchestrator/context_router.py#L47-L214] | `model_dump()` to dict traversals, `__getattr__` dynamic delegation (QGR001), missing `model_config`. | Direct typed `I18nText.resolve()` on `ExpectedInput`, explicit method proxying, `ConfigDict(strict=True, extra='forbid')`. | Cut dynamic `__getattr__` reflection; declare explicit delegation methods. | `test_prompt_compiler.py`, `test_prompt_compiler_adapter.py`, `test_context_router.py` passing 100%. |
-| **Synthesis & Evaluation Engines**<br>@[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L218]<br>@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L221]<br>@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L287]<br>@[backend_v2/services/orchestrator/synthesis_distiller.py#L168-L357]<br>@[backend_v2/services/orchestrator/matrix_reducer.py#L17-L154]<br>@[backend_v2/services/orchestrator/anchor_validation_service.py#L19-L401] | `AppException` without `ErrorCodes`, `.get()` on blackboard, `isinstance(..., dict)`, `model_dump() \| {...}` dictionary merges. | Typed `AppException(ErrorCodes.*)`, typed `GlobalAtomBlackboard`, `DistilledEvaluation`, immutable `model_copy(update={...})`. | Cut speculative dictionary fallback layers; enforce strict fail-fast on missing keys. | `test_tda_engine.py`, `test_synthesis_engine.py`, `test_synthesis_distiller.py` passing 100%. |
-| **DAG Executor & Core Flow**<br>@[backend_v2/services/orchestrator/dag_executor.py#L299-L925]<br>@[backend_v2/services/orchestrator/rag_preflight_service.py#L79-L230]<br>@[backend_v2/services/orchestrator/localization_compiler.py#L34-L243]<br>@[backend_v2/services/orchestrator/extraction_schema_factory.py#L82-L147]<br>@[backend_v2/services/orchestrator/atomizer.py#L18-L94] | `getattr(b, "is_synthesis")`, `hasattr(e, "details")`, `.get("error_code")`, unsynchronized state mutations. | Typed `PromptBlockCategory`, `isinstance(e, AppException)`, `async with _update_lock:` with typed `.model_copy(update={...})`. | Eliminate duplicate execution state wrappers; enforce single-pass atomic commit. | `test_dag_executor.py`, `test_rag_preflight_service.py` passing 100%.<br>`test_sdui_semantic_parity.py` verified. |
-| **Orchestrator Utilities & Sensors**<br>@[backend_v2/services/orchestrator/dag_compiler.py#L9-L185]<br>@[backend_v2/services/orchestrator/extractive_sensor_service.py#L62-L430]<br>@[backend_v2/services/orchestrator/result_projector.py#L17-L131]<br>@[backend_v2/services/orchestrator/two_pass_atomizer.py#L30-L477]<br>@[backend_v2/services/orchestrator/enriched_dag_executor.py#L27-L181] | `adj_list.get(node, [])`, `tally.get(status, 0)`, string error codes in `AppException`, unsuppressed broad `except:`. | Guarded key access, typed `ErrorCodes.VALIDATION_FAILED`, explicit `# noqa: QGR003` comments on worker fault domains. | Prune redundant consensus tallies; use direct membership testing. | `uv run python scripts/_ast_guardrails.py backend_v2/services/orchestrator/ --strict` passes with 0 errors. |
+| **Strategy Base & Context**<br>@[backend_v2/services/orchestrator/strategies/base.py#L89-L374] | `StrategyContext` missing strict config, `delta.pop("metadata")` hacks, loose dict merging. | `ConfigDict(strict=True, extra='forbid')`, typed `HookDeltaDTO` (`delta.delta`, `delta.metadata_updates`). | Delete manual dictionary popping and shallow string mutations. | Unit tests in `test_base.py` passing 100%.<br>`uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/strategies/base.py --test` |
+| **LLM Strategy & Context Builder**<br>@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L20-L400]<br>@[backend_v2/services/orchestrator/strategies/llm.py#L66-L885]<br>@[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L17-L138] | 8x `isinstance(..., dict)`, 10x `getattr()`, 2x `.get()` on DTOs, loose blackboard dictionaries. | Direct typed dot-notation on `StepOutputDTO` (`dto.block_id`, `dto.payload`, `dto.step_id`), typed `GlobalAtomBlackboard`, `ExecutionInputsDTO`. | Prune recursive dictionary traversal loops; rely on direct model attributes. | AST check: 0 reflection violations.<br>`test_context_builder.py`, `test_llm.py` passing 100%. |
+| **Prompt Compiler, Adapter & Router**<br>@[backend_v2/services/orchestrator/prompt_compiler.py#L36-L463]<br>@[backend_v2/services/orchestrator/prompt_compiler_adapter.py#L10-L139]<br>@[backend_v2/services/orchestrator/context_router.py#L53-L220] | `model_dump()` to dict traversals, `__getattr__` dynamic delegation (QGR001), missing `model_config`. | Direct typed `I18nText.resolve()` on `ExpectedInput`, explicit method proxying, `ConfigDict(strict=True, extra='forbid')`. | Cut dynamic `__getattr__` reflection; declare explicit delegation methods. | `test_prompt_compiler.py`, `test_prompt_compiler_adapter.py`, `test_context_router.py` passing 100%. |
+| **Synthesis & Evaluation Engines**<br>@[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L224]<br>@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L235]<br>@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L288]<br>@[backend_v2/services/orchestrator/synthesis_distiller.py#L175-L367]<br>@[backend_v2/services/orchestrator/matrix_reducer.py#L17-L154]<br>@[backend_v2/services/orchestrator/anchor_validation_service.py#L19-L401] | `AppException` without `ErrorCodes`, `.get()` on blackboard, `isinstance(..., dict)`, `model_dump() \| {...}` dictionary merges. | Typed `AppException(ErrorCodes.*)`, typed `GlobalAtomBlackboard`, `DistilledEvaluation`, immutable `model_copy(update={...})`. | Cut speculative dictionary fallback layers; enforce strict fail-fast on missing keys. | `test_tda_engine.py`, `test_synthesis_engine.py`, `test_synthesis_distiller.py` passing 100%. |
+| **DAG Executor & Core Flow**<br>@[backend_v2/services/orchestrator/dag_executor.py#L307-L949]<br>@[backend_v2/services/orchestrator/rag_preflight_service.py#L79-L230]<br>@[backend_v2/services/orchestrator/localization_compiler.py#L34-L243]<br>@[backend_v2/services/orchestrator/extraction_schema_factory.py#L82-L147]<br>@[backend_v2/services/orchestrator/atomizer.py#L18-L94] | `getattr(b, "is_synthesis")`, `hasattr(e, "details")`, `.get("error_code")`, unsynchronized state mutations. | Typed `PromptBlockCategory`, `isinstance(e, AppException)`, `async with _update_lock:` with typed `.model_copy(update={...})`. | Eliminate duplicate execution state wrappers; enforce single-pass atomic commit. | `test_dag_executor.py`, `test_rag_preflight_service.py` passing 100%.<br>`test_sdui_semantic_parity.py` verified. |
+| **Orchestrator Utilities & Sensors**<br>@[backend_v2/services/orchestrator/dag_compiler.py#L9-L190]<br>@[backend_v2/services/orchestrator/extractive_sensor_service.py#L62-L434]<br>@[backend_v2/services/orchestrator/result_projector.py#L17-L135]<br>@[backend_v2/services/orchestrator/two_pass_atomizer.py#L32-L485]<br>@[backend_v2/services/orchestrator/enriched_dag_executor.py#L27-L181] | `adj_list.get(node, [])`, `tally.get(status, 0)`, string error codes in `AppException`, unsuppressed broad `except:`. | Guarded key access, typed `ErrorCodes.VALIDATION_FAILED`, explicit `# noqa: QGR003` comments on worker fault domains. | Prune redundant consensus tallies; use direct membership testing. | `uv run python scripts/_ast_guardrails.py backend_v2/services/orchestrator/ --strict` passes with 0 errors. |
 
 ## Verification & Quality Gates Plan
 
@@ -230,5 +230,3 @@
    `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`
 4. **Full Backend Integration Gate**:
    `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator/ --test`
-
-

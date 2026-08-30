@@ -79,7 +79,7 @@
   - [x] Step 5: Synthesis & Evaluation Engines Refactoring (`tda_engine.py`, `synthesis_engine.py`, `matrix_explanation_service.py`, `synthesis_payload_compressor.py`, `synthesis_distiller.py`, `matrix_reducer.py`, `anchor_validation_service.py`, `result_projector.py`)
   - [x] Step 6: DAG Executor & Reasoning Orchestration Refactoring (`dag_executor.py`, `enriched_dag_executor.py`, `rag_preflight_service.py`, `localization_compiler.py`, `extraction_schema_factory.py`, `atomizer.py`, `two_pass_atomizer.py`)
   - [x] Step 7: Atomic Test Suite Modernization & Quality Gates (`backend_audit_loop.py`, `_ast_guardrails.py`, `test_sdui_semantic_parity.py`)
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ### Phase 5: Service Layer, Utility Services & Service Tests
 - **Plan:** @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md]
@@ -387,6 +387,14 @@
     - AST Guardrails (`scripts/_ast_guardrails.py --strict`): 0 violations.
     - SDUI Cross-Domain Semantic Parity (`test_sdui_semantic_parity.py`): 100% PASSED.
   - Marked Phase 4 execution status as `[x] [OK]`.
+- **Phase 4 System 2 Red-Team Audit (`/tier8-audit-plan`) Completed**:
+  - Validated 100% adherence to all Phase 4 DoD items, architectural invariants, and quality gates.
+  - Confirmed complete eradication of `getattr()` / `hasattr()` reflection and banned `.get(key, default)` lazy fallbacks across all 24 orchestrator files (0 AST violations on `scripts/_ast_guardrails.py --strict`).
+  - Verified 391/391 unit tests passing with **92.02% code coverage** (`backend_audit_loop.py`).
+  - Resolved cross-domain SDUI semantic parity mismatch between Flutter `client_app_v2/lib/l10n/app_en.arb` ("Meta Costs" / "Meta Tokens" -> "Costs" / "Tokens") and backend `backend_v2/l10n/en.json`, regenerated Flutter localization, and verified `test_sdui_semantic_parity.py` passing 100%.
+  - Synchronized exact AST node line bounds in `05_placeholder_phase4_orchestration_and_strategy_core.md`, passing `scripts/audit_markdown_boundaries.py` with 0 findings.
+  - Generated audit report: `red_team_audit_05_placeholder_phase4_orchestration_and_strategy_core.md`.
+  - Marked Phase 4 audit status as `[x] [OK]`.
 
 ## Learned
 - Repository reconstitution requires updating `backend_v2/database/interfaces.py` in lockstep to avoid Protocol divergence and MyPy strict mode violations.
@@ -409,8 +417,10 @@
 - `User` model in `backend_v2/models/auth.py` possesses typed fields `.language` and `.name`. When accessing user properties from `identity_repo.get_user(user_id)`, direct attribute access on `BaseModel` replaces legacy dictionary indexing (`user_dict["language"]`).
 - In `backend_v2/services/orchestrator/engines/tda_engine.py`, all `AppException` calls must pass typed `ErrorCodes` enum values (specifically `ErrorCodes.VALIDATION_FAILED.value` and `ErrorCodes.AGENT_EXECUTION_CRITICAL.value`) in the `details` dictionary to satisfy AST Guardrail `QGR009`.
 - In `RoutingModeConfig`, mapping configurations from step definitions contain arbitrary workflow definition keys alongside `routing_mode`; adding inline suppression `# noqa: QGR007 [REASON: ...]` with `ConfigDict(strict=True, extra="ignore")` documents the structural variance.
-- AST markdown boundary verification (`audit_markdown_boundaries.py`) enforces decorator-adjusted node boundaries: functions/classes with decorators have `node_start = min(decorator.lineno)` (specifically `synthesis_distiller_hook #L168-L357`).
+- AST markdown boundary verification (`audit_markdown_boundaries.py`) enforces decorator-adjusted node boundaries: functions/classes with decorators have `node_start = min(decorator.lineno)` (specifically `synthesis_distiller_hook #L175-L367`).
 - In `backend_v2/services/orchestrator/prompt_compiler_adapter.py`, `__getattr__` dynamic delegation violates `QGR001`; explicit method forwarding to the wrapped `PromptCompiler` provides strict type safety with zero reflection.
+- SDUI cross-domain parity requires strict 1:1 string alignment between Flutter `lib/l10n/*.arb` and backend `l10n/*.json` (specifically `sduiMetadataCosts` and `sduiMetadataTokens`). Any divergence breaks semantic token matching in `test_sdui_semantic_parity.py`.
+- In `backend_v2/services/orchestrator/extractive_sensor_service.py`, `_batch_fuzzy_match` returns `dict[str, str]` for extensions; passing strings/dictionaries must adhere strictly to declared type annotations without nested raw lists to avoid MyPy strict mode failures.
 
 ## Remaining
 - **Phase 5**: Service Layer, Utility Services & Service Tests (`06_placeholder_phase5_service_layer_and_identity.md`).
@@ -419,7 +429,7 @@
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core.md] @[docs/epic/EPIC_149_tracker.md]
+/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L287-L306] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]
 ```
 
 

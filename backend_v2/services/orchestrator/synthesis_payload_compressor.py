@@ -35,7 +35,8 @@ class SynthesisPayloadCompressor:
             A stringified JSON dump stripped of extraneous AI inference variables.
 
         Raises:
-            AppException: Triggered with VALIDATION_FAILED if the payload or its inner evaluation components are invalid.
+            AppException: Triggered with VALIDATION_FAILED if the payload or its inner
+                evaluation components are invalid.
         """
         if isinstance(v, (int, float, bool)):
             return str(v)
