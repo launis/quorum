@@ -1,6 +1,6 @@
 """ISTQB Unit Tests for AST Codebase Guardrails Engine (_ast_guardrails.py).
 
-Verifies QGR000 through QGR010 detection, false-positive immunity, fault domain isolation,
+Verifies QGR000 through QGR012 detection, false-positive immunity, fault domain isolation,
 comment suppression across multiline spans, CLI execution, and zero-reflection self-compliance.
 """
 
@@ -443,6 +443,9 @@ def test_false_positive_immunity_app_exception_typed() -> None:
     code = """
 raise AppException(ErrorCodes.VALIDATION_FAILED, "Payload is invalid")
 raise AppException(error_code=ErrorCodes.RESOURCE_NOT_FOUND, message="Missing item")
+raise AppException(error_code=ErrorCodes.RESOURCE_NOT_FOUND.value, message="Missing item")
+raise AppException("Failed", details={"error_code": ErrorCodes.VALIDATION_FAILED})
+raise AppException("Failed", details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 """
     violations = _scan_snippet(code)
     assert len(violations) == 0
@@ -532,9 +535,10 @@ class LooseDTO(BaseModel):  # noqa: QGR007 [REASON: External third-party payload
 await asyncio.sleep(10)  # noqa: QGR008 [REASON: Polling backoff retry loop]
 raise AppException("raw")  # noqa: QGR009 [REASON: Legacy translation bridge error]
 t = datetime.now()  # noqa: QGR010 [REASON: Local timezone formatting]
+val = getattr(obj, "attr", None)  # noqa [REASON: Bare noqa wildcard rule suppression]
 """
     violations = _scan_snippet(code, filepath="backend_v2/services/worker.py")
-    assert len(violations) == 5
+    assert len(violations) == 6
     for v in violations:
         assert v.is_suppressed is True
 
@@ -633,8 +637,9 @@ def test_zero_reflection_self_verification() -> None:
     """Verifies that the guardrail engine scripts themselves contain zero getattr/hasattr calls."""
     engine_path = Path("scripts/_ast_guardrails.py")
     audit_loop_path = Path("scripts/backend_audit_loop.py")
+    test_path = Path("backend_v2/tests/unit/scripts/test_ast_guardrails.py")
 
-    for path in (engine_path, audit_loop_path):
+    for path in (engine_path, audit_loop_path, test_path):
         source = path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(path))
         for node in ast.walk(tree):
@@ -699,3 +704,76 @@ class ItemCreateDTO(BaseModel):
 """
     violations = _scan_snippet(code, filepath="backend_v2/models/dtos/item.py")
     assert len(violations) == 0
+
+
+# ==============================================================================
+# Partition 37: QGR012 isinstance(..., dict) Detection & Relative Path Hardening
+# ==============================================================================
+
+
+def test_qgr012_detects_direct_isinstance_dict() -> None:
+    code = "if isinstance(payload, dict):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR012"
+    assert violations[0].severity == GuardrailSeverity.FATAL
+    assert "isinstance(..., dict)" in violations[0].message
+
+
+def test_qgr012_detects_tuple_isinstance_with_dict() -> None:
+    code = "if isinstance(payload, (str, dict, list)):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/hooks/scoring.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR012"
+    assert violations[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr012_allows_isinstance_non_dict() -> None:
+    code = "if isinstance(payload, (str, list, int)):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    assert len(violations) == 0
+
+
+def test_qgr012_allows_valid_inline_suppression() -> None:
+    code = "if isinstance(payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload handling]\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR012"
+    assert violations[0].is_suppressed is True
+
+
+def test_relative_path_fatal_enforcement() -> None:
+    """Verifies that relative path inputs (services/foo.py, hooks/bar.py) trigger FATAL severity."""
+    code_qgr001 = "x = getattr(obj, 'attr', None)\n"
+    code_qgr002 = "x = data.get('key', 'default')\n"
+    code_qgr012 = "if isinstance(data, dict):\n    pass\n"
+
+    # Services relative path -> FATAL
+    v1 = scan_source_code_for_guardrails("services/foo.py", code_qgr001.encode("utf-8"))
+    assert len(v1) == 1
+    assert v1[0].rule_code == "QGR001"
+    assert v1[0].severity == GuardrailSeverity.FATAL
+
+    v2 = scan_source_code_for_guardrails("services/foo.py", code_qgr002.encode("utf-8"))
+    assert len(v2) == 1
+    assert v2[0].rule_code == "QGR002"
+    assert v2[0].severity == GuardrailSeverity.FATAL
+
+    v3 = scan_source_code_for_guardrails("services/foo.py", code_qgr012.encode("utf-8"))
+    assert len(v3) == 1
+    assert v3[0].rule_code == "QGR012"
+    assert v3[0].severity == GuardrailSeverity.FATAL
+
+    # Hooks relative path -> FATAL
+    v4 = scan_source_code_for_guardrails("hooks/bar.py", code_qgr012.encode("utf-8"))
+    assert len(v4) == 1
+    assert v4[0].rule_code == "QGR012"
+    assert v4[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr012_warning_severity_outside_services_and_hooks() -> None:
+    code = "if isinstance(payload, dict):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/item.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR012"
+    assert violations[0].severity == GuardrailSeverity.WARNING

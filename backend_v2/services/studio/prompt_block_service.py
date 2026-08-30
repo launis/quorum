@@ -63,13 +63,18 @@ class StudioPromptBlockService:
             try:
                 blocks.append(PromptBlockAdapter.validate_python(x, strict=False))
             except ValidationError as e:
-                x_id = (
-                    x.id
-                    if isinstance(
-                        x, (MatrixPromptBlock, SystemRulePromptBlock, PersonaPromptBlock, ProtocolPromptBlock)
-                    )
-                    else (x["id"] if isinstance(x, dict) and "id" in x else "unknown")
-                )
+                match x:
+                    case (
+                        MatrixPromptBlock(id=p_id)
+                        | SystemRulePromptBlock(id=p_id)
+                        | PersonaPromptBlock(id=p_id)
+                        | ProtocolPromptBlock(id=p_id)
+                    ):
+                        x_id = p_id
+                    case {"id": str() as p_id}:
+                        x_id = p_id
+                    case _:
+                        x_id = "unknown"
                 logger.error(
                     "[StudioPromptBlockService] %s: PromptBlock %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -258,13 +263,8 @@ class StudioPromptBlockService:
         if initiator.role != UserRole.ROOT:
             cloned_data["organization_id"] = initiator.organization_id
 
-        if "label" in cloned_data and isinstance(cloned_data["label"], dict):
-            label_dict = cloned_data["label"]
-            if "translations" in label_dict and isinstance(label_dict["translations"], dict):
-                for locale, text in label_dict["translations"].items():
-                    label_dict["translations"][locale] = str(text) + " (Copy)"
-        elif "label" in cloned_data:
-            cloned_data["label"] = str(cloned_data["label"]) + " (Copy)"
+        new_translations = {locale: f"{text} (Copy)" for locale, text in block.label.translations.items()}
+        cloned_data["label"] = {"translations": new_translations}
 
         cloned_obj = PromptBlockAdapter.validate_python(cloned_data, strict=False)
         return await self.save_prompt_block(initiator, new_id, cloned_obj)

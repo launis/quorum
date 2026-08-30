@@ -33,7 +33,10 @@ def deep_merge_dicts(base: dict[str, Any], update: dict[str, Any]) -> dict[str, 
             else:
                 merged[key] = deep_merge_dicts(merged[key], value)
         else:
-            merged[key] = copy.deepcopy(value)
+            value_copy = copy.deepcopy(value)
+            if isinstance(value_copy, dict):
+                value_copy.pop("__replace__", None)
+            merged[key] = value_copy
     return merged
 
 

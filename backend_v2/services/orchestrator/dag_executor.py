@@ -460,7 +460,7 @@ class DAGExecutor:
                 user_lang = (
                     user_data.language
                     if isinstance(user_data, BaseModel)
-                    else (user_data["language"] if (isinstance(user_data, dict) and "language" in user_data) else None)
+                    else (user_data["language"] if (isinstance(user_data, dict) and "language" in user_data) else None)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 )
                 if user_lang:
                     global_vars["language"] = user_lang
@@ -506,7 +506,7 @@ class DAGExecutor:
                     delta_content = (
                         processed_result.state_delta.delta
                         if isinstance(processed_result.state_delta, HookDeltaDTO)
-                        else (processed_result.state_delta if isinstance(processed_result.state_delta, dict) else {})
+                        else (processed_result.state_delta if isinstance(processed_result.state_delta, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                     )
                     proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
                     exec_record.execution_trace.append(proc_event)
@@ -775,7 +775,7 @@ class DAGExecutor:
                 if isinstance(e, AppException):
                     if isinstance(e.error_code, ErrorCodes):
                         err_code = e.error_code.name
-                    elif isinstance(e.details, dict) and "error_code" in e.details:
+                    elif isinstance(e.details, dict) and "error_code" in e.details:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                         code_val = e.details["error_code"]
                         if isinstance(code_val, ErrorCodes):
                             err_code = code_val.name

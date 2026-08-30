@@ -166,7 +166,12 @@ class LogicNodeStrategy(NodeStrategy):
         post_hook_state = hook_state.model_copy(
             update={
                 "global_context_vars": GlobalContextVarsDTO(vars=safe_context),
-                "inputs": ExecutionInputsDTO(dynamic_inputs=state_data),
+                "inputs": ExecutionInputsDTO(
+                    dynamic_inputs=state_data,
+                    raw_inputs=state_data,
+                    target_locale=hook_state.inputs.target_locale if isinstance(hook_state.inputs, ExecutionInputsDTO) else None,
+                    user_role=hook_state.inputs.user_role if isinstance(hook_state.inputs, ExecutionInputsDTO) else None,
+                ),
             }
         )
 
@@ -177,6 +182,8 @@ class LogicNodeStrategy(NodeStrategy):
             hook_deps=hook_deps,
         )
         final_outputs = dict(main_res.state_delta.delta) if main_res.state_delta else {}
+        meta = final_outputs.setdefault("_step_metadata", {})
+        meta["task_blueprint"] = blueprint_id
 
         # 5. Emit Immutable Event
         return (

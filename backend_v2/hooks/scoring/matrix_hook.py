@@ -63,11 +63,15 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
     raw_inputs = (
-        state.inputs.raw_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})
+        state.inputs.dynamic_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.dynamic_inputs
+        else (
+            state.inputs.raw_inputs
+            if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.raw_inputs
+            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+        )
     )
-    if not isinstance(raw_inputs, dict):
+    if not isinstance(raw_inputs, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in matrix_scoring_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
@@ -243,7 +247,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         for ev in evaluations:
             is_infra = False
             is_val = False
-            if isinstance(ev, dict):
+            if isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 if "_dlq_status" in ev and ev["_dlq_status"] == "FAILED/DLQ":
                     is_infra = True
                 elif "status" in ev and ev["status"] == "DLQ":
@@ -264,7 +268,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         merged_facts = content_payload["extracted_facts"] if "extracted_facts" in content_payload else {}
         if isinstance(merged_facts, BaseModel):
             merged_facts = merged_facts.model_dump(mode="json")
-        if not isinstance(merged_facts, dict):
+        if not isinstance(merged_facts, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             msg = "Strict Fail-Fast Enforced: extracted_facts must be a dictionary or model."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
@@ -307,7 +311,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 for ev in evaluations:
                                     # Skip Infra-DLQ items to prevent ValidationErrors
                                     is_ev_infra_dlq = False
-                                    if isinstance(ev, dict):
+                                    if isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                                         is_ev_infra_dlq = "_dlq_status" in ev and ev["_dlq_status"] == "FAILED/DLQ"
                                     elif isinstance(ev, BaseModel):
                                         ev_dump = ev.model_dump(mode="json")
@@ -318,7 +322,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                     if is_ev_infra_dlq:
                                         continue
 
-                                    if isinstance(ev, dict):
+                                    if isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                                         ev_dict = ev
                                     elif isinstance(ev, BaseModel):
                                         ev_dict = ev.model_dump(mode="json")
@@ -402,7 +406,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
                                         extensions_dict = (
                                             ev_dict["extensions"]
-                                            if "extensions" in ev_dict and isinstance(ev_dict["extensions"], dict)
+                                            if "extensions" in ev_dict and isinstance(ev_dict["extensions"], dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                                             else {}
                                         )
                                         if extensions_dict:

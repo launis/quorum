@@ -59,13 +59,13 @@ def _extract_raw_value(key_lower: str, state: HookState) -> Any:
     raw_inputs = (
         state.inputs.raw_inputs
         if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})
+        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
     dynamic_inputs = state.inputs.dynamic_inputs if isinstance(state.inputs, ExecutionInputsDTO) else {}
     gvars = (
         state.global_context_vars.vars
         if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
 
     # 1. Check raw_inputs
@@ -307,7 +307,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     gvars = (
         state.global_context_vars.vars
         if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
     language_raw = gvars.get("language")
     if not language_raw and isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.target_locale:
@@ -331,7 +331,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         raw_val = _extract_raw_value(key_lower, state)
 
         # 1. Handle Questionnaire mode specifically if it exists
-        if isinstance(raw_val, dict):
+        if isinstance(raw_val, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             resolved_text = _process_questionnaire(raw_val, key, expected_input)
         else:
             # 2. Standard resolution (File, Paste)

@@ -141,9 +141,9 @@ class MatrixReducer:
         # Extract raw_extensions from execution_trace
         raw_extensions: list[dict[str, Any]] = []
         for evt in record.execution_trace:
-            if evt.event_type == "output" and isinstance(evt.content, dict):
+            if evt.event_type == "output" and isinstance(evt.content, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 for _, val in evt.content.items():
-                    if isinstance(val, dict) and "extensions" in val and isinstance(val["extensions"], list):
+                    if isinstance(val, dict) and "extensions" in val and isinstance(val["extensions"], list):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                         raw_extensions.extend(val["extensions"])
 
         return LightweightMatrixDTO(

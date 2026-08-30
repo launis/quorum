@@ -91,14 +91,22 @@ class ExecutionRepositoryImpl(BaseRepository):
                 try:
                     blob_data = await driver.read(data[path_key])
                     if not blob_data or not blob_data.strip():
+                        if field == "execution_trace" and data.get("status") in [
+                            "PENDING",
+                            "RUNNING",
+                            "pending",
+                            "running",
+                        ]:
+                            data[field] = []
+                            continue
                         raise ValueError(f"Hydration payload is empty for {field} at {data[path_key]}")
 
                     if field == "execution_trace":
                         from pydantic import TypeAdapter
 
-                        from backend_v2.models.state import StepOutputDTO
+                        from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
-                        data[field] = TypeAdapter(list[StepOutputDTO]).validate_json(blob_data)
+                        data[field] = TypeAdapter(list[ErrorTraceEvent | TombstoneEvent | TraceEvent]).validate_json(blob_data)
                     elif field == "frozen_context":
                         from backend_v2.models.v2_core import FrozenContext
 

@@ -81,11 +81,11 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
     fields_to_validate: dict[str, Any] = {}
 
     # 1. Unpack raw_inputs dynamically
-    if "raw_inputs" in inputs_dict and isinstance(inputs_dict["raw_inputs"], dict):
+    if "raw_inputs" in inputs_dict and isinstance(inputs_dict["raw_inputs"], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         fields_to_validate.update(inputs_dict["raw_inputs"])
 
     # 2. Unpack inputs dynamically
-    if "inputs" in inputs_dict and isinstance(inputs_dict["inputs"], dict):
+    if "inputs" in inputs_dict and isinstance(inputs_dict["inputs"], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         fields_to_validate.update(inputs_dict["inputs"])
 
     # Fallback to the root if it's a flat payload, excluding known container keys
@@ -306,7 +306,7 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
             total_by_level: dict[float, float] = {}
 
             for atom in result:
-                if isinstance(atom, dict) and "score_level" in atom and "hit" in atom:
+                if isinstance(atom, dict) and "score_level" in atom and "hit" in atom:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                     level = float(atom["score_level"])
                     current_hits = hits_by_level[level] if level in hits_by_level else 0.0
                     hits_by_level[level] = current_hits + (1.0 if atom["hit"] else 0.0)

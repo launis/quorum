@@ -99,7 +99,12 @@ def run_tests_with_strict_coverage(target: str) -> None:
                 cov_target = target_clean.removesuffix("/__init__.py").replace("/", ".")
                 pkg_name = parts[-2] if len(parts) >= 2 else "init"
                 clean_base = filename.removesuffix(".py").lstrip("_")
-                candidates = [f"test_{pkg_name}.py", f"test__{pkg_name}.py", f"test_{clean_base}.py", f"test_{filename}"]
+                candidates = [
+                    f"test_{pkg_name}.py",
+                    f"test__{pkg_name}.py",
+                    f"test_{clean_base}.py",
+                    f"test_{filename}",
+                ]
             else:
                 cov_target = target_clean.removesuffix(".py").replace("/", ".")
                 clean_base = filename.removesuffix(".py").lstrip("_")

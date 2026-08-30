@@ -21,6 +21,7 @@ from backend_v2.models.domain.prompt_blocks import (
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
 from backend_v2.models.v2_core import (
+    I18nText,
     Step,
     Workflow,
 )
@@ -73,11 +74,13 @@ class StudioWorkflowService:
             try:
                 all_profiles.append(OutputProfile.model_validate(p_data, strict=False))
             except ValidationError as e:
-                p_id = (
-                    p_data.id
-                    if isinstance(p_data, OutputProfile)
-                    else (p_data["id"] if isinstance(p_data, dict) and "id" in p_data else "unknown")
-                )
+                match p_data:
+                    case OutputProfile(id=p_id):
+                        pass
+                    case {"id": str() as p_id}:
+                        pass
+                    case _:
+                        p_id = "unknown"
                 logger.error(
                     "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -125,9 +128,13 @@ class StudioWorkflowService:
             try:
                 workflows.append(Workflow.model_validate(x, strict=False))
             except ValidationError as e:
-                x_id = (
-                    x.id if isinstance(x, Workflow) else (x["id"] if isinstance(x, dict) and "id" in x else "unknown")
-                )
+                match x:
+                    case Workflow(id=x_id):
+                        pass
+                    case {"id": str() as x_id}:
+                        pass
+                    case _:
+                        x_id = "unknown"
                 logger.error(
                     "[StudioService] %s: Workflow %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -331,76 +338,58 @@ class StudioWorkflowService:
         if initiator.role != UserRole.ROOT:
             cloned_data["organization_id"] = initiator.organization_id
 
-        if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-            name_dict = cloned_data["name"]
-            if "translations" in name_dict and isinstance(name_dict["translations"], dict):
-                for locale, text in name_dict["translations"].items():
-                    name_dict["translations"][locale] = str(text) + " (Copy)"
-        elif "name" in cloned_data:
-            cloned_data["name"] = str(cloned_data["name"]) + " (Copy)"
+        if isinstance(wf.name, I18nText):
+            new_translations = {locale: f"{text} (Copy)" for locale, text in wf.name.translations.items()}
+            cloned_data["name"] = {"translations": new_translations}
+        else:
+            cloned_data["name"] = f"{wf.name} (Copy)"
 
-        sr_mapping = {}
-        steps_list = cloned_data["steps"] if "steps" in cloned_data and isinstance(cloned_data["steps"], list) else []
-        for step in steps_list:
-            if isinstance(step, dict) and "id" in step and step["id"]:
-                old_sr_id = str(step["id"])
-                new_sr_id = f"sr_{uuid.uuid4().hex[:16]}"
-                sr_mapping[old_sr_id] = new_sr_id
-                step["id"] = new_sr_id
+        sr_mapping: dict[str, str] = {}
+        for step_cfg in wf.steps:
+            new_sr_id = f"sr_{uuid.uuid4().hex[:16]}"
+            sr_mapping[step_cfg.id] = new_sr_id
 
-        for step in steps_list:
-            if isinstance(step, dict):
-                old_depends = (
-                    step["depends_on"] if "depends_on" in step and isinstance(step["depends_on"], list) else []
-                )
-                step["depends_on"] = [sr_mapping[dep] if dep in sr_mapping else dep for dep in old_depends]
+        new_steps: list[dict[str, Any]] = []
+        for step_cfg in wf.steps:
+            new_depends = [sr_mapping[dep] if dep in sr_mapping else dep for dep in step_cfg.depends_on]
+            new_mappings: dict[str, Any] = {}
+            for k, v in step_cfg.input_mappings.items():
+                if isinstance(v, str) and v.startswith("$steps."):
+                    new_v = v
+                    for old_sr, new_sr in sr_mapping.items():
+                        new_v = new_v.replace(old_sr, new_sr)
+                    new_mappings[k] = new_v
+                else:
+                    new_mappings[k] = v
+            cfg_dict = step_cfg.model_dump(mode="json")
+            cfg_dict["id"] = sr_mapping[step_cfg.id]
+            cfg_dict["depends_on"] = new_depends
+            cfg_dict["input_mappings"] = new_mappings
+            new_steps.append(cfg_dict)
 
-                old_mappings = (
-                    step["input_mappings"]
-                    if "input_mappings" in step and isinstance(step["input_mappings"], dict)
-                    else {}
-                )
-                new_mappings = {}
-                for k, v in old_mappings.items():
-                    if isinstance(v, str) and v.startswith("$steps."):
-                        new_v = v
-                        for old_sr, new_sr in sr_mapping.items():
-                            new_v = new_v.replace(old_sr, new_sr)
-                        new_mappings[k] = new_v
-                    else:
-                        new_mappings[k] = v
-                step["input_mappings"] = new_mappings
+        cloned_data["steps"] = new_steps
 
         # Deep clone standalone output profiles mapped to this old workflow
         all_profiles = await self.output_profile_repo.get_all_output_profiles()
-        profile_mapping = {}
+        profile_mapping: dict[str, str] = {}
 
-        for p_item in all_profiles:
-            p = p_item.model_dump(mode="json") if isinstance(p_item, BaseModel) else p_item
-            if isinstance(p, dict) and "workflow_id" in p and p["workflow_id"] == id:
-                old_p_id = str(p["id"]) if "id" in p else ""
+        for p_data in all_profiles:
+            try:
+                p_obj = (
+                    p_data if isinstance(p_data, OutputProfile) else OutputProfile.model_validate(p_data, strict=False)
+                )
+            except ValidationError:
+                continue
+
+            if p_obj.workflow_id == id:
                 new_profile_id = f"prf_{uuid.uuid4().hex[:16]}"
-                if old_p_id:
-                    profile_mapping[old_p_id] = new_profile_id
+                profile_mapping[p_obj.id] = new_profile_id
 
-                cloned_profile = dict(p)
+                cloned_profile = p_obj.model_dump(mode="json")
                 cloned_profile["id"] = new_profile_id
                 cloned_profile["workflow_id"] = new_id
                 if initiator.role != UserRole.ROOT:
                     cloned_profile["organization_id"] = initiator.organization_id
-
-                # Remap the step IDs inside layout
-                layouts_list = (
-                    cloned_profile["layouts"]
-                    if "layouts" in cloned_profile and isinstance(cloned_profile["layouts"], list)
-                    else []
-                )
-                for layout in layouts_list:
-                    if isinstance(layout, dict):
-                        old_layout_steps = (
-                            layout["steps"] if "steps" in layout and isinstance(layout["steps"], list) else []
-                        )
-                        layout["steps"] = [sr_mapping[s] if s in sr_mapping else s for s in old_layout_steps]
 
                 await self.output_profile_repo.create_output_profile(cloned_profile)
 
@@ -434,7 +423,13 @@ class StudioWorkflowService:
             try:
                 steps.append(Step.model_validate(x, strict=False))
             except ValidationError as e:
-                x_id = x.id if isinstance(x, Step) else (x["id"] if isinstance(x, dict) and "id" in x else "unknown")
+                match x:
+                    case Step(id=x_id):
+                        pass
+                    case {"id": str() as x_id}:
+                        pass
+                    case _:
+                        x_id = "unknown"
                 logger.error(
                     "[StudioService] %s: Step %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -656,13 +651,8 @@ class StudioWorkflowService:
         if initiator.role != UserRole.ROOT:
             cloned_data["organization_id"] = initiator.organization_id
 
-        if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-            name_dict = cloned_data["name"]
-            if "translations" in name_dict and isinstance(name_dict["translations"], dict):
-                for locale, text in name_dict["translations"].items():
-                    name_dict["translations"][locale] = str(text) + " (Copy)"
-        elif "name" in cloned_data:
-            cloned_data["name"] = str(cloned_data["name"]) + " (Copy)"
+        new_translations = {locale: f"{text} (Copy)" for locale, text in step.name.translations.items()}
+        cloned_data["name"] = {"translations": new_translations}
 
         cloned_obj = Step.model_validate(cloned_data, strict=False)
         return await self.save_step(initiator, new_id, cloned_obj)

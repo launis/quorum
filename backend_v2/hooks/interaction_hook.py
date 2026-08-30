@@ -60,7 +60,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         inputs_source = (
             state.inputs.raw_inputs
             if isinstance(state.inputs, ExecutionInputsDTO)
-            else (state.inputs if isinstance(state.inputs, dict) else {})
+            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         )
         input_data = InteractionInput.model_validate(inputs_source)
     except ValidationError as e:

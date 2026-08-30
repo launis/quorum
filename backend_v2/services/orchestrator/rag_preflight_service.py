@@ -69,9 +69,9 @@ def _extract_inputs_from_record(exec_record: ExecutionRecord) -> dict[str, Any]:
         Dictionary of dynamic inputs.
     """
     for event in reversed(exec_record.execution_trace):
-        if event.step_name == "inputs" and event.event_type == "input" and isinstance(event.content, dict):
+        if event.step_name == "inputs" and event.event_type == "input" and isinstance(event.content, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             inputs_payload = event.content.get("inputs")
-            if isinstance(inputs_payload, dict):
+            if isinstance(inputs_payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 return inputs_payload
     return dict(exec_record.raw_inputs.dynamic_inputs)
 

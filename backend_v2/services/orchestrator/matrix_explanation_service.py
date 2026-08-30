@@ -68,7 +68,7 @@ class MatrixExplanationService:
         # Build map of tda_id -> list of quotes
         global_quotes_map: dict[str, list[str]] = {}
         for dto in available_dtos:
-            if not isinstance(dto.payload, dict) or "results" not in dto.payload:
+            if not isinstance(dto.payload, dict) or "results" not in dto.payload:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 continue
 
             results_list = dto.payload["results"]
@@ -76,7 +76,7 @@ class MatrixExplanationService:
                 continue
 
             for atom_dict in results_list:
-                if not isinstance(atom_dict, dict):
+                if not isinstance(atom_dict, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                     continue
                 try:
                     atom_res = AtomResultDTO.model_validate(atom_dict, strict=False)
@@ -103,7 +103,7 @@ class MatrixExplanationService:
             if pb.category_id != PromptBlockCategory.MATRIX:
                 continue
 
-            if not isinstance(payload, dict):
+            if not isinstance(payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 continue
 
             payload_to_validate = dict(payload)
@@ -144,7 +144,7 @@ class MatrixExplanationService:
             quote_candidates: list[dict[str, Any]] = []
             unmet_claim_to_min_scale: dict[str, int] = {}
 
-            if isinstance(lw_matrix.evaluated_atoms, dict):
+            if isinstance(lw_matrix.evaluated_atoms, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 for tda_id, hit_status in lw_matrix.evaluated_atoms.items():
                     if hit_status == ExecutionStatus.PASSED:
                         claim_name = tda_to_claim[tda_id] if tda_id in tda_to_claim else "General Evidence"
@@ -189,7 +189,7 @@ class MatrixExplanationService:
                 )[:effective_max_unmet]
 
                 distribution_str = ""
-                if isinstance(raw_level_breakdown, dict):
+                if isinstance(raw_level_breakdown, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                     breakdowns = []
                     for lvl, raw_stats in raw_level_breakdown.items():
                         # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating

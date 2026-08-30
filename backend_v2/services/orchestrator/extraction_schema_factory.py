@@ -23,7 +23,7 @@ class ExtractedFactsDTOBase(BaseModel):
     @classmethod
     def canonicalise_nulls(cls, data: Any) -> Any:
         # Phase 1, Milestone 2: Map cosmetic placeholders to None silently
-        if isinstance(data, dict):
+        if isinstance(data, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             placeholder_set = {"none", "n/a", "", None}
             for key, val in list(data.items()):
                 if isinstance(val, str) and val.strip().lower() in placeholder_set:
@@ -40,7 +40,7 @@ class DynamicExtractionResponseBase(BaseModel):
     @classmethod
     def canonicalise_nulls(cls, data: Any) -> Any:
         # Phase 1, Milestone 2: Map cosmetic placeholders to None silently ONLY for search_context_anchor
-        if isinstance(data, dict):
+        if isinstance(data, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             placeholder_set = {"none", "n/a", "", None}
             if "search_context_anchor" in data:
                 val = data["search_context_anchor"]

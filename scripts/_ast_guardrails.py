@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR011).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR012).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -158,9 +158,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.filepath = filepath
         self.suppressor = suppressor
         self.violations: list[GuardrailViolation] = []
-        self._is_test_file = "tests" in filepath.replace("\\", "/").split("/") or Path(filepath).name.startswith(
-            "test_"
-        )
+        path_parts = set(filepath.replace("\\", "/").strip("/").split("/"))
+        self._is_test_file = "tests" in path_parts or Path(filepath).name.startswith("test_")
+        self._is_services_or_hooks = bool(path_parts & {"services", "hooks"}) and not self._is_test_file
         self._pydantic_base_classes_in_file: set[str] = set()
 
     def _add_violation(
@@ -209,11 +209,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         )
 
     def visit_Call(self, node: ast.Call) -> None:
-        norm_path = self.filepath.replace("\\", "/")
-        is_services_or_hooks = "backend_v2/services/" in norm_path or "backend_v2/hooks/" in norm_path
-
         # QGR001: getattr / hasattr / setattr reflection duck-typing and frozen mutations
-        qgr001_sev = GuardrailSeverity.FATAL if is_services_or_hooks else GuardrailSeverity.WARNING
+        qgr001_sev = GuardrailSeverity.FATAL if self._is_services_or_hooks else GuardrailSeverity.WARNING
         match node.func:
             case ast.Name(id="getattr" | "hasattr" | "setattr"):
                 self._add_violation(
@@ -252,7 +249,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     exempt = False
 
             if not exempt:
-                qgr002_sev = GuardrailSeverity.FATAL if is_services_or_hooks else GuardrailSeverity.WARNING
+                qgr002_sev = GuardrailSeverity.FATAL if self._is_services_or_hooks else GuardrailSeverity.WARNING
                 self._add_violation(
                     node,
                     "QGR002",
@@ -337,6 +334,34 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     )
             case _:
                 pass
+
+        # QGR012: isinstance(..., dict) or composite isinstance(..., (..., dict, ...)) duck-typing check
+        if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
+            types_arg = node.args[1]
+            is_dict_check = False
+            match types_arg:
+                case ast.Name(id="dict"):
+                    is_dict_check = True
+                case ast.Tuple(elts=elts):
+                    for elt in elts:
+                        match elt:
+                            case ast.Name(id="dict"):
+                                is_dict_check = True
+                                break
+                            case _:
+                                pass
+                case _:
+                    pass
+
+            if is_dict_check:
+                qgr012_sev = GuardrailSeverity.FATAL if self._is_services_or_hooks else GuardrailSeverity.WARNING
+                self._add_violation(
+                    node,
+                    "QGR012",
+                    "Banned `isinstance(..., dict)` duck-typing check in domain code.",
+                    "Use Python 3.10+ match/case structural pattern matching or Pydantic model validation instead of isinstance(..., dict).",
+                    severity=qgr012_sev,
+                )
 
         self.generic_visit(node)
 

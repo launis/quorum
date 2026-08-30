@@ -25,14 +25,14 @@
 **Source Reference:** @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L307-L318] (Phase 6: Background Workers, Typed Cache Boundary & Storage)
 
 **Target Files** (exhaustive — 2 production files + 6 test suites):
-- `[MODIFY]` @[backend_v2/worker.py#L98-L103] (`VarianceExplanationResult`)
-- `[MODIFY]` @[backend_v2/worker.py#L117-L438] (`execute_workflow_job`)
-- `[MODIFY]` @[backend_v2/worker.py#L441-L463] (`generate_pdf_job`)
-- `[MODIFY]` @[backend_v2/worker.py#L466-L581] (`generate_pdf_task`)
-- `[MODIFY]` @[backend_v2/worker.py#L584-L606] (`render_profile_job`)
-- `[MODIFY]` @[backend_v2/worker.py#L609-L1350] (`generate_profile_synthesis_and_pdf_task`)
-- `[MODIFY]` @[backend_v2/worker.py#L1356-L1417] (`startup`)
-- `[MODIFY]` @[backend_v2/worker.py#L1441-L1453] (`WorkerSettings`)
+- `[MODIFY]` @[backend_v2/worker.py#L103-L108] (`VarianceExplanationResult`)
+- `[MODIFY]` @[backend_v2/worker.py#L122-L448] (`execute_workflow_job`)
+- `[MODIFY]` @[backend_v2/worker.py#L451-L473] (`generate_pdf_job`)
+- `[MODIFY]` @[backend_v2/worker.py#L476-L592] (`generate_pdf_task`)
+- `[MODIFY]` @[backend_v2/worker.py#L595-L617] (`render_profile_job`)
+- `[MODIFY]` @[backend_v2/worker.py#L620-L1366] (`generate_profile_synthesis_and_pdf_task`)
+- `[MODIFY]` @[backend_v2/worker.py#L1372-L1433] (`startup`)
+- `[MODIFY]` @[backend_v2/worker.py#L1457-L1469] (`WorkerSettings`)
 - `[NEW]` @[backend_v2/services/cache/__init__.py]
 - `[NEW]` @[backend_v2/services/cache/typed_cache.py]
 - `[MODIFY]` @[backend_v2/tests/unit/test_worker_synthesis_hydration.py]
@@ -48,10 +48,10 @@
 
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Worker Core & Execution Trace Extraction**<br>`@[backend_v2/worker.py#L117-L438]` | Banned untyped dictionary mutations in `execution_summary`, `step_metrics`, and `models_used`. Banned `.get()` fallback chains and loose `dict` iteration. | Update `ExecutionMetadata` fields cleanly via `.model_copy(update={...})` with typed DTO payloads. Access `exec_record.target_locale` directly without fallback chains. Standardize `AppException` error codes across job handlers. | Eliminate manual dict mutation passes over execution traces in favor of structured event iteration. | `uv run python scripts/_ast_guardrails.py backend_v2/worker.py --strict` passes with 0 violations. |
+| **Worker Core & Execution Trace Extraction**<br>`@[backend_v2/worker.py#L122-L448]` | Banned untyped dictionary mutations in `execution_summary`, `step_metrics`, and `models_used`. Banned `.get()` fallback chains and loose `dict` iteration. | Update `ExecutionMetadata` fields cleanly via `.model_copy(update={...})` with typed DTO payloads. Access `exec_record.target_locale` directly without fallback chains. Standardize `AppException` error codes across job handlers. | Eliminate manual dict mutation passes over execution traces in favor of structured event iteration. | `uv run python scripts/_ast_guardrails.py backend_v2/worker.py --strict` passes with 0 violations. |
 | **Typed Cache Service & Inbound Firewall**<br>`[NEW] @[backend_v2/services/cache/typed_cache.py]`<br>`[NEW] @[backend_v2/services/cache/__init__.py]` | Banned raw `json.loads` calls and loose dictionary caching in Redis datastreams. Banned silent `except Exception: pass` when deserializing cached models. | Implement `TypedCacheService` with generic `get_cached[T: BaseModel](key: str, model_cls: type[T]) -> T \| None` using Rust-level `.model_validate_json()`. Automatically log RFC 7807 structured warning and delete corrupted cache entries on `ValidationError` (auto-eviction firewall). | Eliminate ad-hoc serialization helpers across worker tasks; consolidate all Redis model caching in one sovereign SSOT (~60 LOC). | `uv run pytest backend_v2/tests/unit/services/cache/test_typed_cache.py` passes 100%. |
-| **Synthesis Hydration & Caching**<br>`@[backend_v2/worker.py#L609-L1350]` | Banned `.get()` fallback chains (`cv.get()`, `trace_evt.content.get()`, `_raw_row_explanations.get()`), and raw dict mutations of `profile_syntheses`. | Store and deserialize `ExecutionRecord.profile_syntheses` strictly as `dict[str, RenderedSynthesisCache]`. Use direct key checks (`in`) and structured `AppException` error codes. | Remove manual dictionary unpacking wrappers around `RenderedSynthesisCache`. | `uv run pytest backend_v2/tests/unit/test_worker_synthesis_hydration.py` passes 100%. |
-| **PDF Generation Task & Rendering**<br>`@[backend_v2/worker.py#L466-L581]` | Banned loose `.get()` calls for locale and profile resolution. Banned silent exception swallowing during render updates. | Access `execution_record.target_locale` and `execution_record.output_profile_id` directly. Update step states using strictly typed `ExecutionStepState.model_copy(update={...})`. | Eliminate ad-hoc dictionary builders for step state updates. | `uv run pytest backend_v2/tests/unit/test_worker.py -k "test_generate_pdf"` passes 100%. |
+| **Synthesis Hydration & Caching**<br>`@[backend_v2/worker.py#L620-L1366]` | Banned `.get()` fallback chains (`cv.get()`, `trace_evt.content.get()`, `_raw_row_explanations.get()`), and raw dict mutations of `profile_syntheses`. | Store and deserialize `ExecutionRecord.profile_syntheses` strictly as `dict[str, RenderedSynthesisCache]`. Use direct key checks (`in`) and structured `AppException` error codes. | Remove manual dictionary unpacking wrappers around `RenderedSynthesisCache`. | `uv run pytest backend_v2/tests/unit/test_worker_synthesis_hydration.py` passes 100%. |
+| **PDF Generation Task & Rendering**<br>`@[backend_v2/worker.py#L476-L592]` | Banned loose `.get()` calls for locale and profile resolution. Banned silent exception swallowing during render updates. | Access `execution_record.target_locale` and `execution_record.output_profile_id` directly. Update step states using strictly typed `ExecutionStepState.model_copy(update={...})`. | Eliminate ad-hoc dictionary builders for step state updates. | `uv run pytest backend_v2/tests/unit/test_worker.py -k "test_generate_pdf"` passes 100%. |
 | **Atomic Worker Test Suites & Modernization**<br>`@[backend_v2/tests/unit/test_worker.py]`<br>`@[backend_v2/tests/unit/test_worker_synthesis.py]`<br>`@[backend_v2/tests/unit/test_worker_dlq_fallback.py]`<br>`@[backend_v2/tests/test_worker_models_used.py]`<br>`@[backend_v2/tests/unit/test_worker_synthesis_hydration.py]` | Banned legacy test fixtures instantiating `ExecutionRecord` without mandatory `target_locale="fi"` and `metadata=ExecutionMetadata(target_locale="fi")`, and legacy `json.loads()` loop tests. | Modernize all test fixtures to pass `target_locale="fi"` and `metadata=ExecutionMetadata(target_locale="fi")`. Assert clean Pydantic V2 discriminated union and cache hydration. | Eliminate outdated dictionary mock fixtures and legacy parsing test fixtures. | `uv run python scripts/backend_audit_loop.py backend_v2/worker.py backend_v2/tests/unit/test_worker.py backend_v2/tests/unit/test_worker_synthesis.py backend_v2/tests/unit/test_worker_synthesis_hydration.py backend_v2/tests/unit/test_worker_dlq_fallback.py backend_v2/tests/test_worker_models_used.py --test` passes >90% coverage. |
 
 ---
@@ -85,7 +85,7 @@
          - If Redis is absent, return.
          - Serialize via `model.model_dump_json()`.
          - Set key in Redis with optional `ex=expire_seconds`.
-      4. Implement `async def delete(self, key: str) -> None`:
+         4. Implement `async def delete(self, key: str) -> None`:
          - If Redis is absent, return.
          - Purge key via `await self.redis.delete(key)`.
       5. Create [NEW] @[backend_v2/tests/unit/services/cache/test_typed_cache.py] with unit tests covering cache hit, cache miss, `set_cached`, `delete`, and auto-eviction on `ValidationError`.</action>
@@ -94,7 +94,7 @@
   </step>
 
   <step id="3" name="WORKER METADATA &amp; TRACE METRIC REFACTORING">
-    <action>Refactor @[backend_v2/worker.py#L117-L438] (`execute_workflow_job`):
+    <action>Refactor @[backend_v2/worker.py#L122-L448] (`execute_workflow_job`):
       1. Modernize execution metadata handling: construct typed `execution_summary` and update `updated_exec_record.metadata` via `.model_copy(update={...})` ensuring all fields (`dag_cost_usd`, `prompt_tokens`, `completion_tokens`, `cached_tokens`, `reasoning_tokens`, `step_metrics`, `execution_summary`) strictly align with `ExecutionMetadata`.
       2. Eliminate loose dictionary mutations when parsing `execution_trace`: iterate over typed `TraceEvent` objects, inspect `event.content["_step_metadata"]` safely using `in` checks without `.get()` fallback chains.
       3. Ensure `exec_record.target_locale` is evaluated directly without fallback chaining.
@@ -104,7 +104,7 @@
   </step>
 
   <step id="4" name="WORKER PROFILE SYNTHESIS &amp; TYPED CACHE INTEGRATION">
-    <action>Refactor @[backend_v2/worker.py#L466-L581] (`generate_pdf_task`) and @[backend_v2/worker.py#L609-L1350] (`generate_profile_synthesis_and_pdf_task`):
+    <action>Refactor @[backend_v2/worker.py#L476-L592] (`generate_pdf_task`) and @[backend_v2/worker.py#L620-L1366] (`generate_profile_synthesis_and_pdf_task`):
       1. In `generate_profile_synthesis_and_pdf_task`: deserialize `execution.profile_syntheses` strictly as `dict[str, RenderedSynthesisCache]` (using `RenderedSynthesisCache.model_validate()` when hydrating from raw DB payload).
       2. In starvation check: replace `trace_evt.content.get("event_type") == "starvation"` with direct key check `"event_type" in trace_evt.content and trace_evt.content["event_type"] == "starvation"`.
       3. In linguistics and performativity extraction: eliminate `.get()` calls on `cv` and `event.content` in favor of guarded key indexing.

@@ -54,11 +54,13 @@ class StudioOutputProfileService:
             try:
                 profiles.append(OutputProfile.model_validate(x, strict=False))
             except ValidationError as e:
-                x_id = (
-                    x.id
-                    if isinstance(x, OutputProfile)
-                    else (x["id"] if isinstance(x, dict) and "id" in x else "unknown")
-                )
+                match x:
+                    case OutputProfile(id=p_id):
+                        x_id = p_id
+                    case {"id": str() as p_id}:
+                        x_id = p_id
+                    case _:
+                        x_id = "unknown"
                 logger.error(
                     "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -123,16 +125,17 @@ class StudioOutputProfileService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             AppException (ErrorCodes.VALIDATION_FAILED): On validation errors.
         """
-        if isinstance(data, dict):
-            existing = await self.output_profile_repo.get_output_profile_by_id(id)
-            if existing:
-                existing_dict = existing.model_dump(mode="json") if isinstance(existing, BaseModel) else existing
-                merged = {**existing_dict, **data}
-                profile = OutputProfile.model_validate(merged)
-            else:
-                profile = OutputProfile.model_validate(data)
-        else:
-            profile = data
+        match data:
+            case OutputProfile() as profile_model:
+                profile = profile_model
+            case dict() as data_dict:
+                existing = await self.output_profile_repo.get_output_profile_by_id(id)
+                if existing:
+                    existing_dict = existing.model_dump(mode="json") if isinstance(existing, BaseModel) else existing
+                    merged = {**existing_dict, **data_dict}
+                    profile = OutputProfile.model_validate(merged)
+                else:
+                    profile = OutputProfile.model_validate(data_dict)
 
         enforce_modification_rights(initiator, profile.organization_id)
 
@@ -259,14 +262,10 @@ class StudioOutputProfileService:
         if initiator.role != UserRole.ROOT:
             cloned_data["organization_id"] = initiator.organization_id
 
-        if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-            name_dict = cloned_data["name"]
-            if "translations" in name_dict and isinstance(name_dict["translations"], dict):
-                translations = name_dict["translations"]
-                if "en" in translations:
-                    translations["en"] = str(translations["en"]) + " (Copy)"
-        elif "name" in cloned_data and isinstance(cloned_data["name"], str):
-            cloned_data["name"] = cloned_data["name"] + " (Copy)"
+        new_translations = {
+            loc: f"{txt} (Copy)" if loc == "en" else txt for loc, txt in profile.name.translations.items()
+        }
+        cloned_data["name"] = {"translations": new_translations}
 
         await self.output_profile_repo.create_output_profile(cloned_data)
 

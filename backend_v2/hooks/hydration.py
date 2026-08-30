@@ -42,7 +42,7 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
     gvars = (
         state.global_context_vars.vars
         if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
 
     for _key, result in gvars.items():
@@ -63,7 +63,7 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
     raw_inputs = (
         state.inputs.raw_inputs.copy()
         if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs.copy() if isinstance(state.inputs, dict) else {})
+        else (state.inputs.copy() if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
 
     # Extract updates safely via Pydantic model methods

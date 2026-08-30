@@ -64,7 +64,7 @@ class ContextBuilder:
 
             match block_type:
                 case "MATRIX":
-                    if not isinstance(value, dict):
+                    if not isinstance(value, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                         logger.error(
                             "Matrix value validation failed. Key: %s is not a dict.",
                             key,
@@ -81,7 +81,7 @@ class ContextBuilder:
                             continue
 
                         pruned_dump = pruned.model_dump()
-                        if not isinstance(pruned_dump, dict):
+                        if not isinstance(pruned_dump, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                             continue
                         pruned_dict: dict[str, Any] = pruned_dump
 
@@ -117,7 +117,7 @@ class ContextBuilder:
         Returns:
             New compressed structure sharing immutable leaves with original.
         """
-        if isinstance(obj, dict):
+        if isinstance(obj, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             result: dict[str, Any] = {}
             for k, v in obj.items():
                 if k in ("shuffled_atoms", "original_text", "raw_content"):
@@ -237,9 +237,9 @@ class ContextBuilder:
         new_input_mappings: dict[str, Any] = {}
         schema_map = schema_map or {}
 
-        if isinstance(state_data, dict) and "raw_inputs" in state_data:
+        if isinstance(state_data, dict) and "raw_inputs" in state_data:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             state_raw = state_data["raw_inputs"]
-            if isinstance(state_raw, dict) and "dynamic_inputs" in state_raw:
+            if isinstance(state_raw, dict) and "dynamic_inputs" in state_raw:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 llm_context_data.setdefault("raw_inputs", {})["dynamic_inputs"] = copy.deepcopy(
                     state_raw["dynamic_inputs"]
                 )
@@ -295,7 +295,7 @@ class ContextBuilder:
                 if clean_path == "steps":
                     dto_list = state_data["steps"] if "steps" in state_data else []
                     resolved_value = _prune_step_dtos(dto_list)
-                elif clean_path == "global_context_vars" and isinstance(resolved_value, dict):
+                elif clean_path == "global_context_vars" and isinstance(resolved_value, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                     resolved_value = copy.copy(resolved_value)
                     if "steps" in resolved_value:
                         resolved_value["steps"] = _prune_step_dtos(resolved_value["steps"])

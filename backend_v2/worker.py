@@ -477,6 +477,7 @@ async def generate_pdf_task(
     execution_id: str, accept_language: str | None = None, profile_id: str | None = None
 ) -> None:  # noqa: E501
     """Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
+
     Called by Arq worker for resilient PDF background compilation.
 
     Args:
@@ -1131,17 +1132,21 @@ async def generate_profile_synthesis_and_pdf_task(
 
                         # Extract Performativity Detector output using the canonical step_id from profile
                         if event.event_type == "output" and perf_step_id and authenticity_score is None:
-                            if isinstance(event.content, dict) and "_step_metadata" in event.content:
+                            is_match = False
+                            if event.step_name == perf_step_id:
+                                is_match = True
+                            elif isinstance(event.content, dict) and "_step_metadata" in event.content:
                                 step_meta = event.content["_step_metadata"]
-                                if isinstance(step_meta, dict) and "task_blueprint" in step_meta:
-                                    event_blueprint = step_meta["task_blueprint"]
-                                    if event_blueprint == perf_step_id:
-                                        for key, val in event.content.items():
-                                            if key.startswith("blk_"):
-                                                det_out = LightweightMatrixOutput.model_validate(val, strict=False)
-                                                if det_out.raw_score is not None:
-                                                    authenticity_score = float(det_out.raw_score)
-                                                break
+                                if isinstance(step_meta, dict) and step_meta.get("task_blueprint") == perf_step_id:
+                                    is_match = True
+
+                            if is_match and isinstance(event.content, dict):
+                                for key, val in event.content.items():
+                                    if key.startswith("blk_"):
+                                        det_out = LightweightMatrixOutput.model_validate(val, strict=False)
+                                        if det_out.raw_score is not None:
+                                            authenticity_score = float(det_out.raw_score)
+                                        break
 
                         if authenticity_score is not None and performative_phrases_count is not None:
                             break

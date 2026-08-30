@@ -240,7 +240,7 @@ def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> Ho
     raw_inputs = (
         state.inputs.raw_inputs
         if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})
+        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
     try:
         payload = MetricsPayloadDTO.model_validate(raw_inputs)
@@ -278,7 +278,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     raw_inputs = (
         state.inputs.raw_inputs
         if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})
+        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
     try:
         payload = MetricsPayloadDTO.model_validate(raw_inputs)

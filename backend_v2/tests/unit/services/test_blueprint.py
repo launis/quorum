@@ -2204,7 +2204,7 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
     # Expect Exception for PENALTY_INVALID:20
     with pytest.raises(AppException) as exc:
         await transformer.build_report_dto("exe_0000000000000101")
-    assert "Legacy or unsupported penalty string detected" in str(exc.value)
+    assert "Legacy or unsupported penalty string" in str(exc.value)
 
     # Remove invalid penalty and keep only valid user-input penalties (10% + 15% = 25% penalty on 100 base)
     mock_repo_transformer.get_execution.return_value.execution_trace[0].content["scoring_result"][

@@ -81,7 +81,7 @@ class SynthesisEngine:
                 else None
             )
             has_matrix_evidence = False
-            if matrix_reducer_output and isinstance(matrix_reducer_output, dict):
+            if matrix_reducer_output and isinstance(matrix_reducer_output, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 reduced_atoms = (
                     matrix_reducer_output["reduced_atoms"] if "reduced_atoms" in matrix_reducer_output else []
                 )
@@ -140,7 +140,7 @@ class SynthesisEngine:
             raw_xai_extensions_str = ""
             if (
                 matrix_reducer_output
-                and isinstance(matrix_reducer_output, dict)
+                and isinstance(matrix_reducer_output, dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 and "raw_extensions" in matrix_reducer_output
             ):
                 extensions_json = json.dumps(matrix_reducer_output["raw_extensions"], indent=2)

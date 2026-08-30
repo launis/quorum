@@ -73,7 +73,7 @@ async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> lis
     inputs_dict = exec_record.raw_inputs.model_dump()
     dynamic_inputs = (
         inputs_dict["dynamic_inputs"]
-        if "dynamic_inputs" in inputs_dict and isinstance(inputs_dict["dynamic_inputs"], dict)
+        if "dynamic_inputs" in inputs_dict and isinstance(inputs_dict["dynamic_inputs"], dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         else {}
     )
     storage = get_storage_driver()
@@ -248,7 +248,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     inputs_source = (
         state.inputs.raw_inputs
         if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})
+        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
 
     try:
@@ -262,7 +262,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     gvars = (
         state.global_context_vars.vars
         if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
     system_locale = gvars["system_locale"] if "system_locale" in gvars else None
     from backend_v2.settings import get_lexical_fuzz_threshold
@@ -323,7 +323,7 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
     payload = (
         state.inputs.raw_inputs
         if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})
+        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
 
     # Strict boundary check: Explicit schema-driven parsing

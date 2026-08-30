@@ -69,7 +69,7 @@ class ContextRouter:
             MissingXaiExtensionError: If a requested extension is missing in the trace.
         """
         try:
-            if isinstance(trace_event, dict):
+            if isinstance(trace_event, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 if "evaluated_atoms" not in trace_event:
                     msg = "Missing required base field in trace_event: evaluated_atoms"
                     logger.error(msg)
@@ -177,7 +177,7 @@ class ContextRouter:
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from e
 
-                if isinstance(snapshot, dict) and "steps" in snapshot and isinstance(snapshot["steps"], dict):
+                if isinstance(snapshot, dict) and "steps" in snapshot and isinstance(snapshot["steps"], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                     msg = (
                         "Fail-Fast: Legacy dictionary state detected in trace. "
                         "Epic 43 Zero-Compromise Pledge forbids unstructured data; "

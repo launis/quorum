@@ -62,12 +62,13 @@ async def translate_text(
         )
 
         translated_str = ""
-        if isinstance(translated_res, tuple):
-            translated_str = str(translated_res[0]).strip()
-        elif isinstance(translated_res, str):
-            translated_str = translated_res.strip()
-        elif isinstance(translated_res, dict) and "content" in translated_res:
-            translated_str = str(translated_res["content"]).strip()
+        match translated_res:
+            case (str() as content, _):
+                translated_str = content.strip()
+            case str() as content:
+                translated_str = content.strip()
+            case _:
+                translated_str = str(translated_res).strip()
 
         return translated_str if translated_str else text
     except (AppException, AttributeError, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:

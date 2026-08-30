@@ -107,14 +107,20 @@
   - [x] Step 3: Worker Metadata & Trace Metric Refactoring (`backend_v2/worker.py` - `execute_workflow_job`)
   - [x] Step 4: Worker Profile Synthesis & Typed Cache Integration (`backend_v2/worker.py` - `generate_profile_synthesis_and_pdf_task` & `generate_pdf_task`)
   - [x] Step 5: Atomic Worker Test Suite Modernization & Quality Gates
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ### Phase 7: AST Guardrail Hardening (Mathematical Drift Prevention)
 - **Plan:** @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L319-L329] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
-  - [ ] Step 1: AST Guardrail FATAL Locking & Test Verification
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L319-L329] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Flight Verification
+  - [x] Step 1: Pre-Implementation Technical Debt Cleanup & Coverage Expansion
+  - [x] Step 2: Implement QGR012 Rule & Enforce FATAL Severity for Services/Hooks
+  - [x] Step 3: Backend Audit Loop FATAL Hardening & Stage 4 Verification
+  - [x] Step 4: Expand ISTQB Unit Tests for QGR012 & Path Normalization
+  - [x] Step 5: Knowledge Base & Documentation Synchronization
+  - [x] Step 6: Two-Stage Quality Gate & Final E2E Verification
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ---
@@ -202,6 +208,7 @@
   - [ ] [NEW] @[backend_v2/services/cache/__init__.py]
   - [ ] [NEW] @[backend_v2/services/cache/typed_cache.py]
   - [ ] @[scripts/_ast_guardrails.py]
+  - [ ] @[scripts/backend_audit_loop.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` on modified Flutter files:
   - [ ] [NEW] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_record.dart]
@@ -290,7 +297,9 @@
 | Worker metadata & trace metric refactoring via immutable model_copy | Phase 6, Step 3 | COMPLETED |
 | Worker profile synthesis & typed cache integration with strict model validation | Phase 6, Step 4 | COMPLETED |
 | Atomic worker test suite modernization and universal quality gates | Phase 6, Step 5 | COMPLETED |
-| Lock `QGR001`, `QGR002`, `QGR012` AST rules at FATAL severity | Phase 7, Step 1 | PENDING |
+| Lock `QGR001`, `QGR002`, `QGR012` AST rules at FATAL severity in services/hooks | Phase 7, Steps 1-3 | COMPLETED |
+| Harden AST path normalization against relative path evasion | Phase 7, Step 2 | COMPLETED |
+| Codebase zero-FATAL AST remediation & ISTQB unit test coverage | Phase 7, Steps 4-6 | COMPLETED |
 
 ---
 
@@ -487,14 +496,14 @@
   - Conducted deep System 2 Five-Axis deconstruction across all worker jobs, PDF tasks, and cache boundary mechanics.
   - Formulated the 5-Column Architectural Directives Table covering Worker Core, Typed Cache Service, Synthesis Hydration, PDF Rendering, and Atomic Test Suites.
   - Verified exact AST node line bounds spanning complete classes/functions against `scripts/audit_markdown_boundaries.py` with 0 findings.
-  - **Phase 6 Execution (`/tier2-execute`) Completed**:
+- **Phase 6 Execution (`/tier2-execute`) Completed**:
   - Implemented `TypedCacheService` in `backend_v2/services/cache/typed_cache.py` with generic `get_cached[T: BaseModel]` utilizing Rust-based `model_validate_json()` and auto-eviction on `ValidationError`.
   - Refactored `backend_v2/worker.py` across `execute_workflow_job`, `generate_pdf_task`, and `generate_profile_synthesis_and_pdf_task`:
     - Eliminated dictionary mutations in `execution_summary`, `step_metrics`, and `models_used` by updating typed `ExecutionMetadata` via `.model_copy(update={...})`.
     - Eliminated `.get()` fallback chains in trace extraction, linguistics/performativity resolution, and row explanations lookups.
     - Wrapped hook state inputs in `ExecutionInputsDTO` and `GlobalContextVarsDTO` for `synthesis_distiller_hook` and parsed `hook_result.state_delta.delta`.
   - Modernized worker unit tests across `test_worker.py`, `test_worker_synthesis.py`, `test_worker_synthesis_hydration.py`, `test_worker_dlq_fallback.py`, `test_worker_models_used.py`, and `test_typed_cache.py`.
-  - All 65 worker and cache unit tests passing 100%.
+  - All 72 worker and cache unit tests passing 100%.
   - Full Universal Quality Gate passed:
     - Ruff linting & formatting: 100% clean.
     - MyPy strict type check: 0 errors.
@@ -502,6 +511,15 @@
     - TDD Coverage: 92% on `backend_v2/worker.py`, 95% on `backend_v2/services/cache/`.
     - SDUI Cross-Domain Semantic Parity (`test_sdui_semantic_parity.py`): 100% PASSED.
   - Marked Phase 6 execution status as `[x] [OK]`.
+- **Phase 6 System 2 Red-Team Audit (`/tier8-audit-plan`) Completed**:
+  - Validated 100% adherence to all Phase 6 DoD items, architectural invariants, and universal quality gates.
+  - Formally proved elimination of loose dictionary mutations in `execution_summary`, `step_metrics`, and `models_used` via `.model_copy(update={...})` with `ExecutionMetadata`.
+  - Verified `TypedCacheService` inbound auto-eviction firewall on `ValidationError` with RFC 7807 structured logging.
+  - Fixed PEP 257 docstring formatting in `worker.py` (`generate_pdf_task`).
+  - Aligned exact physical AST node line spans in `07_placeholder_phase6_workers_typed_cache_and_storage.md`: `VarianceExplanationResult #L103-L108`, `execute_workflow_job #L122-L448`, `generate_pdf_job #L451-L473`, `generate_pdf_task #L476-L592`, `render_profile_job #L595-L617`, `generate_profile_synthesis_and_pdf_task #L620-L1366`, `startup #L1372-L1433`, `WorkerSettings #L1457-L1469`.
+  - Verified clean execution across all 72 worker/cache unit tests, 0 AST violations, and 100% SDUI semantic parity.
+  - Generated audit report: `red_team_audit_07_placeholder_phase6_workers_typed_cache_and_storage.md`.
+  - Marked Phase 6 audit status as `[x] [OK]`.
 
 ## Learned
 - Repository reconstitution requires updating `backend_v2/database/interfaces.py` in lockstep to avoid Protocol divergence and MyPy strict mode violations.
@@ -540,23 +558,108 @@
 - In `UsageService`, prompt caching capability must be determined by `pricing_cfg.cached_input_token_price is not None` from the LiteLLM registry rather than an ad-hoc `caching_strategy` attribute.
 - In `ReportDataDTO` polyfactory parity tests, unrendered scalar metadata fields (`profile_description`, `custom_preface_md`, `user_name`, `scoring_engine_name`, `org_name`) should be explicitly defaulted to `None` to prevent random faker string assertions from failing against concise Jinja PDF outputs.
 - In worker test suites (`test_worker.py`, `test_worker_synthesis.py`, `test_worker_models_used.py`), legacy test fixtures instantiating `ExecutionRecord` without `target_locale="fi"` and `metadata=ExecutionMetadata(target_locale="fi")` trigger Pydantic V2 `ValidationError`; updating test fixtures to modern SSOT eliminates 27 fixture failures.
-- AST boundary verification (`audit_markdown_boundaries.py`) mandates decorator-adjusted node spans (`node_start = min(d.lineno for d in node.decorator_list)`), requiring exact AST node spans for functions, specifically: `VarianceExplanationResult #L98-L103`, `execute_workflow_job #L117-L438`, `generate_pdf_job #L441-L463`, `generate_pdf_task #L466-L581`, `render_profile_job #L584-L606`, `generate_profile_synthesis_and_pdf_task #L609-L1350`, `startup #L1356-L1417`, and `WorkerSettings #L1441-L1453`.
+- AST boundary verification (`audit_markdown_boundaries.py`) mandates decorator-adjusted node spans (`node_start = min(d.lineno for d in node.decorator_list)`), requiring exact AST node spans for functions, specifically: `VarianceExplanationResult #L103-L108`, `execute_workflow_job #L122-L448`, `generate_pdf_job #L451-L473`, `generate_pdf_task #L476-L592`, `render_profile_job #L595-L617`, `generate_profile_synthesis_and_pdf_task #L620-L1366`, `startup #L1372-L1433`, and `WorkerSettings #L1457-L1469`.
 - In `TypedCacheService` (`backend_v2/services/cache/typed_cache.py`), implementing generic `get_cached[T: BaseModel](key: str, model_cls: type[T]) -> T | None` with `model_cls.model_validate_json()` and auto-eviction (`await self.redis.delete(key)`) on `ValidationError` provides a zero-compromise firewall against zombie and corrupted Redis cache entries.
-- In `backend_v2/worker.py`, strict AST node line bounds (#L98-L103, #L117-L438, #L441-L463, #L466-L581, #L584-L606, #L609-L1350, #L1356-L1417, #L1441-L1453) guarantee exact target alignment without dropping functions or decorator wrappers.
+- In `backend_v2/worker.py`, strict AST node line bounds (#L103-L108, #L122-L448, #L451-L473, #L476-L592, #L595-L617, #L620-L1366, #L1372-L1433, #L1457-L1469) guarantee exact target alignment without dropping functions or decorator wrappers.
 - Red-Teaming verified the 2 critical failure modes: (1) Redis serialization poisoning (mitigated by RFC 7807 logging + auto-eviction), and (2) Legacy `ExecutionRecord` fixture instantiation failures across 28 unit tests (mitigated by pre-implementation cleanup in Step 1).
 - `ExecutionMetadata` is defined in and exported from `backend_v2.models.execution_core`; importing directly from `execution_core` prevents MyPy `attr-defined` export errors.
 - `HookState` strictly enforces typed DTOs `inputs: ExecutionInputsDTO` and `global_context_vars: GlobalContextVarsDTO`; consuming `synthesis_distiller_hook` requires unpacking `hook_result.state_delta.delta`.
 - In `backend_v2/worker.py`, trace metric extraction, starvation checks, linguistics/performativity resolution, and row explanations lookups operate via guarded direct key indexing (`in`), eliminating AST Guardrail `QGR002` violations.
 - In `backend_audit_loop.py`, re-exporting synthesis test functions without leading underscores (`test_*` instead of `_test_*`) in `test_worker.py` enables automatic test discovery and achieves 92% strict TDD coverage on `backend_v2/worker.py`.
+- **Phase 7 Implementation Plan & System 2 Red-Teaming (`/tier0-research-plan`) Completed**:
+  - Authored `implementation_plan.md` and updated `08_placeholder_phase7_ast_guardrails_hardening.md`.
+  - Executed Five-Axis System 2 Adversarial Deconstruction across Scope, Duct-Tape, Best Practice, Complexity Slayer, and Proof Anchor axes.
+  - Defined 7 concrete sequential steps (Steps 0 to 6) to lock `QGR001` (reflection) and `QGR002` (.get fallback) at `FATAL` severity in `services/` and `hooks/`, implement new rule `QGR012` (`isinstance(..., dict)` ban) at `FATAL` severity in `services/` and `hooks/`, harden path normalization against relative path evasion, and expand ISTQB test coverage across `backend_v2/tests/unit/scripts/test_ast_guardrails.py`.
+  - Injected 5-Column Architectural Directives Table into `08_placeholder_phase7_ast_guardrails_hardening.md` and aligned exact AST line bounds: `QuorumGuardrailVisitor #L154-L573` in `scripts/_ast_guardrails.py`, `main #L202-L318` in `scripts/backend_audit_loop.py`, and `test_zero_reflection_self_verification #L632-L643` in `backend_v2/tests/unit/scripts/test_ast_guardrails.py`.
+  - Validated with `scripts/audit_markdown_boundaries.py` (0 errors).
+  - Marked Phase 7 Red-Teaming status as `[x] [OK]`.
+- **Phase 7 AST Guardrail Hardening & Codebase Remediation (`/tier2-execute`) Completed**:
+  - Hardened `scripts/_ast_guardrails.py` to rule range `(QGR000-QGR012)` with robust path segment normalization (`set(path_parts) & {"services", "hooks"}`) to permanently eliminate relative path evasion.
+  - Locked `QGR001` (`getattr`/`hasattr`), `QGR002` (`.get(key, default)`), and new `QGR012` (`isinstance(..., dict)` and composite tuples) at **`FATAL`** severity for `backend_v2/services/` and `backend_v2/hooks/`.
+  - Remediated the entire codebase to zero unsuppressed FATAL violations:
+    - Modernized `output_profile_service.py`, `prompt_block_service.py`, `workflow_service.py`, `translation_service.py`, and `source_verification_service.py` to use typed model mutations and Python 3.10+ `match/case`.
+    - Annotated legitimate polymorphic DAG payload handling in `services/orchestrator/` and `hooks/` with `# noqa: QGR012 [REASON: ...]`.
+  - Expanded ISTQB unit test coverage in `backend_v2/tests/unit/scripts/test_ast_guardrails.py` with Partition 37 covering positive, negative, boundary, composite tuple, and suppression cases.
+  - Implemented `test_zero_reflection_self_verification` asserting zero `getattr`/`hasattr` reflection across `_ast_guardrails.py`, `backend_audit_loop.py`, and `test_ast_guardrails.py`.
+  - Synchronized Knowledge Item `ki_ast_guardrail_engine.md` with `QGR011` and `QGR012` specifications and remediation guidelines.
+  - Hardened `backend_v2/database/repositories/execution.py` payload hydration to type-safely deserialize `execution_trace` into `list[ErrorTraceEvent | TombstoneEvent | TraceEvent]`.
+  - Full Universal Quality Gate passed:
+    - Stage 1 (Unit & Coverage): 86/86 PASSED with 94.5% coverage.
+    - Stage 2 (Strict AST Gate on gatekeeper files): 100% PASSED.
+    - Stage 3 (Global Backend Audit Loop): 100% PASSED across all of `backend_v2/` (Ruff lint/format, MyPy Strict, AST Guardrails, Jinja, Seed Dry-Run, Database Atoms, 91.28% overall coverage).
+    - Stage 4 (Live E2E REST API & PDF Verification): 100% PASSED via `test_integration_real_llm.py::test_real_llm_pdf_execution` (388.16s, 16-page PDF rendered and verified).
+  - Marked Phase 7 execution status as `[x] [OK]`.
+
+## Learned
+- Repository reconstitution requires updating `backend_v2/database/interfaces.py` in lockstep to avoid Protocol divergence and MyPy strict mode violations.
+- `backend_audit_loop.py` automatically maps target files (specifically `backend_v2/database/repositories/execution.py`) to `backend_v2/tests/unit/database/repositories/test_execution.py`. Establishing 1:1 test files under `backend_v2/tests/unit/database/repositories/` guarantees automated compliance and deterministic coverage.
+- Elimination of `.get(key, default)` in domain code is required by AST Guardrail `QGR002`; all dictionary indexing on internal drivers must use direct keys with Fail-Fast exceptions or Pydantic validation.
+- Monolithic `scoring.py` (1,348 LOC) requires decomposition into 4 focused submodules (`falsifier_hook.py`, `passivity_hook.py`, `matrix_hook.py`, `normalization_hook.py`) with a PEP 484 Strangler Fig facade in `__init__.py` to eliminate AST violations while maintaining 100% backward compatibility with service callers.
+- In unit test fixtures, `HookState` requires `metadata=ExecutionMetadata(target_locale="fi")` rather than raw empty dict `{}` to satisfy strict Pydantic V2 validation and MyPy `--strict` checking.
+- Pre-flight test analysis revealed that `apply_scoring_logic_hook` and `enforce_passivity_penalty_hook` had zero dedicated unit test coverage in `test_scoring.py`; test expansion with positive/negative boundary partitions is required in Phase 1 before monolith deletion.
+- In `backend_audit_loop.py`, testing decomposed packages requires discovering candidates from parent directory name (`parts[-2]`) when given `__init__.py`, and testing directory paths should check for matching test files under `backend_v2/tests/unit/hooks/test_<module>.py`.
+- Sub-Phase 3B permanently sunsets `backend_v2/hooks/scoring/models.py` by absorbing `ScoringPayloadWrapper` and `_extract_payloads` into `falsifier_hook.py` and strictly updating `HookState` and `HookResult` to consume typed DTOs from `backend_v2/models/dtos/hook_state.py`.
+- `HookState.inputs: ExecutionInputsDTO` provides structured attributes (`raw_inputs`, `dynamic_inputs`, `target_locale`, `user_role`) that replace untyped `.get()` lookups across validation, ingress, security, extraction, and scoring hooks.
+- `HookResult.state_delta: HookDeltaDTO | None` provides clean separation between `delta` (payload dictionary) and `metadata_updates` (metadata dictionary), replacing manual `delta.pop("metadata", None)` hacks.
+- In `backend_v2/settings.py`, declaring optional `model_registry: dict[str, Any] | None = None` provides direct attribute access for `llm.py` hook resolution without requiring reflection `getattr()` calls.
+- In `backend_v2/hooks/input_processing.py`, missing execution context or missing mandatory language raises `AppException` with `ErrorCodes.VALIDATION_FAILED` and `ErrorCodes.CONFIGURATION_ERROR` respectively.
+- For Phase 4 (Consumers), `StrategyContext` and `DAGExecutor` strategies (`base.py`, `logic.py`, `llm.py`) must be refactored to consume typed `ExecutionInputsDTO`, `GlobalContextVarsDTO`, and `HookDeltaDTO` rather than expecting raw dicts.
+- In `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py`, `StepOutputDTO` has direct properties `block_id`, `payload`, `step_id`; eliminating `getattr(dto, ...)` removes 10 reflection violations in one file.
+- In `ContextBuilder._collect_rule_descriptions`, criteria blocks are polymorphic variants of `PromptBlock` (`SystemRulePromptBlock`, `PromptBlock`, `MatrixPromptBlock`). Only `MatrixPromptBlock` has `.scales`; checking `isinstance(block, MatrixPromptBlock)` prevents runtime `AttributeError` while avoiding untyped `getattr()` calls.
+- `create_execution_record` factory in `backend_v2/services/execution.py` is the Single Source of Truth for `ExecutionRecord` instantiation; adding default/resolved `metadata: ExecutionMetadata` ensures zero field drift across `dag_executor.py` and `execution.py`.
+- In `backend_v2/services/orchestrator/dag_executor.py`, `HookState` pre-hydration requires structured `ExecutionInputsDTO(raw_inputs=..., dynamic_inputs=...)` and `GlobalContextVarsDTO(vars=...)` to avoid Pydantic V2 `extra_forbidden` validation failures.
+- `User` model in `backend_v2/models/auth.py` possesses typed fields `.language` and `.name`. When accessing user properties from `identity_repo.get_user(user_id)`, direct attribute access on `BaseModel` replaces legacy dictionary indexing (`user_dict["language"]`).
+- In `backend_v2/services/orchestrator/engines/tda_engine.py`, all `AppException` calls must pass typed `ErrorCodes` enum values (specifically `ErrorCodes.VALIDATION_FAILED.value` and `ErrorCodes.AGENT_EXECUTION_CRITICAL.value`) in the `details` dictionary to satisfy AST Guardrail `QGR009`.
+- In `RoutingModeConfig`, mapping configurations from step definitions contain arbitrary workflow definition keys alongside `routing_mode`; adding inline suppression `# noqa: QGR007 [REASON: ...]` with `ConfigDict(strict=True, extra="ignore")` documents the structural variance.
+- AST markdown boundary verification (`audit_markdown_boundaries.py`) enforces decorator-adjusted node boundaries: functions/classes with decorators have `node_start = min(decorator.lineno)` (specifically `synthesis_distiller_hook #L175-L367`).
+- In `backend_v2/services/orchestrator/prompt_compiler_adapter.py`, `__getattr__` dynamic delegation violates `QGR001`; explicit method forwarding to the wrapped `PromptCompiler` provides strict type safety with zero reflection.
+- SDUI cross-domain parity requires strict 1:1 string alignment between Flutter `lib/l10n/*.arb` and backend `l10n/*.json` (specifically `sduiMetadataCosts` and `sduiMetadataTokens`). Any divergence breaks semantic token matching in `test_sdui_semantic_parity.py`.
+- In `backend_v2/services/orchestrator/extractive_sensor_service.py`, `_batch_fuzzy_match` returns `dict[str, str]` for extensions; passing strings/dictionaries must adhere strictly to declared type annotations without nested raw lists to avoid MyPy strict mode failures.
+- In `backend_v2/services/execution.py`, `TokenData` natively guarantees typed `organization_id: str | None = None`. Replacing all 11 instances of `getattr(initiator, "organization_id", None)` with `initiator.organization_id` eliminates reflection without requiring runtime fallback chains.
+- In `backend_v2/services/llm_task_executor.py`, `execute_chat_task` returns `tuple[str, TokenUsage]`. Consuming services (`translation_service.py`, `source_verification_service.py`) must directly unpack this tuple rather than performing `isinstance(res, dict)` and `.get("content")` fallback parsing.
+- `ExecutionRecord` requires `target_locale="fi"` (and `metadata=ExecutionMetadata(target_locale="fi")`) across all service test fixtures (`test_blueprint.py`, `test_blueprint_sdui_crash.py`, `test_matrix_domain_parser.py`, SDUI adapter tests); omitting `target_locale` causes Pydantic V2 `ValidationError: Field required [target_locale]`.
+- `AuditRepository` protocol in `backend_v2/database/interfaces.py` guarantees `upsert_usage_aggregate`, `get_usage_records`, and `get_usage_aggregate` natively, rendering `hasattr(self.audit_repo, ...)` obsolete.
+- In `StudioWorkflowService.clone_workflow`, `StudioOutputProfileService.clone_output_profile`, and `StudioPromptBlockService.clone_prompt_block`, `I18nText` translations must be mutated directly via typed dict comprehensions (`{loc: f"{txt} (Copy)" for loc, txt in obj.name.translations.items()}`) rather than performing untyped `model_dump(mode="json")` roundtrips with `.get("translations", {})`.
+- In `ExecutionService.get_execution` (line 998), `AppException` must include `details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}` to satisfy `QGR009`.
+- In `BlueprintTransformer`, `LaxScoringStrategy` is typed `ScoringStrategy | str`; accessing `strat_enum.value` replaces `hasattr(strat_enum, "value")`.
+- `OutputProfile` validation invariant: `MATRIX_GRAPHS_BLOCK` in `target_block_order` mathematically requires non-empty `matrix_synthesis_groups` with at least one `MatrixSynthesisGroup` (specifically `{"id": "...", "title": {"translations": {"en": "Default"}}, "target_blocks": ["*"]}`).
+- `ProtocolPromptBlock` strict instantiation requires `slug`, `label: I18nText`, `description: I18nText`, `organization_id`, and `category_id="protocol"`.
+- In `UsageService`, prompt caching capability must be determined by `pricing_cfg.cached_input_token_price is not None` from the LiteLLM registry rather than an ad-hoc `caching_strategy` attribute.
+- In `ReportDataDTO` polyfactory parity tests, unrendered scalar metadata fields (`profile_description`, `custom_preface_md`, `user_name`, `scoring_engine_name`, `org_name`) should be explicitly defaulted to `None` to prevent random faker string assertions from failing against concise Jinja PDF outputs.
+- In worker test suites (`test_worker.py`, `test_worker_synthesis.py`, `test_worker_models_used.py`), legacy test fixtures instantiating `ExecutionRecord` without `target_locale="fi"` and `metadata=ExecutionMetadata(target_locale="fi")` trigger Pydantic V2 `ValidationError`; updating test fixtures to modern SSOT eliminates 27 fixture failures.
+- AST boundary verification (`audit_markdown_boundaries.py`) mandates decorator-adjusted node spans (`node_start = min(d.lineno for d in node.decorator_list)`), requiring exact AST node spans for functions, specifically: `VarianceExplanationResult #L103-L108`, `execute_workflow_job #L122-L448`, `generate_pdf_job #L451-L473`, `generate_pdf_task #L476-L592`, `render_profile_job #L595-L617`, `generate_profile_synthesis_and_pdf_task #L620-L1366`, `startup #L1372-L1433`, and `WorkerSettings #L1457-L1469`.
+- In `TypedCacheService` (`backend_v2/services/cache/typed_cache.py`), implementing generic `get_cached[T: BaseModel](key: str, model_cls: type[T]) -> T | None` with `model_cls.model_validate_json()` and auto-eviction (`await self.redis.delete(key)`) on `ValidationError` provides a zero-compromise firewall against zombie and corrupted Redis cache entries.
+- In `backend_v2/worker.py`, strict AST node line bounds (#L103-L108, #L122-L448, #L451-L473, #L476-L592, #L595-L617, #L620-L1366, #L1372-L1433, #L1457-L1469) guarantee exact target alignment without dropping functions or decorator wrappers.
+- Red-Teaming verified the 2 critical failure modes: (1) Redis serialization poisoning (mitigated by RFC 7807 logging + auto-eviction), and (2) Legacy `ExecutionRecord` fixture instantiation failures across 28 unit tests (mitigated by pre-implementation cleanup in Step 1).
+- `ExecutionMetadata` is defined in and exported from `backend_v2.models.execution_core`; importing directly from `execution_core` prevents MyPy `attr-defined` export errors.
+- `HookState` strictly enforces typed DTOs `inputs: ExecutionInputsDTO` and `global_context_vars: GlobalContextVarsDTO`; consuming `synthesis_distiller_hook` requires unpacking `hook_result.state_delta.delta`.
+- In `backend_v2/worker.py`, trace metric extraction, starvation checks, linguistics/performativity resolution, and row explanations lookups operate via guarded direct key indexing (`in`), eliminating AST Guardrail `QGR002` violations.
+- In `backend_audit_loop.py`, re-exporting synthesis test functions without leading underscores (`test_*` instead of `_test_*`) in `test_worker.py` enables automatic test discovery and achieves 92% strict TDD coverage on `backend_v2/worker.py`.
+- **Phase 7 AST Guardrails & Path Hardening**:
+  - Path normalization in AST Guardrails: Substring checks (`"backend_v2/services/" in norm_path`) allow relative path evasion when tools or tests pass `services/` or `hooks/` directly. Normalizing path segments via `set(norm_path.replace("\\", "/").strip("/").split("/"))` and checking intersection with `{"services", "hooks"}` mathematically guarantees uniform `FATAL` severity across all working directories.
+  - `QGR012` AST pattern matching: Detects both direct `isinstance(target, dict)` and composite tuple checks `isinstance(target, (dict, ...))`. Banned in domain services and hooks; polymorphic DAG payload consumers must use Python 3.10+ `match/case` structural pattern matching or explicit inline suppression `# noqa: QGR012 [REASON: ...]`.
+  - Zero-Reflection Tooling Mandate: `test_zero_reflection_self_verification` audits `_ast_guardrails.py`, `backend_audit_loop.py`, and `test_ast_guardrails.py` to guarantee that all quality gate and analysis scripts remain 100% self-compliant with zero `getattr()` or `hasattr()` calls.
+  - Aligned exact physical AST node spans: `QuorumGuardrailVisitor #L154-L573` in `scripts/_ast_guardrails.py`, `main #L202-L318` in `scripts/backend_audit_loop.py`, and `test_zero_reflection_self_verification #L632-L643` in `backend_v2/tests/unit/scripts/test_ast_guardrails.py`.
+  - In `backend_v2/database/repositories/execution.py`, `execution_trace` blob hydration requires `TypeAdapter(list[ErrorTraceEvent | TombstoneEvent | TraceEvent]).validate_json(blob_data)` to match canonical `ExecutionCoreFields.execution_trace` schema; deserializing into `StepOutputDTO` triggers `extra_forbidden` during real execution polling.
+  - Live E2E REST integration test lifecycle: `test_integration_real_llm.py` re-uses active port 8000 processes; running python / uvicorn instances must be terminated prior to testing when repository layers or hydration schemas are modified.
+  - **Live E2E Verification & Performativity/Linguistics Lineage Resolution**:
+    - `_step_metadata` Lineage: In `backend_v2/services/orchestrator/strategies/llm.py` and `logic.py`, `_step_metadata` in output trace events MUST always contain `"task_blueprint": blueprint_id` and `"model_strategy": strategy_name` regardless of token count. Previously, `_step_metadata` was skipped if `total_tokens == 0`, losing task blueprint identity for non-LLM or zero-token nodes.
+    - Performativity Detector Matching: In `backend_v2/worker.py`, `perf_step_id` (defined on `OutputProfile.performativity_detector_step_id` as step blueprint ID `sp_7f9649114d2344dc`) is mapped against runtime DAG step IDs (`sr_1d7e6d26b02b457b`). Matching both `event.step_name == perf_step_id` and `step_meta.get("task_blueprint") == perf_step_id` ensures infallible performativity matrix resolution.
+    - Hook Dynamic/Raw Input Synchronization: In `backend_v2/services/orchestrator/strategies/base.py`, pre-hook and post-hook delta reduction synchronizes both `dynamic_inputs` and `raw_inputs` on custom hook keys, preventing state desynchronization between hook consumers.
+    - Linguistics Context Variables & Decision Trace: In `backend_v2/hooks/linguistics.py`, `detect_performative_patterns` returns `state_delta` with `"global_context_vars": {"step_linguistics": ...}` alongside `"step_linguistics"`. This enables `base.py` to update `hook_state.global_context_vars`, emit a `decision` trace event (`metadata={"is_context_update": True}`), and persist `step_linguistics` into `context_variables.json` for consumption by `worker.py` and `VarianceAdapter`.
+    - End-to-End Tripartite Pipeline Execution: Verified the complete tripartite pipeline in live environment via `test_integration_real_llm.py::test_real_llm_pdf_execution` (388.16s runtime, 16-page PDF generated via WeasyPrint, and 100% assertions passed).
 
 ## Remaining
-- **Phase 6 Audit**: System 2 Red-Team Audit of Phase 6 (`/tier8-audit-plan`).
-- **Phase 7**: AST Guardrails Hardening & Global Clean Code Audit (`08_placeholder_phase7_ast_guardrails_hardening.md`).
+- **Phase 7 Audit**: System 2 Red-Team Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`).
+- **Epic 149 Final Integration Checkpoint**: Full-stack validation and closure.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]
 ```
+
+
+
 
 
 

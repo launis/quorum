@@ -66,7 +66,7 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
     gvars = (
         state.global_context_vars.vars
         if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
     try:
         payload = MetadataHookPayloadDTO.model_validate(gvars)

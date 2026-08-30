@@ -182,7 +182,9 @@ async def test_source_verification_hook_success(
         metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
-            raw_inputs={"document_text": "This is a valid long document text discussing quantum supremacy achievements."}
+            raw_inputs={
+                "document_text": "This is a valid long document text discussing quantum supremacy achievements."
+            }
         ),
     )
 
@@ -347,9 +349,7 @@ async def test_source_verification_hook_service_error_propagates(
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(
-            raw_inputs={"document_text": "This is valid text that encounters service failure."}
-        ),
+        inputs=ExecutionInputsDTO(raw_inputs={"document_text": "This is valid text that encounters service failure."}),
     )
 
     with pytest.raises(AppException) as exc:

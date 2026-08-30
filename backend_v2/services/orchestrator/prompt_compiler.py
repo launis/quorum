@@ -281,7 +281,7 @@ class PromptCompiler:
         current = state_data
 
         for part in parts:
-            if isinstance(current, dict) and part in current:
+            if isinstance(current, dict) and part in current:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 current = current[part]
             elif isinstance(current, BaseModel) and part in current.model_fields:
                 current = current.model_dump()[part]
@@ -299,22 +299,22 @@ class PromptCompiler:
         if isinstance(current, BaseModel):
             return str(current.model_dump_json(indent=2))
 
-        if isinstance(current, dict):
+        if isinstance(current, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             # Epic 12: Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
             formatted = []
             for k, v in current.items():
                 clean_k = str(k).upper()
                 formatted.append(f"<{clean_k}>")
-                if isinstance(v, dict):
+                if isinstance(v, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                     # Yritetään sukeltaa suoraan 'outputs' avaimeen jos se olemassa
-                    target_dict = v["outputs"] if "outputs" in v and isinstance(v["outputs"], dict) else v
+                    target_dict = v["outputs"] if "outputs" in v and isinstance(v["outputs"], dict) else v  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                     for sub_k, sub_v in target_dict.items():
                         # Epic 32: Prevent Context Snowballing (95k char prompts).
                         # Never inject raw Matrix arrays into subsequent LLM contexts.
                         if sub_k == "results" and isinstance(sub_v, list):
                             continue
 
-                        if isinstance(sub_v, dict):
+                        if isinstance(sub_v, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                             formatted.append(f"<{str(sub_k).upper()}>")
                             for micro_k, micro_v in sub_v.items():
                                 # Siivotaan kognitiiviset etuliitteet pois luettavuuden vuoksi

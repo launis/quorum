@@ -54,7 +54,7 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
     content_payload: dict[str, Any] = (
         state.inputs.raw_inputs
         if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})
+        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
     if "evaluations" not in content_payload:
         logger.info("[DLQGuard] No evaluations found or empty. Bypassing guard.")

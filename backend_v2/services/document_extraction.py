@@ -98,7 +98,7 @@ class DocumentExtractionService:
         new_dynamic_inputs = dict(ingress.dynamic_inputs)
 
         for key, val in list(ingress.dynamic_inputs.items()):
-            if isinstance(val, dict) and "content_base64" in val:
+            if isinstance(val, dict) and "content_base64" in val:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 try:
                     # STRICT PHASE 9: Fail-fast hydration instead of Duck Typing
                     attachment = Base64Attachment.model_validate(val)

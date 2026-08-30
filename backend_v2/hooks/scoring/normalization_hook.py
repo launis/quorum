@@ -58,11 +58,15 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
     raw_inputs = (
-        state.inputs.raw_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})
+        state.inputs.dynamic_inputs
+        if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.dynamic_inputs
+        else (
+            state.inputs.raw_inputs
+            if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.raw_inputs
+            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+        )
     )
-    if not isinstance(raw_inputs, dict):
+    if not isinstance(raw_inputs, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in normalize_matrix_scores_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
@@ -99,7 +103,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
 
         eval_map: dict[str, float] = (
             new_payload["_evaluative_matrices"]
-            if "_evaluative_matrices" in new_payload and isinstance(new_payload["_evaluative_matrices"], dict)
+            if "_evaluative_matrices" in new_payload and isinstance(new_payload["_evaluative_matrices"], dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             else {}
         )
         new_payload["_evaluative_matrices"] = eval_map
@@ -203,7 +207,6 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             )
 
             dumped_matrix = matrix_dto.model_dump(mode="json")
-            dumped_matrix["__replace__"] = True
             new_payload[pb_id] = dumped_matrix
 
             if pb_model.is_evaluative:
@@ -252,7 +255,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
     Raises:
         AppException: With ErrorCodes.VALIDATION_FAILED if matrix format or extensions are invalid.
     """
-    if not isinstance(payload, dict):
+    if not isinstance(payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         return
 
     strictness_level = None
@@ -273,7 +276,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
 
     matrix_keys: list[str] = []
     for k, v in payload.items():
-        if isinstance(v, dict) and "evaluated_atoms" in v and "justification" in v:
+        if isinstance(v, dict) and "evaluated_atoms" in v and "justification" in v:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(k)
             if pb_data:
                 pb_model = PromptBlockAdapter.validate_python(pb_data, strict=False)

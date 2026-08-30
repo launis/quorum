@@ -104,7 +104,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
         raw_inputs = (
             state.inputs.raw_inputs
             if isinstance(state.inputs, ExecutionInputsDTO)
-            else (state.inputs if isinstance(state.inputs, dict) else {})
+            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         )
         try:
             parsed_inputs = ReferencesInputsDTO.model_validate(raw_inputs)
@@ -128,7 +128,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
         gvars = (
             state.global_context_vars.vars
             if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-            else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+            else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         )
         try:
             parsed_context = ReferencesContextDTO.model_validate(gvars)

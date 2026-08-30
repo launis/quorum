@@ -53,12 +53,12 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     raw_inputs = (
         state.inputs.raw_inputs
         if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})
+        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
     gvars = (
         state.global_context_vars.vars
         if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
 
     # Check for early exit signal (Workflow override)
@@ -73,7 +73,12 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
         return HookResult(
             success=True,
             state_delta=HookDeltaDTO(
-                delta={"step_linguistics": LinguisticsResultDTO(performative_patterns=[]).model_dump(mode="json")}
+                delta={
+                    "step_linguistics": LinguisticsResultDTO(performative_patterns=[]).model_dump(mode="json"),
+                    "global_context_vars": {
+                        "step_linguistics": LinguisticsResultDTO(performative_patterns=[]).model_dump(mode="json")
+                    },
+                }
             ),
         )
 
@@ -166,5 +171,10 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
 
     return HookResult(
         success=True,
-        state_delta=HookDeltaDTO(delta={"step_linguistics": result_dto.model_dump(mode="json")}),
+        state_delta=HookDeltaDTO(
+            delta={
+                "step_linguistics": result_dto.model_dump(mode="json"),
+                "global_context_vars": {"step_linguistics": result_dto.model_dump(mode="json")},
+            }
+        ),
     )

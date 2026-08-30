@@ -6,6 +6,7 @@ import pytest
 from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
 from backend_v2.hooks.linguistics import detect_performative_patterns
 from backend_v2.models.domain.linguistics import LinguisticsPayloadDTO
+from backend_v2.core.hook_registry import ExecutionInputsDTO, ExecutionMetadata, GlobalContextVarsDTO
 
 
 @pytest.fixture
@@ -29,14 +30,12 @@ def test_linguistics_payload_dto() -> None:
     dto1 = LinguisticsPayloadDTO(dynamic_inputs={})
     assert dto1.extract_language({"language": "fi"}) == "fi"
 
-    # Language in inputs (root)
-    dto2 = LinguisticsPayloadDTO(language="es-ES", dynamic_inputs={})
-    assert dto2.extract_language({}) == "es"
+    # Default fallback to en
+    dto2 = LinguisticsPayloadDTO(dynamic_inputs={})
+    assert dto2.extract_language({}) == "en"
 
-    # Language missing entirely defaults to en
-    dto3 = LinguisticsPayloadDTO(dynamic_inputs={"foo": "bar"})
-    assert dto3.extract_language({}) == "en"
-
+    # Input aggregation
+    dto3 = LinguisticsPayloadDTO(dynamic_inputs={"foo": "bar", "num": 123, "empty": ""})
     # Text concatenates properly
     assert "bar" in dto3.get_text_to_scan()
     assert "foo" not in dto3.get_text_to_scan()  # only values are scanned
@@ -49,9 +48,11 @@ async def test_detect_performative_patterns_success_en(mock_deps: HookDependenci
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata={},
-        global_context_vars={},
-        inputs={"q1": "It is important to note that this is a game changer.", "q2": "Regular text with no fillers."},  # noqa: E501
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"q1": "It is important to note that this is a game changer.", "q2": "Regular text with no fillers."}
+        ),
     )
 
     mock_deps.system_repo.get_system_config.return_value = {
@@ -71,10 +72,10 @@ async def test_detect_performative_patterns_success_en(mock_deps: HookDependenci
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "global_context_vars" in result.state_delta
-    assert "step_linguistics" in result.state_delta["global_context_vars"]
+    assert "global_context_vars" in result.state_delta.delta
+    assert "step_linguistics" in result.state_delta.delta["global_context_vars"]
 
-    patterns = result.state_delta["global_context_vars"]["step_linguistics"]["performative_patterns"]
+    patterns = result.state_delta.delta["global_context_vars"]["step_linguistics"]["performative_patterns"]
     assert len(patterns) == 2
     phrases = [p["detected_phrase"] for p in patterns]
     assert "game changer" in phrases
@@ -89,9 +90,11 @@ async def test_detect_performative_patterns_success_fi(mock_deps: HookDependenci
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata={},
-        global_context_vars={"language": "fi-FI"},
-        inputs={"q1": "Tämä on täysin mullistava innovaatio.", "q2": "Syventyä asiaan tarkemmin."},
+        metadata=ExecutionMetadata(target_locale="fi"),
+        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi-FI"}),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"q1": "Tämä on täysin mullistava innovaatio.", "q2": "Syventyä asiaan tarkemmin."}
+        ),
     )
 
     mock_deps.system_repo.get_system_config.return_value = {
@@ -111,7 +114,7 @@ async def test_detect_performative_patterns_success_fi(mock_deps: HookDependenci
 
     assert result.success is True
     assert result.state_delta is not None
-    patterns = result.state_delta["global_context_vars"]["step_linguistics"]["performative_patterns"]
+    patterns = result.state_delta.delta["global_context_vars"]["step_linguistics"]["performative_patterns"]
     assert len(patterns) == 2
     phrases = [p["detected_phrase"] for p in patterns]
     assert "mullistava" in phrases
@@ -126,9 +129,11 @@ async def test_detect_performative_patterns_no_matches(mock_deps: HookDependenci
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata={},
-        global_context_vars={},
-        inputs={"q1": "Just some plain text that is completely fine.", "q2": "Nothing to see here."},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"q1": "Just some plain text that is completely fine.", "q2": "Nothing to see here."}
+        ),
     )
 
     mock_deps.system_repo.get_system_config.return_value = {
@@ -148,5 +153,5 @@ async def test_detect_performative_patterns_no_matches(mock_deps: HookDependenci
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "global_context_vars" in result.state_delta
-    assert len(result.state_delta["global_context_vars"]["step_linguistics"]["performative_patterns"]) == 0
+    assert "global_context_vars" in result.state_delta.delta
+    assert len(result.state_delta.delta["global_context_vars"]["step_linguistics"]["performative_patterns"]) == 0

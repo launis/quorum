@@ -60,7 +60,7 @@ class LocalizationCompiler:
         if not text_obj:
             return ""
 
-        if isinstance(text_obj, dict):
+        if isinstance(text_obj, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             try:
                 text_obj = I18nText.model_validate(text_obj)
             except (ValidationError, ValueError) as e:

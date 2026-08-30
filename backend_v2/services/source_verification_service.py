@@ -139,12 +139,13 @@ class SourceVerificationService:
                 client=self.llm_client,
                 messages=messages,
             )
-            if isinstance(eval_res, tuple):
-                status_str = str(eval_res[0]).strip().upper()
-            elif isinstance(eval_res, dict) and "content" in eval_res:
-                status_str = str(eval_res["content"]).strip().upper()
-            else:
-                status_str = str(eval_res).strip().upper()
+            match eval_res:
+                case (str() as raw_status, _):
+                    status_str = raw_status.strip().upper()
+                case str() as raw_status:
+                    status_str = raw_status.strip().upper()
+                case _:
+                    status_str = str(eval_res).strip().upper()
 
             if status_str not in ["VERIFIED", "HALLUCINATION", "INCONCLUSIVE"]:
                 status = SourceVerificationStatus.INCONCLUSIVE

@@ -1,6 +1,6 @@
 """Domain models for Knowledge Base, Banned Phrases, and Prompt Templates."""
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field
 

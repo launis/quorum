@@ -54,7 +54,7 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
         recent_executions = await repository.get_recent_completed_executions(limit=5)
 
         # STRICT Enforce: Repository must return List[ExecutionRecord] objects, NOT dicts.
-        if recent_executions and isinstance(recent_executions[0], dict):
+        if recent_executions and isinstance(recent_executions[0], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             msg = "Repository returned dicts instead of Pydantic Models. Strict Pydantic Enforcement Violation."
             logger.error("[ArchivalHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
             raise AppException(

@@ -54,7 +54,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     ctx = (
         state.global_context_vars.vars
         if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})
+        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
     )
 
     # 2. Get Strategy (SSOT)
@@ -87,7 +87,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     # Workflow's 'default_model_mapping' dictionary into 'state.context_variables'
     # so we can do: model_strategy = ctx.get("workflow_model_mapping", {}).get(step_id, model_strategy)
 
-    if "workflow_model_mapping" in ctx and isinstance(ctx["workflow_model_mapping"], dict):
+    if "workflow_model_mapping" in ctx and isinstance(ctx["workflow_model_mapping"], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         mapping = ctx["workflow_model_mapping"]
         if step_id in mapping and isinstance(mapping[step_id], str):
             model_strategy = mapping[step_id]

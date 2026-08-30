@@ -281,6 +281,7 @@ class NodeStrategy(ABC):
                     for k, v in delta.items():
                         if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
                             new_dynamic[k] = v
+                            new_raw[k] = v
                     new_inputs = hook_state.inputs.model_copy(
                         update={"raw_inputs": new_raw, "dynamic_inputs": new_dynamic}
                     )
@@ -359,6 +360,7 @@ class NodeStrategy(ABC):
                     for k, v in delta.items():
                         if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
                             new_dynamic[k] = v
+                            new_raw[k] = v
                     new_inputs = hook_state.inputs.model_copy(
                         update={"raw_inputs": new_raw, "dynamic_inputs": new_dynamic}
                     )

@@ -53,7 +53,7 @@ def _extract_text_polymorphically(inputs: Any) -> str:
     if isinstance(inputs, ExecutionInputsDTO):
         return _extract_text_polymorphically(inputs.raw_inputs)
 
-    if isinstance(inputs, dict):
+    if isinstance(inputs, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
         recognized_keys = ("document_text", "prior_analysis", "text", "document")
         if any(k in inputs for k in recognized_keys):
             try:
@@ -89,7 +89,7 @@ def _extract_text_polymorphically(inputs: Any) -> str:
             return (inputs.document_text or inputs.prior_analysis or inputs.text or inputs.document or "").strip()
         else:
             dumped = inputs.model_dump(mode="python")
-            if isinstance(dumped, dict):
+            if isinstance(dumped, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 return _extract_text_polymorphically(dumped)
 
     msg = "Invalid inputs format for source verification hook"

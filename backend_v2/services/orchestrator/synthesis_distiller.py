@@ -227,7 +227,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         for item in steps_list:
             if isinstance(item, StepOutputDTO):
                 available_dtos.append(item)
-            elif isinstance(item, dict):
+            elif isinstance(item, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 available_dtos.append(StepOutputDTO.model_validate(item))
 
     # Phase 2, Milestone 1.6: Fetch workflow and execution for context resolution

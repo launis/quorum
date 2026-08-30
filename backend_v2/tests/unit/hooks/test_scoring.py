@@ -787,9 +787,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     assert delta is not None
     assert delta["pb_1234567890123456"]["raw_score"] > 1.0
     assert delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
-    assert (
-        delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_pure_average_engine_breakdown"
-    )
+    assert delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_pure_average_engine_breakdown"
 
 
 @pytest.mark.asyncio

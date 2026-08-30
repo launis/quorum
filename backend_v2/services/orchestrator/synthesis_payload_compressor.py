@@ -71,7 +71,7 @@ class SynthesisPayloadCompressor:
         elif isinstance(v, list):
             v = [item.model_dump(mode="json") if isinstance(item, BaseModel) else item for item in v]
 
-        if not isinstance(v, (dict, list)):
+        if not isinstance(v, (dict, list)):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             logger.error(
                 "[SynthesisPayloadCompressor] %s: Payload must be a dict, list, string, or scalar for compression.",
                 ErrorCodes.VALIDATION_FAILED.name,
@@ -150,7 +150,7 @@ class SynthesisPayloadCompressor:
             return {k: v for k, v in item.items() if k in {"output_text", "status", "atom_id"}}
 
         def _strip_heavy_keys(obj: Any) -> None:
-            if isinstance(obj, dict):
+            if isinstance(obj, dict):  # noqa: QGR012 [REASON: Polymorphic DAG dictionary key stripping]
                 obj.pop("shuffled_atoms", None)
                 obj.pop("atom_quotes", None)
                 obj.pop("hydrated_references", None)
@@ -173,7 +173,7 @@ class SynthesisPayloadCompressor:
 
                     lite_evals = []
                     for ev in results_data:
-                        if not isinstance(ev, dict):
+                        if not isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic evaluation payload validation]
                             logger.error(
                                 "[SynthesisPayloadCompressor] %s: Evaluation item must be a dictionary.",
                                 ErrorCodes.VALIDATION_FAILED.name,

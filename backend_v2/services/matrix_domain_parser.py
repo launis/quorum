@@ -119,7 +119,7 @@ class MatrixDomainParser:
             if not pb_meta or not isinstance(pb_meta, MatrixPromptBlock):
                 continue
 
-            if not isinstance(block_data, dict):
+            if not isinstance(block_data, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 msg = (
                     f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': "
                     f"expected dict, got {type(block_data)}"
@@ -359,7 +359,7 @@ class MatrixDomainParser:
                 for r_dto in results:
                     if r_dto.step_id == step_id and r_dto.block_id == "results" and isinstance(r_dto.payload, list):
                         for ev in r_dto.payload:
-                            if isinstance(ev, dict) and "tda_id" in ev:
+                            if isinstance(ev, dict) and "tda_id" in ev:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                                 step_evals_map[ev["tda_id"]] = ev
                         break
 
@@ -472,7 +472,7 @@ class MatrixDomainParser:
             context_target_label = None
             step_rule = workflow_steps.get(step_id)
             input_mappings = step_rule.input_mappings if isinstance(step_rule, StepRule) else None
-            if input_mappings and isinstance(input_mappings, dict):
+            if input_mappings and isinstance(input_mappings, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 # Find input mapping pointing to $inputs
                 for mapped_val in input_mappings.values():
                     if isinstance(mapped_val, str) and mapped_val.startswith("$inputs."):
