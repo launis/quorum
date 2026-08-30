@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile
 from backend_v2.models.view.sdui import SduiMetadataBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -35,6 +36,8 @@ def test_metadata_adapter_builds_header_block_bilingual_en() -> None:
         created_at=datetime(2026, 1, 1, 12, 0),
         execution_trace=[],
         context_variables={},
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     context = AdapterContext(
         execution=execution,
@@ -71,6 +74,8 @@ def test_metadata_adapter_builds_header_block_bilingual_fi() -> None:
         created_at=datetime(2026, 1, 1, 12, 0),
         execution_trace=[],
         context_variables={},
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     context = AdapterContext(
         execution=execution,
@@ -115,6 +120,8 @@ def test_metadata_adapter_all_fields_with_local_time_and_costs() -> None:
         status=ExecutionStatus.PASSED,
         created_at=datetime(2026, 1, 1, 10, 0),
         execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     context = AdapterContext(
         execution=execution,

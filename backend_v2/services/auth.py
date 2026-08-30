@@ -153,7 +153,11 @@ class UserRepository:
             AppException: If a user with the same ID already exists.
         """
         if await self.get_by_id(user.id):
-            raise AppException(f"User with ID {user.id} already exists.", 409)
+            raise AppException(
+                message=f"User with ID {user.id} already exists.",
+                status_code=409,
+                details={"error_code": ErrorCodes.CONFLICT_ERROR.value},
+            )
 
         await self.repo.create_user(user.model_dump(mode="json"))
         return user
@@ -476,7 +480,11 @@ class AuthService:
         creator = await self.repo.get_by_id(creator_id)
 
         if not creator:
-            raise AppException(message="Creator not found", status_code=404)
+            raise AppException(
+                message="Creator not found",
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
 
         target_org_id: str | None = None
 
@@ -647,7 +655,11 @@ class AuthService:
         target = await self.repo.get_by_id(target_id)
 
         if not initiator or not target:
-            raise AppException(message="User not found", status_code=404)
+            raise AppException(
+                message="User not found",
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
 
         # Permission Check
         if initiator.role != UserRole.ROOT:
@@ -679,7 +691,7 @@ class AuthService:
             try:
                 logger.info("[AuthService] Deleting Firebase user %s...", target.id)
                 await asyncio.to_thread(self.firebase_auth.delete_user, target.id)
-            except Exception as e:
+            except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
                 logger.warning("Firebase delete failed (might be local user): %s", e)
 
         # 2. Local DB
@@ -749,7 +761,7 @@ class AuthService:
                 if self.use_firebase:
                     try:
                         await asyncio.to_thread(self.firebase_auth.delete_user, user.id)
-                    except Exception as fb_err:
+                    except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as fb_err:
                         logger.warning("Failed to cascade delete user %s in Firebase: %s", user.id, fb_err)
 
                 await self.repo.delete(user.id)
@@ -790,7 +802,11 @@ class AuthService:
         target = await self.repo.get_by_id(target_id)
 
         if not initiator or not target:
-            raise AppException(message="User not found", status_code=404)
+            raise AppException(
+                message="User not found",
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
 
         # Permission Check
         if initiator.role != UserRole.ROOT:
@@ -832,7 +848,11 @@ class AuthService:
             logger.error(
                 "[AuthService] %s: User update failed (not found despite check).", ErrorCodes.INTERNAL_SERVER_ERROR.name
             )
-            raise AppException("User update failed (not found despite check).", status_code=500)
+            raise AppException(
+                message="User update failed (not found despite check).",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            )
 
         # Audit
         if self.audit_service:
@@ -869,7 +889,11 @@ class AuthService:
         target = await self.repo.get_by_id(target_id)
 
         if not initiator or not target:
-            raise AppException(message="User not found", status_code=404)
+            raise AppException(
+                message="User not found",
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
 
         # 1. Access Control (Hierarchy)
         if initiator.role != UserRole.ROOT:
@@ -885,9 +909,9 @@ class AuthService:
                 UserRole.VIEWER: 5,  # Assuming VIEWER exists or mapping it low
             }
 
-            init_val = role_values.get(initiator.role, 0)
-            target_val = role_values.get(target.role, 0)
-            new_val = role_values.get(new_role, 0)
+            init_val = role_values[initiator.role] if initiator.role in role_values else 0
+            target_val = role_values[target.role] if target.role in role_values else 0
+            new_val = role_values[new_role] if new_role in role_values else 0
 
             if init_val < target_val:
                 raise PermissionDeniedError("Cannot modify users with higher or equal privileges.")
@@ -919,7 +943,11 @@ class AuthService:
             logger.error(
                 "[AuthService] %s: User update failed (user reference lost).", ErrorCodes.INTERNAL_SERVER_ERROR.name
             )
-            raise AppException("User update failed (user reference lost).", status_code=500)
+            raise AppException(
+                message="User update failed (user reference lost).",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            )
 
         # 4. Audit
         if self.audit_service:

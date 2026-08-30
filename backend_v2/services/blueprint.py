@@ -5,8 +5,6 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import BaseModel
-
 from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
@@ -17,9 +15,11 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import User
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.enums import (
+    ScoringStrategy,
     TargetBlockType,
     VirtualSystemStepID,
 )
@@ -460,11 +460,8 @@ class BlueprintTransformer:
             try:
                 user_obj = await self.identity_repo.get_user(execution.created_by)
                 if user_obj:
-                    user_name = (
-                        user_obj.name
-                        if isinstance(user_obj, BaseModel)
-                        else (user_obj.get("name") or user_obj.get("display_name") if isinstance(user_obj, dict) else None)
-                    )
+                    user_model = user_obj if isinstance(user_obj, User) else User.model_validate(user_obj)
+                    user_name = user_model.name
             except Exception as u_err:
                 msg_err = f"Failed to resolve user name for id {execution.created_by}"
                 logger.error(
@@ -479,7 +476,7 @@ class BlueprintTransformer:
         strat_enum = (
             profile.scoring_strategy if profile.scoring_strategy is not None else workflow_obj.default_scoring_strategy
         )
-        s_strat = strat_enum.value if hasattr(strat_enum, "value") else str(strat_enum)  # noqa: QGR001 [REASON: LaxScoringStrategy type alias may be enum or string]
+        s_strat = strat_enum.value if isinstance(strat_enum, ScoringStrategy) else str(strat_enum)
 
         engine_str = str(s_strat)
 

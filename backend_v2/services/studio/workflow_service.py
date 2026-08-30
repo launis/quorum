@@ -4,7 +4,7 @@ import logging
 import uuid
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.database.interfaces import (
     IOutputProfileRepository,
@@ -73,16 +73,21 @@ class StudioWorkflowService:
             try:
                 all_profiles.append(OutputProfile.model_validate(p_data, strict=False))
             except ValidationError as e:
+                p_id = (
+                    p_data.id
+                    if isinstance(p_data, OutputProfile)
+                    else (p_data["id"] if isinstance(p_data, dict) and "id" in p_data else "unknown")
+                )
                 logger.error(
                     "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
-                    p_data.get("id"),
+                    p_id,
                     str(e),
                 )
                 raise AppException(
-                    message=f"Database integrity error: OutputProfile {p_data.get('id')} failed strict validation.",
+                    message=f"Database integrity error: OutputProfile {p_id} failed strict validation.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
                 ) from e
 
         response_dtos = []
@@ -120,16 +125,19 @@ class StudioWorkflowService:
             try:
                 workflows.append(Workflow.model_validate(x, strict=False))
             except ValidationError as e:
+                x_id = (
+                    x.id if isinstance(x, Workflow) else (x["id"] if isinstance(x, dict) and "id" in x else "unknown")
+                )
                 logger.error(
                     "[StudioService] %s: Workflow %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
-                    x.get("id"),
+                    x_id,
                     str(e),
                 )
                 raise AppException(
-                    message=f"Database integrity error: Workflow {x.get('id')} failed strict validation.",
+                    message=f"Database integrity error: Workflow {x_id} failed strict validation.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
                 ) from e
 
         if initiator.role == UserRole.ROOT:
@@ -196,7 +204,7 @@ class StudioWorkflowService:
                     block = PromptBlockAdapter.validate_python(data, strict=False)
                     if isinstance(block, MatrixPromptBlock) and block.output_extensions:
                         extensions.update(block.output_extensions)
-            except Exception:
+            except AppException, ValidationError, ValueError, KeyError, TypeError, OSError:
                 pass
 
         return sorted(list(extensions))
@@ -324,59 +332,80 @@ class StudioWorkflowService:
             cloned_data["organization_id"] = initiator.organization_id
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-            for locale, text in cloned_data["name"].get("translations", {}).items():
-                cloned_data["name"]["translations"][locale] = text + " (Copy)"
+            name_dict = cloned_data["name"]
+            if "translations" in name_dict and isinstance(name_dict["translations"], dict):
+                for locale, text in name_dict["translations"].items():
+                    name_dict["translations"][locale] = str(text) + " (Copy)"
         elif "name" in cloned_data:
             cloned_data["name"] = str(cloned_data["name"]) + " (Copy)"
 
         sr_mapping = {}
-        for step in cloned_data.get("steps", []):
-            old_sr_id = step.get("id")
-            if old_sr_id:
+        steps_list = cloned_data["steps"] if "steps" in cloned_data and isinstance(cloned_data["steps"], list) else []
+        for step in steps_list:
+            if isinstance(step, dict) and "id" in step and step["id"]:
+                old_sr_id = str(step["id"])
                 new_sr_id = f"sr_{uuid.uuid4().hex[:16]}"
                 sr_mapping[old_sr_id] = new_sr_id
                 step["id"] = new_sr_id
 
-        for step in cloned_data.get("steps", []):
-            old_depends = step.get("depends_on", [])
-            step["depends_on"] = [sr_mapping.get(dep, dep) for dep in old_depends]
+        for step in steps_list:
+            if isinstance(step, dict):
+                old_depends = (
+                    step["depends_on"] if "depends_on" in step and isinstance(step["depends_on"], list) else []
+                )
+                step["depends_on"] = [sr_mapping[dep] if dep in sr_mapping else dep for dep in old_depends]
 
-            old_mappings = step.get("input_mappings", {})
-            new_mappings = {}
-            for k, v in old_mappings.items():
-                if isinstance(v, str) and v.startswith("$steps."):
-                    new_v = v
-                    for old_sr, new_sr in sr_mapping.items():
-                        new_v = new_v.replace(old_sr, new_sr)
-                    new_mappings[k] = new_v
-                else:
-                    new_mappings[k] = v
-            step["input_mappings"] = new_mappings
+                old_mappings = (
+                    step["input_mappings"]
+                    if "input_mappings" in step and isinstance(step["input_mappings"], dict)
+                    else {}
+                )
+                new_mappings = {}
+                for k, v in old_mappings.items():
+                    if isinstance(v, str) and v.startswith("$steps."):
+                        new_v = v
+                        for old_sr, new_sr in sr_mapping.items():
+                            new_v = new_v.replace(old_sr, new_sr)
+                        new_mappings[k] = new_v
+                    else:
+                        new_mappings[k] = v
+                step["input_mappings"] = new_mappings
 
         # Deep clone standalone output profiles mapped to this old workflow
         all_profiles = await self.output_profile_repo.get_all_output_profiles()
         profile_mapping = {}
 
-        for p in all_profiles:
-            if p.get("workflow_id") == id:
+        for p_item in all_profiles:
+            p = p_item.model_dump(mode="json") if isinstance(p_item, BaseModel) else p_item
+            if isinstance(p, dict) and "workflow_id" in p and p["workflow_id"] == id:
+                old_p_id = str(p["id"]) if "id" in p else ""
                 new_profile_id = f"prf_{uuid.uuid4().hex[:16]}"
-                profile_mapping[p.get("id")] = new_profile_id
+                if old_p_id:
+                    profile_mapping[old_p_id] = new_profile_id
 
-                cloned_profile = p.copy()
+                cloned_profile = dict(p)
                 cloned_profile["id"] = new_profile_id
                 cloned_profile["workflow_id"] = new_id
-                if initiator.role not in ["ROOT", UserRole.ROOT]:
+                if initiator.role != UserRole.ROOT:
                     cloned_profile["organization_id"] = initiator.organization_id
 
                 # Remap the step IDs inside layout
-                for layout in cloned_profile.get("layouts", []):
-                    old_layout_steps = layout.get("steps", [])
-                    layout["steps"] = [sr_mapping.get(s, s) for s in old_layout_steps]
+                layouts_list = (
+                    cloned_profile["layouts"]
+                    if "layouts" in cloned_profile and isinstance(cloned_profile["layouts"], list)
+                    else []
+                )
+                for layout in layouts_list:
+                    if isinstance(layout, dict):
+                        old_layout_steps = (
+                            layout["steps"] if "steps" in layout and isinstance(layout["steps"], list) else []
+                        )
+                        layout["steps"] = [sr_mapping[s] if s in sr_mapping else s for s in old_layout_steps]
 
                 await self.output_profile_repo.create_output_profile(cloned_profile)
 
         # Update the default profile ID referencing the old profile
-        if cloned_data.get("default_profile_id") in profile_mapping:
+        if "default_profile_id" in cloned_data and cloned_data["default_profile_id"] in profile_mapping:
             cloned_data["default_profile_id"] = profile_mapping[cloned_data["default_profile_id"]]
 
         # Clear embedded profiles from workflow clone since they are standalone now
@@ -405,16 +434,17 @@ class StudioWorkflowService:
             try:
                 steps.append(Step.model_validate(x, strict=False))
             except ValidationError as e:
+                x_id = x.id if isinstance(x, Step) else (x["id"] if isinstance(x, dict) and "id" in x else "unknown")
                 logger.error(
                     "[StudioService] %s: Step %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
-                    x.get("id"),
+                    x_id,
                     str(e),
                 )
                 raise AppException(
-                    message=f"Database integrity error: Step {x.get('id')} failed strict validation.",
+                    message=f"Database integrity error: Step {x_id} failed strict validation.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
                 ) from e
 
         if initiator.role == UserRole.ROOT:
@@ -557,8 +587,9 @@ class StudioWorkflowService:
         all_blocks = await self.prompt_block_repo.get_all_prompt_blocks()
         protocol_block_id = None
         for b in all_blocks:
-            if b.get("category_id") == "protocol":
-                protocol_block_id = b.get("id")
+            b_block = PromptBlockAdapter.validate_python(b, strict=False) if not isinstance(b, BaseModel) else b
+            if b_block.category_id == "protocol":
+                protocol_block_id = b_block.id
                 break
 
         if not protocol_block_id:
@@ -566,7 +597,7 @@ class StudioWorkflowService:
             raise AppException(
                 message="No protocol block found to create step draft.",
                 status_code=500,
-                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
             )
 
         new_id = f"sp_{uuid.uuid4().hex[:16]}"
@@ -626,8 +657,10 @@ class StudioWorkflowService:
             cloned_data["organization_id"] = initiator.organization_id
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-            for locale, text in cloned_data["name"].get("translations", {}).items():
-                cloned_data["name"]["translations"][locale] = text + " (Copy)"
+            name_dict = cloned_data["name"]
+            if "translations" in name_dict and isinstance(name_dict["translations"], dict):
+                for locale, text in name_dict["translations"].items():
+                    name_dict["translations"][locale] = str(text) + " (Copy)"
         elif "name" in cloned_data:
             cloned_data["name"] = str(cloned_data["name"]) + " (Copy)"
 

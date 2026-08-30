@@ -24,7 +24,7 @@ STATUS_FAILED = "failed"
 class ProgressState(BaseModel):
     """Pydantic model representing in-memory progress state."""
 
-    model_config = ConfigDict(extra="allow", frozen=True)
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     status: str
     timestamp: str

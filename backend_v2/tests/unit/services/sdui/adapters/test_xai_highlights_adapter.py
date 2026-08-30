@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, I18nText, OutputProfile, RenderedSynthesisCache
 from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
@@ -38,6 +39,8 @@ def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fix
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
         execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     context = AdapterContext(
         execution=execution,
@@ -70,6 +73,8 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
                 },
             )
         ],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
 
     context = AdapterContext(
@@ -111,6 +116,8 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
                 },
             )
         ],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     context = AdapterContext(
         execution=execution,
@@ -140,7 +147,13 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
 
 def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfile) -> None:
     """Negative: context remains frozen after the call."""
-    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
+    )
     context = AdapterContext(
         execution=execution,
         locale="en",
@@ -161,7 +174,13 @@ def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfi
 
 def test_build_graceful_degradation_disabled_extensions(valid_output_profile_fixture: OutputProfile) -> None:
     """Boundary: visible_block_extensions=[] returns empty list."""
-    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
+    )
     disabled_profile = valid_output_profile_fixture.model_copy(update={"visible_block_extensions": []})
     context = AdapterContext(
         execution=execution,
@@ -184,7 +203,13 @@ def test_build_graceful_degradation_disabled_extensions(valid_output_profile_fix
 
 def test_build_graceful_degradation_zero_max_items(valid_output_profile_fixture: OutputProfile) -> None:
     """Boundary: max_extension_items=0 returns empty list."""
-    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
+    )
     zero_max_profile = valid_output_profile_fixture.model_copy(update={"max_extension_items": 0})
     context = AdapterContext(
         execution=execution,
@@ -207,7 +232,13 @@ def test_build_graceful_degradation_zero_max_items(valid_output_profile_fixture:
 
 def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: OutputProfile) -> None:
     """Positive: 3 categories with 4 items each are curated fairly without Primacy Bias."""
-    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
+    )
     profile = valid_output_profile_fixture.model_copy(update={"max_extension_items": 2})
 
     highlights = [
@@ -283,7 +314,13 @@ def test_build_malformed_highlight_item_skipped(
     """Error path: hallucinated or empty extension type is skipped with warning log."""
     from backend_v2.models.dtos.synthesis import XaiHighlightItem
 
-    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
+    )
     context = AdapterContext(
         execution=execution,
         locale="en",
@@ -326,7 +363,13 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
     from backend_v2.models.dtos.synthesis import XaiHighlightItem
     from backend_v2.services.sdui.adapters import xai_highlights_adapter
 
-    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
+    )
     monkeypatch.setattr(xai_highlights_adapter, "XAI_AESTHETICS_RULES", {})
 
     context = AdapterContext(
@@ -358,7 +401,13 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
     from backend_v2.models.dtos.synthesis import XaiHighlightItem
     from backend_v2.models.enums import XAI_EXTENSION_SCOPE, XaiExtensionScope
 
-    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
+    )
 
     # Test each block-level extension type individually
     block_extensions = [e for e in XaiExtensionType if XAI_EXTENSION_SCOPE.get(e) == XaiExtensionScope.BLOCK]

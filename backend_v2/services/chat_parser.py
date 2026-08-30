@@ -72,11 +72,12 @@ class ChatParserService:
 
         if not raw_paste or not raw_paste.strip():
             # Fail Fast: Cannot parse empty text
-            error_code = ErrorCodes.EMPTY_INPUT
             msg = "ChatParser received empty input."
-            logger.error("[ChatParser] %s: %s", error_code.name, msg)
+            logger.error("[ChatParser] %s: %s", ErrorCodes.EMPTY_INPUT.name, msg)
             raise AppException(
-                message=msg, status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": error_code.value}
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.EMPTY_INPUT.value},
             )
 
         # Initialize LLM Client via Strategy Pattern
@@ -86,11 +87,12 @@ class ChatParserService:
 
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except ConfigurationError as e:
-            error_code = ErrorCodes.CONFIGURATION_ERROR
             msg = f"Failed to initialize LLMClient for ChatParser: {e.message}"
-            logger.error("[ChatParser] %s: %s", error_code.name, msg)
+            logger.error("[ChatParser] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
             raise AppException(
-                message=msg, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details={"error_code": error_code.value}
+                message=msg,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
 
         # Construct the Prompt
@@ -117,43 +119,41 @@ class ChatParserService:
             )
 
             if not parsed_data.conversation:
-                error_code = ErrorCodes.VALIDATION_FAILED
                 msg = "Fail-Fast: Raw text did not contain a valid dialogue/conversation."
-                logger.error("[ChatParser] %s: %s", error_code.name, msg)
+                logger.error("[ChatParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": error_code.value},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
             logger.info("[ChatParser] Parsing successful. Extracted %s messages.", len(parsed_data.conversation))
             return parsed_data
 
         except ValidationError as e:
-            error_code = ErrorCodes.VALIDATION_FAILED
             msg = f"LLM output validation failed to match ChatHistoryDTO schema: {e}"
-            logger.error("[ChatParser] %s: %s", error_code.name, msg, exc_info=True)
+            logger.error("[ChatParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": error_code.value, "original_error": str(e)},
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "original_error": str(e)},
             ) from e
         except json.JSONDecodeError as e:
-            error_code = ErrorCodes.VALIDATION_FAILED
             msg = f"LLM returned invalid JSON: {e}"
-            logger.error("[ChatParser] %s: %s", error_code.name, msg, exc_info=True)
+            logger.error("[ChatParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": error_code.value, "original_error": str(e)},
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "original_error": str(e)},
             ) from e
         except Exception as e:
             if isinstance(e, AppException):
                 raise e
 
-            error_code = ErrorCodes.INTERNAL_SERVER_ERROR
             msg = f"LLM generation failed: {e}"
-            logger.error("[ChatParser] %s: %s", error_code.name, msg, exc_info=True)
+            logger.error("[ChatParser] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
             raise AppException(
-                message=msg, status_code=status.HTTP_502_BAD_GATEWAY, details={"error_code": error_code.value}
+                message=msg,
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             ) from e

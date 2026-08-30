@@ -5,7 +5,14 @@ import pytest
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, FrozenContext, WorkflowInputs
+from backend_v2.models.v2_core import (
+    ExecutionRecord,
+    ExecutionStatus,
+    FrozenContext,
+    I18nText,
+    OutputProfile,
+    WorkflowInputs,
+)
 from backend_v2.services.execution import ExecutionService, create_execution_record
 
 
@@ -271,8 +278,15 @@ async def test_start_execution_success() -> None:
     executor_mock = Mock()
     arq_pool = AsyncMock()
 
+    valid_profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test-profile",
+        workflow_id="wf_1",
+        name=I18nText(translations={"en": "Test Profile"}),
+        target_block_order=[],
+    )
     out_prof_repo_mock = AsyncMock()
-    out_prof_repo_mock.get_output_profile_by_id.return_value = {"id": "prof_1", "workflow_id": "wf_1"}
+    out_prof_repo_mock.get_output_profile_by_id.return_value = valid_profile
 
     service = ExecutionService(
         exec_repo=repo_mock,
@@ -295,7 +309,7 @@ async def test_start_execution_success() -> None:
     mock_wf = Mock(spec=Workflow)
     mock_wf.id = "wf_1"
     mock_wf.version = 1
-    mock_wf.default_profile_id = "prof_1"
+    mock_wf.default_profile_id = valid_profile.id
     mock_wf.expected_inputs = []
     mock_wf.steps = []
     mock_wf.organization_id = "org_1"
@@ -308,7 +322,7 @@ async def test_start_execution_success() -> None:
         workflow_id="wf_1",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
-        profile_id="prof_1",
+        profile_id=valid_profile.id,
         matrix_sampling_strategy=0,
     )
 

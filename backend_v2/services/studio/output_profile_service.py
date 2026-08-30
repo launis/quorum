@@ -4,7 +4,7 @@ import logging
 import uuid
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.database.interfaces import IOutputProfileRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
@@ -26,12 +26,12 @@ class StudioOutputProfileService:
         self,
         output_profile_repo: IOutputProfileRepository,
         workflow_service: StudioWorkflowService,
-    ):
-        """Initialize the service.
+    ) -> None:
+        """Initialize service.
 
         Args:
             output_profile_repo: The output profile repository.
-            workflow_service: The studio workflow service.
+            workflow_service: The workflow service.
         """
         self.output_profile_repo = output_profile_repo
         self.workflow_service = workflow_service
@@ -54,16 +54,21 @@ class StudioOutputProfileService:
             try:
                 profiles.append(OutputProfile.model_validate(x, strict=False))
             except ValidationError as e:
+                x_id = (
+                    x.id
+                    if isinstance(x, OutputProfile)
+                    else (x["id"] if isinstance(x, dict) and "id" in x else "unknown")
+                )
                 logger.error(
                     "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
-                    x.get("id"),
+                    x_id,
                     str(e),
                 )
                 raise AppException(
-                    message=f"Database integrity error: OutputProfile {x.get('id')} failed strict validation.",
+                    message=f"Database integrity error: OutputProfile {x_id} failed strict validation.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
                 ) from e
 
         if initiator.role == UserRole.ROOT:
@@ -121,7 +126,8 @@ class StudioOutputProfileService:
         if isinstance(data, dict):
             existing = await self.output_profile_repo.get_output_profile_by_id(id)
             if existing:
-                merged = {**existing, **data}
+                existing_dict = existing.model_dump(mode="json") if isinstance(existing, BaseModel) else existing
+                merged = {**existing_dict, **data}
                 profile = OutputProfile.model_validate(merged)
             else:
                 profile = OutputProfile.model_validate(data)
@@ -189,7 +195,8 @@ class StudioOutputProfileService:
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
-        enforce_modification_rights(initiator, data.get("organization_id"))
+        profile_obj = data if isinstance(data, OutputProfile) else OutputProfile.model_validate(data, strict=False)
+        enforce_modification_rights(initiator, profile_obj.organization_id)
         await self.output_profile_repo.delete_output_profile(id)
 
     async def create_output_profile_draft(self, initiator: TokenData) -> OutputProfile:
@@ -253,10 +260,11 @@ class StudioOutputProfileService:
             cloned_data["organization_id"] = initiator.organization_id
 
         if "name" in cloned_data and isinstance(cloned_data["name"], dict):
-            translations = cloned_data["name"].get("translations", {})
-            if "en" in translations:
-                translations["en"] = translations["en"] + " (Copy)"
-                cloned_data["name"]["translations"] = translations
+            name_dict = cloned_data["name"]
+            if "translations" in name_dict and isinstance(name_dict["translations"], dict):
+                translations = name_dict["translations"]
+                if "en" in translations:
+                    translations["en"] = str(translations["en"]) + " (Copy)"
         elif "name" in cloned_data and isinstance(cloned_data["name"], str):
             cloned_data["name"] = cloned_data["name"] + " (Copy)"
 

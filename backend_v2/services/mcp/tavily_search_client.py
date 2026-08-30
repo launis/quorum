@@ -291,9 +291,9 @@ async def batch_tavily_search(document_text: str, task_executor: Any, llm_client
                         query=norm_query, answer="", source_urls=[], raw_content="", duration_ms=0, status=status
                     )
                 )
-            except Exception:
+            except (OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
                 logger.error(
-                    f"[BatchTavily] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Unexpected error for query '{norm_query}'",
+                    f"[BatchTavily] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Unexpected error for query '{norm_query}': {e}",
                     extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "query": norm_query},
                     exc_info=True,
                 )
@@ -316,7 +316,9 @@ async def batch_tavily_search(document_text: str, task_executor: Any, llm_client
     # Fan-out mapping
     final_results: list[TavilySearchResultDTO] = []
     for res in results:
-        original_queries = normalized_map.get(res.query.casefold(), [res.query])
+        original_queries = (
+            normalized_map[res.query.casefold()] if res.query.casefold() in normalized_map else [res.query]
+        )
         for orig_q in original_queries:
             final_results.append(
                 TavilySearchResultDTO(

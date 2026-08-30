@@ -77,7 +77,7 @@ def test_build_empty_cited_sources_with_summary_box_renders_notice(
     text = blocks[0].text
     assert "### Sources and Bibliography" in text
     assert "> [!NOTE]" in text
-    assert "> **Source Material & Fact-Checking Audit**" in text
+    assert "> **Sources & Fact-Checking Audit**" in text
     assert "> - **Bibliographic references:** 0" in text
     assert "- No external bibliographic citations or fact-checking traces recorded in this execution." in text
 
@@ -130,10 +130,10 @@ def test_build_formats_cited_sources_as_markdown(valid_output_profile_fixture: O
     text = blocks[0].text
     assert "### Sources and Bibliography" in text
     assert "> [!NOTE]" in text
-    assert "> **Source Material & Fact-Checking Audit**" in text
+    assert "> **Sources & Fact-Checking Audit**" in text
     assert "- **Kahneman, D. (2011). Thinking, Fast and Slow.**" in text
     assert "**Status:** Verified with research evidence" in text
-    assert "**Verification method:** Peer-reviewed scientific literature & framework" in text
+    assert "**Verification Method:** Peer-reviewed scientific literature & framework" in text
     assert "- **Tversky, A. (1974). Judgment under Uncertainty.**" in text
 
 
@@ -285,8 +285,8 @@ def test_build_verified_evidence_mode_with_mcp_traces(valid_output_profile_fixtu
     assert "- **[https://example.com/tilinpaatos2024](https://example.com/tilinpaatos2024)**" in text
     assert "**Tila:** Vahvistettu tutkimusnäytöllä" in text
     assert "**Todennusmenetelmä:** Tavily Search Gateway" in text
-    assert '**Synteesin arviointi:** "Yhtiön liikevaihto kasvoi 25 prosenttia."' in text
-    assert "**Tieteellinen viitekehys:** Tilinpäätöstiedotteen mukaan liikevaihto kasvoi 25,4 % vuonna 2024." in text
+    assert '**Synteesin havainto:** "Yhtiön liikevaihto kasvoi 25 prosenttia."' in text
+    assert "**Teoreettinen viitekehys:** Tilinpäätöstiedotteen mukaan liikevaihto kasvoi 25,4 % vuonna 2024." in text
 
 
 def test_build_simple_bibliography_mode(valid_output_profile_fixture: OutputProfile) -> None:

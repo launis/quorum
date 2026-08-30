@@ -67,7 +67,9 @@ async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: 
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}})))
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+        )
 
         await executor.execute_workflow(
             execution_id="exe_1234567890abcdef",
@@ -120,7 +122,9 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}})))
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+        )
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
         record = await executor.execute_workflow(
@@ -185,7 +189,9 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}})))
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+        )
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
         record = await executor.execute_workflow(
@@ -240,7 +246,9 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}})))
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+        )
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
         record = await executor.execute_workflow(

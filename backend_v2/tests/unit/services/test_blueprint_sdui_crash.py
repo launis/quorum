@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExecutionStatus,
@@ -48,6 +49,8 @@ async def test_blueprint_authenticity_evaluation_success() -> None:
                 extension_metrics=ExtensionMetricsDTO(authenticity_score=75.0)
             )
         },
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
 
     mock_profile_repo = AsyncMock()

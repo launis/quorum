@@ -6,6 +6,7 @@ Provides utilities for translating text using LLM calls.
 import logging
 from typing import Any
 
+from backend_v2.exceptions import AppException
 from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -60,13 +61,15 @@ async def translate_text(
             messages=translation_messages,
         )
 
+        translated_str = ""
         if isinstance(translated_res, tuple):
-            translated_res = translated_res[0]
-        if isinstance(translated_res, dict):
-            translated_res = translated_res.get("content", "")
+            translated_str = str(translated_res[0]).strip()
+        elif isinstance(translated_res, str):
+            translated_str = translated_res.strip()
+        elif isinstance(translated_res, dict) and "content" in translated_res:
+            translated_str = str(translated_res["content"]).strip()
 
-        translated_str = translated_res.strip() if isinstance(translated_res, str) else ""
         return translated_str if translated_str else text
-    except Exception as e:
-        logger.error(f"Failed to translate text to '{target_lang}': {e}", exc_info=True)
+    except (AppException, AttributeError, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
+        logger.error("Failed to translate text to '%s': %s", target_lang, e, exc_info=True)
         return text

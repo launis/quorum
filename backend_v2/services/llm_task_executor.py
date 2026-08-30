@@ -40,11 +40,19 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
     """
     user_texts = []
     if isinstance(messages, CompiledPrompt):
-        static = [str(m.get("content", "")) for m in messages.static_messages if m.get("role") == "user"]
-        dynamic = [str(m.get("content", "")) for m in messages.dynamic_messages if m.get("role") == "user"]
+        static = [
+            str(m["content"])
+            for m in messages.static_messages
+            if "role" in m and m["role"] == "user" and "content" in m
+        ]
+        dynamic = [
+            str(m["content"])
+            for m in messages.dynamic_messages
+            if "role" in m and m["role"] == "user" and "content" in m
+        ]
         user_texts = static + dynamic
     elif isinstance(messages, list):
-        user_texts = [str(m.get("content", "")) for m in messages if m.get("role") == "user"]
+        user_texts = [str(m["content"]) for m in messages if "role" in m and m["role"] == "user" and "content" in m]
 
     total_user_text = "".join(user_texts)
     if total_user_text:
@@ -164,25 +172,18 @@ class LLMTaskExecutor:
 
                 try:
                     exec_id = (
-                        effective_validation_context.get("execution_id", "global")
-                        if effective_validation_context
+                        str(effective_validation_context["execution_id"])
+                        if effective_validation_context and "execution_id" in effective_validation_context
                         else "global"
                     )
                     step_id = (
-                        effective_validation_context.get("step_id", "unknown_step")
-                        if effective_validation_context
+                        str(effective_validation_context["step_id"])
+                        if effective_validation_context and "step_id" in effective_validation_context
                         else "unknown_step"
                     )
-                    cache_hit = (
-                        getattr(usage, "cached_tokens", 0) > 0
-                        if not isinstance(usage, dict)
-                        else usage.get("cached_tokens", 0) > 0
-                    )
-                    tokens = (
-                        getattr(usage, "total_tokens", 0)
-                        if not isinstance(usage, dict)
-                        else usage.get("total_tokens", 0)
-                    )
+                    usage_obj = usage if isinstance(usage, TokenUsage) else TokenUsage.model_validate(usage)
+                    cache_hit = (usage_obj.cached_tokens or 0) > 0
+                    tokens = usage_obj.total_tokens
                     trigger_reason = "initial" if attempt == 0 else "self_healing_retry"
 
                     write_llm_telemetry_log(
@@ -193,7 +194,7 @@ class LLMTaskExecutor:
                         tokens=tokens,
                         trigger_reason=trigger_reason,
                     )
-                except Exception as t_err:
+                except Exception as t_err:  # noqa: QGR003 [REASON: Telemetry logging errors must never abort LLM generation pipeline]
                     logger.warning(f"Telemetry logging failed: {t_err}")
 
                 # FinOps Accumulation
@@ -203,14 +204,21 @@ class LLMTaskExecutor:
                 if validator_hook:
                     await validator_hook(validated_model)
 
-                if getattr(validated_model, "contextual_override", False):
-                    logger.info(
-                        "💡 [QUALITY] LLM applied Contextual Override.",
-                        extra={
-                            "reason": getattr(validated_model, "override_reason", "No reason provided"),
-                            "schema": response_model.__name__,
-                        },
-                    )
+                if isinstance(validated_model, BaseModel):
+                    model_dict = validated_model.model_dump(exclude_unset=False)
+                    if "contextual_override" in model_dict and model_dict["contextual_override"]:
+                        override_reason = (
+                            str(model_dict["override_reason"])
+                            if "override_reason" in model_dict and model_dict["override_reason"]
+                            else "No reason provided"
+                        )
+                        logger.info(
+                            "💡 [QUALITY] LLM applied Contextual Override.",
+                            extra={
+                                "reason": override_reason,
+                                "schema": response_model.__name__,
+                            },
+                        )
 
                 if attempt > 0:
                     logger.info(
@@ -225,7 +233,7 @@ class LLMTaskExecutor:
                 raw_payload = e.raw_llm_payload
                 error_msg = e.validation_error_msg
 
-                if hasattr(e, "token_usage") and e.token_usage:
+                if e.token_usage:
                     cumulative_usage = cumulative_usage + e.token_usage
 
                 if schema_attempts >= actual_schema_retries:
@@ -281,9 +289,10 @@ class LLMTaskExecutor:
 
                 new_dynamic = [dict(m) for m in base_compiled_prompt.dynamic_messages]
                 if new_dynamic:
+                    last_content = str(new_dynamic[-1]["content"]) if "content" in new_dynamic[-1] else ""
                     new_dynamic[-1] = {
                         **new_dynamic[-1],
-                        "content": new_dynamic[-1].get("content", "") + healing_content,
+                        "content": last_content + healing_content,
                     }
                 else:
                     new_dynamic.append({"role": "user", "content": healing_content.strip()})
@@ -329,13 +338,16 @@ class LLMTaskExecutor:
                 previous_error_msg = error_msg
                 logical_attempts += 1
 
+                strictness_lvl = (
+                    effective_validation_context["strictness_level"]
+                    if effective_validation_context and "strictness_level" in effective_validation_context
+                    else None
+                )
                 correction_prompt = self.prompt_compiler.get_schema_healing_prompt(
                     error_msg=error_msg,
                     is_logical_error=True,
                     is_eof=False,
-                    strictness_level=effective_validation_context.get("strictness_level")
-                    if effective_validation_context
-                    else None,
+                    strictness_level=strictness_lvl,
                 )
 
                 failed_json = validated_model.model_dump_json() if validated_model else "{}"
@@ -370,9 +382,10 @@ class LLMTaskExecutor:
 
                 new_dynamic = [dict(m) for m in base_compiled_prompt.dynamic_messages]
                 if new_dynamic:
+                    last_content = str(new_dynamic[-1]["content"]) if "content" in new_dynamic[-1] else ""
                     new_dynamic[-1] = {
                         **new_dynamic[-1],
-                        "content": new_dynamic[-1].get("content", "") + healing_content,
+                        "content": last_content + healing_content,
                     }
                 else:
                     new_dynamic.append({"role": "user", "content": healing_content.strip()})

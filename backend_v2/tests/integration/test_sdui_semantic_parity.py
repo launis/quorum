@@ -114,6 +114,11 @@ async def test_sdui_semantic_parity() -> None:
         dto = dto.model_copy(
             update={
                 "profile_name": I18nText(translations={"en": "English test"}),
+                "profile_description": None,
+                "custom_preface_md": None,
+                "user_name": None,
+                "scoring_engine_name": None,
+                "org_name": None,
             }
         )  # Clear random dicts and explicitly mock profile_name to prevent Jinja crashes and ensure parity
 

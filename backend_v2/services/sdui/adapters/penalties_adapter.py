@@ -7,7 +7,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.view.sdui import (
     AlertBlock,
@@ -79,7 +79,7 @@ class PenaltiesAdapter:
                 raise AppException(
                     message=msg,
                     status_code=500,
-                    details={"error_code": "CONFIGURATION_ERROR"},
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 ) from e
 
             blocks.append(

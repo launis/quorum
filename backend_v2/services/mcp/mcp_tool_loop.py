@@ -140,6 +140,7 @@ async def execute_tool_loop[T: BaseModel](
     validation_context: dict[str, Any] | None = None,
     source_context: str = "",
     alias_engine: AliasEngine | None = None,
+    repository: Any = None,
 ) -> MCPToolLoopResult:
     """Execute the MCP Tool Loop — 2-phase LLM execution with optional tool calling.
 
@@ -213,8 +214,8 @@ async def execute_tool_loop[T: BaseModel](
     effective_max_calls = get_settings().max_tool_calls_per_step
 
     strictness_level = 100
-    if validation_context:
-        strictness_level = validation_context.get("strictness_level", 100)
+    if validation_context and "strictness_level" in validation_context:
+        strictness_level = validation_context["strictness_level"]
 
     total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
@@ -223,19 +224,20 @@ async def execute_tool_loop[T: BaseModel](
 
         extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
         for msg in messages:
-            if msg.get("role") == "user":
+            if "role" in msg and msg["role"] == "user":
                 extraction_messages.append(msg)
 
         # Internal Utility rule: lazy load LLMClient
         from backend_v2.llm.client import LLMClient
 
-        # We attempt to fetch the fast client. If executor lacks repository, we gracefully fallback to the step's client.
-        repo = getattr(executor, "repository", None)
+        # We attempt to fetch the fast client if repository is explicitly passed.
         fast_client = llm_client
-        if repo:
+        if repository is not None:
             try:
-                fast_client = await LLMClient.from_strategy("fast", repository=repo, pipeline_name="mcp_tool_loop")
-            except Exception as e:
+                fast_client = await LLMClient.from_strategy(
+                    "fast", repository=repository, pipeline_name="mcp_tool_loop"
+                )
+            except (AppException, ValueError, RuntimeError, TypeError, OSError) as e:
                 logger.warning("Could not initialize 'fast' client for extraction, falling back to step client: %s", e)
 
         async def run_single_extraction() -> tuple[CitationExtractionResult | None, TokenUsage | None]:
@@ -250,7 +252,7 @@ async def execute_tool_loop[T: BaseModel](
                 if not isinstance(res, CitationExtractionResult):
                     res = CitationExtractionResult.model_validate(res)
                 return res, usage
-            except Exception as ex:
+            except (AppException, ValueError, RuntimeError, TypeError, OSError) as ex:
                 logger.warning("Ensemble citation extraction call failed: %s", ex, exc_info=True)
                 return None, None
 

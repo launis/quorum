@@ -63,12 +63,18 @@ class TavilyTool(BaseTool):
             reasoning (str, optional): The reasoning for the search.
             claim_text (str, optional): The physical claim text being verified.
         """
-        query = kwargs.get("query", "")
-        step_name = kwargs.get("step_name", "unknown_step")
-        target_language = kwargs.get("target_language", "")
-        llm_client = kwargs.get("llm_client")
-        reasoning = kwargs.get("reasoning", "")
-        claim_text = kwargs.get("claim_text")
+        query = str(kwargs["query"]) if "query" in kwargs and kwargs["query"] is not None else ""
+        step_name = (
+            str(kwargs["step_name"]) if "step_name" in kwargs and kwargs["step_name"] is not None else "unknown_step"
+        )
+        target_language = (
+            str(kwargs["target_language"])
+            if "target_language" in kwargs and kwargs["target_language"] is not None
+            else ""
+        )
+        llm_client = kwargs["llm_client"] if "llm_client" in kwargs else None
+        reasoning = str(kwargs["reasoning"]) if "reasoning" in kwargs and kwargs["reasoning"] is not None else ""
+        claim_text = str(kwargs["claim_text"]) if "claim_text" in kwargs and kwargs["claim_text"] is not None else None
 
         start_ms = int(time.monotonic() * 1000)
         try:

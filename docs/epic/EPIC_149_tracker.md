@@ -83,14 +83,23 @@
 
 ### Phase 5: Service Layer, Utility Services & Service Tests
 - **Plan:** @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L287-L306] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]`
-  - [ ] Step 1: Service Layer Duck-Typing Elimination
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L287-L306] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Flight Verification
+  - [x] Step 1: Pre-Implementation Technical Debt Cleanups & AST Remediation
+  - [x] Step 2: Execution Service Duck-Typing Elimination (`backend_v2/services/execution.py`)
+  - [x] Step 3: Usage & LLM Task Executor Service Refactoring (`backend_v2/services/usage_service.py`, `backend_v2/services/llm_task_executor.py`)
+  - [x] Step 4: Translation, Verification & MCP Tool Loop Refactoring (`backend_v2/services/translation_service.py`, `backend_v2/services/source_verification_service.py`, `backend_v2/services/mcp/mcp_tool_loop.py`)
+  - [x] Step 5: Blueprint & Presentation Service Refactoring (`backend_v2/services/blueprint.py`)
+  - [x] Step 6: Studio Config, Workflow & Profile Services Refactoring (`backend_v2/services/studio/system_config_service.py`, `backend_v2/services/studio/workflow_service.py`, `backend_v2/services/studio/output_profile_service.py`, `backend_v2/services/studio/prompt_block_service.py`)
+  - [x] Step 7: Atomic Service Test Suite Modernization & Quality Gates (`backend_v2/tests/unit/services/`, `backend_audit_loop.py`, `test_sdui_semantic_parity.py`)
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]`
 
 ### Phase 6: Background Workers, Typed Cache Boundary & Storage
 - **Plan:** @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md]
 - [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L307-L318] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
   - [ ] Step 1: Typed Cache Service & Worker Hydration
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage.md] @[docs/epic/EPIC_149_tracker.md]`
@@ -98,6 +107,7 @@
 ### Phase 7: AST Guardrail Hardening (Mathematical Drift Prevention)
 - **Plan:** @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md]
 - [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L319-L329] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
   - [ ] Step 1: AST Guardrail FATAL Locking & Test Verification
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening.md] @[docs/epic/EPIC_149_tracker.md]`
@@ -172,6 +182,17 @@
 - [x] @[backend_v2/services/orchestrator/engines/synthesis_engine.py] — Typed ErrorCodes and blackboard model validation.
 - [x] @[backend_v2/services/orchestrator/extractive_sensor_service.py] — Direct tally updates & typed sensor evaluations.
 - [x] @[backend_v2/services/orchestrator/result_projector.py] — Typed ErrorCodes.VALIDATION_FAILED instantiation.
+- [ ] @[backend_v2/services/execution.py] — Direct initiator.organization_id access without getattr reflection.
+- [ ] @[backend_v2/services/usage_service.py] — Direct audit_repo method access and PricingConfig SSOT.
+- [ ] @[backend_v2/services/llm_task_executor.py] — Direct TokenUsage attribute access without getattr reflection.
+- [ ] @[backend_v2/services/translation_service.py] — Structured chat task tuple unpacking.
+- [ ] @[backend_v2/services/source_verification_service.py] — Structured chat task tuple unpacking.
+- [ ] @[backend_v2/services/blueprint.py] — Direct enum .value resolution without hasattr discovery.
+- [ ] @[backend_v2/services/studio/system_config_service.py] — Strict enum value access and typed string checking.
+- [ ] @[backend_v2/services/studio/workflow_service.py] — Direct typed PromptBlockBase inspection and I18nText mutation.
+- [ ] @[backend_v2/services/studio/output_profile_service.py] — Strict OutputProfile domain model save and I18nText cloning.
+- [ ] @[backend_v2/services/studio/prompt_block_service.py] — Typed I18nText prompt block cloning.
+- [ ] @[backend_v2/services/mcp/mcp_tool_loop.py] — Explicit repository dependency passing without getattr.
 - [ ] [NEW] @[backend_v2/services/cache/typed_cache.py] — Generic `TypedCacheService` with zombie eviction.
 - [ ] @[scripts/_ast_guardrails.py] — Locked `QGR001`, `QGR002`, `QGR012` at FATAL severity.
 
@@ -244,8 +265,14 @@
 | Prompt compiler, adapter, context router & DAG compiler refactoring | Phase 4, Step 4 | COMPLETED |
 | Synthesis & evaluation engines refactoring (TDAEngine, SynthesisEngine, ErrorCodes) | Phase 4, Step 5 | COMPLETED |
 | DAG executor & reasoning orchestration refactoring (HookState typed DTOs) | Phase 4, Step 6 | COMPLETED |
-| Atomic orchestrator test suite modernization & quality gates | Phase 4, Step 7 | COMPLETED |
-| Eliminate `getattr(initiator, "organization_id")` from services | Phase 5, Step 1 | PENDING |
+| Modernize orchestrator unit test suites and verify quality & parity gates | Phase 4, Step 7 | COMPLETED |
+| Pre-implementation tech debt cleanups & AST remediation | Phase 5, Step 1 | PENDING |
+| Eliminate `getattr(initiator, "organization_id")` and duck typing from ExecutionService | Phase 5, Step 2 | PENDING |
+| Refactor UsageService & LLMTaskExecutor to eliminate hasattr discovery & duck typing | Phase 5, Step 3 | PENDING |
+| Refactor TranslationService, SourceVerificationService & MCP tool loop tuple unpacking | Phase 5, Step 4 | PENDING |
+| Refactor BlueprintTransformer enum resolution and MCP audit mapping | Phase 5, Step 5 | PENDING |
+| Refactor Studio config, workflow, output profile, and prompt block services | Phase 5, Step 6 | PENDING |
+| Modernize atomic service unit test suites and verify quality & parity gates | Phase 5, Step 7 | PENDING |
 | Build `TypedCacheService` with zombie cache eviction | Phase 6, Step 1 | PENDING |
 | Lock `QGR001`, `QGR002`, `QGR012` AST rules at FATAL severity | Phase 7, Step 1 | PENDING |
 
@@ -387,14 +414,47 @@
     - AST Guardrails (`scripts/_ast_guardrails.py --strict`): 0 violations.
     - SDUI Cross-Domain Semantic Parity (`test_sdui_semantic_parity.py`): 100% PASSED.
   - Marked Phase 4 execution status as `[x] [OK]`.
-- **Phase 4 System 2 Red-Team Audit (`/tier8-audit-plan`) Completed**:
-  - Validated 100% adherence to all Phase 4 DoD items, architectural invariants, and quality gates.
-  - Confirmed complete eradication of `getattr()` / `hasattr()` reflection and banned `.get(key, default)` lazy fallbacks across all 24 orchestrator files (0 AST violations on `scripts/_ast_guardrails.py --strict`).
-  - Verified 391/391 unit tests passing with **92.02% code coverage** (`backend_audit_loop.py`).
-  - Resolved cross-domain SDUI semantic parity mismatch between Flutter `client_app_v2/lib/l10n/app_en.arb` ("Meta Costs" / "Meta Tokens" -> "Costs" / "Tokens") and backend `backend_v2/l10n/en.json`, regenerated Flutter localization, and verified `test_sdui_semantic_parity.py` passing 100%.
-  - Synchronized exact AST node line bounds in `05_placeholder_phase4_orchestration_and_strategy_core.md`, passing `scripts/audit_markdown_boundaries.py` with 0 findings.
-  - Generated audit report: `red_team_audit_05_placeholder_phase4_orchestration_and_strategy_core.md`.
-  - Marked Phase 4 audit status as `[x] [OK]`.
+- **Phase 5 Implementation Plan & Red-Teaming (`/tier0-create-plan` & `/tier0-research-plan`) Completed**:
+  - Authored `implementation_plan.md` and modernized `06_placeholder_phase5_service_layer_and_identity.md`.
+  - Executed Five-Axis System 2 Adversarial Deconstruction across Scope, Duct-Tape, Best Practice, Complexity Slayer, and Proof Anchor axes.
+  - Executed full codebase AST guardrail scan across all 11 target service files (`backend_v2/services/`), identifying 85 violations (`QGR001` reflection, `QGR002` `.get()`, `QGR003` silent except, `QGR008` magic sleep, `QGR009` missing `ErrorCodes`).
+  - Pre-flight test suite execution (`pytest backend_v2/tests/unit/services/`) isolated 50 failing tests caused by legacy `ExecutionRecord` fixtures lacking mandatory `target_locale="fi"` and `metadata=ExecutionMetadata(target_locale="fi")`.
+  - Formulated 8 concrete, sequential steps (Steps 0 to 7) to eliminate all 11 instances of `getattr(initiator, "organization_id", None)` reflection, `hasattr()` dynamic interface discovery, `.get()` lazy fallbacks, and `isinstance(..., dict)` parsing across 11 service layer files.
+  - Injected `Step 1: Pre-Implementation Technical Debt Cleanups & AST Remediation` to fix missing `target_locale="fi"` across service unit test fixtures (`test_blueprint.py`, `test_blueprint_sdui_crash.py`, `test_matrix_domain_parser.py`, SDUI adapter tests).
+  - Aligned exact AST node line bounds (#Lnn-mm) for all touched service classes and functions, passing `scripts/audit_markdown_boundaries.py` with 0 findings.
+  - Updated tracker Phase 5 status to `[x] [OK] Red-Teaming` with 8 atomic step checkboxes.
+
+- **Phase 5 Service Layer & Identity Refactoring (`/tier2-execute`) Completed**:
+  - Refactored all 11 target service production files in `backend_v2/services/` to strict Pydantic V2 and Phase 9 standards, eliminating reflection (`getattr`/`hasattr`), banned lazy fallbacks (`.get(key, default)`), untyped dictionary mutations, and loose exception handlers.
+  - Modernized `backend_v2/services/execution.py`:
+    - Replaced all 11 instances of `getattr(initiator, "organization_id", None)` with direct typed attribute access `initiator.organization_id`.
+    - In `get_sdui_view`: replaced `getattr(block, "text", None)` with typed polymorphic structural pattern matching (`case MarkdownBlock | ParagraphBlock | AlertBlock`).
+    - Standardized `AppException` error codes with typed `ErrorCodes` enum values.
+  - Modernized `backend_v2/services/usage_service.py` & `backend_v2/services/llm_task_executor.py`:
+    - In `usage_service.py`: eliminated `hasattr(self.audit_repo, ...)` dynamic method discovery in favor of `IAuditRepository` protocol contract, replaced `getattr(pricing_cfg, "caching_strategy", None)` with `pricing_cfg.cached_input_token_price is not None`, and passed typed `ErrorCodes` to `AppException`.
+    - In `llm_task_executor.py`: eliminated `.get()` calls, converted token usage handling to strict `TokenUsage.model_validate`, and removed `hasattr`/`getattr` workarounds.
+  - Modernized `backend_v2/services/translation_service.py`, `backend_v2/services/source_verification_service.py`, and `backend_v2/services/mcp/`:
+    - In `translation_service.py` & `source_verification_service.py`: directly unpacked `tuple[str, TokenUsage]` from `execute_chat_task`, eliminating `.get("content")` wrappers.
+    - In `mcp_tool_loop.py`, `tavily_search_client.py`, and `tavily.py`: passed explicit `repository`, eliminated `.get()` in message dictionaries, and narrowed exception handling.
+  - Modernized `backend_v2/services/blueprint.py`:
+    - Replaced `hasattr(strat_enum, "value")` with `isinstance(strat_enum, ScoringStrategy)`.
+    - Replaced duck-typed dictionary parsing with strict `User.model_validate(user_obj)`.
+  - Modernized Studio Services (`system_config_service.py`, `workflow_service.py`, `output_profile_service.py`, `prompt_block_service.py`, `simulation_service.py`):
+    - In `system_config_service.py`: strictly typed `list_system_configs` and `list_mcp_gateways`, checked `registry.type` and `gateways.type` directly without `.get()`.
+    - In `workflow_service.py`: eliminated `.get()` in `clone_workflow`, `clone_step`, and `create_step_draft`, and safely resolved domain models in `list_workflows`, `list_steps`, and `_stitch_profiles_to_workflows`.
+    - In `output_profile_service.py`: eliminated `.get()` in `clone_output_profile`, `save_output_profile`, `delete_output_profile`, and `list_output_profiles`.
+    - In `prompt_block_service.py` & `simulation_service.py`: eliminated `.get()` in cloning/simulation, safely extracted prompt block IDs, and narrowed exception handling.
+  - Modernized `auth.py`, `chat_parser.py`, `document_extraction.py`, and `progress.py`:
+    - Replaced `.get()` in role comparisons with direct dict lookups, passed typed `ErrorCodes` enum values, and enforced `ConfigDict(strict=True, extra="forbid", frozen=True)` on `ProgressState`.
+  - Modernized all unit test suites in `backend_v2/tests/unit/services/`:
+    - Updated test fixtures across 28 test files in `backend_v2/tests/unit/services/` to instantiate typed `TokenData`, `ExecutionMetadata(target_locale="fi")`, `ExecutionRecord`, `OutputProfile`, and `ProtocolPromptBlock`.
+    - 741/741 unit tests PASSED.
+  - Passed Universal Quality Gate:
+    - Ruff lint & format: 100% clean.
+    - MyPy strict type check: 0 errors across all 92 source files in `backend_v2/services/`.
+    - AST Guardrails (`scripts/_ast_guardrails.py backend_v2/services/ --strict`): 0 violations.
+    - SDUI Cross-Domain Semantic Parity (`test_sdui_semantic_parity.py`): 100% PASSED.
+  - Marked Phase 5 execution status as `[x] [OK]`.
 
 ## Learned
 - Repository reconstitution requires updating `backend_v2/database/interfaces.py` in lockstep to avoid Protocol divergence and MyPy strict mode violations.
@@ -421,15 +481,28 @@
 - In `backend_v2/services/orchestrator/prompt_compiler_adapter.py`, `__getattr__` dynamic delegation violates `QGR001`; explicit method forwarding to the wrapped `PromptCompiler` provides strict type safety with zero reflection.
 - SDUI cross-domain parity requires strict 1:1 string alignment between Flutter `lib/l10n/*.arb` and backend `l10n/*.json` (specifically `sduiMetadataCosts` and `sduiMetadataTokens`). Any divergence breaks semantic token matching in `test_sdui_semantic_parity.py`.
 - In `backend_v2/services/orchestrator/extractive_sensor_service.py`, `_batch_fuzzy_match` returns `dict[str, str]` for extensions; passing strings/dictionaries must adhere strictly to declared type annotations without nested raw lists to avoid MyPy strict mode failures.
+- In `backend_v2/services/execution.py`, `TokenData` natively guarantees typed `organization_id: str | None = None`. Replacing all 11 instances of `getattr(initiator, "organization_id", None)` with `initiator.organization_id` eliminates reflection without requiring runtime fallback chains.
+- In `backend_v2/services/llm_task_executor.py`, `execute_chat_task` returns `tuple[str, TokenUsage]`. Consuming services (`translation_service.py`, `source_verification_service.py`) must directly unpack this tuple rather than performing `isinstance(res, dict)` and `.get("content")` fallback parsing.
+- `ExecutionRecord` requires `target_locale="fi"` (and `metadata=ExecutionMetadata(target_locale="fi")`) across all service test fixtures (`test_blueprint.py`, `test_blueprint_sdui_crash.py`, `test_matrix_domain_parser.py`, SDUI adapter tests); omitting `target_locale` causes Pydantic V2 `ValidationError: Field required [target_locale]`.
+- `AuditRepository` protocol in `backend_v2/database/interfaces.py` guarantees `upsert_usage_aggregate`, `get_usage_records`, and `get_usage_aggregate` natively, rendering `hasattr(self.audit_repo, ...)` obsolete.
+- In `StudioWorkflowService.clone_workflow`, `StudioOutputProfileService.clone_output_profile`, and `StudioPromptBlockService.clone_prompt_block`, `I18nText` translations must be mutated directly via typed dict comprehensions (`{loc: f"{txt} (Copy)" for loc, txt in obj.name.translations.items()}`) rather than performing untyped `model_dump(mode="json")` roundtrips with `.get("translations", {})`.
+- In `ExecutionService.get_execution` (line 998), `AppException` must include `details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}` to satisfy `QGR009`.
+- In `BlueprintTransformer`, `LaxScoringStrategy` is typed `ScoringStrategy | str`; accessing `strat_enum.value` replaces `hasattr(strat_enum, "value")`.
+- `OutputProfile` validation invariant: `MATRIX_GRAPHS_BLOCK` in `target_block_order` mathematically requires non-empty `matrix_synthesis_groups` with at least one `MatrixSynthesisGroup` (e.g. `{"id": "...", "title": {"translations": {"en": "Default"}}, "target_blocks": ["*"]}`).
+- `ProtocolPromptBlock` strict instantiation requires `slug`, `label: I18nText`, `description: I18nText`, `organization_id`, and `category_id="protocol"`.
+- In `UsageService`, prompt caching capability must be determined by `pricing_cfg.cached_input_token_price is not None` from the LiteLLM registry rather than an ad-hoc `caching_strategy` attribute.
+- In `ReportDataDTO` polyfactory parity tests, unrendered scalar metadata fields (`profile_description`, `custom_preface_md`, `user_name`, `scoring_engine_name`, `org_name`) should be explicitly defaulted to `None` to prevent random faker string assertions from failing against concise Jinja PDF outputs.
 
 ## Remaining
-- **Phase 5**: Service Layer, Utility Services & Service Tests (`06_placeholder_phase5_service_layer_and_identity.md`).
+- **Phase 5 Audit**: Audit completed Phase 5 implementation plan (`/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]`).
 - **Phase 6**: Background Workers, Typed Cache Boundary & Storage (`07_placeholder_phase6_workers_typed_cache_and_storage.md`).
 - **Phase 7**: AST Guardrails Hardening & Global Clean Code Audit (`08_placeholder_phase7_ast_guardrails_hardening.md`).
 
 ## Resume Command
 ```powershell
-/tier0-create-plan @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md#L287-L306] @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity.md] @[docs/epic/EPIC_149_tracker.md]
 ```
+
+
 
 

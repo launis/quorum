@@ -466,7 +466,14 @@ async def test_create_step_draft_success(
     mock_workflow_repo: Any,
 ) -> None:
     mock_prompt_block_repo.get_all_prompt_blocks.return_value = [
-        {"id": "blk_0123456789abcdef01", "category_id": "protocol"}
+        {
+            "id": "blk_0123456789abcdef01",
+            "slug": "extraction_protocol_default",
+            "category_id": "protocol",
+            "label": {"translations": {"en": "Default Protocol"}},
+            "description": {"translations": {"en": "Default Protocol Description"}},
+            "organization_id": "org_123",
+        }
     ]
     mock_workflow_repo.get_step_by_id.side_effect = lambda id_: _valid_step_dict(id_, org_id="org_123")
     res = await workflow_service.create_step_draft(admin_token)

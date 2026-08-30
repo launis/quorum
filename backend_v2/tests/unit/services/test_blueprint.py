@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.auth import User, UserRole
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import MatrixClaim, MatrixScale, TDAAssertion, XaiHighlightItem
@@ -112,6 +113,7 @@ from datetime import datetime, timezone
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import DisplayScale, ExecutionStatus, ScoringStrategy, TargetBlockType, XaiExtensionType
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -366,6 +368,18 @@ def mock_repo_transformer() -> Any:
         "computed_max": 100,
     }
     repo.get_all_prompt_blocks.return_value = fix_mock_dict([pb_dict])
+    from datetime import datetime, timezone
+
+    repo.get_user.return_value = User(
+        id="usr_0123456789abcdef",
+        email="admin@example.com",
+        name="Test User",
+        role=UserRole.ADMIN,
+        is_active=True,
+        language="fi",
+        theme_mode="system",
+        created_at=datetime.now(timezone.utc),
+    )
     return repo
 
 
@@ -377,7 +391,8 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
         status=ExecutionStatus.PASSED,
         execution_trace=[],
         active_profile_id="prf_dddd1111dddd1111",
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
+        target_locale="fi",
     )
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -702,7 +717,8 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
         execution_trace=[],
         active_profile_id="prf_dddd1111dddd1111",
         frozen_context=frozen,
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        target_locale="fi",
     )
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -744,7 +760,8 @@ async def test_mcp_audit_fails_fast_on_incomplete_data() -> None:
             status=ExecutionStatus.PASSED,
             active_profile_id="prf_dddd1111dddd1111",
             frozen_context={"mcp_tool_audit": [invalid_mcp_audit]},  # type: ignore
-            metadata={"target_locale": "en"},
+            metadata=ExecutionMetadata(target_locale="en"),
+            target_locale="fi",
         )
 
     # Must raise an error specifically indicating that query is missing
@@ -786,6 +803,8 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
                 },
             )
         ],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     mock_repo_sdui.get_execution.return_value = mock_execution
 
@@ -839,7 +858,8 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
             )
         },
         context_variables={},
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        target_locale="fi",
     )
 
     mock_repo_transformer.get_workflow.return_value = dict_to_obj(
@@ -1006,7 +1026,8 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                 extension_metrics=None  # Missing metrics to trigger the crash
             )
         },
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        target_locale="fi",
     )
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
         [
@@ -1123,7 +1144,8 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             )
         },
         context_variables={},  # Empty to force fallback lookup
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        target_locale="fi",
     )
 
     # Configure workflow steps
@@ -1333,7 +1355,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
             )
         ],
         active_profile_id="prf_dddd1111dddd1111",
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 cited_sources=[],
@@ -1344,6 +1366,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
                 ],
             )
         },
+        target_locale="fi",
     )
 
     transformer = BlueprintTransformer(
@@ -1427,7 +1450,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
             )
         ],
         active_profile_id="prf_dddd1111dddd1111",
-        metadata={"target_locale": "unknown_lang"},  # Unknown language
+        metadata=ExecutionMetadata(target_locale="unknown_lang"),  # Unknown language
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 cited_sources=[],
@@ -1435,6 +1458,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
                 xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Good job.")],
             )
         },
+        target_locale="fi",
     )
 
     transformer = BlueprintTransformer(
@@ -1502,7 +1526,8 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
             )
         ],
         active_profile_id="prf_dddd1111dddd1111",
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        target_locale="fi",
     )
 
     transformer = BlueprintTransformer(
@@ -1554,7 +1579,8 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
             )
         ],
         context_variables={},
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        target_locale="fi",
     )
 
     mock_repo_transformer.get_workflow.return_value = Workflow.model_construct(
@@ -1636,7 +1662,8 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
                 },
             )
         ],
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        target_locale="fi",
     )
 
     mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
@@ -2104,7 +2131,8 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
                 },
             )
         ],
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        target_locale="fi",
     )
 
     mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
@@ -2230,8 +2258,8 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         workflow_id="wf_1234abcd1234abcd",
         active_profile_id=custom_profile.id,
         created_at=datetime.now(timezone.utc),
-        created_by="usr_admin",
-        metadata={"target_locale": "fi"},
+        created_by="usr_0123456789abcdef",
+        metadata=ExecutionMetadata(target_locale="fi"),
         execution_trace=[],
         profile_syntheses={
             custom_profile.id: RenderedSynthesisCache(
@@ -2244,9 +2272,19 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
                 section_syntheses={},
             )
         },
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec
-    mock_repo_transformer.get_user.return_value = {"display_name": "Test User"}
+    mock_repo_transformer.get_user.return_value = User(
+        id="usr_0123456789abcdef",
+        email="admin@example.com",
+        name="Test User",
+        role=UserRole.ADMIN,
+        is_active=True,
+        language="fi",
+        theme_mode="system",
+        created_at=datetime.now(timezone.utc),
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2297,12 +2335,22 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
         active_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
         created_by="usr_admin",
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         execution_trace=[],
         profile_syntheses={},
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec
-    mock_repo_transformer.get_user.return_value = {"display_name": "Test User"}
+    mock_repo_transformer.get_user.return_value = User(
+        id="usr_0123456789abcdef",
+        email="admin@example.com",
+        name="Test User",
+        role=UserRole.ADMIN,
+        is_active=True,
+        language="fi",
+        theme_mode="system",
+        created_at=datetime.now(timezone.utc),
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2355,8 +2403,9 @@ async def test_blueprint_transformer_fail_fast_branches(
         id="exe_1111222233334444",
         workflow_id="wf_nonexistent",
         created_at=datetime.now(timezone.utc),
-        metadata={"target_locale": "en"},
+        metadata=ExecutionMetadata(target_locale="en"),
         execution_trace=[],
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec
     mock_repo_transformer.get_workflow.return_value = None
@@ -2379,7 +2428,7 @@ async def test_blueprint_transformer_fail_fast_branches(
         workflow_id="wf_1234abcd1234abcd",
         created_at=datetime.now(timezone.utc),
         target_locale="",
-        metadata={"target_locale": ""},
+        metadata=ExecutionMetadata(target_locale=""),
         execution_trace=[],
     )
     mock_repo_transformer.get_execution.return_value = mock_exec_no_locale
@@ -2429,8 +2478,9 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         active_profile_id=profile.id,
         organization_id="org_err",
         created_at=datetime.now(timezone.utc),
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         execution_trace=[],
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec_org_err
     mock_repo_transformer.get_organization_model.side_effect = Exception("Org lookup failed")
@@ -2450,8 +2500,9 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         active_profile_id=profile.id,
         created_by="usr_err",
         created_at=datetime.now(timezone.utc),
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         execution_trace=[],
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec_user_err
     mock_repo_transformer.get_user.side_effect = Exception("User lookup failed")
@@ -2471,8 +2522,9 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         workflow_id="wf_1234abcd1234abcd",
         active_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         execution_trace=[],
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec_valid
     report = await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
@@ -2511,7 +2563,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         workflow_id="wf_1234abcd1234abcd",
         active_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         execution_trace=[
             TraceEvent(
                 step_name="step_system_scoring",
@@ -2521,6 +2573,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
                 },
             )
         ],
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec_penalty
 
@@ -2537,9 +2590,10 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         workflow_id="wf_1234abcd1234abcd",
         active_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         execution_trace=[],
         profile_syntheses={profile.id: mock_cache},
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec_cache
 
@@ -2687,7 +2741,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         workflow_id="wf_1234abcd1234abcd",
         active_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         frozen_context=FrozenContext(mcp_tool_audit=[audit_trace]),
         step_states={"step_1": step_state},
         execution_trace=[
@@ -2707,6 +2761,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
                 },
             ),
         ],
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec
 
@@ -2765,7 +2820,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
         workflow_id="wf_1234abcd1234abcd",
         active_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         frozen_context=FrozenContext(
             mcp_tool_audit=[
                 audit_trace,
@@ -2825,6 +2880,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
                 },
             ),
         ],
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec
 
@@ -2894,13 +2950,14 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         id="exe_99998888777766665555444433332222",
         workflow_id="wf_1234abcd1234abcd1234abcd1234abcd",
         created_at=datetime.now(timezone.utc),
-        metadata={"target_locale": "fi"},
+        metadata=ExecutionMetadata(target_locale="fi"),
         profile_syntheses={
             profile.id: RenderedSynthesisCache(
                 data_starvation=DataStarvationEvent(total_atoms=0, reason="Data starvation"),
             )
         },
         execution_trace=[],
+        target_locale="fi",
     )
     mock_repo_transformer.get_execution.return_value = mock_exec
 
@@ -2970,6 +3027,8 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
         active_profile_id=profile.id,
         status=ExecutionStatus.PASSED,
         execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
 
     mock_repo_transformer.get_all_output_profiles.return_value = [profile]
@@ -3154,6 +3213,7 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
                 },
             ),
         ],
+        target_locale="fi",
     )
 
     mock_repo_transformer.get_all_output_profiles.return_value = [profile]

@@ -427,10 +427,15 @@ async def test_delete_output_profile(
         "id": "prof_1234567890abcdef12",
         "slug": "prof_1",
         "name": {"translations": {"en": "Prof"}},
-        "category_id": "report",
-        "layouts": [],
         "organization_id": "org_123",
         "workflow_id": "wf_1234567890abcdef12",
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_0000000000000001",
+                "title": {"translations": {"en": "Default Group"}},
+                "target_blocks": ["*"],
+            }
+        ],
     }
     mock_seed_output_profile_repo.get_output_profile_by_id.side_effect = None
     mock_seed_output_profile_repo.get_output_profile_by_id.return_value = prof_data

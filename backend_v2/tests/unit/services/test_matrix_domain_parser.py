@@ -674,6 +674,7 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
 def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache() -> None:
     """Test that data starvation bypasses the missing row_explanations_cache check."""
     from backend_v2.models.dtos.trace import DataStarvationEvent
+    from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
 
     profile = get_dummy_profile()
@@ -702,6 +703,8 @@ def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
         profile_syntheses={profile.id: starvation_cache},
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
 
     _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(

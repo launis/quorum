@@ -61,7 +61,7 @@ class StudioSystemConfigService:
                 extra={
                     "error_code": ErrorCodes.PERMISSION_DENIED.value,
                     "user_id": initiator.id,
-                    "user_role": getattr(initiator.role, "value", initiator.role),
+                    "user_role": initiator.role.value,
                 },
             )
             raise PermissionDeniedError("Only ROOT or ADMIN can fetch available models.")
@@ -145,13 +145,15 @@ class StudioSystemConfigService:
             A list containing the SystemConfigModelRegistry if accessible.
         """
         if initiator.role == UserRole.ROOT:
-            all_data = [await self.system_repo.get_model_registry()]
-            if all_data[0]:
-                return [
-                    SystemConfigModelRegistry.model_validate(x, strict=False)
-                    for x in all_data
-                    if x.get("type") == "model_registry"
-                ]
+            data = await self.system_repo.get_model_registry()
+            if data:
+                registry = (
+                    data
+                    if isinstance(data, SystemConfigModelRegistry)
+                    else SystemConfigModelRegistry.model_validate(data, strict=False)
+                )
+                if registry.type == "model_registry":
+                    return [registry]
         return []
 
     async def get_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
@@ -307,7 +309,11 @@ class StudioSystemConfigService:
 
         cloned_data = SystemConfigModelRegistry.model_validate(data, strict=False).model_dump(mode="json")
         cloned_data["id"] = new_id
-        if "description" in cloned_data and getattr(cloned_data["description"], "strip", None) is not None:
+        if (
+            "description" in cloned_data
+            and isinstance(cloned_data["description"], str)
+            and cloned_data["description"].strip()
+        ):
             cloned_data["description"] = f"{cloned_data['description']} (Copy)"
 
         await self.system_repo.update_model_registry(cloned_data)
@@ -326,12 +332,16 @@ class StudioSystemConfigService:
         """
         if initiator.role != UserRole.ROOT:
             return []
-        all_data = [await self.system_repo.get_mcp_gateways()]
-        return [
-            SystemConfigMCPGateways.model_validate(x, strict=False)
-            for x in all_data
-            if x and x.get("type") == "mcp_gateways"
-        ]
+        data = await self.system_repo.get_mcp_gateways()
+        if data:
+            gateways = (
+                data
+                if isinstance(data, SystemConfigMCPGateways)
+                else SystemConfigMCPGateways.model_validate(data, strict=False)
+            )
+            if gateways.type == "mcp_gateways":
+                return [gateways]
+        return []
 
     async def get_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
         """Get mcp gateways.

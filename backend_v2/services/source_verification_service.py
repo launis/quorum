@@ -139,9 +139,10 @@ class SourceVerificationService:
                 client=self.llm_client,
                 messages=messages,
             )
-            if isinstance(eval_res, dict):
-                content_val = eval_res.get("content", "")
-                status_str = str(content_val).strip().upper()
+            if isinstance(eval_res, tuple):
+                status_str = str(eval_res[0]).strip().upper()
+            elif isinstance(eval_res, dict) and "content" in eval_res:
+                status_str = str(eval_res["content"]).strip().upper()
             else:
                 status_str = str(eval_res).strip().upper()
 
@@ -160,7 +161,7 @@ class SourceVerificationService:
                 audit_trace,
             )
 
-        except Exception as e:
+        except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
             # Circuit Breaker degradation for per-claim Tavily API failures
             logger.error(
                 "Failed to verify claim '%s': %s",

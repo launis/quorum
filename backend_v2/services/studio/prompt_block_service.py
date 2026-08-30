@@ -10,8 +10,12 @@ from backend_v2.database.interfaces import IPromptBlockRepository, ISystemReposi
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
     PromptBlock,
     PromptBlockAdapter,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
 )
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
@@ -30,8 +34,8 @@ class StudioPromptBlockService:
         self,
         prompt_block_repo: IPromptBlockRepository,
         system_repo: ISystemRepository,
-    ):
-        """Initialize the service.
+    ) -> None:
+        """Initialize service.
 
         Args:
             prompt_block_repo: The prompt block repository.
@@ -59,16 +63,23 @@ class StudioPromptBlockService:
             try:
                 blocks.append(PromptBlockAdapter.validate_python(x, strict=False))
             except ValidationError as e:
+                x_id = (
+                    x.id
+                    if isinstance(
+                        x, (MatrixPromptBlock, SystemRulePromptBlock, PersonaPromptBlock, ProtocolPromptBlock)
+                    )
+                    else (x["id"] if isinstance(x, dict) and "id" in x else "unknown")
+                )
                 logger.error(
                     "[StudioPromptBlockService] %s: PromptBlock %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
-                    x.get("id"),
+                    x_id,
                     str(e),
                 )
                 raise AppException(
-                    message=f"Database integrity error: PromptBlock {x.get('id')} failed strict validation.",
+                    message=f"Database integrity error: PromptBlock {x_id} failed strict validation.",
                     status_code=500,
-                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR},
+                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
                 ) from e
 
         if initiator.role == UserRole.ROOT:
@@ -248,8 +259,10 @@ class StudioPromptBlockService:
             cloned_data["organization_id"] = initiator.organization_id
 
         if "label" in cloned_data and isinstance(cloned_data["label"], dict):
-            for locale, text in cloned_data["label"].get("translations", {}).items():
-                cloned_data["label"]["translations"][locale] = text + " (Copy)"
+            label_dict = cloned_data["label"]
+            if "translations" in label_dict and isinstance(label_dict["translations"], dict):
+                for locale, text in label_dict["translations"].items():
+                    label_dict["translations"][locale] = str(text) + " (Copy)"
         elif "label" in cloned_data:
             cloned_data["label"] = str(cloned_data["label"]) + " (Copy)"
 

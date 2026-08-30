@@ -6,7 +6,7 @@ from fastapi import status
 from fastapi.concurrency import run_in_threadpool
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputsIngress
 
 logger = logging.getLogger(__name__)
@@ -25,27 +25,22 @@ class DocumentExtractionService:
         if not pdf_date_str or not pdf_date_str.startswith("D:"):
             return None
 
-        s = pdf_date_str[2:]
-        if len(s) < 8:
-            return None
-
         try:
-            year = s[0:4]
-            month = s[4:6]
-            day = s[6:8]
+            raw = pdf_date_str[2:]
+            year = raw[0:4]
+            month = raw[4:6] if len(raw) >= 6 else "01"
+            day = raw[6:8] if len(raw) >= 8 else "01"
+            hour = raw[8:10] if len(raw) >= 10 else "00"
+            minute = raw[10:12] if len(raw) >= 12 else "00"
+            second = raw[12:14] if len(raw) >= 14 else "00"
 
-            hour = s[8:10] if len(s) >= 10 else "00"
-            minute = s[10:12] if len(s) >= 12 else "00"
-            second = s[12:14] if len(s) >= 14 else "00"
-
-            tz_part = s[14:] if len(s) > 14 else ""
             tz_str = "Z"
-            if tz_part:
+            if len(raw) > 14:
+                tz_part = raw[14:]
                 if tz_part.startswith("Z"):
                     tz_str = "Z"
-                elif tz_part[0] in ("+", "-"):
+                elif tz_part[0] in ["+", "-"]:
                     sign = tz_part[0]
-                    # Strip single quotes if present (e.g. +03'00')
                     tz_val = tz_part[1:].replace("'", "")
                     if len(tz_val) >= 4:
                         tz_str = f"{sign}{tz_val[0:2]}:{tz_val[2:4]}"
@@ -57,8 +52,8 @@ class DocumentExtractionService:
             clean_iso = iso_str.replace("Z", "+00:00")
             datetime.datetime.fromisoformat(clean_iso)
             return iso_str
-        except Exception:
-            logger.warning("[DocumentExtractionService] Failed to parse PDF date metadata: %s", pdf_date_str)
+        except (AppException, ValueError, TypeError, IndexError) as e:
+            logger.warning("[DocumentExtractionService] Failed to parse PDF date metadata: %s (%s)", pdf_date_str, e)
             return None
 
     @staticmethod
@@ -112,7 +107,7 @@ class DocumentExtractionService:
                     raise AppException(
                         message=f"Invalid file attachment payload in key '{key}'",
                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        details={"error_code": "INVALID_ATTACHMENT_SCHEMA"},
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from e
 
                 filename_lower = attachment.filename.lower()
@@ -137,7 +132,7 @@ class DocumentExtractionService:
                     raise AppException(
                         message=f"Failed to extract text from {attachment.filename}",
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        details={"error_code": "FILE_EXTRACTION_FAILED"},
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from e
 
         if extracted_dates:

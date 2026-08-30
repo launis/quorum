@@ -14,7 +14,7 @@ from uuid import uuid4
 
 import pandas as pd
 from arq.connections import ArqRedis
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies
 from backend_v2.database.interfaces import (
@@ -53,12 +53,16 @@ from backend_v2.models.v2_core import (
     HumanOverrideDTO,
     HumanOverrideRequest,
     JobAcceptedDTO,
+    OutputProfile,
     ReportDataDTO,
     Step,
     Workflow,
     WorkflowInputs,
 )
 from backend_v2.models.view.sdui import (
+    AlertBlock,
+    MarkdownBlock,
+    ParagraphBlock,
     SduiMatrixTableBlock,
     SduiMetrics1DBlock,
     SduiRadarChartBlock,
@@ -71,6 +75,7 @@ from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.sdui_mapper_service import SduiMapperService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.services.usage_service import UsageService
+from backend_v2.settings import get_settings
 
 if TYPE_CHECKING:
     from backend_v2.services.orchestrator.dag_executor import DAGExecutor
@@ -113,10 +118,7 @@ def create_execution_record(
         resolved_metadata = (
             metadata
             if metadata is not None
-            else (
-                extra_persistence_fields.pop("metadata", None)
-                or ExecutionMetadata(target_locale=target_locale)
-            )
+            else (extra_persistence_fields.pop("metadata", None) or ExecutionMetadata(target_locale=target_locale))
         )
         if isinstance(resolved_metadata, dict):
             resolved_metadata = ExecutionMetadata.model_validate(resolved_metadata)
@@ -185,7 +187,7 @@ class ExecutionService:
 
             # SSOT MANDATE: Tenant Isolation Check
             if initiator.role != "ROOT":
-                org_id = getattr(initiator, "organization_id", None)
+                org_id = initiator.organization_id
                 # Filtering logic to only show executions that belong to this organization or user
                 # Currently simple filtering, will evolve as data schema strictly bounds executions to orgs
                 executions = [e for e in executions if e.organization_id == org_id or e.created_by == initiator.id]
@@ -227,7 +229,7 @@ class ExecutionService:
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         if initiator.role != "ROOT" and data.organization_id != org_id and data.created_by != initiator.id:
             msg = "You do not have permission to view this execution."
             raise PermissionDeniedError(msg)
@@ -263,8 +265,9 @@ class ExecutionService:
                 if record.status in [ExecutionStatus.PASSED, ExecutionStatus.FAILED]:
                     break
 
-                await asyncio.sleep(2)
-        except Exception as e:
+                settings = get_settings()
+                await asyncio.sleep(settings.llm_retry_delay)
+        except (AppException, OSError, RuntimeError, ValueError) as e:
             logger.error("SSE Error for execution %s: %s", execution_id, str(e), exc_info=True)
             yield f'data: {{"error": "SSE Stream Interrupted: {str(e)}"}}\n\n'
 
@@ -288,7 +291,7 @@ class ExecutionService:
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         if initiator.role != "ROOT" and record.organization_id != org_id and record.created_by != initiator.id:
             msg = "You do not have permission to delete this execution."
             raise PermissionDeniedError(msg)
@@ -351,7 +354,7 @@ class ExecutionService:
         if payload.raw_inputs and payload.raw_inputs.dynamic_inputs:
             for k, v in payload.raw_inputs.dynamic_inputs.items():
                 if isinstance(v, dict) and "content_base64" in v:
-                    source_identity_manifest[k] = v.get("filename", "Tuntematon lähde")
+                    source_identity_manifest[k] = v["filename"] if "filename" in v else "Tuntematon lähde"
 
         # EAGER EXTRACTION MUST HAPPEN HERE BEFORE DB COMMIT
         if doc_service and payload.raw_inputs:
@@ -365,7 +368,7 @@ class ExecutionService:
         workflow = Workflow.model_validate(workflow_dict)
 
         # Auth Check
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         if initiator.role != "ROOT" and workflow.organization_id not in [org_id, SystemOrganizations.ROOT_SYSTEM, None]:
             msg = "You do not have permission to execute this workflow."
             raise PermissionDeniedError(msg)
@@ -384,13 +387,13 @@ class ExecutionService:
 
         # V2 MANDATE: Strict Fail-Fast Validation of required inputs synchronously
         raw_inputs_dict = payload.raw_inputs.model_dump(exclude_unset=True)
-        dynamic_inputs = raw_inputs_dict.get("dynamic_inputs", {})
+        dynamic_inputs = raw_inputs_dict["dynamic_inputs"] if "dynamic_inputs" in raw_inputs_dict else {}
         missing_fields = []
         for expected in workflow.expected_inputs:
             if expected.required:
-                val = raw_inputs_dict.get(expected.input_key)
-                if val is None:
-                    val = dynamic_inputs.get(expected.input_key)
+                val = raw_inputs_dict[expected.input_key] if expected.input_key in raw_inputs_dict else None
+                if val is None and expected.input_key in dynamic_inputs:
+                    val = dynamic_inputs[expected.input_key]
 
                 if val is None:
                     missing_fields.append(expected.input_key)
@@ -489,7 +492,7 @@ class ExecutionService:
                 max_val = None
                 if scales:
                     try:
-                        scores = [float(s.score) for s in scales if hasattr(s, "score") and s.score is not None]
+                        scores = [float(s.score) for s in scales if s.score is not None]
                         if scores:
                             max_val = float(max(scores))
                     except (ValueError, TypeError) as e:
@@ -527,12 +530,11 @@ class ExecutionService:
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         profile_obj = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
-        profile_workflow_id = (
-            profile_obj.workflow_id
-            if isinstance(profile_obj, BaseModel)
-            else (profile_obj.get("workflow_id") if isinstance(profile_obj, dict) else None)
-        )
-        if not profile_obj or profile_workflow_id != workflow.id:
+        if not profile_obj:
+            msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        profile_model = OutputProfile.model_validate(profile_obj)
+        if profile_model.workflow_id != workflow.id:
             msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
@@ -552,10 +554,10 @@ class ExecutionService:
                 matrix_sampling_strategy=payload.matrix_sampling_strategy,
                 workflow_version=workflow.version,
                 user_id=initiator.id,
-                organization_id=getattr(initiator, "organization_id", None),
+                organization_id=initiator.organization_id,
             ),
             created_by=initiator.id,
-            organization_id=getattr(initiator, "organization_id", None),
+            organization_id=initiator.organization_id,
         )
 
         await self.exec_repo.create_execution(initial_record.model_dump(mode="json"))
@@ -566,7 +568,7 @@ class ExecutionService:
             workflow_id=workflow.id,
             inputs=payload.raw_inputs.model_dump(mode="json"),
             execution_id=execution_id,
-            organization_id=getattr(initiator, "organization_id", None),
+            organization_id=initiator.organization_id,
             user_id=initiator.id,
         )
 
@@ -661,7 +663,7 @@ class ExecutionService:
             )
 
         # Circuit Breaker: Denial of Wallet Protection
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         if org_id:
             is_quota_safe = await self.usage_service.check_quota(org_id)
             if not is_quota_safe:
@@ -682,7 +684,7 @@ class ExecutionService:
             workflow_id=record.workflow_id,
             inputs=record.raw_inputs.model_dump(mode="json"),
             execution_id=execution_id,
-            organization_id=getattr(initiator, "organization_id", None),
+            organization_id=initiator.organization_id,
             user_id=initiator.id,
         )
 
@@ -802,6 +804,9 @@ class ExecutionService:
                 },
             ) from e
 
+        def _l10n_label(key: str, default: str) -> str:
+            return str(l10n[key]) if key in l10n else default
+
         summary_rows: list[dict[str, Any]] = []
         if report_dto:
             matrices = []
@@ -823,11 +828,11 @@ class ExecutionService:
                 max_score = matrix.scale_max
                 summary_rows.append(
                     {
-                        l10n.get("excelHeaderMatrix", "Matrix"): matrix.label_i18n.resolve()
+                        _l10n_label("excelHeaderMatrix", "Matrix"): matrix.label_i18n.resolve()
                         if matrix.label_i18n
                         else matrix.name,
-                        l10n.get("excelHeaderGrade", "Grade"): score,
-                        l10n.get("excelHeaderMaxScore", "Max Score"): max_score,
+                        _l10n_label("excelHeaderGrade", "Grade"): score,
+                        _l10n_label("excelHeaderMaxScore", "Max Score"): max_score,
                     }
                 )
 
@@ -841,7 +846,8 @@ class ExecutionService:
                 b_obj = PromptBlockAdapter.validate_python(b, strict=False)
                 blocks_by_id[b_obj.id] = b_obj
             except ValidationError as e:
-                msg = f"Strict Fail-Fast Enforced: Invalid PromptBlock '{b.get('id', 'unknown')}' in DB: {e}"
+                b_id = b["id"] if isinstance(b, dict) and "id" in b else "unknown"
+                msg = f"Strict Fail-Fast Enforced: Invalid PromptBlock '{b_id}' in DB: {e}"
                 logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
@@ -873,25 +879,22 @@ class ExecutionService:
                 if atom_id in blocks_by_id:
                     claim_rule = blocks_by_id[atom_id].ai_description or ""
 
-                internalization = ""
-                anti_patterns = ""
-                if internal_logic:
-                    internalization = getattr(internal_logic, "step_1_identify_premise", "")
-                    anti_patterns = getattr(internal_logic, "step_3_evaluate_anti_patterns", "")
+                internalization = internal_logic.step_1_identify_premise if internal_logic else ""
+                anti_patterns = internal_logic.step_3_evaluate_anti_patterns if internal_logic else ""
 
                 rows.append(
                     {
-                        l10n.get("excelHeaderMatrix", "Matrix"): step_state.label,
-                        l10n.get("excelHeaderCriterion", "Criterion Name (UI)"): atom.claim_label,
-                        l10n.get("excelHeaderAiRule", "AI Rule"): claim_rule,
-                        l10n.get("excelHeaderInternalizedRule", "Internalized Rule"): internalization,
-                        l10n.get("excelHeaderResultStatus", "Result (Status)"): num_status,
-                        l10n.get("excelHeaderConfidence", "Confidence Estimate"): None,
-                        l10n.get("excelHeaderReasoningLength", "Reasoning Length"): word_count,
-                        l10n.get("excelHeaderFoundQuotes", "Found Quotes"): quotes_str,
-                        l10n.get("excelHeaderUsedSources", "Used Sources"): sources_str,
-                        l10n.get("excelHeaderAiReasoning", "AI Reasoning"): atom.semantic_reasoning,
-                        l10n.get("excelHeaderFalsification", "Falsification"): anti_patterns,
+                        _l10n_label("excelHeaderMatrix", "Matrix"): step_state.label,
+                        _l10n_label("excelHeaderCriterion", "Criterion Name (UI)"): atom.claim_label,
+                        _l10n_label("excelHeaderAiRule", "AI Rule"): claim_rule,
+                        _l10n_label("excelHeaderInternalizedRule", "Internalized Rule"): internalization,
+                        _l10n_label("excelHeaderResultStatus", "Result (Status)"): num_status,
+                        _l10n_label("excelHeaderConfidence", "Confidence Estimate"): None,
+                        _l10n_label("excelHeaderReasoningLength", "Reasoning Length"): word_count,
+                        _l10n_label("excelHeaderFoundQuotes", "Found Quotes"): quotes_str,
+                        _l10n_label("excelHeaderUsedSources", "Used Sources"): sources_str,
+                        _l10n_label("excelHeaderAiReasoning", "AI Reasoning"): atom.semantic_reasoning,
+                        _l10n_label("excelHeaderFalsification", "Falsification"): anti_patterns,
                     }
                 )
 
@@ -900,8 +903,8 @@ class ExecutionService:
         output = io.BytesIO()
         try:
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                df_summary.to_excel(writer, sheet_name=l10n.get("excelSheetSummary", "Summary"), index=False)
-                df_raw.to_excel(writer, sheet_name=l10n.get("excelSheetRawData", "Raw Data"), index=False)
+                df_summary.to_excel(writer, sheet_name=_l10n_label("excelSheetSummary", "Summary"), index=False)
+                df_raw.to_excel(writer, sheet_name=_l10n_label("excelSheetRawData", "Raw Data"), index=False)
         except Exception as e:
             logger.error(
                 "[ExecutionService] %s: Excel writing failed - %s",
@@ -983,7 +986,7 @@ class ExecutionService:
         record = await self.get_execution(initiator, execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         if initiator.role != "ROOT" and record.organization_id != org_id and record.created_by != initiator.id:
             msg = "You do not have permission to modify this execution."
             raise PermissionDeniedError(msg)
@@ -995,7 +998,13 @@ class ExecutionService:
                 break
 
         if not found_step_id:
-            raise AppException(f"Atom '{atom_id}' not found in any step_states", status_code=404)
+            msg = f"Atom '{atom_id}' not found in any step_states"
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
 
         override_dto = HumanOverrideDTO(
             new_status=payload.new_status,
@@ -1022,7 +1031,9 @@ class ExecutionService:
                     v["evaluated_atoms"][atom_id] = payload.new_status
                     if "raw_atoms" in v and isinstance(v["raw_atoms"], list):
                         for ra in v["raw_atoms"]:
-                            if ra.get("tda_id") == atom_id or ra.get("atom_id") == atom_id:
+                            if ("tda_id" in ra and ra["tda_id"] == atom_id) or (
+                                "atom_id" in ra and ra["atom_id"] == atom_id
+                            ):
                                 ra["human_override"] = payload.new_status
 
         deps = HookDependencies(
@@ -1055,7 +1066,7 @@ class ExecutionService:
         record = await self.get_execution(initiator, execution_id)
 
         # SSOT MANDATE: Tenant Isolation Check
-        org_id = getattr(initiator, "organization_id", None)
+        org_id = initiator.organization_id
         if initiator.role != "ROOT" and record.organization_id != org_id and record.created_by != initiator.id:
             msg = "You do not have permission to modify this execution."
             raise PermissionDeniedError(msg)
@@ -1318,9 +1329,12 @@ class ExecutionService:
         title_summary = ""
         if dto.inner_sdui_blocks:
             for block in dto.inner_sdui_blocks:
-                txt = getattr(block, "text", None)
-                if txt and isinstance(txt, str):
-                    title_summary += txt + " "
+                match block:
+                    case MarkdownBlock(text=txt) | ParagraphBlock(text=txt) | AlertBlock(text=txt):
+                        if txt:
+                            title_summary += txt + " "
+                    case _:
+                        pass
 
         if title_summary:
             view = view.model_copy(update={"title": title_summary.strip()[:100]})

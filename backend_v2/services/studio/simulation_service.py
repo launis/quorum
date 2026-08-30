@@ -6,7 +6,7 @@ import logging
 import string
 from typing import Any
 
-from backend_v2.exceptions import ErrorCodes, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
@@ -105,7 +105,7 @@ class StudioSimulationService:
         try:
             for s_id in all_steps:
                 resolve_deps(s_id)
-        except Exception as e:
+        except (AppException, ValueError, KeyError, RecursionError, RuntimeError) as e:
             logger.error(
                 "[StudioSimulationService] %s: Simulation graph resolution failed (Initiator: %s, Workflow: %s): %s",
                 ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
@@ -184,7 +184,7 @@ class StudioSimulationService:
                 # Very simple loose formatting for dry-run safely
                 t = string.Formatter()
                 keys = [k[1] for k in t.parse(rendered) if k[1] is not None]
-                clean_mocks = {k: mock_inputs.get(k, f"[{k} MOCKED]") for k in keys}
+                clean_mocks = {k: mock_inputs[k] if k in mock_inputs else f"[{k} MOCKED]" for k in keys}
                 rendered = rendered.format(**clean_mocks)
 
         # 2. Append Matrix Logic
@@ -247,10 +247,10 @@ class StudioSimulationService:
                 block = await self.prompt_block_service.get_prompt_block(initiator, block_ref)
                 sim = await self.simulate_prompt_block(initiator, block, mock_inputs)
                 if not sim["valid"]:
-                    errors.extend(sim.get("errors", []))
+                    errors.extend(sim["errors"] if "errors" in sim and isinstance(sim["errors"], list) else [])
 
                 rendered_parts.append(f"--- Prompt Block: {block.id} ---")
-                rendered_parts.append(sim.get("rendered_prompt", ""))
+                rendered_parts.append(str(sim["rendered_prompt"]) if "rendered_prompt" in sim else "")
                 if "prompt_context" in sim and sim["prompt_context"]:
                     prompt_context_msgs.extend(sim["prompt_context"].static_messages)
             except ResourceNotFoundError:

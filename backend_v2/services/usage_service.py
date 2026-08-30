@@ -92,7 +92,7 @@ class UsageService:
                     final_usage = adapter.calculate_cost(usage_obj, pricing_dto)
                     cost_usd = final_usage.cost_usd
                     estimated_savings_usd = final_usage.estimated_savings_usd
-                except Exception as e:
+                except (AppException, ValueError, TypeError, KeyError, RuntimeError, OSError) as e:
                     logger.warning("Failed to calculate cost via adapter: %s", e)
 
             record = UsageRecord(
@@ -116,73 +116,77 @@ class UsageService:
             await self.audit_repo.log_usage(record)
 
             # --- CUMULATIVE AGGREGATION ---
-            if hasattr(self.audit_repo, "upsert_usage_aggregate"):
-                period = datetime.now(UTC).strftime("%Y-%m")
-                total_t = input_tokens + output_tokens
-                update_data = {
-                    "total_executions": 1,
-                    "usage": TokenUsage(
-                        prompt_tokens=input_tokens,
-                        completion_tokens=output_tokens,
-                        total_tokens=total_t,
-                        cached_tokens=cached_tokens,
-                        cache_creation_input_tokens=cache_creation_input_tokens,
-                        reasoning_tokens=reasoning_tokens,
-                        cost_usd=cost_usd,
-                        estimated_savings_usd=estimated_savings_usd,
-                    ).model_dump(mode="json"),
-                }
+            period = datetime.now(UTC).strftime("%Y-%m")
+            total_t = input_tokens + output_tokens
+            update_data = {
+                "total_executions": 1,
+                "usage": TokenUsage(
+                    prompt_tokens=input_tokens,
+                    completion_tokens=output_tokens,
+                    total_tokens=total_t,
+                    cached_tokens=cached_tokens,
+                    cache_creation_input_tokens=cache_creation_input_tokens,
+                    reasoning_tokens=reasoning_tokens,
+                    cost_usd=cost_usd,
+                    estimated_savings_usd=estimated_savings_usd,
+                ).model_dump(mode="json"),
+            }
 
-                # System Level (All traffic)
-                await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, period, update_data)
-                await self.audit_repo.upsert_usage_aggregate(
-                    SystemOrganizations.ROOT_SYSTEM, None, "all-time", update_data
-                )  # noqa: E501
+            # System Level (All traffic)
+            await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, period, update_data)
+            await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, "all-time", update_data)  # noqa: E501
 
-                # Organization Level
-                if org_id:
-                    await self.audit_repo.upsert_usage_aggregate("organization", org_id, period, update_data)
-                    await self.audit_repo.upsert_usage_aggregate("organization", org_id, "all-time", update_data)
-                if user_id:
-                    await self.audit_repo.upsert_usage_aggregate("user", user_id, period, update_data)
-                    await self.audit_repo.upsert_usage_aggregate("user", user_id, "all-time", update_data)
+            # Organization Level
+            if org_id:
+                await self.audit_repo.upsert_usage_aggregate("organization", org_id, period, update_data)
+                await self.audit_repo.upsert_usage_aggregate("organization", org_id, "all-time", update_data)
+            if user_id:
+                await self.audit_repo.upsert_usage_aggregate("user", user_id, period, update_data)
+                await self.audit_repo.upsert_usage_aggregate("user", user_id, "all-time", update_data)
 
             # --- PROMPT_CACHING_DRIFT_ALERT ---
-            caching_strategy = None
-            if isinstance(model_pricing_config, dict):
-                caching_strategy = model_pricing_config.get("caching_strategy")
-            elif isinstance(model_pricing_config, PricingConfig):
-                caching_strategy = getattr(model_pricing_config, "caching_strategy", None)
+            pricing_cfg = (
+                model_pricing_config
+                if isinstance(model_pricing_config, PricingConfig)
+                else (PricingConfig.model_validate(model_pricing_config) if model_pricing_config else None)
+            )
+            has_prompt_caching = pricing_cfg.cached_input_token_price is not None if pricing_cfg else False
 
-            if caching_strategy == "prompt_caching":
-                # Get recent records (assuming last 5 exist in db)
-                if hasattr(self.audit_repo, "get_usage_records"):
-                    recent_records_data = await self.audit_repo.get_usage_records(scope="user", entity_id=user_id)
-                    # Use last 4 from DB + current record
-                    recent_records_data = recent_records_data[-4:]
-                    records = [UsageRecord.model_validate(r) for r in recent_records_data]
-                    records.append(record)
+            if has_prompt_caching:
+                recent_records_data = await self.audit_repo.get_usage_records(scope="user", entity_id=user_id)
+                # Use last 4 from DB + current record
+                recent_records_data = recent_records_data[-4:]
+                records = [UsageRecord.model_validate(r) for r in recent_records_data]
+                records.append(record)
 
-                    if len(records) == 5:
-                        total_cached = sum(r.cached_tokens for r in records)
-                        total_all_tokens = sum((r.input_tokens + r.output_tokens + r.cached_tokens) for r in records)
+                if len(records) == 5:
+                    total_cached = sum(r.cached_tokens for r in records)
+                    total_all_tokens = sum((r.input_tokens + r.output_tokens + r.cached_tokens) for r in records)
 
-                        if total_all_tokens > 0:
-                            hit_rate = total_cached / total_all_tokens
-                            if hit_rate < 0.80:
-                                hit_rate_pct = int(hit_rate * 100)
-                                logger.error(
-                                    "PROMPT_CACHING_DRIFT_ALERT: Cache hit rate has degraded "
-                                    f"to {hit_rate_pct}% for workflow Y. Investigate prompt mutations immediately."
-                                )
+                    if total_all_tokens > 0:
+                        hit_rate = total_cached / total_all_tokens
+                        if hit_rate < 0.80:
+                            hit_rate_pct = int(hit_rate * 100)
+                            logger.error(
+                                "PROMPT_CACHING_DRIFT_ALERT: Cache hit rate has degraded "
+                                f"to {hit_rate_pct}% for workflow Y. Investigate prompt mutations immediately."
+                            )
 
             return record
 
         except Exception as e:
-            error_code = ErrorCodes.USAGE_TRACKING_FAILED
-            logger.error("[Usage] %s for %s (Org: %s): %s", error_code.value, user_id, org_id, e, exc_info=True)
+            logger.error(
+                "[Usage] %s for %s (Org: %s): %s",
+                ErrorCodes.USAGE_TRACKING_FAILED.value,
+                user_id,
+                org_id,
+                e,
+                exc_info=True,
+            )
             raise AppException(
-                message=f"Failed to track usage: {e}", status_code=500, details={"error_code": error_code}
+                message=f"Failed to track usage: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.USAGE_TRACKING_FAILED.value},
             ) from e
 
     async def check_quota(self, org_id: str) -> bool:
@@ -198,7 +202,9 @@ class UsageService:
             if not org_id:
                 msg = "Quota Check: Missing Organization ID (Orphan User). Execution denied."
                 logger.error("[UsageService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+                raise AppException(
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
 
             if org_id == SystemOrganizations.ROOT_SYSTEM:
                 return True  # System internal tasks are exempt from hard quota ceilings
@@ -210,7 +216,9 @@ class UsageService:
                 # Fail-Fast: Unknown orgs cannot consume LLM traffic
                 msg = f"Quota Check: Organization '{org_id}' not found. Execution denied."
                 logger.error("[UsageService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
-                raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND})
+                raise AppException(
+                    message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+                )
 
             org = Organization.model_validate(org_data)
             limit = float(org.quota_limit)
@@ -232,11 +240,14 @@ class UsageService:
             # Re-raise explicit AppExceptions without double-wrapping
             raise
         except Exception as e:
-            error_code = ErrorCodes.QUOTA_CHECK_FAILED
-            logger.error("[Usage] %s check failed for %s: %s", error_code.value, org_id, e, exc_info=True)
+            logger.error(
+                "[Usage] %s check failed for %s: %s", ErrorCodes.QUOTA_CHECK_FAILED.value, org_id, e, exc_info=True
+            )
             # Fail FAST. Do not swallow errors.
             raise AppException(
-                message=f"Quota check failed: {e}", status_code=500, details={"error_code": error_code}
+                message=f"Quota check failed: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.QUOTA_CHECK_FAILED.value},
             ) from e
 
     async def get_usage_report(self, scope: str, entity_id: str | None = None, since: str | None = None) -> UsageReport:
@@ -263,23 +274,15 @@ class UsageService:
 
         from backend_v2.models.domain.usage import UsageAggregate
 
-        agg_data = None
-        if hasattr(self.audit_repo, "get_usage_aggregate"):
-            # Map frontend scope 'org' to 'organization' exactly as aggregated
-            mapped_scope = "organization" if scope == "org" else scope
-            agg_data = await self.audit_repo.get_usage_aggregate(mapped_scope, entity_id, period)
+        # Map frontend scope 'org' to 'organization' exactly as aggregated
+        mapped_scope = "organization" if scope == "org" else scope
+        agg_data = await self.audit_repo.get_usage_aggregate(mapped_scope, entity_id, period)
 
         if agg_data:
             agg = UsageAggregate.model_validate(agg_data)
             token_usage = agg.usage
         else:
-            records_data = []
-            if hasattr(self.audit_repo, "get_usage_records"):
-                mapped_scope = "organization" if scope == "org" else scope
-                records_data = await self.audit_repo.get_usage_records(
-                    scope=mapped_scope, entity_id=entity_id, since=since
-                )
-
+            records_data = await self.audit_repo.get_usage_records(scope=mapped_scope, entity_id=entity_id, since=since)
             records = [UsageRecord.model_validate(r) for r in records_data]
 
             prompt_tokens = sum(r.input_tokens for r in records)
