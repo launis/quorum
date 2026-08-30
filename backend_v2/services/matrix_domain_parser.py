@@ -471,7 +471,7 @@ class MatrixDomainParser:
             context_target = None
             context_target_label = None
             step_rule = workflow_steps.get(step_id)
-            input_mappings = getattr(step_rule, "input_mappings", None)
+            input_mappings = step_rule.input_mappings if step_rule else None
             if input_mappings and isinstance(input_mappings, dict):
                 # Find input mapping pointing to $inputs
                 for mapped_val in input_mappings.values():

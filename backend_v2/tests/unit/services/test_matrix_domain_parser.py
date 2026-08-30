@@ -669,9 +669,8 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
 
 def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache() -> None:
     """Test that data starvation bypasses the missing row_explanations_cache check."""
-    from backend_v2.models.domain.output_profile import SynthesisConfigDTO
     from backend_v2.models.dtos.trace import DataStarvationEvent
-    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
+    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache, SynthesisConfigDTO
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()

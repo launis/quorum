@@ -132,7 +132,7 @@ class MatrixExplanationService:
                         for claim in scale.claims:
                             try:
                                 claim_text = claim.label.resolve(target_locale)
-                            except KeyError, AttributeError:
+                            except (KeyError, AttributeError):
                                 claim_text = ""
                             if claim_text and claim.tda_assertions:
                                 for tda in claim.tda_assertions:
