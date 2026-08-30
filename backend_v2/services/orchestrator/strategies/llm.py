@@ -605,8 +605,8 @@ class LLMNodeStrategy(NodeStrategy):
 
                 dag_results = {}
                 for step_res in hook_state.inputs.values():
-                    if isinstance(step_res, dict) and "evaluations" in step_res:
-                        for ev in step_res["evaluations"]:
+                    if isinstance(step_res, dict) and "results" in step_res:
+                        for ev in step_res["results"]:
                             a_id = ev.get("tda_id") or ev.get("atom_id")
                             if a_id:
                                 dag_results[a_id] = ev
@@ -650,8 +650,8 @@ class LLMNodeStrategy(NodeStrategy):
 
                 dag_results = {}
                 for step_res in hook_state.inputs.values():
-                    if isinstance(step_res, dict) and "evaluations" in step_res:
-                        for ev in step_res["evaluations"]:
+                    if isinstance(step_res, dict) and "results" in step_res:
+                        for ev in step_res["results"]:
                             a_id = ev.get("tda_id") or ev.get("atom_id")
                             if a_id:
                                 dag_results[a_id] = ev

@@ -15,7 +15,19 @@ def fix_mock_dict(d: Any) -> Any:
     from backend_v2.models.enums import TargetBlockType
     from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup, OutputProfile
 
+    if isinstance(d, list):
+        for item in d:
+            fix_mock_dict(item)
+        return d
     if isinstance(d, OutputProfile):
+        if d.matrix_visible_columns is None:
+            object.__setattr__(d, "matrix_visible_columns", ["label", "score", "distribution", "quotes"])
+        elif "row_explanation" in d.matrix_visible_columns and len(d.matrix_visible_columns) == 5:
+            object.__setattr__(
+                d,
+                "matrix_visible_columns",
+                ["label", "score", "distribution", "quotes"],
+            )
         if (
             TargetBlockType.MATRIX_GRAPHS_BLOCK in d.target_block_order
             or "matrix_graphs_block" in [str(t) for t in d.target_block_order]
@@ -39,6 +51,8 @@ def fix_mock_dict(d: Any) -> Any:
         d.pop("user_role_mappings", None)
 
         if "workflow_id" in d and "id" in d:
+            if "matrix_visible_columns" not in d:
+                d["matrix_visible_columns"] = ["label", "score", "distribution", "quotes"]
             if "matrix_synthesis_groups" not in d or not d["matrix_synthesis_groups"]:
                 d["matrix_synthesis_groups"] = [
                     {
@@ -136,8 +150,14 @@ def dict_to_obj(d: Any) -> Any:
         if "label" in d and "tda_assertions" not in d:
             d["tda_assertions"] = []
 
-        # Ensure mock workflows have expected_inputs
-        d.setdefault("expected_inputs", [])
+        # Ensure mock workflows have expected_inputs and mcp_gateway_id
+        if "steps" in d:
+            d.setdefault("expected_inputs", [])
+            d.setdefault("mcp_gateway_id", None)
+
+        # Ensure mock steps have input_mappings
+        if "id" in d and "workflow_id" not in d and "steps" not in d and "translations" not in d:
+            d.setdefault("input_mappings", {})
 
         return SimpleNamespace(**{k: dict_to_obj(v) for k, v in d.items()})
     elif isinstance(d, list):
@@ -220,6 +240,7 @@ def mock_repo_transformer() -> Any:
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
+                "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
             }
         ]
     )
@@ -307,6 +328,7 @@ def mock_repo_transformer() -> Any:
                 ],
                 max_extension_items=2,
                 strictness_level=85,
+                matrix_visible_columns=["label", "score", "distribution", "quotes"],
             )
         ]
     )
@@ -458,6 +480,7 @@ def mock_repo_microcot() -> Any:
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
+                "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
             }
         ]
     )
@@ -601,6 +624,7 @@ def mock_repo_sdui() -> AsyncMock:
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
+                "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
             }
         ]
     )
@@ -1284,6 +1308,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
             )
         ],
         visible_block_extensions=[XaiExtensionType.REMEDIATION_STEPS, XaiExtensionType.FALSIFICATION],
+        matrix_visible_columns=["label", "distribution", "quotes", "score"],
     )
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict([profile_mock])
     mock_repo_transformer.get_by_id.return_value = profile_mock
@@ -1378,6 +1403,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
             )
         ],
         visible_block_extensions=[XaiExtensionType.COACHING],
+        matrix_visible_columns=["label", "distribution", "quotes", "score"],
     )
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict([profile_mock])
     mock_repo_transformer.get_by_id.return_value = profile_mock
@@ -1456,7 +1482,7 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
                     "blk_1234abcd1234abcd": {
                         "raw_score": 100.0,
                     },
-                    "evaluations": [
+                    "results": [
                         {
                             "atom_id": "tda_11111111111111111111111111111111",
                             "level": 100,
@@ -1774,7 +1800,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         ),
         SimpleNamespace(
             step_id="step_1",
-            block_id="evaluations",
+            block_id="results",
             payload=[
                 {
                     "atom_id": "tda_11111111111111111111111111111111",
@@ -2033,19 +2059,25 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
 
     # 7. Missing row_explanations_cache
     results[0].payload["level_breakdown"] = {}
-    object.__setattr__(profile, "synthesis", SimpleNamespace(row_explanations_block_id="foo"))
+    profile_with_exp = profile.model_copy(update={"matrix_visible_columns": ["label", "row_explanation"]})
     with pytest.raises(AppException) as exc:
-        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
+        MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile_with_exp, {}, [], {})
     assert "row_explanations_cache missing entry" in str(exc.value)
 
 
 @pytest.mark.asyncio
 async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -> None:
     """Verifies penalty parsing and ensures AI output slop never affects global score."""
-    from types import SimpleNamespace
+    from backend_v2.models.v2_core import ExpectedInput
 
     mock_repo_transformer.get_workflow.return_value.expected_inputs = [
-        SimpleNamespace(name="input_text", type="string")
+        ExpectedInput(
+            input_key="input_text",
+            label=I18nText(translations={"en": "Input"}),
+            description=I18nText(translations={"en": "Input description"}),
+            required=True,
+            input_modes=["paste"],
+        )
     ]
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
@@ -2337,6 +2369,8 @@ async def test_blueprint_transformer_fail_fast_branches(
     mock_wf = SimpleNamespace(
         id="wf_1234abcd1234abcd",
         default_profile_id="prf_dddd1111dddd1111",
+        mcp_gateway_id=None,
+        expected_inputs=[],
         steps=[],
     )
     mock_repo_transformer.get_workflow.return_value = mock_wf
@@ -2561,8 +2595,9 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
     from backend_v2.models.enums import VisualIntent
 
+    valid_tda_id = "tda_00000000000000000000000000000001"
     existing_atom = ScorecardAtomDTO(
-        atom_id="atom_1",
+        atom_id=valid_tda_id,
         level=1,
         level_name="Level 1",
         claim_label="Claim 1",
@@ -2593,8 +2628,59 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         id="step_1",
         label="Step 1",
         status=ExecutionStatus.PASSED,
-        scorecard_atoms={"atom_1": existing_atom},
+        scorecard_atoms={valid_tda_id: existing_atom},
     )
+
+    mock_repo_transformer.get_prompt_block.return_value = MatrixPromptBlock(
+        id="blk_1234567890abcdef1234567890abcdef",
+        slug="matrix_test",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        description=I18nText(translations={"en": "desc"}),
+        label=I18nText(translations={"en": "Matrix Axis"}),
+        scales=[
+            MatrixScale(
+                score=0,
+                ai_label="Fail",
+                name=I18nText(translations={"en": "Fail"}),
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "claim"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id=valid_tda_id,
+                                concept_description="valid concept description",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            ),
+            MatrixScale(
+                score=100,
+                ai_label="Pass",
+                name=I18nText(translations={"en": "Pass"}),
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "claim"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id=valid_tda_id,
+                                concept_description="valid concept description",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            ),
+        ],
+    )
+    mock_repo_transformer.get_all_prompt_blocks.return_value = [
+        mock_repo_transformer.get_prompt_block.return_value.model_dump()
+    ]
 
     mock_exec = ExecutionRecord(
         id="exe_1111222233334444",
@@ -2609,6 +2695,12 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
                 step_name="step_1",
                 event_type="output",
                 content={
+                    "blk_1234567890abcdef1234567890abcdef": {
+                        "raw_score": 100.0,
+                        "normalized_score": 100.0,
+                        "level_breakdown": {"100": {"hits": 1, "total": 1}},
+                        "evaluated_atoms": {valid_tda_id: ExecutionStatus.PASSED},
+                    },
                     "source_id": "mcp_00000000000000000000000000000001",
                     "used_evidence_ids": ["mcp_00000000000000000000000000000001"],
                     "used_mcp_ids": ["mcp_00000000000000000000000000000001"],
@@ -2709,29 +2801,27 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
                 step_name="step_dag_exec",
                 event_type="output",
                 content={
-                    "blk_dag_exec": {
-                        "results": [
-                            {
-                                "tda_id": "tda_00000000000000000000000000000000",
-                                "status": ExecutionStatus.PASSED,
-                                "evaluation_reasoning": "Well done",
-                                "contextual_override": False,
-                                "source_quote": "Found quote",
-                                "depends_on_tda_ids": [],
-                                "short_circuit_reason_tda_ids": [],
-                            }
-                        ],
-                        "hydrated_references": {
-                            "tda_00000000000000000000000000000000": {
-                                "sdui_component": SDUIComponentType.BOOLEAN_CARD,
-                                "resolved_claim": "Atom 1",
-                                "source_quote": "Found quote",
-                            }
-                        },
-                        "source_id": "mcp_00000000000000000000000000000001",
-                        "used_evidence_ids": ["mcp_00000000000000000000000000000001"],
-                        "used_mcp_ids": ["mcp_00000000000000000000000000000001"],
-                    }
+                    "results": [
+                        {
+                            "tda_id": "tda_00000000000000000000000000000000",
+                            "status": ExecutionStatus.PASSED,
+                            "evaluation_reasoning": "Well done",
+                            "contextual_override": False,
+                            "source_quote": "Found quote",
+                            "depends_on_tda_ids": [],
+                            "short_circuit_reason_tda_ids": [],
+                        }
+                    ],
+                    "hydrated_references": {
+                        "tda_00000000000000000000000000000000": {
+                            "sdui_component": SDUIComponentType.BOOLEAN_CARD,
+                            "resolved_claim": "Atom 1",
+                            "source_quote": "Found quote",
+                        }
+                    },
+                    "source_id": "mcp_00000000000000000000000000000001",
+                    "used_evidence_ids": ["mcp_00000000000000000000000000000001"],
+                    "used_mcp_ids": ["mcp_00000000000000000000000000000001"],
                 },
             ),
         ],
@@ -2794,6 +2884,8 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         default_profile_id=profile.id,
         default_scoring_strategy=ScoringStrategy.AVERAGE,
         default_strictness_level=80,
+        mcp_gateway_id=None,
+        expected_inputs=[],
         steps=[],
     )
     mock_repo_transformer.get_workflow.return_value = mock_wf
@@ -2911,3 +3003,179 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
     report = await transformer.build_report_dto(exec_record.id, profile_id=profile.id, accept_language="fi")
     assert report is not None
     mock_repo_transformer.get_mcp_gateways.assert_called_once_with(id="sys_8172bda70c8641c5")
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_direct_results_and_human_overrides(mock_repo_transformer: Any) -> None:
+    """Test direct results/hydrated_references and human_override preservation in step_states."""
+    from datetime import datetime, timezone
+    from backend_v2.models.enums import ExecutionStatus, SDUIComponentType, TargetBlockType, VisualIntent
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+    from backend_v2.models.v2_core import (
+        AtomResultDTO,
+        ExecutionMetadata,
+        ExecutionRecord,
+        ExecutionStepState,
+        HumanOverrideDTO,
+        HydratedAtomDTO,
+        I18nText,
+        MatrixScale,
+        OutputProfile,
+        ScorecardAtomDTO,
+        StepRule,
+        Workflow,
+    )
+
+    pb = MatrixPromptBlock(
+        id="blk_0000000000000001",
+        slug="matrix-block",
+        label=I18nText(translations={"en": "Matrix Block", "fi": "Matriisilohko"}),
+        description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
+        scales=[
+            MatrixScale(score=1, name=I18nText(translations={"en": "Low", "fi": "Matala"}), ai_label="Low", claims=[]),
+            MatrixScale(score=5, name=I18nText(translations={"en": "High", "fi": "Korkea"}), ai_label="High", claims=[]),
+        ],
+    )
+
+    profile = OutputProfile(
+        id="prf_0000000000000002",
+        slug="profile-override",
+        workflow_id="wf_0000000000000002",
+        name=I18nText(translations={"en": "Profile", "fi": "Profiili"}),
+        matrix_visible_columns=["label", "score", "distribution", "quotes"],
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+    )
+
+    existing_override = HumanOverrideDTO(
+        overridden_by="admin",
+        overridden_at=datetime.now(timezone.utc),
+        new_status=ExecutionStatus.PASSED,
+        reason="Corrected by coach",
+        evidence_quotes=[],
+    )
+
+    step_state = ExecutionStepState(
+        id="sr_0000000000000001",
+        label="Step Test",
+        status=ExecutionStatus.PASSED,
+        scorecard_atoms={
+            "tda_0000000000000001": ScorecardAtomDTO(
+                atom_id="tda_0000000000000001",
+                level=1,
+                level_name="Low",
+                claim_label="Claim",
+                extracted_facts={},
+                exact_quotes=[],
+                internal_logic_en=ReasoningStepDTO(
+                    step_1_identify_premise="",
+                    step_2_scan_source="",
+                    step_3_evaluate_anti_patterns="",
+                    step_4_final_conclusion="",
+                ),
+                status=ExecutionStatus.PASSED,
+                semantic_reasoning="Reason",
+                contextual_override=False,
+                structural_location=None,
+                chart_display_label="Claim",
+                visual_intent=VisualIntent.NEUTRAL,
+                human_override=existing_override,
+            )
+        },
+    )
+
+    wf = Workflow(
+        id="wf_0000000000000002",
+        slug="wf-override",
+        organization_id="org_0000000000000001",
+        default_profile_id=profile.id,
+        name=I18nText(translations={"en": "Workflow"}),
+        description=I18nText(translations={"en": "Description"}),
+        status="active",
+        version=1,
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+        steps=[
+            StepRule(
+                id="sr_0000000000000001",
+                task_blueprint="step_0000000000000001",
+                input_mappings={"text": "$inputs.doc"},
+            )
+        ],
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_0000000000000002",
+        workflow_id=wf.id,
+        active_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        metadata=ExecutionMetadata(
+            target_locale="fi",
+            dag_cost_usd=0.05,
+            prompt_tokens=100,
+            completion_tokens=50,
+            reasoning_tokens=20,
+        ),
+        step_states={"sr_0000000000000001": step_state},
+        execution_trace=[
+            TraceEvent(
+                step_name="sr_0000000000000001",
+                event_type="output",
+                content={
+                    "results": [
+                        {
+                            "tda_id": "tda_0000000000000001",
+                            "status": "PASSED",
+                            "evaluation_reasoning": "Reason",
+                            "contextual_override": False,
+                            "source_quote": "Found quote",
+                        }
+                    ],
+                    "hydrated_references": {
+                        "tda_0000000000000001": {
+                            "sdui_component": "boolean_card",
+                            "resolved_claim": "Claim",
+                            "source_quote": "Found quote",
+                        }
+                    },
+                    "blk_0000000000000001": {"raw_score": 4.5},
+                    "_step_metadata": {
+                        "token_usage": {
+                            "prompt_tokens": 100,
+                            "completion_tokens": 50,
+                            "reasoning_tokens": 20,
+                            "total_tokens": 170,
+                            "cost_usd": 0.05,
+                        }
+                    },
+                },
+            ),
+        ],
+    )
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
+    mock_repo_transformer.get_output_profile.return_value = profile
+    mock_repo_transformer.get_output_profile_by_id.return_value = profile.model_dump()
+    mock_repo_transformer.get_workflow.return_value = wf
+    mock_repo_transformer.get_execution.return_value = exec_record
+    mock_repo_transformer.get_prompt_block.return_value = pb
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    report = await transformer.build_report_dto(exec_record.id, profile_id=profile.id, accept_language="fi")
+    assert report is not None
+    assert len(report.results) == 1
+    assert "tda_0000000000000001" in report.hydrated_references
+    assert report.total_tokens == 170
+    assert report.cost_estimate == 0.05
+

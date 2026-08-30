@@ -764,7 +764,7 @@ async def test_execute_synthesis_engine_path(
     ]
 
     mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {"prev_step": {"evaluations": [{"tda_id": "tda_123", "score": 4.0}]}}
+    mock_hook_state.inputs = {"prev_step": {"results": [{"tda_id": "tda_123", "score": 4.0}]}}
     mock_hook_state.global_context_vars = context.global_context_vars
 
     from pydantic import BaseModel

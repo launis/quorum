@@ -19,23 +19,28 @@ from backend_v2.settings import Settings
 
 class DistilledEvaluationFactory(ModelFactory[DistilledEvaluation]):
     __model__ = DistilledEvaluation
+    atom_id = "tda_default_atom"
 
 
 def test_compress_synthesis_payload_strips_atom_quotes() -> None:
-    """PROMISE: Prove that _compress_synthesis_payload strips evaluations and massive atom_quotes."""
+    """PROMISE: Prove that _compress_synthesis_payload strips results and massive atom_quotes."""
     massive_string = "A" * 1000000
 
-    eval_mock = DistilledEvaluationFactory.build(exact_quotes=[massive_string], semantic_reasoning=massive_string)
+    eval_mock = DistilledEvaluationFactory.build(
+        atom_id="tda_123",
+        exact_quotes=[massive_string],
+        semantic_reasoning=massive_string,
+    )
 
     payload: dict[str, Any] = {
-        "evaluations": [eval_mock.model_dump()],
+        "results": [eval_mock.model_dump()],
         "atom_quotes": {"blk_123": [{"level": 5, "level_name": "High", "quote": massive_string}]},
     }
 
     compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     compressed_dict = json.loads(compressed_str)
 
-    pruned_evals = compressed_dict.get("evaluations", [])
+    pruned_evals = compressed_dict.get("results", [])
     assert len(pruned_evals) == 1
     assert len(pruned_evals[0]["exact_quotes"][0]) <= 300
     assert len(pruned_evals[0]["semantic_reasoning"]) <= 300
@@ -73,10 +78,10 @@ def test_compress_synthesis_payload_scalar_input() -> None:
 def test_compress_synthesis_payload_negative_invalid_types() -> None:
     """PROMISE: Prove that _compress_synthesis_payload crashes on invalid payload structures (anti-happy-path)."""
     payload: dict[str, Any] = {
-        "evaluations": "This should be a list, not a string",
+        "results": "This should be a list, not a string",
         "atom_quotes": 12345,
         "shuffled_atoms": {"wrong": "type"},
-        "nested": {"atom_quotes": None, "evaluations": {"invalid": "dict instead of list"}},
+        "nested": {"atom_quotes": None, "results": {"invalid": "dict instead of list"}},
     }
 
     with pytest.raises(AppException) as exc_info:
@@ -100,7 +105,7 @@ def test_compress_synthesis_payload_basemodel_input() -> None:
 
 def test_compress_synthesis_payload_negative_non_dict_evaluation() -> None:
     """PROMISE: Prove that an evaluation item not being a dict crashes."""
-    payload = {"evaluations": ["not_a_dict_evaluation"]}
+    payload = {"results": ["not_a_dict_evaluation"]}
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
@@ -109,7 +114,7 @@ def test_compress_synthesis_payload_negative_non_dict_evaluation() -> None:
 
 def test_compress_synthesis_payload_negative_missing_mandatory_field() -> None:
     """PROMISE: Prove that a missing mandatory field raises a KeyError wrapped in an AppException."""
-    payload: dict[str, Any] = {"evaluations": [{"exact_quotes": []}]}  # missing atom_id
+    payload: dict[str, Any] = {"results": [{"exact_quotes": []}]}  # missing atom_id
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
@@ -118,7 +123,7 @@ def test_compress_synthesis_payload_negative_missing_mandatory_field() -> None:
 
 def test_compress_synthesis_payload_negative_validation_error() -> None:
     """PROMISE: Prove that a pydantic validation error raises an AppException."""
-    payload: dict[str, Any] = {"evaluations": [{"atom_id": "tda_123", "exact_quotes": {"wrong": "type"}}]}
+    payload: dict[str, Any] = {"results": [{"atom_id": "tda_123", "exact_quotes": {"wrong": "type"}}]}
 
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
@@ -132,7 +137,7 @@ def test_compress_payload_unbounded_when_zero_evaluations_limit() -> None:
         {"atom_id": f"a{i}", "exact_quotes": [f"Quote for atom {i}"], "semantic_reasoning": f"Reason {i}"}
         for i in range(100)
     ]
-    payload = {"evaluations": evals}
+    payload = {"results": evals}
 
     with patch(
         "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
@@ -141,7 +146,7 @@ def test_compress_payload_unbounded_when_zero_evaluations_limit() -> None:
         compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
         compressed_dict = json.loads(compressed_str)
 
-    result_evals = compressed_dict.get("evaluations", [])
+    result_evals = compressed_dict.get("results", [])
     assert len(result_evals) == 100
 
 
@@ -165,7 +170,7 @@ def test_compress_payload_prioritized_stratification_retains_critical_deficits_o
         }
         for i in range(20)
     ]
-    payload = {"evaluations": deficits + passes}
+    payload = {"results": deficits + passes}
 
     # Limit of 10 -> 7 deficits (70%) and 3 passes (30%)
     with patch(
@@ -175,7 +180,7 @@ def test_compress_payload_prioritized_stratification_retains_critical_deficits_o
         compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
         compressed_dict = json.loads(compressed_str)
 
-    result_evals = compressed_dict.get("evaluations", [])
+    result_evals = compressed_dict.get("results", [])
     assert len(result_evals) == 10
 
     def_count = sum(1 for e in result_evals if str(e["atom_id"]).startswith("def_"))
@@ -190,7 +195,7 @@ def test_compress_payload_stratification_is_100_percent_deterministic_with_tiebr
         {"atom_id": f"atom_{i:02d}", "exact_quotes": ["Evidence quote"], "semantic_reasoning": "Reason"}
         for i in reversed(range(20))
     ]
-    payload = {"evaluations": evals}
+    payload = {"results": evals}
 
     with patch(
         "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
@@ -201,7 +206,7 @@ def test_compress_payload_stratification_is_100_percent_deterministic_with_tiebr
 
     assert compressed_str_1 == compressed_str_2
     compressed_dict = json.loads(compressed_str_1)
-    result_evals = compressed_dict.get("evaluations", [])
+    result_evals = compressed_dict.get("results", [])
     atom_ids = [e["atom_id"] for e in result_evals]
     assert atom_ids == sorted(atom_ids)
 
@@ -209,7 +214,7 @@ def test_compress_payload_stratification_is_100_percent_deterministic_with_tiebr
 def test_compress_payload_strips_hydrated_references_and_heavy_keys() -> None:
     """PROMISE: Prove that hydrated_references, _step_metadata, _audit_signature, and _evaluative_matrices are stripped."""
     payload: dict[str, Any] = {
-        "evaluations": [{"atom_id": "a1", "exact_quotes": ["Valid quote"]}],
+        "results": [{"atom_id": "a1", "exact_quotes": ["Valid quote"]}],
         "shuffled_atoms": ["atom_1", "atom_2"],
         "atom_quotes": {"blk_1": []},
         "hydrated_references": {"ref_1": "doc_content"},
@@ -227,44 +232,13 @@ def test_compress_payload_strips_hydrated_references_and_heavy_keys() -> None:
     assert "_step_metadata" not in compressed_dict
     assert "_audit_signature" not in compressed_dict
     assert "_evaluative_matrices" not in compressed_dict
-    assert "evaluations" in compressed_dict
-
-
-def test_compress_payload_with_results_only_no_evaluations() -> None:
-    """PROMISE: Prove that payloads containing only 'results' are normalized and filtered cleanly."""
-    payload: dict[str, Any] = {
-        "results": [
-            {
-                "atom_id": "a1",
-                "exact_quotes": ["Long quote from source evidence document"],
-                "semantic_reasoning": "Reasoning trace",
-                "extra_bloat": "should be stripped by DistilledEvaluation",
-            },
-            {
-                "atom_id": "a2",
-                "output_text": "plain text result",
-                "status": "PASSED",
-                "extra_junk": "discarded",
-            },
-        ]
-    }
-
-    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
-    compressed_dict = json.loads(compressed_str)
-
-    results = compressed_dict.get("results", [])
-    assert len(results) == 2
-    assert results[0]["atom_id"] == "a1"
-    assert "extra_bloat" not in results[0]
-    assert results[1]["atom_id"] == "a2"
-    assert results[1]["output_text"] == "plain text result"
-    assert "extra_junk" not in results[1]
+    assert "results" in compressed_dict
 
 
 def test_compress_payload_evaluations_empty_after_compression_fails_fast() -> None:
-    """PROMISE: Prove that if all quotes are invalid/empty and evaluations becomes empty, compression raises AppException."""
+    """PROMISE: Prove that if all quotes are invalid/empty and results becomes empty, compression raises AppException."""
     payload = {
-        "evaluations": [
+        "results": [
             {"atom_id": "a1", "exact_quotes": ["None", "null", "N/A", "N/A - insufficient data", "[bracketed]"]}
         ]
     }
@@ -273,7 +247,7 @@ def test_compress_payload_evaluations_empty_after_compression_fails_fast() -> No
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
-    assert "Evaluations list cannot be empty after compression" in str(exc_info.value.message)
+    assert "Results list cannot be empty after compression" in str(exc_info.value.message)
 
 
 def test_compress_payload_heterogeneous_dag_types() -> None:
@@ -303,3 +277,62 @@ def test_compress_payload_heterogeneous_dag_types() -> None:
         SynthesisPayloadCompressor.compress_synthesis_payload("")
     with pytest.raises(AppException):
         SynthesisPayloadCompressor.compress_synthesis_payload({})
+
+
+def test_compress_payload_non_dict_list_unsupported_type_fails_fast() -> None:
+    """PROMISE: Prove that unsupported types that cannot be converted to dict/list/str raise AppException."""
+    class CustomObject:
+        pass
+
+    with pytest.raises(AppException) as exc_info:
+        SynthesisPayloadCompressor.compress_synthesis_payload(CustomObject())  # type: ignore[arg-type]
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+def test_compress_payload_results_without_exact_quotes_uses_normalizer() -> None:
+    """PROMISE: Prove that result items without exact_quotes or with exact_quotes normalization are processed."""
+    payload = {
+        "results": [
+            {
+                "output_text": "Processed text",
+                "status": "PASSED",
+                "atom_id": "tda_atom_1",
+                "extra_key": "should_be_stripped",
+            },
+            {
+                "exact_quotes": ["Valid quote for distillation"],
+                "atom_id": "tda_atom_2",
+                "semantic_reasoning": "Reason text",
+                "extensions": {"status": "PASSED"},
+            },
+            {
+                "exact_quotes": ["Valid quote 3"],
+                "atom_id": "tda_atom_3",
+                "status": "PASSED",
+            },
+        ]
+    }
+
+    res_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    res_dict = json.loads(res_str)
+    assert len(res_dict["results"]) == 3
+    assert res_dict["results"][0]["output_text"] == "Processed text"
+    assert "extra_key" not in res_dict["results"][0]
+
+
+def test_compress_payload_nested_list_of_results() -> None:
+    """PROMISE: Prove that nested list structures are properly traversed and stripped."""
+    payload = {
+        "step_output": [
+            {
+                "results": [
+                    {"atom_id": "tda_1", "exact_quotes": ["Quote 1"]},
+                ],
+                "hydrated_references": {"ref": "value"},
+            }
+        ]
+    }
+    res_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    res_dict = json.loads(res_str)
+    assert "hydrated_references" not in res_dict["step_output"][0]
+    assert len(res_dict["step_output"][0]["results"]) == 1

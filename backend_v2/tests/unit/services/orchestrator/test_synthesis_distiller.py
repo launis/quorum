@@ -19,7 +19,7 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
         "normalized_score": 75.0,
         "level_breakdown": {"1": 2, "3": 1},
         "shuffled_atoms": ["atom1", "atom2", "atom3"],
-        "evaluations": [
+        "results": [
             {
                 "atom_id": "a1",
                 "exact_quotes": ["This is a valid quote."],
@@ -51,7 +51,7 @@ def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
         }
         for i in range(50)
     ]
-    payload: dict[str, Any] = {"evaluations": evals}
+    payload: dict[str, Any] = {"results": evals}
 
     with patch(
         "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
@@ -60,7 +60,7 @@ def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
         compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
         compressed_dict = json.loads(compressed_str)
 
-    pruned = compressed_dict.get("evaluations", [])
+    pruned = compressed_dict.get("results", [])
     assert len(pruned) == 40
 
 
@@ -83,7 +83,7 @@ def test_compress_synthesis_payload_handles_string_input() -> None:
 def test_compress_synthesis_payload_strips_null_quotes() -> None:
     """PROMISE: Verify that _compress_synthesis_payload fails fast if all quotes are stripped."""
     payload: dict[str, Any] = {
-        "evaluations": [
+        "results": [
             {
                 "atom_id": "a1",
                 "exact_quotes": [

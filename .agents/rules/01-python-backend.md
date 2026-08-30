@@ -357,8 +357,8 @@
         <mandate>NEVER delete existing classes or enums assuming they are unused; DO NOT invent import paths or hallucinate new Pydantic models.</mandate>
     </rule_block>
 
-    <rule_block id="polymorphic_parsing_mandate">
-        <mandate>All Data Access Layer (Repository) methods MUST return raw `dict[str, Any]` to embrace NoSQL polymorphism. DO NOT enforce strict Pydantic DTOs at the database boundary.</mandate>
+    <rule_block id="repository_reconstitution_mandate">
+        <mandate>All Data Access Layer (Repository) methods MUST return strictly typed Pydantic Domain models (`ConfigDict(frozen=True)`). Raw database dictionaries (`dict[str, Any]`) are strictly isolated within internal database driver layers. Service and Hook layers MUST NEVER use `getattr()`, `hasattr()`, or `isinstance(..., dict)` for reflection or duck-typing.</mandate>
     </rule_block>
 
     <rule_block id="zero_truncation_pledge">

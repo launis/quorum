@@ -157,7 +157,7 @@ class BlueprintTransformer:
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         mcp_tools_map: dict[str, AllowedMCPTool] = {}
-        mcp_gw_id = getattr(workflow_obj, "mcp_gateway_id", None)
+        mcp_gw_id = workflow_obj.mcp_gateway_id
         if mcp_gw_id and isinstance(mcp_gw_id, str):
             raw_gateway = await self.system_repo.get_mcp_gateways(id=mcp_gw_id)
             if isinstance(raw_gateway, dict):
@@ -167,11 +167,18 @@ class BlueprintTransformer:
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
 
+        exec_metadata = (
+            execution.metadata
+            if isinstance(execution.metadata, ExecutionMetadata)
+            else (
+                ExecutionMetadata.model_validate(execution.metadata, strict=False)
+                if isinstance(execution.metadata, dict)
+                else None
+            )
+        )
         locale = accept_language or execution.target_locale
-        if not locale and isinstance(execution.metadata, ExecutionMetadata):
-            locale = execution.metadata.target_locale
-        elif not locale and isinstance(execution.metadata, dict):
-            locale = execution.metadata.get("target_locale")
+        if not locale and exec_metadata:
+            locale = exec_metadata.target_locale
 
         if not locale:
             msg = "Strict Fail-Fast Enforced: 'locale' is mandatory (either via accept_language or execution metadata) and cannot be resolved."
@@ -291,24 +298,18 @@ class BlueprintTransformer:
         v2_hydrated_refs: dict[str, Any] = {}
 
         for dto in results:
-            if isinstance(dto.payload, dict):
-                if "results" in dto.payload and isinstance(dto.payload["results"], list):
-                    for r_dict in dto.payload["results"]:
+            if dto.block_id == "results" and isinstance(dto.payload, list):
+                for r_dict in dto.payload:
+                    if isinstance(r_dict, dict) and "tda_id" in r_dict:
                         v2_results.append(AtomResultDTO.model_validate(r_dict))
-                if "hydrated_references" in dto.payload and dto.payload["hydrated_references"]:
-                    for k, v_dict in dto.payload["hydrated_references"].items():
+            elif dto.block_id == "hydrated_references" and isinstance(dto.payload, dict):
+                for k, v_dict in dto.payload.items():
+                    if isinstance(v_dict, dict):
                         v2_hydrated_refs[k] = HydratedAtomDTO.model_validate(v_dict)
 
         workflow_steps_map = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
-        expected_inputs = getattr(workflow_obj, "expected_inputs", None)
-        expected_inputs_map = {}
-        if expected_inputs and isinstance(expected_inputs, list):
-            for inp in expected_inputs:
-                k = getattr(inp, "input_key", None)
-                if k is None and isinstance(inp, dict):
-                    k = inp.get("input_key")
-                if k:
-                    expected_inputs_map[k] = inp
+        expected_inputs_list = workflow_obj.expected_inputs if workflow_obj.expected_inputs else []
+        expected_inputs_map = {inp.input_key: inp for inp in expected_inputs_list} if expected_inputs_list else {}
         row_explanations_cache: dict[str, str] = {}
         row_curated_quotes_cache: dict[str, list[str]] = {}
 
@@ -363,12 +364,12 @@ class BlueprintTransformer:
 
         total_exec_cost = 0.0
         total_exec_tokens = 0
-        if isinstance(execution.metadata, dict):
-            total_exec_cost = float(execution.metadata.get("dag_cost_usd", 0.0))
+        if exec_metadata:
+            total_exec_cost = float(exec_metadata.dag_cost_usd or 0.0)
             total_exec_tokens = int(
-                execution.metadata.get("prompt_tokens", 0)
-                + execution.metadata.get("completion_tokens", 0)
-                + execution.metadata.get("reasoning_tokens", 0)
+                (exec_metadata.prompt_tokens or 0)
+                + (exec_metadata.completion_tokens or 0)
+                + (exec_metadata.reasoning_tokens or 0)
             )
 
         combined_cost = total_exec_cost + execution.cumulative_synthesis_cost
@@ -471,11 +472,10 @@ class BlueprintTransformer:
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 ) from u_err
 
-        s_strat = (
-            getattr(profile.scoring_strategy, "value", str(profile.scoring_strategy))
-            if getattr(profile, "scoring_strategy", None) is not None
-            else getattr(workflow_obj.default_scoring_strategy, "value", str(workflow_obj.default_scoring_strategy))
+        strat_enum = (
+            profile.scoring_strategy if profile.scoring_strategy is not None else workflow_obj.default_scoring_strategy
         )
+        s_strat = strat_enum.value if hasattr(strat_enum, "value") else str(strat_enum)  # noqa: QGR001 [REASON: LaxScoringStrategy type alias may be enum or string]
 
         engine_str = str(s_strat)
 
@@ -564,7 +564,7 @@ class BlueprintTransformer:
                 if profile.scoring_strategy is not None
                 else workflow_obj.default_scoring_strategy
             )
-            scoring_strategy = getattr(strat_raw, "value", str(strat_raw))
+            scoring_strategy = strat_raw.value if hasattr(strat_raw, "value") else str(strat_raw)  # noqa: QGR001 [REASON: LaxScoringStrategy type alias may be enum or string]
 
             resolved_preface_md = custom_preface_md
             if profile.custom_preface:

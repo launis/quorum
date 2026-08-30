@@ -1,5 +1,8 @@
+import pytest
 from pydantic import BaseModel
 
+from backend_v2.exceptions import AppException
+from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 
@@ -407,23 +410,91 @@ def test_build_xml_context() -> None:
 
 def test_extract_value_from_state() -> None:
     compiler = PromptCompiler()
-    state = {"a": "123", "b": {"c": "456"}, "steps": {"a": "789"}}
+    state = {
+        "a": "123",
+        "b": {"c": "456"},
+        "steps": {
+            "a": "789",
+            "step_eval": {
+                "outputs": {
+                    "results": [{"atom_id": "a1", "exact_quotes": ["quote"]}],
+                    "claim_analysis": {
+                        "step_1_premise": "Test premise",
+                        "step_2_scan": "Scan details",
+                    },
+                    "simple_key": "Simple value",
+                }
+            },
+        },
+    }
     assert compiler._extract_value_from_state("a", state) == "123"
     assert compiler._extract_value_from_state("b.c", state) == "456"
     assert compiler._extract_value_from_state("steps.a", state) == "789"
 
+    # Test dictionary formatting and context suppression of results
+    extracted_xml = compiler._extract_value_from_state("steps.step_eval", state)
+    assert "<CLAIM_ANALYSIS>" in extracted_xml
+    assert "<Premise>" in extracted_xml
+    assert "<Simple_Key>" in extracted_xml
+    assert "results" not in extracted_xml
 
-def test_calibrate_strictness() -> None:
+    # Test error cases
+    with pytest.raises(AppException):
+        compiler._extract_value_from_state(123, state)  # type: ignore[arg-type]
+
+    with pytest.raises(AppException):
+        compiler._extract_value_from_state("missing.path", state)
+
+
+def test_compile_static_and_dynamic_instructions() -> None:
+    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+    from backend_v2.models.v2_core import I18nText
+
     compiler = PromptCompiler()
-    assert "SCORING_STRICTNESS: 0/100" in compiler.calibrate_strictness(0)
-    assert "SCORING_STRICTNESS: 20/100" in compiler.calibrate_strictness(20)
-    assert "SCORING_STRICTNESS: 50/100" in compiler.calibrate_strictness(50)
-    assert "SCORING_STRICTNESS: 80/100" in compiler.calibrate_strictness(80)
-    assert "SCORING_STRICTNESS: 100/100" in compiler.calibrate_strictness(100)
+    block = SystemRulePromptBlock(
+        id="blk_1111222233334444",
+        slug="static_inst",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.STRING,
+        label=I18nText(translations={"en": "Label"}),
+        description=I18nText(translations={"en": "Desc"}),
+        instruction_text="Static instruction directive",
+    )
+    dynamic_block = SystemRulePromptBlock(
+        id="blk_2222333344445555",
+        slug="dyn_inst",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.STRING,
+        label=I18nText(translations={"en": "Dyn Label"}),
+        description=I18nText(translations={"en": "Dyn Desc"}),
+        instruction_text="Dynamic instruction directive",
+    )
+
+    static_res = compiler.compile_static_instructions([block], "en")
+    assert isinstance(static_res, str)
+
+    dyn_res = compiler.compile_dynamic_instructions([dynamic_block], "en")
+    assert isinstance(dyn_res, str)
 
 
-def test_get_schema_healing_prompt() -> None:
+def test_compile_chunk_payload_instruction() -> None:
     compiler = PromptCompiler()
-    assert "EOF DETECTED" in compiler.get_schema_healing_prompt("err", False, True)
-    assert "STRICT LOGICAL COMPLIANCE" in compiler.get_schema_healing_prompt("err", True, False)
-    assert "STRICT JSON SCHEMA VALIDATION FAILED" in compiler.get_schema_healing_prompt("err", False, False)
+    chunk_prompt = compiler.compile_chunk_payload_instruction("chunk_1", "raw payload <test>")
+    assert "chunk_1" in chunk_prompt
+    assert "<user_payload>" in chunk_prompt
+    assert "<![CDATA[raw payload <test>]]>" in chunk_prompt
+
+
+def test_calibrate_strictness_exceptions_and_none() -> None:
+    compiler = PromptCompiler()
+    assert compiler.calibrate_strictness(None) == ""
+    with pytest.raises(AppException):
+        compiler.calibrate_strictness("invalid_string")
+
+
+def test_get_schema_healing_prompt_strictness_100() -> None:
+    compiler = PromptCompiler()
+    prompt = compiler.get_schema_healing_prompt("Error detail", is_logical_error=False, is_eof=False, strictness_level=100)
+    assert "[STRICTNESS OVERRIDE ACTIVE: level >= 100]" in prompt
+    assert "'contextual_override'" in prompt

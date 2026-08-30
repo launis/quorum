@@ -354,3 +354,66 @@ Nostetaan laatuportin AST-tarkistukset varoituksista estäviksi virheiksi:
 5. **Tyypitetyt tilamuutokset:** Käytä DTO-rakenteita deltoissa sen sijaan, että palautat `dict[str, Any]`.
 6. **Validaatio rajapinnassa (Gateway Validation):** Kaikki ulkoiset JSON- ja HTTP-syötteet validoidaan heti saapuessa Pydanticilla (`Model.model_validate(raw_data)`). Palvelukerroksessa data on aina jo validoitua oliotietoa.
 7. **Repositorion tehtävä on palauttaa Pydantic Domain -malli (Repository Reconstitution Mandate):** Alin tietokanta-ajuri (`JSONFileDriver`) vastaa I/O-raakasanakirjoista, mutta Repositorio (`SystemRepository`, `WorkflowRepository`) rekonstruoi ja palauttaa aina suoraan vahvasti tyypitetyn Pydantic-mallin, jolloin palvelukerros välttyy toistuvilta `model_validate`-kutsuilta.
+
+---
+
+## 7. Miten vastaava monimutkaisuus ja arkkitehtoninen ryömintä (Drift) vältetään jatkossa?
+
+### A. Mistä monimutkaisuus syntyy? (Juursyyanalyysi)
+1. **Rinnakkaisten totuuksien ylläpito (Split SSOT / Polymorphic Tolerance):**
+   - Kun järjestelmää kehitetään, uutta rakennetta varten lisätään uusi kenttä (esim. `results`), mutta vanhaa kenttää (`evaluations`) tai vanhaa lippua (`is_unmet`) ei uskalleta poistaa heti.
+   - Lopputuloksena jokainen kuluttajapalvelu alkaa sisältää ketjutettuja `if a in d: ... elif b in d: ...` tai `d.get("x") or d.get("y")` -tarkistuksia.
+2. **"Defensiivinen ohjelmointi" väärässä kerroksessa:**
+   - Palvelukerros alkaa varoa syötteitään ja olettaa, että data voi olla rikki (`isinstance(d, dict)`, `d.get("status")`). Tämä piilottaa bugit sen sijaan, että järjestelmä kaatuisi heti rajapinnassa (Fail-Fast).
+3. **AST Guardrailien puute:**
+   - Ilman koneellista laatuporttia koodiin hiipii huomaamatta `getattr()`- ja `.get()`-kutsuja, jotka ohittavat Mypy- ja Pydantic-tyyppitarkastukset.
+
+### B. Auttaako katalogin läpikäynti ja refaktorointi?
+**Kyllä, ehdottomasti.** Katalogin läpikäynti poistaa olemassa olevan teknisen velan ja saattaa koko järjestelmän yhtenäiselle Pydantic V2 -pohjalle. Mutta jotta velka ei palaa, tarvitaan pysyvät arkkitehtuuriprinsiipit:
+
+### C. 4 Kultaisen säännön ennaltaehkäisystrategia (Architectural Drift Immunity)
+1. **Single Source of Truth (SSOT) & Nollatoleranssi rinnakkaismalleille (`the_no_legacy_mandate`):**
+   - Kun tietomalli muuttuu, vanha kenttä poistetaan välittömästi koodikannasta ja testeistä yhdellä atomisella muutoksella. Älä koskaan jätä "varmuuden vuoksi" vanhoja avaimia tai fallback-ketjuja elämään koodiin.
+2. **Kova Gateway-validaatio (Fail-Fast at Ingress):**
+   - Data validoidaan ja tyypitetään 100 % Pydantic-malliin heti I/O-rajalla (FastAPI-reitittimessä, tietokanta-ajurissa, LLM-vastauksen parserissa).
+   - Palvelukerroksessa data on aina takuulla oikeanmuotoista oliota (`item.status`), jolloin palvelukoodi pysyy puhtaana ja 3–5 rivin mittaisena ilman suojatarkistuksia.
+3. **Konemaiset AST Guardrailit osana CI/CD- ja audit-silmukkaa (`_ast_guardrails.py`):**
+   - Nostamalla `QGR001` (`getattr`/`hasattr`) ja `QGR002` (`.get(k, default)`) estäviksi `FATAL`-virheiksi pakotetaan tekoäly ja kehittäjät käyttämään vahvaa tyypitystä ilman oikopolkuja.
+4. **Pydantic V2 `extra="forbid"` ja `strict=True` kaikissa malleissa:**
+   - Estää tuntemattomien tai vanhentuneiden kenttien kulkeutumisen tilassa ja aiheuttaa välittömän validointivirheen, jos jokin komponentti yrittää tuottaa vääränmallista dataa.
+
+---
+
+## 8. Testikannan refaktorointi ja säännöt uusien testien kehittämiselle
+
+Testit ovat järjestelmän ensimmäinen puolustuslinja, mutta vanhentuneet testit ovat usein **suurin yksittäinen syy teknisen velan ja monimutkaisuuden säilymiseen**. Kun testi syöttää tyypittömiä sanakirjoja tai olettaa vanhoja rakenteita, kehittäjät ja tekoäly sortuvat korjaamaan *tuotantokoodia* defensiiviseksi sen sijaan, että korjattaisiin itse testi.
+
+### A. Nykyisten testien refaktorointistrategia (Legacy Test Modernization)
+1. **Anti-TDD -ansan täyskielto (`anti_tdd_trap`):**
+   - Jos vanha testi kaatuu siksi, että se syöttää raakasanakirjaa (`dict`), puutteellisia kenttiä tai vanhentuneita avaimia (`evaluations`, `is_unmet`), **tuotantokoodia ei saa koskaan heikentää tai lisätä siihen fallback-ehtoja testin miellyttämiseksi**.
+   - Vanha testi refaktoroidaan armottomasti käyttämään valideja Pydantic Domain- ja DTO-malleja tai se poistetaan, jos sen testaama vanha arkkitehtuuri on poistettu.
+2. **Käsin kyhättyjen sanakirja-fixtuureiden eliminointi:**
+   - Korvataan testien 50-riviset käsin kirjoitetut mock-sanakirjat joko suorilla Pydantic-instansseilla tai `polyfactory`-tehtailla (`deterministic_testing_delegation`).
+   - Kun Pydantic-malliin lisätään pakollinen kenttä, `polyfactory` generoi validin datan automaattisesti kaikkiin testeihin ilman satojen testien manuaalista rikkoontumista.
+3. **Trace- ja Tila-tapahtumien yhdenmukaistus:**
+   - Kaikki testien mock-tapahtumat (`TraceEvent`, `StepOutputDTO`, `ReportLayoutDTO`) päivitetään vastaamaan 1:1 tuotantojärjestelmän nykytilaa (`block_id="results"`, `ExecutionStatus` enumit).
+
+### B. Säännöt uusien testien kehittämiselle (Zero-Legacy Test Directives)
+1. **Aitojen Domain-mallien käyttö syötteissä (Typed Fixture Mandate):**
+   - Uusissa testeissä syötteet ja riippuvuudet rakennetaan aina vahvasti tyypitettyinä Pydantic-instansseina (`WorkflowInputs(target_locale="fi", ...)`).
+   - Testit eivät saa luoda eikä syöttää puolivillaisia `{"target_locale": "fi"}` -sanakirjoja palvelumetodeille, joiden tyyppiallekirjoitus vaatii Pydantic-oliota.
+2. **ISTQB Ekvivalenssiluokat & Raja-arvot (`anti_happy_path_mandate`):**
+   - Jokaiselle positiiviselle testille on kirjoitettava vähintään kaksi negatiivista testiä:
+     1. Puuttuvat pakolliset kentät tai virheelliset tyypit laukaisevat `AppException`-virheen välittömästi (Fail-Fast).
+     2. Raja-arvot (esim. nollapituudet, maksimipituudet, tyhjät listat `[]`).
+3. **Heterogeenisen DAG-tilan testaaminen (`heterogeneous_payload_testing_mandate`):**
+   - Jos komponentti käsittelee suoritusvaiheen tuloksia, testien on katettava 4 tilan perusmuotoa:
+     - Tyypitetty DTO/Dict-rakenne (`results`).
+     - Listakokoelmat.
+     - Puhdas merkkijono/teksti.
+     - Falsy- ja tyhjät syötteet (`None`, `""`, `{}`).
+4. **AST Guardrail -suojaus myös testikoodissa:**
+   - Testit eivät saa käyttää `getattr()`- tai `hasattr()`-kikkailua assertion-tarkistuksissa, vaan arvojen assertointi tehdään suoralla tyypitetyllä notaatiolla (`assert result.status == ExecutionStatus.PASSED`).
+5. **Kaksivaiheinen laatuporttivarmistus (`fragmented_quality_gates_prevention`):**
+   - Yksittäisen testin ajaminen (`pytest path/to/test.py`) on vasta kehitysvaihe.
+   - Ennen tehtävän hyväksymistä on aina ajettava globaali `backend_audit_loop.py <target_path> --test`, joka valvoo 90 %:n tiukkaa kattavuutta, Mypy strict -tyypitystä ja AST-guardraileja.

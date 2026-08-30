@@ -207,7 +207,7 @@ class PromptCompiler:
                     "label": label_str,
                     "desc": desc_str,
                     "ai_desc": ai_desc,
-                    "is_chat_history": getattr(ei, "is_chat_history", False),
+                    "is_chat_history": ei.is_chat_history,
                 }
 
         for logical_name, source_path in input_mappings.items():
@@ -233,7 +233,7 @@ class PromptCompiler:
                         desc_text += f"    <ai_context_mandate>{meta['ai_desc']}</ai_context_mandate>\n"
                     desc_text += "  </document_metadata>\n"
 
-                is_chat_history = meta.get("is_chat_history", False) if meta else False
+                is_chat_history = meta["is_chat_history"] if meta and "is_chat_history" in meta else False
                 encapsulated_val = TemplateProcessor.encapsulate_payload(value)
 
                 if source_path.startswith("$inputs"):
@@ -306,11 +306,11 @@ class PromptCompiler:
                 formatted.append(f"<{clean_k}>")
                 if isinstance(v, dict):
                     # Yritetään sukeltaa suoraan 'outputs' avaimeen jos se olemassa
-                    target_dict = v.get("outputs", v) if "outputs" in v else v
+                    target_dict = v["outputs"] if "outputs" in v and isinstance(v["outputs"], dict) else v
                     for sub_k, sub_v in target_dict.items():
                         # Epic 32: Prevent Context Snowballing (95k char prompts).
                         # Never inject raw Matrix arrays into subsequent LLM contexts.
-                        if sub_k == "evaluations" and isinstance(sub_v, list):
+                        if sub_k == "results" and isinstance(sub_v, list):
                             continue
 
                         if isinstance(sub_v, dict):

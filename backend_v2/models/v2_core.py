@@ -734,6 +734,19 @@ class HydratedAtomDTO(BaseModel):
     resolved_claim: Annotated[str, Field(description="Cleaned claim in human language")]
     source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote")]
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_sdui_component(cls, data: Any) -> Any:
+        """Coerce string sdui_component to enum if needed."""
+        if isinstance(data, dict):
+            comp = data.get("sdui_component")
+            if isinstance(comp, str):
+                try:
+                    data["sdui_component"] = SDUIComponentType(comp)
+                except ValueError:
+                    pass
+        return data
+
 
 class ExtractedValueDTO(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
@@ -783,6 +796,13 @@ class AtomResultDTO(BaseModel):
                 data["source_quote"] = None
 
             status_val = data.get("status")
+            if isinstance(status_val, str):
+                try:
+                    data["status"] = ExecutionStatus(status_val)
+                    status_val = data["status"]
+                except ValueError:
+                    pass
+
             if status_val in ("PASSED", "FAILED", ExecutionStatus.PASSED, ExecutionStatus.FAILED):
                 if not data.get("evaluation_reasoning"):
                     raise ValueError(f"Reasoning is mandatory for cognitive status {status_val}")
@@ -1102,6 +1122,8 @@ class OutputProfile(V2CoreBase):
     @property
     def requires_row_explanations(self) -> bool:
         """Check if row explanations are configured in visible matrix columns."""
+        if not self.matrix_visible_columns:
+            return False
         return "row_explanation" in self.matrix_visible_columns
 
     @property

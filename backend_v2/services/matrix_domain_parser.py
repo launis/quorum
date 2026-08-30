@@ -68,7 +68,7 @@ class MatrixDomainParser:
         row_explanations_cache: dict[str, str],
         workflow_ext_values: list[str],
         row_curated_quotes_cache: dict[str, list[str]],
-        has_synthesis_cache: bool = False,
+        has_synthesis_cache: bool = True,
         rejected_evq_ids: set[str] | None = None,
         mcp_audit_map: dict[str, MCPAuditTrace] | None = None,
         source_identity_manifest: dict[str, str] | None = None,
@@ -329,7 +329,7 @@ class MatrixDomainParser:
 
             ext = matrix_payload.extensions
 
-            synthesis_expected = profile.requires_row_explanations
+            synthesis_expected = profile.requires_row_explanations and has_synthesis_cache
             is_data_starved = False
             if execution and execution.profile_syntheses:
                 current_cache = execution.profile_syntheses.get(profile.id) or execution.profile_syntheses.get(
@@ -357,7 +357,7 @@ class MatrixDomainParser:
             if "quotes" in matrix_visible_cols or "criteria" in matrix_visible_cols:
                 step_evals_map = {}
                 for r_dto in results:
-                    if r_dto.step_id == step_id and r_dto.block_id == "evaluations" and isinstance(r_dto.payload, list):
+                    if r_dto.step_id == step_id and r_dto.block_id == "results" and isinstance(r_dto.payload, list):
                         for ev in r_dto.payload:
                             if isinstance(ev, dict) and "tda_id" in ev:
                                 step_evals_map[ev["tda_id"]] = ev
@@ -471,7 +471,7 @@ class MatrixDomainParser:
             context_target = None
             context_target_label = None
             step_rule = workflow_steps.get(step_id)
-            input_mappings = step_rule.input_mappings if step_rule else None
+            input_mappings = step_rule.input_mappings if isinstance(step_rule, StepRule) else None
             if input_mappings and isinstance(input_mappings, dict):
                 # Find input mapping pointing to $inputs
                 for mapped_val in input_mappings.values():

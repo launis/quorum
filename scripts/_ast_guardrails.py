@@ -209,7 +209,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         )
 
     def visit_Call(self, node: ast.Call) -> None:
+        norm_path = self.filepath.replace("\\", "/")
+        is_services_or_hooks = "backend_v2/services/" in norm_path or "backend_v2/hooks/" in norm_path
+
         # QGR001: getattr / hasattr / setattr reflection duck-typing and frozen mutations
+        qgr001_sev = GuardrailSeverity.FATAL if is_services_or_hooks else GuardrailSeverity.WARNING
         match node.func:
             case ast.Name(id="getattr" | "hasattr" | "setattr"):
                 self._add_violation(
@@ -217,6 +221,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR001",
                     f"Banned reflection duck-typing or in-place mutation call: `{node.func.id}()`.",
                     "Use strict structural pattern matching (match/case), isinstance() type narrowing, or Pydantic schemas instead of reflection/mutation.",
+                    severity=qgr001_sev,
                 )
             case ast.Attribute(value=ast.Name(id="object"), attr="__setattr__"):
                 self._add_violation(
@@ -224,6 +229,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR001",
                     "Banned `object.__setattr__()` in-place model mutation call.",
                     "Use pre-instantiation field validation or .model_copy(update=...) instead of mutating frozen models.",
+                    severity=qgr001_sev,
                 )
             case _:
                 pass
@@ -246,11 +252,13 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     exempt = False
 
             if not exempt:
+                qgr002_sev = GuardrailSeverity.FATAL if is_services_or_hooks else GuardrailSeverity.WARNING
                 self._add_violation(
                     node,
                     "QGR002",
                     "Banned lazy fallback call: `.get(key, default)` in domain code.",
                     "Use strict Pydantic model validation or direct dictionary lookup with fail-fast KeyError instead of lazy fallbacks.",
+                    severity=qgr002_sev,
                 )
 
         # QGR006: asyncio.gather() calls
