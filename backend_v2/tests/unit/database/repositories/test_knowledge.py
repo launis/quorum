@@ -64,9 +64,7 @@ async def test_prompt_template_retrieval(repo: KnowledgeRepositoryImpl, mock_dri
 
     # 2. Query fallback
     mock_driver.get.return_value = None
-    mock_driver.query.return_value = [
-        {"system_prompt": "Fallback sys", "user_prompt": "Fallback usr"}
-    ]
+    mock_driver.query.return_value = [{"system_prompt": "Fallback sys", "user_prompt": "Fallback usr"}]
     tpl_query = await repo.get_prompt_template("tpl_2")
     assert tpl_query is not None
     assert tpl_query.system == "Fallback sys"
@@ -77,9 +75,7 @@ async def test_prompt_template_retrieval(repo: KnowledgeRepositoryImpl, mock_dri
 
 
 @pytest.mark.asyncio
-async def test_concepts_references_claims_lifecycle(
-    repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock
-) -> None:
+async def test_concepts_references_claims_lifecycle(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests concepts, references, claims CRUD and knowledge base clearing."""
     mock_driver.query.side_effect = [
         [{"name": "No ID Concept"}, {"id": "c1", "name": "Concept 1"}],

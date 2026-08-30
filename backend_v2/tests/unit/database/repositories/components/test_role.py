@@ -39,9 +39,7 @@ def valid_role_doc() -> dict:
 
 
 @pytest.mark.asyncio
-async def test_role_crud_lifecycle(
-    repo: RoleRepositoryImpl, mock_driver: AsyncMock, valid_role_doc: dict
-) -> None:
+async def test_role_crud_lifecycle(repo: RoleRepositoryImpl, mock_driver: AsyncMock, valid_role_doc: dict) -> None:
     """Positive: tests role listing, getting by ID, creation, update, and deletion."""
     mock_driver.query.return_value = [valid_role_doc]
     mock_driver.get.return_value = valid_role_doc

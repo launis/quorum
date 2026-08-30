@@ -76,9 +76,7 @@ async def test_update_task_blueprint(
 
 
 @pytest.mark.asyncio
-async def test_task_blueprint_parsing_failures(
-    repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock
-) -> None:
+async def test_task_blueprint_parsing_failures(repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Negative: corrupted Step blueprint data raises AppException."""
     corrupted_doc = {"id": "invalid_id"}
     mock_driver.get.return_value = corrupted_doc
@@ -92,9 +90,7 @@ async def test_task_blueprint_parsing_failures(
 
 
 @pytest.mark.asyncio
-async def test_task_blueprint_not_found(
-    repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock
-) -> None:
+async def test_task_blueprint_not_found(repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Negative: tests not found branches for get, update, and delete."""
     mock_driver.get.return_value = None
 

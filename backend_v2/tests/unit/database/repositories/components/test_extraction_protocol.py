@@ -47,7 +47,9 @@ async def test_extraction_protocol_crud(repo: ExtractionProtocolRepositoryImpl, 
 
 
 @pytest.mark.asyncio
-async def test_update_extraction_protocol_not_found(repo: ExtractionProtocolRepositoryImpl, mock_driver: AsyncMock) -> None:
+async def test_update_extraction_protocol_not_found(
+    repo: ExtractionProtocolRepositoryImpl, mock_driver: AsyncMock
+) -> None:
     """Negative: update raises ResourceNotFoundError if protocol not found."""
     mock_driver.get.return_value = None
     with pytest.raises(ResourceNotFoundError):

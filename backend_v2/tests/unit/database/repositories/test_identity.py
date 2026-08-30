@@ -58,9 +58,7 @@ def valid_user_doc() -> dict:
 
 
 @pytest.mark.asyncio
-async def test_organization_crud(
-    repo: IdentityRepositoryImpl, mock_driver: AsyncMock, valid_org_doc: dict
-) -> None:
+async def test_organization_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, valid_org_doc: dict) -> None:
     """Positive: tests organization CRUD operations and corrupted record skipping."""
     mock_driver.get.return_value = valid_org_doc
     mock_driver.query.return_value = [{"id": "corrupted_org"}, valid_org_doc]
@@ -90,9 +88,7 @@ async def test_get_organization_not_found(repo: IdentityRepositoryImpl, mock_dri
 
 
 @pytest.mark.asyncio
-async def test_user_crud(
-    repo: IdentityRepositoryImpl, mock_driver: AsyncMock, valid_user_doc: dict
-) -> None:
+async def test_user_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, valid_user_doc: dict) -> None:
     """Positive: tests user CRUD operations and corrupted record skipping."""
     mock_driver.get.return_value = valid_user_doc
     mock_driver.query.return_value = [{"id": "corrupted_user"}, valid_user_doc]

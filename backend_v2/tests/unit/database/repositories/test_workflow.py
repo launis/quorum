@@ -124,9 +124,7 @@ async def test_update_workflow_not_found(repo: WorkflowRepositoryImpl, mock_driv
 
 
 @pytest.mark.asyncio
-async def test_step_crud_and_query(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_step_doc: dict
-) -> None:
+async def test_step_crud_and_query(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_step_doc: dict) -> None:
     """Positive: tests step retrieval, creation, update, and deletion."""
     mock_driver.get.return_value = valid_step_doc
     mock_driver.query.return_value = [{"id": "corrupted_step"}, valid_step_doc]
