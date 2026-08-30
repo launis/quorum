@@ -24,7 +24,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     
     <rule_block id="anti_premature_execution_hallucination">
       <banned_pattern>Writing instructions in the tracker or plans that tell the next agent to immediately start coding, or stating that the project is in the "IMPLEMENTATION" phase when it has only just been planned.</banned_pattern>
-      <mandatory_pattern>You are at Tier 1 (Planning). The phase immediately following this is Tier 0 (Research & Analysis) for Phase 1. You MUST NEVER write handover instructions, notes, or summaries that claim the next agent should begin execution, implementation, or updating codebase files. Your generated `# Session Handover Context` MUST strictly state that the next agent must run `/tier0-research-plan` to analyze the plan first.</mandatory_pattern>
+      <mandatory_pattern>You are at Tier 1 (Planning). The phase immediately following this is Tier 0 (Research & Analysis) for Phase 1. You MUST NEVER write handover instructions, notes, or summaries that claim the next agent should begin execution, implementation, or updating codebase files. Your generated `# Session Handover Context` in the tracker MUST strictly state that the next agent must run `/tier0-research-plan` to analyze the plan first.</mandatory_pattern>
       <catastrophic_reason>Writing "Start implementation" in the initial plan/tracker poisons the handover context. The next agent reads the tracker's context, assumes the user authorized execution, and bypasses the mandatory Tier 0 analysis gate, violating strict execution pipelines.</catastrophic_reason>
     </rule_block>
     <rule_block id="core_rules_routing">
@@ -198,10 +198,16 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <catastrophic_reason>If Tier 0 fixes a flaw in Phase 1's plan but the Epic is not updated, Phase 2 will be generated from an outdated, flawed Epic, causing architectural divergence and recurring errors.</catastrophic_reason>
     </rule_block>
 
-    <rule_block id="tracker_inclusion_mandate">
-      <banned_pattern>Generating handover commands, documentation, or workflows that execute `/tier0-research-plan`, `/tier2-execute`, or `/tier8-audit-plan` without explicitly including the Tracker file.</banned_pattern>
-      <mandatory_pattern>You MUST ensure that any instructions or commands involving `/tier0-research-plan`, `/tier2-execute`, or `/tier8-audit-plan` explicitly require passing BOTH the target plan file AND the Epic's Tracker file (e.g. `@[docs\epic\EPIC_XXX_tracker.md]`) as arguments. The Tracker is mandatory context for all Tier 0, Tier 2, and Tier 8 workflows.</mandatory_pattern>
-      <catastrophic_reason>Without the tracker file, the research and executing agents lose the macro-context of the Epic phases and cannot correctly update the traceability matrix.</catastrophic_reason>
+    <rule_block id="tracker_auto_synchronization_mandate">
+      <banned_pattern>Finishing a Tier 1 execution without creating or surgically updating the Epic Tracker file (`docs/epic/EPIC_XXX_tracker.md`), deferring tracker generation, or leaving `# Session Handover Context` stale or incomplete.</banned_pattern>
+      <mandatory_pattern>At the conclusion of EVERY Tier 1 run (initial Epic planning or subsequent phase planning), you MUST automatically create or surgically update the Epic Tracker (`docs/epic/EPIC_XXX_tracker.md`). You are STRICTLY FORBIDDEN from ending the run without updating the Tracker.
+      CRITICAL SESSION HANDOVER CONTEXT PRECISION: You MUST rigorously craft and update the `# Session Handover Context` section at the absolute bottom of the tracker so that it reflects the EXACT, high-fidelity state of the system right now:
+        - `## Achieved`: Exhaustively itemize what was planned, generated, decomposed, or audited in this exact run (plans created, target files mapped, test contracts specified).
+        - `## Learned`: Provide an accurate Baseline State Snapshot, architectural discoveries, identified technical debt, and invariants locked for the upcoming phases.
+        - `## Remaining`: State the exact remaining phases, deferred planning milestones, or upcoming workflows.
+        - `## Resume Command`: MUST provide the exact copy-pasteable slash command for the immediate next step (e.g. `/tier0-research-plan @[docs\epic\tasks_EPIC_XXX\01_phase1_plan.md] @[docs\epic\EPIC_XXX_tracker.md]`), referencing both the plan and the tracker.
+      Additionally, all downstream execution and analysis commands (`/tier0-research-plan`, `/tier2-execute`, `/tier8-audit-plan`) MUST pass BOTH the target plan file AND the Epic Tracker file as arguments.</mandatory_pattern>
+      <catastrophic_reason>Without an automatically updated tracker and razor-sharp `# Session Handover Context`, downstream agents suffer from Context Amnesia, miss deferred phase requirements, and execute without verified architectural memory.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="knowledge_item_preflight">
@@ -363,12 +369,55 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
       <constraint name="TEST_FILE_RESOLUTION">Every test file referenced in a plan step MUST be a verified `@-reference` path resolved via `grep_search` against the current codebase. If the test file does not exist, the plan MUST specify its exact creation path following the established directory mirror convention.</constraint>
     </step>
 
-    <step id="12" name="PAUSE &amp; SELF-HEALING EMBEDDED HANDOVER">
-      <action>Once the micro-chunked implementation plans are written to the disk, you MUST execute the automated fidelity audit using the `run_command` tool: `uv run python scripts/audit_planner_output.py --epic [path_to_epic.md] --plan-dir [task_directory_path]`. Additionally, you MUST run `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>` on EVERY generated plan file. This is your mandatory SELF-CORRECTION LOOP (System 2 verification). If either script outputs ❌ FAILED, you MUST analyze the deterministic error, realize which boundaries were dropped, and update your generated plans to fix them before proceeding. The enhanced audit script now additionally verifies: (1) all Epic target files tagged with [MODIFY], [NEW], [DELETE] appear in generated plans, and (2) all #Lnn-mm bounds resolve to valid AST nodes (ClassDef/FunctionDef/AsyncFunctionDef) in the physical codebase.</action>
+    <step id="12" name="SELF-HEALING FIDELITY AUDIT &amp; TRACKER SYNCHRONIZATION">
+      <action>Once the micro-chunked implementation plans are written to disk, you MUST execute the automated fidelity audit using the `run_command` tool: `uv run python scripts/audit_planner_output.py --epic [path_to_epic.md] --plan-dir [task_directory_path]`. Additionally, you MUST run `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>` on EVERY generated plan file. This is your mandatory SELF-CORRECTION LOOP (System 2 verification). If either script outputs ❌ FAILED, you MUST analyze the deterministic error, realize which boundaries were dropped, and update your generated plans to fix them before proceeding. The enhanced audit script verifies: (1) all Epic target files tagged with [MODIFY], [NEW], [DELETE] appear in generated plans, and (2) all #Lnn-mm bounds resolve to valid AST nodes (ClassDef/FunctionDef/AsyncFunctionDef) in the physical codebase.</action>
       <action>CIRCUIT BREAKER: If you fail the audit scripts 3 times sequentially, you MUST STOP. Output `<circuit_breaker_tripped>`, explicitly explain the XML/Markdown parsing error you cannot resolve, and WAIT for human guidance. Do NOT attempt a 4th fix.</action>
-      <action>After a successful audit, STOP. Do not generate a tracker. You MUST explicitly output a clear, copy-pasteable instruction telling the user to open a NEW context window (start a new chat session) and execute the tracker generator command: `/tier1-tracker-generator @[epic_file.md] @[task_directory_path]`. If this was a mid-Epic update (i.e. you generated deferred plans and an Epic tracker already exists), you MUST also include the tracker in the command: `/tier1-tracker-generator @[epic_file.md] @[task_directory_path] @[docs\epic\EPIC_XXX_tracker.md]` so the generator knows to surgically update the existing tracker instead of overwriting it.</action>
-      <constraint invariant="circuit_breaker_and_context_guard">This enforces the circuit breaker by forcing a session split before Tracker generation, guaranteeing a clean context window.</constraint>
-      <constraint>Do NOT implement any domain code yourself in this session.</constraint>
+      <action name="MANDATORY TRACKER AUTO-UPDATE">
+        Immediately following the successful audit of the plans, you MUST create or surgically update the Epic Tracker (`docs/epic/EPIC_XXX_tracker.md`) in the SAME run:
+        1. **CREATE OR UPDATE MODE**: If `docs/epic/EPIC_XXX_tracker.md` does not exist, create it comprehensively following the canonical Tracker structure. If it already exists, surgically update it: inject granular `<step id>` checkboxes under the planned phases, append new requirements to the Traceability Matrix, and update the Post-Implementation Gates with newly planned targets while strictly preserving all existing `[x]` completion marks.
+        2. **SESSION HANDOVER CONTEXT PRECISION (SSOT)**: You MUST ensure that the `# Session Handover Context` section at the bottom of the tracker is meticulously updated to reflect the exact state right now:
+           - `## Achieved`: Detailed bullet points of the planning completed in this run (plans generated in `docs/epic/tasks_EPIC_XXX/`, fidelity audits passed, target files and test contracts mapped).
+           - `## Learned`: Detailed Baseline State Snapshot, discovered codebase anti-patterns, technical debt isolated into Phase 1, and architectural invariants locked for the Epic.
+           - `## Remaining`: Clear enumeration of remaining phases, deferred planning milestones, and the immediate upcoming workflow.
+           - `## Resume Command`: MUST provide the exact, copy-pasteable slash command for the next agent: `/tier0-research-plan @[docs\epic\tasks_EPIC_XXX\01_phase1_plan.md] @[docs\epic\EPIC_XXX_tracker.md]` (or the next applicable phase plan), passing BOTH the plan and tracker file without `--rules` (self-hydrating).
+        3. **TRACKER STRUCTURAL AUDIT**: Run `uv run python scripts/audit_tracker_output.py --tracker docs/epic/EPIC_XXX_tracker.md --plan-dir docs/epic/tasks_EPIC_XXX/`. If it fails, correct the tracker and re-run.
+      </action>
+      <constraint name="TRACKER FORMAT SPECIFICATION">
+        - **Header Metadata**: Include `@-reference` links to original Epic (`@[docs\epic\EPIC_XXX.md]`) and Task Directory (`@[docs\epic\tasks_EPIC_XXX/]`). Immediately below this, you MUST inject a `<required_context_rules>` XML block listing the global core rule (`@[.agents\rules\00-antigravity-core.md]`) and ANY Epic-specific Knowledge Items (KIs) relevant to the overall Epic architecture.
+        - **`## Phase Execution Status`**: For EACH Phase:
+          1. Immediately below the Phase header, write `**Plan:** @[path_to_plan.md]`.
+          2. **CRITICAL CONDITIONAL:** If an implementation plan could NOT be created for this phase during Tier 1 Planning (deferred phase), add `- [ ] **[NOK] Create Plan:** \`/tier0-create-plan @[docs\epic\EPIC_XXX.md] @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md] --phase=N\``.
+          3. Add `- [ ] **[NOK] Red-Teaming:** \`/tier0-research-plan @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
+          4. Add `- [ ] **[NOK] Execution:** \`/tier2-execute @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
+          5. Indent and list every single `<step id>` from the XML plan as individual `- [ ] Step X:` child checkboxes UNDER the Execution command.
+          6. Add `- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.`
+          7. Add `- [ ] **[NOK] Audit:** \`/tier8-audit-plan @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
+        - **`### Integration Checkpoint: Full-Stack Validation`**: Backend and Frontend full-stack integration test gates.
+        - **`### Post-Implementation Gates`**:
+          - `[ ] **[NOK] Golden Master & Test Restoration Audit**`: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+          - `[ ] **[NOK] Proxy Sunset & Consumer Migration**`: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+          - `[ ] **[NOK] Tier 2 Hardening (Backend)**`: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
+          - `[ ] **[NOK] Tier 2 Hardening (Frontend)**`: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
+          - `[ ] **[NOK] Pre-Delete Audit**`: Verify no orphaned dependencies remain.
+          - `[ ] **[NOK] Semantic Coverage & Zero-Loss Audit**`: Mathematically verify line coverage >90% for surviving business logic.
+        - **`### Documentation & Knowledge Item Update`**:
+          - `- [ ] **[NOK]** As-Built Architectural Sync: Run \`/tier7-describe-architecture\` to scan the codebase, anchor the physical implementation map in \`docs/architecture/\`, update KIs, and update \`.agents/rules/04_directory_reference.md\`.`
+        - **`### Final Epic Audit`**:
+          - `- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run \`/tier8-audit-epic @[docs\epic\EPIC_XXX.md]\` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.`
+        - **`## Instructions for the Execution Agent`**: Specify: Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`), `@-reference` syntax rule, and the mandatory workflow loop (`[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan`).
+        - **`## Requirements Traceability Matrix`**: Break down the Epic into highly granular, micro-level logical requirements. Extract every single technical detail from the Epic into a separate row and map each requirement to the specific `<step id>` in the XML plan.
+        - **`# Session Handover Context`**: Format EXACTLY at the bottom with `## Achieved`, `## Learned`, `## Remaining`, and `## Resume Command`.
+      </constraint>
+      <constraint name="GRANULAR_FILE_LEVEL_HARDENING_CHECKLIST">
+        When generating or updating `### Post-Implementation Gates`:
+        1. Parse all `.md` sub-plans in `docs/epic/tasks_EPIC_XXX/`.
+        2. Extract all lines matching `#### \[(MODIFY|NEW)\]` and capture the file paths.
+        3. Under `Tier 2 Hardening (Backend)`, generate an indented `  - [ ] @[relative/path.py]` checkbox for EVERY production backend `.py` file target (EXCLUDING test files under `/tests/` or starting with `test_`).
+        4. Under `Tier 2 Hardening (Frontend)`, generate an indented `  - [ ] @[relative/path.dart]` checkbox for EVERY production frontend `.dart` file target (EXCLUDING test files under `/test/` or ending in `_test.dart`).
+        5. When updating an existing tracker, preserve all existing `  - [x]` checkboxes on previously completed files.
+      </constraint>
+      <action>OUTPUT USER HANDOVER: Output a clear summary of the generated plans and tracker, pointing the user to the updated Tracker artifact, and provide the exact copy-pasteable Resume Command so the user can immediately proceed to Tier 0 research in a clean window: `/tier0-research-plan @[docs\epic\tasks_EPIC_XXX\01_phase1_plan.md] @[docs\epic\EPIC_XXX_tracker.md]`.</action>
+      <constraint>Do NOT implement any application or domain code yourself in this session.</constraint>
     </step>
   </execution_protocol>
 

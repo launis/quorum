@@ -1,12 +1,13 @@
 ---
-description: Tier 1 (Tracker Generator) - Generates a standardized multi-phase Epic tracking document from implementation plans.
+description: Tier 1 (Tracker Generator) - Generates or surgically synchronizes a standardized multi-phase Epic tracking document from implementation plans (standalone/remedial utility).
 ---
 
-### 🟢 TIER 1: TRACKER GENERATOR (Finalizing Epic Planning)
-*Usage: Use this workflow AFTER running /tier1-planner. It generates a strict Tracker file from the created implementation plans.*
+### 🟢 TIER 1: TRACKER GENERATOR (Standalone Tracker Synchronization Utility)
+*Usage: `/tier1-tracker-generator @[epic_file.md] @[task_directory_path] [@[docs\epic\EPIC_XXX_tracker.md]]`*
+*Note: `/tier1-planner` now creates and synchronizes trackers automatically on every run. Use this standalone workflow if a tracker needs standalone re-generation, repair, or independent synchronization.*
 
 <system_prompt>
-  <objective>[GENERATE TRACKER. Ex: "Generate tracker for @[epic_file.md]"]</objective>
+  <objective>[GENERATE OR REPAIR TRACKER. Ex: "Generate tracker for @[epic_file.md] from @[tasks_dir/]"]</objective>
   <role>Principal Solutions Architect</role>
   
   <context_rules>
