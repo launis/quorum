@@ -6,7 +6,7 @@ Extracts the raw TDA pipeline into a standalone strategy engine.
 import logging
 from typing import TYPE_CHECKING, Any
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import AtomExecutionState, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
@@ -61,19 +61,25 @@ class TDAEngine(ExecutionEngine):
             logger.error(
                 "[TDAEngine] Step '%s' invoked without mandatory matrix assertions ('shuffled_atoms'). Fail-Fast.",
                 request.step.id,
-                extra={"error_code": "MISSING_MATRIX_ASSERTIONS"},
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
             )
             raise AppException(
                 message=f"Step '{request.step.id}' requires pre-compiled matrix assertions ('shuffled_atoms'). Free-form extraction fallback is prohibited.",
                 status_code=400,
-                details={"error_code": "MISSING_MATRIX_ASSERTIONS"},
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
         # Circuit Breaker: If preflight determined analytical data is starved, short-circuit immediately.
-        raw_blackboard = request.context.context_variables.get("__GLOBAL_ATOM_BLACKBOARD__")
+        raw_blackboard = (
+            request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
+            if "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables
+            else None
+        )
         is_starved = False
         if raw_blackboard and isinstance(raw_blackboard, dict):
-            if raw_blackboard.get("is_data_starved", False) or not raw_blackboard.get("atoms_by_input"):
+            is_starved_flag = raw_blackboard["is_data_starved"] if "is_data_starved" in raw_blackboard else False
+            atoms_map = raw_blackboard["atoms_by_input"] if "atoms_by_input" in raw_blackboard else None
+            if is_starved_flag or not atoms_map:
                 is_starved = True
 
         if is_starved:
@@ -198,21 +204,21 @@ class TDAEngine(ExecutionEngine):
             logger.error(
                 "TDA Engine failed catastrophically during execution.",
                 exc_info=True,
-                extra={"error_code": "TDA_ENGINE_ERROR"},
+                extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name},
             )
             raise AppException(
                 message=str(eg),
                 status_code=500,
-                details={"error_code": "TDA_ENGINE_ERROR"},
+                details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
             ) from eg
         except Exception as e:
             logger.error(
                 "TDA Engine failed catastrophically during execution.",
                 exc_info=True,
-                extra={"error_code": "TDA_ENGINE_ERROR"},
+                extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name},
             )
             raise AppException(
                 message=str(e),
                 status_code=500,
-                details={"error_code": "TDA_ENGINE_ERROR"},
+                details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
             ) from e

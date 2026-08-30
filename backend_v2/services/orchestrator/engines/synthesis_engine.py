@@ -9,7 +9,7 @@ import logging
 from pydantic import ValidationError
 
 from backend_v2.core.template_processor import TemplateProcessor
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.dtos.trace import DataStarvationEvent
@@ -52,16 +52,20 @@ class SynthesisEngine:
             AppException: If blackboard is missing, validation fails, or LLM errors occur.
         """
         # Extract and validate GlobalAtomBlackboard (Dependency Fail-Fast)
-        raw_blackboard = request.context.context_variables.get("__GLOBAL_ATOM_BLACKBOARD__")
+        raw_blackboard = (
+            request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
+            if "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables
+            else None
+        )
         if raw_blackboard is None:
             logger.error(
                 "preflight_blackboard_missing",
                 extra={"execution_id": request.context.execution_id, "step_id": request.step.id},
             )
             raise AppException(
-                status_code=500,
                 message="__GLOBAL_ATOM_BLACKBOARD__ missing from context_variables",
-                details={"error_code": "SYNTHESIS_ENGINE_ERROR"},
+                status_code=500,
+                details={"error_code": ErrorCodes.SYNTHESIS_ENGINE_ERROR.value},
             )
 
         try:
@@ -71,12 +75,22 @@ class SynthesisEngine:
             total_atoms = len(all_atom_ids)
             settings = get_settings()
 
-            matrix_reducer_output = request.context.context_variables.get("__MATRIX_REDUCER_OUTPUT__")
+            matrix_reducer_output = (
+                request.context.context_variables["__MATRIX_REDUCER_OUTPUT__"]
+                if "__MATRIX_REDUCER_OUTPUT__" in request.context.context_variables
+                else None
+            )
             has_matrix_evidence = False
             if matrix_reducer_output and isinstance(matrix_reducer_output, dict):
-                reduced_atoms = matrix_reducer_output.get("reduced_atoms", [])
-                evaluated_matrices = matrix_reducer_output.get("evaluated_matrices", [])
-                raw_extensions = matrix_reducer_output.get("raw_extensions", {})
+                reduced_atoms = (
+                    matrix_reducer_output["reduced_atoms"] if "reduced_atoms" in matrix_reducer_output else []
+                )
+                evaluated_matrices = (
+                    matrix_reducer_output["evaluated_matrices"] if "evaluated_matrices" in matrix_reducer_output else []
+                )
+                raw_extensions = (
+                    matrix_reducer_output["raw_extensions"] if "raw_extensions" in matrix_reducer_output else {}
+                )
                 if reduced_atoms or evaluated_matrices or raw_extensions:
                     has_matrix_evidence = True
 
@@ -206,16 +220,16 @@ class SynthesisEngine:
         except ValidationError as e:
             logger.error("SynthesisEngine validation failed", exc_info=True)
             raise AppException(
-                status_code=500,
                 message=f"Synthesis engine validation failed: {e}",
-                details={"error_code": "SYNTHESIS_ENGINE_ERROR"},
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
         except Exception as e:
             logger.error("SynthesisEngine unexpected error", exc_info=True)
             if isinstance(e, AppException):
                 raise
             raise AppException(
-                status_code=500,
                 message=f"Synthesis engine encountered an error: {e}",
-                details={"error_code": "SYNTHESIS_ENGINE_ERROR"},
+                status_code=500,
+                details={"error_code": ErrorCodes.SYNTHESIS_ENGINE_ERROR.value},
             ) from e

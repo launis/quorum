@@ -169,7 +169,7 @@ class EnrichedDagExecutor:
                     await LLMCachingService.teardown_workflow_caches(
                         provider_name=provider_name, workflow_run_id=execution_id
                     )
-                except Exception as teardown_err:
+                except Exception as teardown_err:  # noqa: QGR003 [REASON: Best-effort cache teardown on exit]
                     logger.error("Error during orchestrator cache teardown: %s", teardown_err)
 
             return merged_results

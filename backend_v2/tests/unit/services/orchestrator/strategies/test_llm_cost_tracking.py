@@ -12,6 +12,7 @@ import pytest
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import StepRule
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
@@ -112,7 +113,7 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
         context=StrategyContext(
             execution_id="exe_abc12345",
             workflow_id="wor_xyz12345",
-            metadata={},
+            metadata=ExecutionMetadata(target_locale="fi", profile_id="prof_123"),
         ),
         global_source_text="Test source text",
         target_locale="fi",
@@ -170,7 +171,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = {"profile_id": "prof_123", "target_locale": "en"}
+    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0

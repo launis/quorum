@@ -281,7 +281,7 @@ class ExtractiveSensorService:
                 if tda_id in res:
                     vote_tuple = res[tda_id]
                     status = vote_tuple[0]
-                    tally[status] = tally.get(status, 0) + 1
+                    tally[status] = (tally[status] + 1) if status in tally else 1
                     if status not in first_seen:
                         first_seen[status] = vote_tuple
 

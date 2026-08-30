@@ -5,7 +5,13 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import FrozenContext, StepRule
@@ -128,21 +134,22 @@ class LogicNodeStrategy(NodeStrategy):
             step_id=step.id,
             task_blueprint=blueprint_id,
             metadata=context.metadata,
-            global_context_vars=context.global_context_vars,
-            inputs=state_data,
+            global_context_vars=GlobalContextVarsDTO(vars=context.global_context_vars),
+            inputs=ExecutionInputsDTO(dynamic_inputs=state_data),
         )
 
         # 2. Pre-Hooks
         hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
-        state_data = dict(hook_state.inputs)  # Refresh state after pre-hooks
+        state_data = dict(hook_state.inputs.dynamic_inputs)  # Refresh state after pre-hooks
 
         # 3. Main Logic Hook Execution
         # hook_registry.execute inherently handles sync/async routing.
         main_res = await hook_registry.execute(logic_hook, hook_state, hook_deps)
 
         if main_res.success and main_res.state_delta:
-            state_data = deep_merge_dicts(state_data, main_res.state_delta)
-            hook_state = hook_state.model_copy(update={"inputs": state_data})
+            delta_dict = main_res.state_delta.delta
+            state_data = deep_merge_dicts(state_data, delta_dict)
+            hook_state = hook_state.model_copy(update={"inputs": ExecutionInputsDTO(dynamic_inputs=state_data)})
         elif not main_res.success:
             # Fail-Fast: The primary logic hook returning success=False is a hard execution error.
             msg = f"Logic hook '{logic_hook}' for step '{step.id}' returned success=False."
@@ -153,12 +160,12 @@ class LogicNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
             )
         # 4. Post-Hooks
-        safe_context: dict[str, Any] = {**hook_state.global_context_vars, "steps": projector.snapshot}
+        safe_context: dict[str, Any] = {**hook_state.global_context_vars.vars, "steps": projector.snapshot}
 
         post_hook_state = hook_state.model_copy(
             update={
-                "global_context_vars": safe_context,
-                "inputs": state_data,
+                "global_context_vars": GlobalContextVarsDTO(vars=safe_context),
+                "inputs": ExecutionInputsDTO(dynamic_inputs=state_data),
             }
         )
 
@@ -168,7 +175,7 @@ class LogicNodeStrategy(NodeStrategy):
             hook_state=post_hook_state,
             hook_deps=hook_deps,
         )
-        final_outputs = dict(main_res.state_delta) if main_res.state_delta else {}
+        final_outputs = dict(main_res.state_delta.delta) if main_res.state_delta else {}
 
         # 5. Emit Immutable Event
         return (

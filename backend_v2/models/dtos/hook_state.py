@@ -64,3 +64,11 @@ class HookDeltaDTO(V2CoreBase):
         dict[str, Any] | None,
         Field(default=None, description="Optional metadata updates to merge into ExecutionMetadata."),
     ] = None
+
+    def __getitem__(self, key: str) -> Any:
+        """Allow subscript access for delta payload mapping."""
+        return self.delta[key]
+
+    def __contains__(self, key: object) -> bool:
+        """Allow membership checks against delta payload."""
+        return key in self.delta

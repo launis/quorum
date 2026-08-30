@@ -6,7 +6,7 @@ required by the frontend (AtomResultDTO and HydratedAtomDTO).
 
 import logging
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
 from backend_v2.models.v2_core import AtomResultDTO, ErrorDetailsDTO, HydratedAtomDTO
@@ -81,7 +81,7 @@ class ResultProjector:
                 continue
 
             node = node_map[tda_id]
-            state = states.get(tda_id)
+            state = states[tda_id] if tda_id in states else None
 
             status = state.status if state else ExecutionStatus.PENDING
             reasoning = state.evaluation_reasoning if state else "Pending evaluation."
@@ -102,9 +102,12 @@ class ResultProjector:
 
             # For PASSED/FAILED, reasoning is mandatory. Make sure we never pass None.
             if status in (ExecutionStatus.PASSED, ExecutionStatus.FAILED) and not reasoning:
+                msg = f"Node {tda_id} has status {status.value} but lacks mandatory evaluation_reasoning."
+                logger.error("[ResultProjector] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(
-                    message=f"Node {tda_id} has status {status.value} but lacks mandatory evaluation_reasoning.",
-                    details={"error_code": "MISSING_EVALUATION_REASONING"},
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
             res = AtomResultDTO(

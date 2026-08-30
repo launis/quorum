@@ -32,7 +32,11 @@ class DAGCompilerService:
                     "at least one input must be 'required=True'."
                 )
                 logger.error("[DAGCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
 
         # 1. Cycle Detection & Assurance
         DAGCompilerService._ensure_acyclic(workflow.steps)
@@ -119,12 +123,13 @@ class DAGCompilerService:
             visited.add(node)
             rec_stack.add(node)
 
-            for neighbor in adj_list.get(node, []):
-                if neighbor not in visited:
-                    if is_cyclic(neighbor):
+            if node in adj_list:
+                for neighbor in adj_list[node]:
+                    if neighbor not in visited:
+                        if is_cyclic(neighbor):
+                            return True
+                    elif neighbor in rec_stack:
                         return True
-                elif neighbor in rec_stack:
-                    return True
 
             rec_stack.remove(node)
             return False

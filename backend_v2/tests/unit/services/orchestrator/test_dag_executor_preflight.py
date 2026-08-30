@@ -3,8 +3,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 import backend_v2.llm.client
-from backend_v2.core.hook_registry import HookResult
+from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ExecutionStatus, I18nText, Step, StepRule, Workflow, WorkflowInputs
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
@@ -66,7 +67,7 @@ async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: 
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {}}))
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}})))
 
         await executor.execute_workflow(
             execution_id="exe_1234567890abcdef",
@@ -119,7 +120,7 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {}}))
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}})))
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
         record = await executor.execute_workflow(
@@ -184,7 +185,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {}}))
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}})))
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
         record = await executor.execute_workflow(
@@ -239,7 +240,7 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"inputs": {}}))
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}})))
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
         record = await executor.execute_workflow(
@@ -308,6 +309,8 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en", profile_id=None),
         raw_inputs=WorkflowInputs(
             language="en",
             dynamic_inputs={
@@ -394,6 +397,8 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en", profile_id=None),
         raw_inputs=WorkflowInputs(language="en", dynamic_inputs={"product_text": "Short text"}),
     )
 
@@ -450,6 +455,8 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi", profile_id=None),
         raw_inputs=WorkflowInputs(language="fi", dynamic_inputs={"reflection_text": reflection_text}),
     )
 

@@ -14,7 +14,7 @@ from uuid import uuid4
 
 import pandas as pd
 from arq.connections import ArqRedis
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies
 from backend_v2.database.interfaces import (
@@ -85,6 +85,7 @@ def create_execution_record(
     frozen_context: FrozenContext,
     source_identity_manifest: dict[str, str],
     target_locale: str = "en",
+    metadata: ExecutionMetadata | None = None,
     **extra_persistence_fields: Any,
 ) -> ExecutionRecord:
     """Type-safe factory for ExecutionRecord creation.
@@ -99,6 +100,7 @@ def create_execution_record(
         frozen_context: Immutable snapshot of context at execution start.
         source_identity_manifest: Snapshot mapping of inputs.
         target_locale: Target locale code for outputs (e.g., 'fi', 'en').
+        metadata: Optional ExecutionMetadata instance.
         **extra_persistence_fields: Additional presentation-layer fields.
 
     Returns:
@@ -108,10 +110,21 @@ def create_execution_record(
         AppException: If Pydantic validation fails (VALIDATION_FAILED).
     """
     try:
+        resolved_metadata = (
+            metadata
+            if metadata is not None
+            else (
+                extra_persistence_fields.pop("metadata", None)
+                or ExecutionMetadata(target_locale=target_locale)
+            )
+        )
+        if isinstance(resolved_metadata, dict):
+            resolved_metadata = ExecutionMetadata.model_validate(resolved_metadata)
         return ExecutionRecord(
             id=execution_id,
             workflow_id=workflow_id,
             target_locale=target_locale,
+            metadata=resolved_metadata,
             raw_inputs=raw_inputs,
             frozen_context=frozen_context,
             source_identity_manifest=source_identity_manifest,
@@ -513,8 +526,13 @@ class ExecutionService:
             msg = f"No profile_id provided and workflow '{workflow.id}' has no default_profile_id."
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        profile_dict = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
-        if not profile_dict or profile_dict.get("workflow_id") != workflow.id:
+        profile_obj = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
+        profile_workflow_id = (
+            profile_obj.workflow_id
+            if isinstance(profile_obj, BaseModel)
+            else (profile_obj.get("workflow_id") if isinstance(profile_obj, dict) else None)
+        )
+        if not profile_obj or profile_workflow_id != workflow.id:
             msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 

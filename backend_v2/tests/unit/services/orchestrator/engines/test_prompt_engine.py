@@ -10,6 +10,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import StepRule
 from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
@@ -35,7 +36,7 @@ def base_request() -> EngineExecutionRequest:
     context = StrategyContext(
         execution_id="exe_1111111111111111",
         workflow_id="wf_1111111111111111",
-        metadata={"profile_id": "prof_1111111111111111"},
+        metadata=ExecutionMetadata(profile_id="prof_1111111111111111", target_locale="en"),
         expected_inputs=[],
         model_strategy="fast",
         strictness_level=0,

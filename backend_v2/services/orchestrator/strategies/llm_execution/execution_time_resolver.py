@@ -37,16 +37,16 @@ class ExecutionTimeResolver:
             Resolved datetime object (in UTC if applicable) or None if no timestamp exists.
         """
         # 1. Client dynamic inputs check
-        if isinstance(llm_context_data, dict):
-            raw_inputs = llm_context_data.get("raw_inputs")
-            if isinstance(raw_inputs, dict):
-                dynamic_inputs = raw_inputs.get("dynamic_inputs")
+        if isinstance(llm_context_data, dict) and "raw_inputs" in llm_context_data:
+            raw_inputs = llm_context_data["raw_inputs"]
+            if isinstance(raw_inputs, dict) and "dynamic_inputs" in raw_inputs:
+                dynamic_inputs = raw_inputs["dynamic_inputs"]
                 if isinstance(dynamic_inputs, dict):
-                    doc_date = (
-                        dynamic_inputs.get("document_date")
-                        or dynamic_inputs.get("input_file_date")
-                        or dynamic_inputs.get("last_modified")
-                    )
+                    doc_date = None
+                    for key in ("document_date", "input_file_date", "last_modified"):
+                        if key in dynamic_inputs and dynamic_inputs[key]:
+                            doc_date = dynamic_inputs[key]
+                            break
                     if doc_date:
                         logger.info("[ExecutionTimeResolver] Client-supplied document date found.")
                         if isinstance(doc_date, datetime.datetime):
@@ -83,37 +83,47 @@ class ExecutionTimeResolver:
 
         # 3. Context metadata timestamps
         if isinstance(llm_context_data, dict):
-            metadata = llm_context_data.get("metadata")
-            if isinstance(metadata, dict):
-                meta_dt = metadata.get("created_at") or metadata.get("timestamp")
-                if meta_dt:
-                    logger.info("[ExecutionTimeResolver] Using metadata timestamp.")
-                    if isinstance(meta_dt, datetime.datetime):
-                        return meta_dt
-                    if isinstance(meta_dt, str):
-                        try:
-                            clean_str = meta_dt.replace("Z", "+00:00")
-                            return datetime.datetime.fromisoformat(clean_str)
-                        except ValueError:
-                            pass
+            if "metadata" in llm_context_data:
+                metadata = llm_context_data["metadata"]
+                if isinstance(metadata, dict):
+                    meta_dt = None
+                    for key in ("created_at", "timestamp"):
+                        if key in metadata and metadata[key]:
+                            meta_dt = metadata[key]
+                            break
+                    if meta_dt:
+                        logger.info("[ExecutionTimeResolver] Using metadata timestamp.")
+                        if isinstance(meta_dt, datetime.datetime):
+                            return meta_dt
+                        if isinstance(meta_dt, str):
+                            try:
+                                clean_str = meta_dt.replace("Z", "+00:00")
+                                return datetime.datetime.fromisoformat(clean_str)
+                            except ValueError:
+                                pass
 
-            raw_inputs = llm_context_data.get("raw_inputs")
-            if isinstance(raw_inputs, dict):
-                raw_dt = raw_inputs.get("timestamp")
-                if not raw_dt and isinstance(raw_inputs.get("metadata"), dict):
-                    raw_dt = raw_inputs["metadata"].get("timestamp")
-                if raw_dt:
-                    logger.info("[ExecutionTimeResolver] Using raw_inputs timestamp.")
-                    if isinstance(raw_dt, datetime.datetime):
-                        return raw_dt
-                    if isinstance(raw_dt, str):
-                        try:
-                            clean_str = raw_dt.replace("Z", "+00:00")
-                            return datetime.datetime.fromisoformat(clean_str)
-                        except ValueError:
-                            pass
+            if "raw_inputs" in llm_context_data:
+                raw_inputs = llm_context_data["raw_inputs"]
+                if isinstance(raw_inputs, dict):
+                    raw_dt = raw_inputs["timestamp"] if "timestamp" in raw_inputs else None
+                    if not raw_dt and "metadata" in raw_inputs and isinstance(raw_inputs["metadata"], dict):
+                        raw_dt = raw_inputs["metadata"]["timestamp"] if "timestamp" in raw_inputs["metadata"] else None
+                    if raw_dt:
+                        logger.info("[ExecutionTimeResolver] Using raw_inputs timestamp.")
+                        if isinstance(raw_dt, datetime.datetime):
+                            return raw_dt
+                        if isinstance(raw_dt, str):
+                            try:
+                                clean_str = raw_dt.replace("Z", "+00:00")
+                                return datetime.datetime.fromisoformat(clean_str)
+                            except ValueError:
+                                pass
 
-            top_dt = llm_context_data.get("created_at") or llm_context_data.get("timestamp")
+            top_dt = None
+            for key in ("created_at", "timestamp"):
+                if key in llm_context_data and llm_context_data[key]:
+                    top_dt = llm_context_data[key]
+                    break
             if top_dt:
                 logger.info("[ExecutionTimeResolver] Using top-level context timestamp.")
                 if isinstance(top_dt, datetime.datetime):

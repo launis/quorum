@@ -665,6 +665,8 @@ async def test_execute_with_role_and_persona_and_protocol(
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi", profile_id="prof_123"),
         source_identity_manifest={"inputs": "Input Document"},
     )
 
@@ -869,6 +871,8 @@ async def test_execute_anomaly_retry_flow(
     mock_exec_record = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_123"),
         step_states={
             "step_retry": ExecutionStepState(id="step_retry", label="Retry Step", status=ExecutionStatus.RUNNING)
         },
@@ -1195,15 +1199,20 @@ def test_configure_llm_context_hook_success() -> None:
     """Test that the LLM hook correctly resolves provider configuration."""
     from unittest.mock import patch
 
-    from backend_v2.core.hook_registry import HookDependencies, HookState
+    from backend_v2.core.hook_registry import (
+        ExecutionInputsDTO,
+        GlobalContextVarsDTO,
+        HookDependencies,
+        HookState,
+    )
     from backend_v2.hooks.llm import configure_llm_context_hook
 
     state = HookState(
         execution_id="123",
         workflow_id="wf1",
         step_id="step1",
-        inputs={},
-        global_context_vars={"workflow_model_mapping": {"step1": "fast"}},
+        inputs=ExecutionInputsDTO(),
+        global_context_vars=GlobalContextVarsDTO(vars={"workflow_model_mapping": {"step1": "fast"}}),
         metadata=ExecutionMetadata(target_locale="en"),
     )
     deps = HookDependencies(
@@ -1263,7 +1272,8 @@ def test_configure_llm_context_hook_empty_state() -> None:
         ),
     )
     assert result.success is True
-    assert result.state_delta == {}
+    assert result.state_delta is not None
+    assert result.state_delta.delta == {}
 
 
 def test_configure_llm_context_hook_error() -> None:
@@ -1271,7 +1281,12 @@ def test_configure_llm_context_hook_error() -> None:
 
     import pytest
 
-    from backend_v2.core.hook_registry import HookDependencies, HookState
+    from backend_v2.core.hook_registry import (
+        ExecutionInputsDTO,
+        GlobalContextVarsDTO,
+        HookDependencies,
+        HookState,
+    )
     from backend_v2.exceptions import AppException
     from backend_v2.hooks.llm import configure_llm_context_hook
 
@@ -1279,8 +1294,8 @@ def test_configure_llm_context_hook_error() -> None:
         execution_id="123",
         workflow_id="wf1",
         step_id="step1",
-        inputs={},
-        global_context_vars={},
+        inputs=ExecutionInputsDTO(),
+        global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(target_locale="en"),
     )
 
@@ -1555,6 +1570,8 @@ async def test_execute_matrix_chunking_flow(
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_123"),
         source_identity_manifest={"doc_1": "Uploaded Document"},
     )
 

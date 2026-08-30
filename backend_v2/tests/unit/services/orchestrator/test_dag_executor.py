@@ -3,8 +3,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import HookResult
+from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow, WorkflowInputs
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor, ExecutionCommitter
 
@@ -63,7 +64,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta={"inputs": {"chat_log": "test"}})
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {"chat_log": "test"}}))
         )
         record = await executor.execute_workflow(
             execution_id="exe_1231231231231231",
@@ -75,7 +76,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     mock_hooks.execute.assert_called_once()
     args, _ = mock_hooks.execute.call_args
     assert args[0] == "input_processing"
-    assert args[1].global_context_vars.get("language") == "fi"
+    assert args[1].global_context_vars.vars["language"] == "fi"
 
     # Epic 47 Phase 2: Workflow remains RUNNING for async render worker
     assert record.status == ExecutionStatus.RUNNING
@@ -180,7 +181,7 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
     ):
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta={"inputs": {"chat_log": "test"}})
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {"chat_log": "test"}}))
         )
         mock_node_execute.return_value = []
 
@@ -259,7 +260,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
     ):
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta={"inputs": {"chat_log": "test"}})
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {"chat_log": "test"}}))
         )
         # Force the node executor to raise a generic exception to trigger the TaskGroup crash
         mock_node_execute.side_effect = Exception("System Crash")
@@ -719,6 +720,8 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
     existing_record = ExecutionRecord(
         id="exe_1111222233334444",
         workflow_id=workflow.id,
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_dddd1111dddd1111"),
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
@@ -1050,7 +1053,7 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={}))
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         mock_node_execute.return_value = [decision_event]
 
         record = await executor.execute_workflow(
@@ -1120,7 +1123,7 @@ async def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast(
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
     ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={}))
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         mock_node_execute.return_value = [invalid_decision_event]
 
         with pytest.raises(AppException) as exc_info:

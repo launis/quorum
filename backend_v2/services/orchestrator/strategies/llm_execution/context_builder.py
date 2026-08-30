@@ -4,7 +4,10 @@ import logging
 import re
 from typing import Any
 
+from pydantic import BaseModel
+
 from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.settings import get_settings
 from backend_v2.utils.dict_utils import resolve_dot_notation
@@ -49,8 +52,8 @@ class ContextBuilder:
 
         pruned_step_output: dict[str, Any] = {}
         for dto in dtos:
-            key: str | None = getattr(dto, "block_id", None)
-            value: Any = getattr(dto, "payload", None)
+            key: str = dto.block_id
+            value: Any = dto.payload
 
             if not key or (schema_map is None) or (key not in schema_map):
                 continue
@@ -68,7 +71,7 @@ class ContextBuilder:
                         raise AppException(
                             message=f"Matrix value for '{key}' must be a dict.",
                             status_code=400,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                     try:
                         pruned = ContextRouter.route_and_prune(value, output_profile)
@@ -90,7 +93,7 @@ class ContextBuilder:
                         raise AppException(
                             message=msg,
                             status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         ) from e
                 case _:
                     if value is not None:
@@ -121,7 +124,7 @@ class ContextBuilder:
             return result
         elif isinstance(obj, list):
             return [ContextBuilder._project_compressed(item) for item in obj]
-        elif hasattr(obj, "model_dump"):
+        elif isinstance(obj, BaseModel):
             return ContextBuilder._project_compressed(obj.model_dump(mode="json"))
         else:
             return obj  # str/int/float/bool/None — immutable, share reference
@@ -141,18 +144,19 @@ class ContextBuilder:
         """
         rule_descriptions: list[str] = []
         for block in criteria_blocks:
-            desc: str | None = getattr(block, "ai_description", None)
+            desc = block.ai_description
             if desc:
                 rule_descriptions.append(desc)
-            scales: list[Any] = getattr(block, "scales", None) or []
-            for scale in scales:
-                claims: list[Any] = getattr(scale, "claims", None) or []
-                for claim in claims:
-                    tda_assertions: list[Any] = getattr(claim, "tda_assertions", None) or []
-                    for tda in tda_assertions:
-                        rule_desc: str | None = tda.concept_description
-                        if rule_desc:
-                            rule_descriptions.append(rule_desc)
+            if isinstance(block, MatrixPromptBlock):
+                scales = block.scales or []
+                for scale in scales:
+                    claims = scale.claims or []
+                    for claim in claims:
+                        tda_assertions = claim.tda_assertions or []
+                        for tda in tda_assertions:
+                            rule_desc: str | None = tda.concept_description
+                            if rule_desc:
+                                rule_descriptions.append(rule_desc)
         return rule_descriptions
 
     @staticmethod
@@ -255,7 +259,7 @@ class ContextBuilder:
                 def _prune_step_dtos(dtos_list: list[Any]) -> str:
                     steps_group: dict[str, list[Any]] = {}
                     for d in dtos_list:
-                        s_id: str | None = getattr(d, "step_id", None)
+                        s_id = d.step_id
                         if s_id:
                             steps_group.setdefault(s_id, []).append(d)
 
@@ -270,7 +274,7 @@ class ContextBuilder:
                             raise AppException(
                                 message=f"Fail-Fast: Missing schema mapping for step '{s_id}'.",
                                 status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
                         step_type = schema_map[s_id]
                         pruned_data = ContextBuilder._process_trace_dtos(
@@ -286,7 +290,7 @@ class ContextBuilder:
                     return "\n".join(xml_blocks)
 
                 if clean_path == "steps":
-                    dto_list = state_data.get("steps", [])
+                    dto_list = state_data["steps"] if "steps" in state_data else []
                     resolved_value = _prune_step_dtos(dto_list)
                 elif clean_path == "global_context_vars" and isinstance(resolved_value, dict):
                     resolved_value = copy.copy(resolved_value)
@@ -304,10 +308,11 @@ class ContextBuilder:
                         raise AppException(
                             message=f"Fail-Fast: Missing schema mapping for step '{step_key}'.",
                             status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                     step_type = schema_map[step_key]
-                    dtos = [d for d in state_data.get("steps", []) if getattr(d, "step_id", None) == step_key]
+                    all_steps = state_data["steps"] if "steps" in state_data else []
+                    dtos = [d for d in all_steps if d.step_id == step_key]
 
                     if len(parts) == 2:
                         pruned_dict = ContextBuilder._process_trace_dtos(dtos, output_profile, step_type, schema_map)
@@ -320,7 +325,7 @@ class ContextBuilder:
                         )
                     elif len(parts) == 3:
                         block_key = parts[2]
-                        matched_dto = next((d for d in dtos if getattr(d, "block_id", None) == block_key), None)
+                        matched_dto = next((d for d in dtos if d.block_id == block_key), None)
                         if not matched_dto:
                             logger.error(
                                 "Fail-Fast: Block '%s' not found in step '%s'.",
@@ -331,9 +336,9 @@ class ContextBuilder:
                             raise AppException(
                                 message=f"Fail-Fast: Block '{block_key}' not found in step '{step_key}'.",
                                 status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
-                        resolved_value = getattr(matched_dto, "payload", None)
+                        resolved_value = matched_dto.payload
                     else:
                         logger.error(
                             "Fail-Fast: Invalid legacy path '%s'.",
@@ -343,7 +348,7 @@ class ContextBuilder:
                         raise AppException(
                             message=f"Fail-Fast: Invalid legacy path '{clean_path}'.",
                             status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
 
                 val_str = str(resolved_value)
@@ -386,7 +391,7 @@ class ContextBuilder:
                 raise AppException(
                     message=msg,
                     status_code=400,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
         return llm_context_data, new_input_mappings

@@ -11,7 +11,14 @@ import logging
 
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+    hook_registry,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
@@ -44,12 +51,12 @@ async def _fetch_historical_context(
         return ""
 
     try:
-        user_id = state.global_context_vars["user_id"]
+        user_id = state.global_context_vars.vars["user_id"]
     except KeyError:
         user_id = None
 
     try:
-        org_id = state.global_context_vars["organization_id"]
+        org_id = state.global_context_vars.vars["organization_id"]
     except KeyError:
         org_id = None
 
@@ -192,8 +199,8 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     inputs = state.inputs
-    if not isinstance(inputs, dict):
-        msg = "Missing or invalid 'inputs'. Expected dict."
+    if not isinstance(inputs, ExecutionInputsDTO):
+        msg = "Missing or invalid 'inputs'. Expected ExecutionInputsDTO."
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
@@ -201,7 +208,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
-    if "steps" not in inputs:
+    if "steps" not in inputs.dynamic_inputs:
         msg = "Strict Fail-Fast Enforced: 'steps' key is missing from state inputs."
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
@@ -215,7 +222,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     # Phase 2, Milestone 1.6: Parse available DTOs from state
     available_dtos: list[StepOutputDTO] = []
-    steps_list = inputs["steps"]
+    steps_list = inputs.dynamic_inputs["steps"]
     if isinstance(steps_list, list):
         for item in steps_list:
             if isinstance(item, StepOutputDTO):
@@ -276,7 +283,8 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     all_steps = [Step.model_validate(rs) for rs in raw_steps]
 
     raw_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
-    blocks_by_id = {str(b["id"]): PromptBlockAdapter.validate_python(b, strict=False) for b in raw_blocks if "id" in b}
+    validated_blocks = [PromptBlockAdapter.validate_python(b, strict=False) for b in raw_blocks]
+    blocks_by_id = {str(b.id): b for b in validated_blocks if b.id}
 
     title_map = _build_title_map(workflow_data, all_steps, target_locale, blocks_by_id=blocks_by_id)
 
@@ -322,7 +330,7 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         block_id = step_dto_obj.block_id
         uid = f"{step_id}_{block_id}"
 
-        short_alias = uid_to_alias.get(uid, uid)
+        short_alias = uid_to_alias[uid] if uid in uid_to_alias else uid
 
         k_str = uid.lower()
         step_title = title_map[k_str] if k_str in title_map else str(uid)
@@ -343,15 +351,17 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     return HookResult(
         success=True,
-        state_delta={
-            "distilled_inputs": "\n\n".join(consolidated_distilled_parts),
-            "historical_context": historical_context_text,
-            "title_map": title_map,
-            "matrices_to_explain": matrices_to_explain,
-            "source_alias_map": alias_engine.alias_map,
-            "output_profile_id": output_profile_id,
-            "target_locale": target_locale,
-            "alias_registry": alias_engine.alias_map,
-            "max_extensions": output_profile.max_extension_items,
-        },
+        state_delta=HookDeltaDTO(
+            delta={
+                "distilled_inputs": "\n\n".join(consolidated_distilled_parts),
+                "historical_context": historical_context_text,
+                "title_map": title_map,
+                "matrices_to_explain": matrices_to_explain,
+                "source_alias_map": alias_engine.alias_map,
+                "output_profile_id": output_profile_id,
+                "target_locale": target_locale,
+                "alias_registry": alias_engine.alias_map,
+                "max_extensions": output_profile.max_extension_items,
+            }
+        ),
     )

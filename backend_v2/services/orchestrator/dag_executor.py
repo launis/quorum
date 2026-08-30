@@ -11,9 +11,17 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from pydantic import BaseModel
 from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
 
-from backend_v2.core.hook_registry import HookDependencies, HookState, hook_registry
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDeltaDTO,
+    HookDependencies,
+    HookState,
+    hook_registry,
+)
 from backend_v2.database.interfaces import (
     IAuditRepository,
     IComponentRepository,
@@ -148,7 +156,7 @@ class NodeExecutor:
         ):
             return TDAEngine(self.deps.prompt_compiler)
 
-        if any(getattr(b, "is_synthesis", False) for b in criteria_blocks) or step_def.model_strategy == "synthesis":
+        if step_def.model_strategy == "synthesis":
             return SynthesisEngine(LLMTaskExecutor(self.deps.prompt_compiler))
 
         return PromptEngine(LLMTaskExecutor(self.deps.prompt_compiler))
@@ -287,7 +295,7 @@ class NodeExecutor:
         except AppException as ae:
             logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae), exc_info=True)
             raise
-        except Exception as e:
+        except Exception as e:  # noqa: QGR003 [REASON: NodeExecutor converts unhandled exceptions into ErrorTraceEvent for DAG resilience]
             logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step.id, str(e), exc_info=True)
             return [
                 ErrorTraceEvent(
@@ -448,8 +456,14 @@ class DAGExecutor:
         user_id = exec_record.metadata.user_id or exec_record.raw_inputs.user_id
         if user_id:
             user_data = await self.identity_repo.get_user(user_id)
-            if user_data and "language" in user_data:
-                global_vars["language"] = user_data["language"]
+            if user_data:
+                user_lang = (
+                    user_data.language
+                    if isinstance(user_data, BaseModel)
+                    else (user_data["language"] if (isinstance(user_data, dict) and "language" in user_data) else None)
+                )
+                if user_lang:
+                    global_vars["language"] = user_lang
 
         if "language" not in global_vars and exec_record.raw_inputs.language:
             global_vars["language"] = exec_record.raw_inputs.language
@@ -482,14 +496,19 @@ class DAGExecutor:
                     execution_id=execution_id,
                     workflow_id=workflow.id,
                     metadata=exec_record.metadata,
-                    global_context_vars=global_vars,
-                    inputs=inputs_dict,
+                    global_context_vars=GlobalContextVarsDTO(vars=global_vars),
+                    inputs=ExecutionInputsDTO(
+                        raw_inputs=inputs_dict, dynamic_inputs=exec_record.raw_inputs.dynamic_inputs
+                    ),
                 )
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
-                if processed_result.success and isinstance(processed_result.state_delta, dict):
-                    proc_event = TraceEvent(
-                        step_name="inputs", event_type="input", content=processed_result.state_delta
+                if processed_result.success and processed_result.state_delta:
+                    delta_content = (
+                        processed_result.state_delta.delta
+                        if isinstance(processed_result.state_delta, HookDeltaDTO)
+                        else (processed_result.state_delta if isinstance(processed_result.state_delta, dict) else {})
                     )
+                    proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
                     exec_record.execution_trace.append(proc_event)
                     projector.apply_delta(proc_event)
             except Exception as e:
@@ -746,17 +765,22 @@ class DAGExecutor:
                     raise AppException(
                         message=msg,
                         status_code=500,
-                        details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
+                        details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED.value},
                     )
 
                 await _safe_commit()
 
-            except Exception as e:
+            except Exception as e:  # noqa: QGR003 [REASON: Step failure isolation in DAG worker pipeline]
                 err_code = "UNKNOWN_ERROR"
-                if isinstance(e, AppException) and hasattr(e, "details") and e.details:
-                    err_code = e.details.get("error_code", err_code)
-                    if hasattr(err_code, "name"):
-                        err_code = err_code.name
+                if isinstance(e, AppException):
+                    if isinstance(e.error_code, ErrorCodes):
+                        err_code = e.error_code.name
+                    elif isinstance(e.details, dict) and "error_code" in e.details:
+                        code_val = e.details["error_code"]
+                        if isinstance(code_val, ErrorCodes):
+                            err_code = code_val.name
+                        elif isinstance(code_val, str):
+                            err_code = code_val
 
                 async with _update_lock:
                     new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.FAILED})

@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import HookResult
+from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import WorkflowExecutionError
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
 from backend_v2.models.domain.usage import TokenUsage
@@ -116,7 +116,7 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
             "fast check in LLM Task Executor and ensure preflight proceeds to atomization!"
         )
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta={"inputs": {"doc_1": doc_text}})
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {"doc_1": doc_text}}))
         )
 
         mock_settings.return_value.rag_preflight_min_input_chars = 50

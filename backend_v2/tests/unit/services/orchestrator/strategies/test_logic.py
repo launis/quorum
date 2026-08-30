@@ -69,9 +69,11 @@ async def test_execute_blueprint_not_found(logic_strategy: LogicNodeStrategy) ->
 
 @pytest.mark.asyncio
 async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrategy) -> None:
+    from backend_v2.core.hook_registry import HookDeltaDTO
+
     step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
     projector = StateProjector()
-    context = StrategyContext.model_construct(
+    context = StrategyContext(
         execution_id="e1",
         workflow_id="w1",
         metadata=ExecutionMetadata(target_locale="en"),
@@ -99,7 +101,7 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
     from backend_v2.core.hook_registry import HookResult
 
     with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
-        mock_execute.return_value = HookResult(success=True, state_delta={})
+        mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta={}))
 
         await logic_strategy.execute(step, projector, context, None, None, semaphore)
 
@@ -107,15 +109,19 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
         mock_execute.assert_called_once()
         hook_name, hook_state, hook_deps = mock_execute.call_args.args
         assert hook_name == "test_hook"
-        assert hook_state.global_context_vars == {"language": "fi"}
+        assert hook_state.global_context_vars.vars == {"language": "fi"}
 
 
 @pytest.mark.asyncio
 async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy: LogicNodeStrategy) -> None:
+    from backend_v2.core.hook_registry import HookDeltaDTO
+
     step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
     projector = StateProjector()
-    context = StrategyContext.model_construct(
-        execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata(target_locale="en")
+    context = StrategyContext(
+        execution_id="e1",
+        workflow_id="w1",
+        metadata=ExecutionMetadata(target_locale="en"),
     )
     semaphore = asyncio.Semaphore(1)
     running_event = asyncio.Event()
@@ -140,7 +146,7 @@ async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy:
     from backend_v2.core.hook_registry import HookResult
 
     with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
-        mock_execute.return_value = HookResult(success=True, state_delta={"test_key": "test_val"})
+        mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta={"test_key": "test_val"}))
 
         traces = await logic_strategy.execute(
             step, projector, context, None, None, semaphore, running_event=running_event
@@ -156,8 +162,10 @@ async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy:
 async def test_execute_hook_failure_raises_app_exception(logic_strategy: LogicNodeStrategy) -> None:
     step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
     projector = StateProjector()
-    context = StrategyContext.model_construct(
-        execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata(target_locale="en")
+    context = StrategyContext(
+        execution_id="e1",
+        workflow_id="w1",
+        metadata=ExecutionMetadata(target_locale="en"),
     )
     semaphore = asyncio.Semaphore(1)
 
@@ -181,7 +189,7 @@ async def test_execute_hook_failure_raises_app_exception(logic_strategy: LogicNo
     from backend_v2.core.hook_registry import HookResult
 
     with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
-        mock_execute.return_value = HookResult(success=False, state_delta={})
+        mock_execute.return_value = HookResult(success=False, state_delta=None)
 
         with pytest.raises(AppException) as exc_info:
             await logic_strategy.execute(step, projector, context, None, None, semaphore)

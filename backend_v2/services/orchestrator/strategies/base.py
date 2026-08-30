@@ -20,6 +20,7 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.dtos.hook_state import GlobalContextVarsDTO
 from backend_v2.models.enums import StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector, TraceEvent
@@ -58,7 +59,7 @@ class StrategyContext(BaseModel):
     context_variables: dict[str, Any] = Field(default_factory=dict)
     prompt_blocks: list[PromptBlock] = Field(default_factory=list)
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
 
 # Rebuild EngineExecutionRequest now that StrategyContext is defined
@@ -160,6 +161,7 @@ class NodeStrategy(ABC):
             trace: Optional current execution trace lineage.
             semaphore: Asyncio semaphore for concurrency limits.
             running_event: Optional event to track if the execution is still running.
+            progress_callback: Optional progress callback.
 
         Returns:
             An array of new TraceEvents representing the node's outputs or errors.
@@ -221,9 +223,9 @@ class NodeStrategy(ABC):
         for pre_hook in step_obj.pre_hooks:
             res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
             if res.success and res.state_delta:
-                delta = dict(res.state_delta)
-                metadata_updates = delta.pop("metadata", None)
-                if metadata_updates and isinstance(metadata_updates, dict):
+                state_delta = res.state_delta
+                metadata_updates = state_delta.metadata_updates
+                if metadata_updates:
                     new_metadata = hook_state.metadata.model_copy(update=metadata_updates)
                     hook_state = hook_state.model_copy(update={"metadata": new_metadata})
 
@@ -237,11 +239,14 @@ class NodeStrategy(ABC):
                             )
                         )
 
-                gvars_updates = delta.pop("global_context_vars", None)
-                if gvars_updates:
-                    new_gvars = dict(hook_state.global_context_vars)
+                delta = state_delta.delta
+                if "global_context_vars" in delta:
+                    gvars_updates = delta["global_context_vars"]
+                    new_gvars = dict(hook_state.global_context_vars.vars)
                     new_gvars.update(gvars_updates)
-                    hook_state = hook_state.model_copy(update={"global_context_vars": new_gvars})
+                    hook_state = hook_state.model_copy(
+                        update={"global_context_vars": GlobalContextVarsDTO(vars=new_gvars)}
+                    )
 
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
@@ -254,8 +259,20 @@ class NodeStrategy(ABC):
                         )
                     )
 
-                current_data = deep_merge_dicts(hook_state.inputs, delta)
-                hook_state = hook_state.model_copy(update={"inputs": current_data})
+                if delta:
+                    new_dynamic = dict(hook_state.inputs.dynamic_inputs)
+                    new_raw = dict(hook_state.inputs.raw_inputs)
+                    if "dynamic_inputs" in delta:
+                        new_dynamic = deep_merge_dicts(new_dynamic, delta["dynamic_inputs"])
+                    if "inputs" in delta:
+                        new_raw = deep_merge_dicts(new_raw, delta["inputs"])
+                    for k, v in delta.items():
+                        if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
+                            new_dynamic[k] = v
+                    new_inputs = hook_state.inputs.model_copy(
+                        update={"raw_inputs": new_raw, "dynamic_inputs": new_dynamic}
+                    )
+                    hook_state = hook_state.model_copy(update={"inputs": new_inputs})
             elif not res.success:
                 # RFC 7807: Hook signaled non-success — log explicitly so the audit trail captures it.
                 logger.warning(
@@ -294,17 +311,20 @@ class NodeStrategy(ABC):
         for post_hook in step_obj.post_hooks:
             ph_res = await hook_registry.execute(post_hook, hook_state, hook_deps)
             if ph_res.success and ph_res.state_delta:
-                delta = dict(ph_res.state_delta)
-                metadata_updates = delta.pop("metadata", None)
-                if metadata_updates and isinstance(metadata_updates, dict):
+                state_delta = ph_res.state_delta
+                metadata_updates = state_delta.metadata_updates
+                if metadata_updates:
                     new_metadata = hook_state.metadata.model_copy(update=metadata_updates)
                     hook_state = hook_state.model_copy(update={"metadata": new_metadata})
 
-                gvars_updates = delta.pop("global_context_vars", None)
-                if gvars_updates:
-                    new_gvars = dict(hook_state.global_context_vars)
+                delta = state_delta.delta
+                if "global_context_vars" in delta:
+                    gvars_updates = delta["global_context_vars"]
+                    new_gvars = dict(hook_state.global_context_vars.vars)
                     new_gvars.update(gvars_updates)
-                    hook_state = hook_state.model_copy(update={"global_context_vars": new_gvars})
+                    hook_state = hook_state.model_copy(
+                        update={"global_context_vars": GlobalContextVarsDTO(vars=new_gvars)}
+                    )
 
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
@@ -317,8 +337,20 @@ class NodeStrategy(ABC):
                         )
                     )
 
-                final_data = deep_merge_dicts(hook_state.inputs, delta)
-                hook_state = hook_state.model_copy(update={"inputs": final_data})
+                if delta:
+                    new_dynamic = dict(hook_state.inputs.dynamic_inputs)
+                    new_raw = dict(hook_state.inputs.raw_inputs)
+                    if "dynamic_inputs" in delta:
+                        new_dynamic = deep_merge_dicts(new_dynamic, delta["dynamic_inputs"])
+                    if "inputs" in delta:
+                        new_raw = deep_merge_dicts(new_raw, delta["inputs"])
+                    for k, v in delta.items():
+                        if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
+                            new_dynamic[k] = v
+                    new_inputs = hook_state.inputs.model_copy(
+                        update={"raw_inputs": new_raw, "dynamic_inputs": new_dynamic}
+                    )
+                    hook_state = hook_state.model_copy(update={"inputs": new_inputs})
             elif not ph_res.success:
                 # RFC 7807: Post-hook signaled non-success — log explicitly so the audit trail captures it.
                 logger.warning(

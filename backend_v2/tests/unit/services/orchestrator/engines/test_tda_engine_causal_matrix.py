@@ -18,6 +18,7 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import AtomExecutionState, CausalEdge
 from backend_v2.models.dtos.engine import EngineExecutionRequest, FlattenedAtom
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import AtomResultDTO, ErrorDetailsDTO, StepRule
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
@@ -39,7 +40,7 @@ def base_engine_request(mock_compiler: MagicMock) -> EngineExecutionRequest:
         context=StrategyContext(
             execution_id="exe_abc12345",
             workflow_id="wor_xyz12345",
-            metadata={},
+            metadata=ExecutionMetadata(profile_id="prof_1", target_locale="fi"),
         ),
         global_source_text="Test source text",
         target_locale="fi",

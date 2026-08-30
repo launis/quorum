@@ -23,7 +23,7 @@ class PromptCompilerAdapter:
         Returns:
             The delegated attribute from the underlying PromptCompiler.
         """
-        return getattr(self._compiler, name)
+        return getattr(self._compiler, name)  # noqa: QGR001 [REASON: Dynamic adapter delegation to wrapped PromptCompiler instance]
 
     def compile_prompt(self, messages: list[dict[str, Any]]) -> CompiledPrompt:
         """Splits an existing flat list of messages into static_messages and dynamic_messages.

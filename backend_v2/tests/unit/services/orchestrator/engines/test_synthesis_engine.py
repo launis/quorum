@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend_v2.exceptions import AppException
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.dtos.engine import EngineExecutionRequest
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.prompts.style_directives import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TokenUsage
 from backend_v2.models.v2_core import StepRule
@@ -63,7 +64,7 @@ def base_request() -> EngineExecutionRequest:
     context = StrategyContext(
         execution_id="exec_1",
         workflow_id="wf_1",
-        metadata={},
+        metadata=ExecutionMetadata(profile_id="prof_1", target_locale="en"),
         context_variables={
             "__GLOBAL_ATOM_BLACKBOARD__": {
                 "atoms_by_input": {"doc_0": {"atoms": [make_atom(f"atm_{i}") for i in range(1, 10)]}},

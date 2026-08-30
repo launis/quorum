@@ -211,8 +211,14 @@ async def test_build_historical_context_all_branches() -> None:
     from datetime import datetime, timezone
     from unittest.mock import AsyncMock
 
-    from backend_v2.core.hook_registry import HookDependencies, HookState
+    from backend_v2.core.hook_registry import (
+        ExecutionInputsDTO,
+        GlobalContextVarsDTO,
+        HookDependencies,
+        HookState,
+    )
     from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+    from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
     from backend_v2.models.view.sdui import ParagraphBlock
     from backend_v2.services.orchestrator.synthesis_distiller import _fetch_historical_context
@@ -231,9 +237,9 @@ async def test_build_historical_context_all_branches() -> None:
     state = HookState(
         execution_id="ex_0000000000000000",
         workflow_id="wf_1111111111111111",
-        metadata={"target_locale": "en"},
-        global_context_vars={"user_id": "u1", "organization_id": "org1"},
-        inputs={},
+        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
+        global_context_vars=GlobalContextVarsDTO(vars={"user_id": "u1", "organization_id": "org1"}),
+        inputs=ExecutionInputsDTO(),
     )
 
     # 1. Disabled mode
@@ -244,9 +250,9 @@ async def test_build_historical_context_all_branches() -> None:
     empty_state = HookState(
         execution_id="ex_0000000000000000",
         workflow_id="wf_1111111111111111",
-        metadata={"target_locale": "en"},
-        global_context_vars={},
-        inputs={},
+        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(),
     )
     res = await _fetch_historical_context(HistoricalContextMode.SLIDING_WINDOW_3, deps, empty_state, "prof_1")
     assert res == ""
@@ -257,6 +263,8 @@ async def test_build_historical_context_all_branches() -> None:
         workflow_id="wf_1111111111111111",
         status=ExecutionStatus.PASSED,
         completed_at=datetime.now(timezone.utc),
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
         profile_syntheses={
             "prof_1": RenderedSynthesisCache(
                 section_syntheses={"sec1": [ParagraphBlock(text="Past synthesis 1")]},
@@ -267,11 +275,15 @@ async def test_build_historical_context_all_branches() -> None:
         id="ex_0000000000000000",  # should be ignored (matches state.execution_id)
         workflow_id="wf_1111111111111111",
         status=ExecutionStatus.PASSED,
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
     )
     past_exec3 = ExecutionRecord(
         id="ex_2222222222222222",  # should be ignored
         workflow_id="wf_1111111111111111",
         status=ExecutionStatus.FAILED,
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
     )
 
     cast_repo = deps.exec_repo

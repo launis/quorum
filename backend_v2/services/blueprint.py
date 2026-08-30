@@ -5,6 +5,8 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from pydantic import BaseModel
+
 from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
@@ -456,11 +458,13 @@ class BlueprintTransformer:
         user_name = None
         if execution.created_by:
             try:
-                user_dict = await self.identity_repo.get_user(execution.created_by)
-                if user_dict and "name" in user_dict:
-                    user_name = user_dict["name"]
-                elif user_dict and "display_name" in user_dict:
-                    user_name = user_dict["display_name"]
+                user_obj = await self.identity_repo.get_user(execution.created_by)
+                if user_obj:
+                    user_name = (
+                        user_obj.name
+                        if isinstance(user_obj, BaseModel)
+                        else (user_obj.get("name") or user_obj.get("display_name") if isinstance(user_obj, dict) else None)
+                    )
             except Exception as u_err:
                 msg_err = f"Failed to resolve user name for id {execution.created_by}"
                 logger.error(

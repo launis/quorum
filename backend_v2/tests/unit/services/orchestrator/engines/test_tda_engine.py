@@ -9,9 +9,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult, FlattenedAtom
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import StepRule
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
@@ -51,7 +52,7 @@ def engine_request(mock_compiler: MagicMock, base_shuffled_atoms: list[Flattened
         context=StrategyContext(
             execution_id="exe_abc12345",
             workflow_id="wor_xyz12345",
-            metadata={},
+            metadata=ExecutionMetadata(profile_id="prof_1", target_locale="fi"),
         ),
         global_source_text="Test source text",
         target_locale="fi",
@@ -135,7 +136,7 @@ async def test_tda_engine_missing_shuffled_atoms_fails_fast(
         await engine.execute(req)
 
     assert exc_info.value.status_code == 400
-    assert exc_info.value.details["error_code"] == "MISSING_MATRIX_ASSERTIONS"
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "requires pre-compiled matrix assertions" in str(exc_info.value.message)
 
 
@@ -158,7 +159,7 @@ async def test_tda_engine_execute_exception_acl(
         await engine.execute(engine_request)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == "TDA_ENGINE_ERROR"
+    assert exc_info.value.details["error_code"] == ErrorCodes.AGENT_EXECUTION_CRITICAL.value
     assert str(exc_info.value.message) == "Third-party crash"
 
 

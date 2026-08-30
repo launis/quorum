@@ -20,14 +20,14 @@ from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, O
 logger = logging.getLogger(__name__)
 
 
-class RoutingModeConfig(BaseModel):
+class RoutingModeConfig(BaseModel):  # noqa: QGR007 [REASON: Step input mapping configuration dictionaries contain additional workflow definition keys alongside routing_mode]
     """Pydantic model for validating routing configurations strictly.
 
     Attributes:
         routing_mode: The routing behavior configuration string.
     """
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(strict=True, extra="ignore")
     routing_mode: str
 
 
@@ -37,11 +37,17 @@ class SnapshotState(BaseModel):
     Attributes:
         steps: Optional list of executed step data.
         raw_inputs: Optional dictionary representing starting inputs.
+        inputs: Optional dynamic inputs structure.
+        metadata: Optional execution metadata.
+        global_context_vars: Optional global context variables.
     """
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(strict=True, extra="forbid")
     steps: list[Any] | None = None
     raw_inputs: dict[str, Any] | None = None
+    inputs: Any | None = None
+    metadata: Any | None = None
+    global_context_vars: Any | None = None
 
 
 class ContextRouter:
@@ -186,7 +192,7 @@ class ContextRouter:
 
                 found = False
                 if state.steps:
-                    found = any(getattr(dto, "step_id", None) == step_key for dto in state.steps)
+                    found = any(dto.step_id == step_key for dto in state.steps)
 
                 if not found:
                     msg = f"Fail-Fast: Required step '{step_key}' not found in state (Orphaned Step)."
