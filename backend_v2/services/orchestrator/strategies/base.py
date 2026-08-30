@@ -21,6 +21,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import StrictnessAnchor
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import ExpectedInput, FrozenContext, StepRule
 from backend_v2.models.v2_core import Step as V2Step
@@ -49,7 +50,7 @@ class StrategyContext(BaseModel):
 
     execution_id: str
     workflow_id: str
-    metadata: dict[str, Any]
+    metadata: ExecutionMetadata
     expected_inputs: list[ExpectedInput] | None = None
     model_strategy: str | None = None
     strictness_level: int = StrictnessAnchor.STANDARD.value
@@ -222,9 +223,8 @@ class NodeStrategy(ABC):
             if res.success and res.state_delta:
                 delta = dict(res.state_delta)
                 metadata_updates = delta.pop("metadata", None)
-                if metadata_updates:
-                    new_metadata = dict(hook_state.metadata)
-                    new_metadata.update(metadata_updates)
+                if metadata_updates and isinstance(metadata_updates, dict):
+                    new_metadata = hook_state.metadata.model_copy(update=metadata_updates)
                     hook_state = hook_state.model_copy(update={"metadata": new_metadata})
 
                     if "mcp_audit_traces" in metadata_updates and metadata_updates["mcp_audit_traces"]:
@@ -296,9 +296,8 @@ class NodeStrategy(ABC):
             if ph_res.success and ph_res.state_delta:
                 delta = dict(ph_res.state_delta)
                 metadata_updates = delta.pop("metadata", None)
-                if metadata_updates:
-                    new_metadata = dict(hook_state.metadata)
-                    new_metadata.update(metadata_updates)
+                if metadata_updates and isinstance(metadata_updates, dict):
+                    new_metadata = hook_state.metadata.model_copy(update=metadata_updates)
                     hook_state = hook_state.model_copy(update={"metadata": new_metadata})
 
                 gvars_updates = delta.pop("global_context_vars", None)

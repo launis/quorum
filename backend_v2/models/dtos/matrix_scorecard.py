@@ -198,6 +198,13 @@ class MatrixScorecardRowDTO(V2CoreBase):
         cited_source_id: Source ID cited.
         cited_text_quote: Quoted text from source.
         cited_web_citation: Web citation link if applicable.
+        cited_source_title: Title / citation reference of the theoretical framework.
+        cited_source_url: Authoritative external URL for the theoretical framework.
+        context_target: Dynamic input file or stream key evaluated.
+        context_target_label: Localized human-readable name of the evaluated input target.
+        remediation_steps: Concrete actionable remediation steps from XAI extensions.
+        coaching: Coaching tips and guidance from XAI extensions.
+        falsification: Falsification criteria from XAI extensions.
         confidence: Confidence score of evaluation.
         inner_sdui_blocks: Strict SDUI components rendered for this row.
         contextual_override: Whether contextual override was applied.
@@ -243,6 +250,36 @@ class MatrixScorecardRowDTO(V2CoreBase):
     cited_source_id: Annotated[str | None, Field(default=None, description="Source ID cited.")]
     cited_text_quote: Annotated[str | None, Field(default=None, description="Quoted text from source.")]
     cited_web_citation: Annotated[str | None, Field(default=None, description="Web citation link if applicable.")]
+    cited_source_title: Annotated[
+        str | None, Field(default=None, description="Title / citation reference of the theoretical framework.")
+    ]
+    cited_source_url: Annotated[
+        str | None, Field(default=None, description="Authoritative external URL for the theoretical framework.")
+    ]
+
+    context_target: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Dynamic input file or stream key evaluated, including 'chat_log', 'product_text', or filename.",
+        ),
+    ] = None
+    context_target_label: Annotated[
+        I18nText | None,
+        Field(default=None, description="Localized human-readable name of the evaluated input target."),
+    ] = None
+    remediation_steps: Annotated[
+        str | None,
+        Field(default=None, description="Concrete actionable remediation steps from XAI extensions."),
+    ] = None
+    coaching: Annotated[
+        str | None,
+        Field(default=None, description="Coaching tips and guidance from XAI extensions."),
+    ] = None
+    falsification: Annotated[
+        str | None,
+        Field(default=None, description="Falsification criteria from XAI extensions."),
+    ] = None
 
     # XAI Output Extensions
     confidence: Annotated[float | None, Field(default=None, description="Confidence score of evaluation.")]

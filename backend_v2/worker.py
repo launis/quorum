@@ -51,6 +51,7 @@ from backend_v2.models.prompts import (
     MATRIX_TEXT_SYNTHESIS_DIRECTIVE,
     ROW_EXPLANATION_DIRECTIVE,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
+    SYNTHESIS_CITATION_RULES_HARVARD,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SECTION_RULES_PREFIX,
     SYNTHESIS_XAI_CURATION,
@@ -216,13 +217,13 @@ async def execute_workflow_job(
                 )
 
             # SSOT Language Context Initialization for Background Worker
-            if not exec_record.metadata or "target_locale" not in exec_record.metadata:
-                msg = f"Strict Fail-Fast Enforced: Execution '{exec_record.id}' is missing mandatory 'target_locale' in metadata."
+            if not exec_record.target_locale:
+                msg = f"Strict Fail-Fast Enforced: Execution '{exec_record.id}' is missing mandatory 'target_locale'."
                 logger.error("[Worker] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                 )
-            set_language(exec_record.metadata["target_locale"])
+            set_language(exec_record.target_locale)
 
             redis = ctx.get("redis")
             updated_exec_record = await engine.execute_workflow(
@@ -284,8 +285,7 @@ async def execute_workflow_job(
                     step_metrics[step_id]["total_tokens"] += t_tokens
                     step_metrics[step_id]["chunk_count"] += chunk_size
 
-                updated_meta = dict(updated_exec_record.metadata) if updated_exec_record.metadata else {}
-                actual_locale = updated_meta["target_locale"] if "target_locale" in updated_meta else "fi"
+                actual_locale = updated_exec_record.target_locale or exec_record.target_locale
 
                 # Execution fingerprint snapshot
                 execution_summary = {
@@ -309,16 +309,20 @@ async def execute_workflow_job(
                     },
                 }
 
-                updated_meta["execution_summary"] = execution_summary
-                updated_meta["step_metrics"] = step_metrics
-                updated_meta["dag_cost_usd"] = total_cost_usd
-                updated_meta["prompt_tokens"] = total_prompt_tokens
-                updated_meta["completion_tokens"] = total_completion_tokens
-                updated_meta["cached_tokens"] = total_cached_tokens
-                updated_meta["reasoning_tokens"] = total_reasoning_tokens
+                updated_metadata = updated_exec_record.metadata.model_copy(
+                    update={
+                        "execution_summary": execution_summary,
+                        "step_metrics": step_metrics,
+                        "dag_cost_usd": total_cost_usd,
+                        "prompt_tokens": total_prompt_tokens,
+                        "completion_tokens": total_completion_tokens,
+                        "cached_tokens": total_cached_tokens,
+                        "reasoning_tokens": total_reasoning_tokens,
+                    }
+                )
 
                 updated_exec_record = updated_exec_record.model_copy(
-                    update={"models_used": models_used, "cost_estimate": total_cost_usd, "metadata": updated_meta}
+                    update={"models_used": models_used, "cost_estimate": total_cost_usd, "metadata": updated_metadata}
                 )
 
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
@@ -346,7 +350,7 @@ async def execute_workflow_job(
                             "step_states": step_states_dict,
                             "duration_ms": duration_ms,
                             "models_used": models_used,
-                            "metadata": updated_meta,
+                            "metadata": updated_exec_record.metadata.model_dump(mode="json"),
                             "cost_estimate": total_cost_usd,
                             "execution_trace": [
                                 evt.model_dump(mode="json") for evt in updated_exec_record.execution_trace
@@ -369,7 +373,7 @@ async def execute_workflow_job(
                             "completed_at": datetime.now(UTC).isoformat(),
                             "duration_ms": duration_ms,
                             "models_used": models_used,
-                            "metadata": updated_meta,
+                            "metadata": updated_exec_record.metadata.model_dump(mode="json"),
                             "cost_estimate": total_cost_usd,
                             "execution_trace": [
                                 evt.model_dump(mode="json") for evt in updated_exec_record.execution_trace
@@ -500,10 +504,8 @@ async def generate_pdf_task(
         execution_record = ExecutionRecord.model_validate(execution_dict, strict=False)
 
         # 0b. Get explicit locale via Execution
-        if execution_record.metadata and "target_locale" in execution_record.metadata:
-            loc = execution_record.metadata["target_locale"]
-            if loc and not accept_language:
-                accept_language = loc
+        if execution_record.target_locale and not accept_language:
+            accept_language = execution_record.target_locale
 
         if accept_language:
             set_language(accept_language)
@@ -681,8 +683,8 @@ async def generate_profile_synthesis_and_pdf_task(
         final_inputs = projector._build_dto_list()
 
         # 0b. Get explicit locale via Execution
-        if execution.metadata and "target_locale" in execution.metadata:
-            accept_language = execution.metadata["target_locale"]
+        if not accept_language and execution.target_locale:
+            accept_language = execution.target_locale
 
         if accept_language:
             set_language(accept_language)
@@ -832,12 +834,12 @@ async def generate_profile_synthesis_and_pdf_task(
         row_explanations_block_id = synthesis_cfg.row_explanations_block_id if synthesis_cfg else None
 
         # Inject dynamic locale and execution context into hook_metadata for synthesis_distiller
-        hook_metadata: dict[str, Any] = {
-            **execution.metadata,
-            "target_profile_id": profile_id,
-            "target_locale": accept_language,
-            "step_results": final_inputs,
-        }
+        hook_metadata = execution.metadata.model_copy(
+            update={
+                "profile_id": profile_id,
+                "target_locale": accept_language,
+            }
+        )
 
         hook_state = HookState(
             execution_id=execution_id,
@@ -914,6 +916,7 @@ async def generate_profile_synthesis_and_pdf_task(
                 base_dynamic_parts: list[str] = [
                     GLOBAL_MANDATES_XML,
                     DEFAULT_COACHING_TONE_MANDATE,
+                    SYNTHESIS_CITATION_RULES_HARVARD,
                 ]
                 lang_ctx = build_linguistic_context(
                     source_language="Unknown", target_locale=accept_language, include_mandate=True

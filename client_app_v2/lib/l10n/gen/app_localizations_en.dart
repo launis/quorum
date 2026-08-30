@@ -3182,6 +3182,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studioWorkflowDefaultProfile => 'Default Fallback Profile';
 
   @override
+  String get studioWorkflowMcpGateway => 'MCP Gateway Integration';
+
+  @override
+  String get studioWorkflowMcpGatewayNone => 'None (MCP Disabled)';
+
+  @override
   String get studioWorkflowInputsEmpty => 'No expected inputs defined.';
 
   @override
@@ -3866,6 +3872,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get blockMatrixSummaryTitle => 'Matrix Summary Table';
+
+  @override
+  String get studioMatrixColLabel => 'Dimension';
+
+  @override
+  String get studioMatrixColContextTarget => 'Evaluation Target';
+
+  @override
+  String get studioMatrixColDistribution => 'Distribution';
+
+  @override
+  String get studioMatrixColRowExplanation => 'Row Explanation';
+
+  @override
+  String get studioMatrixColCriteria => 'Criterion';
+
+  @override
+  String get studioMatrixColQuotes => 'Text Observation';
+
+  @override
+  String get studioMatrixColSource => 'Citation';
+
+  @override
+  String get studioMatrixColNormalized => 'Normalized';
+
+  @override
+  String get studioMatrixColScore => 'Score';
+
+  @override
+  String get studioMatrixVisibleColumnsTitle => 'Visible Columns:';
 
   @override
   String get blockVarianceTitle => 'Variance Validation';

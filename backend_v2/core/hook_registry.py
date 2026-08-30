@@ -27,6 +27,7 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.execution_core import ExecutionMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,9 @@ __all__ = [
 class ISearchClient(Protocol):
     """Protocol for abstracting search client I/O from hook execution."""
 
-    async def search(self, query: str) -> list[dict[str, Any]]: ...
+    async def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
+        """Executes a search query and returns search results."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -71,7 +74,7 @@ class HookState(V2CoreBase):
     workflow_id: str
     step_id: str | None = None
     task_blueprint: str | None = None
-    metadata: dict[str, Any] = Field(...)
+    metadata: ExecutionMetadata = Field(...)
     global_context_vars: dict[str, Any] = Field(...)
     inputs: dict[str, Any]
 

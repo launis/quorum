@@ -138,6 +138,13 @@
         <mandate>NEVER use implicit Unions or structural `isinstance()` chains with polymorphic DAG nodes. ALWAYS mandate Discriminated Unions (`Field(discriminator='type')`) and Python 3.10+ `match...case` structures.</mandate>
     </rule_block>
 
+    <rule_block id="dynamic_vs_static_localization_ssot_mandate">
+        <mandate>NEVER create ad-hoc translation keys in `fi.json` / `en.json` (e.g. `input_key_*`) or hardcode localized dictionaries in Python code for dynamic entities configured by users or seeded in the database. ALWAYS enforce Dynamic vs Static Localization SSOT:
+        1. **Static UI & Structural Labels**: Fixed layout labels, column headers, and system statuses MUST be defined in `backend_v2/l10n/` and Flutter `.arb` files (e.g. `col_label`, `matrix_col_score`).
+        2. **Dynamic User-Configurable Entities**: Workflows, steps, input names (`ExpectedInput.label`), and prompt blocks MUST be stored as `I18nText` directly in the database (`seed_data.json` / `Workflow`).
+        Backend services and SDUI transformers MUST resolve dynamic entity labels directly from their database model instances (`input_def.label`) without intermediate fallback dictionaries.</mandate>
+    </rule_block>
+
     <rule_block id="python_314_modern_syntax">
         <mandate>NEVER use legacy wrapper typings (`TypeVar`, `Generic[T]`, `Optional[X]`), forward string return annotations (`-> "MyClass"`), or `asyncio.gather()`. ALWAYS use PEP 695 generics (`class Repository[T]:`), `@override`, bitwise unions (`X | None`), `async with asyncio.TaskGroup() as tg:`, and PEP 673 `-> Self` for classmethods returning the class itself.</mandate>
     </rule_block>
@@ -203,7 +210,7 @@
     </rule_block>
 
     <rule_block id="tripartite_rendering_boundary">
-        <mandate>NEVER hardcode UI components, layout structures, or Markdown tables in backend generation hooks. Backend services MUST return pure data payloads (Pydantic DTOs). Tripartite Rendering: Backend passes structured data, Flutter renders interactive UI, Jinja generates static PDFs.</mandate>
+        <mandate>NEVER hardcode UI components, layout structures, or Markdown tables in backend generation hooks. Backend services MUST return pure data payloads (Pydantic DTOs). Tripartite Rendering: Backend passes structured data, Flutter renders interactive UI, Jinja generates static PDFs. All SDUI adapters and PDF generation changes MUST be verified using `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`.</mandate>
     </rule_block>
 
     <rule_block id="zero_type_ignore_shortcuts">

@@ -132,13 +132,6 @@ async def _process_chat_history(
     Returns:
         dict: A dictionary containing 'combined', 'user_only', and 'ai_only' Markdown formatted strings.
     """
-    try:
-        import ftfy
-
-        resolved_text = ftfy.fix_text(resolved_text)
-    except ImportError:
-        logger.warning("[InputProcessingHook] ftfy is not installed, proceeding without text fixing.")
-
     chat_dto = None
     stripped_text = resolved_text.strip()
     if stripped_text.startswith("{") or stripped_text.startswith("["):

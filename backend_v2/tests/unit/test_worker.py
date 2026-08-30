@@ -395,6 +395,7 @@ async def test_generate_pdf_task_success_path() -> None:
                 "workflow_id": "wf_1234567890123456",
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
+                "target_locale": "fi",
                 "metadata": {"target_locale": "fi"},
                 "step_states": {
                     "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
@@ -805,6 +806,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
         "status": "PENDING",
+        "target_locale": "fi",
         "step_states": {},
         "metadata": {"target_locale": "fi"},
     }
@@ -813,6 +815,8 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         id="exe_1234567890123456",
         workflow_id="wf_1234567890123456",
         status=ExecutionStatus.PENDING,
+        target_locale="fi",
+        metadata={"target_locale": "fi"},
         step_states={},
         output_profile_id="prof_1111222233334444",
     )

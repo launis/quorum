@@ -73,15 +73,12 @@ class DocumentExtractionService:
 
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         try:
-            import ftfy
-
             md_text = str(pymupdf4llm.to_markdown(doc))
-            md_text = ftfy.fix_text(md_text)
 
             # Robustness Fallback: If PyMuPDF4LLM converted text into HTML picture comments or truncated dialogue
             if "<!-- Start of picture text -->" in md_text or len(md_text.strip()) < 100:
                 plain_pages = [page.get_text("text") for page in doc]
-                plain_text = ftfy.fix_text("\n\n".join(plain_pages)).strip()
+                plain_text = "\n\n".join(plain_pages).strip()
                 if plain_text and (
                     "<!-- Start of picture text -->" in md_text or len(plain_text) > len(md_text.strip())
                 ):
@@ -133,10 +130,8 @@ class DocumentExtractionService:
                             extracted_dates.append(parsed_date)
                     else:
                         logger.info("[DocumentExtractionService] Found text file %s. Decoding.", attachment.filename)
-                        import ftfy
-
-                        decoded_text = file_bytes.decode("utf-8", errors="ignore")
-                        new_dynamic_inputs[key] = ftfy.fix_text(decoded_text)
+                        decoded_text = file_bytes.decode("utf-8", errors="replace")
+                        new_dynamic_inputs[key] = decoded_text
                 except Exception as e:
                     logger.error("[DocumentExtractionService] Failed to extract %s", attachment.filename, exc_info=True)
                     raise AppException(

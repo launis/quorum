@@ -5852,6 +5852,18 @@ abstract class AppLocalizations {
   /// **'Default Fallback Profile'**
   String get studioWorkflowDefaultProfile;
 
+  /// No description provided for @studioWorkflowMcpGateway.
+  ///
+  /// In en, this message translates to:
+  /// **'MCP Gateway Integration'**
+  String get studioWorkflowMcpGateway;
+
+  /// No description provided for @studioWorkflowMcpGatewayNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None (MCP Disabled)'**
+  String get studioWorkflowMcpGatewayNone;
+
   /// No description provided for @studioWorkflowInputsEmpty.
   ///
   /// In en, this message translates to:
@@ -7061,6 +7073,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Matrix Summary Table'**
   String get blockMatrixSummaryTitle;
+
+  /// No description provided for @studioMatrixColLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimension'**
+  String get studioMatrixColLabel;
+
+  /// No description provided for @studioMatrixColContextTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Evaluation Target'**
+  String get studioMatrixColContextTarget;
+
+  /// No description provided for @studioMatrixColDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Distribution'**
+  String get studioMatrixColDistribution;
+
+  /// No description provided for @studioMatrixColRowExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Row Explanation'**
+  String get studioMatrixColRowExplanation;
+
+  /// No description provided for @studioMatrixColCriteria.
+  ///
+  /// In en, this message translates to:
+  /// **'Criterion'**
+  String get studioMatrixColCriteria;
+
+  /// No description provided for @studioMatrixColQuotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Observation'**
+  String get studioMatrixColQuotes;
+
+  /// No description provided for @studioMatrixColSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Citation'**
+  String get studioMatrixColSource;
+
+  /// No description provided for @studioMatrixColNormalized.
+  ///
+  /// In en, this message translates to:
+  /// **'Normalized'**
+  String get studioMatrixColNormalized;
+
+  /// No description provided for @studioMatrixColScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Score'**
+  String get studioMatrixColScore;
+
+  /// No description provided for @studioMatrixVisibleColumnsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Visible Columns:'**
+  String get studioMatrixVisibleColumnsTitle;
 
   /// No description provided for @blockVarianceTitle.
   ///

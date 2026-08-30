@@ -62,6 +62,24 @@
             font-size: 12px;
             page-break-inside: avoid;
         }
+
+        .matrix-summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            text-align: left;
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
+
+        .matrix-summary-table th,
+        .matrix-summary-table td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
     </style>
 </head>
 <body>
@@ -117,9 +135,10 @@
                 {% if block.icon_name == 'error' %}{% set title_icon = '❌' %}{% endif %}
 
                 <div class="sdui-accordion" style="border: 1px solid {{ border_color }}; background-color: {{ bg_color }}; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
-                    <div style="padding: 12px 16px; font-weight: bold; font-size: 14px; color: {{ border_color }}; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                    <div style="padding: 12px 16px; font-weight: bold; font-size: 14px; color: {{ border_color }}; border-bottom: 1px solid rgba(0,0,0,0.05);">
                         {{ title_icon }} {{ block.title }} <span style="float: right;">▼</span>
                     </div>
+
                     <div style="background-color: white; padding: 16px;">
                         {{ render_sdui_blocks(block.children) }}
                     </div>
@@ -293,6 +312,13 @@
                         {% if axis.description %}
                             <div style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 8px;">{{ axis.description }}</div>
                         {% endif %}
+
+                        {% if axis.row_explanation %}
+                            <div style="margin-top: 8px; margin-bottom: 8px;">
+                                <div style="font-size: 11px; font-weight: bold; color: #1976D2; margin-bottom: 2px;">{{ l10n.xai_ext_justification }}</div>
+                                <div style="font-size: 12px; color: #444; font-style: italic; line-height: 1.4;">{{ axis.row_explanation }}</div>
+                            </div>
+                        {% endif %}
                         
                         {% if axis.ui_plot_ratio != None %}
                             <div style="margin: 12px 0 8px 0; background-color: #eee; border-radius: 6px; height: 12px; width: 100%; overflow: hidden;">
@@ -313,15 +339,18 @@
                 {% set col_labels = block.matrix_column_labels if block.matrix_column_labels is defined and block.matrix_column_labels else {} %}
                 {% if visible_cols and block.axes %}
                 <div style="page-break-before: always; margin-top: 30px;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; background-color: #fff; border: 1px solid #e0e0e0;">
+                    <table class="matrix-summary-table">
                         <thead>
                             <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ccc;">
-                                {% if 'label' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ (col_labels['label'].resolve(lang_code) if col_labels and 'label' in col_labels else l10n.matrix_col_label) }}</th>{% endif %}
-                                {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ (col_labels['atomic_breakdown'].resolve(lang_code) if col_labels and 'atomic_breakdown' in col_labels else (col_labels['distribution'].resolve(lang_code) if col_labels and 'distribution' in col_labels else l10n.matrix_col_distribution)) }}</th>{% endif %}
-                                {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; width: 20%; color: #333; font-weight: 700;">{{ (col_labels['row_explanation'].resolve(lang_code) if col_labels and 'row_explanation' in col_labels else l10n.matrix_col_row_explanation) }}</th>{% endif %}
-                                {% if 'quotes' in visible_cols %}<th style="padding: 12px 10px; width: 25%; color: #333; font-weight: 700;">{{ (col_labels['quotes'].resolve(lang_code) if col_labels and 'quotes' in col_labels else l10n.matrix_col_quotes) }}</th>{% endif %}
-                                {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ (col_labels['normalized_score'].resolve(lang_code) if col_labels and 'normalized_score' in col_labels else l10n.matrix_col_normalized_score) }}</th>{% endif %}
-                                {% if 'score' in visible_cols %}<th style="padding: 12px 10px; width: 10%; color: #333; font-weight: 700;">{{ (col_labels['score'].resolve(lang_code) if col_labels and 'score' in col_labels else l10n.matrix_col_score) }}</th>{% endif %}
+                                {% if 'label' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700; width: 22%;">{{ (col_labels['label'].resolve(lang_code) if col_labels and 'label' in col_labels else l10n.matrix_col_label) }}</th>{% endif %}
+                                {% if 'context_target' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700; width: 12%;">{{ (col_labels['context_target'].resolve(lang_code) if col_labels and 'context_target' in col_labels else l10n.matrix_col_context_target) }}</th>{% endif %}
+                                {% if 'distribution' in visible_cols or 'atomic_breakdown' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700; width: 14%;">{{ (col_labels['atomic_breakdown'].resolve(lang_code) if col_labels and 'atomic_breakdown' in col_labels else (col_labels['distribution'].resolve(lang_code) if col_labels and 'distribution' in col_labels else l10n.matrix_col_distribution)) }}</th>{% endif %}
+                                {% if 'row_explanation' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700; width: 20%;">{{ (col_labels['row_explanation'].resolve(lang_code) if col_labels and 'row_explanation' in col_labels else l10n.matrix_col_row_explanation) }}</th>{% endif %}
+                                {% if 'criteria' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700; width: 18%;">{{ (col_labels['criteria'].resolve(lang_code) if col_labels and 'criteria' in col_labels else l10n.matrix_col_criteria) }}</th>{% endif %}
+                                {% if 'quotes' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700; width: 14%;">{{ (col_labels['quotes'].resolve(lang_code) if col_labels and 'quotes' in col_labels else l10n.matrix_col_quotes) }}</th>{% endif %}
+                                {% if 'source' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700;">{{ (col_labels['source'].resolve(lang_code) if col_labels and 'source' in col_labels else l10n.matrix_col_source) }}</th>{% endif %}
+                                {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700;">{{ (col_labels['normalized_score'].resolve(lang_code) if col_labels and 'normalized_score' in col_labels else l10n.matrix_col_normalized_score) }}</th>{% endif %}
+                                {% if 'score' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700;">{{ (col_labels['score'].resolve(lang_code) if col_labels and 'score' in col_labels else l10n.matrix_col_score) }}</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -330,8 +359,28 @@
                                 {% if 'label' in visible_cols %}
                                 <td style="padding: 10px; vertical-align: top;">
                                     <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">{{ axis.name }}{% if axis.is_evaluative %} *{% endif %}{% if axis.allow_contextual_override %} **{% endif %}</div>
+                                    {% if axis.context_target_label %}
+                                    <div style="margin-top: 2px; margin-bottom: 4px;">
+                                        <span style="background: #f0f0f0; border-radius: 3px; font-size: 9px; padding: 1px 4px; display: inline-block; color: #555; font-weight: 600;">{{ axis.context_target_label.resolve(lang_code) }}</span>
+                                    </div>
+                                    {% elif axis.context_target %}
+                                    <div style="margin-top: 2px; margin-bottom: 4px;">
+                                        <span style="background: #f0f0f0; border-radius: 3px; font-size: 9px; padding: 1px 4px; display: inline-block; color: #555; font-weight: 600;">{{ axis.context_target }}</span>
+                                    </div>
+                                    {% endif %}
                                     {% if axis.description %}
                                     <div style="font-size: 10px; color: #666; font-weight: normal; line-height: 1.3;">{{ axis.description }}</div>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                {% if 'context_target' in visible_cols %}
+                                <td style="padding: 10px; color: #444; font-size: 10px; vertical-align: top; font-weight: 600;">
+                                    {% if axis.context_target_label %}
+                                        {{ axis.context_target_label.resolve(lang_code) }}
+                                    {% elif axis.context_target %}
+                                        {{ axis.context_target }}
+                                    {% else %}
+                                        -
                                     {% endif %}
                                 </td>
                                 {% endif %}
@@ -358,7 +407,7 @@
                                     {{ axis.row_explanation }}
                                 </td>
                                 {% endif %}
-                                {% if 'quotes' in visible_cols %}
+                                {% if 'criteria' in visible_cols %}
                                 <td style="padding: 10px; vertical-align: top; font-size: 10px;">
                                     {% set evaluated_atoms = axis.evaluated_atoms or [] %}
                                     {% if evaluated_atoms %}
@@ -370,26 +419,14 @@
                                             {% for atom in atoms %}
                                                 {% set status = (atom.status or '') | lower %}
                                                 {% if status not in ['skipped', 'none', 'dlq'] and 'chunk processing failed' not in (atom.semantic_reasoning or '')|lower %}
-                                                    <div style="margin-bottom: 8px;">
-                                                        <div style="font-weight: {{ 'bold' if status in ['pass', 'contested'] else 'normal' }}; color: #333;">
-                                                             - {{ atom.chart_display_label }}
-                                                        </div>
-                                                        {% if atom.exact_quotes %}
-                                                            {% for quote in atom.exact_quotes %}
-                                                                <div style="margin-top: 2px; color: #555;">
-                                                                    {% if quote.verified_source_ids %}
-                                                                        <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: bold; color: #1565c0; margin-right: 4px;">{{ quote.verified_source_ids | join(', ') }}</span>
-                                                                    {% endif %}
-                                                                    "{{ quote.quote }}"
-                                                                </div>
-                                                            {% endfor %}
-                                                        {% endif %}
+                                                    <div style="margin-bottom: 4px; font-weight: {{ 'bold' if status in ['pass', 'contested'] else 'normal' }}; color: #333;">
+                                                        - {{ atom.chart_display_label }}
                                                     </div>
                                                     {% set has_rendered = true %}
                                                 {% endif %}
                                             {% endfor %}
                                             {% if not has_rendered %}
-                                                <div style="color: #999; font-style: italic; margin-bottom: 8px;">- N/A</div>
+                                                <div style="color: #999; font-style: italic; margin-bottom: 4px;">- N/A</div>
                                             {% endif %}
                                         {% endfor %}
                                     {% else %}
@@ -397,11 +434,83 @@
                                     {% endif %}
                                 </td>
                                 {% endif %}
+                                {% if 'quotes' in visible_cols %}
+                                <td style="padding: 10px; vertical-align: top; font-size: 10px;">
+                                    {% set evaluated_atoms = axis.evaluated_atoms or [] %}
+                                    {% set ns = namespace(has_any_quote=false) %}
+                                    {% for atom in evaluated_atoms %}
+                                        {% if atom.exact_quotes %}
+                                            {% set ns.has_any_quote = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if ns.has_any_quote %}
+                                        {% set grouped_atoms = evaluated_atoms | group_atoms_by_level %}
+                                        {% for lvl, atoms in grouped_atoms.items() | sort(reverse=True, attribute='0') %}
+                                            {% set ns_lvl = namespace(has_lvl_quote=false) %}
+                                            {% for atom in atoms %}
+                                                {% if atom.exact_quotes %}
+                                                    {% set ns_lvl.has_lvl_quote = true %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if ns_lvl.has_lvl_quote %}
+                                                {% set lvl_name = axis.level_names[lvl|string] if axis.level_names and (lvl|string) in axis.level_names else '' %}
+                                                <div style="font-weight: bold; margin-bottom: 4px; font-size: 11px;">{{ lvl }} - {{ lvl_name }}</div>
+                                                {% for atom in atoms %}
+                                                    {% set status = (atom.status or '') | lower %}
+                                                    {% if status not in ['skipped', 'none', 'dlq'] and 'chunk processing failed' not in (atom.semantic_reasoning or '')|lower %}
+                                                        {% if atom.exact_quotes %}
+                                                            {% for quote in atom.exact_quotes %}
+                                                                <div style="margin-bottom: 6px; color: #555;">
+                                                                    {% if quote.verified_source_ids %}
+                                                                        <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: bold; color: #1565c0; margin-right: 4px;">{{ quote.verified_source_ids | join(', ') }}</span>
+                                                                    {% endif %}
+                                                                    "{{ quote.quote }}"
+                                                                </div>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <div style="color: #666; font-style: italic;">-</div>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                {% if 'source' in visible_cols %}
+                                <td style="padding: 10px; vertical-align: top; font-size: 10px;">
+                                    {% if axis.cited_source_title or axis.cited_source_url %}
+                                        <div style="margin-bottom: 4px;">
+                                            {% if axis.cited_source_url %}
+                                                <a href="{{ axis.cited_source_url }}" target="_blank" style="color: #1565C0; text-decoration: underline; font-weight: 500;">
+                                                    {{ axis.cited_source_title if axis.cited_source_title else axis.cited_source_url }}
+                                                </a>
+                                            {% else %}
+                                                <span style="color: #333; font-weight: 500;">{{ axis.cited_source_title }}</span>
+                                            {% endif %}
+                                        </div>
+                                    {% elif axis.cited_web_citation %}
+                                        <div style="margin-bottom: 4px;">
+                                            <a href="{{ axis.cited_web_citation }}" target="_blank" style="color: #1565C0; text-decoration: underline; font-weight: 500;">
+                                                {{ axis.cited_web_citation }}
+                                            </a>
+                                        </div>
+                                    {% elif axis.clustered_row_sources %}
+                                        {% for src in axis.clustered_row_sources %}
+                                            <div style="margin-bottom: 4px;">
+                                                <span style="font-weight: 600; color: #333;">{{ src.step_name }}:</span> {{ src.query }}
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span style="color: #999; font-style: italic;">-</span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
                                 {% if 'normalized_score' in visible_cols %}
-                                <td style="padding: 10px; font-weight: bold; color: #2E7D32; vertical-align: top;">
+                                <td style="padding: 10px; vertical-align: top; white-space: nowrap;">
                                     {% if axis.ui_plot_ratio != None %}
-                                        <div style="background-color: #e8f5e9; border: 1px solid #c8e6c9; padding: 4px 8px; border-radius: 4px; display: inline-block;">
-                                            {{ "%.1f"|format(axis.ui_plot_ratio * 100) }}%
+                                        <div style="background-color: #e8f5e9; border: 1px solid #c8e6c9; color: #2e7d32; font-weight: bold; padding: 4px 8px; border-radius: 4px; display: inline-block; font-size: 11px;">
+                                            {{ "%.1f"|format(axis.ui_plot_ratio * 100) }} %
                                         </div>
                                     {% else %}
                                         -
@@ -409,9 +518,11 @@
                                 </td>
                                 {% endif %}
                                 {% if 'score' in visible_cols %}
-                                <td style="padding: 10px; font-weight: bold; color: #1565C0; vertical-align: top;">
-                                    {% if axis.score_display_label %}
-                                        {{ axis.score_display_label }}
+                                <td style="padding: 10px; vertical-align: top; white-space: nowrap;">
+                                    {% if axis.score_display_label and axis.score_display_label != '-' %}
+                                        <div style="background-color: #e3f2fd; border: 1px solid #bbdefb; color: #1565c0; font-weight: bold; padding: 4px 8px; border-radius: 4px; display: inline-block; font-size: 11px;">
+                                            {{ axis.score_display_label }}
+                                        </div>
                                     {% else %}
                                         -
                                     {% endif %}

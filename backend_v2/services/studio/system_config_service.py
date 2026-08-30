@@ -324,14 +324,14 @@ class StudioSystemConfigService:
         Returns:
             A list containing the MCP gateways config if accessible.
         """
+        if initiator.role != UserRole.ROOT:
+            return []
         all_data = [await self.system_repo.get_mcp_gateways()]
-        if all_data[0] and initiator.role == UserRole.ROOT:
-            return [
-                SystemConfigMCPGateways.model_validate(x, strict=False)
-                for x in all_data
-                if x.get("type") == "mcp_gateways"
-            ]
-        return []
+        return [
+            SystemConfigMCPGateways.model_validate(x, strict=False)
+            for x in all_data
+            if x and x.get("type") == "mcp_gateways"
+        ]
 
     async def get_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
         """Get mcp gateways.
@@ -354,15 +354,7 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise PermissionDeniedError("Only ROOT can view system configs.")
-        data = await self.system_repo.get_mcp_gateways()
-        if not data or data.get("type") != "mcp_gateways":
-            logger.error(
-                "[StudioSystemConfigService] %s: MCP Gateways Config %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+        data = await self.system_repo.get_mcp_gateways(id=id)
         return SystemConfigMCPGateways.model_validate(data, strict=False)
 
     async def save_mcp_gateways(
@@ -395,15 +387,7 @@ class StudioSystemConfigService:
             dump["id"] = id
         await self.system_repo.update_mcp_gateways(dump)
 
-        saved = await self.system_repo.get_mcp_gateways()
-        if not saved:
-            logger.error(
-                "[StudioSystemConfigService] %s: MCP Gateways Config %s not found after save (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+        saved = await self.system_repo.get_mcp_gateways(id=id)
         return SystemConfigMCPGateways.model_validate(saved, strict=False)
 
     async def create_mcp_gateway_draft(self, initiator: TokenData) -> SystemConfigMCPGateways:
@@ -443,27 +427,15 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise PermissionDeniedError("Only ROOT can clone system configs.")
-        data = await self.system_repo.get_mcp_gateways()
-        if not data or data.get("type") != "mcp_gateways":
-            logger.error(
-                "[StudioSystemConfigService] %s: MCP Gateway Config %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+        data = await self.system_repo.get_mcp_gateways(id=id)
 
         new_id = f"sys_{uuid.uuid4().hex[:16]}"
-
         cloned_data = SystemConfigMCPGateways.model_validate(data, strict=False).model_dump(mode="json")
         cloned_data["id"] = new_id
 
-        if "description" in cloned_data and cloned_data["description"]:
-            pass
-
         await self.system_repo.update_mcp_gateways(cloned_data)
 
-        saved = await self.system_repo.get_mcp_gateways()
+        saved = await self.system_repo.get_mcp_gateways(id=new_id)
         return SystemConfigMCPGateways.model_validate(saved, strict=False)
 
     async def list_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:

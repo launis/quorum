@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.v2_core import (
+    AllowedMCPTool,
     ExecutionRecord,
     MatrixScorecardRowDTO,
     MCPAuditTrace,
@@ -36,6 +37,7 @@ class AdapterContext(BaseModel):
     user_name: str | None
     org_name: str | None
     parsed_matrices: dict[str, MatrixScorecardRowDTO] = Field(default_factory=dict)
+    mcp_tools_map: dict[str, AllowedMCPTool] = Field(default_factory=dict)
     local_time_str: str | None = None
     scoring_engine: str | None = None
     cost: float | None = None
@@ -76,5 +78,6 @@ AdapterContext.model_rebuild(
         "AnySduiBlock": AnySduiBlock,
         "MCPAuditTrace": MCPAuditTrace,
         "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
+        "AllowedMCPTool": AllowedMCPTool,
     }
 )

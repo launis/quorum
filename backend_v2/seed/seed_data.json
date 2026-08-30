@@ -8353,6 +8353,7 @@
       "is_public": true,
       "ui_schema": {},
       "default_profile_id": "prf_5d6e7f8091a2b3c4",
+      "mcp_gateway_id": "sys_8172bda70c8641c5",
       "default_strictness_level": 50,
       "default_scoring_strategy": "AVERAGE",
       "enable_contextual_overrides": true,
@@ -9719,6 +9720,8 @@
         }
       ],
       "content_blocks": [],
+      "show_sources_summary_box": true,
+      "sources_display_mode": "verified_evidence",
       "performativity_detector_step_id": "sp_7f9649114d2344dc"
     }
   ],

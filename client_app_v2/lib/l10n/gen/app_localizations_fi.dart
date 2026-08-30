@@ -3201,6 +3201,12 @@ class AppLocalizationsFi extends AppLocalizations {
   String get studioWorkflowDefaultProfile => 'Oletusprofiili (Fallback)';
 
   @override
+  String get studioWorkflowMcpGateway => 'MCP-yhdyskäytäväintegraatio';
+
+  @override
+  String get studioWorkflowMcpGatewayNone => 'Ei käytössä (MCP poistettu)';
+
+  @override
   String get studioWorkflowInputsEmpty =>
       'Odotettuja syötteitä ei ole määritetty.';
 
@@ -3893,6 +3899,36 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get blockMatrixSummaryTitle => 'Matriisiyhteenvetotaulukko';
+
+  @override
+  String get studioMatrixColLabel => 'Ulottuvuus';
+
+  @override
+  String get studioMatrixColContextTarget => 'Arvioinnin kohde';
+
+  @override
+  String get studioMatrixColDistribution => 'Jakauma';
+
+  @override
+  String get studioMatrixColRowExplanation => 'Rivisyy / Peruste';
+
+  @override
+  String get studioMatrixColCriteria => 'Kriteeri';
+
+  @override
+  String get studioMatrixColQuotes => 'Tekstin havainto';
+
+  @override
+  String get studioMatrixColSource => 'Lähdeviite';
+
+  @override
+  String get studioMatrixColNormalized => 'Normitettu';
+
+  @override
+  String get studioMatrixColScore => 'Pistemäärä';
+
+  @override
+  String get studioMatrixVisibleColumnsTitle => 'Näytettävät sarakkeet:';
 
   @override
   String get blockVarianceTitle => 'Varianssivalidointi';

@@ -54,7 +54,7 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         step_id="sp_76eedbc020274f66",
-        metadata={},
+        metadata={"target_locale": "fi"},
         global_context_vars={},
         inputs={"document_text": document_text},
     )
@@ -169,7 +169,7 @@ async def test_full_e2e_tavily_empty_claims_skips_search_and_hides_sdui_block() 
         execution_id="exe_2222333344445555",
         workflow_id="wor_2222333344445555",
         step_id="sp_76eedbc020274f66",
-        metadata={},
+        metadata={"target_locale": "fi"},
         global_context_vars={},
         inputs={"document_text": document_text},
     )
@@ -215,5 +215,6 @@ async def test_full_e2e_tavily_empty_claims_skips_search_and_hides_sdui_block() 
     )
 
     sdui_blocks = PrintableSourcesAdapter.build(adapter_context)
-    # When no citations or search traces exist, PrintableSourcesAdapter returns [] (block is completely hidden)
-    assert sdui_blocks == []
+    # When no citations or search traces exist and summary box is enabled, PrintableSourcesAdapter renders empty notice
+    assert len(sdui_blocks) == 1
+    assert "Ei erillisiä ulkoisia lähdeviittauksia" in sdui_blocks[0].text  # type: ignore[attr-defined]

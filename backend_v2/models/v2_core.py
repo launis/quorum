@@ -46,7 +46,7 @@ from backend_v2.models.enums import (
     StrictnessAnchor,
     TargetBlockType,
 )
-from backend_v2.models.execution_core import ExecutionCoreFields
+from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -1108,6 +1108,11 @@ class Workflow(V2CoreBase):
     organization_id: str | None = Field(default=None)
     ui_schema: dict[str, Any] = Field(default_factory=dict)
     default_profile_id: str = Field(description="The ID of the default output profile to use.")
+    mcp_gateway_id: str | None = Field(
+        default="sys_8172bda70c8641c5",
+        pattern=r"^sys_[a-fA-F0-9]{16,32}$",
+        description="The system_config ID of the MCP gateways configuration attached to this workflow.",
+    )
     default_strictness_level: int = Field(
         default=StrictnessAnchor.STANDARD.value, ge=0, le=100, description="Fallback strictness level."
     )
@@ -1328,6 +1333,7 @@ class ExecutionRecord(ExecutionCoreFields):
 
     if TYPE_CHECKING:
         status: LaxExecutionStatus = Field(default=ExecutionStatus.PENDING)
+        target_locale: str = Field(default="en")
         execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(default_factory=list)
         execution_trace_storage_path: str | None = Field(default=None)
         context_variables: dict[str, Any] = Field(default_factory=dict)
@@ -1335,7 +1341,7 @@ class ExecutionRecord(ExecutionCoreFields):
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
-    # Phase 1: status is inherited from ExecutionCoreFields (LaxExecutionStatus SSOT).
+    # Phase 1: status and target_locale are inherited from ExecutionCoreFields (LaxExecutionStatus SSOT).
     active_profile_id: str | None = Field(
         default=None, description="The ID of the output profile selected for formatting and printing."
     )
@@ -1372,7 +1378,10 @@ class ExecutionRecord(ExecutionCoreFields):
     models_used: dict[str, int] = Field(
         default_factory=dict, description="Dictionary of models used and their usage count/tokens"
     )
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Arbitrary metadata for the execution")
+    metadata: ExecutionMetadata = Field(
+        default_factory=lambda: ExecutionMetadata(target_locale="en"),
+        description="Strictly typed metadata for the execution",
+    )
     error: str | None = Field(default=None, description="Error message if failed")
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc), description="UTC creation timestamp"

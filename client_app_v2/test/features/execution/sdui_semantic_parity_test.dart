@@ -72,9 +72,19 @@ void main() {
 void _extractSemantics(SemanticsNode node, List<String> textSequence) {
   final data = node.getSemanticsData();
 
-  if (data.label.trim().isNotEmpty) {
+  // Filter out Flutter accessibility framework state labels that don't represent content
+  const accessibilityStates = {
+    'Expanded',
+    'Collapsed',
+    'Double tap to activate',
+    'Double tap to expand',
+  };
+
+  if (data.label.trim().isNotEmpty &&
+      !accessibilityStates.contains(data.label.trim())) {
     textSequence.add(data.label.trim());
-  } else if (data.value.trim().isNotEmpty) {
+  } else if (data.value.trim().isNotEmpty &&
+      !accessibilityStates.contains(data.value.trim())) {
     textSequence.add(data.value.trim());
   }
 

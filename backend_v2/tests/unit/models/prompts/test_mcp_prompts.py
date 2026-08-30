@@ -7,8 +7,10 @@ from backend_v2.models.prompts.mcp_prompts import (
     MCP_EVIDENCE_INJECTION_DIRECTIVE,
     SOURCE_EXTRACTION_SYSTEM_INSTRUCTION,
     SOURCE_VERIFICATION_SYSTEM_INSTRUCTION,
-    __all__ as mcp_prompts_all,
     build_mcp_citation_extraction_directive,
+)
+from backend_v2.models.prompts.mcp_prompts import (
+    __all__ as mcp_prompts_all,
 )
 
 

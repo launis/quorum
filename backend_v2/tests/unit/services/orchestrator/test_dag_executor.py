@@ -986,6 +986,7 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
 async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any, mock_compiler: Any) -> None:
     """Tests that valid MCPAuditTrace dicts inside decision events are validated and merged into frozen_context."""
     import datetime
+
     from backend_v2.models.state import TraceEvent
 
     executor = DAGExecutor(
@@ -1131,3 +1132,86 @@ async def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast(
 
         assert exc_info.value.status_code == 500
 
+
+@pytest.mark.asyncio
+async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncMock, mock_compiler: AsyncMock) -> None:
+    """Test that NodeExecutor.execute collects criteria, role, protocol, and persona block IDs."""
+    import asyncio
+
+    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.enums import PromptBlockCategory, StepType
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.models.state import StateProjector
+    from backend_v2.models.v2_core import Step, StepRule
+    from backend_v2.services.orchestrator.dag_executor import NodeExecutor
+    from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
+
+    mock_prompt_block_repo = AsyncMock()
+    block = SystemRulePromptBlock(
+        id="blk_0123456789abcdef0123456789abcdef",
+        slug="common-block",
+        label=I18nText(translations={"en": "Common"}),
+        description=I18nText(translations={"en": "Common Desc"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+    )
+    mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = [block]
+
+    deps = StrategyDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=mock_prompt_block_repo,
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+    node_executor = NodeExecutor(deps=deps)
+
+    step_rule = StepRule(
+        id="stp_0123456789abcdef0123456789abcdef",
+        task_blueprint="bp_0123456789abcdef0123456789abcdef",
+        input_mappings={},
+    )
+    step_def = Step.model_construct(
+        id="bp_0123456789abcdef0123456789abcdef",
+        slug="full_step",
+        type=StepType.LOGIC,
+        model_strategy="standard",
+        criteria_block_ids=["blk_0123456789abcdef0123456789abcdef"],
+        role_block_id="blk_11112222333344445555666677778888",
+        extraction_protocol_block_id="blk_22223333444455556666777788889999",
+        execution_persona_block_id="blk_33334444555566667777888899990000",
+        name=I18nText(translations={"en": "Full"}),
+        description=I18nText(translations={"en": "Full"}),
+        hook="mock_hook",
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.NodeStrategyFactory.create_strategy") as mock_factory,
+    ):
+        mock_strat = AsyncMock()
+        mock_strat.execute.return_value = []
+        mock_strat.assert_quota = AsyncMock()
+        mock_factory.return_value = mock_strat
+
+        await node_executor.execute(
+            step=step_rule,
+            execution_id="exe_1",
+            workflow_id="wf_1",
+            metadata=ExecutionMetadata(target_locale="en"),
+            projector=StateProjector(),
+            semaphore=asyncio.Semaphore(1),
+            step_def=step_def,
+        )
+
+        mock_prompt_block_repo.get_prompt_blocks_by_ids.assert_called_once_with(
+            [
+                "blk_0123456789abcdef0123456789abcdef",
+                "blk_11112222333344445555666677778888",
+                "blk_22223333444455556666777788889999",
+                "blk_33334444555566667777888899990000",
+            ],
+            strict=True,
+        )

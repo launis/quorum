@@ -272,12 +272,17 @@ def main() -> None:
                 sys.exit(1)
     print("✅ UI templates validated.")
 
-    print("\n⏳ 6/6: Validating Seed Data (Dry-Run)...")
+    print("\n⏳ 6/6: Validating Seed Data (Dry-Run & Strict Atom Audit)...")
     res = subprocess.run(["uv", "run", "python", "backend_v2/seed/run_seed.py", "local", "--dry-run"])
     if res.returncode != 0:
         print("\n❌ Seed Data Dry-Run failed! Pydantic model changes broke the SSOT JSON seed file.\n")
         sys.exit(res.returncode)
-    print("✅ Seed Data integrated and validated.")
+
+    res_audit = subprocess.run(["uv", "run", "python", "scripts/audit_database_atoms.py", "--strict"])
+    if res_audit.returncode != 0:
+        print("\n❌ Database Atom & Prompt Audit failed! Structural or referential errors in seed_data.json.\n")
+        sys.exit(res_audit.returncode)
+    print("✅ Seed Data and Database Atoms integrated and validated.")
 
     if run_openapi:
         print("\n⏳ Option: Generating OpenAPI documentation (--openapi)...")

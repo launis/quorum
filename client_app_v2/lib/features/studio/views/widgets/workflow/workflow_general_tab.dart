@@ -4,6 +4,7 @@ import 'package:client_app/features/studio/models/workflow.dart';
 import '../../../../../l10n/gen/app_localizations.dart';
 import '../i18n_text_field.dart';
 import '../../../controllers/output_profile_controller.dart';
+import '../../../controllers/mcp_gateways_controller.dart';
 
 /// **WorkflowGeneralTab**
 ///
@@ -205,6 +206,46 @@ class WorkflowGeneralTab extends ConsumerWidget {
                                 workflow.copyWith(defaultProfileId: val),
                               );
                             }
+                          },
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Builder(
+                      builder: (context) {
+                        final mcpGatewaysAsync = ref.watch(
+                          mcpGatewaysControllerProvider,
+                        );
+                        final gateways = mcpGatewaysAsync.value ?? [];
+                        final currentGatewayId = workflow.mcpGatewayId;
+
+                        return DropdownButtonFormField<String?>(
+                          key: ValueKey(
+                            'mcp_gw_${gateways.length}_$currentGatewayId',
+                          ),
+                          initialValue: currentGatewayId,
+                          decoration: InputDecoration(
+                            labelText: l10n.studioWorkflowMcpGateway,
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: [
+                            DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(l10n.studioWorkflowMcpGatewayNone),
+                            ),
+                            ...gateways.map((gw) {
+                              final id = gw['id'] as String? ?? '';
+                              final toolsCount =
+                                  (gw['tools'] as List?)?.length ?? 0;
+                              return DropdownMenuItem<String?>(
+                                value: id,
+                                child: Text('$id ($toolsCount tools)'),
+                              );
+                            }),
+                          ],
+                          onChanged: (val) {
+                            onChanged(workflow.copyWith(mcpGatewayId: val));
                           },
                         );
                       },

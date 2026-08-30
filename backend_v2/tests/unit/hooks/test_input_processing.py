@@ -1,14 +1,18 @@
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.hooks.input_processing import _process_chat_history
+from backend_v2.core.hook_registry import HookState
+from backend_v2.exceptions import AppException
+from backend_v2.hooks.input_processing import _process_chat_history, process_inputs
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 
 
 @pytest.mark.asyncio
 @patch("backend_v2.hooks.input_processing.ChatParserService.parse_pasted_chat")
-async def test_process_chat_history_separates_speakers(mock_parse):
+async def test_process_chat_history_separates_speakers(mock_parse: Any) -> None:
     mock_parse.return_value = ChatHistoryDTO(
         conversation=[
             ChatMessageDTO(role="user", content="Hello AI!"),
@@ -36,7 +40,7 @@ async def test_process_chat_history_separates_speakers(mock_parse):
 
 
 @pytest.mark.asyncio
-async def test_process_chat_history_bypasses_nlp_for_json():
+async def test_process_chat_history_bypasses_nlp_for_json() -> None:
     json_input = """
     {
         "conversation": [
@@ -63,14 +67,14 @@ async def test_process_chat_history_bypasses_nlp_for_json():
 
 
 @pytest.mark.asyncio
-async def test_process_inputs_missing_context():
-    from unittest.mock import MagicMock
-
-    from backend_v2.core.hook_registry import HookState
-    from backend_v2.exceptions import AppException
-    from backend_v2.hooks.input_processing import process_inputs
-
-    state = HookState(workflow_id="", execution_id="", inputs={}, global_context_vars={}, metadata={})
+async def test_process_inputs_missing_context() -> None:
+    state = HookState(
+        workflow_id="",
+        execution_id="",
+        inputs={},
+        global_context_vars={},
+        metadata=ExecutionMetadata(target_locale="fi"),
+    )
     deps = MagicMock()
 
     with pytest.raises(AppException) as exc:
@@ -80,14 +84,14 @@ async def test_process_inputs_missing_context():
 
 
 @pytest.mark.asyncio
-async def test_process_inputs_missing_language():
-    from unittest.mock import AsyncMock, MagicMock
-
-    from backend_v2.core.hook_registry import HookState
-    from backend_v2.exceptions import AppException
-    from backend_v2.hooks.input_processing import process_inputs
-
-    state = HookState(workflow_id="w1", execution_id="e1", inputs={}, global_context_vars={}, metadata={})
+async def test_process_inputs_missing_language() -> None:
+    state = HookState(
+        workflow_id="w1",
+        execution_id="e1",
+        inputs={},
+        global_context_vars={},
+        metadata=ExecutionMetadata(target_locale="fi"),
+    )
 
     mock_workflow_repo = MagicMock()
     mock_workflow_repo.get_workflow_by_id = AsyncMock(

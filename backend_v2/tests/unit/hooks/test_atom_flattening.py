@@ -9,6 +9,7 @@ from backend_v2.hooks.atom_flattening import process_matrix_flattening
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixClaim,
@@ -80,7 +81,7 @@ def base_hook_state() -> HookState:
         task_blueprint="step_0123456789abcdef0123456789abcdef",
         inputs={},
         global_context_vars={},
-        metadata={"matrix_sampling_strategy": 1},
+        metadata=ExecutionMetadata(target_locale="en", matrix_sampling_strategy=1),
     )
 
 
@@ -99,8 +100,10 @@ def mock_step() -> Step:
 
 @pytest.mark.asyncio
 async def test_atom_flattening_missing_strategy_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
-    """Test that missing matrix_sampling_strategy triggers fail-fast."""
-    state = base_hook_state.model_copy(update={"metadata": {}})  # Empty metadata
+    """Test that invalid negative matrix_sampling_strategy triggers fail-fast."""
+    state = base_hook_state.model_copy(
+        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=-5)}
+    )
 
     mock_workflow_repo = AsyncMock()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
@@ -114,20 +117,21 @@ async def test_atom_flattening_missing_strategy_fails_fast(base_hook_state: Hook
         audit_repo=AsyncMock(),
         system_repo=AsyncMock(),
     )
-    # repo)  # type: ignore[arg-type]
 
     with pytest.raises(AppException) as exc_info:
-        await process_matrix_flattening(state, deps)  # type: ignore[misc]
+        await process_matrix_flattening(state, deps)
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
-    assert "requires 'matrix_sampling_strategy'" in exc_info.value.message
+    assert "Invalid matrix_sampling_strategy" in exc_info.value.message
 
 
 @pytest.mark.asyncio
 async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
     """Test that invalid matrix_sampling_strategy triggers fail-fast."""
-    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": -1}})  # Invalid negative limit
+    state = base_hook_state.model_copy(
+        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=-1)}
+    )
 
     mock_workflow_repo = AsyncMock()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
@@ -141,10 +145,9 @@ async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: Hook
         audit_repo=AsyncMock(),
         system_repo=AsyncMock(),
     )
-    # repo)  # type: ignore[arg-type]
 
     with pytest.raises(AppException) as exc_info:
-        await process_matrix_flattening(state, deps)  # type: ignore[misc]
+        await process_matrix_flattening(state, deps)
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
@@ -172,7 +175,9 @@ async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, m
     # repo)  # type: ignore[arg-type]
 
     # Use STRATIFIED_3
-    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 3}})
+    state = base_hook_state.model_copy(
+        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=3)}
+    )
 
     result = await process_matrix_flattening(state, deps)  # type: ignore[misc]
 
@@ -211,7 +216,9 @@ async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookSta
     # repo)  # type: ignore[arg-type]
 
     # Use ALL
-    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 0}})
+    state = base_hook_state.model_copy(
+        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=0)}
+    )
 
     result = await process_matrix_flattening(state, deps)  # type: ignore[misc]
 
@@ -405,7 +412,9 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
         system_repo=AsyncMock(),
     )
 
-    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 0}})
+    state = base_hook_state.model_copy(
+        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=0)}
+    )
     result = await process_matrix_flattening(state, deps)
 
     assert result.success is True
@@ -498,7 +507,9 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     )
 
     # Use sampling strategy 1 (select 1 atom initially)
-    state = base_hook_state.model_copy(update={"metadata": {"matrix_sampling_strategy": 1}})
+    state = base_hook_state.model_copy(
+        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=1)}
+    )
     result = await process_matrix_flattening(state, deps)
 
     assert result.success is True

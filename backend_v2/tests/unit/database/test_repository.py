@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.database.repository import UnifiedWorkflowRepository
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 
 
 @pytest.mark.asyncio
@@ -165,10 +165,39 @@ async def test_all_passthrough_methods(mock_validate: AsyncMock) -> None:
     await repo.add_concept({"id": "1"})
     await repo.add_reference({"id": "1"})
     await repo.add_claim({"id": "1"})
-    await repo.get_system_settings()
-    await repo.update_system_settings({})
     await repo.get_all_output_profiles()
     await repo.get_output_profile_by_id("1")
     await repo.create_output_profile({"id": "1"})
     await repo.update_output_profile("1", {})
     await repo.delete_output_profile("1")
+
+
+@pytest.mark.asyncio
+async def test_system_repo_get_mcp_gateways_with_id() -> None:
+    """Positive: get_mcp_gateways with specific ID filters by id."""
+    mock_driver = AsyncMock()
+    mock_driver.query.return_value = [{"id": "sys_123", "type": "mcp_gateways", "tools": []}]
+
+    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    res = await repo.get_mcp_gateways(id="sys_123")
+
+    assert res["id"] == "sys_123"
+    mock_driver.query.assert_called_once()
+    filters = mock_driver.query.call_args[0][1]
+    assert len(filters) == 1
+    assert filters[0].field == "id"
+    assert filters[0].value == "sys_123"
+
+
+@pytest.mark.asyncio
+async def test_system_repo_get_mcp_gateways_not_found_raises() -> None:
+    """Negative: get_mcp_gateways raises ResourceNotFoundError when config document is missing."""
+    mock_driver = AsyncMock()
+    mock_driver.query.return_value = []
+
+    repo = UnifiedWorkflowRepository(driver=mock_driver)
+    with pytest.raises(ResourceNotFoundError) as exc_info:
+        await repo.get_mcp_gateways(id="sys_nonexistent")
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["resource_id"] == "sys_nonexistent"

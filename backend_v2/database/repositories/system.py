@@ -53,24 +53,31 @@ class SystemRepositoryImpl(BaseRepository):
         await self.driver.upsert("system_config", registry_data, doc_id)
         return True
 
-    async def get_mcp_gateways(self) -> dict[str, Any]:
-        """Repository method implementation.
+    async def get_mcp_gateways(self, id: str | None = None) -> dict[str, Any]:
+        """Fetch MCP gateways configuration by ID or fallback to type 'mcp_gateways'.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
+            id: Optional specific system_config ID.
 
         Returns:
-            The expected result of the operation.
+            The raw system config document dictionary.
 
         Raises:
-            AppException: If a critical operation fails.
+            ResourceNotFoundError: If the configuration document is not found.
+            AppException: If the database operation fails.
         """
-        res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
+        if id:
+            filters = [Filter("id", "==", id)]
+            target_id = id
+        else:
+            filters = [Filter("type", "==", "mcp_gateways")]
+            target_id = "mcp_gateways"
+
+        res_list = await self.driver.query("system_config", filters, limit=1)
         res = res_list[0] if res_list else None
         if not res:
-            logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: 'mcp_gateways' document is missing.")
-            raise ResourceNotFoundError(resource_type="system_config", resource_id="mcp_gateways")
+            logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: '%s' document is missing.", target_id)
+            raise ResourceNotFoundError(resource_type="system_config", resource_id=target_id)
         return res
 
     async def update_mcp_gateways(self, gateways_data: dict[str, Any]) -> bool:

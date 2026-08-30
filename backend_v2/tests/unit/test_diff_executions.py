@@ -194,9 +194,7 @@ def test_pillar4_forensic_disk_artifacts_and_telemetry_extraction(tmp_path: Path
             {
                 "ui_hints_snapshot": {
                     "blk_f6e286f050c94d60": {
-                        "options": [
-                            {"label": {"translations": {"fi": "Avoimuus", "en": "Transparency"}}}
-                        ]
+                        "options": [{"label": {"translations": {"fi": "Avoimuus", "en": "Transparency"}}}]
                     }
                 }
             }

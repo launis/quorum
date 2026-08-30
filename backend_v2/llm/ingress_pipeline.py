@@ -8,6 +8,7 @@ The legacy Hybrid XML Protocol has been deprecated.
 
 import json
 import logging
+import re
 import types
 from typing import Annotated, Any, Union, cast, get_args, get_origin
 
@@ -19,9 +20,21 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
+_CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
 
 class UniversalIngress:
     """Handles parsing for LLM outputs."""
+
+    @classmethod
+    def sanitize_control_chars(cls, text: str) -> str:
+        r"""Sanitize non-printable ASCII control characters from strings.
+
+        Preserves standard whitespace characters (\n, \r, \t) while stripping
+        low-level control codes (e.g. U+0000-U+0008, U+000B, U+000C, U+000E-U+001F, U+007F)
+        such as EOT (0x04) or ACK (0x06).
+        """
+        return _CONTROL_CHAR_RE.sub("", text)
 
     @classmethod
     def _extract_discriminator_info(cls, annotation: Any) -> tuple[str | None, list[type[BaseModel]]]:
@@ -238,7 +251,7 @@ class UniversalIngress:
                             else:
                                 cleaned_list.append(item_copy)
                         else:
-                            cleaned_list.append(item)
+                            cleaned_list.append(cls.sanitize_control_chars(item) if isinstance(item, str) else item)
                     return cleaned_list
             return val
 
@@ -269,6 +282,8 @@ class UniversalIngress:
         # Handle primitive types
         if val is None and annotation is str:
             return ""
+        if isinstance(val, str):
+            return cls.sanitize_control_chars(val)
 
         return val
 
@@ -332,7 +347,7 @@ class UniversalIngress:
         Raises:
             AppException: If parsing fails (ErrorCodes.PARSING_FAILED).
         """
-        raw_stripped = raw_text.strip()
+        raw_stripped = cls.sanitize_control_chars(raw_text).strip()
 
         # Clean up markdown formatting if present
         if raw_stripped.startswith("```json"):

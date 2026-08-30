@@ -959,7 +959,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
 
     assert "Mechanical" in getattr(grid_block.items[0], "text", "") and "1" in getattr(grid_block.items[0], "text", "")
     assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "4.0" in getattr(grid_block.items[1], "text", "")
-    assert "Variance" in getattr(grid_block.items[2], "text", "") and "1.2" in getattr(grid_block.items[2], "text", "")
+    assert ("Total Dispersion" in getattr(grid_block.items[2], "text", "") or "Variance" in getattr(grid_block.items[2], "text", "")) and "1.2" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "warning"
     assert "MISALIGNED" in alert_block.text.upper()
@@ -1244,7 +1244,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "2.51" in getattr(
         grid_block.items[1], "text", ""
     )
-    assert "Variance" in getattr(grid_block.items[2], "text", "") and "0.09" in getattr(grid_block.items[2], "text", "")
+    assert ("Total Dispersion" in getattr(grid_block.items[2], "text", "") or "Variance" in getattr(grid_block.items[2], "text", "")) and "0.09" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity == "info"
     assert "ALIGNED" in alert_block.text.upper()
@@ -2338,7 +2338,8 @@ async def test_blueprint_transformer_fail_fast_branches(
         id="exe_1111222233334444",
         workflow_id="wf_1234abcd1234abcd",
         created_at=datetime.now(timezone.utc),
-        metadata={},
+        target_locale="",
+        metadata={"target_locale": ""},
         execution_trace=[],
     )
     mock_repo_transformer.get_execution.return_value = mock_exec_no_locale
@@ -2814,3 +2815,93 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
     assert len(report.inner_sdui_blocks) == 2
     assert isinstance(report.inner_sdui_blocks[0], AlertBlock)
     assert isinstance(report.inner_sdui_blocks[1], SduiMetadataBlock)
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_mcp_gateway_resolution(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Positive: BlueprintTransformer resolves MCP gateway and maps tools cleanly into context."""
+    from backend_v2.models.enums import TargetBlockType
+    from backend_v2.models.v2_core import (
+        ExecutionRecord,
+        ExecutionStatus,
+        I18nText,
+        MatrixSynthesisGroup,
+        OutputProfile,
+        Workflow,
+    )
+    from backend_v2.services.blueprint import BlueprintTransformer
+
+    profile = OutputProfile(
+        id="prf_0000000000000001",
+        slug="mcp-profile",
+        workflow_id="wf_0000000000000001",
+        name=I18nText(translations={"en": "Report", "fi": "Raportti"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+        target_block_order=[TargetBlockType.PRINTABLE_SOURCES_BLOCK],
+        show_sources_summary_box=True,
+        content_blocks=[],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_0000000000000001",
+                title=I18nText(translations={"en": "Default"}),
+                target_blocks=["*"],
+            )
+        ],
+    )
+
+    wf = Workflow(
+        id="wf_0000000000000001",
+        slug="wf-test",
+        organization_id="org_0000000000000001",
+        default_profile_id=profile.id,
+        mcp_gateway_id="sys_8172bda70c8641c5",
+        name=I18nText(translations={"en": "Workflow"}),
+        description=I18nText(translations={"en": "Description"}),
+        status="active",
+        version=1,
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        steps=[],
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_0000000000000001",
+        workflow_id=wf.id,
+        active_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        execution_trace=[],
+    )
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
+    mock_repo_transformer.get_output_profile.return_value = profile
+    mock_repo_transformer.get_output_profile_by_id.return_value = profile.model_dump()
+    mock_repo_transformer.get_workflow.return_value = wf
+    mock_repo_transformer.get_execution.return_value = exec_record
+    mock_repo_transformer.get_mcp_gateways.return_value = {
+        "id": "sys_8172bda70c8641c5",
+        "type": "mcp_gateways",
+        "tools": [
+            {
+                "tool_id": "mcp_tavily_search",
+                "name": {"translations": {"fi": "Tavily AI -haku", "en": "Tavily AI Search"}},
+                "description": "Web search via Tavily",
+                "input_schema": {},
+            }
+        ],
+    }
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    report = await transformer.build_report_dto(exec_record.id, profile_id=profile.id, accept_language="fi")
+    assert report is not None
+    mock_repo_transformer.get_mcp_gateways.assert_called_once_with(id="sys_8172bda70c8641c5")

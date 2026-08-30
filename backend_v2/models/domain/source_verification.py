@@ -81,4 +81,3 @@ class SourceVerificationResultDTO(V2CoreBase):
     audit_traces: Annotated[
         list[MCPAuditTrace], Field(default_factory=list, description="Audit traces of external searches executed.")
     ]
-

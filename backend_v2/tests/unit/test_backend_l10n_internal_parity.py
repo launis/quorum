@@ -124,6 +124,7 @@ def test_backend_json_has_no_dead_unreferenced_keys() -> None:
         "matrix_col_",
         "col_",
         "xai_ext_",
+        "xai",
         "ext_",
         "role_",
         "level_",

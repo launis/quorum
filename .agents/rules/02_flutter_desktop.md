@@ -83,7 +83,7 @@
     </rule_block>
 
     <rule_block id="strict_sdui_rendering_mandate">
-        <mandate>NEVER hardcode fallback UI strings, layout states, or business logic for dynamic views. All dynamic content, layout configurations, section titles, and RFC-7807 error messages MUST be strictly driven by backend DTOs and localization dictionaries. Flutter UI only renders what backend provides.</mandate>
+        <mandate>NEVER hardcode fallback UI strings, layout states, or business logic for dynamic views. All dynamic content, layout configurations, section titles, and RFC-7807 error messages MUST be strictly driven by backend DTOs and localization dictionaries. Flutter UI only renders what backend provides. Modifying Flutter SDUI widgets or renderers requires verifying 1:1 semantic parity against PDF via `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py` and `sdui_semantic_parity_test.dart`.</mandate>
     </rule_block>
 
     <rule_block id="flexbox_native_engine_standard">

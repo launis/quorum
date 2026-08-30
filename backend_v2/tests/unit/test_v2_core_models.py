@@ -97,9 +97,10 @@ def test_execution_core_fields_inheritance_on_execution_record() -> None:
     assert config.get("strict") is True, "ExecutionCoreFields must be strict"
     assert config.get("extra") == "forbid", "ExecutionCoreFields must forbid extra fields"
 
-    # 3. Verify all 5 core fields are accessible on ExecutionRecord instances
+    # 3. Verify all core fields are accessible on ExecutionRecord instances
     core_field_names = {
         "status",
+        "target_locale",
         "execution_trace",
         "execution_trace_storage_path",
         "context_variables",
@@ -112,7 +113,7 @@ def test_execution_core_fields_inheritance_on_execution_record() -> None:
     # 4. Verify core fields on ExecutionCoreFields itself
     ecf_fields = set(ExecutionCoreFields.model_fields.keys())
     assert core_field_names == ecf_fields, (
-        f"ExecutionCoreFields must define exactly the 5 SSOT fields. Expected: {core_field_names}, Got: {ecf_fields}"
+        f"ExecutionCoreFields must define exactly the SSOT fields. Expected: {core_field_names}, Got: {ecf_fields}"
     )
 
 

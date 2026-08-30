@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -49,6 +50,9 @@ class SduiMatrixTableWidget extends StatelessWidget {
               Widget cellContent;
               switch (colKey) {
                 case 'label':
+                  final targetLabel =
+                      axis.contextTargetLabel?.get(locale) ??
+                      axis.contextTarget;
                   cellContent = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -59,6 +63,32 @@ class SduiMatrixTableWidget extends StatelessWidget {
                             (axis.allowContextualOverride ? ' **' : ''),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
+                      if (targetLabel != null && targetLabel.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.s2),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.s4,
+                              vertical: AppSpacing.s2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              targetLabel,
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ),
+                        ),
                       if (axis.description != null &&
                           axis.description!.isNotEmpty)
                         Padding(
@@ -74,6 +104,18 @@ class SduiMatrixTableWidget extends StatelessWidget {
                           ),
                         ),
                     ],
+                  );
+                  break;
+                case 'context_target':
+                  final targetText =
+                      axis.contextTargetLabel?.get(locale) ??
+                      axis.contextTarget;
+                  cellContent = Text(
+                    targetText ?? '-',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
                   );
                   break;
                 case 'distribution':
@@ -111,9 +153,9 @@ class SduiMatrixTableWidget extends StatelessWidget {
                     ),
                   );
                   break;
-                case 'quotes':
-                  final atoms = axis.evaluatedAtoms;
-                  if (atoms.isNotEmpty) {
+                case 'criteria':
+                  final criteriaAtoms = axis.evaluatedAtoms;
+                  if (criteriaAtoms.isNotEmpty) {
                     final grouped = axis.atomsByLevel;
                     final sortedLevels = grouped.keys.toList()
                       ..sort((a, b) => b.compareTo(a));
@@ -140,46 +182,177 @@ class SduiMatrixTableWidget extends StatelessWidget {
                                 padding: const EdgeInsets.only(
                                   bottom: AppSpacing.s4,
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '- ${atom.chartDisplayLabel}',
-                                      style: TextStyle(
-                                        fontWeight:
-                                            atom.status ==
-                                                ExecutionStatus.passed
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                    if (atom.exactQuotes.isNotEmpty)
-                                      ...atom.exactQuotes.map((q) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: AppSpacing.s8,
-                                            top: AppSpacing.s2,
-                                          ),
-                                          child: Text(
-                                            '"${q.quote}"',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontStyle: FontStyle.italic,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                            ),
-                                          ),
-                                        );
-                                      }),
-                                  ],
+                                child: Text(
+                                  '- ${atom.chartDisplayLabel.isNotEmpty && atom.chartDisplayLabel != "N/A" ? atom.chartDisplayLabel : (atom.claimLabel.isNotEmpty ? atom.claimLabel : "-")}',
+                                  style: TextStyle(
+                                    fontWeight:
+                                        atom.status == ExecutionStatus.passed
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               );
                             }),
                             AppSpacing.h4,
                           ],
+                        );
+                      }).toList(),
+                    );
+                  } else {
+                    cellContent = const Text('-');
+                  }
+                  break;
+                case 'quotes':
+                  final quoteAtoms = axis.evaluatedAtoms;
+                  final hasAnyQuotes = quoteAtoms.any(
+                    (a) => a.exactQuotes.isNotEmpty,
+                  );
+                  if (hasAnyQuotes) {
+                    final grouped = axis.atomsByLevel;
+                    final sortedLevels = grouped.keys.toList()
+                      ..sort((a, b) => b.compareTo(a));
+                    cellContent = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: sortedLevels.map((lvl) {
+                        final lvlName = axis.levelNames?[lvl.toString()] ?? '';
+                        final lvlAtoms = grouped[lvl] ?? [];
+                        final hasQuotesInLevel = lvlAtoms.any(
+                          (a) => a.exactQuotes.isNotEmpty,
+                        );
+                        if (!hasQuotesInLevel) return const SizedBox.shrink();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$lvl - $lvlName',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                            AppSpacing.h4,
+                            ...lvlAtoms.map((atom) {
+                              if (atom.exactQuotes.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.s4,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: atom.exactQuotes.map((q) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: AppSpacing.s4,
+                                        top: AppSpacing.s2,
+                                      ),
+                                      child: Text(
+                                        '"${q.quote}"',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontStyle: FontStyle.italic,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              );
+                            }),
+                            AppSpacing.h4,
+                          ],
+                        );
+                      }).toList(),
+                    );
+                  } else {
+                    cellContent = const Text('-');
+                  }
+                  break;
+                case 'source':
+                  final title = axis.citedSourceTitle;
+                  final url = axis.citedSourceUrl;
+                  final webCitation = axis.citedWebCitation;
+                  final clustered = axis.clusteredRowSources;
+
+                  if (title != null || url != null) {
+                    cellContent = Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.s4,
+                      ),
+                      child: url != null
+                          ? InkWell(
+                              onTap: () {
+                                final uri = Uri.tryParse(url);
+                                if (uri != null) {
+                                  launchUrl(
+                                    uri,
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                }
+                              },
+                              child: Text(
+                                title ?? url,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              title!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                    );
+                  } else if (webCitation != null && webCitation.isNotEmpty) {
+                    cellContent = Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.s4,
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          final uri = Uri.tryParse(webCitation);
+                          if (uri != null) {
+                            launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }
+                        },
+                        child: Text(
+                          webCitation,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            decoration: TextDecoration.underline,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    );
+                  } else if (clustered.isNotEmpty) {
+                    cellContent = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: clustered.map((src) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+                          child: Text(
+                            '${src.stepName}: ${src.query}',
+                            style: const TextStyle(fontSize: 10),
+                          ),
                         );
                       }).toList(),
                     );
@@ -201,7 +374,7 @@ class SduiMatrixTableWidget extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        '${(ratio * 100).toStringAsFixed(1)}%',
+                        '${(ratio * 100).toStringAsFixed(1)} %',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.green.shade800,
@@ -214,13 +387,30 @@ class SduiMatrixTableWidget extends StatelessWidget {
                   }
                   break;
                 case 'score':
-                  cellContent = Text(
-                    axis.scoreDisplayLabel ?? '-',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  );
+                  final scoreLabel = axis.scoreDisplayLabel;
+                  if (scoreLabel != null && scoreLabel != '-') {
+                    cellContent = Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s8,
+                        vertical: AppSpacing.s4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        border: Border.all(color: Colors.blue.shade200),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        scoreLabel,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    );
+                  } else {
+                    cellContent = const Text('-');
+                  }
                   break;
                 default:
                   cellContent = const Text('-');
@@ -230,11 +420,19 @@ class SduiMatrixTableWidget extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
                   child: SizedBox(
                     width: colKey == 'label'
-                        ? 250
+                        ? 220
+                        : colKey == 'context_target'
+                        ? 140
+                        : colKey == 'distribution'
+                        ? 180
                         : colKey == 'row_explanation'
-                        ? 300
+                        ? 260
+                        : colKey == 'criteria'
+                        ? 260
                         : colKey == 'quotes'
-                        ? 350
+                        ? 260
+                        : colKey == 'source'
+                        ? 220
                         : null,
                     child: cellContent,
                   ),

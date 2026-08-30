@@ -1230,18 +1230,18 @@ class ISystemRepository(Protocol):
         """
         ...
 
-    async def get_mcp_gateways(self) -> dict[str, Any]:
-        """Protocol method definition.
+    async def get_mcp_gateways(self, id: str | None = None) -> dict[str, Any]:
+        """Fetch MCP gateways configuration by ID or default type.
 
         Args:
-            *args: Protocol arguments.
-            **kwargs: Protocol keyword arguments.
+            id: Optional specific system_config ID.
 
         Returns:
-            The specified return type.
+            The raw system config document dictionary.
 
         Raises:
-            AppException: If the operation fails.
+            ResourceNotFoundError: If the configuration document is not found.
+            AppException: If the database operation fails.
         """
         ...
 

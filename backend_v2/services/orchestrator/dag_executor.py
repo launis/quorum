@@ -28,6 +28,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionErr
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import ScoringStrategy, StepType, StrictnessAnchor
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -157,7 +158,7 @@ class NodeExecutor:
         step: StepRule,
         execution_id: str,
         workflow_id: str,
-        metadata: dict[str, Any],
+        metadata: ExecutionMetadata,
         projector: StateProjector,
         semaphore: asyncio.Semaphore,
         expected_inputs: list[Any] | None = None,
@@ -169,6 +170,7 @@ class NodeExecutor:
         context_variables: dict[str, Any] | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         step_def: Step | None = None,
+        global_context_vars: dict[str, Any] | None = None,
     ) -> list[TraceEvent]:
         """Executes a pipeline node strategy with static parameters.
 
@@ -248,6 +250,15 @@ class NodeExecutor:
                 engine=engine,
             )
 
+            resolved_global_vars = (
+                global_context_vars
+                if global_context_vars is not None
+                else metadata.global_context_vars
+                if metadata.global_context_vars is not None
+                else {"language": metadata.target_locale}
+            )
+            org_id = metadata.organization_id
+
             context = StrategyContext(
                 execution_id=execution_id,
                 workflow_id=workflow_id,
@@ -255,12 +266,11 @@ class NodeExecutor:
                 expected_inputs=expected_inputs,
                 model_strategy=step_def.model_strategy,
                 strictness_level=strictness_level,
-                global_context_vars=metadata["global_context_vars"] if "global_context_vars" in metadata else {},
+                global_context_vars=resolved_global_vars,
                 context_variables=context_variables or {},
                 prompt_blocks=loaded_prompt_blocks,
             )
 
-            org_id = metadata["organization_id"] if "organization_id" in metadata else None
             await strategy_impl.assert_quota(org_id=org_id)
 
             return await strategy_impl.execute(
@@ -431,8 +441,21 @@ class DAGExecutor:
                 )
                 exec_record = exec_record.model_copy(update={"step_states": new_states})
 
-        if exec_record.metadata and "target_locale" in exec_record.metadata:
-            set_language(exec_record.metadata["target_locale"])
+        if exec_record.target_locale:
+            set_language(exec_record.target_locale)
+
+        global_vars: dict[str, Any] = {}
+        user_id = exec_record.metadata.user_id or exec_record.raw_inputs.user_id
+        if user_id:
+            user_data = await self.identity_repo.get_user(user_id)
+            if user_data and "language" in user_data:
+                global_vars["language"] = user_data["language"]
+
+        if "language" not in global_vars and exec_record.raw_inputs.language:
+            global_vars["language"] = exec_record.raw_inputs.language
+
+        if "language" not in global_vars and exec_record.target_locale:
+            global_vars["language"] = exec_record.target_locale
 
         projector = StateProjector()
         for evt in exec_record.execution_trace:
@@ -455,22 +478,6 @@ class DAGExecutor:
                     audit_repo=self.audit_repo,
                     system_repo=self.system_repo,
                 )
-                global_vars: dict[str, Any] = {}
-                user_id = (
-                    exec_record.metadata["user_id"]
-                    if "user_id" in exec_record.metadata
-                    else exec_record.raw_inputs.user_id
-                )
-                if user_id:
-                    user_data = await self.identity_repo.get_user(user_id)
-                    if user_data and "language" in user_data:
-                        global_vars["language"] = user_data["language"]
-
-                if "language" not in global_vars and exec_record.raw_inputs.language:
-                    global_vars["language"] = exec_record.raw_inputs.language
-
-                exec_record.metadata["global_context_vars"] = global_vars
-
                 global_hook_state = HookState(
                     execution_id=execution_id,
                     workflow_id=workflow.id,
@@ -651,6 +658,7 @@ class DAGExecutor:
                                 step_def=step_definitions.get(step_obj.task_blueprint)
                                 if step_obj.task_blueprint
                                 else None,
+                                global_context_vars=global_vars,
                             )
                 finally:
                     watcher_task.cancel()

@@ -21,13 +21,16 @@ from backend_v2.models.enums import (
     TargetBlockType,
     VirtualSystemStepID,
 )
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
+    AllowedMCPTool,
     AtomResultDTO,
     HydratedAtomDTO,
     MCPAuditTrace,
     OutputProfile,
     ReportDataDTO,
+    SystemConfigMCPGateways,
 )
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
@@ -153,11 +156,21 @@ class BlueprintTransformer:
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
+        mcp_tools_map: dict[str, AllowedMCPTool] = {}
+        mcp_gw_id = getattr(workflow_obj, "mcp_gateway_id", None)
+        if mcp_gw_id and isinstance(mcp_gw_id, str):
+            raw_gateway = await self.system_repo.get_mcp_gateways(id=mcp_gw_id)
+            if isinstance(raw_gateway, dict):
+                gateway_obj = SystemConfigMCPGateways.model_validate(raw_gateway, strict=False)
+                mcp_tools_map = {tool.tool_id: tool for tool in gateway_obj.tools}
+
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
 
-        locale = accept_language
-        if not locale and isinstance(execution.metadata, dict):
+        locale = accept_language or execution.target_locale
+        if not locale and isinstance(execution.metadata, ExecutionMetadata):
+            locale = execution.metadata.target_locale
+        elif not locale and isinstance(execution.metadata, dict):
             locale = execution.metadata.get("target_locale")
 
         if not locale:
@@ -287,6 +300,15 @@ class BlueprintTransformer:
                         v2_hydrated_refs[k] = HydratedAtomDTO.model_validate(v_dict)
 
         workflow_steps_map = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
+        expected_inputs = getattr(workflow_obj, "expected_inputs", None)
+        expected_inputs_map = {}
+        if expected_inputs and isinstance(expected_inputs, list):
+            for inp in expected_inputs:
+                k = getattr(inp, "input_key", None)
+                if k is None and isinstance(inp, dict):
+                    k = inp.get("input_key")
+                if k:
+                    expected_inputs_map[k] = inp
         row_explanations_cache: dict[str, str] = {}
         row_curated_quotes_cache: dict[str, list[str]] = {}
 
@@ -314,6 +336,7 @@ class BlueprintTransformer:
             mcp_audit_map=mcp_audit_map,
             source_identity_manifest=None,
             execution=execution,
+            expected_inputs_map=expected_inputs_map,
         )
 
         modified_step_states = False
@@ -373,6 +396,7 @@ class BlueprintTransformer:
                 user_name=None,
                 org_name=None,
                 parsed_matrices=all_parsed_matrices,
+                mcp_tools_map=mcp_tools_map,
                 local_time_str=local_time_str,
                 scoring_engine=scoring_engine_val,
                 cost=combined_cost,
@@ -590,6 +614,7 @@ class BlueprintTransformer:
                 user_name=user_name,
                 org_name=org_name,
                 parsed_matrices=all_parsed_matrices,
+                mcp_tools_map=mcp_tools_map,
                 local_time_str=local_time_str,
                 scoring_engine=scoring_engine_val,
                 cost=combined_cost,

@@ -17,6 +17,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       allowedKeys: const [
         'id',
         'workflow_id',
+        'target_locale',
         'status',
         'trace_version',
         'strictness_level',
@@ -36,6 +37,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
     final val = _ExecutionRecord(
       id: $checkedConvert('id', (v) => v as String),
       workflowId: $checkedConvert('workflow_id', (v) => v as String),
+      targetLocale: $checkedConvert('target_locale', (v) => v as String?),
       status: $checkedConvert('status', (v) => _statusFromJson(v as String)),
       traceVersion: $checkedConvert(
         'trace_version',
@@ -75,6 +77,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
   },
   fieldKeyMap: const {
     'workflowId': 'workflow_id',
+    'targetLocale': 'target_locale',
     'traceVersion': 'trace_version',
     'strictnessLevel': 'strictness_level',
     'createdAt': 'created_at',
@@ -91,6 +94,7 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
     <String, dynamic>{
       'id': instance.id,
       'workflow_id': instance.workflowId,
+      'target_locale': instance.targetLocale,
       'status': instance.status,
       'trace_version': instance.traceVersion,
       'strictness_level': instance.strictnessLevel,

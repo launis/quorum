@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.services.execution import ExecutionService
 
@@ -26,9 +27,10 @@ async def test_render_execution_json_default_profile_resolves() -> None:
     )
 
     mock_record = Mock(spec=ExecutionRecord)
+    mock_record.target_locale = "en"
     mock_record.status = ExecutionStatus.PASSED
     mock_record.organization_id = "org_1"
-    mock_record.metadata = {}
+    mock_record.metadata = ExecutionMetadata(target_locale="en")
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"
     # "prof_1" on oletusprofiili-ID, joten profiilisynteesi löytyy sille
@@ -77,7 +79,7 @@ async def test_render_execution_json_default_profile_resolves() -> None:
 
     # Varmistetaan, että JSON-formatissa get_report_dto kutsuu arvolla profile_id=None
     mock_transformer.build_report_dto.assert_called_once_with(
-        "exe_1", profile_id=None, accept_language=None, custom_preface_md=None, local_time_str=None
+        "exe_1", profile_id=None, accept_language="en", custom_preface_md=None, local_time_str=None
     )
 
     assert data["execution_id"] == "exe_1"

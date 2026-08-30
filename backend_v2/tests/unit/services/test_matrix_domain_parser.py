@@ -16,7 +16,15 @@ from backend_v2.models.enums import (
     LaxPromptBlockCategory,
     PromptBlockCategory,
 )
-from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, OutputProfile, TDAAssertion
+from backend_v2.models.state import WorkflowState  # noqa: F401
+from backend_v2.models.v2_core import (
+    ExpectedInput,
+    I18nText,
+    MatrixClaim,
+    MatrixScale,
+    OutputProfile,
+    TDAAssertion,
+)
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
 
@@ -656,6 +664,9 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
     atom_dto = step_atoms["step1"][atom_id]
     assert atom_dto.status == ExecutionStatus.PASSED
     assert atom_dto.semantic_reasoning == "Strong evidence found."
+    assert atom_dto.chart_display_label != "N/A"
+    assert len(atom_dto.exact_quotes) == 1
+    assert atom_dto.exact_quotes[0].quote == "Exact verbatim quote."
 
 
 def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache() -> None:
@@ -707,3 +718,171 @@ def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache(
     )
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.row_explanation == ""
+
+
+def test_parse_matrices_context_target_and_xai_extensions() -> None:
+    """Test extraction of context_target, context_target_label, remediation_steps, coaching, and falsification."""
+    from backend_v2.models.v2_core import StepRule
+
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    step_rule = StepRule(
+        id="sr_1234567890abcdef",
+        task_blueprint="step_1234567890abcdef",
+        input_mappings={"context": "$inputs.chat_log"},
+    )
+
+    payload = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+        "extensions": {
+            "remediation_steps": "Actionable step 1, step 2.",
+            "coaching": "Coaching tips for improvement.",
+            "falsification": "Falsification threshold breached if X.",
+        },
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    expected_inputs_map = {
+        "chat_log": ExpectedInput(
+            input_key="chat_log",
+            label=I18nText(translations={"en": "Chat Log", "fi": "Keskusteluloki"}),
+            required=True,
+            is_chat_history=True,
+            scan_for_performative_patterns=False,
+            input_modes=["paste"],
+            description=I18nText(translations={"en": "Chat log", "fi": "Keskusteluloki"}),
+        )
+    }
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={"step1": step_rule},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+        expected_inputs_map=expected_inputs_map,
+    )
+    row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row.context_target == "chat_log"
+    assert row.context_target_label is not None
+    assert row.context_target_label.resolve("en") == "Chat Log"
+    assert row.context_target_label.resolve("fi") == "Keskusteluloki"
+    assert row.remediation_steps == "Actionable step 1, step 2."
+    assert row.coaching == "Coaching tips for improvement."
+    assert row.falsification == "Falsification threshold breached if X."
+
+
+def test_parse_matrices_dynamic_filename_context_target() -> None:
+    """Test extraction of dynamic filename context_target without standard localization mapping."""
+    from backend_v2.models.v2_core import StepRule
+
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    step_rule = StepRule(
+        id="sr_1234567890abcdef",
+        task_blueprint="step_1234567890abcdef",
+        input_mappings={"context": "financials_q3.pdf"},
+    )
+
+    payload = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={"step1": step_rule},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row.context_target == "financials_q3.pdf"
+    assert row.context_target_label is not None
+    assert row.context_target_label.resolve("en") == "financials_q3.pdf"
+    assert row.context_target_label.resolve("fi") == "financials_q3.pdf"
+    assert row.remediation_steps is None
+    assert row.coaching is None
+    assert row.falsification is None
+
+
+def test_parse_matrices_negative_missing_input_mappings_and_extensions() -> None:
+    """ISTQB Negative Partition: Test that missing input_mappings or extensions gracefully assign None."""
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    payload = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},  # Missing step rule
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row.context_target is None
+    assert row.context_target_label is None
+    assert row.remediation_steps is None
+    assert row.coaching is None
+    assert row.falsification is None
+
+
+def test_parse_matrices_axis_collision_coverage() -> None:
+    """Test axis name collision resolution loop for coverage."""
+    from backend_v2.models.v2_core import StepRule
+
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    step_rule1 = StepRule(
+        id="sr_1234567890abcdef",
+        task_blueprint="step_1234567890abcdef",
+    )
+    step_rule2 = StepRule(
+        id="sr_abcdef1234567890",
+        task_blueprint="step_abcdef1234567890",
+    )
+
+    payload = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+    }
+    dto1 = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+    dto2 = MockDTO(step_id="step2", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto1, dto2],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={"step1": step_rule1, "step2": step_rule2},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    assert len(all_parsed) == 2
+    row2 = all_parsed["step2_blk_1234567890abcdef1234567890abcdef"]
+    assert "sr_abcdef1234567890" in row2.name
+

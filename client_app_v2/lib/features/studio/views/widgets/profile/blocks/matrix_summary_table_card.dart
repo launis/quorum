@@ -11,22 +11,43 @@ class MatrixSummaryTableCard extends StatelessWidget {
   final void Function(OutputProfile) updatePayload;
   final Widget? dragHandle;
 
-  static const List<Map<String, String>> availableColumns = [
-    {'key': 'label', 'labelFi': 'Ulottuvuus', 'labelEn': 'Dimension'},
-    {'key': 'distribution', 'labelFi': 'Jakauma', 'labelEn': 'Distribution'},
-    {
-      'key': 'row_explanation',
-      'labelFi': 'Rivisyy / Peruste',
-      'labelEn': 'Row Explanation',
-    },
-    {'key': 'quotes', 'labelFi': 'Lainaukset', 'labelEn': 'Quotes'},
-    {
-      'key': 'normalized_score',
-      'labelFi': 'Normitettu',
-      'labelEn': 'Normalized',
-    },
-    {'key': 'score', 'labelFi': 'Pistemäärä', 'labelEn': 'Score'},
+  static const List<String> availableColumnKeys = [
+    'label',
+    'context_target',
+    'distribution',
+    'row_explanation',
+    'criteria',
+    'quotes',
+    'source',
+    'normalized_score',
+    'score',
   ];
+
+  static String getColumnLabel(BuildContext context, String key) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (key) {
+      case 'label':
+        return l10n.studioMatrixColLabel;
+      case 'context_target':
+        return l10n.studioMatrixColContextTarget;
+      case 'distribution':
+        return l10n.studioMatrixColDistribution;
+      case 'row_explanation':
+        return l10n.studioMatrixColRowExplanation;
+      case 'criteria':
+        return l10n.studioMatrixColCriteria;
+      case 'quotes':
+        return l10n.studioMatrixColQuotes;
+      case 'source':
+        return l10n.studioMatrixColSource;
+      case 'normalized_score':
+        return l10n.studioMatrixColNormalized;
+      case 'score':
+        return l10n.studioMatrixColScore;
+      default:
+        return key;
+    }
+  }
 
   const MatrixSummaryTableCard({
     super.key,
@@ -67,7 +88,7 @@ class MatrixSummaryTableCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.s8),
             child: Text(
-              'Näytettävät sarakkeet (Visible Columns):',
+              l10n.studioMatrixVisibleColumnsTitle,
               style: Theme.of(
                 context,
               ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -76,9 +97,8 @@ class MatrixSummaryTableCard extends StatelessWidget {
           Wrap(
             spacing: AppSpacing.s8,
             runSpacing: AppSpacing.s4,
-            children: availableColumns.map((col) {
-              final key = col['key']!;
-              final label = col['labelFi']!;
+            children: availableColumnKeys.map((key) {
+              final label = getColumnLabel(context, key);
               final isSelected = visibleCols.contains(key);
 
               return FilterChip(

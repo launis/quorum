@@ -4,6 +4,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, FrozenContext, WorkflowInputs
 from backend_v2.services.execution import ExecutionService, create_execution_record
 
@@ -394,9 +395,10 @@ async def test_render_execution_json() -> None:
     )
 
     mock_record = Mock(spec=ExecutionRecord)
+    mock_record.target_locale = "en"
     mock_record.status = ExecutionStatus.PASSED
     mock_record.organization_id = "org_1"
-    mock_record.metadata = {}
+    mock_record.metadata = ExecutionMetadata(target_locale="en")
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"
     mock_record.profile_syntheses = {"prof_1": Mock()}
@@ -645,7 +647,8 @@ async def test_get_execution_export_bytes_success() -> None:
         )
     }
     mock_record.organization_id = "org_1"
-    mock_record.metadata = {}
+    mock_record.target_locale = "en"
+    mock_record.metadata = ExecutionMetadata(target_locale="en")
     mock_record.model_copy.return_value = mock_record
 
     repo_mock.get_execution.return_value = mock_record
@@ -741,7 +744,8 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
         )
     }
     mock_record.organization_id = "org_1"
-    mock_record.metadata = {}
+    mock_record.target_locale = "en"
+    mock_record.metadata = ExecutionMetadata(target_locale="en")
     mock_record.model_copy.return_value = mock_record
 
     repo_mock.get_execution.return_value = mock_record

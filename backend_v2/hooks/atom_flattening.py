@@ -81,14 +81,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
         return HookResult(success=True, state_delta={})
 
     # 2. Extract Matrix Sampler Metadata limit
-    if "matrix_sampling_strategy" not in state.metadata:
-        raise AppException(
-            message="AtomFlatteningHook requires 'matrix_sampling_strategy' in execution metadata.",
-            status_code=400,
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-        )
-
-    sampling_limit_val = state.metadata["matrix_sampling_strategy"]
+    sampling_limit_val = state.metadata.matrix_sampling_strategy
 
     if not isinstance(sampling_limit_val, int) or sampling_limit_val < 0:
         raise AppException(

@@ -73,6 +73,7 @@ class MatrixDomainParser:
         mcp_audit_map: dict[str, MCPAuditTrace] | None = None,
         source_identity_manifest: dict[str, str] | None = None,
         execution: Any = None,
+        expected_inputs_map: dict[str, Any] | None = None,
     ) -> tuple[
         list[MatrixScorecardRowDTO],
         list[MatrixScorecardRowDTO],
@@ -358,7 +359,7 @@ class MatrixDomainParser:
             evaluated_atoms_list = []
             clustered_row_sources: list[Any] = []
 
-            if "quotes" in matrix_visible_cols:
+            if "quotes" in matrix_visible_cols or "criteria" in matrix_visible_cols:
                 step_evals_map = {}
                 for r_dto in results:
                     if r_dto.step_id == step_id and r_dto.block_id == "evaluations" and isinstance(r_dto.payload, list):
@@ -372,10 +373,19 @@ class MatrixDomainParser:
                         l_val = int(scale.score)
                         l_name = level_names[str(l_val)]
                         for claim in scale.claims:
-                            claim_label = claim.label.resolve(locale) if isinstance(claim.label, I18nText) else "Väite"
+                            claim_label = (
+                                claim.label.resolve(locale)
+                                if isinstance(claim.label, I18nText)
+                                else str(claim.label or "")
+                            )
                             for tda in claim.tda_assertions:
                                 atom_id = tda.tda_id
                                 ev_data = step_evals_map.get(atom_id)
+                                display_label = (
+                                    claim_label.strip()
+                                    if claim_label.strip()
+                                    else (tda.concept_description.strip() if tda.concept_description else "Kriteeri")
+                                )
 
                                 if ev_data:
                                     try:
@@ -407,7 +417,7 @@ class MatrixDomainParser:
                                             semantic_reasoning=val_data.evaluation_reasoning or "",
                                             contextual_override=val_data.contextual_override,
                                             structural_location=None,
-                                            chart_display_label="N/A",
+                                            chart_display_label=display_label,
                                             visual_intent=VisualIntent.NEUTRAL,
                                             human_override=None,
                                         )
@@ -445,7 +455,7 @@ class MatrixDomainParser:
                                         semantic_reasoning="",
                                         contextual_override=False,
                                         structural_location=None,
-                                        chart_display_label="N/A",
+                                        chart_display_label=display_label,
                                         visual_intent=VisualIntent.NEUTRAL,
                                         human_override=None,
                                     )
@@ -461,6 +471,32 @@ class MatrixDomainParser:
 
             # Implementation Plan Phase 3, Step 1: Set inner_sdui_blocks=[]
             inner_sdui_blocks: list[AnySduiBlock] = []
+
+            # Resolve context_target and context_target_label from StepRule input_mappings
+            context_target = None
+            context_target_label = None
+            step_rule = workflow_steps.get(step_id)
+            input_mappings = getattr(step_rule, "input_mappings", None)
+            if input_mappings and isinstance(input_mappings, dict):
+                # Find input mapping pointing to $inputs
+                for mapped_val in input_mappings.values():
+                    if isinstance(mapped_val, str) and mapped_val.startswith("$inputs."):
+                        context_target = mapped_val.split("$inputs.", 1)[1].strip()
+                        break
+                    elif isinstance(mapped_val, str) and not mapped_val.startswith("$"):
+                        context_target = mapped_val.strip()
+                        break
+
+            if context_target:
+                input_def = expected_inputs_map.get(context_target) if expected_inputs_map else None
+                if input_def and input_def.label:
+                    context_target_label = input_def.label
+                else:
+                    context_target_label = I18nText(translations={"fi": context_target, "en": context_target})
+
+            remediation_steps = ext.remediation_steps if ext else None
+            coaching = ext.coaching if ext else None
+            falsification = ext.falsification if ext else None
 
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
@@ -479,6 +515,21 @@ class MatrixDomainParser:
                 cited_source_id=ext.source_id if ext else None,
                 cited_text_quote=ext.citation if ext else None,
                 cited_web_citation=ext.google_citation if ext else None,
+                cited_source_title=(
+                    pb_meta.theory_grounding.citation_reference
+                    if pb_meta.theory_grounding and pb_meta.theory_grounding.citation_reference
+                    else None
+                ),
+                cited_source_url=(
+                    pb_meta.theory_grounding.source_url
+                    if pb_meta.theory_grounding and pb_meta.theory_grounding.source_url
+                    else (ext.google_citation if ext and ext.google_citation else None)
+                ),
+                context_target=context_target,
+                context_target_label=context_target_label,
+                remediation_steps=remediation_steps,
+                coaching=coaching,
+                falsification=falsification,
                 confidence=ext.confidence if ext else None,
                 contextual_override=ext.contextual_override if ext else None,
                 semantic_reasoning=(

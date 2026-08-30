@@ -4,18 +4,19 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookResult, HookState
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 def test_hook_state_strictness() -> None:
     state = HookState(
         execution_id="exec_1",
         workflow_id="wf_1",
-        metadata={"key": "val"},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={"g": "v"},
         inputs={"in": "1"},
     )
     assert state.execution_id == "exec_1"
-    assert state.metadata == {"key": "val"}
+    assert state.metadata.target_locale == "en"
 
     with pytest.raises(ValidationError):
         HookState(execution_id="exec_1", workflow_id="wf_1", extra="fail")  # type: ignore
@@ -54,7 +55,7 @@ async def test_hook_registry_register_and_execute_sync_and_async() -> None:
             execution_id="exec_1",
             workflow_id="wf_1",
             step_id="stp_1",
-            metadata={"k": "v"},
+            metadata=ExecutionMetadata(target_locale="en"),
             global_context_vars={},
             inputs={"param": 1},
         )
@@ -107,7 +108,7 @@ async def test_hook_registry_fail_fast_conditions() -> None:
         state = HookState(
             execution_id="e",
             workflow_id="w",
-            metadata={},
+            metadata=ExecutionMetadata(target_locale="en"),
             global_context_vars={},
             inputs={},
         )

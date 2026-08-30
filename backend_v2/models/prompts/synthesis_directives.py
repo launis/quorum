@@ -76,9 +76,11 @@ MATRIX_TEXT_SYNTHESIS_DIRECTIVE: str = (
 ROW_EXPLANATION_DIRECTIVE: str = (
     "<row_explanation_directive>\n"
     "MATRIX ROW CAUSAL EXPLANATION MANDATE:\n"
-    "- Provide a concise causal explanation for why this specific matrix score was reached.\n"
+    "- Provide a concise causal explanation in the <required_output_language> for why this specific matrix score level was reached based on the source text evidence.\n"
+    "- Ground the explanation in the specific level achieved (e.g. why 2/5 was achieved based on passed criteria and observed evidence).\n"
     "- Strict brevity constraint: maximum 30 words per row.\n"
     "- Return plain text only; no markdown formatting.\n"
+    "- NEVER output English or mixed languages when <required_output_language> specifies another language.\n"
     "</row_explanation_directive>"
 )
 

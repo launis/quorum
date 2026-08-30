@@ -551,6 +551,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'ui_schema',
         'output_profiles',
         'default_profile_id',
+        'mcp_gateway_id',
         'default_strictness_level',
         'default_scoring_strategy',
         'enable_contextual_overrides',
@@ -599,6 +600,10 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
       defaultProfileId: $checkedConvert(
         'default_profile_id',
         (v) => v as String? ?? "default",
+      ),
+      mcpGatewayId: $checkedConvert(
+        'mcp_gateway_id',
+        (v) => v as String? ?? "sys_8172bda70c8641c5",
       ),
       defaultStrictnessLevel: $checkedConvert(
         'default_strictness_level',
@@ -661,6 +666,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'uiSchema': 'ui_schema',
     'outputProfiles': 'output_profiles',
     'defaultProfileId': 'default_profile_id',
+    'mcpGatewayId': 'mcp_gateway_id',
     'defaultStrictnessLevel': 'default_strictness_level',
     'defaultScoringStrategy': 'default_scoring_strategy',
     'enableContextualOverrides': 'enable_contextual_overrides',
@@ -687,6 +693,7 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
     (k, e) => MapEntry(k, e.toJson()),
   ),
   'default_profile_id': instance.defaultProfileId,
+  'mcp_gateway_id': instance.mcpGatewayId,
   'default_strictness_level': instance.defaultStrictnessLevel,
   'default_scoring_strategy':
       _$ScoringStrategyEnumMap[instance.defaultScoringStrategy]!,

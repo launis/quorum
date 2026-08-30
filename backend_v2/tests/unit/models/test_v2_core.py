@@ -584,7 +584,7 @@ def test_engine_dtos_validation_and_methods() -> None:
     context = StrategyContext(
         execution_id="exe_1",
         workflow_id="wf_1",
-        metadata={},
+        metadata={"target_locale": "en"},
         model_strategy="fast",
     )
     client = MagicMock(spec=LLMClient)

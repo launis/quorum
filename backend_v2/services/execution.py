@@ -36,6 +36,7 @@ from backend_v2.exceptions import (
 from backend_v2.hooks.scoring import recalculate
 from backend_v2.models.auth import SystemOrganizations, TokenData
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import (
     EvidenceOverrideDTO,
     TraceEvent,
@@ -83,6 +84,7 @@ def create_execution_record(
     raw_inputs: WorkflowInputs,
     frozen_context: FrozenContext,
     source_identity_manifest: dict[str, str],
+    target_locale: str = "en",
     **extra_persistence_fields: Any,
 ) -> ExecutionRecord:
     """Type-safe factory for ExecutionRecord creation.
@@ -95,6 +97,8 @@ def create_execution_record(
         workflow_id: ID of the workflow definition.
         raw_inputs: Validated user inputs by role.
         frozen_context: Immutable snapshot of context at execution start.
+        source_identity_manifest: Snapshot mapping of inputs.
+        target_locale: Target locale code for outputs (e.g., 'fi', 'en').
         **extra_persistence_fields: Additional presentation-layer fields.
 
     Returns:
@@ -107,6 +111,7 @@ def create_execution_record(
         return ExecutionRecord(
             id=execution_id,
             workflow_id=workflow_id,
+            target_locale=target_locale,
             raw_inputs=raw_inputs,
             frozen_context=frozen_context,
             source_identity_manifest=source_identity_manifest,
@@ -521,13 +526,16 @@ class ExecutionService:
             frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
             source_identity_manifest=source_identity_manifest,
             output_profile_id=resolved_profile_id,
+            target_locale=target_locale,
             step_states=step_states,
-            metadata={
-                "target_locale": target_locale,
-                "profile_id": resolved_profile_id,
-                "matrix_sampling_strategy": payload.matrix_sampling_strategy,
-                "workflow_version": workflow.version,
-            },
+            metadata=ExecutionMetadata(
+                target_locale=target_locale,
+                profile_id=resolved_profile_id,
+                matrix_sampling_strategy=payload.matrix_sampling_strategy,
+                workflow_version=workflow.version,
+                user_id=initiator.id,
+                organization_id=getattr(initiator, "organization_id", None),
+            ),
             created_by=initiator.id,
             organization_id=getattr(initiator, "organization_id", None),
         )
@@ -585,7 +593,13 @@ class ExecutionService:
             return False
 
         # Version validation: Detect seed blueprint drift
-        orig_version = record.metadata.get("workflow_version")
+        orig_version = (
+            record.metadata.workflow_version
+            if isinstance(record.metadata, ExecutionMetadata)
+            else record.metadata.get("workflow_version")
+            if isinstance(record.metadata, dict)
+            else None
+        )
         if orig_version is not None and workflow.version != orig_version:
             return False
 
@@ -739,7 +753,7 @@ class ExecutionService:
             )
 
         # 2. String Resolution via Flutter ARB
-        locale = execution.metadata.get("target_locale", "fi") if execution.metadata else "fi"
+        locale = execution.target_locale or execution.metadata.target_locale or "fi"
         arb_path = Path(f"client_app_v2/lib/l10n/app_{locale}.arb")
         if not arb_path.exists():
             arb_path = Path("client_app_v2/lib/l10n/app_en.arb")
@@ -1133,14 +1147,14 @@ class ExecutionService:
 
         elif fmt == "html":
             if not accept_language:
-                if "target_locale" not in execution.metadata:
-                    msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution metadata."
+                accept_language = execution.target_locale or execution.metadata.target_locale
+                if not accept_language:
+                    msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution."
                     raise AppException(
                         message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
-                accept_language = str(execution.metadata["target_locale"])
 
             transformer = BlueprintTransformer(
                 self.exec_repo,
@@ -1186,14 +1200,14 @@ class ExecutionService:
                     ) from strg_err
 
             if not accept_language:
-                if "target_locale" not in execution.metadata:
-                    msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution metadata."
+                accept_language = execution.target_locale or execution.metadata.target_locale
+                if not accept_language:
+                    msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution."
                     raise AppException(
                         message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
-                accept_language = str(execution.metadata["target_locale"])
 
             transformer = BlueprintTransformer(
                 self.exec_repo,
@@ -1254,9 +1268,7 @@ class ExecutionService:
             msg = f"Execution is not in COMPLETED state. Current status: {execution.status.value}"
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        accept_language = None
-        if "target_locale" in execution.metadata:
-            accept_language = str(execution.metadata["target_locale"])
+        accept_language = execution.target_locale or execution.metadata.target_locale or "en"
 
         transformer = BlueprintTransformer(
             self.exec_repo,

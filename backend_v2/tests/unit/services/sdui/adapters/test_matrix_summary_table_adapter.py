@@ -36,6 +36,16 @@ def test_matrix_summary_table_adapter_success() -> None:
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
         target_block_order=[],
+        matrix_visible_columns=[
+            "label",
+            "distribution",
+            "row_explanation",
+            "criteria",
+            "quotes",
+            "source",
+            "normalized_score",
+            "score",
+        ],
     )
     context = AdapterContext(
         execution=None,
@@ -77,6 +87,15 @@ def test_matrix_summary_table_adapter_success() -> None:
     assert "label" in blocks[0].matrix_column_labels
     assert blocks[0].matrix_column_labels["label"].resolve("en") == "Logic Matrix"
     assert blocks[0].matrix_column_labels["label"].resolve("fi") == "Logiikkamatriisi"
+    assert "criteria" in blocks[0].matrix_column_labels
+    assert blocks[0].matrix_column_labels["criteria"].resolve("en") == "Criterion"
+    assert blocks[0].matrix_column_labels["criteria"].resolve("fi") == "Kriteeri"
+    assert "quotes" in blocks[0].matrix_column_labels
+    assert blocks[0].matrix_column_labels["quotes"].resolve("en") == "Text Observation"
+    assert blocks[0].matrix_column_labels["quotes"].resolve("fi") == "Tekstin havainto"
+    assert "source" in blocks[0].matrix_column_labels
+    assert blocks[0].matrix_column_labels["source"].resolve("en") == "Citation"
+    assert blocks[0].matrix_column_labels["source"].resolve("fi") == "Lähdeviite"
 
 
 def test_matrix_summary_table_adapter_starved() -> None:
@@ -118,3 +137,49 @@ def test_matrix_summary_table_adapter_starved() -> None:
     )
     blocks = MatrixSummaryTableAdapter.build(context)
     assert blocks == []
+
+
+def test_matrix_summary_table_adapter_filters_unsupported_columns() -> None:
+    profile = OutputProfile(
+        id="prf_1234567890abcdef",
+        slug="test",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "test"}),
+        target_block_order=[],
+        matrix_visible_columns=[
+            "label",
+            "remediation_steps",
+            "coaching",
+            "falsification",
+            "score",
+        ],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=5.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl 1",
+            )
+        },
+    )
+    blocks = MatrixSummaryTableAdapter.build(context)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], SduiMatrixTableBlock)
+    assert blocks[0].matrix_visible_columns == ["label", "score"]
+    assert set(blocks[0].matrix_column_labels.keys()) == {"label", "score"}
+

@@ -40,6 +40,12 @@
         <mandatory_pattern>The qualitative prompt texts in `seed_data.json` are the USER's intellectual property and represent deliberate coaching philosophy. If E2E parity tests or Pydantic validation fail due to LLM output shaped by these prompts, you MUST adjust the test assertions, the Pydantic schema tolerances, or the backend parsing logic. You MUST NEVER amputate the prompt text itself. You MUST request explicit "PERMISSION GRANTED to modify prompt text X" before touching any `system_prompt` or `ai_description` field.</mandatory_pattern>
         <catastrophic_reason>Repeated "Agentic Drift" has destroyed the Senior Executive Coach synthesis quality by roboticizing human-authored coaching prompts to satisfy automated test gates.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="variable_and_schema_preservation_mandate">
+        <banned_pattern>Inventing new variable/field names, arbitrarily renaming established domain terms, creating unprompted fallback keys, or swapping the names of critical variables/concepts between each other.</banned_pattern>
+        <mandatory_pattern>You MUST strictly respect established nomenclature and schema definitions as permanent SSOT contracts. All domain terms, variable names, DTO fields, database properties, and localization keys MUST be resolved directly from the Single Source of Truth (SSOT). NEVER invent ad-hoc variable aliases, rename critical variables, or swap the meaning and names of distinct domain concepts.</mandatory_pattern>
+        <catastrophic_reason>Inventing or swapping variable and domain names causes catastrophic architectural drift, breaks serialization contracts between backend and frontend, corrupts database seeds, and causes runtime crashes.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <agentic_control_center>

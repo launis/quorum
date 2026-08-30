@@ -51,10 +51,9 @@ SYNTHESIS_LENGTH_CONSTRAINT: str = (
 SYNTHESIS_CITATION_RULES_HARVARD: str = (
     "<citation_rules>\n"
     "HARVARD CITATION STANDARD MANDATE:\n"
-    "- When referencing external empirical evidence, theory frameworks, or literature in the narrative text, "
-    "you MUST use inline Harvard author-date citation format, e.g. (Author, Year) or Author (Year).\n"
-    "- For every inline Harvard citation in the text, you MUST append a matching complete bibliographic entry "
-    "to the `cited_sources` list formatted as 'Author, Initial. (Year). Title. Publisher/URL'.\n"
+    "- Ground the strategic evaluation narrative and developmental advice in established cognitive, decision-making, and scientific frameworks (such as Kahneman & Tversky (1979) on cognitive biases & loss aversion, Toulmin (1958) on argumentation structures, Popper (1959) on empirical falsification, or relevant domain literature).\n"
+    "- When referencing external empirical evidence, theory frameworks, or literature in the narrative text, you MUST use inline Harvard author-date citation format, e.g. (Author, Year) or Author (Year).\n"
+    "- For every inline Harvard citation in the text or theoretical framework referenced, you MUST append a matching complete bibliographic entry to the `cited_sources` list formatted as 'Author, Initial. (Year). Title. Publisher/URL'.\n"
     "- STRICT PROHIBITIONS:\n"
     "  * NEVER use internal system identifiers, DAG step keys (e.g., 'sr_...', 'sp_...'), or raw JSON field names in text or cited_sources.\n"
     "  * NEVER invent citation tags for internal analysis sections or internal metrics.\n"

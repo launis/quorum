@@ -22,6 +22,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
   const factory ExecutionRecord({
     required String id,
     @JsonKey(name: 'workflow_id') required String workflowId,
+    @JsonKey(name: 'target_locale') String? targetLocale,
     @JsonKey(fromJson: _statusFromJson) required String status,
     @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)
     String? traceVersion,

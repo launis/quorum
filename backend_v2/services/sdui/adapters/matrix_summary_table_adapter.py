@@ -28,9 +28,12 @@ MATRIX_SUMMARY_RULES: dict[str, dict[str, int]] = {
 
 STANDARD_COLUMNS: list[str] = [
     "label",
+    "context_target",
     "distribution",
     "row_explanation",
+    "criteria",
     "quotes",
+    "source",
     "normalized_score",
     "score",
 ]
@@ -64,9 +67,10 @@ class MatrixSummaryTableAdapter:
 
         axes = list(context.parsed_matrices.values())
 
-        visible_columns = (
+        raw_columns = (
             context.profile.matrix_visible_columns if context.profile.matrix_visible_columns else STANDARD_COLUMNS
         )
+        visible_columns = [col for col in raw_columns if col in STANDARD_COLUMNS]
 
         col_labels: dict[str, I18nText] = {}
         for col in visible_columns:

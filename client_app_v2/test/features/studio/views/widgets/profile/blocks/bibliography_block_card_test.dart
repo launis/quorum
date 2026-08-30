@@ -49,62 +49,59 @@ void main() {
     );
   });
 
-  testWidgets('BibliographyBlockCard toggles display mode and summary box switch', (
-    WidgetTester tester,
-  ) async {
-    OutputProfile payload = const OutputProfile(
-      id: 'profile_1',
-      workflowId: 'wf_1',
-      name: I18nText(translations: {'en': 'Test Profile'}),
-      targetBlockOrder: [TargetBlockType.printableSourcesBlock],
-      showSourcesSummaryBox: true,
-      sourcesDisplayMode: SourcesDisplayMode.verifiedEvidence,
-    );
+  testWidgets(
+    'BibliographyBlockCard toggles display mode and summary box switch',
+    (WidgetTester tester) async {
+      OutputProfile payload = const OutputProfile(
+        id: 'profile_1',
+        workflowId: 'wf_1',
+        name: I18nText(translations: {'en': 'Test Profile'}),
+        targetBlockOrder: [TargetBlockType.printableSourcesBlock],
+        showSourcesSummaryBox: true,
+        sourcesDisplayMode: SourcesDisplayMode.verifiedEvidence,
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: StatefulBuilder(
-              builder: (context, setState) {
-                return BibliographyBlockCard(
-                  payload: payload,
-                  updatePayload: (newPayload) {
-                    setState(() {
-                      payload = newPayload;
-                    });
-                  },
-                );
-              },
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return BibliographyBlockCard(
+                    payload: payload,
+                    updatePayload: (newPayload) {
+                      setState(() {
+                        payload = newPayload;
+                      });
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    // Verify SegmentedButton exists
-    expect(
-      find.byType(SegmentedButton<SourcesDisplayMode>),
-      findsOneWidget,
-    );
+      // Verify SegmentedButton exists
+      expect(find.byType(SegmentedButton<SourcesDisplayMode>), findsOneWidget);
 
-    // Tap second segment (Simple Bibliography)
-    final simpleBibSegment = find.byIcon(Icons.format_list_bulleted_outlined);
-    expect(simpleBibSegment, findsOneWidget);
-    await tester.tap(simpleBibSegment);
-    await tester.pumpAndSettle();
+      // Tap second segment (Simple Bibliography)
+      final simpleBibSegment = find.byIcon(Icons.format_list_bulleted_outlined);
+      expect(simpleBibSegment, findsOneWidget);
+      await tester.tap(simpleBibSegment);
+      await tester.pumpAndSettle();
 
-    expect(payload.sourcesDisplayMode, SourcesDisplayMode.simpleBibliography);
+      expect(payload.sourcesDisplayMode, SourcesDisplayMode.simpleBibliography);
 
-    // Tap summary box switch (the second Switch on screen)
-    final summarySwitch = find.byType(Switch).last;
-    await tester.tap(summarySwitch);
-    await tester.pumpAndSettle();
+      // Tap summary box switch (the second Switch on screen)
+      final summarySwitch = find.byType(Switch).last;
+      await tester.tap(summarySwitch);
+      await tester.pumpAndSettle();
 
-    expect(payload.showSourcesSummaryBox, isFalse);
-  });
+      expect(payload.showSourcesSummaryBox, isFalse);
+    },
+  );
 }
-

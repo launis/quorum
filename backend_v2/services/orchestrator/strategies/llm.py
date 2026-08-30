@@ -221,10 +221,10 @@ class LLMNodeStrategy(NodeStrategy):
                     ) from e
             block_map = {b.id: b for b in all_prompt_blocks if b.id}
 
-        if "profile_id" not in context.metadata or not context.metadata["profile_id"]:
+        target_profile = context.metadata.profile_id
+        if not target_profile:
             msg = f"Execution metadata missing mandatory 'profile_id' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
-        target_profile = context.metadata["profile_id"]
 
         role_block = None
         if step_obj.role_block_id:
@@ -277,17 +277,10 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-        # Phase 4 Step 3: Wire Best-of-Three ensemble flag
-        is_lightweight = any(block.is_lightweight_protocol for block in criteria_blocks_models)
-        initial_meta_updates: dict[str, Any] = {"execution_id": context.execution_id}
-        if is_lightweight:
-            initial_meta_updates["is_lightweight_extraction"] = True
-        hook_state = hook_state.model_copy(update={"metadata": {**(hook_state.metadata or {}), **initial_meta_updates}})
-
-        if "target_locale" not in context.metadata or not context.metadata["target_locale"]:
+        target_locale = context.metadata.target_locale
+        if not target_locale:
             msg = f"Execution metadata missing mandatory 'target_locale' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
-        target_locale = str(context.metadata["target_locale"])
         effective_mcp_tools = step_obj.allowed_mcp_tools
 
         input_mappings = dict(step.input_mappings)
@@ -474,13 +467,6 @@ class LLMNodeStrategy(NodeStrategy):
         # Use the generated aliases directly instead of resolving real IDs
         source_doc_ids = alias_engine.source_document_aliases if alias_engine.source_document_aliases else ["N/A"]
 
-        alias_meta_updates: dict[str, Any] = {
-            "source_document_ids": source_doc_ids,
-            "alias_manifest": alias_engine.to_manifest().model_dump(mode="json"),
-            "allowed_dynamic_keys": list(input_mappings.keys()),
-        }
-        hook_state = hook_state.model_copy(update={"metadata": {**(hook_state.metadata or {}), **alias_meta_updates}})
-
         # Fetch execution record to build SourceDocumentContext for validation context
         execution_record_raw = None
         try:
@@ -520,10 +506,6 @@ class LLMNodeStrategy(NodeStrategy):
                                 opaque_id=k, text_content=text_content, display_name=display_name
                             )
                             source_docs.append(doc_ctx.model_dump(mode="json"))
-
-                hook_state = hook_state.model_copy(
-                    update={"metadata": {**(hook_state.metadata or {}), "source_documents": source_docs}}
-                )
             except Exception as e:
                 logger.error(
                     "[LLMStrategy] %s: Failed to construct source documents context from execution record '%s'",
@@ -548,16 +530,6 @@ class LLMNodeStrategy(NodeStrategy):
             for tool_name in step_obj.allowed_mcp_tools:
                 mcp_prefixes.append(f"{tool_name}_")
             allowed_mcp_prefixes = list(set(mcp_prefixes))
-
-            hook_state = hook_state.model_copy(
-                update={
-                    "metadata": {
-                        **(hook_state.metadata or {}),
-                        "allowed_dynamic_keys": allowed_dynamic_keys,
-                        "allowed_mcp_prefixes": allowed_mcp_prefixes,
-                    }
-                }
-            )
 
             global_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",
@@ -626,7 +598,7 @@ class LLMNodeStrategy(NodeStrategy):
             dynamic_schema = None
 
             if is_synthesis_step:
-                target_locale = str(context.metadata.get("target_locale", "en"))
+                target_locale = context.metadata.target_locale
 
                 blackboard = hook_state.global_context_vars.get("__GLOBAL_ATOM_BLACKBOARD__", {})
                 doc_aliases = list(blackboard.get("atoms_by_input", {}).keys()) or ["N/A"]
@@ -672,7 +644,7 @@ class LLMNodeStrategy(NodeStrategy):
                     matrix_context=matrix_context,
                 )
             elif matrix_block is None:
-                target_locale = str(context.metadata.get("target_locale", "en"))
+                target_locale = context.metadata.target_locale
                 blackboard = hook_state.global_context_vars.get("__GLOBAL_ATOM_BLACKBOARD__", {})
                 doc_aliases = list(blackboard.get("atoms_by_input", {}).keys()) or ["N/A"]
 

@@ -31,6 +31,11 @@ XAI_AESTHETICS_RULES: dict[str, dict[str, Any]] = {
     "missing_context": {"severity": VisualIntent.WARNING, "icon_name": "help_outline"},
     "emotional_sentiment": {"severity": VisualIntent.INFO, "icon_name": "mood"},
     "theory_link": {"severity": VisualIntent.INFO, "icon_name": "menu_book"},
+    "justification": {"severity": VisualIntent.INFO, "icon_name": "fact_check"},
+    "citation": {"severity": VisualIntent.INFO, "icon_name": "format_quote"},
+    "confidence": {"severity": VisualIntent.INFO, "icon_name": "verified"},
+    "source_id": {"severity": VisualIntent.INFO, "icon_name": "link"},
+    "contextual_override": {"severity": VisualIntent.WARNING, "icon_name": "bolt"},
 }
 
 

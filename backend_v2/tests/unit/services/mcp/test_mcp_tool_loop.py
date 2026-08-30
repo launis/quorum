@@ -376,10 +376,16 @@ def test_validate_query_relevance() -> None:
     assert validate_query_relevance("  ", "some context") is True
 
     # Relevant query (words overlap)
-    assert validate_query_relevance("Harvard medical research", "This document contains Harvard clinical findings.") is True
+    assert (
+        validate_query_relevance("Harvard medical research", "This document contains Harvard clinical findings.")
+        is True
+    )
 
     # Irrelevant query (no words overlap)
-    assert validate_query_relevance("Bitcoin exchange rate", "This document discusses pediatric nutrition exclusively.") is False
+    assert (
+        validate_query_relevance("Bitcoin exchange rate", "This document discusses pediatric nutrition exclusively.")
+        is False
+    )
 
 
 def test_is_source_sufficient() -> None:
@@ -397,6 +403,7 @@ def test_is_source_sufficient() -> None:
 def test_build_tool_evidence_message() -> None:
     """Tests _build_tool_evidence_message formatting for both empty and populated audit traces."""
     import datetime
+
     from backend_v2.models.v2_core import MCPAuditTrace
     from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
 
@@ -449,6 +456,7 @@ async def test_execute_tool_loop_with_synthesis_instructions() -> None:
 
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
+
         from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
@@ -489,6 +497,7 @@ async def test_execute_tool_loop_invalid_synthesis_instructions_raises_app_excep
 
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
+
         from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
@@ -526,7 +535,10 @@ async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
         response_model = kwargs.get("response_model")
         if response_model == CitationExtractionResult:
             citations = [CitationExtractionItemDTO(claim_text="valid claim", search_query="valid claim", reasoning="r")]
-            return (CitationExtractionResult(citations=citations), TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+            return (
+                CitationExtractionResult(citations=citations),
+                TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
         raise RuntimeError("Unexpected LLM crash in Phase 2")
 
     executor = MagicMock()
@@ -534,6 +546,7 @@ async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
 
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
+
         from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
@@ -593,6 +606,7 @@ async def test_max_tool_calls_limit_reached(monkeypatch: pytest.MonkeyPatch) -> 
 
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
+
         from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
@@ -640,6 +654,7 @@ async def test_extraction_dict_model_validation() -> None:
 
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
+
         from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
@@ -676,7 +691,10 @@ async def test_phase2_app_exception_passthrough() -> None:
         response_model = kwargs.get("response_model")
         if response_model == CitationExtractionResult:
             citations = [CitationExtractionItemDTO(claim_text="valid claim", search_query="valid claim", reasoning="r")]
-            return (CitationExtractionResult(citations=citations), TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+            return (
+                CitationExtractionResult(citations=citations),
+                TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
         raise AppException(message="Specific domain error in phase 2", status_code=422, details={})
 
     executor = MagicMock()
@@ -684,6 +702,7 @@ async def test_phase2_app_exception_passthrough() -> None:
 
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
+
         from backend_v2.models.v2_core import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
@@ -707,7 +726,3 @@ async def test_phase2_app_exception_passthrough() -> None:
                 source_context="source document with valid claim here",
             )
     assert exc_info.value.status_code == 422
-
-
-
-

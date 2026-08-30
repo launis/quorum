@@ -1,20 +1,26 @@
-# Task: Full Database Verification Engine & Complete Prompt/Seed Sanitization
+# Task: Workflow MCP-Gateway & Output Profile Relational Architecture (Clean Pydantic V2)
 
-- [x] **Phase 1: Pre-Implementation Cleanups & Prompt Protocol Hardening**
-  - [x] Step 1.1: Inject epistemic decision protocol into `MATRIX_SENSOR_SYSTEM_PROMPT` in `@[backend_v2/models/prompts/matrix_evaluation.py]`
-  - [x] Step 1.2: Update and expand unit tests with ISTQB negative partitions in `@[backend_v2/tests/unit/models/prompts/test_matrix_evaluation.py]`
+- [x] **Phase 1: Pre-Implementation Technical Debt Cleanups & Schema Alignment**
+  - [x] Step 1.1: Clean up `PRINTABLE_SOURCES_RULES["mcp_tools"]` in `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`
+  - [x] Step 1.2: Add `mcp_gateway_id` to `Workflow` model in `@[backend_v2/models/v2_core.py]`
+  - [x] Step 1.3: Update `seed_data.json` with `"mcp_gateway_id": "sys_8172bda70c8641c5"` on workflow `wf_9d68c573802341db` in `@[backend_v2/seed/seed_data.json]`
+  - [x] Step 1.4: Run database audit & seed verification
 
-- [x] **Phase 2: Automated Full Database Prompt Verification Engine & Test Suite**
-  - [x] Step 2.1: Build `@[scripts/audit_database_atoms.py]` with 4-Collection Inspection Gates
-  - [x] Step 2.2: Build comprehensive unit test suite in `@[backend_v2/tests/unit/scripts/test_audit_database_atoms.py]`
-  - [x] Step 2.3: Verify baseline failure before seed data sanitization (`uv run python scripts/audit_database_atoms.py --strict`)
+- [x] **Phase 2: Database Repository, Service Layer & SDUI Integration**
+  - [x] Step 2.1: Update `ISystemRepository.get_mcp_gateways` in `@[backend_v2/database/interfaces.py]`
+  - [x] Step 2.2: Implement ID filtering and `ResourceNotFoundError` in `@[backend_v2/database/repositories/system.py]`
+  - [x] Step 2.3: Clean up `SystemConfigService.get_mcp_gateways` in `@[backend_v2/services/studio/system_config_service.py]`
+  - [x] Step 2.4: Add `mcp_tools_map` to `AdapterContext` in `@[backend_v2/services/sdui/adapters/base_adapter.py]`
+  - [x] Step 2.5: Inject `mcp_tools_map` in `BlueprintTransformer` in `@[backend_v2/services/blueprint.py]`
+  - [x] Step 2.6: Dynamically resolve tool names in `PrintableSourcesAdapter` in `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`
+  - [x] Step 2.7: Update & expand unit tests across `test_printable_sources_adapter.py`, `test_repository.py`, `test_studio.py`
 
-- [x] **Phase 3: Complete 4-Collection Seed Data Sanitization via Deterministic In-Memory Migration**
-  - [x] Step 3.1: Vault backup & comprehensive seed sanitization via `@[scratch/sanitize_seed_atoms.py]` and Dart parity test
-  - [x] Step 3.2: Execute verification engine on sanitized seed vault (`uv run python scripts/audit_database_atoms.py --strict`)
-  - [x] Step 3.3: Re-seed local database (`uv run python backend_v2/seed/run_seed.py local`)
+- [x] **Phase 3: Client App Model & UI Support**
+  - [x] Step 3.1: Add `mcpGatewayId` to Flutter `Workflow` Freezed model in `@[client_app_v2/lib/features/studio/models/workflow.dart]` and run Freezed build
+  - [x] Step 3.2: Add MCP Gateway dropdown selector in `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart]`
+  - [x] Step 3.3: Update ARB localization files in `@[client_app_v2/lib/l10n/app_en.arb]` and `@[client_app_v2/lib/l10n/app_fi.arb]`
 
-- [x] **Phase 4: Quality Gates & Statistical E2E Variance Validation**
-  - [x] Step 4.1: Execute backend quality gate (`uv run python scripts/backend_audit_loop.py backend_v2 --test`)
-  - [x] Step 4.2: Execute live E2E variance test on real PDF data (`$env:DEV_EXECUTION_MODE="full"; uv run python scripts/run_e2e_variance_test.py docs\jwdatat`)
-
+- [x] **Phase 4: Universal Quality Gates & E2E Validation**
+  - [x] Step 4.1: Run `backend_audit_loop.py` on all modified Python files
+  - [x] Step 4.2: Run `flutter_audit_loop.py` on all modified Dart files
+  - [x] Step 4.3: Run E2E SDUI semantic parity test `test_sdui_semantic_parity.py` and Tavily E2E pipeline test `test_tavily_e2e_full_pipeline.py`

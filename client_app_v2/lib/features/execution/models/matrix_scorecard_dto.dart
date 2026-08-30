@@ -132,6 +132,14 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
     @JsonKey(name: 'cited_source_id') String? citedSourceId,
     @JsonKey(name: 'cited_text_quote') String? citedTextQuote,
     @JsonKey(name: 'cited_web_citation') String? citedWebCitation,
+    @JsonKey(name: 'cited_source_title') String? citedSourceTitle,
+    @JsonKey(name: 'cited_source_url') String? citedSourceUrl,
+
+    @JsonKey(name: 'context_target') String? contextTarget,
+    @JsonKey(name: 'context_target_label') I18nText? contextTargetLabel,
+    @JsonKey(name: 'remediation_steps') String? remediationSteps,
+    @JsonKey(name: 'coaching') String? coaching,
+    @JsonKey(name: 'falsification') String? falsification,
 
     @JsonKey(name: 'evidence_type') EvidenceType? evidenceType,
     @JsonKey(name: 'tda_state') TDAState? tdaState,

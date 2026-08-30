@@ -350,3 +350,47 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
 
     assert "Missing rule mapping for extension key: coaching" in str(exc_info.value)
     assert exc_info.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+
+
+@pytest.mark.parametrize("locale", ["en", "fi"])
+def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) -> None:
+    """Regression test (Tier 4): All block-level XaiExtensionType enum values configured as visible block extensions MUST have aesthetic rules and build without KeyError/AppException across locales."""
+    from backend_v2.models.dtos.synthesis import XaiHighlightItem
+    from backend_v2.models.enums import XAI_EXTENSION_SCOPE, XaiExtensionScope
+
+    execution = ExecutionRecord(id="exe_0123456789abcdef", workflow_id="wfw_test", execution_trace=[])
+
+    # Test each block-level extension type individually
+    block_extensions = [e for e in XaiExtensionType if XAI_EXTENSION_SCOPE.get(e) == XaiExtensionScope.BLOCK]
+
+    for i, ext_type in enumerate(block_extensions):
+        profile = OutputProfile(
+            id=f"prf_{i:016x}",
+            slug=f"profile-{ext_type.value}",
+            workflow_id="wfw_test",
+            name=I18nText(translations={"en": f"Profile {ext_type.value}"}),
+            target_block_order=[],
+            visible_block_extensions=[ext_type],
+        )
+        context = AdapterContext(
+            execution=execution,
+            locale=locale,
+            penalties_applied=[],
+            mcp_audit_map=None,
+            global_score=None,
+            profile=profile,
+            profile_cache=RenderedSynthesisCache(
+                section_syntheses={},
+                cited_sources=[],
+                xai_highlights=[XaiHighlightItem(extension_type=ext_type.value, content="Insight text.")],
+            ),
+            user_name=None,
+            org_name=None,
+        )
+        blocks = XaiHighlightsAdapter.build(context)
+        assert len(blocks) == 1, f"Expected 1 block for extension {ext_type.value} in {locale}, got {len(blocks)}"
+        assert isinstance(blocks[0], AccordionBlock)
+        assert blocks[0].title != ""
+
+
+

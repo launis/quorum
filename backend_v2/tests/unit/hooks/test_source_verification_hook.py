@@ -14,6 +14,7 @@ from backend_v2.models.domain.source_verification import (
     VerifiedSourceDTO,
 )
 from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import MCPAuditTrace
 
 
@@ -53,7 +54,7 @@ async def test_source_verification_hook_empty_inputs(mock_deps: HookDependencies
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={},
     )
@@ -74,7 +75,7 @@ async def test_source_verification_hook_empty_prior_analysis(mock_deps: HookDepe
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={"prior_analysis": ""},
     )
@@ -95,7 +96,7 @@ async def test_source_verification_hook_whitespace_prior_analysis_returns_zero_c
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={"prior_analysis": "   \n\t  "},
     )
@@ -114,7 +115,7 @@ async def test_source_verification_hook_short_text_short_circuit(mock_deps: Hook
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={"document_text": "too short"},
     )
@@ -174,7 +175,7 @@ async def test_source_verification_hook_success(
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={"document_text": "This is a valid long document text discussing quantum supremacy achievements."},
     )
@@ -213,7 +214,7 @@ async def test_source_verification_hook_missing_system_repo_raises() -> None:
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={"document_text": "Valid document text that will fail due to missing system repo."},
     )
@@ -230,7 +231,7 @@ async def test_source_verification_hook_invalid_input_type(mock_deps: HookDepend
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={"document_text": 12345},  # Invalid type for document_text
     )
@@ -265,7 +266,7 @@ async def test_source_verification_hook_multi_key_string_inputs(
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={"section_a": "First paragraph text here.", "section_b": "Second paragraph text here."},
     )
@@ -302,7 +303,7 @@ async def test_source_verification_hook_dto_inputs_handled_safely(
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={},
     )
@@ -335,7 +336,7 @@ async def test_source_verification_hook_service_error_propagates(
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={"document_text": "This is valid text that encounters service failure."},
     )
@@ -371,7 +372,7 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
     state_str = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={},
     )
@@ -385,7 +386,7 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
     state_list = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={},
     )
@@ -425,7 +426,7 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
     state_bm = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
-        metadata={},
+        metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars={},
         inputs={},
     )
@@ -440,5 +441,3 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
         await source_verification_hook(state_bm, mock_deps)
 
     assert exc_info.value.status_code == 500
-
-

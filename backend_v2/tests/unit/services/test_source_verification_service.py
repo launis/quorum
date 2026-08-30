@@ -78,7 +78,9 @@ async def test_extract_source_claims_empty_or_short_text(
     """Tests that empty or short text (< source_verification_min_text_length) returns empty list without calling LLM."""
     monkeypatch.setattr(
         "backend_v2.services.source_verification_service.get_settings",
-        lambda: type("Settings", (), {"source_verification_min_text_length": 15, "source_extraction_max_chars": 30000})(),
+        lambda: type(
+            "Settings", (), {"source_verification_min_text_length": 15, "source_extraction_max_chars": 30000}
+        )(),
     )
     claims_empty = await service._extract_source_claims("   ")
     assert claims_empty == []
@@ -288,5 +290,3 @@ async def test_verify_single_claim_passes_centralized_get_language(
     mock_execute_tool.assert_called_once()
     call_kwargs = mock_execute_tool.call_args.kwargs
     assert call_kwargs["target_language"] == "fi"
-
-

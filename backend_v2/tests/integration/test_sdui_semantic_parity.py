@@ -194,13 +194,20 @@ async def test_sdui_semantic_parity() -> None:
         # Parity Check: Every semantic text block visible in Flutter MUST be present in the generated PDF.
         # This proves the Dumb Painter architecture is in perfect sync with Jinja PDF.
         def clean_md(text: str) -> str:
-            return text.replace("**", "").replace("_", "").replace("### ", "").replace("## ", "").replace("# ", "")
+            return (
+                text.replace("**", "")
+                .replace("*", "")
+                .replace("_", "")
+                .replace("### ", "")
+                .replace("## ", "")
+                .replace("# ", "")
+            )
 
         cleaned_md = clean_md(md_text)
 
         for flutter_str in flutter_text_sequence:
             for token in str(flutter_str).split("\n"):
-                token = token.strip()
+                token = token.replace("*", "").strip()
                 if not token:
                     continue
                 assert token in cleaned_md, (

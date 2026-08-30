@@ -211,7 +211,7 @@ async def test_synthesis_distiller_wiring_missing_target_locale_raises_app_excep
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata={"organization_id": "org_0123456789abcdef01"},  # missing target_locale
+        metadata={"target_locale": "", "organization_id": "org_0123456789abcdef01"},  # empty target_locale
         inputs={"steps": []},
         global_context_vars={},
     )

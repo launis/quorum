@@ -146,11 +146,13 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
 
     step_output = StepOutputDTOFactory.build(payload={"evidence_quotes": []})
 
+    from backend_v2.models.execution_core import ExecutionMetadata
+
     # State intentionally missing target_locale in metadata
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wf_0123456789abcdef01",
-        metadata={"organization_id": "org1"},  # target_locale missing
+        metadata=ExecutionMetadata(target_locale="", organization_id="org1"),  # target_locale empty
         inputs={"steps": [step_output.model_dump()]},
         global_context_vars={"organization_id": "org1"},
     )
@@ -159,3 +161,4 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
         await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert exc_info.value.status_code == 500

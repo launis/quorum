@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ExecutionRecord {
 
- String get id;@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(fromJson: _statusFromJson) String get status;@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? get traceVersion;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'metadata') Map<String, dynamic>? get metadata;@JsonKey(name: 'error') String? get error;@JsonKey(name: 'is_resumable') bool? get isResumable;@JsonKey(name: 'frozen_context') Map<String, dynamic>? get frozenContext;@JsonKey(name: 'step_states') Map<String, dynamic>? get stepStates;@JsonKey(name: 'results') Map<String, dynamic>? get results;@JsonKey(name: 'progress') int? get progress;@JsonKey(name: 'status_message') String? get statusMessage;/// The strictly typed DTO containing the presentation flat data.
+ String get id;@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'target_locale') String? get targetLocale;@JsonKey(fromJson: _statusFromJson) String get status;@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? get traceVersion;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'cost_estimate') double? get costEstimate;@JsonKey(name: 'metadata') Map<String, dynamic>? get metadata;@JsonKey(name: 'error') String? get error;@JsonKey(name: 'is_resumable') bool? get isResumable;@JsonKey(name: 'frozen_context') Map<String, dynamic>? get frozenContext;@JsonKey(name: 'step_states') Map<String, dynamic>? get stepStates;@JsonKey(name: 'results') Map<String, dynamic>? get results;@JsonKey(name: 'progress') int? get progress;@JsonKey(name: 'status_message') String? get statusMessage;/// The strictly typed DTO containing the presentation flat data.
 /// Replaces the legacy `results` Map.
 @JsonKey(name: 'report_data') ReportDataDto? get reportData;
 /// Create a copy of ExecutionRecord
@@ -32,7 +32,7 @@ $ExecutionRecordCopyWith<ExecutionRecord> get copyWith => _$ExecutionRecordCopyW
 
 @override
 String toString() {
-  return 'ExecutionRecord(id: $id, workflowId: $workflowId, status: $status, traceVersion: $traceVersion, strictnessLevel: $strictnessLevel, createdAt: $createdAt, costEstimate: $costEstimate, metadata: $metadata, error: $error, isResumable: $isResumable, frozenContext: $frozenContext, stepStates: $stepStates, results: $results, progress: $progress, statusMessage: $statusMessage, reportData: $reportData)';
+  return 'ExecutionRecord(id: $id, workflowId: $workflowId, targetLocale: $targetLocale, status: $status, traceVersion: $traceVersion, strictnessLevel: $strictnessLevel, createdAt: $createdAt, costEstimate: $costEstimate, metadata: $metadata, error: $error, isResumable: $isResumable, frozenContext: $frozenContext, stepStates: $stepStates, results: $results, progress: $progress, statusMessage: $statusMessage, reportData: $reportData)';
 }
 
 
@@ -43,7 +43,7 @@ abstract mixin class $ExecutionRecordCopyWith<$Res>  {
   factory $ExecutionRecordCopyWith(ExecutionRecord value, $Res Function(ExecutionRecord) _then) = _$ExecutionRecordCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? traceVersion,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'metadata') Map<String, dynamic>? metadata,@JsonKey(name: 'error') String? error,@JsonKey(name: 'is_resumable') bool? isResumable,@JsonKey(name: 'frozen_context') Map<String, dynamic>? frozenContext,@JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,@JsonKey(name: 'results') Map<String, dynamic>? results,@JsonKey(name: 'progress') int? progress,@JsonKey(name: 'status_message') String? statusMessage,@JsonKey(name: 'report_data') ReportDataDto? reportData
+ String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'target_locale') String? targetLocale,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? traceVersion,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'metadata') Map<String, dynamic>? metadata,@JsonKey(name: 'error') String? error,@JsonKey(name: 'is_resumable') bool? isResumable,@JsonKey(name: 'frozen_context') Map<String, dynamic>? frozenContext,@JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,@JsonKey(name: 'results') Map<String, dynamic>? results,@JsonKey(name: 'progress') int? progress,@JsonKey(name: 'status_message') String? statusMessage,@JsonKey(name: 'report_data') ReportDataDto? reportData
 });
 
 
@@ -60,11 +60,12 @@ class _$ExecutionRecordCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionRecord
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? workflowId = null,Object? status = null,Object? traceVersion = freezed,Object? strictnessLevel = freezed,Object? createdAt = freezed,Object? costEstimate = freezed,Object? metadata = freezed,Object? error = freezed,Object? isResumable = freezed,Object? frozenContext = freezed,Object? stepStates = freezed,Object? results = freezed,Object? progress = freezed,Object? statusMessage = freezed,Object? reportData = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? workflowId = null,Object? targetLocale = freezed,Object? status = null,Object? traceVersion = freezed,Object? strictnessLevel = freezed,Object? createdAt = freezed,Object? costEstimate = freezed,Object? metadata = freezed,Object? error = freezed,Object? isResumable = freezed,Object? frozenContext = freezed,Object? stepStates = freezed,Object? results = freezed,Object? progress = freezed,Object? statusMessage = freezed,Object? reportData = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,targetLocale: freezed == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,traceVersion: freezed == traceVersion ? _self.traceVersion : traceVersion // ignore: cast_nullable_to_non_nullable
 as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
 as int?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
@@ -175,10 +176,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'metadata')  Map<String, dynamic>? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  Map<String, dynamic>? frozenContext, @JsonKey(name: 'step_states')  Map<String, dynamic>? stepStates, @JsonKey(name: 'results')  Map<String, dynamic>? results, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'report_data')  ReportDataDto? reportData)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String? targetLocale, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'metadata')  Map<String, dynamic>? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  Map<String, dynamic>? frozenContext, @JsonKey(name: 'step_states')  Map<String, dynamic>? stepStates, @JsonKey(name: 'results')  Map<String, dynamic>? results, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'report_data')  ReportDataDto? reportData)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionRecord() when $default != null:
-return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.strictnessLevel,_that.createdAt,_that.costEstimate,_that.metadata,_that.error,_that.isResumable,_that.frozenContext,_that.stepStates,_that.results,_that.progress,_that.statusMessage,_that.reportData);case _:
+return $default(_that.id,_that.workflowId,_that.targetLocale,_that.status,_that.traceVersion,_that.strictnessLevel,_that.createdAt,_that.costEstimate,_that.metadata,_that.error,_that.isResumable,_that.frozenContext,_that.stepStates,_that.results,_that.progress,_that.statusMessage,_that.reportData);case _:
   return orElse();
 
 }
@@ -196,10 +197,10 @@ return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'metadata')  Map<String, dynamic>? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  Map<String, dynamic>? frozenContext, @JsonKey(name: 'step_states')  Map<String, dynamic>? stepStates, @JsonKey(name: 'results')  Map<String, dynamic>? results, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'report_data')  ReportDataDto? reportData)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String? targetLocale, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'metadata')  Map<String, dynamic>? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  Map<String, dynamic>? frozenContext, @JsonKey(name: 'step_states')  Map<String, dynamic>? stepStates, @JsonKey(name: 'results')  Map<String, dynamic>? results, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'report_data')  ReportDataDto? reportData)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionRecord():
-return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.strictnessLevel,_that.createdAt,_that.costEstimate,_that.metadata,_that.error,_that.isResumable,_that.frozenContext,_that.stepStates,_that.results,_that.progress,_that.statusMessage,_that.reportData);case _:
+return $default(_that.id,_that.workflowId,_that.targetLocale,_that.status,_that.traceVersion,_that.strictnessLevel,_that.createdAt,_that.costEstimate,_that.metadata,_that.error,_that.isResumable,_that.frozenContext,_that.stepStates,_that.results,_that.progress,_that.statusMessage,_that.reportData);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -216,10 +217,10 @@ return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'metadata')  Map<String, dynamic>? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  Map<String, dynamic>? frozenContext, @JsonKey(name: 'step_states')  Map<String, dynamic>? stepStates, @JsonKey(name: 'results')  Map<String, dynamic>? results, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'report_data')  ReportDataDto? reportData)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'target_locale')  String? targetLocale, @JsonKey(fromJson: _statusFromJson)  String status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)  String? traceVersion, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'cost_estimate')  double? costEstimate, @JsonKey(name: 'metadata')  Map<String, dynamic>? metadata, @JsonKey(name: 'error')  String? error, @JsonKey(name: 'is_resumable')  bool? isResumable, @JsonKey(name: 'frozen_context')  Map<String, dynamic>? frozenContext, @JsonKey(name: 'step_states')  Map<String, dynamic>? stepStates, @JsonKey(name: 'results')  Map<String, dynamic>? results, @JsonKey(name: 'progress')  int? progress, @JsonKey(name: 'status_message')  String? statusMessage, @JsonKey(name: 'report_data')  ReportDataDto? reportData)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionRecord() when $default != null:
-return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.strictnessLevel,_that.createdAt,_that.costEstimate,_that.metadata,_that.error,_that.isResumable,_that.frozenContext,_that.stepStates,_that.results,_that.progress,_that.statusMessage,_that.reportData);case _:
+return $default(_that.id,_that.workflowId,_that.targetLocale,_that.status,_that.traceVersion,_that.strictnessLevel,_that.createdAt,_that.costEstimate,_that.metadata,_that.error,_that.isResumable,_that.frozenContext,_that.stepStates,_that.results,_that.progress,_that.statusMessage,_that.reportData);case _:
   return null;
 
 }
@@ -231,11 +232,12 @@ return $default(_that.id,_that.workflowId,_that.status,_that.traceVersion,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ExecutionRecord extends ExecutionRecord {
-  const _ExecutionRecord({required this.id, @JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(fromJson: _statusFromJson) required this.status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) this.traceVersion, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'metadata') final  Map<String, dynamic>? metadata, @JsonKey(name: 'error') this.error, @JsonKey(name: 'is_resumable') this.isResumable, @JsonKey(name: 'frozen_context') final  Map<String, dynamic>? frozenContext, @JsonKey(name: 'step_states') final  Map<String, dynamic>? stepStates, @JsonKey(name: 'results') final  Map<String, dynamic>? results, @JsonKey(name: 'progress') this.progress, @JsonKey(name: 'status_message') this.statusMessage, @JsonKey(name: 'report_data') this.reportData}): _metadata = metadata,_frozenContext = frozenContext,_stepStates = stepStates,_results = results,super._();
+  const _ExecutionRecord({required this.id, @JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'target_locale') this.targetLocale, @JsonKey(fromJson: _statusFromJson) required this.status, @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) this.traceVersion, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'cost_estimate') this.costEstimate, @JsonKey(name: 'metadata') final  Map<String, dynamic>? metadata, @JsonKey(name: 'error') this.error, @JsonKey(name: 'is_resumable') this.isResumable, @JsonKey(name: 'frozen_context') final  Map<String, dynamic>? frozenContext, @JsonKey(name: 'step_states') final  Map<String, dynamic>? stepStates, @JsonKey(name: 'results') final  Map<String, dynamic>? results, @JsonKey(name: 'progress') this.progress, @JsonKey(name: 'status_message') this.statusMessage, @JsonKey(name: 'report_data') this.reportData}): _metadata = metadata,_frozenContext = frozenContext,_stepStates = stepStates,_results = results,super._();
   factory _ExecutionRecord.fromJson(Map<String, dynamic> json) => _$ExecutionRecordFromJson(json);
 
 @override final  String id;
 @override@JsonKey(name: 'workflow_id') final  String workflowId;
+@override@JsonKey(name: 'target_locale') final  String? targetLocale;
 @override@JsonKey(fromJson: _statusFromJson) final  String status;
 @override@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) final  String? traceVersion;
 @override@JsonKey(name: 'strictness_level') final  int? strictnessLevel;
@@ -300,7 +302,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ExecutionRecord(id: $id, workflowId: $workflowId, status: $status, traceVersion: $traceVersion, strictnessLevel: $strictnessLevel, createdAt: $createdAt, costEstimate: $costEstimate, metadata: $metadata, error: $error, isResumable: $isResumable, frozenContext: $frozenContext, stepStates: $stepStates, results: $results, progress: $progress, statusMessage: $statusMessage, reportData: $reportData)';
+  return 'ExecutionRecord(id: $id, workflowId: $workflowId, targetLocale: $targetLocale, status: $status, traceVersion: $traceVersion, strictnessLevel: $strictnessLevel, createdAt: $createdAt, costEstimate: $costEstimate, metadata: $metadata, error: $error, isResumable: $isResumable, frozenContext: $frozenContext, stepStates: $stepStates, results: $results, progress: $progress, statusMessage: $statusMessage, reportData: $reportData)';
 }
 
 
@@ -311,7 +313,7 @@ abstract mixin class _$ExecutionRecordCopyWith<$Res> implements $ExecutionRecord
   factory _$ExecutionRecordCopyWith(_ExecutionRecord value, $Res Function(_ExecutionRecord) _then) = __$ExecutionRecordCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? traceVersion,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'metadata') Map<String, dynamic>? metadata,@JsonKey(name: 'error') String? error,@JsonKey(name: 'is_resumable') bool? isResumable,@JsonKey(name: 'frozen_context') Map<String, dynamic>? frozenContext,@JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,@JsonKey(name: 'results') Map<String, dynamic>? results,@JsonKey(name: 'progress') int? progress,@JsonKey(name: 'status_message') String? statusMessage,@JsonKey(name: 'report_data') ReportDataDto? reportData
+ String id,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'target_locale') String? targetLocale,@JsonKey(fromJson: _statusFromJson) String status,@JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson) String? traceVersion,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'cost_estimate') double? costEstimate,@JsonKey(name: 'metadata') Map<String, dynamic>? metadata,@JsonKey(name: 'error') String? error,@JsonKey(name: 'is_resumable') bool? isResumable,@JsonKey(name: 'frozen_context') Map<String, dynamic>? frozenContext,@JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,@JsonKey(name: 'results') Map<String, dynamic>? results,@JsonKey(name: 'progress') int? progress,@JsonKey(name: 'status_message') String? statusMessage,@JsonKey(name: 'report_data') ReportDataDto? reportData
 });
 
 
@@ -328,11 +330,12 @@ class __$ExecutionRecordCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionRecord
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? workflowId = null,Object? status = null,Object? traceVersion = freezed,Object? strictnessLevel = freezed,Object? createdAt = freezed,Object? costEstimate = freezed,Object? metadata = freezed,Object? error = freezed,Object? isResumable = freezed,Object? frozenContext = freezed,Object? stepStates = freezed,Object? results = freezed,Object? progress = freezed,Object? statusMessage = freezed,Object? reportData = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? workflowId = null,Object? targetLocale = freezed,Object? status = null,Object? traceVersion = freezed,Object? strictnessLevel = freezed,Object? createdAt = freezed,Object? costEstimate = freezed,Object? metadata = freezed,Object? error = freezed,Object? isResumable = freezed,Object? frozenContext = freezed,Object? stepStates = freezed,Object? results = freezed,Object? progress = freezed,Object? statusMessage = freezed,Object? reportData = freezed,}) {
   return _then(_ExecutionRecord(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,workflowId: null == workflowId ? _self.workflowId : workflowId // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,targetLocale: freezed == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,traceVersion: freezed == traceVersion ? _self.traceVersion : traceVersion // ignore: cast_nullable_to_non_nullable
 as String?,strictnessLevel: freezed == strictnessLevel ? _self.strictnessLevel : strictnessLevel // ignore: cast_nullable_to_non_nullable
 as int?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
