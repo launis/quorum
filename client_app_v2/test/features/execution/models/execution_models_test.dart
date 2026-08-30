@@ -78,7 +78,9 @@ void main() {
       final json = {
         'workflow_id': 'wor_1234567890abcdef',
         'target_locale': 'fi',
-        'raw_inputs': {'dynamic_inputs': {'doc': 'test'}},
+        'raw_inputs': {
+          'dynamic_inputs': {'doc': 'test'},
+        },
         'profile_id': 'pro_1234567890abcdef',
         'matrix_sampling_strategy': 15,
       };
@@ -86,7 +88,9 @@ void main() {
       final dto = ExecutionCreateRequestDto.fromJson(json);
       expect(dto.workflowId, 'wor_1234567890abcdef');
       expect(dto.targetLocale, 'fi');
-      expect(dto.rawInputs, {'dynamic_inputs': {'doc': 'test'}});
+      expect(dto.rawInputs, {
+        'dynamic_inputs': {'doc': 'test'},
+      });
       expect(dto.profileId, 'pro_1234567890abcdef');
       expect(dto.matrixSamplingStrategy, 15);
     });
@@ -119,27 +123,27 @@ void main() {
   });
 
   group('ExecutionRecord Freezed Parity & Fail-Fast', () {
-    test('instantiates from valid json with required target_locale and metadata', () {
-      final json = {
-        'id': 'exe_1234567890abcdef',
-        'workflow_id': 'wor_1234567890abcdef',
-        'target_locale': 'fi',
-        'status': 'PENDING',
-        'strictness_level': 80,
-        'metadata': {
+    test(
+      'instantiates from valid json with required target_locale and metadata',
+      () {
+        final json = {
+          'id': 'exe_1234567890abcdef',
+          'workflow_id': 'wor_1234567890abcdef',
           'target_locale': 'fi',
-          'workflow_version': 1,
-        },
-      };
+          'status': 'PENDING',
+          'strictness_level': 80,
+          'metadata': {'target_locale': 'fi', 'workflow_version': 1},
+        };
 
-      final record = ExecutionRecord.fromJson(json);
-      expect(record.id, 'exe_1234567890abcdef');
-      expect(record.workflowId, 'wor_1234567890abcdef');
-      expect(record.targetLocale, 'fi');
-      expect(record.status, 'PENDING');
-      expect(record.strictnessLevel, 80);
-      expect(record.metadata?.targetLocale, 'fi');
-    });
+        final record = ExecutionRecord.fromJson(json);
+        expect(record.id, 'exe_1234567890abcdef');
+        expect(record.workflowId, 'wor_1234567890abcdef');
+        expect(record.targetLocale, 'fi');
+        expect(record.status, 'PENDING');
+        expect(record.strictnessLevel, 80);
+        expect(record.metadata?.targetLocale, 'fi');
+      },
+    );
 
     test('test_flutter_execution_record_full_schema_deserialization', () {
       final json = {
@@ -149,7 +153,9 @@ void main() {
         'status': 'PASSED',
         'active_profile_id': 'pro_1234567890abcdef',
         'output_profile_id': 'pro_1234567890abcdef',
-        'raw_inputs': {'dynamic_inputs': {'doc': 'test'}},
+        'raw_inputs': {
+          'dynamic_inputs': {'doc': 'test'},
+        },
         'trace_version': '2.0',
         'strictness_level': 90,
         'duration_ms': 4500,

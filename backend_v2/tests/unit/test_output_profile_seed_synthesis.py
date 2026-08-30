@@ -23,4 +23,3 @@ def test_seed_data_output_profiles_have_valid_synthesis_config() -> None:
         assert isinstance(op.requires_group_synthesis, bool)
         assert isinstance(op.requires_row_explanations, bool)
         assert isinstance(op.is_synthesis_expected, bool)
-

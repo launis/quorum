@@ -281,6 +281,7 @@ def test_compress_payload_heterogeneous_dag_types() -> None:
 
 def test_compress_payload_non_dict_list_unsupported_type_fails_fast() -> None:
     """PROMISE: Prove that unsupported types that cannot be converted to dict/list/str raise AppException."""
+
     class CustomObject:
         pass
 

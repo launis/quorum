@@ -27,7 +27,6 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO, HookDeltaDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 logger = logging.getLogger(__name__)

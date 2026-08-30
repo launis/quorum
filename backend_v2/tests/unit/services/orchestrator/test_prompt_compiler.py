@@ -2,7 +2,6 @@ import pytest
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 
@@ -495,6 +494,8 @@ def test_calibrate_strictness_exceptions_and_none() -> None:
 
 def test_get_schema_healing_prompt_strictness_100() -> None:
     compiler = PromptCompiler()
-    prompt = compiler.get_schema_healing_prompt("Error detail", is_logical_error=False, is_eof=False, strictness_level=100)
+    prompt = compiler.get_schema_healing_prompt(
+        "Error detail", is_logical_error=False, is_eof=False, strictness_level=100
+    )
     assert "[STRICTNESS OVERRIDE ACTIVE: level >= 100]" in prompt
     assert "'contextual_override'" in prompt

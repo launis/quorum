@@ -3009,17 +3009,16 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
 async def test_blueprint_transformer_direct_results_and_human_overrides(mock_repo_transformer: Any) -> None:
     """Test direct results/hydrated_references and human_override preservation in step_states."""
     from datetime import datetime, timezone
-    from backend_v2.models.enums import ExecutionStatus, SDUIComponentType, TargetBlockType, VisualIntent
-    from backend_v2.models.state import TraceEvent
-    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.enums import ExecutionStatus, TargetBlockType, VisualIntent
+    from backend_v2.models.state import TraceEvent
     from backend_v2.models.v2_core import (
-        AtomResultDTO,
         ExecutionMetadata,
         ExecutionRecord,
         ExecutionStepState,
         HumanOverrideDTO,
-        HydratedAtomDTO,
         I18nText,
         MatrixScale,
         OutputProfile,
@@ -3035,7 +3034,9 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
         description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
         scales=[
             MatrixScale(score=1, name=I18nText(translations={"en": "Low", "fi": "Matala"}), ai_label="Low", claims=[]),
-            MatrixScale(score=5, name=I18nText(translations={"en": "High", "fi": "Korkea"}), ai_label="High", claims=[]),
+            MatrixScale(
+                score=5, name=I18nText(translations={"en": "High", "fi": "Korkea"}), ai_label="High", claims=[]
+            ),
         ],
     )
 
@@ -3178,4 +3179,3 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
     assert "tda_0000000000000001" in report.hydrated_references
     assert report.total_tokens == 170
     assert report.cost_estimate == 0.05
-

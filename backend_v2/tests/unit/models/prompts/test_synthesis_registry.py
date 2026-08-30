@@ -39,9 +39,7 @@ def test_target_block_variance_and_authenticity_mappings() -> None:
     variance_enum = SynthesisPromptRegistry.get_section_directive(TargetBlockType.VARIANCE_VALIDATION_BLOCK)
     assert variance_enum == VARIANCE_EXPLANATION_DIRECTIVE
 
-    authenticity_enum = SynthesisPromptRegistry.get_section_directive(
-        TargetBlockType.AUTHENTICITY_EVALUATION_BLOCK
-    )
+    authenticity_enum = SynthesisPromptRegistry.get_section_directive(TargetBlockType.AUTHENTICITY_EVALUATION_BLOCK)
     assert authenticity_enum == VARIANCE_EXPLANATION_DIRECTIVE
 
     variance_str = SynthesisPromptRegistry.get_section_directive("variance_validation_block")

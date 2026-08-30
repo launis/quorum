@@ -12,12 +12,22 @@ class MockExecutionClient implements ExecutionClient {
   Future<Map<String, dynamic>> startExecution({
     required ExecutionCreateRequestDto request,
   }) async {
-    return {'id': 'test_exec', 'workflow_id': request.workflowId, 'target_locale': request.targetLocale, 'status': 'running'};
+    return {
+      'id': 'test_exec',
+      'workflow_id': request.workflowId,
+      'target_locale': request.targetLocale,
+      'status': 'running',
+    };
   }
 
   @override
   Future<Map<String, dynamic>> resumeExecution(String executionId) async {
-    return {'id': executionId, 'workflow_id': 'test_wf', 'target_locale': 'fi', 'status': 'running'};
+    return {
+      'id': executionId,
+      'workflow_id': 'test_wf',
+      'target_locale': 'fi',
+      'status': 'running',
+    };
   }
 
   @override
@@ -43,7 +53,12 @@ class MockExecutionClient implements ExecutionClient {
 
   @override
   Future<Map<String, dynamic>> getExecutionStatus(String executionId) async {
-    return {'id': executionId, 'workflow_id': 'test_wf', 'target_locale': 'fi', 'status': 'passed'};
+    return {
+      'id': executionId,
+      'workflow_id': 'test_wf',
+      'target_locale': 'fi',
+      'status': 'passed',
+    };
   }
 
   Future<Map<String, dynamic>> getScorecard(String executionId) async {

@@ -70,9 +70,7 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
     assert len(check_phase_format("no phases")) == 1
     assert check_phase_format("no phases")[0].rule_code == "TRK002"
 
-    phase_text = (
-        "### Phase 1: Test\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
-    )
+    phase_text = "### Phase 1: Test\n**Plan:** @[plan.md]\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1\n- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
     assert check_phase_format(phase_text) == []
 
     # Missing Audit step
