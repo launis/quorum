@@ -4,19 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
+import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
 class MockExecutionClient implements ExecutionClient {
   @override
   Future<Map<String, dynamic>> startExecution({
-    required String workflowId,
-    required Map<String, dynamic> rawInputs,
-    String targetLocale = 'fi',
-    int strictnessLevel = 50,
-    String scoringStrategy = 'WATERFALL',
-    String? targetProfileId,
+    required ExecutionCreateRequestDto request,
   }) async {
-    return {'id': 'test_exec', 'workflow_id': 'test_wf', 'target_locale': targetLocale, 'status': 'running'};
+    return {'id': 'test_exec', 'workflow_id': request.workflowId, 'target_locale': request.targetLocale, 'status': 'running'};
   }
 
   @override

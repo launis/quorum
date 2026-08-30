@@ -10,6 +10,8 @@ import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/core/api/execution_client.dart';
+import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -49,19 +51,17 @@ class NewExecutionController extends _$NewExecutionController {
   }) async {
     state = const AsyncLoading();
     try {
-      final dio = ref.read(apiClientProvider);
-
-      final response = await dio.post(
-        '/execution/executions/',
-        data: {
-          'workflow_id': workflowId,
-          'raw_inputs': {'dynamic_inputs': collectedInputs},
-          'target_locale': targetLocale,
-          if (profileId != null) 'profile_id': profileId,
-        },
+      final client = ref.read(executionClientProvider);
+      final request = ExecutionCreateRequestDto(
+        workflowId: workflowId,
+        targetLocale: targetLocale,
+        rawInputs: {'dynamic_inputs': collectedInputs},
+        profileId: profileId,
       );
 
-      final executionId = response.data['id']?.toString() ?? '';
+      final response = await client.startExecution(request: request);
+
+      final executionId = response['id']?.toString() ?? '';
       state = const AsyncValue.data(null);
 
       // Return the ID properly instead of throwing an Error

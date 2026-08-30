@@ -105,12 +105,12 @@
 - [ ] @[scripts/_ast_guardrails.py] — Locked `QGR001`, `QGR002`, `QGR012` at FATAL severity.
 
 #### Frontend Hardening Gate
-- [ ] [NEW] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart] — Freezed request model with `disallowUnrecognizedKeys: true`.
+- [x] [NEW] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart] — Freezed request model with `disallowUnrecognizedKeys: true`.
 - [x] @[client_app_v2/lib/features/execution/models/execution_record.dart] — Full 1:1 schema parity with backend `ExecutionRecord`.
 - [x] @[client_app_v2/lib/core/api/execution_client.dart] — Strict `startExecution` API ingress.
 - [x] @[client_app_v2/lib/features/execution/controllers/execution_controller.dart] — Removed `allowedKeys` filter and silent error swallowing.
-- [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart] — Unified execution client calls.
-- [ ] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart] — Active `target_locale` propagation.
+- [x] @[client_app_v2/lib/features/execution/views/new_execution_view.dart] — Unified execution client calls.
+- [x] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart] — Active `target_locale` propagation.
 
 ---
 
@@ -171,41 +171,31 @@
 # Session Handover Context
 
 ## Achieved
-- **Completed Phase 1 (100% Verified & Committed)**:
-  - **Step 1 (Seed Vault Sanitization & Seeder Lifecycle Hardening)**:
-    - Permanently deleted vestigial 0-byte files `data/app.db` and `data/app.sqlite`.
-    - Sanitized Seed Vault via `scripts/sanitize_seed_vault.py --test` and verified with `scripts/audit_database_atoms.py --strict` (0 errors across 152 atoms, 13 matrices, 19 steps).
-    - Modernized `backend_v2/seed/run_seed.py` with `get_settings()` SSOT paths (`prod_db_path`, `seed_data_path`, `base_dir`, `data_dir`).
-    - Added FastAPI Lifespan pre-flight schema validation `_validate_database_preflight` in `backend_v2/main.py`.
-    - Unit tests: `test_run_seed.py` (24 passed, 95% cov) and `test_main.py` (16 passed, 92% cov).
-  - **Step 2 (Foundational Backend Model & DTO Modernization)**:
-    - Created `backend_v2/models/dtos/hook_state.py` [NEW] with strict, immutable `ExecutionInputsDTO`, `GlobalContextVarsDTO`, and `HookDeltaDTO` (`frozen=True, extra="forbid", strict=True`).
-    - Made `target_locale` strictly mandatory across `ExecutionCoreFields`, `ExecutionMetadata`, and `ExecutionRecord`.
-    - Modernized `backend_v2/core/registry.py` with `# noqa: QGR001` marker and verified schema strategies.
-    - Unit tests: `test_execution_core.py` (20 passed, 100% cov), `test_hook_registry.py` (100% cov), `test_registry.py` (11 passed, 92% cov), `test_hook_state.py` (6 passed, 100% cov).
-  - **Step 3 (Flutter Client Execution Ingress & Freezed Parity)**:
-    - Created `client_app_v2/lib/features/execution/models/execution_metadata.dart` [NEW] (1:1 Freezed parity with `ExecutionMetadata`).
-    - Created `client_app_v2/lib/features/execution/models/execution_inputs.dart` [NEW] (1:1 Freezed parity with `ExecutionInputsDTO`).
-    - Updated `ExecutionRecord` Freezed model with mandatory `targetLocale` and typed `ExecutionMetadata? metadata`.
-    - Refactored `dashboard_view.dart` and `execution_status_card.dart` to access typed telemetry properties instead of dynamic map indexers.
-    - Updated `execution_client.dart` and `execution_controller.dart` to propagate `targetLocale`.
-    - Unit tests: Created `execution_models_test.dart` and verified all 61 execution tests pass with 0 errors.
-  - **Step 4 (Atomic Test Suite Modernization & Quality Gates)**:
-    - Backend audit loop passed 100% with 0 errors on all 6 Phase 1 target files (92-100% coverage).
-    - Flutter audit loop with `--build` passed 100% with 0 errors.
-    - Full-stack SDUI semantic parity integration test `test_sdui_semantic_parity.py` passed 100%.
-  - **Git Commit Executed**:
-    - `feat(epic-149): complete phase 1 seed vault sanitization, ssot foundation and client ingress`
+- **Phase 1 Backend SSOT Foundation & Lifespan Gates (100% Verified & Passing)**:
+  - Permanently deleted vestigial 0-byte files `data/app.db` and `data/app.sqlite`.
+  - Sanitized Seed Vault via `scripts/sanitize_seed_vault.py --test` and verified with `scripts/audit_database_atoms.py --strict` (0 errors across 152 atoms, 13 matrices, 19 steps).
+  - Modernized `backend_v2/seed/run_seed.py` with `get_settings()` SSOT paths (`prod_db_path`, `seed_data_path`, `base_dir`, `data_dir`) and clean table/directory drop.
+  - Added FastAPI Lifespan pre-flight schema validation `_validate_database_preflight` in `backend_v2/main.py`.
+  - Created `backend_v2/models/dtos/hook_state.py` [NEW] with strict `ExecutionInputsDTO`, `GlobalContextVarsDTO`, and `HookDeltaDTO` (`frozen=True, extra="forbid", strict=True`).
+  - Enforced mandatory `target_locale: str = Field(...)` SSOT across `ExecutionCoreFields` and `ExecutionRecord`.
+  - Unit tests passing 100%: `test_run_seed.py` (24 passed, 95% cov), `test_main.py` (16 passed, 93% cov), `test_execution_core.py` (100% cov), `test_hook_state.py` (100% cov).
+- **Phase 1 Frontend Client Ingress & Freezed Parity Remediation (100% Verified & Passing)**:
+  - Created `client_app_v2/lib/features/execution/models/execution_create_request_dto.dart` [NEW] with `@JsonSerializable(disallowUnrecognizedKeys: true)`.
+  - Updated `ExecutionRecord` to full 1:1 schema parity matching backend `ExecutionRecord`, adding 18 missing telemetry, synthesis, and storage fields.
+  - Refactored `ExecutionClient.startExecution` to accept typed `ExecutionCreateRequestDto` and eliminated legacy parameters (`strictnessLevel`, `scoringStrategy`).
+  - Permanently deleted `const allowedKeys = { ... }` duct-tape filter from `executionList` in `execution_controller.dart`.
+  - Replaced silent SSE stream error catching with structured logging and `AsyncValue.error` state propagation.
+  - Unified execution ingress in `NewExecutionController` to call `executionClientProvider.startExecution` with `ExecutionCreateRequestDto`.
+  - Propagated active `target_locale` in `dynamic_start_screen.dart` via `Localizations.localeOf(context).languageCode`.
+  - All 66 Flutter execution feature tests passing 100% (`flutter test test/features/execution/`).
+  - SDUI Cross-Domain Semantic Parity verified 100% (`test_sdui_semantic_parity.py`).
 
 ## Learned
-- In Pydantic V2 with `mypy --strict`, fields with `Annotated[..., Field(...)]` require explicit `= Field(default_factory=...)` to ensure default optionality in generated constructors.
-- In Flutter Freezed / `json_serializable`, missing non-nullable keys under strict checked deserialization throw `CheckedFromJsonException`.
-- Phased architectural migration safely establishes foundational DTOs (`ExecutionInputsDTO`, `GlobalContextVarsDTO`, `HookDeltaDTO`) and validates them with 100% coverage before Phase 3 and Phase 4 refactor upstream hooks and orchestrators.
+- Strict `@JsonSerializable(disallowUnrecognizedKeys: true)` requires exact 1:1 parity with backend model attributes; adding complete telemetry fields to Flutter Freezed models allows complete removal of client-side dictionary filtering shims (`allowedKeys`) without risk of deserialization crashes.
 
 ## Remaining
-- **Phase 1 Audit**: Perform System 2 post-implementation audit via `/tier8-audit-plan`.
-- **Phase 2 Implementation**: Repository Reconstitution, Storage Blob Hydration & DAL Tests (`02_phase2_repository_reconstitution_and_dal_tests.md`) upon Phase 1 audit pass.
-- **Phases 3 through 7**: Progressively research, decompose, and execute remaining phases per the Epic 149 plan.
+- **Phase 1 Final Audit Gate**: Run `/tier8-audit-plan` to confirm 100% green sign-off for Phase 1.
+- **Phase 2 Implementation**: Repository Reconstitution, Storage Blob Hydration & DAL Tests (`02_phase2_repository_reconstitution_and_dal_tests.md`).
 
 ## Resume Command
 ```powershell

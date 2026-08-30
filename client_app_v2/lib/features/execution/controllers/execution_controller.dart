@@ -5,6 +5,7 @@ import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/core/utils/safe_isolate.dart';
 
@@ -35,31 +36,9 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
 
   final List<dynamic> data = response.data as List;
 
-  // Phase 9 Strictness: The backend returns full database models but ExecutionRecord
-  // uses disallowUnrecognizedKeys: true. We must strip unrecognized keys.
-  const allowedKeys = {
-    'id',
-    'workflow_id',
-    'target_locale',
-    'status',
-    'trace_version',
-    'strictness_level',
-    'created_at',
-    'cost_estimate',
-    'metadata',
-    'error',
-    'is_resumable',
-    'frozen_context',
-    'step_states',
-    'results',
-    'report_data',
-  };
-
-  return data.map((e) {
-    final map = Map<String, dynamic>.from(e as Map<String, dynamic>);
-    map.removeWhere((key, value) => !allowedKeys.contains(key));
-    return ExecutionRecord.fromJson(map);
-  }).toList();
+  return data
+      .map((e) => ExecutionRecord.fromJson(e as Map<String, dynamic>))
+      .toList();
 }
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
@@ -87,8 +66,6 @@ class ExecutionController extends _$ExecutionController {
     String workflowId,
     Map<String, dynamic> inputs, {
     String targetLocale = 'fi',
-    int strictnessLevel = 50,
-    String scoringStrategy = 'WATERFALL',
     String? targetProfileId,
   }) async {
     state = const AsyncValue.loading();
@@ -97,14 +74,13 @@ class ExecutionController extends _$ExecutionController {
 
     try {
       final client = ref.read(executionClientProvider);
-      final initialRecord = await client.startExecution(
+      final request = ExecutionCreateRequestDto(
         workflowId: workflowId,
-        rawInputs: inputs,
         targetLocale: targetLocale,
-        strictnessLevel: strictnessLevel,
-        scoringStrategy: scoringStrategy,
-        targetProfileId: targetProfileId,
+        rawInputs: inputs,
+        profileId: targetProfileId,
       );
+      final initialRecord = await client.startExecution(request: request);
 
       final executionId = initialRecord['id'] as String;
 
@@ -251,14 +227,16 @@ class ExecutionController extends _$ExecutionController {
             ExecutionRecord newRecord;
             try {
               newRecord = ExecutionRecord.fromJson(update);
-            } catch (e) {
+            } catch (e, stack) {
               ref
                   .read(loggerServiceProvider)
-                  .warning(
+                  .error(
                     'ExecutionController',
-                    'Failed to parse SSE update',
+                    'SSE_DESERIALIZATION_FAILED: Failed to parse SSE update',
                     e,
+                    stack,
                   );
+              state = AsyncValue.error(e, stack);
               return;
             }
 

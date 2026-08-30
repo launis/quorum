@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_inputs.dart';
 import 'package:client_app/features/execution/models/execution_metadata.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
@@ -72,6 +73,51 @@ void main() {
     });
   });
 
+  group('ExecutionCreateRequestDto Freezed Parity & Fail-Fast', () {
+    test('instantiates from valid json with required fields', () {
+      final json = {
+        'workflow_id': 'wor_1234567890abcdef',
+        'target_locale': 'fi',
+        'raw_inputs': {'dynamic_inputs': {'doc': 'test'}},
+        'profile_id': 'pro_1234567890abcdef',
+        'matrix_sampling_strategy': 15,
+      };
+
+      final dto = ExecutionCreateRequestDto.fromJson(json);
+      expect(dto.workflowId, 'wor_1234567890abcdef');
+      expect(dto.targetLocale, 'fi');
+      expect(dto.rawInputs, {'dynamic_inputs': {'doc': 'test'}});
+      expect(dto.profileId, 'pro_1234567890abcdef');
+      expect(dto.matrixSamplingStrategy, 15);
+    });
+
+    test('populates default empty map for raw_inputs when omitted', () {
+      final json = {
+        'workflow_id': 'wor_1234567890abcdef',
+        'target_locale': 'en',
+      };
+
+      final dto = ExecutionCreateRequestDto.fromJson(json);
+      expect(dto.workflowId, 'wor_1234567890abcdef');
+      expect(dto.targetLocale, 'en');
+      expect(dto.rawInputs, isEmpty);
+      expect(dto.profileId, isNull);
+    });
+
+    test('test_flutter_execution_create_request_unexpected_key_throws', () {
+      final json = {
+        'workflow_id': 'wor_1234567890abcdef',
+        'target_locale': 'fi',
+        'unknown_field_123': 'invalid',
+      };
+
+      expect(
+        () => ExecutionCreateRequestDto.fromJson(json),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+  });
+
   group('ExecutionRecord Freezed Parity & Fail-Fast', () {
     test('instantiates from valid json with required target_locale and metadata', () {
       final json = {
@@ -95,11 +141,83 @@ void main() {
       expect(record.metadata?.targetLocale, 'fi');
     });
 
+    test('test_flutter_execution_record_full_schema_deserialization', () {
+      final json = {
+        'id': 'exe_1234567890abcdef',
+        'workflow_id': 'wor_1234567890abcdef',
+        'target_locale': 'fi',
+        'status': 'PASSED',
+        'active_profile_id': 'pro_1234567890abcdef',
+        'output_profile_id': 'pro_1234567890abcdef',
+        'raw_inputs': {'dynamic_inputs': {'doc': 'test'}},
+        'trace_version': '2.0',
+        'strictness_level': 90,
+        'duration_ms': 4500,
+        'cost_estimate': 0.045,
+        'cumulative_synthesis_tokens': 1200,
+        'cumulative_synthesis_cost': 0.012,
+        'models_used': {'gemini-1.5-pro': 2},
+        'metadata': {
+          'target_locale': 'fi',
+          'workflow_version': 1,
+          'user_id': 'usr_1',
+          'organization_id': 'org_1',
+        },
+        'error': null,
+        'is_resumable': true,
+        'frozen_context': <String, dynamic>{'input': 'content'},
+        'frozen_context_storage_path': 'gs://bucket/context.json',
+        'context_variables': <String, dynamic>{'var1': 'val1'},
+        'context_variables_storage_path': 'gs://bucket/vars.json',
+        'execution_trace_storage_path': 'gs://bucket/trace.json',
+        'pdf_report_path': '/reports/rep_1.pdf',
+        'source_identity_manifest': <String, String>{'src_0': 'Doc A'},
+        'step_states': <String, dynamic>{},
+        'profile_syntheses': <String, dynamic>{},
+        'results': <String, dynamic>{},
+        'progress': 100,
+        'status_message': 'Completed',
+        'created_at': '2026-08-30T12:00:00Z',
+        'updated_at': '2026-08-30T12:05:00Z',
+        'completed_at': '2026-08-30T12:05:00Z',
+        'created_by': 'usr_1',
+        'organization_id': 'org_1',
+      };
+
+      final record = ExecutionRecord.fromJson(json);
+      expect(record.id, 'exe_1234567890abcdef');
+      expect(record.workflowId, 'wor_1234567890abcdef');
+      expect(record.activeProfileId, 'pro_1234567890abcdef');
+      expect(record.durationMs, 4500);
+      expect(record.cumulativeSynthesisTokens, 1200);
+      expect(record.cumulativeSynthesisCost, 0.012);
+      expect(record.modelsUsed, {'gemini-1.5-pro': 2});
+      expect(record.organizationId, 'org_1');
+      expect(record.createdBy, 'usr_1');
+      expect(record.completedAt, '2026-08-30T12:05:00Z');
+      expect(record.isResumable, true);
+    });
+
     test('throws when mandatory target_locale is missing', () {
       final json = {
         'id': 'exe_1234567890abcdef',
         'workflow_id': 'wor_1234567890abcdef',
         'status': 'PENDING',
+      };
+
+      expect(
+        () => ExecutionRecord.fromJson(json),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    test('test_flutter_execution_record_unexpected_key_throws', () {
+      final json = {
+        'id': 'exe_1234567890abcdef',
+        'workflow_id': 'wor_1234567890abcdef',
+        'target_locale': 'fi',
+        'status': 'PENDING',
+        'unknown_legacy_field': 'invalid_data',
       };
 
       expect(

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'execution_client.g.dart';
@@ -19,28 +20,16 @@ class ExecutionClient {
 
   ExecutionClient(this._dio);
 
-  /// Starts a new workflow execution.
+  /// Starts a new workflow execution using [ExecutionCreateRequestDto].
   ///
   /// Validates Fail-Fast: Any HTTP errors like 400 or 500 will be caught by
   /// the ErrorInterceptor and thrown as an AppException.
   Future<Map<String, dynamic>> startExecution({
-    required String workflowId,
-    required Map<String, dynamic> rawInputs,
-    String targetLocale = 'fi',
-    int strictnessLevel = 50,
-    String scoringStrategy = 'WATERFALL',
-    String? targetProfileId,
+    required ExecutionCreateRequestDto request,
   }) async {
     final response = await _dio.post(
       '/execution/executions/',
-      data: {
-        'workflow_id': workflowId,
-        'raw_inputs': rawInputs,
-        'target_locale': targetLocale,
-        'strictness_level': strictnessLevel,
-        'scoring_strategy': scoringStrategy,
-        if (targetProfileId != null) 'target_profile_id': targetProfileId,
-      },
+      data: request.toJson(),
     );
 
     return response.data as Map<String, dynamic>;

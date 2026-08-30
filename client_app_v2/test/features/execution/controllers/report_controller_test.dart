@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
+import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/controllers/report_controller.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 
@@ -37,12 +38,7 @@ class MockExecutionClientPending implements ExecutionClient {
 
   @override
   Future<Map<String, dynamic>> startExecution({
-    required String workflowId,
-    required Map<String, dynamic> rawInputs,
-    String targetLocale = 'fi',
-    int strictnessLevel = 50,
-    String scoringStrategy = 'WATERFALL',
-    String? targetProfileId,
+    required ExecutionCreateRequestDto request,
   }) async => {};
 
   @override

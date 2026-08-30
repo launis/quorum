@@ -25,19 +25,42 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'workflow_id') required String workflowId,
     @JsonKey(name: 'target_locale') required String targetLocale,
     @JsonKey(fromJson: _statusFromJson) required String status,
+    @JsonKey(name: 'active_profile_id') String? activeProfileId,
+    @JsonKey(name: 'output_profile_id') String? outputProfileId,
+    @JsonKey(name: 'raw_inputs') Map<String, dynamic>? rawInputs,
     @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)
     String? traceVersion,
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
-    @JsonKey(name: 'created_at') String? createdAt,
+    @JsonKey(name: 'duration_ms') int? durationMs,
     @JsonKey(name: 'cost_estimate') double? costEstimate,
+    @JsonKey(name: 'cumulative_synthesis_tokens')
+    int? cumulativeSynthesisTokens,
+    @JsonKey(name: 'cumulative_synthesis_cost') double? cumulativeSynthesisCost,
+    @JsonKey(name: 'models_used') Map<String, int>? modelsUsed,
     @JsonKey(name: 'metadata') ExecutionMetadata? metadata,
     @JsonKey(name: 'error') String? error,
     @JsonKey(name: 'is_resumable') bool? isResumable,
     @JsonKey(name: 'frozen_context') Map<String, dynamic>? frozenContext,
+    @JsonKey(name: 'frozen_context_storage_path')
+    String? frozenContextStoragePath,
+    @JsonKey(name: 'context_variables') Map<String, dynamic>? contextVariables,
+    @JsonKey(name: 'context_variables_storage_path')
+    String? contextVariablesStoragePath,
+    @JsonKey(name: 'execution_trace_storage_path')
+    String? executionTraceStoragePath,
+    @JsonKey(name: 'pdf_report_path') String? pdfReportPath,
+    @JsonKey(name: 'source_identity_manifest')
+    Map<String, String>? sourceIdentityManifest,
     @JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,
+    @JsonKey(name: 'profile_syntheses') Map<String, dynamic>? profileSyntheses,
     @JsonKey(name: 'results') Map<String, dynamic>? results,
     @JsonKey(name: 'progress') int? progress,
     @JsonKey(name: 'status_message') String? statusMessage,
+    @JsonKey(name: 'created_at') String? createdAt,
+    @JsonKey(name: 'updated_at') String? updatedAt,
+    @JsonKey(name: 'completed_at') String? completedAt,
+    @JsonKey(name: 'created_by') String? createdBy,
+    @JsonKey(name: 'organization_id') String? organizationId,
 
     /// The strictly typed DTO containing the presentation flat data.
     /// Replaces the legacy `results` Map.

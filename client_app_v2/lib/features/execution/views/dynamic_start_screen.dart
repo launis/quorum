@@ -80,9 +80,14 @@ class DynamicStartScreen extends HookConsumerWidget {
         }
       });
 
+      final targetLocale = Localizations.localeOf(context).languageCode;
       ref
           .read(executionControllerProvider.notifier)
-          .startExecution(workflowId, processedInputs);
+          .startExecution(
+            workflowId,
+            processedInputs,
+            targetLocale: targetLocale,
+          );
     }
   }
 
