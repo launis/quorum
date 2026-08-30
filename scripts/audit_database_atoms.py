@@ -732,44 +732,17 @@ def audit_output_profiles(
     for profile in output_profiles:
         profile_id = str(profile["id"]) if "id" in profile else "UNKNOWN_PROFILE"
 
-        # 1. Check synthesis config
-        synthesis = profile["synthesis"] if "synthesis" in profile else None
-        if isinstance(synthesis, dict):
-            sys_prompt = synthesis["system_prompt"] if "system_prompt" in synthesis else None
-            if isinstance(sys_prompt, str) and _contains_raw_xml(sys_prompt):
-                issues.append(
-                    AuditIssue(
-                        collection="output_profiles",
-                        entity_id=profile_id,
-                        field_path="synthesis.system_prompt",
-                        issue_type="RAW_XML",
-                        message=f"OutputProfile '{profile_id}' synthesis contains raw XML in system_prompt.",
-                    )
+        # 1. Ensure purged synthesis sub-object is absent
+        if "synthesis" in profile:
+            issues.append(
+                AuditIssue(
+                    collection="output_profiles",
+                    entity_id=profile_id,
+                    field_path="synthesis",
+                    issue_type="BANNED_SYNTHESIS_OBJECT",
+                    message=f"OutputProfile '{profile_id}' contains obsolete 'synthesis' sub-object.",
                 )
-
-            synth_block_id = synthesis["synthesis_block_id"] if "synthesis_block_id" in synthesis else None
-            if synth_block_id and str(synth_block_id) not in prompt_block_ids:
-                issues.append(
-                    AuditIssue(
-                        collection="output_profiles",
-                        entity_id=profile_id,
-                        field_path="synthesis.synthesis_block_id",
-                        issue_type="ORPHAN_SYNTHESIS_BLOCK",
-                        message=f"OutputProfile '{profile_id}' references unknown synthesis_block '{synth_block_id}'.",
-                    )
-                )
-
-            row_block_id = synthesis["row_explanations_block_id"] if "row_explanations_block_id" in synthesis else None
-            if row_block_id and str(row_block_id) not in prompt_block_ids:
-                issues.append(
-                    AuditIssue(
-                        collection="output_profiles",
-                        entity_id=profile_id,
-                        field_path="synthesis.row_explanations_block_id",
-                        issue_type="ORPHAN_ROW_BLOCK",
-                        message=f"OutputProfile '{profile_id}' references unknown row_explanations_block '{row_block_id}'.",
-                    )
-                )
+            )
 
         # 2. Check matrix synthesis groups
         matrix_groups = profile["matrix_synthesis_groups"] if "matrix_synthesis_groups" in profile else []

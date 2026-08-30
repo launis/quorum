@@ -9659,7 +9659,6 @@
       "display_scale": "normalized_100",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
-      "synthesis": {},
       "target_block_order": [
         "metadata_block",
         "executive_summary_block",
