@@ -22,8 +22,6 @@ from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
-_str_dict_adapter = TypeAdapter(dict[str, Any])
-
 
 @hook_registry.register(name="configure_llm_context")
 def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> HookResult:
@@ -86,11 +84,10 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     # Workflow's 'default_model_mapping' dictionary into 'state.context_variables'
     # so we can do: model_strategy = ctx.get("workflow_model_mapping", {}).get(step_id, model_strategy)
 
-    raw_mapping = ctx.get("workflow_model_mapping")
-    if raw_mapping is not None:
+    if "workflow_model_mapping" in ctx:
         try:
-            mapping = _str_dict_adapter.validate_python(raw_mapping)
-            if step_id in mapping and isinstance(mapping[step_id], str):
+            mapping = TypeAdapter(dict[str, str]).validate_python(ctx["workflow_model_mapping"])
+            if step_id in mapping:
                 model_strategy = mapping[step_id]
         except ValidationError:
             pass

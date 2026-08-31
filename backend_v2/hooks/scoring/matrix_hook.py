@@ -4,7 +4,7 @@ import logging
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
     GlobalContextVarsDTO,
@@ -235,17 +235,20 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         for ev in evaluations:
             is_infra = False
             is_val = False
-            if isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                if "_dlq_status" in ev and ev["_dlq_status"] == "FAILED/DLQ":
-                    is_infra = True
-                elif "status" in ev and ev["status"] == "DLQ":
+            try:
+                ev_dto_check = AtomResultDTO.model_validate(ev) if not isinstance(ev, AtomResultDTO) else ev
+                if str(ev_dto_check.status) == "DLQ" or ev_dto_check.status == ExecutionStatus.SYSTEM_ERROR:
                     is_val = True
-            elif isinstance(ev, BaseModel):
-                ev_dump = ev.model_dump(mode="json")
-                if "_dlq_status" in ev_dump and ev_dump["_dlq_status"] == "FAILED/DLQ":
-                    is_infra = True
-                elif "status" in ev_dump and ev_dump["status"] == "DLQ":
-                    is_val = True
+            except ValidationError:
+                # Check for infra DLQ envelope
+                try:
+                    ev_dict_check = TypeAdapter(dict[str, Any]).validate_python(ev)
+                    if ev_dict_check.get("_dlq_status") == "FAILED/DLQ":
+                        is_infra = True
+                    elif str(ev_dict_check.get("status")) == "DLQ":
+                        is_val = True
+                except ValidationError:
+                    pass
 
             if is_infra or is_val:
                 dlq_evals += 1
@@ -253,13 +256,19 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 infra_dlqs += 1
 
         # Get merged facts dictionary from dynamic MergedFactsDTO context
-        merged_facts = content_payload["extracted_facts"] if "extracted_facts" in content_payload else {}
-        if isinstance(merged_facts, BaseModel):
-            merged_facts = merged_facts.model_dump(mode="json")
-        if not isinstance(merged_facts, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            msg = "Strict Fail-Fast Enforced: extracted_facts must be a dictionary or model."
+        merged_facts_raw = content_payload["extracted_facts"] if "extracted_facts" in content_payload else {}
+        try:
+            merged_facts = (
+                merged_facts_raw.model_dump(mode="json")
+                if isinstance(merged_facts_raw, BaseModel)
+                else TypeAdapter(dict[str, Any]).validate_python(merged_facts_raw)
+            )
+        except ValidationError as e:
+            msg = f"Strict Fail-Fast Enforced: extracted_facts must be a dictionary or model: {e}"
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
 
         for pb_id, pb_model in matrix_blocks:
             scales = pb_model.scales or []
@@ -299,23 +308,18 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 for ev in evaluations:
                                     # Skip Infra-DLQ items to prevent ValidationErrors
                                     is_ev_infra_dlq = False
-                                    if isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                                        is_ev_infra_dlq = "_dlq_status" in ev and ev["_dlq_status"] == "FAILED/DLQ"
-                                    elif isinstance(ev, BaseModel):
-                                        ev_dump = ev.model_dump(mode="json")
-                                        is_ev_infra_dlq = (
-                                            "_dlq_status" in ev_dump and ev_dump["_dlq_status"] == "FAILED/DLQ"
+                                    try:
+                                        ev_dict_tmp = (
+                                            ev.model_dump(mode="json")
+                                            if isinstance(ev, BaseModel)
+                                            else TypeAdapter(dict[str, Any]).validate_python(ev)
                                         )
+                                        is_ev_infra_dlq = ev_dict_tmp.get("_dlq_status") == "FAILED/DLQ"
+                                    except ValidationError:
+                                        pass
 
                                     if is_ev_infra_dlq:
                                         continue
-
-                                    if isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                                        ev_dict = ev
-                                    elif isinstance(ev, BaseModel):
-                                        ev_dict = ev.model_dump(mode="json")
-                                    else:
-                                        ev_dict = {}
 
                                     val_context = (
                                         state.global_context_vars.vars
@@ -324,7 +328,11 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                     )
 
                                     try:
-                                        ev_dto = AtomResultDTO.model_validate(ev_dict, strict=True, context=val_context)
+                                        ev_dto = (
+                                            ev
+                                            if isinstance(ev, AtomResultDTO)
+                                            else AtomResultDTO.model_validate(ev, strict=True, context=val_context)
+                                        )
                                     except ValidationError as e:
                                         logger.error("[ScoringHook] Invalid AtomResultDTO: %s", e)
                                         raise AppException(
@@ -392,11 +400,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                             )
                                             atom_quotes_by_block[pb_id].append(f"\U0001f4cd {loc}: {rsn}")
 
-                                        extensions_dict = (
-                                            ev_dict["extensions"]
-                                            if "extensions" in ev_dict and isinstance(ev_dict["extensions"], dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                                            else {}
-                                        )
+                                        extensions_dict = ev_dto.extensions
                                         if extensions_dict:
                                             allowed_exts = {
                                                 e.value if isinstance(e, Enum) else str(e)

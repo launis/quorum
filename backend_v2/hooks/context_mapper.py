@@ -6,7 +6,6 @@ across all output profiles, holistic evaluations, and matrices.
 """
 
 import logging
-from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockBase
@@ -19,7 +18,7 @@ class ContextMapper:
     """Builder for translating Target Data IDs into Universal Ordinal Mapping limits."""
 
     @staticmethod
-    def build_ordinal_mapping(target_blocks: list[str], all_blocks: list[Any] | None = None) -> str:
+    def build_ordinal_mapping(target_blocks: list[str], all_blocks: list[PromptBlockBase] | None = None) -> str:
         """Builds a section-level ordinal dictionary for evaluating specific targets.
 
         Translates raw non-semantic unique IDs to numbered ordinals with explicit

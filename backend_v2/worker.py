@@ -45,7 +45,7 @@ from backend_v2.models.dtos.synthesis import (
     XaiHighlightItem,
     XaiHighlightsResult,
 )
-from backend_v2.models.dtos.trace import TraceEventMetadataEnvelope
+from backend_v2.models.dtos.trace import StepTraceMetadataDTO
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlockType
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
@@ -257,14 +257,11 @@ async def execute_workflow_job(
                 for event in updated_exec_record.execution_trace:
                     if event.event_type in ("error", "dlq_routed"):
                         is_degraded = True
-                    if event.event_type != "output":
+                    if not isinstance(event.content, dict) or "_step_metadata" not in event.content:
                         continue
 
                     try:
-                        envelope = TraceEventMetadataEnvelope.model_validate(event.content)
-                        if not envelope.step_metadata:
-                            continue
-                        step_meta = envelope.step_metadata
+                        step_meta = StepTraceMetadataDTO.model_validate(event.content["_step_metadata"])
                         usage = step_meta.token_usage
                     except ValidationError, ValueError:
                         continue
@@ -1151,8 +1148,8 @@ async def generate_profile_synthesis_and_pdf_task(
                                 is_match = True
                             elif out_content and "_step_metadata" in out_content:
                                 try:
-                                    envelope = TraceEventMetadataEnvelope.model_validate(out_content)
-                                    if envelope.step_metadata and envelope.step_metadata.task_blueprint == perf_step_id:
+                                    step_meta = StepTraceMetadataDTO.model_validate(out_content["_step_metadata"])
+                                    if step_meta.task_blueprint == perf_step_id:
                                         is_match = True
                                 except ValidationError, ValueError:
                                     pass

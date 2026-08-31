@@ -1,3 +1,5 @@
+"""Unit tests for worker background synthesis tasks and trace extraction."""
+
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -264,6 +266,8 @@ def _setup_mock_repo_for_metrics(
 async def test_worker_synthesis_extracts_metrics_from_trace(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
+    """Test extracting extension metrics from execution trace during synthesis."""
+    get_settings().use_mock_llm = True
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
 
@@ -318,6 +322,8 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
 async def test_worker_synthesis_missing_metrics_remains_none(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
+    """Test synthesis when extension metrics are missing from trace."""
+    get_settings().use_mock_llm = True
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
 
@@ -345,6 +351,7 @@ async def test_worker_synthesis_missing_metrics_remains_none(
 async def test_worker_synthesis_malformed_metrics_remains_none(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
+    """Test synthesis when extension metrics contain malformed score."""
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
 
@@ -392,6 +399,7 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock, mock_repo_class: AsyncMock) -> None:
+    """Test synthesis when step metadata is missing from detector output."""
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
 
@@ -431,6 +439,7 @@ async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock
 async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
+    """Test synthesis when task_blueprint is missing from step metadata."""
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
 

@@ -3,9 +3,10 @@
 import logging
 from typing import Annotated, Any
 
-from pydantic import ConfigDict, Field, ValidationError
+from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -17,6 +18,7 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import ScoringCalibrationThresholds
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.settings import get_settings
@@ -34,7 +36,7 @@ __all__ = [
 class ScoringPayloadWrapper(V2CoreBase):
     """Wrapper for intermediate payload extraction during scoring logic execution."""
 
-    model_config = ConfigDict(extra="ignore", frozen=True)
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     sanitization_result: SanitizationResultDTO | None = None
     step_input_processing: InputProcessingOutputDTO | None = None
@@ -46,18 +48,18 @@ class ScoringPayloadWrapper(V2CoreBase):
 class StateInputWrapper(V2CoreBase):
     """Wrapper for structured state inputs passed into the scoring context."""
 
-    model_config = ConfigDict(extra="ignore", frozen=True)
+    model_config = ConfigDict(strict=True, extra="ignore", frozen=True)
 
     steps: list[StepOutputDTO] | None = None
-    inputs: dict[str, Any] | None = None
-    raw_inputs: dict[str, Any] | None = None
+    inputs: ExecutionInputsDTO | dict[str, Any] | None = None
+    raw_inputs: ExecutionInputsDTO | dict[str, Any] | None = None
 
 
-def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
+def _extract_payloads(data: ExecutionInputsDTO | dict[str, Any]) -> list[ScoringPayloadWrapper]:
     """Strict Phase 9 Extractor. No V1 Fallbacks. No Naked Dict guessing.
 
     Args:
-        data: The dictionary representation of the hook inputs or global context.
+        data: The execution inputs DTO or dictionary representation.
 
     Returns:
         A list of strictly parsed ScoringPayloadWrapper objects.
@@ -68,7 +70,11 @@ def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
     payloads: list[ScoringPayloadWrapper] = []
 
     try:
-        hydrated_state = StateInputWrapper.model_validate(data)
+        hydrated_state = (
+            data
+            if isinstance(data, StateInputWrapper)
+            else StateInputWrapper.model_validate(data.raw_inputs if isinstance(data, ExecutionInputsDTO) else data)
+        )
     except ValidationError as e:
         msg = f"Strict Fail-Fast Enforced: Execution snapshot validation failed: {e}"
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -84,16 +90,19 @@ def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
     for valid_dto in hydrated_state.steps:
         if valid_dto.payload is None:
             continue
-        if valid_dto.block_id == "_evaluative_matrices" and isinstance(valid_dto.payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": valid_dto.payload}))
-            continue
+        if valid_dto.block_id == "_evaluative_matrices":
+            try:
+                eval_map = TypeAdapter(dict[str, float]).validate_python(valid_dto.payload)
+                payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": eval_map}))
+                continue
+            except ValidationError:
+                pass
         try:
             wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
             payloads.append(wrapper)
         except ValidationError as e:
-            # If the payload is a primitive (e.g. bool, str) it's not a ScoringPayloadWrapper, skip it.
-            # We only want to crash if it's a dict that failed strict validation.
-            if not isinstance(valid_dto.payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+            # If payload cannot be validated as a ScoringPayloadWrapper (e.g. primitive or non-matching DTO), skip if primitive
+            if isinstance(valid_dto.payload, (str, int, float, bool, list)):
                 logger.debug("[ScoringHook] Primitive payload skipped: %s", valid_dto.payload)
                 continue
 
@@ -103,26 +112,39 @@ def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
                 message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
             ) from e
 
-    # Add explicitly injected top-level dict inputs
-    for extra_dict in [hydrated_state.inputs, hydrated_state.raw_inputs]:
-        if extra_dict is not None:
-            try:
-                wrapper = ScoringPayloadWrapper.model_validate(extra_dict)
-                payloads.append(wrapper)
-            except ValidationError as e:
-                logger.debug("[ScoringHook] Extra dict skipped (not a ScoringPayloadWrapper): %s", e)
+    # Add explicitly injected top-level inputs
+    for extra_inputs in [hydrated_state.inputs, hydrated_state.raw_inputs]:
+        if extra_inputs is not None:
+            candidate_dicts = (
+                [extra_inputs.raw_inputs, extra_inputs.dynamic_inputs]
+                if isinstance(extra_inputs, ExecutionInputsDTO)
+                else [extra_inputs]
+            )
+            for extra_dict in candidate_dicts:
+                if extra_dict:
+                    if "_evaluative_matrices" in extra_dict:
+                        try:
+                            eval_map = TypeAdapter(dict[str, float]).validate_python(extra_dict["_evaluative_matrices"])
+                            payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": eval_map}))
+                        except ValidationError:
+                            pass
+                    try:
+                        wrapper = ScoringPayloadWrapper.model_validate(extra_dict)
+                        payloads.append(wrapper)
+                    except ValidationError as e:
+                        logger.debug("[ScoringHook] Extra dict skipped (not a ScoringPayloadWrapper): %s", e)
 
     return payloads
 
 
-def _extract_guard_flag(data: dict[str, Any]) -> bool | None:
+def _extract_guard_flag(data: ExecutionInputsDTO | dict[str, Any]) -> bool | None:
     """Extracts the security threat flag from the guard output in the state.
 
     Iterates over the V2 execution snapshot to find the input processing result.
     Silent Fallback is BANNED. If the data is malformed, we raise an exception.
 
     Args:
-        data: The dictionary representation of the hook inputs or global context.
+        data: The execution inputs DTO or dictionary representation.
 
     Returns:
         Boolean indicating if a threat was detected, or None if guard data is missing.
@@ -137,13 +159,13 @@ def _extract_guard_flag(data: dict[str, Any]) -> bool | None:
     return None
 
 
-def _extract_falsifier_data(data: dict[str, Any]) -> FalsifierData | None:
+def _extract_falsifier_data(data: ExecutionInputsDTO | dict[str, Any]) -> FalsifierData | None:
     """Extracts falsifier data from either step_falsifier or step_panel outputs in V2 state.
 
     Iterates over the V2 execution snapshot. Silent Fallback is BANNED.
 
     Args:
-        data: The dictionary representation of the hook inputs or global context.
+        data: The execution inputs DTO or dictionary representation.
 
     Returns:
         FalsifierData if present, or None if falsifier data is missing.
@@ -228,9 +250,13 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     if count == 0:
         is_valid_indeterminate = False
         for _, v in lookup_ctx.items():
-            if isinstance(v, dict) and "justification" in v and "[INDETERMINATE]" in str(v["justification"]):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                is_valid_indeterminate = True
-                break
+            try:
+                matrix_out = LightweightMatrixOutput.model_validate(v)
+                if matrix_out.justification and "[INDETERMINATE]" in matrix_out.justification:
+                    is_valid_indeterminate = True
+                    break
+            except ValidationError:
+                continue
 
         if is_valid_indeterminate:
             logger.warning("[ScoringHook] All matrices are INDETERMINATE. Skipping aggregation.")

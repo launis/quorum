@@ -58,18 +58,19 @@
   - [x] Step 1: Purge Obsolete Seed Schemas & Define Provider Extra Params
   - [x] Step 2: Modernize Studio Services & Routers
   - [x] Step 3: Surgical Hardening of Worker & Blueprint
-- [ ] **[NOK] Audit (Sub-Phase 2B):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Audit (Sub-Phase 2B):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]`
 
 ### Phase 3: Hooks, Orchestrator & Repository Suppression Eradication
 - **Plan:** @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md]
 - **Plan (Sub-Phase 3B):** @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md]
 - **Plan (Sub-Phase 3C):** @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md]
-- [ ] **[NOK] Red-Teaming (Sub-Phase 3A):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
-- [ ] **[NOK] Execution (Sub-Phase 3A):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Harden Scoring Hooks
-  - [ ] Step 2: Harden Processing & Validation Hooks
-- [ ] **[NOK] Audit (Sub-Phase 3A):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Red-Teaming (Sub-Phase 3A):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Execution (Sub-Phase 3A):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Implementation Cleanups
+  - [x] Step 1: Harden Scoring Hooks
+  - [x] Step 2: Harden Processing, Validation & Telemetry Hooks
+  - [x] Step 3: Comprehensive Test Expansion & AST Guardrail Validation
+- [x] **[OK] Audit (Sub-Phase 3A):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]` (Subsystem coverage 90.25%, global backend 93.57%, 0 AST violations)
 - [ ] **[NOK] Red-Teaming (Sub-Phase 3B):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
 - [ ] **[NOK] Execution (Sub-Phase 3B):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
   - [ ] Step 0: Strategic Alignment Check
@@ -147,22 +148,24 @@
   - [ ] @[backend_v2/worker.py]
   - [ ] @[backend_v2/models/v2_core.py]
   - [ ] @[scripts/sanitize_seed_vault.py]
-  - [ ] @[backend_v2/hooks/scoring/falsifier_hook.py]
-  - [ ] @[backend_v2/hooks/scoring/matrix_hook.py]
-  - [ ] @[backend_v2/hooks/scoring/normalization_hook.py]
-  - [ ] @[backend_v2/hooks/scoring/passivity_hook.py]
-  - [ ] @[backend_v2/hooks/validation.py]
-  - [ ] @[backend_v2/hooks/llm.py]
-  - [ ] @[backend_v2/hooks/dlq_guard.py]
-  - [ ] @[backend_v2/hooks/input_processing.py]
-  - [ ] @[backend_v2/hooks/integrity.py]
-  - [ ] @[backend_v2/hooks/source_verification_hook.py]
-  - [ ] @[backend_v2/hooks/atom_flattening.py]
-  - [ ] @[backend_v2/hooks/context_mapper.py]
-  - [ ] @[backend_v2/hooks/archival.py]
-  - [ ] @[backend_v2/hooks/security.py]
-  - [ ] @[backend_v2/hooks/hydration.py]
-  - [ ] @[backend_v2/hooks/metrics.py]
+  - [x] @[backend_v2/hooks/scoring/falsifier_hook.py]
+  - [x] @[backend_v2/hooks/scoring/matrix_hook.py]
+  - [x] @[backend_v2/hooks/scoring/normalization_hook.py]
+  - [x] @[backend_v2/hooks/scoring/passivity_hook.py]
+  - [x] @[backend_v2/hooks/validation.py]
+  - [x] @[backend_v2/hooks/llm.py]
+  - [x] @[backend_v2/hooks/dlq_guard.py]
+  - [x] @[backend_v2/hooks/input_processing.py]
+  - [x] @[backend_v2/hooks/integrity.py]
+  - [x] @[backend_v2/hooks/source_verification_hook.py]
+  - [x] @[backend_v2/hooks/atom_flattening.py]
+  - [x] @[backend_v2/hooks/context_mapper.py]
+  - [x] @[backend_v2/hooks/archival.py]
+  - [x] @[backend_v2/hooks/security.py]
+  - [x] @[backend_v2/hooks/hydration.py]
+  - [x] @[backend_v2/hooks/metadata.py]
+  - [x] @[backend_v2/hooks/metrics.py]
+  - [x] @[backend_v2/hooks/references.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
   - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
   - [ ] @[backend_v2/services/orchestrator/prompt_compiler.py]
@@ -240,8 +243,8 @@
 | Sanitize `seed_data.json` & purge orphan `"step_blueprints": []` | Epic Sec 3 (Phase 2) | Phase 2, Step 1 | `[x]` Passed |
 | Studio simulation service returns typed simulation DTOs directly | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 2 | `[x]` Passed |
 | Surgical typing & telemetry cleanup in `worker.py` & `blueprint.py` | Epic Sec 3 (Phase 2) | Phase 2, Step 3 | `[x]` Passed |
-| Eradicate QGR suppressions & `isinstance(dict)` in scoring hooks | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[ ]` Pending |
-| Eradicate QGR suppressions & duck-typing in processing & validation hooks | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[ ]` Pending |
+| Eradicate QGR suppressions & `isinstance(dict)` in scoring hooks | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[x]` Passed |
+| Eradicate QGR suppressions & duck-typing in processing & validation hooks | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[x]` Passed |
 | Harden DAG executor & synthesis payload compressor polymorphic handling | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[ ]` Pending |
 | Harden orchestrator strategies & pipeline services | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[ ]` Pending |
 | Repositories reconstitution firewall (zero dict leakage) | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[ ]` Pending |
@@ -276,24 +279,28 @@
   - **Step 2 Modernize Progress State & Tracker Interfaces**: Refined `ProgressState` in `@[backend_v2/services/progress.py]` with `ConfigDict(strict=True, extra="forbid", frozen=True)` locking `status`, `timestamp`, `current_step`, `progress`, `error` and eradicating `result: dict[str, Any]` and `details: dict[str, Any]`. Modernized `ProgressTracker` ABC, `DatabaseProgressTracker`, and `InMemoryProgressTracker`. Strongly typed `ProgressService.redis` to `ArqCompatibleFakeRedis`.
   - **Step 3 Modernize Task Registry & Unit Tests**: Co-located `TaskMetadataDTO` in `@[backend_v2/core/registry.py]` and updated `TaskRegistry.register_task()`. Modernized test suites.
   - **Tier 8 Red-Team Audit Sign-off**: Passed Universal Quality Gate (`backend_audit_loop.py backend_v2/ --test`) with 2,663 passed tests, 0 failed, 93.51% code coverage.
-- **Sub-Phase 2B Execution Completed & Verified**:
+- **Sub-Phase 2B Execution & Audit Completed & Atomically Verified**:
   - **Step 0 Pre-Implementation Cleanups**: Fixed legacy comma exception syntax in `@[backend_v2/services/studio/workflow_service.py]` (`except (AppException, ValidationError, ...):`). Replaced `hasattr(strat_raw, "value")` with `isinstance(strat_raw, ScoringStrategy)` in `@[backend_v2/services/blueprint.py]`.
   - **Step 1 Purge Obsolete Seed Schemas & Define Provider Extra Params**: Defined strict immutable `ProviderExtraParamsDTO` (`ConfigDict(strict=True, extra="forbid", frozen=True)`) in `@[backend_v2/models/v2_core.py]`. Updated `ModelProfile.additional_params` to use `ProviderExtraParamsDTO`. Purged obsolete `output_schema` from `Step` and `StepCreateDTO` (`@[backend_v2/models/dtos/studio.py]`), and purged `ui_schema` from `Workflow`. Dynamically generated `expected_inputs` in `@[backend_v2/services/execution.py]`. Purged orphan `"step_blueprints": []` in `@[scripts/sanitize_seed_vault.py]`, sanitized and re-seeded `@[backend_v2/seed/seed_data.json]` and `@[data/db_v2.json]`.
   - **Step 2 Modernize Studio Services & Routers**: Refactored `StudioSimulationService` (`@[backend_v2/services/studio/simulation_service.py]`) to return strict SSOT DTOs (`WorkflowSimulationResponse`, `StepSimulationResponse`, `PromptBlockSimulationResponse`). Eliminated raw dict conversions in `@[backend_v2/api/routers/studio/workflows.py]`, `@[backend_v2/api/routers/studio/steps.py]`, and `@[backend_v2/api/routers/studio/prompt_blocks.py]`. Fixed tenant isolation logic in `@[backend_v2/services/studio/auth_validator.py]`. Migrated unit test suite in `@[backend_v2/tests/unit/services/studio/test_simulation_service.py]` to 100% dot-notation attribute access; created unit tests in `@[backend_v2/tests/unit/services/studio/test_auth_validator.py]` and `@[backend_v2/tests/unit/services/studio/test_lexicon_service.py]`.
   - **Step 3 Surgical Hardening of Worker, Blueprint, Adapters & Contracts**: Co-located `StepTraceMetadataDTO` and `TraceEventMetadataEnvelope` in `@[backend_v2/models/dtos/trace.py]`. Hydrated typed envelope and read `TokenUsage` directly in `@[backend_v2/services/blueprint.py]` and `@[backend_v2/worker.py]`. Updated `LLMProviderConfig.additional_params` in `@[backend_v2/models/llm.py]` and updated LLM adapters (`openai_adapter.py`, `anthropic_adapter.py`, `ai_studio_adapter.py`, `vertex_adapter.py`) to access first-class typed fields.
-  - **Universal Quality Gates**: Passed `backend_audit_loop.py` on studio services, studio routers, models, blueprint, and worker. Passed `sanitize_seed_vault.py --reseed --test`, `audit_database_atoms.py --strict`, and `test_sdui_semantic_parity.py` with 100% green status.
+- **Sub-Phase 3A Execution & Audit Completed (`red_team_audit_06_phase3a_hooks_suppression_eradication.md`)**:
+  - **Scoring Hooks Core (`falsifier_hook.py`, `matrix_hook.py`, `normalization_hook.py`, `passivity_hook.py`)**: Eradicated all 14 `# noqa: QGR012` inline suppressions and duck-typing checks. Converted state handling to `AtomResultDTO` validation, typed `TypeAdapter(dict[str, float])` mapping, and direct `ExecutionInputsDTO` dot-notation access.
+  - **Processing, Context & Telemetry Hooks (`context_mapper.py`, `references.py`, `llm.py`, `input_processing.py`, `validation.py`, `security.py`, `dlq_guard.py`, `atom_flattening.py`, `archival.py`, `hydration.py`, `metadata.py`, `metrics.py`)**: Strongly typed `all_blocks: list[PromptBlockBase] | None`, `knowledge_base: dict[str, str] | None`, `workflow_model_mapping` (`TypeAdapter(dict[str, str])`), and fixed tuple exception syntax in `input_processing.py`.
+  - **Coverage Deficit Resolution**: Expanded test suites by creating `@[backend_v2/tests/unit/hooks/test_context_mapper.py]`, `@[backend_v2/tests/unit/hooks/test_security.py]`, `@[backend_v2/tests/unit/hooks/test_references.py]`, `@[backend_v2/tests/unit/hooks/test_metadata.py]`, and `@[backend_v2/tests/unit/hooks/test_validation.py]`.
+  - **Tier 8 Red-Team Audit Sign-Off**: 191 subsystem unit tests passed (4 xpassed, 0 failures), 0 AST violations in `--strict` mode, reaching **90.25% line coverage** for `backend_v2/hooks/`. Global backend quality gate passed with 2,717 passed tests, 0 failures, and **93.57% total coverage**.
 
 ## Learned
 - **Decorator-Inclusive AST Spans in Markdown Auditing**: The markdown boundary linter (`scripts/audit_markdown_boundaries.py`) includes decorator lines (`@router.get`, `@pytest.mark.asyncio`) in the starting line of function AST bounds. All plan line bounds for decorated handlers and test fixtures must align with the first decorator line.
 - **SSOT Response Direct Passthrough**: `StudioSimulationService` must return existing response DTOs (`WorkflowSimulationResponse`, `StepSimulationResponse`, `PromptBlockSimulationResponse`) directly, allowing FastAPI routers to return service outputs without intermediate `model_validate()` calls.
 - **Telemetry Typed Envelopes Over Dict `.get()`**: Co-locating `StepTraceMetadataDTO` and `TraceEventMetadataEnvelope` in `backend_v2/models/dtos/trace.py` enables strict hydration of `_step_metadata` without relying on dict indexing or `.get()` fallbacks.
 - **Provider Extra Params Isolation**: `ProviderExtraParamsDTO` cleanly restricts extra provider sampling parameters (`temperature`, `top_p`, `top_k`, `max_output_tokens`) while first-class provider options (`vertex_location`, `thinking_budget_tokens`) belong as direct typed properties on `LLMProviderConfig` and `ModelProfile`.
+- **Subsystem Coverage Deficit Strategy**: Several peripheral hook modules (`context_mapper.py`, `security.py`, `references.py`, `validation.py`, `metadata.py`) previously lacked dedicated tests, creating an overall coverage deficit (79.12%). Expanding tests with ISTQB equivalence partition and boundary value cases lifted subsystem coverage to 90.25% without sacrificing domain strictness.
+- **Hook State Polymorphic Envelope Validation**: In scoring and falsifier hooks, `StateInputWrapper` should validate nested `inputs` and `raw_inputs` as `ExecutionInputsDTO | dict[str, Any]` while maintaining `ConfigDict(strict=True, extra="ignore", frozen=True)` to accept dynamic matrix key projections alongside strict step arrays.
+- **Guarded TypeAdapter Hydration with RFC-7807 Mapping**: Replacing silent `except ValidationError: pass` blocks in hook extraction pathways with guarded `TypeAdapter` validation and explicit `AppException(ErrorCodes.VALIDATION_FAILED, status_code=422)` conversion prevents silent corruptions while strictly upholding Fail-Fast architecture.
 
 ## Remaining
-- **Phase 2: Service & Studio Layer DTO Elimination**:
-  - Sub-Phase 2B Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]`
 - **Phase 3: Hooks, Orchestrator & Repository Suppression Eradication**:
-  - Sub-Phase 3A: Hooks Suppression Eradication (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md]`).
   - Sub-Phase 3B: Orchestrator Suppression Eradication (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md]`).
   - Sub-Phase 3C: Repositories & Domain Models (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md]`).
 - **Phase 4: AST Hardening, Knowledge Base & Architectural Governance Lockdown**:
@@ -301,5 +308,5 @@
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]
 ```

@@ -700,6 +700,7 @@ from unittest.mock import AsyncMock, PropertyMock
 
 @pytest.mark.asyncio
 async def test_simulate_workflow_fatal_error(root_token: Any, caplog: Any) -> None:
+    """Test workflow simulation error handling on fatal exception."""
     service = StudioSimulationService(prompt_block_service=AsyncMock())
 
     mock_workflow = MagicMock()
@@ -715,6 +716,6 @@ async def test_simulate_workflow_fatal_error(root_token: Any, caplog: Any) -> No
     mock_workflow.steps = [mock_step]
 
     res = await service.simulate_workflow(root_token, mock_workflow)
-    assert res["valid"] is False
-    assert "Fatal error resolving DAG structure." in res["errors"]
+    assert res.valid is False
+    assert "Fatal error resolving DAG structure." in res.errors
     assert root_token.id in caplog.text

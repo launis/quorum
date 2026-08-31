@@ -3,10 +3,9 @@
 import logging
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -104,17 +103,18 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
     judges_to_check = []
     raw_inputs = (
         state.inputs.dynamic_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.dynamic_inputs
-        else (
-            state.inputs.raw_inputs
-            if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.raw_inputs
-            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        )
+        if state.inputs and state.inputs.dynamic_inputs
+        else (state.inputs.raw_inputs if state.inputs and state.inputs.raw_inputs else {})
     )
     judges_to_check.append((blueprint_id, raw_inputs, True))
 
-    for judge_key, judge_model, is_post_hook in judges_to_check:
-        if not judge_model or not isinstance(judge_model, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+    for judge_key, judge_model_raw, is_post_hook in judges_to_check:
+        try:
+            judge_model = TypeAdapter(dict[str, Any]).validate_python(judge_model_raw)
+        except ValidationError:
+            continue
+
+        if not judge_model:
             continue
 
         # Zero-Compromise Pledge: Strategy 1 (Legacy score_card) is eradicated.
@@ -181,11 +181,16 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
                 new_judge[k] = new_dto.model_dump(mode="json")
 
             # O(1) Map Update if using pre-computed map
-            if "_evaluative_matrices" in new_judge and isinstance(new_judge["_evaluative_matrices"], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                eval_map = new_judge["_evaluative_matrices"]
-                for k, _ in matrix_keys:
-                    if k in eval_map:
-                        eval_map[k] = new_judge[k]["normalized_score"]
+            if "_evaluative_matrices" in new_judge:
+                eval_map_raw = new_judge["_evaluative_matrices"]
+                try:
+                    eval_map = TypeAdapter(dict[str, float]).validate_python(eval_map_raw)
+                    for k, _ in matrix_keys:
+                        if k in eval_map:
+                            eval_map[k] = new_judge[k]["normalized_score"]
+                    new_judge["_evaluative_matrices"] = eval_map
+                except ValidationError:
+                    pass
 
             if is_post_hook:
                 for k, v in new_judge.items():

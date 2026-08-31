@@ -506,4 +506,3 @@ async def test_studio_simulation_returns_strict_dtos(
 
     wf_res = await simulation_service.simulate_workflow(test_token, workflow)
     assert isinstance(wf_res, WorkflowSimulationResponse)
-

@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -89,11 +89,11 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
         updates_made = False
         new_payload = content_payload.copy()
 
-        eval_map: dict[str, float] = (
-            new_payload["_evaluative_matrices"]
-            if "_evaluative_matrices" in new_payload and isinstance(new_payload["_evaluative_matrices"], dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            else {}
-        )
+        eval_map_raw = new_payload["_evaluative_matrices"] if "_evaluative_matrices" in new_payload else {}
+        try:
+            eval_map = TypeAdapter(dict[str, float]).validate_python(eval_map_raw)
+        except ValidationError:
+            eval_map = {}
         new_payload["_evaluative_matrices"] = eval_map
 
         for pb_id in prompt_block_ids:
@@ -243,7 +243,9 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
     Raises:
         AppException: With ErrorCodes.VALIDATION_FAILED if matrix format or extensions are invalid.
     """
-    if not isinstance(payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+    try:
+        payload_dict = TypeAdapter(dict[str, Any]).validate_python(payload)
+    except ValidationError:
         return
 
     strictness_level = None
@@ -263,8 +265,13 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
     total_false_atoms = 0
 
     matrix_keys: list[str] = []
-    for k, v in payload.items():
-        if isinstance(v, dict) and "evaluated_atoms" in v and "justification" in v:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+    for k, v in payload_dict.items():
+        try:
+            v_dict = TypeAdapter(dict[str, Any]).validate_python(v)
+        except ValidationError:
+            continue
+
+        if "evaluated_atoms" in v_dict or "justification" in v_dict:
             pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(k)
             if pb_data:
                 pb_model = PromptBlockAdapter.validate_python(pb_data, strict=False)
@@ -272,7 +279,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
                     try:
                         _ = LightweightMatrixOutput.model_validate(v)
                         matrix_keys.append(k)
-                    except Exception as e:
+                    except ValidationError as e:
                         msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput for matrix '{k}': {e}"
                         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                         raise AppException(
