@@ -635,7 +635,7 @@
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/main.py]
+/tier5-resume --target="@[docs/epic/EPIC_149_tracker.md]" --workflow="/tier2-hardening-backend" --rules="00-antigravity-core.md,01-python-backend.md"
 ```
 
 
