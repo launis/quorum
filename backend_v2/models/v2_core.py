@@ -1274,16 +1274,28 @@ class ExecutionCreate(V2CoreBase):
         default=None,
         description=("Optional Opaque ID of the Output Profile to apply. If omitted, fallback to workflow default."),
     )
-    matrix_sampling_strategy: int = Field(
-        default_factory=lambda: get_settings().matrix_sampling_limit,
-        description=(
-            "Explicit dynamic strategy for Matrix Flattening. Defaulted from ALL to "
-            "10 locally to mitigate LLM JSON schema context limits."
+    matrix_sampling_strategy: Annotated[
+        int,
+        Field(
+            default_factory=lambda: get_settings().matrix_sampling_limit,
+            description=(
+                "Explicit dynamic strategy for Matrix Flattening. Defaulted from ALL to "
+                "10 locally to mitigate LLM JSON schema context limits."
+            ),
         ),
-    )
+    ]
     raw_inputs: WorkflowInputsIngress = Field(
         default_factory=lambda: WorkflowInputsIngress(), description="User provided raw inputs"
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _resolve_matrix_sampling_strategy(cls, data: Any) -> Any:
+        """Resolve matrix_sampling_strategy if passed explicitly as None."""
+        if isinstance(data, dict):  # noqa: QGR012 [REASON: Pydantic before validator raw ingress coercion]
+            if "matrix_sampling_strategy" in data and data["matrix_sampling_strategy"] is None:
+                data["matrix_sampling_strategy"] = get_settings().matrix_sampling_limit
+        return data
 
 
 class ExecutionStepState(V2CoreBase):

@@ -324,7 +324,7 @@ async def render_execution(
     if isinstance(content, JobAcceptedDTO):
         return JSONResponse(content=content.model_dump(mode="json"), status_code=status.HTTP_202_ACCEPTED)
 
-    if isinstance(content, (dict, list)):
+    if isinstance(content, (dict, list)):  # noqa: QGR012 [REASON: FastAPI router HTTP transport boundary serialization]
         return JSONResponse(content=content)
 
     return Response(content=content, media_type=media_type, headers=headers)
