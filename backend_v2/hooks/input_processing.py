@@ -15,8 +15,6 @@ from fastapi import status
 from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
-    GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -56,17 +54,9 @@ def _extract_raw_value(key_lower: str, state: HookState) -> Any:
     Returns:
         The extracted raw value, or None if not found.
     """
-    raw_inputs = (
-        state.inputs.raw_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
-    dynamic_inputs = state.inputs.dynamic_inputs if isinstance(state.inputs, ExecutionInputsDTO) else {}
-    gvars = (
-        state.global_context_vars.vars
-        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    raw_inputs = state.inputs.raw_inputs
+    dynamic_inputs = state.inputs.dynamic_inputs
+    gvars = state.global_context_vars.vars
 
     # 1. Check raw_inputs
     for k, v in raw_inputs.items():
@@ -304,13 +294,9 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     expected_inputs = workflow.expected_inputs
     output_dict: dict[str, str] = {}
 
-    gvars = (
-        state.global_context_vars.vars
-        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    gvars = state.global_context_vars.vars
     language_raw = gvars.get("language")
-    if not language_raw and isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.target_locale:
+    if not language_raw and state.inputs.target_locale:
         language_raw = state.inputs.target_locale
     if not language_raw and state.metadata and state.metadata.target_locale:
         language_raw = state.metadata.target_locale
@@ -331,9 +317,16 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         raw_val = _extract_raw_value(key_lower, state)
 
         # 1. Handle Questionnaire mode specifically if it exists
-        if isinstance(raw_val, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            resolved_text = _process_questionnaire(raw_val, key, expected_input)
-        else:
+        resolved_text: str = ""
+        is_questionnaire = False
+        if raw_val is not None and not isinstance(raw_val, (str, int, float, list)):
+            try:
+                resolved_text = _process_questionnaire(raw_val, key, expected_input)
+                is_questionnaire = True
+            except ValidationError, TypeError:
+                is_questionnaire = False
+
+        if not is_questionnaire:
             # 2. Standard resolution (File, Paste)
             resolved_text = await resolve_input(raw_val)
 

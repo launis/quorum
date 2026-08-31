@@ -7,7 +7,7 @@ the Tavily AI search client to verify them against live web data.
 import logging
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -32,6 +32,10 @@ logger = logging.getLogger(__name__)
 __all__ = ["source_verification_hook"]
 
 
+_dict_adapter = TypeAdapter(dict[str, Any])
+_list_adapter = TypeAdapter(list[Any])
+
+
 def _extract_text_polymorphically(inputs: Any) -> str:
     """Extract candidate text from heterogeneous input state partitions.
 
@@ -53,11 +57,26 @@ def _extract_text_polymorphically(inputs: Any) -> str:
     if isinstance(inputs, ExecutionInputsDTO):
         return _extract_text_polymorphically(inputs.raw_inputs)
 
-    if isinstance(inputs, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+    if isinstance(inputs, BaseModel):
+        if isinstance(inputs, SourceVerificationInputsDTO):
+            return (inputs.document_text or inputs.prior_analysis or inputs.text or inputs.document or "").strip()
+        return _extract_text_polymorphically(inputs.model_dump(mode="python"))
+
+    # Attempt to validate as list payload
+    try:
+        inputs_list = _list_adapter.validate_python(inputs)
+        text_parts = [str(item).strip() for item in inputs_list if item is not None and str(item).strip()]
+        return "\n\n".join(text_parts).strip()
+    except ValidationError:
+        pass
+
+    # Attempt to validate as dict payload
+    try:
+        inputs_dict = _dict_adapter.validate_python(inputs)
         recognized_keys = ("document_text", "prior_analysis", "text", "document")
-        if any(k in inputs for k in recognized_keys):
+        if any(k in inputs_dict for k in recognized_keys):
             try:
-                inputs_dto = SourceVerificationInputsDTO.model_validate(inputs)
+                inputs_dto = SourceVerificationInputsDTO.model_validate(inputs_dict)
                 return (
                     inputs_dto.document_text
                     or inputs_dto.prior_analysis
@@ -74,23 +93,13 @@ def _extract_text_polymorphically(inputs: Any) -> str:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
         else:
-            text_parts: list[str] = []
-            for val in inputs.values():
+            text_parts_dict: list[str] = []
+            for val in inputs_dict.values():
                 if val is not None and str(val).strip():
-                    text_parts.append(str(val).strip())
-            return "\n\n".join(text_parts).strip()
-
-    if isinstance(inputs, list):
-        text_parts = [str(item).strip() for item in inputs if item is not None and str(item).strip()]
-        return "\n\n".join(text_parts).strip()
-
-    if isinstance(inputs, BaseModel):
-        if isinstance(inputs, SourceVerificationInputsDTO):
-            return (inputs.document_text or inputs.prior_analysis or inputs.text or inputs.document or "").strip()
-        else:
-            dumped = inputs.model_dump(mode="python")
-            if isinstance(dumped, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                return _extract_text_polymorphically(dumped)
+                    text_parts_dict.append(str(val).strip())
+            return "\n\n".join(text_parts_dict).strip()
+    except ValidationError:
+        pass
 
     msg = "Invalid inputs format for source verification hook"
     logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)

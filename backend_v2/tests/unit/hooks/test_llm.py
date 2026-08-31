@@ -98,5 +98,102 @@ async def test_configure_llm_context_hook_valid(mock_get_settings: MagicMock) ->
 
     result = cast(HookResult, configure_llm_context_hook(state, deps))
     assert result.success is True
-    assert result.state_delta is not None
     assert "llm_config" in result.state_delta.delta
+    assert result.state_delta.delta["llm_config"]["model_name"] == "gpt-4o-mini"
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.hooks.llm.get_settings")
+async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settings: MagicMock) -> None:
+    mock_settings = MagicMock()
+    mock_settings.default_model_strategy = "fast"
+    mock_settings.model_registry = {
+        "id": "sys_abcdef0123456789abcdef0123456789",
+        "slug": "sys_reg",
+        "type": "model_registry",
+        "models": {
+            "fast": {
+                "provider": "openai",
+                "model_name": "gpt-4o-mini",
+                "api_key": "test",
+                "tpm_limit": 0,
+                "rpm_limit": 0,
+                "max_tokens": 1000,
+                "supports_grounding": False,
+            },
+            "custom": {
+                "provider": "gemini",
+                "model_name": "gemini-2.0-flash",
+                "api_key": "test2",
+                "tpm_limit": 0,
+                "rpm_limit": 0,
+                "max_tokens": 2000,
+                "supports_grounding": True,
+                "temperature": 0.5,
+            },
+        },
+    }
+    mock_get_settings.return_value = mock_settings
+
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        step_id="step_1",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(vars={"workflow_model_mapping": {"step_1": "custom"}}),
+    )
+    deps = MagicMock(spec=HookDependencies)
+
+    result = cast(HookResult, configure_llm_context_hook(state, deps))
+    assert result.success is True
+    assert result.state_delta.delta["llm_config"]["model_name"] == "gemini-2.0-flash"
+
+
+@patch("backend_v2.hooks.llm.get_settings")
+def test_configure_llm_context_hook_missing_registry(mock_get_settings: MagicMock) -> None:
+    mock_settings = MagicMock()
+    mock_settings.default_model_strategy = "fast"
+    mock_settings.model_registry = None
+    mock_get_settings.return_value = mock_settings
+
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        step_id="step_1",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = MagicMock(spec=HookDependencies)
+
+    with pytest.raises(AppException) as exc:
+        configure_llm_context_hook(state, deps)
+    assert exc.value.status_code == 500
+
+
+@patch("backend_v2.hooks.llm.get_settings")
+def test_configure_llm_context_hook_strategy_not_found(mock_get_settings: MagicMock) -> None:
+    mock_settings = MagicMock()
+    mock_settings.default_model_strategy = "unknown_strategy"
+    mock_settings.model_registry = {
+        "id": "sys_abcdef0123456789abcdef0123456789",
+        "slug": "sys_reg",
+        "type": "model_registry",
+        "models": {},
+    }
+    mock_get_settings.return_value = mock_settings
+
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        step_id="step_1",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = MagicMock(spec=HookDependencies)
+
+    with pytest.raises(AppException) as exc:
+        configure_llm_context_hook(state, deps)
+    assert exc.value.status_code == 500

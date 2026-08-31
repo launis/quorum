@@ -5,8 +5,6 @@ import logging
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
-    GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -39,11 +37,7 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
 
     hydration_source: HydrationInputSourceDTO | None = None
 
-    gvars = (
-        state.global_context_vars.vars
-        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    gvars = state.global_context_vars.vars
 
     for _key, result in gvars.items():
         try:
@@ -60,11 +54,7 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
         logger.warning("[HydrationHook] No InputProcessorOutput found in data. Skipping hydration.")
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    raw_inputs = (
-        state.inputs.raw_inputs.copy()
-        if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs.copy() if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    raw_inputs = state.inputs.raw_inputs.copy()
 
     # Extract updates safely via Pydantic model methods
     updates = hydration_source.extract_hydrated_inputs()

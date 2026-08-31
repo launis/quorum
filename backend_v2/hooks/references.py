@@ -10,8 +10,6 @@ from typing import Any
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
-    GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -101,11 +99,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
     try:
         text_dump = ""
 
-        raw_inputs = (
-            state.inputs.raw_inputs
-            if isinstance(state.inputs, ExecutionInputsDTO)
-            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        )
+        raw_inputs = state.inputs.raw_inputs
         try:
             parsed_inputs = ReferencesInputsDTO.model_validate(raw_inputs)
             if parsed_inputs.root:
@@ -125,11 +119,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
             logger.error("[ReferenceHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        gvars = (
-            state.global_context_vars.vars
-            if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-            else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        )
+        gvars = state.global_context_vars.vars
         try:
             parsed_context = ReferencesContextDTO.model_validate(gvars)
         except ValidationError as e:

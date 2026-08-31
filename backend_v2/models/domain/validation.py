@@ -55,6 +55,20 @@ class ValidationHookPayloadDTO:
         return cls(root=validated)
 
 
+class GuttmanAtomItemDTO(V2CoreBase):
+    """Evaluation atom item parsed for Guttman logic anomaly inspection.
+
+    Attributes:
+        score_level: Discrete score level / tier.
+        hit: Whether the evaluation atom criterion was satisfied.
+    """
+
+    model_config = ConfigDict(strict=True, extra="ignore")
+
+    score_level: Annotated[float, Field(description="Discrete score level / tier.")]
+    hit: Annotated[bool, Field(description="Whether criterion was satisfied.")]
+
+
 class ValidationWarningDTO(V2CoreBase):
     """Strict schema for RFC 7807 style validation warnings.
 

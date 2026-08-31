@@ -16,6 +16,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.validation import (
+    GuttmanAtomItemDTO,
     SystemWarningsStateDTO,
     ValidationHookPayloadDTO,
     ValidationResultDTO,
@@ -81,12 +82,20 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
     fields_to_validate: dict[str, Any] = {}
 
     # 1. Unpack raw_inputs dynamically
-    if "raw_inputs" in inputs_dict and isinstance(inputs_dict["raw_inputs"], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        fields_to_validate.update(inputs_dict["raw_inputs"])
+    raw_sub = inputs_dict.get("raw_inputs")
+    if raw_sub is not None:
+        try:
+            fields_to_validate.update(ValidationHookPayloadDTO.model_validate(raw_sub).root)
+        except ValidationError:
+            pass
 
     # 2. Unpack inputs dynamically
-    if "inputs" in inputs_dict and isinstance(inputs_dict["inputs"], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        fields_to_validate.update(inputs_dict["inputs"])
+    inputs_sub = inputs_dict.get("inputs")
+    if inputs_sub is not None:
+        try:
+            fields_to_validate.update(ValidationHookPayloadDTO.model_validate(inputs_sub).root)
+        except ValidationError:
+            pass
 
     # Fallback to the root if it's a flat payload, excluding known container keys
     if not fields_to_validate and not ("steps" in inputs_dict or "raw_inputs" in inputs_dict):
@@ -306,12 +315,15 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
             total_by_level: dict[float, float] = {}
 
             for atom in result:
-                if isinstance(atom, dict) and "score_level" in atom and "hit" in atom:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    level = float(atom["score_level"])
+                try:
+                    atom_dto = GuttmanAtomItemDTO.model_validate(atom)
+                    level = atom_dto.score_level
                     current_hits = hits_by_level[level] if level in hits_by_level else 0.0
-                    hits_by_level[level] = current_hits + (1.0 if atom["hit"] else 0.0)
+                    hits_by_level[level] = current_hits + (1.0 if atom_dto.hit else 0.0)
                     current_total = total_by_level[level] if level in total_by_level else 0.0
                     total_by_level[level] = current_total + 1.0
+                except ValidationError:
+                    continue
 
             if len(total_by_level) > 1:
                 sorted_levels = sorted(total_by_level.keys())

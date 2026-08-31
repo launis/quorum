@@ -10,7 +10,6 @@ from typing import Any
 from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
     GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
@@ -71,11 +70,7 @@ async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> lis
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
 
     inputs_dict = exec_record.raw_inputs.model_dump()
-    dynamic_inputs = (
-        inputs_dict["dynamic_inputs"]
-        if "dynamic_inputs" in inputs_dict and isinstance(inputs_dict["dynamic_inputs"], dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        else {}
-    )
+    dynamic_inputs = exec_record.raw_inputs.dynamic_inputs or {}
     storage = get_storage_driver()
 
     keys_to_check = set(list(inputs_dict.keys()) + list(dynamic_inputs.keys()))
@@ -245,12 +240,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         AnalystOutput | EvaluationResult
     )
 
-    inputs_source = (
-        state.inputs.raw_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
-
+    inputs_source = state.inputs.raw_inputs
     try:
         parsed_payload = CitationPayloadAdapter.validate_python(inputs_source)
     except ValidationError:
@@ -259,11 +249,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         delta = copy.deepcopy(inputs_source)
         return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))
 
-    gvars = (
-        state.global_context_vars.vars
-        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    gvars = state.global_context_vars.vars
     system_locale = gvars["system_locale"] if "system_locale" in gvars else None
     from backend_v2.settings import get_lexical_fuzz_threshold
 
@@ -320,11 +306,7 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
     Raises:
         AppException: If a hypothesis is missing an ID or contains a duplicate ID.
     """
-    payload = (
-        state.inputs.raw_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    payload = state.inputs.raw_inputs
 
     # Strict boundary check: Explicit schema-driven parsing
     try:

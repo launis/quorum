@@ -132,12 +132,14 @@ def run_tests_with_strict_coverage(target: str) -> None:
                         if parent_cand.exists():
                             test_path = str(parent_cand).replace("\\", "/")
                             break
-                    if test_path:
-                        break
-                    # 3. Flat unit test match
+                    # 3. Flat unit test match (direct or package-prefixed like test_hooks_validation.py)
                     flat = Path("backend_v2/tests/unit") / cand
                     if flat.exists():
                         test_path = str(flat).replace("\\", "/")
+                        break
+                    pkg_prefix_cand = Path("backend_v2/tests/unit") / f"test_{'_'.join(parts[1:-1])}_{cand[5:]}"
+                    if pkg_prefix_cand.exists():
+                        test_path = str(pkg_prefix_cand).replace("\\", "/")
                         break
 
             if not test_path:

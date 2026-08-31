@@ -5,8 +5,9 @@ import logging
 import uuid
 from typing import Any
 
+from pydantic import TypeAdapter, ValidationError
+
 from backend_v2.core.hook_registry import (
-    GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -20,6 +21,8 @@ from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
+
+_str_dict_adapter = TypeAdapter(dict[str, Any])
 
 
 @hook_registry.register(name="configure_llm_context")
@@ -51,11 +54,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
 
     # 1. Retrieve Context Variables
     # If no context, nothing to configure, but unusual.
-    ctx = (
-        state.global_context_vars.vars
-        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    ctx = state.global_context_vars.vars
 
     # 2. Get Strategy (SSOT)
     # We no longer rely on 'step.config' (which violated SSOT).
@@ -87,10 +86,14 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     # Workflow's 'default_model_mapping' dictionary into 'state.context_variables'
     # so we can do: model_strategy = ctx.get("workflow_model_mapping", {}).get(step_id, model_strategy)
 
-    if "workflow_model_mapping" in ctx and isinstance(ctx["workflow_model_mapping"], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        mapping = ctx["workflow_model_mapping"]
-        if step_id in mapping and isinstance(mapping[step_id], str):
-            model_strategy = mapping[step_id]
+    raw_mapping = ctx.get("workflow_model_mapping")
+    if raw_mapping is not None:
+        try:
+            mapping = _str_dict_adapter.validate_python(raw_mapping)
+            if step_id in mapping and isinstance(mapping[step_id], str):
+                model_strategy = mapping[step_id]
+        except ValidationError:
+            pass
 
     # 3. Resolve Provider & Model via SSOT Strategy Factory
     try:

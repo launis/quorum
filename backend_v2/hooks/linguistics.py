@@ -7,8 +7,6 @@ from fastapi import status
 from rapidfuzz import fuzz
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
-    GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -50,16 +48,8 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     if not state:
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    raw_inputs = (
-        state.inputs.raw_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
-    gvars = (
-        state.global_context_vars.vars
-        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    raw_inputs = state.inputs.raw_inputs
+    gvars = state.global_context_vars.vars
 
     # Check for early exit signal (Workflow override)
     should_scan = True

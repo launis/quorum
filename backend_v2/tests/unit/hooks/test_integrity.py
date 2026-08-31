@@ -163,3 +163,164 @@ def test_verify_payload_citations_analyst() -> None:
     assert len(invalid) == 1
     assert "Hallucinated quote" in invalid
     assert "Valid quote" in cast(AnalystOutput, new_payload).hypotheses[0].quotes
+
+
+def test_verify_payload_citations_evaluation_result() -> None:
+    from datetime import datetime, timezone
+    from backend_v2.models.domain.evaluation import EvaluationResult
+    from backend_v2.models.domain.judge import DimensionResultItem
+
+    payload = EvaluationResult(
+        thought_process="Thinking...",
+        conclusion="Concluded.",
+        confidence_score=0.9,
+        matrix_id="mat_1",
+        timestamp=datetime.now(timezone.utc),
+        total_score=5.0,
+        final_verdict="PASSED",
+        dimensions=[
+            DimensionResultItem(dimension_id="dim_1", dimension_label="Dim 1", score=5.0, reasoning="Good")
+        ],
+        scale_min=1.0,
+        scale_max=5.0,
+        citation_snippets=["Valid quote", "Hallucinated quote"],
+    )
+    norm_corpus = "thisisavalidquote"
+    new_payload, total, valid, invalid = _verify_payload_citations(payload, norm_corpus, threshold=80.0)
+    assert total == 2
+    assert valid == 1
+    assert len(invalid) == 1
+    assert "Hallucinated quote" in invalid
+
+
+@pytest.mark.asyncio
+async def test_verify_citation_integrity_hook_missing_source_texts_raises() -> None:
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO(raw_inputs={"test": "data"}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = MagicMock(spec=HookDependencies)
+    deps.exec_repo = AsyncMock()
+
+    with patch("backend_v2.hooks.integrity._gather_source_texts", new_callable=AsyncMock) as mock_gather:
+        mock_gather.return_value = []
+        with pytest.raises(AppException) as exc:
+            await cast(Awaitable[HookResult], verify_citation_integrity_hook(state, deps))
+        assert exc.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_verify_citation_integrity_hook_full_success_with_citations() -> None:
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "thought_process": "Thinking...",
+                "conclusion": "Concluded.",
+                "confidence_score": 0.9,
+                "hypotheses": [
+                    {
+                        "id": "hyp_1",
+                        "claim_text": "Claim",
+                        "evidence_found": True,
+                        "search_query": "Query",
+                        "quotes": ["This is valid text"],
+                    }
+                ],
+            }
+        ),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = MagicMock(spec=HookDependencies)
+    deps.exec_repo = AsyncMock()
+
+    with patch("backend_v2.hooks.integrity._gather_source_texts", new_callable=AsyncMock) as mock_gather:
+        mock_gather.return_value = ["This is valid text in source document."]
+        with patch("backend_v2.hooks.integrity._read_docs", return_value=""):
+            result = await cast(Awaitable[HookResult], verify_citation_integrity_hook(state, deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    assert "integrity_audit" in result.state_delta.delta
+    assert result.state_delta.delta["integrity_audit"]["integrity_score"] == 1.0
+
+
+@pytest.mark.asyncio
+async def test_gather_source_texts_with_storage() -> None:
+    from backend_v2.hooks.integrity import _gather_source_texts
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.v2_core import ExecutionRecord
+
+    deps = MagicMock(spec=HookDependencies)
+    deps.exec_repo = AsyncMock()
+    exec_record = ExecutionRecord(
+        id="ex_1234567890abcdef",
+        workflow_id="wf1",
+        target_locale="en",
+        status="RUNNING",
+        metadata=ExecutionMetadata(target_locale="en"),
+        raw_inputs=WorkflowInputs(dynamic_inputs={"dyn_b": "val2"}),
+    )
+    deps.exec_repo.get_execution.return_value = exec_record
+
+    mock_storage = AsyncMock()
+    mock_storage.exists.return_value = True
+    mock_storage.read.return_value = b"Loaded forensic input data"
+
+    with patch("backend_v2.hooks.integrity.get_storage_driver", return_value=mock_storage):
+        texts = await _gather_source_texts("exe1", deps)
+
+    assert len(texts) >= 1
+    assert "Loaded forensic input data" in texts[0]
+
+
+@pytest.mark.asyncio
+async def test_gather_source_texts_missing_record_raises() -> None:
+    from backend_v2.hooks.integrity import _gather_source_texts
+
+    deps = MagicMock(spec=HookDependencies)
+    deps.exec_repo = AsyncMock()
+    deps.exec_repo.get_execution.return_value = None
+
+    with pytest.raises(AppException) as exc:
+        await _gather_source_texts("exe_nonexistent", deps)
+    assert exc.value.status_code == 500
+
+
+def test_enforce_hypothesis_linking_empty_hypotheses() -> None:
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "thought_process": "Thinking...",
+                "conclusion": "Concluded.",
+                "confidence_score": 0.9,
+                "hypotheses": [],
+            }
+        ),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = MagicMock(spec=HookDependencies)
+    result = cast(HookResult, enforce_hypothesis_linking_hook(state, deps))
+    assert result.success is True
+
+
+def test_read_docs_with_files(tmp_path: Any) -> None:
+    from backend_v2.hooks.integrity import _read_docs
+
+    doc_file = tmp_path / "test.md"
+    doc_file.write_text("Markdown documentation content", encoding="utf-8")
+
+    with patch("backend_v2.hooks.integrity.get_settings") as mock_settings:
+        mock_settings.return_value.docs_dir = str(tmp_path)
+        content = _read_docs()
+    assert "Markdown documentation content" in content
+
+
