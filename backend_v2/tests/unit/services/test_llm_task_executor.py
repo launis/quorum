@@ -1,20 +1,39 @@
+"""Unit tests for LLMTaskExecutor service.
+
+Validates structured generation, schema-healing retries, logical error trapping,
+and token usage telemetry with strict DTO typing and Fail-Fast guarantees.
+"""
+
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pydantic import BaseModel
 
-from backend_v2.exceptions import AgentExecutionError, ErrorCodes, LLMSchemaValidationError, LogicalValidationError
-from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.exceptions import (
+    AgentExecutionError,
+    AppException,
+    ErrorCodes,
+    LLMSchemaValidationError,
+    LogicalValidationError,
+)
+from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.prompt_context import PromptContextDTO
+from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
+from backend_v2.services.llm_task_executor import LLMTaskExecutor, _validate_non_empty_payload
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 
 class MockResponseSchema(BaseModel):
+    """Mock response model for structured task execution testing."""
+
     value: str
 
 
 @pytest.fixture
 def mock_prompt_compiler() -> MagicMock:
+    """Fixture providing a mocked PromptCompiler."""
     compiler = MagicMock(spec=PromptCompiler)
     compiler.get_schema_healing_prompt.return_value = "FIX THIS JSON"
     return compiler
@@ -22,6 +41,7 @@ def mock_prompt_compiler() -> MagicMock:
 
 @pytest.fixture
 def mock_client() -> AsyncMock:
+    """Fixture providing a mocked LLMClient."""
     client = AsyncMock()
     client._config = None
     return client
@@ -29,13 +49,14 @@ def mock_client() -> AsyncMock:
 
 @pytest.mark.asyncio
 async def test_execute_structured_task_success(mock_prompt_compiler: MagicMock, mock_client: AsyncMock) -> None:
+    """PROMISE: Prove execute_structured_task parses valid responses and aggregates token usage."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
     expected_model = MockResponseSchema(value="success")
     expected_usage = {"total_tokens": 100, "prompt_tokens": 50, "completion_tokens": 50}
 
     mock_client.run_structured_task.return_value = (expected_model, expected_usage)
 
-    messages = [{"role": "user", "content": "hello world payload"}]
+    messages = [LLMMessageDTO(role="user", content="hello world payload")]
 
     res_model, res_usage = await executor.execute_structured_task(
         client=mock_client, messages=messages, response_model=MockResponseSchema
@@ -50,6 +71,7 @@ async def test_execute_structured_task_success(mock_prompt_compiler: MagicMock, 
 async def test_execute_structured_task_retry_on_schema_error(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
+    """PROMISE: Prove execute_structured_task retries on schema validation failure with healing prompt."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
     expected_model = MockResponseSchema(value="fixed")
 
@@ -62,7 +84,10 @@ async def test_execute_structured_task_retry_on_schema_error(
 
     res_model, res_usage = await executor.execute_structured_task(
         client=mock_client,
-        messages=[{"role": "system", "content": "sys"}, {"role": "user", "content": "user_payload"}],
+        messages=[
+            LLMMessageDTO(role="system", content="sys"),
+            LLMMessageDTO(role="user", content="user_payload"),
+        ],
         response_model=MockResponseSchema,
         max_schema_retries=1,
     )
@@ -91,6 +116,7 @@ async def test_execute_structured_task_retry_on_schema_error(
 async def test_execute_structured_task_max_schema_retries_exceeded(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
+    """PROMISE: Prove execute_structured_task raises AgentExecutionError when max retries are exceeded."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
 
     error1 = LLMSchemaValidationError(raw_llm_payload="bad json 1", validation_error_msg="syntax error 1", is_eof=False)
@@ -101,7 +127,10 @@ async def test_execute_structured_task_max_schema_retries_exceeded(
     with pytest.raises(AgentExecutionError) as exc_info:
         await executor.execute_structured_task(
             client=mock_client,
-            messages=[{"role": "system", "content": "sys"}, {"role": "user", "content": "user_payload"}],
+            messages=[
+                LLMMessageDTO(role="system", content="sys"),
+                LLMMessageDTO(role="user", content="user_payload"),
+            ],
             response_model=MockResponseSchema,
             max_schema_retries=1,
         )
@@ -115,9 +144,9 @@ async def test_execute_structured_task_max_schema_retries_exceeded(
 async def test_execute_structured_task_stuck_loop_detection(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
+    """PROMISE: Prove execute_structured_task aborts stuck loop on identical schema error payloads."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
 
-    # Identical payloads will trigger stuck loop immediately on the second attempt
     error1 = LLMSchemaValidationError(
         raw_llm_payload="identical bad json", validation_error_msg="syntax error", is_eof=False
     )
@@ -130,7 +159,7 @@ async def test_execute_structured_task_stuck_loop_detection(
     with pytest.raises(AgentExecutionError) as exc_info:
         await executor.execute_structured_task(
             client=mock_client,
-            messages=[{"role": "user", "content": "user_payload"}],
+            messages=[LLMMessageDTO(role="user", content="user_payload")],
             response_model=MockResponseSchema,
             max_schema_retries=5,
         )
@@ -144,10 +173,10 @@ async def test_execute_structured_task_stuck_loop_detection(
 async def test_execute_structured_task_logical_error_retry(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
+    """PROMISE: Prove execute_structured_task retries on logical validator failure and accumulates tokens."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
     expected_model = MockResponseSchema(value="fixed logic")
 
-    # The client returns valid model, but validator_hook fails
     async def mock_validator(model: Any) -> None:
         if getattr(model, "value", None) == "bad logic":
             raise LogicalValidationError(validation_error_msg="Logical flaw detected")
@@ -159,14 +188,16 @@ async def test_execute_structured_task_logical_error_retry(
 
     res_model, res_usage = await executor.execute_structured_task(
         client=mock_client,
-        messages=[{"role": "system", "content": "sys"}, {"role": "user", "content": "user_payload"}],
+        messages=[
+            LLMMessageDTO(role="system", content="sys"),
+            LLMMessageDTO(role="user", content="user_payload"),
+        ],
         response_model=MockResponseSchema,
         max_logical_retries=1,
         validator_hook=mock_validator,
     )
 
     assert res_model.value == "fixed logic"
-    # FinOps must accumulate tokens from both attempts
     assert res_usage.total_tokens == 25
     assert mock_client.run_structured_task.call_count == 2
 
@@ -185,24 +216,14 @@ async def test_execute_structured_task_logical_error_retry(
 
 
 @pytest.mark.asyncio
-async def test_execute_chat_task(mock_prompt_compiler: MagicMock, mock_client: AsyncMock) -> None:
-    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
-    mock_client.run_chat.return_value = "chat response"
-
-    res = await executor.execute_chat_task(client=mock_client, messages=[])
-    assert res == "chat response"
-    mock_client.run_chat.assert_called_once()
-
-
-@pytest.mark.asyncio
 async def test_validate_non_empty_payload_too_short(mock_prompt_compiler: MagicMock, mock_client: AsyncMock) -> None:
+    """PROMISE: Prove execute_structured_task rejects payload that is too short with status_code 400."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
-    from backend_v2.exceptions import AppException
 
     with pytest.raises(AppException) as exc_info:
         await executor.execute_structured_task(
             client=mock_client,
-            messages=[{"role": "user", "content": "a"}],
+            messages=[LLMMessageDTO(role="user", content="a")],
             response_model=MockResponseSchema,
         )
     assert exc_info.value.status_code == 400
@@ -212,17 +233,20 @@ async def test_validate_non_empty_payload_too_short(mock_prompt_compiler: MagicM
 async def test_execute_structured_task_compiled_prompt_and_metadata(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
+    """PROMISE: Prove execute_structured_task processes CompiledPrompt with custom validation context."""
     executor = LLMTaskExecutor(
         prompt_compiler=mock_prompt_compiler,
         default_validation_context={"execution_id": "test", "step_id": "test_step"},
     )
-    from backend_v2.models.prompt import CompiledPrompt
 
     messages = CompiledPrompt(
         static_messages=[
-            {"role": "user", "content": "This is a very long payload to pass the minimum validation length check."}
+            LLMMessageDTO(
+                role="user", content="This is a very long payload to pass the minimum validation length check."
+            )
         ],
         dynamic_messages=[],
+        metadata=PromptMetadataDTO(),
     )
 
     mock_client.run_structured_task.return_value = (
@@ -239,20 +263,19 @@ async def test_execute_structured_task_compiled_prompt_and_metadata(
 async def test_execute_structured_task_telemetry_failure(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
+    """PROMISE: Prove telemetry failure does not crash successful structured task execution."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
     mock_client.run_structured_task.return_value = (
         MockResponseSchema(value="ok"),
         {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
     )
 
-    from unittest.mock import patch
-
     with patch(
         "backend_v2.services.llm_task_executor.write_llm_telemetry_log", side_effect=Exception("Telemetry fail")
     ):
         res, _ = await executor.execute_structured_task(
             client=mock_client,
-            messages=[{"role": "user", "content": "Long enough payload text for passing validation"}],
+            messages=[LLMMessageDTO(role="user", content="Long enough payload text for passing validation")],
             response_model=MockResponseSchema,
         )
         assert res.value == "ok"
@@ -262,9 +285,8 @@ async def test_execute_structured_task_telemetry_failure(
 async def test_execute_structured_task_schema_error_no_dynamic_messages(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
+    """PROMISE: Prove schema error retries work correctly when CompiledPrompt has empty dynamic_messages."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
-
-    from backend_v2.models.domain.usage import TokenUsage
 
     error = LLMSchemaValidationError(raw_llm_payload="bad json", validation_error_msg="syntax error", is_eof=False)
     error.token_usage = TokenUsage(total_tokens=5, prompt_tokens=2, completion_tokens=3)
@@ -274,11 +296,10 @@ async def test_execute_structured_task_schema_error_no_dynamic_messages(
         (MockResponseSchema(value="fixed"), {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10}),
     ]
 
-    from backend_v2.models.prompt import CompiledPrompt
-
     messages = CompiledPrompt(
-        static_messages=[{"role": "user", "content": "Long enough payload text for passing validation"}],
+        static_messages=[LLMMessageDTO(role="user", content="Long enough payload text for passing validation")],
         dynamic_messages=[],
+        metadata=PromptMetadataDTO(),
     )
 
     res, usage = await executor.execute_structured_task(
@@ -296,6 +317,7 @@ async def test_execute_structured_task_schema_error_no_dynamic_messages(
 async def test_execute_structured_task_logical_error_max_retries_and_stuck_loop(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
+    """PROMISE: Prove logical error exceeding max retries raises AGENT_LOGICAL_VALIDATION_FAILED."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
 
     async def mock_validator(model: Any) -> None:
@@ -309,7 +331,7 @@ async def test_execute_structured_task_logical_error_max_retries_and_stuck_loop(
     with pytest.raises(AgentExecutionError) as exc_info:
         await executor.execute_structured_task(
             client=mock_client,
-            messages=[{"role": "user", "content": "Long enough payload text for passing validation"}],
+            messages=[LLMMessageDTO(role="user", content="Long enough payload text for passing validation")],
             response_model=MockResponseSchema,
             max_logical_retries=1,
             validator_hook=mock_validator,
@@ -321,6 +343,7 @@ async def test_execute_structured_task_logical_error_max_retries_and_stuck_loop(
 async def test_execute_structured_task_logical_error_coaching_notes(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
+    """PROMISE: Prove coaching directives for ellipses and brackets are injected into retry prompt."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
 
     async def mock_validator(model: Any) -> None:
@@ -337,7 +360,7 @@ async def test_execute_structured_task_logical_error_coaching_notes(
 
     res, _ = await executor.execute_structured_task(
         client=mock_client,
-        messages=[{"role": "user", "content": "Long enough payload text for passing validation"}],
+        messages=[LLMMessageDTO(role="user", content="Long enough payload text for passing validation")],
         response_model=MockResponseSchema,
         max_logical_retries=1,
         validator_hook=mock_validator,
@@ -357,9 +380,6 @@ async def test_execute_structured_task_with_prompt_context_dto(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
     """PROMISE: Prove PromptContextDTO is properly accepted and converted by execute_structured_task."""
-    from backend_v2.models.dtos.prompt_context import PromptContextDTO
-    from backend_v2.models.llm import LLMMessageDTO
-
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
     expected_model = MockResponseSchema(value="context_dto_success")
     expected_usage = {"total_tokens": 80, "prompt_tokens": 40, "completion_tokens": 40}
@@ -397,14 +417,9 @@ async def test_execute_chat_task(mock_prompt_compiler: MagicMock, mock_client: A
 @pytest.mark.asyncio
 async def test_validate_non_empty_payload_edge_cases(mock_prompt_compiler: MagicMock) -> None:
     """PROMISE: Prove _validate_non_empty_payload edge cases and type validations."""
-    from backend_v2.exceptions import AppException
-    from backend_v2.models.llm import LLMMessageDTO
-    from backend_v2.services.llm_task_executor import _validate_non_empty_payload
-
     # Valid message list with LLMMessageDTO
     _validate_non_empty_payload([LLMMessageDTO(role="user", content="Adequate non-empty payload content here.")])
 
     # Too short payload raises AppException
     with pytest.raises(AppException):
         _validate_non_empty_payload([LLMMessageDTO(role="user", content="a")])
-

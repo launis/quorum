@@ -46,7 +46,10 @@ class ClientErrorPayload(BaseDTO):
     error_message: Annotated[str, Field(description="The main error message or exception toString()")]
     stack_trace: Annotated[str | None, Field(description="The Dart stack trace lines")] = None
     severity: Annotated[str, Field(description="Severity level, usually 'error' or 'fatal'")] = "error"
-    context_data: Annotated[dict[str, Any], Field(default_factory=dict, description="Additional context or state dump")]
+    context_data: Annotated[
+        dict[str, Any],  # noqa: QGR001 [REASON: Client error telemetry payload at external HTTP ingress boundary]
+        Field(default_factory=dict, description="Additional context or state dump"),
+    ]
 
 
 class StrictnessConfigDTO(BaseDTO):

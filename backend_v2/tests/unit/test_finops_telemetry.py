@@ -3,13 +3,12 @@
 import logging
 import typing
 import uuid
-from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
 from backend_v2.llm.caching_service import LLMCachingService
-from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.usage_service import UsageService
@@ -23,7 +22,6 @@ def usage_service() -> UsageService:
     return UsageService(identity_repo=identity_repo, audit_repo=audit_repo)
 
 
-@pytest.mark.skip("Legacy architecture obsolete")
 def test_token_usage_addition() -> None:
     """Phase 6: Test TokenUsage __add__ operator correctness with FinOps fields."""
     usage1 = TokenUsage(
@@ -54,39 +52,33 @@ def test_token_usage_addition() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
-async def test_record_llm_step_tokens_accumulates_finops(
-    usage_service: UsageService, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Phase 6: Test record_llm_step_tokens correctly updates FinOps usage."""
-    monkeypatch.setattr(usage_service.identity_repo, "update_organization_tokens", AsyncMock())
-    monkeypatch.setattr(usage_service.audit_repo, "record_usage_event", AsyncMock())
+async def test_track_usage_accumulates_finops(usage_service: UsageService, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Phase 6: Test track_usage correctly logs and aggregates FinOps usage."""
+    monkeypatch.setattr(usage_service.audit_repo, "log_usage", AsyncMock())
+    monkeypatch.setattr(usage_service.audit_repo, "upsert_usage_aggregate", AsyncMock())
 
-    usage = TokenUsage(
-        prompt_tokens=500,
-        completion_tokens=100,
-        total_tokens=600,
-        cached_tokens=200,
+    record = await usage_service.track_usage(
+        org_id="tenant_123",
+        user_id="user_abc",
+        model="test-model",
+        input_tokens=500,
+        output_tokens=100,
         cost_usd=0.004,
+        cached_tokens=200,
         estimated_savings_usd=0.001,
     )
 
-    await usage_service.record_llm_step_tokens(
-        tenant_id="tenant_123",
-        step_id="step_abc",
-        usage=usage,
-    )
+    assert record.input_tokens == 500
+    assert record.output_tokens == 100
+    assert record.cached_tokens == 200
+    assert record.cost_usd == 0.004
+    assert record.estimated_savings_usd == 0.001
 
-    usage_service.identity_repo.update_organization_tokens.assert_called_once()
-    call_args = usage_service.identity_repo.update_organization_tokens.call_args
-    assert call_args[0][0] == "tenant_123"
-    assert call_args[0][1] == 600
-
-    usage_service.audit_repo.record_usage_event.assert_called_once()
+    usage_service.audit_repo.log_usage.assert_called_once()
+    assert usage_service.audit_repo.upsert_usage_aggregate.call_count >= 2
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_purity_scanner_clean_static_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     """Phase 6: Test Purity Scanner passes clean static prompts without warnings."""
     compiled = CompiledPrompt(
@@ -108,7 +100,6 @@ async def test_purity_scanner_clean_static_prompt(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_purity_scanner_uuid_violation(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
     """Phase 6: Test Purity Scanner detects dynamic UUIDs in static system instructions."""
     compiled = CompiledPrompt(
@@ -131,7 +122,6 @@ async def test_purity_scanner_uuid_violation(caplog: pytest.LogCaptureFixture, m
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_purity_scanner_timestamp_violation(
     caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -156,7 +146,6 @@ async def test_purity_scanner_timestamp_violation(
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_purity_scanner_ignores_user_role(
     caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -181,7 +170,6 @@ async def test_purity_scanner_ignores_user_role(
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Legacy architecture obsolete")
 async def test_prompt_caching_drift_alert(usage_service: UsageService, caplog: pytest.LogCaptureFixture) -> None:
     """Phase 6: Test PROMPT_CACHING_DRIFT_ALERT triggers when hit rate drops below 80% over 5 calls."""
     # Provide 4 prior records from DB where hit rate is 0
@@ -204,7 +192,11 @@ async def test_prompt_caching_drift_alert(usage_service: UsageService, caplog: p
     mock_audit_repo = typing.cast(AsyncMock, usage_service.audit_repo)
     mock_audit_repo.get_usage_records.return_value = prior_records
 
-    pricing_config = {"caching_strategy": "prompt_caching"}
+    pricing_config = PricingConfig(
+        input_token_price=0.00001,
+        output_token_price=0.00003,
+        cached_input_token_price=0.000005,
+    )
 
     with caplog.at_level(logging.ERROR):
         # 5th execution also has 0 cache hits. Total cached_tokens = 0, total_tokens = 750 (150 * 5). Hit rate = 0%.

@@ -1099,6 +1099,8 @@ class MockProvider(LLMProvider):
             max_tokens: Limit.
             top_p: P-sample.
             top_k: K-sample.
+            frequency_penalty: Penalty for repeated tokens.
+            presence_penalty: Penalty for new topic presence.
             pass_reasoning_token: Blob.
             validation_context: Custom dict.
             **kwargs: Extra parameters.

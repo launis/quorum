@@ -5,12 +5,13 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.database.interfaces import IExecutionRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.utils.redis_patcher import ArqCompatibleFakeRedis
 
 logger = logging.getLogger(__name__)
 
@@ -22,17 +23,23 @@ STATUS_FAILED = "failed"
 
 
 class ProgressState(BaseModel):
-    """Pydantic model representing in-memory progress state."""
+    """Pydantic model representing in-memory progress state.
+
+    Attributes:
+        status: Progress state status ('started', 'running', 'completed', 'failed').
+        timestamp: ISO-8601 UTC timestamp string.
+        current_step: Current active step or task name.
+        progress: Completion progress percentage (0-100).
+        error: Error message string if failed.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    status: str
-    timestamp: str
-    stage: str | None = None
-    percent: int | None = None
-    error: str | None = None
-    result: dict[str, Any] | None = None
-    details: dict[str, Any] | None = None
+    status: Annotated[str, Field(description="Progress state status")]
+    timestamp: Annotated[str, Field(description="ISO-8601 UTC timestamp string")]
+    current_step: Annotated[str | None, Field(default=None, description="Current active step or task name")] = None
+    progress: Annotated[int | None, Field(default=None, description="Completion progress percentage (0-100)")] = None
+    error: Annotated[str | None, Field(default=None, description="Error message string if failed")] = None
 
 
 class ProgressTracker(ABC):
@@ -42,45 +49,45 @@ class ProgressTracker(ABC):
     """
 
     @abstractmethod
-    async def start(self, details: dict[str, Any] | None = None) -> None:
+    async def start(self) -> None:
         """Signals the process has started.
 
-        Args:
-            details (Dict[str, Any], optional): Initial metadata.
-
+        Returns:
+            None
         """
         ...
 
     @abstractmethod
-    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None) -> None:
-        """Updates progress with current stage and percentage.
+    async def update(self, current_step: str, progress: int) -> None:
+        """Updates progress with current step and progress percentage.
 
         Args:
-            stage (str): Description of current activity.
-            percent (int): Completion percentage (0-100).
-            details (Dict[str, Any], optional): Metadata updates.
+            current_step: Description of current activity or step name.
+            progress: Completion percentage (0-100).
 
+        Returns:
+            None
         """
         ...
 
     @abstractmethod
-    async def complete(self, result: dict[str, Any] | None = None) -> None:
+    async def complete(self) -> None:
         """Signals successful completion.
 
-        Args:
-            result (Dict[str, Any], optional): Final result data.
-
+        Returns:
+            None
         """
         ...
 
     @abstractmethod
-    async def fail(self, error: str, details: dict[str, Any] | None = None) -> None:
+    async def fail(self, error: str) -> None:
         """Signals failure/halt.
 
         Args:
-            error (str): Error message.
-            details (Dict[str, Any], optional): Error context.
+            error: Error message.
 
+        Returns:
+            None
         """
         ...
 
@@ -89,24 +96,24 @@ class DatabaseProgressTracker(ProgressTracker):
     """Tracks progress by updating the 'executions' table in the database.
 
     Used by WorkflowEngine to persist state across server restarts.
+
+    Attributes:
+        repository: Data access layer interface.
+        execution_id: UUID of the execution.
     """
 
-    def __init__(self, repository: IExecutionRepository, execution_id: str):
+    def __init__(self, repository: IExecutionRepository, execution_id: str) -> None:
         """Initializes the tracker for a specific execution.
 
         Args:
-            repository (IExecutionRepository): Data access layer.
-            execution_id (str): UUID of the execution.
-
+            repository: Data access layer.
+            execution_id: UUID of the execution.
         """
         self.repository = repository
         self.execution_id = execution_id
 
-    async def start(self, details: dict[str, Any] | None = None) -> None:
+    async def start(self) -> None:
         """Sets status to 'started'.
-
-        Args:
-            details (dict[str, Any] | None, optional): Initial metadata.
 
         Returns:
             None
@@ -115,13 +122,12 @@ class DatabaseProgressTracker(ProgressTracker):
             AppException: If updating the execution in the repository fails.
         """
         try:
-            payload = {"status": STATUS_STARTED, "start_time": datetime.now(timezone.utc).isoformat()}
-            if details:
-                # Fail-Fast: Prevent un-audited state mutation bypasses
-                for k in payload:
-                    if k in details:
-                        raise ValueError(f"Progress property bypass attempt: '{k}'")
-                payload.update(details)
+            now_iso = datetime.now(timezone.utc).isoformat()
+            payload = {
+                "status": STATUS_STARTED,
+                "created_at": now_iso,
+                "updated_at": now_iso,
+            }
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to start progress tracking for {self.execution_id}"
@@ -132,13 +138,12 @@ class DatabaseProgressTracker(ProgressTracker):
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
 
-    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None) -> None:
+    async def update(self, current_step: str, progress: int) -> None:
         """Updates 'current_step' and 'progress' fields in DB.
 
         Args:
-            stage (str): Description of current activity.
-            percent (int): Completion percentage (0-100).
-            details (dict[str, Any] | None, optional): Metadata updates.
+            current_step: Description of current activity or step name.
+            progress: Completion percentage (0-100).
 
         Returns:
             None
@@ -149,32 +154,23 @@ class DatabaseProgressTracker(ProgressTracker):
         try:
             payload = {
                 "status": STATUS_RUNNING,
-                "current_step": stage,
-                "current_step_name": stage,
-                "progress": percent,
-                "last_updated": datetime.now(timezone.utc).isoformat(),
+                "current_step": current_step,
+                "current_step_name": current_step,
+                "progress": progress,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
             }
-            if details:
-                for k in payload:
-                    if k in details:
-                        raise ValueError(f"Progress property bypass attempt for managed key: '{k}'")
-                payload.update(details)
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to update progress for {self.execution_id}"
             logger.error("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
-            # We strictly Fail Fast here based on the mandate.
             raise AppException(
                 message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
 
-    async def complete(self, result: dict[str, Any] | None = None) -> None:
-        """Sets status to 'completed' and saves final result.
-
-        Args:
-            result (dict[str, Any] | None, optional): Final result data.
+    async def complete(self) -> None:
+        """Sets status to 'completed'.
 
         Returns:
             None
@@ -183,9 +179,12 @@ class DatabaseProgressTracker(ProgressTracker):
             AppException: If updating the execution in the repository fails.
         """
         try:
-            payload: dict[str, Any] = {"status": STATUS_COMPLETED, "end_time": datetime.now(timezone.utc).isoformat()}
-            if result:
-                payload["result"] = result
+            now_iso = datetime.now(timezone.utc).isoformat()
+            payload = {
+                "status": STATUS_COMPLETED,
+                "completed_at": now_iso,
+                "updated_at": now_iso,
+            }
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to complete progress tracking for {self.execution_id}"
@@ -196,12 +195,11 @@ class DatabaseProgressTracker(ProgressTracker):
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
 
-    async def fail(self, error: str, details: dict[str, Any] | None = None) -> None:
+    async def fail(self, error: str) -> None:
         """Sets status to 'failed' and saves error message.
 
         Args:
-            error (str): Error message.
-            details (dict[str, Any] | None, optional): Error context.
+            error: Error message.
 
         Returns:
             None
@@ -210,17 +208,16 @@ class DatabaseProgressTracker(ProgressTracker):
             AppException: If updating the execution in the repository fails.
         """
         try:
-            payload: dict[str, Any] = {
+            now_iso = datetime.now(timezone.utc).isoformat()
+            payload = {
                 "status": STATUS_FAILED,
                 "error": error,
-                "end_time": datetime.now(timezone.utc).isoformat(),
+                "completed_at": now_iso,
+                "updated_at": now_iso,
             }
-            if details:
-                payload["result"] = details
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to report failure for {self.execution_id}"
-            # If we fail to report failure, log critically with standard format.
             logger.critical("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
             raise AppException(
                 message=msg,
@@ -230,125 +227,100 @@ class DatabaseProgressTracker(ProgressTracker):
 
 
 class InMemoryProgressTracker(ProgressTracker):
-    """Tracks progress in-memory via a callback function.
+    """Tracks progress in-memory via a callback function emitting ProgressState.
 
     Used by short-lived API tasks like File Ingestion.
+
+    Attributes:
+        callback: Function receiving ProgressState updates.
+        current_state: Current active ProgressState.
     """
 
-    def __init__(self, callback: Callable[[dict[str, Any]], None]):
-        """Initializes the tracker.
+    def __init__(self, callback: Callable[[ProgressState], None]) -> None:
+        """Initializes the tracker with a ProgressState callback.
 
         Args:
-            callback (Callable[[Dict[str, Any]], None]): Function receiving status updates.
-
+            callback: Function receiving ProgressState updates.
         """
         self.callback = callback
         self.current_state: ProgressState | None = None
 
-    def _emit(self, status: str, payload: dict[str, Any]) -> None:
-        """Internal helper to emit status.
+    def _emit(
+        self,
+        status: str,
+        current_step: str | None = None,
+        progress: int | None = None,
+        error: str | None = None,
+    ) -> None:
+        """Internal helper to emit structured ProgressState.
 
         Args:
-            status (str): Current status code.
-            payload (dict[str, Any]): Data payload.
+            status: Status string.
+            current_step: Optional active step name.
+            progress: Optional progress percentage (0-100).
+            error: Optional error message.
 
         Returns:
             None
         """
-        base: dict[str, Any] = {"status": status, "timestamp": datetime.now(timezone.utc).isoformat()}
-        for k in base:
-            if k in payload:
-                raise ValueError(f"InMemory Tracker property bypass attempt: '{k}'")
+        state = ProgressState(
+            status=status,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            current_step=current_step,
+            progress=progress,
+            error=error,
+        )
+        self.current_state = state
+        self.callback(state)
 
-        known_fields = {"stage", "percent", "error", "result", "details"}
-        extra_details: dict[str, Any] = {}
-        for k, v in payload.items():
-            if k in known_fields:
-                base[k] = v
-            else:
-                extra_details[k] = v
-
-        if extra_details:
-            base["details"] = extra_details
-
-        self.current_state = ProgressState.model_validate(base)
-        # Pass the simplified view expected by API consumers
-        dumped = self.current_state.model_dump(exclude_none=True)
-        if details := dumped.pop("details", None):
-            dumped.update(details)
-        self.callback(dumped)
-
-    async def start(self, details: dict[str, Any] | None = None) -> None:
+    async def start(self) -> None:
         """Signals start.
 
-        Args:
-            details (dict[str, Any] | None, optional): Initial metadata.
-
         Returns:
             None
         """
-        self._emit(STATUS_STARTED, details or {})
+        self._emit(status=STATUS_STARTED)
 
-    async def update(self, stage: str, percent: int, details: dict[str, Any] | None = None) -> None:
+    async def update(self, current_step: str, progress: int) -> None:
         """Signals update.
 
         Args:
-            stage (str): Description of current activity.
-            percent (int): Completion percentage (0-100).
-            details (dict[str, Any] | None, optional): Metadata updates.
+            current_step: Description of current activity or step name.
+            progress: Completion percentage (0-100).
 
         Returns:
             None
         """
-        data = {"stage": stage, "percent": percent}
-        if details:
-            for k in data:
-                if k in details:
-                    raise ValueError(f"InMemory Tracker property bypass attempt: '{k}'")
-            data.update(details)
-        self._emit(STATUS_RUNNING, data)
+        self._emit(status=STATUS_RUNNING, current_step=current_step, progress=progress)
 
-    async def complete(self, result: dict[str, Any] | None = None) -> None:
+    async def complete(self) -> None:
         """Signals completion.
 
-        Args:
-            result (dict[str, Any] | None, optional): Final result data.
-
         Returns:
             None
         """
-        data: dict[str, Any] = {"percent": 100}
-        if result:
-            data["result"] = result
-        self._emit(STATUS_COMPLETED, data)
+        self._emit(status=STATUS_COMPLETED, progress=100)
 
-    async def fail(self, error: str, details: dict[str, Any] | None = None) -> None:
+    async def fail(self, error: str) -> None:
         """Signals failure.
 
         Args:
-            error (str): Error message.
-            details (dict[str, Any] | None, optional): Error context.
+            error: Error message.
 
         Returns:
             None
         """
-        data = {"error": error}
-        if details:
-            for k in data:
-                if k in details:
-                    raise ValueError(f"InMemory Tracker property bypass attempt: '{k}'")
-            data.update(details)
-        self._emit(STATUS_FAILED, data)
+        self._emit(status=STATUS_FAILED, error=error)
 
 
 class ProgressService:
     """Service for real-time progress reporting via Redis."""
 
-    def __init__(self, redis_client: Any):
-        """Initialize with a Redis client (ArqRedis or compatible).
+    def __init__(self, redis_client: ArqCompatibleFakeRedis) -> None:
+        """Initialize with a Redis client (ArqRedis, ArqCompatibleFakeRedis, or compatible).
 
         Args:
-            redis_client (Any): Redis client instance.
+            redis_client: Redis client instance.
         """
         self.redis = redis_client
 

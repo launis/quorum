@@ -74,7 +74,7 @@ def test_prompt_compiler_adapter_compile_prompt_fallback() -> None:
 
 
 def test_prompt_compiler_adapter_compile_prompt_empty_dynamic_fallback() -> None:
-    """Verifies that if no dynamic tags are present, the last message is moved to dynamic_msgs to prevent Vertex AI 400 errors."""
+    """Verifies fallback moving last message to dynamic_messages when no dynamic tags exist."""
     adapter = PromptCompilerAdapter()
 
     messages = [

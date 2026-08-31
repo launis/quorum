@@ -37,7 +37,7 @@ else
 end
 """
 
-_last_response_var = contextvars.ContextVar("fake_redis_last_response", default=None)
+_last_response_var: contextvars.ContextVar[Any] = contextvars.ContextVar("fake_redis_last_response", default=None)
 
 
 class MockRetry:
@@ -56,28 +56,84 @@ class MockRetry:
         return await func()
 
 
-def _patch_arq_connection_handling(fake_redis: Any) -> None:
-    """Patches connection lifecycle methods on FakeRedis for Arq.
+class ArqCompatibleFakeRedis(FakeRedis):
+    """Strongly typed FakeRedis subclass providing Arq connection pool compatibility.
 
-    Args:
-        fake_redis: The FakeRedis instance to patch.
+    Attributes:
+        retry: Mock retry handler for Arq execution.
     """
-    if not hasattr(fake_redis, "get_connection"):
 
-        async def _get_conn() -> Any:
-            return fake_redis
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initializes the fake redis instance with Arq compatibility attributes.
 
-        fake_redis.get_connection = _get_conn
+        Args:
+            *args: Positional arguments for FakeRedis.
+            **kwargs: Keyword arguments for FakeRedis.
+        """
+        super().__init__(*args, **kwargs)
+        self.retry = MockRetry()
 
-    if not hasattr(fake_redis, "release"):
+    async def get_connection(self) -> Any:
+        """Returns self as the active connection.
 
-        async def _release(conn: Any) -> None:
-            pass
+        Returns:
+            Self instance.
+        """
+        return self
 
-        fake_redis.release = _release
+    async def release(self, conn: Any) -> None:
+        """Releases the connection (no-op for fake redis).
 
-    if not hasattr(fake_redis, "retry"):
-        fake_redis.retry = MockRetry()
+        Args:
+            conn: Connection to release.
+
+        Returns:
+            None
+        """
+        pass
+
+    def pack_commands(self, cmds: Any) -> Any:
+        """Packs commands for pipeline execution.
+
+        Args:
+            cmds: Command structure to pack.
+
+        Returns:
+            The packed commands.
+        """
+        return cmds
+
+    async def send_packed_command(self, cmds: Any) -> None:
+        """Sends packed commands (no-op for fake redis).
+
+        Args:
+            cmds: Packed commands to send.
+
+        Returns:
+            None
+        """
+        pass
+
+    async def send_command(self, *args: Any, **kwargs: Any) -> Any:
+        """Executes a command and stores the response in context variable.
+
+        Args:
+            *args: Positional command arguments.
+            **kwargs: Keyword command arguments.
+
+        Returns:
+            None
+        """
+        res = await self.execute_command(*args, **kwargs)  # type: ignore[no-untyped-call]
+        _last_response_var.set(res)
+
+    async def read_response(self) -> Any:
+        """Reads the last execution response from context variable.
+
+        Returns:
+            The last command response.
+        """
+        return _last_response_var.get()
 
 
 def _patch_arq_logging() -> None:
@@ -90,68 +146,22 @@ def _patch_arq_logging() -> None:
     arq.worker.log_redis_info = _no_op_log  # type: ignore[attr-defined]
 
 
-def _patch_arq_pipelining(fake_redis: Any) -> None:
-    """Patches pipeline and command packing methods on FakeRedis.
-
-    Args:
-        fake_redis: The FakeRedis instance to patch.
-    """
-    if not hasattr(fake_redis, "pack_commands"):
-
-        def _pack(cmds: Any) -> Any:
-            return cmds
-
-        fake_redis.pack_commands = _pack
-
-    if not hasattr(fake_redis, "send_packed_command"):
-
-        async def _send_packed(cmds: Any) -> None:
-            pass
-
-        fake_redis.send_packed_command = _send_packed
-
-
-def _patch_arq_command_execution(fake_redis: Any) -> None:
-    """Patches direct command execution for Arq compatibility.
-
-    Args:
-        fake_redis: The FakeRedis instance to patch.
-    """
-    if not hasattr(fake_redis, "send_command"):
-
-        async def _send_command(*args: Any, **kwargs: Any) -> Any:
-            res = await fake_redis.execute_command(*args, **kwargs)
-            _last_response_var.set(res)
-
-        fake_redis.send_command = _send_command
-
-    if not hasattr(fake_redis, "read_response"):
-
-        async def _read_response() -> Any:
-            return _last_response_var.get()
-
-        fake_redis.read_response = _read_response
-
-
 def get_patched_fakeredis_pool() -> ArqRedis:
-    """Creates and patches a FakeRedis instance to be compatible with Arq.
+    """Creates an ArqCompatibleFakeRedis instance compatible with Arq.
 
     Arq (0.26+) expects specific methods on the connection pool that FakeRedis
-    doesn't natively provide or behaves differently with. This function applies
-    all necessary monkey-patches to ensure Arq runs smoothly in in-memory mode.
+    doesn't natively provide or behaves differently with. This function provides
+    a strongly typed subclass instance to ensure Arq runs smoothly in in-memory mode.
 
     Returns:
-        An Arq-compatible wrapper around a patched FakeRedis instance.
+        An Arq-compatible wrapper around an ArqCompatibleFakeRedis instance.
     """
     from fakeredis import FakeServer
 
-    fake_redis = FakeRedis(server=FakeServer())
+    fake_redis = ArqCompatibleFakeRedis(server=FakeServer())
     fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}  # type: ignore[attr-defined]
 
-    _patch_arq_connection_handling(fake_redis)
     _patch_arq_logging()
-    _patch_arq_pipelining(fake_redis)
-    _patch_arq_command_execution(fake_redis)
 
     arq_redis = ArqRedis(fake_redis)  # type: ignore[arg-type]
     logger.info("In-Memory Redis pool (Patched) initialized.")

@@ -46,6 +46,11 @@ try:
 
     FIREBASE_AVAILABLE = True
 except ImportError:
+    from unittest.mock import MagicMock
+
+    firebase_admin = MagicMock()
+    credentials = MagicMock()
+    firestore = MagicMock()
     FIREBASE_AVAILABLE = False
 
 # Add project root to path

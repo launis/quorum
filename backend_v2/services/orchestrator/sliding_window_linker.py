@@ -21,7 +21,8 @@ from backend_v2.models.dtos.dag_models import (
     LinkedAtomGraph,
 )
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompts.graph_linking import (
     LINKER_SYSTEM_PROMPT,
@@ -151,6 +152,7 @@ class SlidingWindowLinker:
             atoms: Flat list of extracted atoms.
             ontology_map: The global ontology map for anaphora resolution.
             progress_callback: Optional asynchronous callback for reporting progress.
+            semaphore: Optional concurrency limiter.
 
         Returns:
             A tuple of list[LinkedAtomGraph] objects with populated depends_on and aggregated TokenUsage.
@@ -197,16 +199,16 @@ class SlidingWindowLinker:
             )
 
             static_messages = [
-                {"role": "system", "content": LINKER_SYSTEM_PROMPT},
+                LLMMessageDTO(role="system", content=LINKER_SYSTEM_PROMPT),
             ]
             dynamic_messages = [
-                {"role": "user", "content": user_prompt},
+                LLMMessageDTO(role="user", content=user_prompt),
             ]
 
             compiled_prompt = CompiledPrompt(
                 static_messages=static_messages,
                 dynamic_messages=dynamic_messages,
-                metadata={"strictness_level": "high"},
+                metadata=PromptMetadataDTO(),
             )
 
             try:

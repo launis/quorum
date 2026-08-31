@@ -30,6 +30,24 @@ from backend_v2.utils.alias_engine import AliasEngine
 logger = logging.getLogger(__name__)
 
 
+class TaskMetadataDTO(BaseModel):
+    """Metadata DTO for task definition configuration.
+
+    Attributes:
+        category: Task functional category.
+        description: Task descriptive documentation.
+        timeout_seconds: Execution timeout limit in seconds.
+        tags: List of categorization tags.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    category: Annotated[str | None, Field(default=None, description="Task functional category")] = None
+    description: Annotated[str | None, Field(default=None, description="Task descriptive documentation")] = None
+    timeout_seconds: Annotated[int | None, Field(default=None, description="Execution timeout limit in seconds")] = None
+    tags: Annotated[list[str] | None, Field(default=None, description="List of categorization tags")] = None
+
+
 class TaskDefinition(V2CoreBase):
     """Metadata for a registered task.
 
@@ -39,7 +57,7 @@ class TaskDefinition(V2CoreBase):
         input_schema: Input Pydantic model.
         output_schema: Output Pydantic model.
         description: Task description text.
-        metadata: Arbitrary associated dict metadata.
+        metadata: Associated TaskMetadataDTO structure.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -49,7 +67,7 @@ class TaskDefinition(V2CoreBase):
     input_schema: type[BaseModel]
     output_schema: type[BaseModel]
     description: str | None = None
-    metadata: dict[str, Any] | None = None  # noqa: QGR001 [REASON: Registry metadata storage]
+    metadata: TaskMetadataDTO | None = None
 
 
 class TaskRegistry:
@@ -71,7 +89,7 @@ class TaskRegistry:
         input_schema: type[BaseModel],
         output_schema: type[BaseModel],
         description: str | None = None,
-        metadata: dict[str, Any] | None = None,
+        metadata: TaskMetadataDTO | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator to register a function as a task.
 
@@ -80,7 +98,7 @@ class TaskRegistry:
             input_schema: Pydantic model for input validation.
             output_schema: Pydantic model for output validation.
             description: Optional description (defaults to docstring).
-            metadata: Optional metadata for the task.
+            metadata: Optional TaskMetadataDTO for the task.
 
         Returns:
             A decorator function that registers the decorated callable and returns it.

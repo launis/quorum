@@ -38,10 +38,12 @@ async def test_process_chat_history_separates_speakers(mock_parse: Any) -> None:
             language="en",
         )
 
-    assert (
-        result["combined"]
-        == "<user_payload>\nHello AI!\n</user_payload>\n\n<ai_draft_context>\nHello User!\n</ai_draft_context>\n\n<user_payload>\nWhat is 2+2?\n</user_payload>"
+    expected_combined = (
+        "<user_payload>\nHello AI!\n</user_payload>\n\n"
+        "<ai_draft_context>\nHello User!\n</ai_draft_context>\n\n"
+        "<user_payload>\nWhat is 2+2?\n</user_payload>"
     )
+    assert result["combined"] == expected_combined
     assert result["user_only"] == "Hello AI!\n\nWhat is 2+2?"
     assert result["ai_only"] == "Hello User!"
 

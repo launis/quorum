@@ -9,6 +9,7 @@ from backend_v2.core.registry import (
     HeroInsightSchemaStrategy,
     MarkdownSchemaStrategy,
     TaskDefinition,
+    TaskMetadataDTO,
     TaskRegistry,
     _coerce_bool,
     get_schema_strategy,
@@ -36,7 +37,14 @@ def test_task_registry_registration() -> None:
     registry = TaskRegistry()
     registry._tasks.clear()
 
-    @registry.register_task(name="test_task", input_schema=DummyInput, output_schema=DummyOutput)
+    metadata = TaskMetadataDTO(category="test_category", description="Test task meta", timeout_seconds=30)
+
+    @registry.register_task(
+        name="test_task",
+        input_schema=DummyInput,
+        output_schema=DummyOutput,
+        metadata=metadata,
+    )
     def dummy_handler(data: DummyInput) -> DummyOutput:
         """Test handler docstring."""
         return DummyOutput(res=data.val)
@@ -45,6 +53,7 @@ def test_task_registry_registration() -> None:
     assert task.name == "test_task"
     assert task.input_schema == DummyInput
     assert task.description == "Test handler docstring."
+    assert task.metadata == metadata
 
     with pytest.raises(AppException) as exc:
         registry.get("unknown_task")
@@ -64,15 +73,16 @@ def test_task_definition_strictness() -> None:
     def handler() -> None:
         pass
 
+    meta = TaskMetadataDTO(category="computation", tags=["fast", "core"])
     td = TaskDefinition(
         name="test",
         handler=handler,
         input_schema=DummyInput,
         output_schema=DummyOutput,
-        metadata={"key": "val"},
+        metadata=meta,
     )
     assert td.name == "test"
-    assert td.metadata == {"key": "val"}
+    assert td.metadata == meta
 
     with pytest.raises(ValidationError):
         TaskDefinition(
@@ -82,6 +92,12 @@ def test_task_definition_strictness() -> None:
             output_schema=DummyOutput,
             extra="fail",  # type: ignore[call-arg]
         )
+
+
+def test_task_metadata_dto_extra_field_forbidden() -> None:
+    """ISTQB Negative Test: Extra fields on TaskMetadataDTO must raise ValidationError."""
+    with pytest.raises(ValidationError):
+        TaskMetadataDTO(category="test", extra_key="invalid")  # type: ignore[call-arg]
 
 
 def test_get_schema_strategy_resolves_correctly() -> None:

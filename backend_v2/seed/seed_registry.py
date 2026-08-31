@@ -1,4 +1,5 @@
 """V2 Seed Registry.
+
 Strictly maps collections to V2 Pydantic models (Zero V1 leak).
 """
 
