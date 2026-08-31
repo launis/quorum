@@ -248,3 +248,42 @@ def test_validate_routing_mode_missing() -> None:
         ContextRouter.validate_routing_mode("$steps.step_A", mapping_config)
 
     assert exc_info.value.details["mapping_path"] == "$steps.step_A"
+
+
+def test_normalize_and_validate_variable_empty_path() -> None:
+    """Test that empty or falsy path is returned as is."""
+    assert ContextRouter.normalize_and_validate_variable("", {}) == ""
+
+
+def test_normalize_and_validate_variable_invalid_snapshot_state() -> None:
+    """Test that invalid snapshot structure raises AppException."""
+    with pytest.raises(AppException) as exc_info:
+        ContextRouter.normalize_and_validate_variable("$steps.step_1", "not_a_valid_snapshot_structure")
+
+    assert "Snapshot validation failed" in exc_info.value.message
+    assert exc_info.value.status_code == 500
+
+
+def test_normalize_and_validate_variable_legacy_dict_steps() -> None:
+    """Test that legacy dict structure for steps in snapshot is rejected."""
+    # When steps is a dict inside the snapshot dictionary
+    legacy_snapshot = {"steps": {"step_1": {"data": 123}}}
+    with pytest.raises(AppException) as exc_info:
+        ContextRouter.normalize_and_validate_variable("$steps.step_1", legacy_snapshot)
+
+    assert "Snapshot validation failed" in exc_info.value.message or "Legacy dictionary state detected" in exc_info.value.message
+
+
+def test_route_and_prune_validation_error() -> None:
+    """Test that invalid trace_event format raises ConfigurationError."""
+    invalid_trace = {
+        "raw_score": "not_a_number",
+        "normalized_score": 100.0,
+        "justification": "Test",
+        "evaluated_atoms": {},
+    }
+    output_profile = OutputProfileConfig(visible_block_extensions=[], visible_workflow_extensions=[])
+    with pytest.raises(ConfigurationError) as exc_info:
+        ContextRouter.route_and_prune(invalid_trace, output_profile)
+
+    assert "Fail-Fast: Invalid trace_event format" in exc_info.value.message

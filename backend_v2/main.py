@@ -22,7 +22,8 @@ try:
 except ImportError:
     _logfire = None
 
-from arq.connections import RedisSettings, create_pool
+from arq.connections import ArqRedis, RedisSettings, create_pool
+from fakeredis.aioredis import FakeRedis
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -150,15 +151,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     finally:
         logger.info("Shutting down...")
-        pool: Any = app.state.arq_pool if hasattr(app.state, "arq_pool") else None  # noqa: QGR001 [REASON: Starlette application state dynamic attribute access]
+        pool = getattr(app.state, "arq_pool", None)
         if pool is not None:
             try:
-                if hasattr(pool, "aclose"):  # noqa: QGR001 [REASON: Arq Redis pool duck-type interface closing]
+                if isinstance(pool, ArqRedis):
                     await pool.aclose()
-                elif hasattr(pool, "close"):  # noqa: QGR001 [REASON: FakeRedis pool fallback interface closing]
-                    res = pool.close()
-                    if hasattr(res, "__await__"):  # noqa: QGR001 [REASON: Async close coroutine check]
-                        await res
+                elif isinstance(pool, FakeRedis):
+                    await pool.aclose()
+                elif hasattr(pool, "aclose"):  # noqa: QGR001 [REASON: Third-party generic async redis connection duck-typing]
+                    await pool.aclose()
             except (OSError, RuntimeError) as close_err:
                 logger.error(
                     "Error closing Arq pool: %s",
