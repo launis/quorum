@@ -51,13 +51,13 @@
   - [x] Step 1: Pre-Implementation Cleanups
   - [x] Step 2: Modernize Progress State & Tracker Interfaces
   - [x] Step 3: Modernize Task Registry & Unit Tests
-- [ ] **[NOK] Audit (Sub-Phase 2A):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/04_phase2a_service_and_progress_dto.md] @[docs/epic/EPIC_150_tracker.md]`
-- [ ] **[NOK] Red-Teaming (Sub-Phase 2B):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]`
-- [ ] **[NOK] Execution (Sub-Phase 2B):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Purge Obsolete Seed Schemas & Define Provider Extra Params
-  - [ ] Step 2: Modernize Studio Services & Routers
-  - [ ] Step 3: Surgical Hardening of Worker & Blueprint
+- [x] **[OK] Audit (Sub-Phase 2A):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/04_phase2a_service_and_progress_dto.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Red-Teaming (Sub-Phase 2B):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Execution (Sub-Phase 2B):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Implementation Cleanups
+  - [x] Step 1: Purge Obsolete Seed Schemas & Define Provider Extra Params
+  - [x] Step 2: Modernize Studio Services & Routers
+  - [x] Step 3: Surgical Hardening of Worker & Blueprint
 - [ ] **[NOK] Audit (Sub-Phase 2B):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]`
 
 ### Phase 3: Hooks, Orchestrator & Repository Suppression Eradication
@@ -236,10 +236,10 @@
 | Pre-implementation cleanups: `redis_patcher.py` `FakeRedis` & `ClientErrorPayload` comment | Epic Sec 3 (Phase 2) | Phase 2, Step 1 | `[x]` Passed |
 | Refine `ProgressState` & `ProgressTracker` contracts (SSE 1:1 parity) | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 2 | `[x]` Passed |
 | Define TaskMetadataDTO in `core/registry.py` & update task registry tests | Epic Sec 3 (Phase 2) | Phase 2, Step 3 | `[x]` Passed |
-| Purge obsolete `Workflow.ui_schema` & `Step.output_schema`; define ProviderExtraParamsDTO | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 1 | `[ ]` Pending |
-| Sanitize `seed_data.json` & purge orphan `"step_blueprints": []` | Epic Sec 3 (Phase 2) | Phase 2, Step 1 | `[ ]` Pending |
-| Studio simulation service returns typed simulation DTOs directly | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 2 | `[ ]` Pending |
-| Surgical typing & telemetry cleanup in `worker.py` & `blueprint.py` | Epic Sec 3 (Phase 2) | Phase 2, Step 3 | `[ ]` Pending |
+| Purge obsolete `Workflow.ui_schema` & `Step.output_schema`; define ProviderExtraParamsDTO | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 1 | `[x]` Passed |
+| Sanitize `seed_data.json` & purge orphan `"step_blueprints": []` | Epic Sec 3 (Phase 2) | Phase 2, Step 1 | `[x]` Passed |
+| Studio simulation service returns typed simulation DTOs directly | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 2 | `[x]` Passed |
+| Surgical typing & telemetry cleanup in `worker.py` & `blueprint.py` | Epic Sec 3 (Phase 2) | Phase 2, Step 3 | `[x]` Passed |
 | Eradicate QGR suppressions & `isinstance(dict)` in scoring hooks | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[ ]` Pending |
 | Eradicate QGR suppressions & duck-typing in processing & validation hooks | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[ ]` Pending |
 | Harden DAG executor & synthesis payload compressor polymorphic handling | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[ ]` Pending |
@@ -266,33 +266,32 @@
   - Provider Adapters & Prompt Compiler Adapter (`@[backend_v2/llm/adapters/vertex_adapter.py]`, `@[backend_v2/llm/adapters/ai_studio_adapter.py]`, `@[backend_v2/llm/adapters/anthropic_adapter.py]`, `@[backend_v2/services/orchestrator/prompt_compiler_adapter.py]`).
   - Test Suite Migration (143 passed, 0 mypy errors).
 - **Sub-Phase 1C Execution Completed & Atomically Committed (`b4c19250`)**:
-  - Seeder Two-Phase Pre-Flight In-Memory Validation pattern in `run_seed.py`.
-  - Migrated `PromptContextDTO` and prompt building services/hooks to `LLMMessageDTO`.
-  - Full audit sign-off (308 unit/integration tests passed 100%).
-- **Sub-Phase 2A Execution Completed**:
-  - **Step 1 Pre-Implementation Cleanups**:
-    - Eliminated 7 `hasattr()` reflection calls and monkey patching in `@[backend_v2/utils/redis_patcher.py]` by creating a strongly typed `ArqCompatibleFakeRedis` subclass inheriting from `FakeRedis`.
-    - Added explicit external transport boundary AST guardrail classification to `ClientErrorPayload.context_data` in `@[backend_v2/models/dtos/system.py]`.
-  - **Step 2 Modernize Progress State & Tracker Interfaces**:
-    - Refined `ProgressState` in `@[backend_v2/services/progress.py]` with `ConfigDict(strict=True, extra="forbid", frozen=True)` locking `status`, `timestamp`, `current_step`, `progress`, `error` and eliminating raw dictionaries.
-    - Updated `ProgressTracker` ABC, `DatabaseProgressTracker`, and `InMemoryProgressTracker` to accept scalar parameters and conform 1:1 with `ExecutionRecord` persistence schema.
-    - Strongly typed `ProgressService.redis` to `ArqCompatibleFakeRedis`.
-  - **Step 3 Modernize Task Registry & Unit Tests**:
-    - Co-located `TaskMetadataDTO` in `@[backend_v2/core/registry.py]` with `ConfigDict(strict=True, extra="forbid", frozen=True)` (`category`, `description`, `timeout_seconds`, `tags`).
-    - Strongly typed `TaskDefinition.metadata` and `TaskRegistry.register_task(metadata=...)` as `TaskMetadataDTO | None`, eliminating `# noqa: QGR001` suppression.
-    - Modernized `@[backend_v2/tests/unit/test_progress.py]`, `@[backend_v2/tests/unit/core/test_registry.py]`, and `@[backend_v2/tests/unit/utils/test_redis_patcher.py]`.
-    - Implemented all 5 test contracts with 100% green coverage and strict ISTQB negative partition validations.
-    - Passed Universal Quality Gate (`backend_audit_loop.py`) cleanly with 0 errors.
+  - **Step 0**: Appended explicit AST Guardrail reason justifications to `# noqa: QGR001` comments in `@[backend_v2/llm/provider.py]`.
+  - **Step 1**: Replaced callable discriminator in `@[backend_v2/seed/seed_registry.py]` with standard Pydantic V2 `Discriminator("type")` and updated `SystemConfigUnion`. Implemented Two-Phase Pre-Flight In-Memory Validation pattern in `@[backend_v2/seed/run_seed.py]` (`validate_all_seed_collections`) preventing any database wipe if validation fails. Added ISTQB contract tests to `@[backend_v2/tests/unit/seed/test_run_seed.py]` and modernized `@[backend_v2/tests/unit/seed/test_seed_registry.py]`.
+  - **Step 2**: Migrated `PromptContextDTO` (`@[backend_v2/models/dtos/prompt_context.py]`) to `list[LLMMessageDTO]` with strict validation. Updated `@[backend_v2/services/studio/simulation_service.py]`, `@[backend_v2/tests/unit/models/dtos/test_prompt_context.py]`, `@[backend_v2/tests/unit/services/mcp/test_tool_loop_sanitization.py]`, `@[backend_v2/tests/unit/services/test_llm_task_executor.py]`, and `@[backend_v2/tests/unit/test_llm_task_executor.py]`.
+  - **Step 3**: Migrated prompt building services and hooks (`@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`, `@[backend_v2/services/orchestrator/two_pass_atomizer.py]`, `@[backend_v2/services/orchestrator/prompt_compiler_adapter.py]`, `@[backend_v2/services/source_verification_service.py]`, `@[backend_v2/hooks/interaction_hook.py]`, `@[backend_v2/services/llm_task_executor.py]`) to `LLMMessageDTO` and converted assertions across all coupled test suites to dot-notation.
+  - Sub-Phase 1C Remediation: remediated `sliding_window_linker.py`, un-skipped and passed all 7 tests in `test_finops_telemetry.py`, fixed PEP 257 docstrings and resolved mock fallback objects for `firebase_admin`. Full audit sign-off (308 unit/integration tests passed 100%).
+- **Sub-Phase 2A Execution & Audit Completed & Atomically Committed (`a27d2066`)**:
+  - **Step 1 Pre-Implementation Cleanups**: Eliminated 7 `hasattr()` reflection calls and monkey patching in `@[backend_v2/utils/redis_patcher.py]` with typed `ArqCompatibleFakeRedis`. Added explicit AST guardrail classification in `@[backend_v2/models/dtos/system.py]`.
+  - **Step 2 Modernize Progress State & Tracker Interfaces**: Refined `ProgressState` in `@[backend_v2/services/progress.py]` with `ConfigDict(strict=True, extra="forbid", frozen=True)` locking `status`, `timestamp`, `current_step`, `progress`, `error` and eradicating `result: dict[str, Any]` and `details: dict[str, Any]`. Modernized `ProgressTracker` ABC, `DatabaseProgressTracker`, and `InMemoryProgressTracker`. Strongly typed `ProgressService.redis` to `ArqCompatibleFakeRedis`.
+  - **Step 3 Modernize Task Registry & Unit Tests**: Co-located `TaskMetadataDTO` in `@[backend_v2/core/registry.py]` and updated `TaskRegistry.register_task()`. Modernized test suites.
+  - **Tier 8 Red-Team Audit Sign-off**: Passed Universal Quality Gate (`backend_audit_loop.py backend_v2/ --test`) with 2,663 passed tests, 0 failed, 93.51% code coverage.
+- **Sub-Phase 2B Execution Completed & Verified**:
+  - **Step 0 Pre-Implementation Cleanups**: Fixed legacy comma exception syntax in `@[backend_v2/services/studio/workflow_service.py]` (`except (AppException, ValidationError, ...):`). Replaced `hasattr(strat_raw, "value")` with `isinstance(strat_raw, ScoringStrategy)` in `@[backend_v2/services/blueprint.py]`.
+  - **Step 1 Purge Obsolete Seed Schemas & Define Provider Extra Params**: Defined strict immutable `ProviderExtraParamsDTO` (`ConfigDict(strict=True, extra="forbid", frozen=True)`) in `@[backend_v2/models/v2_core.py]`. Updated `ModelProfile.additional_params` to use `ProviderExtraParamsDTO`. Purged obsolete `output_schema` from `Step` and `StepCreateDTO` (`@[backend_v2/models/dtos/studio.py]`), and purged `ui_schema` from `Workflow`. Dynamically generated `expected_inputs` in `@[backend_v2/services/execution.py]`. Purged orphan `"step_blueprints": []` in `@[scripts/sanitize_seed_vault.py]`, sanitized and re-seeded `@[backend_v2/seed/seed_data.json]` and `@[data/db_v2.json]`.
+  - **Step 2 Modernize Studio Services & Routers**: Refactored `StudioSimulationService` (`@[backend_v2/services/studio/simulation_service.py]`) to return strict SSOT DTOs (`WorkflowSimulationResponse`, `StepSimulationResponse`, `PromptBlockSimulationResponse`). Eliminated raw dict conversions in `@[backend_v2/api/routers/studio/workflows.py]`, `@[backend_v2/api/routers/studio/steps.py]`, and `@[backend_v2/api/routers/studio/prompt_blocks.py]`. Fixed tenant isolation logic in `@[backend_v2/services/studio/auth_validator.py]`. Migrated unit test suite in `@[backend_v2/tests/unit/services/studio/test_simulation_service.py]` to 100% dot-notation attribute access; created unit tests in `@[backend_v2/tests/unit/services/studio/test_auth_validator.py]` and `@[backend_v2/tests/unit/services/studio/test_lexicon_service.py]`.
+  - **Step 3 Surgical Hardening of Worker, Blueprint, Adapters & Contracts**: Co-located `StepTraceMetadataDTO` and `TraceEventMetadataEnvelope` in `@[backend_v2/models/dtos/trace.py]`. Hydrated typed envelope and read `TokenUsage` directly in `@[backend_v2/services/blueprint.py]` and `@[backend_v2/worker.py]`. Updated `LLMProviderConfig.additional_params` in `@[backend_v2/models/llm.py]` and updated LLM adapters (`openai_adapter.py`, `anthropic_adapter.py`, `ai_studio_adapter.py`, `vertex_adapter.py`) to access first-class typed fields.
+  - **Universal Quality Gates**: Passed `backend_audit_loop.py` on studio services, studio routers, models, blueprint, and worker. Passed `sanitize_seed_vault.py --reseed --test`, `audit_database_atoms.py --strict`, and `test_sdui_semantic_parity.py` with 100% green status.
 
 ## Learned
-- **Progress Tracking SSE Parity**: Eliminating `result: dict[str, Any]` and `details: dict[str, Any]` from `ProgressState` while conforming directly to `ExecutionRecord` schema (`status`, `current_step`, `current_step_name`, `progress`, `error`, `created_at`, `updated_at`, `completed_at`) ensures zero dictionary leaks across memory, DB, and SSE streaming boundaries.
-- **Subclass Test Fakes Over Dynamic Reflection**: Subclassing `FakeRedis` into `ArqCompatibleFakeRedis` cleanly encapsulates connection mock methods (`get_connection`, `release`, `pack_commands`, `send_packed_command`, `send_command`, `read_response`) without runtime `hasattr()` monkey patching.
-- **Co-located Task Metadata DTO**: Defining `TaskMetadataDTO` alongside `TaskDefinition` in `registry.py` provides strict schema safety without creating an unnecessary separate module.
+- **Decorator-Inclusive AST Spans in Markdown Auditing**: The markdown boundary linter (`scripts/audit_markdown_boundaries.py`) includes decorator lines (`@router.get`, `@pytest.mark.asyncio`) in the starting line of function AST bounds. All plan line bounds for decorated handlers and test fixtures must align with the first decorator line.
+- **SSOT Response Direct Passthrough**: `StudioSimulationService` must return existing response DTOs (`WorkflowSimulationResponse`, `StepSimulationResponse`, `PromptBlockSimulationResponse`) directly, allowing FastAPI routers to return service outputs without intermediate `model_validate()` calls.
+- **Telemetry Typed Envelopes Over Dict `.get()`**: Co-locating `StepTraceMetadataDTO` and `TraceEventMetadataEnvelope` in `backend_v2/models/dtos/trace.py` enables strict hydration of `_step_metadata` without relying on dict indexing or `.get()` fallbacks.
+- **Provider Extra Params Isolation**: `ProviderExtraParamsDTO` cleanly restricts extra provider sampling parameters (`temperature`, `top_p`, `top_k`, `max_output_tokens`) while first-class provider options (`vertex_location`, `thinking_budget_tokens`) belong as direct typed properties on `LLMProviderConfig` and `ModelProfile`.
 
 ## Remaining
 - **Phase 2: Service & Studio Layer DTO Elimination**:
-  - Sub-Phase 2A Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/04_phase2a_service_and_progress_dto.md] @[docs/epic/EPIC_150_tracker.md]`
-  - Sub-Phase 2B: Studio & Seed Models (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md]`).
+  - Sub-Phase 2B Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]`
 - **Phase 3: Hooks, Orchestrator & Repository Suppression Eradication**:
   - Sub-Phase 3A: Hooks Suppression Eradication (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md]`).
   - Sub-Phase 3B: Orchestrator Suppression Eradication (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md]`).
@@ -302,5 +301,5 @@
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/04_phase2a_service_and_progress_dto.md] @[docs/epic/EPIC_150_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models.md] @[docs/epic/EPIC_150_tracker.md]
 ```

@@ -609,16 +609,17 @@ class LiteLLMProvider(LLMProvider):
             if adapter:
                 call_kwargs = adapter.prepare_kwargs(call_kwargs, self._config, self.settings)
 
-            # Inject dynamic extra params from config (additional_params) resolved via env vars
             if self._config and self._config.additional_params:
-                resolved_additional = resolve_env_variables(self._config.additional_params)
+                resolved_additional = resolve_env_variables(
+                    self._config.additional_params.model_dump(exclude_none=True)
+                )
                 call_kwargs.update(resolved_additional)
 
             # --- DIAGNOSTIC DUMP ---
             dump_file = os.getenv("DUMP_PROMPTS_FILE")
             if dump_file:
                 try:
-                    payload = json.dumps(messages, indent=2, ensure_ascii=False)
+                    payload = json.dumps(serialized_messages, indent=2, ensure_ascii=False)
                     await asyncio.to_thread(_sync_diagnostic_dump, dump_file, f"[LiteLLM] {self.model_name}", payload)
                 except Exception as e:
                     logger.error("Failed to schedule diagnostic dump: %s", e)

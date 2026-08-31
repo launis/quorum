@@ -44,8 +44,7 @@ async def simulate_prompt_block(
     Raises:
         AppException: If the simulation fails.
     """
-    result = await studio_simulation_service.simulate_prompt_block(current_user, data.block, data.mock_inputs)
-    return PromptBlockSimulationResponse(**result)
+    return await studio_simulation_service.simulate_prompt_block(current_user, data.block, data.mock_inputs)
 
 
 @router.get("/", response_model=list[PromptBlockResponseDTO])

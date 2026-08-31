@@ -124,11 +124,8 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         is_reasoning_model = any(prefix in model_name for prefix in ("o1", "o3", "o4"))
 
         thinking_budget: int | None = None
-        if isinstance(config, ModelProfile):
-            if config.thinking_budget_tokens is not None:
-                thinking_budget = int(config.thinking_budget_tokens)
-            elif config.additional_params and "thinking_budget_tokens" in config.additional_params:
-                thinking_budget = int(config.additional_params["thinking_budget_tokens"])
+        if isinstance(config, ModelProfile) and config.thinking_budget_tokens is not None:
+            thinking_budget = int(config.thinking_budget_tokens)
 
         if is_reasoning_model:
             # Map thinking budget tokens to reasoning effort

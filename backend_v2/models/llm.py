@@ -17,6 +17,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.mcp import OpenAIToolCallDTO
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
+from backend_v2.models.v2_core import ProviderExtraParamsDTO
 
 logger = logging.getLogger(__name__)
 
@@ -306,9 +307,10 @@ class LLMProviderConfig(BaseDTO):
             json_schema_extra={"x-ui-label": "Is Active"},
         ),
     ] = True
-    additional_params: Annotated[dict[str, Any], Field(description="Additional provider-specific parameters.")] = Field(
-        default_factory=dict
-    )
+    additional_params: Annotated[
+        ProviderExtraParamsDTO,
+        Field(default_factory=ProviderExtraParamsDTO, description="Additional provider-specific parameters."),
+    ]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

@@ -193,11 +193,8 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         is_claude_37 = "claude-3-7" in model_name or "claude-3.7" in model_name
 
         thinking_budget: int | None = None
-        if isinstance(config, ModelProfile):
-            if config.thinking_budget_tokens is not None:
-                thinking_budget = int(config.thinking_budget_tokens)
-            elif config.additional_params and "thinking_budget_tokens" in config.additional_params:
-                thinking_budget = int(config.additional_params["thinking_budget_tokens"])
+        if isinstance(config, ModelProfile) and config.thinking_budget_tokens is not None:
+            thinking_budget = int(config.thinking_budget_tokens)
 
         if is_claude_37 and thinking_budget is not None and thinking_budget > 0:
             call_kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}

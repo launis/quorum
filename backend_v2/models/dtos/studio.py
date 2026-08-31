@@ -125,7 +125,6 @@ class StepCreateDTO(V2CoreBase):
         model_strategy: Optional cognitive strategy profile override.
         hook: Optional native hook name if type is logic.
         expected_inputs: List of expected input keys.
-        output_schema: Optional JSON schema for step output.
         is_system_core: Whether the step is protected system core.
         organization_id: Tenant organization scope.
     """
@@ -166,7 +165,6 @@ class StepCreateDTO(V2CoreBase):
     allowed_mcp_tools: Annotated[list[str], Field(default_factory=list, description="Allowed MCP tools")]
     model_strategy: Annotated[str | None, Field(default=None, description="Cognitive strategy profile override")]
     expected_inputs: Annotated[list[str], Field(default_factory=list, description="List of expected input keys")]
-    output_schema: Annotated[dict[str, Any] | None, Field(default=None, description="Output JSON schema")]
     is_system_core: Annotated[bool, Field(default=False, description="Protected system core flag")]
     organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID")]
 

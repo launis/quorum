@@ -356,11 +356,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         is_gemini_3 = "gemini-3" in model_name or "gemini-3." in model_name
 
         thinking_budget: int | None = None
-        if isinstance(config, ModelProfile):
-            if config.thinking_budget_tokens is not None:
-                thinking_budget = int(config.thinking_budget_tokens)
-            elif config.additional_params and "thinking_budget_tokens" in config.additional_params:
-                thinking_budget = int(config.additional_params["thinking_budget_tokens"])
+        if isinstance(config, ModelProfile) and config.thinking_budget_tokens is not None:
+            thinking_budget = int(config.thinking_budget_tokens)
 
         if thinking_budget is not None:
             if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:

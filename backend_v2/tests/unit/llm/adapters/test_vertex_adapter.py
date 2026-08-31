@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 from backend_v2.models.v2_core import ModelProfile
 
@@ -358,18 +358,27 @@ def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
     """Verify prepare_kwargs resolves vertex location and maps thinking budget tokens."""
     adapter = VertexCacheAdapter()
 
-    config = ModelProfile(
-        provider="google",
+    provider_config = LLMProviderConfig(
+        id="prv_12345678",
+        provider="vertex_ai",
         model_name="vertex_ai/gemini-3.7-flash",
-        thinking_budget_tokens=1024,
-        additional_params={"vertex_location": "europe-west1"},
+        vertex_location="europe-west1",
+        tpm_limit=100,
+        rpm_limit=10,
     )
 
     call_kwargs: dict[str, Any] = {}
-    result = adapter.prepare_kwargs(call_kwargs, config=config)
-
+    result = adapter.prepare_kwargs(call_kwargs, config=provider_config)
     assert result["vertex_location"] == "europe-west1"
-    assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 1024
+
+    profile_config = ModelProfile(
+        provider="google",
+        model_name="vertex_ai/gemini-3.7-flash",
+        thinking_budget_tokens=1024,
+    )
+    call_kwargs_profile: dict[str, Any] = {}
+    result_profile = adapter.prepare_kwargs(call_kwargs_profile, config=profile_config)
+    assert result_profile["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 1024
 
 
 def test_vertex_adapter_prepare_kwargs_cached_content_with_tools_bypasses() -> None:

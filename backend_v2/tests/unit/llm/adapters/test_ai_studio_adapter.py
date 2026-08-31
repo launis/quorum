@@ -192,7 +192,7 @@ def test_ai_studio_adapter_prepare_kwargs_gemini_37_sanitization() -> None:
     config = ModelProfile(
         provider="google",
         model_name="gemini/gemini-3.7-flash",
-        additional_params={"thinking_budget_tokens": 4096},
+        thinking_budget_tokens=4096,
     )
 
     call_kwargs: dict[str, Any] = {

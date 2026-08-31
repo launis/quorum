@@ -45,6 +45,7 @@ from backend_v2.models.dtos.synthesis import (
     XaiHighlightItem,
     XaiHighlightsResult,
 )
+from backend_v2.models.dtos.trace import TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlockType
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
@@ -260,23 +261,23 @@ async def execute_workflow_job(
                         continue
 
                     try:
-                        content_dict = TypeAdapter(dict[str, Any]).validate_python(event.content)
-                        step_meta_raw = content_dict.get("_step_metadata") if "_step_metadata" in content_dict else {}
-                        step_meta = TypeAdapter(dict[str, Any]).validate_python(step_meta_raw)
-                        usage_raw = step_meta.get("token_usage") if "token_usage" in step_meta else {}
-                        usage = TypeAdapter(dict[str, Any]).validate_python(usage_raw)
-                    except Exception:
+                        envelope = TraceEventMetadataEnvelope.model_validate(event.content)
+                        if not envelope.step_metadata:
+                            continue
+                        step_meta = envelope.step_metadata
+                        usage = step_meta.token_usage
+                    except ValidationError, ValueError:
                         continue
 
-                    model_strategy = step_meta.get("model_strategy", "unknown")
-                    chunk_size = step_meta.get("chunk_size", 1)
+                    model_strategy = step_meta.model_strategy
+                    chunk_size = step_meta.chunk_size
 
-                    p_tokens = usage.get("prompt_tokens", 0)
-                    c_tokens = usage.get("completion_tokens", 0)
-                    t_tokens = usage.get("total_tokens", 0)
-                    c_cost = usage.get("cost_usd", 0.0)
-                    cached_t = usage.get("cached_tokens", 0)
-                    reasoning_t = usage.get("reasoning_tokens", 0)
+                    p_tokens = usage.prompt_tokens or 0
+                    c_tokens = usage.completion_tokens or 0
+                    t_tokens = usage.total_tokens or 0
+                    c_cost = usage.cost_usd or 0.0
+                    cached_t = usage.cached_tokens or 0
+                    reasoning_t = usage.reasoning_tokens or 0
 
                     total_prompt_tokens += p_tokens
                     total_completion_tokens += c_tokens
@@ -1150,12 +1151,10 @@ async def generate_profile_synthesis_and_pdf_task(
                                 is_match = True
                             elif out_content and "_step_metadata" in out_content:
                                 try:
-                                    step_meta_d = TypeAdapter(dict[str, Any]).validate_python(
-                                        out_content["_step_metadata"]
-                                    )
-                                    if step_meta_d.get("task_blueprint") == perf_step_id:
+                                    envelope = TraceEventMetadataEnvelope.model_validate(out_content)
+                                    if envelope.step_metadata and envelope.step_metadata.task_blueprint == perf_step_id:
                                         is_match = True
-                                except Exception:
+                                except ValidationError, ValueError:
                                     pass
 
                             if is_match and out_content:

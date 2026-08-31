@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
 
@@ -6,8 +6,14 @@ from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import LaxExecutionStatus
 
-if TYPE_CHECKING:
-    from backend_v2.models.domain.metadata import StepMetadataDTO
+__all__ = [
+    "DataStarvationEvent",
+    "StepTraceMetadataDTO",
+    "TraceEventMetadataEnvelope",
+    "TraceMatrixExtensionsDTO",
+    "TraceMatrixPayloadDTO",
+    "TraceScoringPayloadDTO",
+]
 
 
 class DataStarvationEvent(BaseDTO):
@@ -24,12 +30,39 @@ class DataStarvationEvent(BaseDTO):
     ] = "Data starvation: insufficient atoms"
 
 
+from backend_v2.models.domain.usage import TokenUsage
+
+
+class StepTraceMetadataDTO(BaseDTO):
+    """Strictly typed trace metadata for DAG steps including telemetry."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    task_blueprint: Annotated[str | None, Field(default=None)] = None
+    model_strategy: Annotated[str, Field(default="unknown")] = "unknown"
+    chunk_size: Annotated[int, Field(default=1)] = 1
+    token_usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Token usage statistics.",
+        ),
+    ]
+    execution_id: Annotated[str | None, Field(default=None)] = None
+    workflow_id: Annotated[str | None, Field(default=None)] = None
+    step_id: Annotated[str | None, Field(default=None)] = None
+    initiator_id: Annotated[str | None, Field(default=None)] = None
+    timestamp_isot: Annotated[str | None, Field(default=None)] = None
+    unix_time: Annotated[int | None, Field(default=None)] = None
+    v2_engine: Annotated[bool | None, Field(default=None)] = None
+
+
 class TraceEventMetadataEnvelope(BaseDTO):
     """Strict hydration schema for extracting metadata from a trace event."""
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    step_metadata: Annotated[StepMetadataDTO | None, Field(alias="_step_metadata", default=None)]
+    step_metadata: Annotated[StepTraceMetadataDTO | None, Field(alias="_step_metadata", default=None)]
 
 
 class TraceMatrixExtensionsDTO(BaseDTO):

@@ -1431,4 +1431,4 @@ class ExecutionService:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=workflow_id)
 
         workflow = Workflow.model_validate(workflow_record)
-        return dict(workflow.ui_schema)
+        return {"expected_inputs": [inp.model_dump(mode="json") for inp in workflow.expected_inputs]}

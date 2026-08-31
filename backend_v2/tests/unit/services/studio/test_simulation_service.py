@@ -91,11 +91,11 @@ async def test_simulate_workflow_success(simulation_service: StudioSimulationSer
     )
 
     res = await simulation_service.simulate_workflow(test_token, workflow)
-    assert res["valid"] is True
-    assert len(res["errors"]) == 0
-    assert res["step_status"]["stp_11111111111111111111111111111111"] == "OK"
-    assert res["step_status"]["stp_22222222222222222222222222222222"] == "OK"
-    assert res["execution_order"] == [
+    assert res.valid is True
+    assert len(res.errors) == 0
+    assert res.step_status["stp_11111111111111111111111111111111"] == "OK"
+    assert res.step_status["stp_22222222222222222222222222222222"] == "OK"
+    assert res.execution_order == [
         "stp_11111111111111111111111111111111",
         "stp_22222222222222222222222222222222",
     ]
@@ -136,9 +136,9 @@ async def test_simulate_workflow_missing_input(
     )
 
     res = await simulation_service.simulate_workflow(test_token, workflow)
-    assert res["valid"] is False
-    assert any("Missing input reference: missing_var" in err for err in res["errors"])
-    assert res["step_status"]["stp_11111111111111111111111111111111"] == "ERROR"
+    assert res.valid is False
+    assert any("Missing input reference: missing_var" in err for err in res.errors)
+    assert res.step_status["stp_11111111111111111111111111111111"] == "ERROR"
 
 
 @pytest.mark.asyncio
@@ -168,8 +168,8 @@ async def test_simulate_workflow_undeclared_dependency(
     )
 
     res = await simulation_service.simulate_workflow(test_token, workflow)
-    assert res["valid"] is False
-    assert any("Undeclared dependency on step: stp_22222222222222222222222222222222" in err for err in res["errors"])
+    assert res.valid is False
+    assert any("Undeclared dependency on step: stp_22222222222222222222222222222222" in err for err in res.errors)
 
 
 @pytest.mark.asyncio
@@ -194,8 +194,8 @@ async def test_simulate_workflow_cycle_detected(
     ]
 
     res = await simulation_service.simulate_workflow(test_token, mock_workflow)
-    assert res["valid"] is False
-    assert any("Cycle detected" in err for err in res["errors"])
+    assert res.valid is False
+    assert any("Cycle detected" in err for err in res.errors)
 
 
 @pytest.mark.asyncio
@@ -213,8 +213,8 @@ async def test_simulate_workflow_fatal_error(
     mock_workflow.steps = [mock_step]
 
     res = await simulation_service.simulate_workflow(test_token, mock_workflow)
-    assert res["valid"] is False
-    assert "Fatal error resolving DAG structure." in res["errors"]
+    assert res.valid is False
+    assert "Fatal error resolving DAG structure." in res.errors
     assert test_token.id in caplog.text
 
 
@@ -240,9 +240,10 @@ async def test_simulate_prompt_block_simple(simulation_service: StudioSimulation
     res = await simulation_service.simulate_prompt_block(
         test_token, block, mock_inputs={"doc_title": "Quarterly Report"}
     )
-    assert res["valid"] is True
-    assert "Analyze the document: Quarterly Report and report." in res["rendered_prompt"]
-    assert res["prompt_context"].metadata["simulated_block"] == block.id
+    assert res.valid is True
+    assert "Analyze the document: Quarterly Report and report." in res.rendered_prompt
+    assert res.prompt_context is not None
+    assert res.prompt_context.metadata["simulated_block"] == block.id
 
 
 @pytest.mark.asyncio
@@ -262,8 +263,8 @@ async def test_simulate_prompt_block_none_ai_description(
     )
 
     res = await simulation_service.simulate_prompt_block(test_token, block, mock_inputs={})
-    assert res["valid"] is True
-    assert res["rendered_prompt"] == ""
+    assert res.valid is True
+    assert res.rendered_prompt == ""
 
 
 @pytest.mark.asyncio
@@ -300,8 +301,8 @@ async def test_simulate_prompt_block_matrix_scales(
     )
 
     res = await simulation_service.simulate_prompt_block(test_token, block, mock_inputs={})
-    assert res["valid"] is True
-    rendered = res["rendered_prompt"]
+    assert res.valid is True
+    rendered = res.rendered_prompt
     assert "--- EVALUATION SCALES ---" in rendered
     assert "Score 1:" in rendered
     assert "- Claim Label" in rendered
@@ -324,8 +325,8 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
         role_enforcement="Act as an expert auditor.",
     )
     res_persona = await simulation_service.simulate_prompt_block(test_token, persona_block, mock_inputs={})
-    assert res_persona["valid"] is True
-    assert res_persona["rendered_prompt"] == "Act as an expert auditor."
+    assert res_persona.valid is True
+    assert res_persona.rendered_prompt == "Act as an expert auditor."
 
     # 2. ProtocolPromptBlock with protocol_instructions
     protocol_block = ProtocolPromptBlock(
@@ -338,8 +339,8 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
         protocol_instructions="Extract exact quotes only.",
     )
     res_proto = await simulation_service.simulate_prompt_block(test_token, protocol_block, mock_inputs={})
-    assert res_proto["valid"] is True
-    assert res_proto["rendered_prompt"] == "Extract exact quotes only."
+    assert res_proto.valid is True
+    assert res_proto.rendered_prompt == "Extract exact quotes only."
 
     # 3. SystemRulePromptBlock with instruction_text
     sys_block = SystemRulePromptBlock(
@@ -352,8 +353,8 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
         instruction_text="Strict JSON only.",
     )
     res_sys = await simulation_service.simulate_prompt_block(test_token, sys_block, mock_inputs={})
-    assert res_sys["valid"] is True
-    assert res_sys["rendered_prompt"] == "Strict JSON only."
+    assert res_sys.valid is True
+    assert res_sys.rendered_prompt == "Strict JSON only."
 
 
 # ---------------------------------------------------------------------------
@@ -394,10 +395,11 @@ async def test_simulate_step_success(
     )
 
     res = await simulation_service.simulate_step(test_token, step, mock_inputs={})
-    assert res["valid"] is True
-    assert "--- Prompt Block: blk_11111111111111111111111111111111 ---" in res["rendered_prompt"]
-    assert "[Execution Hook: scoring_hook]" in res["rendered_prompt"]
-    assert res["prompt_context"].metadata["simulated_step"] == step.id
+    assert res.valid is True
+    assert "--- Prompt Block: blk_11111111111111111111111111111111 ---" in res.rendered_prompt
+    assert "[Execution Hook: scoring_hook]" in res.rendered_prompt
+    assert res.prompt_context is not None
+    assert res.prompt_context.metadata["simulated_step"] == step.id
 
 
 @pytest.mark.asyncio
@@ -422,6 +424,86 @@ async def test_simulate_step_prompt_block_not_found(
     )
 
     res = await simulation_service.simulate_step(test_token, step, mock_inputs={})
-    assert res["valid"] is False
-    assert any("Missing referenced Prompt Block" in err for err in res["errors"])
-    assert "[NOT FOUND]" in res["rendered_prompt"]
+    assert res.valid is False
+    assert any("Missing referenced Prompt Block" in err for err in res.errors)
+    assert "[NOT FOUND]" in res.rendered_prompt
+
+
+@pytest.mark.asyncio
+async def test_simulate_workflow_missing_depends_on_reference(
+    simulation_service: StudioSimulationService, test_token: TokenData
+) -> None:
+    """Test workflow simulation when step depends on a non-existent step id."""
+    mock_workflow = MagicMock()
+    mock_workflow.id = "wor_1234567890abcdef1234567890abcdef"
+    mock_workflow.expected_inputs = []
+    mock_workflow.steps = [
+        StepRule(
+            id="stp_11111111111111111111111111111111",
+            task_blueprint="step_extract",
+            depends_on=["stp_non_existent"],
+        ),
+    ]
+    res = await simulation_service.simulate_workflow(test_token, mock_workflow)
+    assert "stp_11111111111111111111111111111111" in res.execution_order
+
+
+@pytest.mark.asyncio
+async def test_studio_simulation_returns_strict_dtos(
+    simulation_service: StudioSimulationService,
+    mock_prompt_block_service: AsyncMock,
+    test_token: TokenData,
+) -> None:
+    """Test Contract 1: Verify simulation service methods return strictly typed DTO models."""
+    from backend_v2.models.dtos.studio import (
+        PromptBlockSimulationResponse,
+        StepSimulationResponse,
+        WorkflowSimulationResponse,
+    )
+
+    block = SystemRulePromptBlock(
+        id="blk_11111111111111111111111111111111",
+        slug="test_instruction",
+        label=I18nText(translations={"en": "Instruction"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.STRING,
+        instruction_text="Static text",
+    )
+    mock_prompt_block_service.get_prompt_block.return_value = block
+
+    step = Step(
+        id="stp_11111111111111111111111111111111",
+        slug="step_analyze",
+        name=I18nText(translations={"en": "Analyze Step"}),
+        description=I18nText(translations={"en": "Desc"}),
+        type="llm",
+        model_strategy="fast",
+        role_block_id="blk_11111111111111111111111111111111",
+        extraction_protocol_block_id="blk_11111111111111111111111111111111",
+        criteria_block_ids=["blk_11111111111111111111111111111111"],
+    )
+
+    workflow = Workflow(
+        id="wor_1234567890abcdef1234567890abcdef",
+        slug="test_wf",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        status="active",
+        version=1,
+        default_profile_id="pro_1234567890abcdef1234567890abcdef",
+        allowed_exports=[],
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        expected_inputs=[],
+        steps=[],
+    )
+
+    pb_res = await simulation_service.simulate_prompt_block(test_token, block, {})
+    assert isinstance(pb_res, PromptBlockSimulationResponse)
+
+    step_res = await simulation_service.simulate_step(test_token, step, {})
+    assert isinstance(step_res, StepSimulationResponse)
+
+    wf_res = await simulation_service.simulate_workflow(test_token, workflow)
+    assert isinstance(wf_res, WorkflowSimulationResponse)
+

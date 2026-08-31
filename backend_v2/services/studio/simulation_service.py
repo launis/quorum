@@ -16,6 +16,11 @@ from backend_v2.models.domain.prompt_blocks import (
     SystemRulePromptBlock,
 )
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
+from backend_v2.models.dtos.studio import (
+    PromptBlockSimulationResponse,
+    StepSimulationResponse,
+    WorkflowSimulationResponse,
+)
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.v2_core import (
     Step,
@@ -42,7 +47,7 @@ class StudioSimulationService:
         """
         self.prompt_block_service = prompt_block_service
 
-    async def simulate_workflow(self, initiator: TokenData, data: Workflow) -> dict[str, Any]:
+    async def simulate_workflow(self, initiator: TokenData, data: Workflow) -> WorkflowSimulationResponse:
         """Simulate workflow.
 
         Args:
@@ -50,7 +55,7 @@ class StudioSimulationService:
             data: The workflow domain object to simulate.
 
         Returns:
-            A dictionary containing validation status, errors, and topological execution order.
+            A WorkflowSimulationResponse model containing validation status, errors, and topological execution order.
 
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
@@ -144,11 +149,17 @@ class StudioSimulationService:
                 step_status[step_id] = "ERROR"
                 errors.extend([f"Step {step_id}: {e}" for e in step_errors])
 
-        return {"valid": len(errors) == 0, "errors": errors, "step_status": step_status, "execution_order": dag_order}
+        return WorkflowSimulationResponse(
+            valid=len(errors) == 0,
+            errors=errors,
+            step_status=step_status,
+            execution_order=dag_order,
+            trace={},
+        )
 
     async def simulate_prompt_block(
         self, initiator: TokenData, data: PromptBlock, mock_inputs: dict[str, Any]
-    ) -> dict[str, Any]:
+    ) -> PromptBlockSimulationResponse:
         """Simulate prompt block.
 
         Args:
@@ -157,7 +168,7 @@ class StudioSimulationService:
             mock_inputs: A dictionary of mocked string inputs for dry-run rendering.
 
         Returns:
-            A dictionary containing the simulated render context and any evaluation errors.
+            A PromptBlockSimulationResponse model containing the simulated render context and any evaluation errors.
 
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
@@ -207,14 +218,17 @@ class StudioSimulationService:
             metadata={"simulated_block": data.id},
         )
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "rendered_prompt": rendered.strip(),
-            "prompt_context": prompt_context,
-        }
+        return PromptBlockSimulationResponse(
+            valid=len(errors) == 0,
+            errors=errors,
+            rendered_prompt=rendered.strip(),
+            trace={},
+            prompt_context=prompt_context,
+        )
 
-    async def simulate_step(self, initiator: TokenData, data: Step, mock_inputs: dict[str, Any]) -> dict[str, Any]:
+    async def simulate_step(
+        self, initiator: TokenData, data: Step, mock_inputs: dict[str, Any]
+    ) -> StepSimulationResponse:
         """Simulate step.
 
         Args:
@@ -223,7 +237,7 @@ class StudioSimulationService:
             mock_inputs: Mocked inputs to satisfy dependency variables.
 
         Returns:
-            A dictionary containing the full context payload and step-specific simulation errors.
+            A StepSimulationResponse model containing the full context payload and step-specific simulation errors.
 
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
@@ -247,13 +261,13 @@ class StudioSimulationService:
             try:
                 block = await self.prompt_block_service.get_prompt_block(initiator, block_ref)
                 sim = await self.simulate_prompt_block(initiator, block, mock_inputs)
-                if not sim["valid"]:
-                    errors.extend(sim["errors"] if "errors" in sim and isinstance(sim["errors"], list) else [])
+                if not sim.valid:
+                    errors.extend(sim.errors)
 
                 rendered_parts.append(f"--- Prompt Block: {block.id} ---")
-                rendered_parts.append(str(sim["rendered_prompt"]) if "rendered_prompt" in sim else "")
-                if "prompt_context" in sim and sim["prompt_context"]:
-                    prompt_context_msgs.extend(sim["prompt_context"].static_messages)
+                rendered_parts.append(sim.rendered_prompt)
+                if sim.prompt_context:
+                    prompt_context_msgs.extend(sim.prompt_context.static_messages)
             except ResourceNotFoundError:
                 errors.append(f"Missing referenced Prompt Block: {block_ref}")
                 rendered_parts.append(f"--- Prompt Block: {block_ref} [NOT FOUND] ---")
@@ -265,9 +279,10 @@ class StudioSimulationService:
             static_messages=prompt_context_msgs, dynamic_messages=[], metadata={"simulated_step": data.id}
         )
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "rendered_prompt": "\n\n".join(rendered_parts),
-            "prompt_context": step_context,
-        }
+        return StepSimulationResponse(
+            valid=len(errors) == 0,
+            errors=errors,
+            rendered_prompt="\n\n".join(rendered_parts),
+            trace={},
+            prompt_context=step_context,
+        )

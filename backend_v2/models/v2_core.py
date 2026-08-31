@@ -92,6 +92,7 @@ __all__ = [
     "MatrixSynthesisGroup",
     "ModelProfile",
     "OutputProfile",
+    "ProviderExtraParamsDTO",
     "QuestionnaireItem",
     "RenderedSynthesisCache",
     "ReportDataDTO",
@@ -349,6 +350,17 @@ class DataDictionaryField(V2CoreBase):
     validation_rules: dict[str, Any] | None = None
 
 
+class ProviderExtraParamsDTO(BaseModel):
+    """Provider-specific optional parameters for ModelProfile."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    max_output_tokens: int | None = None
+
+
 class ModelProfile(V2CoreBase):
     """A flattened physical AI model representation."""
 
@@ -375,9 +387,8 @@ class ModelProfile(V2CoreBase):
     thinking_budget_tokens: int | None = Field(
         default=None, description="Reasoning/thinking token budget for reasoning models (e.g. Gemini 3.7, Claude 3.7)"
     )
-    # Phase 1, Milestone 1: Add additional_params dict field to ModelProfile
-    additional_params: dict[str, Any] = Field(
-        default_factory=dict, description="Additional provider-specific parameters."
+    additional_params: ProviderExtraParamsDTO = Field(
+        default_factory=ProviderExtraParamsDTO, description="Additional provider-specific parameters."
     )
     is_active: bool = Field(default=True, description="Whether the model is actively available")
 
@@ -537,10 +548,6 @@ class Step(V2CoreBase):
     expected_inputs: list[str] = Field(
         default_factory=list,
         description="List of expected input keys required for this step. Replaces free-text generic routing.",
-    )
-    output_schema: dict[str, Any] | None = Field(
-        default=None,
-        description="Optional JSON schema defining the structured output of this step.",
     )
     # Phase 1, Step 2: Workflow context governance field
     is_system_core: Annotated[
@@ -1121,7 +1128,6 @@ class Workflow(V2CoreBase):
     version: int
     is_public: bool = Field(default=False)
     organization_id: str | None = Field(default=None)
-    ui_schema: dict[str, Any] = Field(default_factory=dict)
     default_profile_id: str = Field(description="The ID of the default output profile to use.")
     mcp_gateway_id: str | None = Field(
         default="sys_8172bda70c8641c5",

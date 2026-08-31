@@ -79,7 +79,7 @@ def enforce_modification_rights(
                 initiator.id,
             )
             raise PermissionDeniedError("Only ROOT can modify system resources.")
-        if data_org_id != org_id:
+        if data_org_id != org_id and not (data_org_id == SystemOrganizations.ROOT_SYSTEM and allow_system):
             msg = "Cannot modify resources outside your organization."
             logger.error(
                 "[StudioService] %s: %s User %s org_id=%s data_org_id=%s",

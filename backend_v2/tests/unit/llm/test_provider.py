@@ -69,6 +69,7 @@ def test_resolve_env_variables(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test LiteLLMProvider correctly resolves and uses additional_params in call_kwargs."""
     from backend_v2.models.llm import LLMProviderConfig
+    from backend_v2.models.v2_core import ProviderExtraParamsDTO
     from backend_v2.settings import get_settings
 
     monkeypatch.setenv("TEST_REGION_VAR", "europe-west3")
@@ -85,7 +86,7 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
         tpm_limit=100,
         rpm_limit=10,
         temperature=0.7,
-        additional_params={"vertex_location": "${TEST_REGION_VAR}"},
+        additional_params=ProviderExtraParamsDTO(top_p=0.85),
     )
 
     settings = get_settings()
@@ -125,7 +126,7 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
 
     provider.router.acompletion.return_value = MockLiteLLMResponse()
 
-    # Call generate and verify if resolved additional_params (vertex_location) bleed into call_kwargs
+    # Call generate and verify if resolved additional_params (top_p) bleed into call_kwargs
 
     if True:
         await provider.generate(
@@ -136,7 +137,7 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
 
     # Verify what arguments acompletion was called with
     called_kwargs = provider.router.acompletion.call_args[1]
-    assert called_kwargs["vertex_location"] == "europe-west3"
+    assert called_kwargs["top_p"] == 0.85
 
 
 @pytest.mark.asyncio

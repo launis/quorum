@@ -17,7 +17,7 @@ from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.mcp import OpenAIToolCallDTO
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import GCPVertexLocation, PromptCacheStatus
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import ModelProfile
 from backend_v2.settings import get_settings
@@ -407,12 +407,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
         """
         # 1. Resolve Vertex Location
         config_location = None
-        if isinstance(config, ModelProfile):
-            if "vertex_location" in config.additional_params:
-                config_location = config.additional_params["vertex_location"]
-        elif config is not None and isinstance(config, BaseModel):
-            if "vertex_location" in config.__dict__:
-                config_location = config.__dict__["vertex_location"]
+        if isinstance(config, LLMProviderConfig) and config.vertex_location:
+            config_location = config.vertex_location
 
         # 1.5 Reasoning & Thinking Parameter Extraction / Sanitization
         model_name = str(
@@ -421,11 +417,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
         is_gemini_3 = "gemini-3" in model_name or "gemini-3." in model_name
 
         thinking_budget: int | None = None
-        if isinstance(config, ModelProfile):
-            if config.thinking_budget_tokens is not None:
-                thinking_budget = int(config.thinking_budget_tokens)
-            elif config.additional_params and "thinking_budget_tokens" in config.additional_params:
-                thinking_budget = int(config.additional_params["thinking_budget_tokens"])
+        if isinstance(config, ModelProfile) and config.thinking_budget_tokens is not None:
+            thinking_budget = int(config.thinking_budget_tokens)
 
         if thinking_budget is not None:
             if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:

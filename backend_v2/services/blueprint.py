@@ -5,6 +5,8 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from pydantic import ValidationError
+
 from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
@@ -17,7 +19,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
-from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     ScoringStrategy,
     TargetBlockType,
@@ -494,14 +496,17 @@ class BlueprintTransformer:
 
             if execution.execution_trace:
                 for dto in results:
-                    if dto.block_id == VirtualSystemStepID.STEP_METADATA.value and isinstance(dto.payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                        usage = dto.payload.get("token_usage")
-                        if isinstance(usage, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                            p_tokens += int(usage.get("prompt_tokens") or 0)
-                            c_tokens += int(usage.get("completion_tokens") or 0)
-                            r_tokens += int(usage.get("reasoning_tokens") or 0)
-                            t_tokens += int(usage.get("total_tokens") or 0)
-                            cost += float(usage.get("cost_usd") or 0.0)
+                    if dto.block_id == VirtualSystemStepID.STEP_METADATA.value:
+                        try:
+                            step_meta = StepTraceMetadataDTO.model_validate(dto.payload)
+                            usage = step_meta.token_usage
+                            p_tokens += usage.prompt_tokens or 0
+                            c_tokens += usage.completion_tokens or 0
+                            r_tokens += usage.reasoning_tokens or 0
+                            t_tokens += usage.total_tokens or 0
+                            cost += usage.cost_usd or 0.0
+                        except ValidationError, ValueError:
+                            pass
 
             if t_tokens == 0 and execution.execution_trace:
                 logger.warning("[BlueprintTransformer] ALARM: 0 tokens for %s. Telemetry missing.", execution.id)
@@ -570,7 +575,7 @@ class BlueprintTransformer:
                 if profile.scoring_strategy is not None
                 else workflow_obj.default_scoring_strategy
             )
-            scoring_strategy = strat_raw.value if hasattr(strat_raw, "value") else str(strat_raw)  # noqa: QGR001 [REASON: LaxScoringStrategy type alias may be enum or string]
+            scoring_strategy = strat_raw.value if isinstance(strat_raw, ScoringStrategy) else str(strat_raw)
 
             resolved_preface_md = custom_preface_md
             if profile.custom_preface:

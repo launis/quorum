@@ -368,6 +368,7 @@ def sanitize_steps(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     for step in steps:
         s = dict(step)
+        s.pop("output_schema", None)
         for field in ["step_rules", "ai_description", "label"]:
             if field in s and isinstance(s[field], str):
                 s[field] = strip_raw_xml(s[field])
@@ -393,6 +394,7 @@ def sanitize_workflows(workflows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     for workflow in workflows:
         w = dict(workflow)
+        w.pop("ui_schema", None)
         validated_model = adapter_workflows.validate_python(w)
         serialized_workflow = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_workflows.append(serialized_workflow)
@@ -436,6 +438,9 @@ def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> Sanit
 
     raw_content = seed_path.read_text(encoding="utf-8")
     data = json.loads(raw_content)
+
+    # Purge orphan root collections
+    data.pop("step_blueprints", None)
 
     backup_path_str: str | None = None
     if not dry_run:

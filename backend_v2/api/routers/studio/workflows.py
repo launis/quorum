@@ -97,8 +97,7 @@ async def simulate_workflow(
     Raises:
         AppException: If the simulation fails.
     """
-    result = await studio_simulation_service.simulate_workflow(current_user, data)
-    return WorkflowSimulationResponse.model_validate(result)
+    return await studio_simulation_service.simulate_workflow(current_user, data)
 
 
 @router.get("/{id}/available-extensions", response_model=WorkflowAvailableExtensionsResponse)
