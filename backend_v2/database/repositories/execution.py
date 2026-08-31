@@ -147,7 +147,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                 trails = await self.driver.query(coll_path)
                 if trails:
                     trails.sort(key=lambda x: x["timestamp"] if "timestamp" in x else "")
-                    audit_models = TypeAdapter(list[MCPAuditTrace]).validate_python(trails)
+                    audit_models = TypeAdapter(list[MCPAuditTrace]).validate_python(trails, strict=False)
                     fc_data = data["frozen_context"] if "frozen_context" in data else None
                     if fc_data:
                         fc = (

@@ -36,13 +36,26 @@ __all__ = [
 class ScoringPayloadWrapper(V2CoreBase):
     """Wrapper for intermediate payload extraction during scoring logic execution."""
 
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    model_config = ConfigDict(strict=True, extra="ignore", frozen=True)
 
     sanitization_result: SanitizationResultDTO | None = None
     step_input_processing: InputProcessingOutputDTO | None = None
     step_falsifier: StepFalsifierDTO | None = None
     step_panel: StepPanelDTO | None = None
     evaluative_matrices: Annotated[dict[str, float] | None, Field(alias="_evaluative_matrices")] = None
+
+    @property
+    def has_scoring_data(self) -> bool:
+        """Returns True if at least one scoring payload field is present."""
+        return any(
+            (
+                self.sanitization_result is not None,
+                self.step_input_processing is not None,
+                self.step_falsifier is not None,
+                self.step_panel is not None,
+                self.evaluative_matrices is not None,
+            )
+        )
 
 
 class StateInputWrapper(V2CoreBase):
@@ -90,6 +103,8 @@ def _extract_payloads(data: ExecutionInputsDTO | dict[str, Any]) -> list[Scoring
     for valid_dto in hydrated_state.steps:
         if valid_dto.payload is None:
             continue
+        if isinstance(valid_dto.payload, (str, int, float, bool, list)):
+            continue
         if valid_dto.block_id == "_evaluative_matrices":
             try:
                 eval_map = TypeAdapter(dict[str, float]).validate_python(valid_dto.payload)
@@ -99,13 +114,9 @@ def _extract_payloads(data: ExecutionInputsDTO | dict[str, Any]) -> list[Scoring
                 pass
         try:
             wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
-            payloads.append(wrapper)
+            if wrapper.has_scoring_data:
+                payloads.append(wrapper)
         except ValidationError as e:
-            # If payload cannot be validated as a ScoringPayloadWrapper (e.g. primitive or non-matching DTO), skip if primitive
-            if isinstance(valid_dto.payload, (str, int, float, bool, list)):
-                logger.debug("[ScoringHook] Primitive payload skipped: %s", valid_dto.payload)
-                continue
-
             msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO payload in execution snapshot: {e}"
             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
