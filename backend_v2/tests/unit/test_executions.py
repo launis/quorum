@@ -12,6 +12,7 @@ from backend_v2.api.routers.execution.executions import (
 )
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ExecutionRecord
 
 
@@ -51,6 +52,8 @@ async def test_get_execution_status(mock_current_user: Any, mock_execution_servi
         id="exe_1234567890abcdef1234567890abcdef",
         status=ExecutionStatus.PASSED,
         workflow_id="wf_1",
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     mock_execution_service.get_execution.return_value = mock_record
 
@@ -84,6 +87,8 @@ async def test_start_execution(
         id="exe_1234567890abcdef1234567890abcdef",
         status=ExecutionStatus.PENDING,
         workflow_id="wf_1",
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     mock_execution_service.start_execution.return_value = mock_record
 
@@ -123,6 +128,8 @@ async def test_resume_execution(
         id="exe_1234567890abcdef1234567890abcdef",
         status=ExecutionStatus.PENDING,
         workflow_id="wf_1",
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     mock_execution_service.resume_execution.return_value = mock_record
 

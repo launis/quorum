@@ -260,7 +260,7 @@ def test_workflow_state_inherits_execution_core_fields() -> None:
     assert not missing, f"WorkflowState missing inherited core fields: {missing}"
 
     error_event = ErrorTraceEvent(step_name="test_step", error_code="ERR_TEST", error_message="test error")
-    ws = WorkflowState(workflow_id="wf_testtest1234")
+    ws = WorkflowState(workflow_id="wf_testtest1234", target_locale="fi")
     ws_with_error = ws.add_event(error_event)
     assert len(ws_with_error.execution_trace) == 1
     event = ws_with_error.execution_trace[0]
@@ -323,6 +323,7 @@ def test_workflow_state_accessors_and_properties() -> None:
 
     ws = WorkflowState(
         workflow_id="wf_testtest1234",
+        target_locale="fi",
         context_variables={
             "organization_id": "org_12345",
             "user_id": "usr_67890",

@@ -4,9 +4,16 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi import status
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.metrics import calculate_control_ratio_hook, text_metrics
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 @pytest.fixture
@@ -30,20 +37,22 @@ def test_text_metrics_hook_valid_payload(mock_deps: HookDependencies) -> None:
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata={},
-        global_context_vars={},
-        inputs={
-            "history_text": "User: Can you summarize this?\nAI: Yes, I can.",
-            "product_text": "This is a product. It has three sentences. Awesome!",
-        },
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "history_text": "User: Can you summarize this?\nAI: Yes, I can.",
+                "product_text": "This is a product. It has three sentences. Awesome!",
+            }
+        ),
     )
 
     result = cast(HookResult, text_metrics(state, mock_deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert "profiler_metrics" in result.state_delta
+    assert "profiler_metrics" in result.state_delta.delta
 
-    metrics = result.state_delta["profiler_metrics"]
+    metrics = result.state_delta.delta["profiler_metrics"]
     assert "word_count" in metrics
     assert "sentence_count" in metrics
     assert metrics["word_count"] > 0
@@ -62,9 +71,9 @@ def test_text_metrics_hook_empty_text_fails(mock_deps: HookDependencies) -> None
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata={},
-        global_context_vars={},
-        inputs={"empty_key": "", "none_key": None},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"empty_key": "", "none_key": None}),
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -80,16 +89,16 @@ def test_control_ratio_hook_valid(mock_deps: HookDependencies) -> None:
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata={},
-        global_context_vars={},
-        inputs={"chat": "User: Hello\nAI: Hi there!"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat": "User: Hello\nAI: Hi there!"}),
     )
 
     result = cast(HookResult, calculate_control_ratio_hook(state, mock_deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert "input_control_ratio" in result.state_delta
-    assert result.state_delta["input_control_ratio"] > 0.0
+    assert "input_control_ratio" in result.state_delta.delta
+    assert result.state_delta.delta["input_control_ratio"] > 0.0
 
 
 @patch("backend_v2.hooks.metrics.MetricsPayloadDTO.model_validate")
@@ -111,9 +120,9 @@ def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: 
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata={},
-        global_context_vars={},
-        inputs={"valid": "but mocked to fail"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"valid": "but mocked to fail"}),
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -142,9 +151,9 @@ def test_text_metrics_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: H
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata={},
-        global_context_vars={},
-        inputs={"valid": "but mocked to fail"},
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"valid": "but mocked to fail"}),
     )
 
     with pytest.raises(AppException) as exc_info:

@@ -76,6 +76,8 @@ def test_execution_record_has_context_variables() -> None:
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890",
         "status": "PENDING",
+        "target_locale": "fi",
+        "metadata": {"target_locale": "fi"},
         "raw_inputs": {},
         "context_variables": {"report_context": {"output_extensions": []}},
     }

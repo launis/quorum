@@ -33,18 +33,16 @@ def test_output_profiles_do_not_contain_execution_logic() -> None:
 
     execution_terms = ["NULL HYPOTHESIS", "ZERO-TRUST AUDITOR", "BOOLEAN", "FALSE", "TRUE"]
 
-    def assert_no_execution_logic(synthesis: Any, context: str) -> None:
-        if not synthesis or not getattr(synthesis, "system_prompt", None):
-            return
-        prompt = synthesis.system_prompt.upper()
-        for term in execution_terms:
-            assert term not in prompt, f"Execution terminology '{term}' found in {context}"
-
     if "output_profiles" in data:
         for raw_profile in data["output_profiles"]:
             profile = OutputProfile.model_validate(raw_profile)
-            if profile.synthesis:
-                assert_no_execution_logic(profile.synthesis, f"Root Profile {profile.id}")
+            if profile.tone_instruction:
+                for lang, text in profile.tone_instruction.translations.items():
+                    prompt = text.upper()
+                    for term in execution_terms:
+                        assert term not in prompt, (
+                            f"Execution terminology '{term}' found in Root Profile {profile.id} ({lang})"
+                        )
 
     if "workflows" in data:
         for raw_wf in data["workflows"]:

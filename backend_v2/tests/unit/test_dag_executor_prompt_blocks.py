@@ -12,31 +12,38 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 @pytest.fixture
 def mock_repo() -> Any:
     repo = AsyncMock()
+    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
     from backend_v2.models.enums import BlockDataType
 
-    repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_0123456789abcdef0123456789ab",
-            "slug": "task_bp",
-            "label": {"translations": {"fi": "Testi", "en": "Test"}},
-            "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
-            "category_id": "system_rule",
-            "type": BlockDataType.STRING,
-            "allow_decimals": False,
-            "output_extensions": [],
-        },
-        {
-            "id": "blk_573802341db9d68c",
-            "slug": "zero_trust_extraction_protocol",
-            "category_id": "system_rule",
-            "type": BlockDataType.STRING,
-            "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "ai_description": "Strict extraction protocol.",
-            "allow_decimals": False,
-            "output_extensions": [],
-        },
+    prompt_blocks = [
+        PromptBlockAdapter.validate_python(
+            {
+                "id": "blk_0123456789abcdef0123456789ab",
+                "slug": "task_bp",
+                "label": {"translations": {"fi": "Testi", "en": "Test"}},
+                "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
+                "category_id": "system_rule",
+                "type": BlockDataType.STRING,
+                "allow_decimals": False,
+                "output_extensions": [],
+            }
+        ),
+        PromptBlockAdapter.validate_python(
+            {
+                "id": "blk_573802341db9d68c",
+                "slug": "zero_trust_extraction_protocol",
+                "category_id": "system_rule",
+                "type": BlockDataType.STRING,
+                "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+                "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+                "ai_description": "Strict extraction protocol.",
+                "allow_decimals": False,
+                "output_extensions": [],
+            }
+        ),
     ]
+    repo.get_all_prompt_blocks.return_value = prompt_blocks
+    repo.get_prompt_blocks_by_ids.return_value = prompt_blocks
     repo.get_step.return_value = {
         "id": "step_1111111111111111",
         "slug": "task_bp",
@@ -185,6 +192,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                 "id": "exe_1231231231231231",
                 "workflow_id": "wf_5555555555555555",
                 "status": ExecutionStatus.PENDING,
+                "target_locale": "fi",
                 "active_profile_id": "prof_dddd1111dddd1111",
                 "raw_inputs": {"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}},
                 "metadata": {"target_locale": "fi", "profile_id": "prof_dddd1111dddd1111"},
@@ -192,10 +200,14 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
             # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
             with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
+                from backend_v2.core.hook_registry import HookDeltaDTO
+
                 mock_hooks.execute = AsyncMock(
                     return_value=HookResult(
                         success=True,
-                        state_delta={"inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}},
+                        state_delta=HookDeltaDTO(
+                            delta={"inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}}
+                        ),
                     )
                 )
 
@@ -208,7 +220,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                 )
 
     # Assert repo called new method instead of get_all_matrices
-    mock_repo.get_all_prompt_blocks.assert_called_once()
+    mock_repo.get_prompt_blocks_by_ids.assert_called_once()
     assert not hasattr(mock_repo, "get_all_matrices") or not mock_repo.get_all_matrices.called
     assert record.status == ExecutionStatus.RUNNING
     from backend_v2.models.state import StateProjector

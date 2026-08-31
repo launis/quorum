@@ -805,8 +805,12 @@ class LLMNodeStrategy(NodeStrategy):
                     "inputs": ExecutionInputsDTO(
                         dynamic_inputs=final_dict,
                         raw_inputs=final_dict,
-                        target_locale=hook_state.inputs.target_locale if isinstance(hook_state.inputs, ExecutionInputsDTO) else None,
-                        user_role=hook_state.inputs.user_role if isinstance(hook_state.inputs, ExecutionInputsDTO) else None,
+                        target_locale=hook_state.inputs.target_locale
+                        if isinstance(hook_state.inputs, ExecutionInputsDTO)
+                        else None,
+                        user_role=hook_state.inputs.user_role
+                        if isinstance(hook_state.inputs, ExecutionInputsDTO)
+                        else None,
                     ),
                 }
             )

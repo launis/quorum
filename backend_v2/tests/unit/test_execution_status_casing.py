@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ExecutionRecord
 
 
@@ -12,6 +13,8 @@ def test_execution_record_status_casing() -> None:
             id="exe_1234567890123456",
             workflow_id="wor_1234567890123456",
             status="running",
+            target_locale="fi",
+            metadata=ExecutionMetadata(target_locale="fi"),
         )
     assert "Input should be" in str(exc.value)
 
@@ -20,5 +23,7 @@ def test_execution_record_status_casing() -> None:
         id="exe_1234567890123456",
         workflow_id="wor_1234567890123456",
         status="RUNNING",
+        target_locale="fi",
+        metadata=ExecutionMetadata(target_locale="fi"),
     )
     assert record.status == "RUNNING"

@@ -5,9 +5,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
 
@@ -25,10 +32,7 @@ class StepOutputDTOFactory(ModelFactory[StepOutputDTO]):
 async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate: MagicMock) -> None:
     """PROMISE: Prove that execution_state.evidence_quotes is strictly converted to QuoteEvidenceDTO list and limits are enforced."""
     mock_validate.return_value = MagicMock(historical_context_mode="DISABLED", steps=[])
-    # Since SynthesisDistiller operates on HookState and returns HookResult,
-    # we simulate the input state containing evidence quotes.
 
-    # We will mock the dependencies
     deps = HookDependencies(
         exec_repo=AsyncMock(),
         workflow_repo=AsyncMock(),
@@ -40,7 +44,6 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         system_repo=AsyncMock(),
     )
 
-    # Mock return values for DB lookups
     cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
         "id": "wf_0123456789abcdef01",
         "name": "wf",
@@ -52,6 +55,8 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         "id": "exe_0123456789abcdef01",
         "workflow_id": "wf_0123456789abcdef01",
         "status": "PASSED",
+        "target_locale": "en",
+        "metadata": {"target_locale": "en"},
         "output_profile_id": "prof_1111111111111111",
         "raw_inputs": {"dynamic_inputs": {}},
         "step_states": {},
@@ -84,17 +89,17 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wf_0123456789abcdef01",
-        metadata={"target_locale": "en", "organization_id": "org1"},
-        inputs={"steps": [step_output.model_dump()]},
-        global_context_vars={"organization_id": "org1"},
+        metadata=ExecutionMetadata(target_locale="en", organization_id="org1"),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output.model_dump()]}),
+        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org1"}),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "distilled_inputs" in result.state_delta
-    assert "evidence_quotes" in result.state_delta["distilled_inputs"] or True
+    assert "distilled_inputs" in result.state_delta.delta
+    assert "evidence_quotes" in result.state_delta.delta["distilled_inputs"] or True
 
 
 @pytest.mark.asyncio
@@ -146,15 +151,13 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
 
     step_output = StepOutputDTOFactory.build(payload={"evidence_quotes": []})
 
-    from backend_v2.models.execution_core import ExecutionMetadata
-
     # State intentionally missing target_locale in metadata
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wf_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="", organization_id="org1"),  # target_locale empty
-        inputs={"steps": [step_output.model_dump()]},
-        global_context_vars={"organization_id": "org1"},
+        metadata=ExecutionMetadata(target_locale="", organization_id="org1"),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output.model_dump()]}),
+        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org1"}),
     )
 
     with pytest.raises(AppException) as exc_info:

@@ -429,7 +429,7 @@ async def test_jinja_sdui_golden_master_rendering() -> None:
         )
 
         # 16. matrix_summary
-        matrix_table = soup.find("table", style=lambda s: s and "font-size: 11px" in s)
+        matrix_table = soup.find("table", class_="matrix-summary-table")
         assert matrix_table is not None, f"[{locale}] Missing matrix_summary table"
         assert "Strategic Synthesis" in matrix_table.get_text()
         assert "We balanced 3-year vision" in matrix_table.get_text()

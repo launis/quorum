@@ -254,10 +254,10 @@ class TestPhase2PipelineUnification:
             "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
             return_value=Settings(max_synthesis_evaluations=40),
         ):
-            compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload({"evaluations": evals})
+            compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload({"results": evals})
             compressed_dict = json.loads(compressed_str)
 
-        pruned = compressed_dict.get("evaluations", [])
+        pruned = compressed_dict.get("results", [])
         assert len(pruned) == 40
 
     def test_matrices_to_explain_assembly(self) -> None:

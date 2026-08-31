@@ -76,14 +76,14 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
         StepOutputDTO(step_id="inputs", block_id="chat_log", data_type="text", payload="**Gemini Chat**..."),
     ]
 
+    from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
+    from backend_v2.models.execution_core import ExecutionMetadata
+
     context = MagicMock()
     context.execution_id = "exe_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = {}
-
-    # Mock the hook registry so it doesn't actually try to execute "some_hook"
-    from backend_v2.core.hook_registry import HookResult
+    context.metadata = ExecutionMetadata(target_locale="en")
 
     v2_step_mock = MagicMock()
     v2_step_mock.hook = "some_hook"
@@ -92,17 +92,17 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
         patch(
             "backend_v2.core.hook_registry.hook_registry.execute",
             new_callable=AsyncMock,
-            return_value=HookResult(success=True, state_delta={}),
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={})),
         ) as mock_hook,
         patch("backend_v2.models.v2_core.Step.model_validate", return_value=v2_step_mock),
     ):
         await strategy.execute(step, projector, context, None, [], semaphore=asyncio.Semaphore(2))
         hook_state = mock_hook.call_args[0][1]
 
-    assert isinstance(hook_state.inputs["raw_inputs"], dict), (
-        f"Bug! raw_inputs is {type(hook_state.inputs['raw_inputs'])} instead of dict"
+    assert isinstance(hook_state.inputs.dynamic_inputs["raw_inputs"], dict), (
+        f"Bug! raw_inputs is {type(hook_state.inputs.dynamic_inputs['raw_inputs'])} instead of dict"
     )
-    assert hook_state.inputs["raw_inputs"]["chat_log"] == "**Gemini Chat**..."
+    assert hook_state.inputs.dynamic_inputs["raw_inputs"]["chat_log"] == "**Gemini Chat**..."
 
 
 @pytest.mark.asyncio

@@ -32,8 +32,9 @@ def mock_repo() -> AsyncMock:
         "id": "exe_1111222233334444",
         "workflow_id": "wf_tg_test",
         "status": ExecutionStatus.PENDING,
+        "target_locale": "en",
         "raw_inputs": {"dynamic_inputs": {"log": "test"}},
-        "metadata": {},
+        "metadata": {"profile_id": "prof_dddd1111dddd1111", "target_locale": "en"},
     }
     return repo
 
@@ -91,7 +92,11 @@ async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMoc
 
     # Bypass the hook registry safely
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+        from backend_v2.core.hook_registry import HookDeltaDTO
+
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+        )
 
         # Patch the actual task execution
         with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
@@ -156,7 +161,11 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
 
     # Bypass the hook registry safely
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+        from backend_v2.core.hook_registry import HookDeltaDTO
+
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+        )
 
         # Patch the actual task execution
         with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
@@ -230,7 +239,11 @@ async def test_step_transient_failure_exhausts_retries(mock_repo: AsyncMock, moc
         mock_get_settings.return_value = mock_settings
 
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+            from backend_v2.core.hook_registry import HookDeltaDTO
+
+            mock_hooks.execute = AsyncMock(
+                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            )
 
             with patch.object(executor.node_executor, "execute", mock_execute):
                 with pytest.raises(AppException) as exc_info:
@@ -309,14 +322,16 @@ async def test_dynamic_synthesis_model_strategy_routing(
         "id": "exe_0123456789abcdef01",
         "workflow_id": "wf_0123456789abcdef01",
         "status": "PASSED",
+        "target_locale": "en",
+        "metadata": {"profile_id": "prof_1", "target_locale": "en"},
         "raw_inputs": {"dynamic_inputs": {}},
     }
 
     mock_bp_validate.return_value = MagicMock(id="bp_0123456789abcdef01", type="standard", model_strategy="synthesis")
 
-    from backend_v2.core.hook_registry import HookResult
+    from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 
-    mock_hook_execute.return_value = HookResult(success=True, state_delta={"distilled_inputs": {}})
+    mock_hook_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": {}}))
 
     mock_reduce.return_value = MagicMock(model_dump=lambda: {"mock": "matrix"})
 

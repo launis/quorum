@@ -27,12 +27,14 @@ def test_context_mapper_fail_fast_on_dict() -> None:
 
 def test_context_mapper_valid_blocks() -> None:
     """Test that valid PromptBlock instances map correctly with extrema."""
-    b1 = MagicMock(spec=PromptBlockBase)
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+
+    b1 = MagicMock(spec=MatrixPromptBlock)
     b1.id = "blk_1"
     b1.computed_min = 1.0
     b1.computed_max = 5.0
 
-    b2 = MagicMock(spec=PromptBlockBase)
+    b2 = MagicMock(spec=MatrixPromptBlock)
     b2.id = "blk_2"
     b2.computed_min = 0.0
     b2.computed_max = 10.0

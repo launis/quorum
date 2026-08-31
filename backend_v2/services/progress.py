@@ -32,6 +32,7 @@ class ProgressState(BaseModel):
     percent: int | None = None
     error: str | None = None
     result: dict[str, Any] | None = None
+    details: dict[str, Any] | None = None
 
 
 class ProgressTracker(ABC):
@@ -254,15 +255,31 @@ class InMemoryProgressTracker(ProgressTracker):
         Returns:
             None
         """
-        base = {"status": status, "timestamp": datetime.now(timezone.utc).isoformat()}
+        base: dict[str, Any] = {"status": status, "timestamp": datetime.now(timezone.utc).isoformat()}
         for k in base:
             if k in payload:
                 raise ValueError(f"InMemory Tracker property bypass attempt: '{k}'")
-        base.update(payload)
+
+        known_fields = {"stage", "percent", "error", "result", "details"}
+        extra_details: dict[str, Any] = {}
+        for k, v in payload.items():
+            if k in known_fields:
+                base[k] = v
+            else:
+                extra_details[k] = v
+
+        if extra_details:
+            base["details"] = extra_details
 
         self.current_state = ProgressState.model_validate(base)
         # Pass the simplified view expected by API consumers
-        self.callback(self.current_state.model_dump(exclude_none=True))
+        dumped = self.current_state.model_dump(exclude_none=True)
+        match dumped.pop("details", None):
+            case dict() as details_dict:
+                dumped.update(details_dict)
+            case _:
+                pass
+        self.callback(dumped)
 
     async def start(self, details: dict[str, Any] | None = None) -> None:
         """Signals start.

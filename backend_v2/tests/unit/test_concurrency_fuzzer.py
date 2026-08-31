@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import HookResult
+from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.v2_core import I18nText, StepRule, Workflow
@@ -54,22 +54,29 @@ def mock_repo() -> AsyncMock:
         "id": "exe_1111222233334444",
         "workflow_id": "wf_0000000000000000",
         "status": ExecutionStatus.PENDING,
+        "target_locale": "en",
         "raw_inputs": {"dynamic_inputs": {"log": "test"}},
         "metadata": {"profile_id": "prof_0000000000000000", "target_locale": "en"},
     }
-    repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_1234567890abcdef",
-            "slug": "task_bp",
-            "label": {"translations": {"fi": "Testi", "en": "Test"}},
-            "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
-            "ai_description": "Strict extraction protocol.",
-            "category_id": "system_rule",
-            "type": "string",
-            "allow_decimals": False,
-            "output_extensions": [],
-        }
+    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+
+    prompt_blocks = [
+        PromptBlockAdapter.validate_python(
+            {
+                "id": "blk_1234567890abcdef",
+                "slug": "task_bp",
+                "label": {"translations": {"fi": "Testi", "en": "Test"}},
+                "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
+                "ai_description": "Strict extraction protocol.",
+                "category_id": "system_rule",
+                "type": "string",
+                "allow_decimals": False,
+                "output_extensions": [],
+            }
+        )
     ]
+    repo.get_all_prompt_blocks.return_value = prompt_blocks
+    repo.get_prompt_blocks_by_ids.return_value = prompt_blocks
     repo.get_output_profile_by_id.return_value = {
         "id": "prof_0000000000000000",
         "slug": "test_profile",
@@ -190,7 +197,9 @@ async def test_concurrency_fuzzer_peak_limit(
 
     with patch("litellm.Router.acompletion", side_effect=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+            mock_hooks.execute = AsyncMock(
+                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            )
 
             await executor.execute_workflow(
                 execution_id="exe_1111222233334444",
@@ -227,7 +236,9 @@ async def test_concurrency_fuzzer_zero_concurrency(
     workflow = _create_workflow(1)
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+        )
 
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(
@@ -296,7 +307,9 @@ async def test_concurrency_fuzzer_exceeding_physical_limit(
 
     with patch("litellm.Router.acompletion", side_effect=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+            mock_hooks.execute = AsyncMock(
+                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            )
 
             await asyncio.wait_for(
                 executor.execute_workflow(

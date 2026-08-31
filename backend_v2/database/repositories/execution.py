@@ -106,7 +106,9 @@ class ExecutionRepositoryImpl(BaseRepository):
 
                         from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
-                        data[field] = TypeAdapter(list[ErrorTraceEvent | TombstoneEvent | TraceEvent]).validate_json(blob_data)
+                        data[field] = TypeAdapter(list[ErrorTraceEvent | TombstoneEvent | TraceEvent]).validate_json(
+                            blob_data
+                        )
                     elif field == "frozen_context":
                         from backend_v2.models.v2_core import FrozenContext
 

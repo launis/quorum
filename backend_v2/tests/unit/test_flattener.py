@@ -15,11 +15,15 @@ def test_flat_file_service_flatten_results() -> None:
     """Test that execution traces are flattened correctly according to V2 specs."""
     execution_id = f"exe_{uuid.uuid4().hex}"
 
+    from backend_v2.models.execution_core import ExecutionMetadata
+
     # We create a dummy ExecutionRecord
     record = ExecutionRecord(
         id=execution_id,
         workflow_id="wf_test",
         status=ExecutionStatus.PASSED,
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en"),
         execution_trace=[],
     )
 
@@ -66,11 +70,15 @@ def test_flat_file_service_flatten_results() -> None:
 
 def test_flat_file_service_empty_results() -> None:
     """Test flat file service with no trace results."""
+    from backend_v2.models.execution_core import ExecutionMetadata
+
     execution_id = f"exe_{uuid.uuid4().hex}"
     record = ExecutionRecord(
         id=execution_id,
         workflow_id="wf_empty",
         status=ExecutionStatus.FAILED,
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en"),
         execution_trace=[],
     )
 

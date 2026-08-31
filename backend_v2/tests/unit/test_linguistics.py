@@ -1,16 +1,25 @@
+from collections.abc import Awaitable
 from typing import cast
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookResult, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookResult,
+    HookState,
+)
 from backend_v2.hooks.linguistics import detect_performative_patterns
 from backend_v2.models.domain.linguistics import LinguisticsPayloadDTO
-from backend_v2.core.hook_registry import ExecutionInputsDTO, ExecutionMetadata, GlobalContextVarsDTO
+from backend_v2.models.execution_core import ExecutionMetadata
 
 
 @pytest.fixture
 def mock_deps() -> HookDependencies:
+    system_repo = MagicMock()
+    system_repo.get_system_config = AsyncMock()
     return HookDependencies(
         exec_repo=AsyncMock(),
         workflow_repo=AsyncMock(),
@@ -19,7 +28,7 @@ def mock_deps() -> HookDependencies:
         output_profile_repo=AsyncMock(),
         identity_repo=AsyncMock(),
         audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),  # noqa: E501
+        system_repo=system_repo,
         search_client=AsyncMock(),
     )
 
@@ -51,11 +60,14 @@ async def test_detect_performative_patterns_success_en(mock_deps: HookDependenci
         metadata=ExecutionMetadata(target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
-            raw_inputs={"q1": "It is important to note that this is a game changer.", "q2": "Regular text with no fillers."}
+            raw_inputs={
+                "q1": "It is important to note that this is a game changer.",
+                "q2": "Regular text with no fillers.",
+            }
         ),
     )
 
-    mock_deps.system_repo.get_system_config.return_value = {
+    cast(AsyncMock, mock_deps.system_repo.get_system_config).return_value = {
         "id": "sys_e0b2a3c4d5e6f7a8",
         "slug": "lexicon",
         "type": "performative_lexicons",
@@ -68,7 +80,7 @@ async def test_detect_performative_patterns_success_en(mock_deps: HookDependenci
             }
         },
     }
-    result = cast(HookResult, await detect_performative_patterns(state, mock_deps))
+    result = await cast(Awaitable[HookResult], detect_performative_patterns(state, mock_deps))
 
     assert result.success is True
     assert result.state_delta is not None
@@ -97,7 +109,7 @@ async def test_detect_performative_patterns_success_fi(mock_deps: HookDependenci
         ),
     )
 
-    mock_deps.system_repo.get_system_config.return_value = {
+    cast(AsyncMock, mock_deps.system_repo.get_system_config).return_value = {
         "id": "sys_e0b2a3c4d5e6f7a8",
         "slug": "lexicon",
         "type": "performative_lexicons",
@@ -110,7 +122,7 @@ async def test_detect_performative_patterns_success_fi(mock_deps: HookDependenci
             }
         },
     }
-    result = cast(HookResult, await detect_performative_patterns(state, mock_deps))
+    result = await cast(Awaitable[HookResult], detect_performative_patterns(state, mock_deps))
 
     assert result.success is True
     assert result.state_delta is not None
@@ -136,7 +148,7 @@ async def test_detect_performative_patterns_no_matches(mock_deps: HookDependenci
         ),
     )
 
-    mock_deps.system_repo.get_system_config.return_value = {
+    cast(AsyncMock, mock_deps.system_repo.get_system_config).return_value = {
         "id": "sys_e0b2a3c4d5e6f7a8",
         "slug": "lexicon",
         "type": "performative_lexicons",
@@ -149,7 +161,7 @@ async def test_detect_performative_patterns_no_matches(mock_deps: HookDependenci
             }
         },
     }
-    result = cast(HookResult, await detect_performative_patterns(state, mock_deps))
+    result = await cast(Awaitable[HookResult], detect_performative_patterns(state, mock_deps))
 
     assert result.success is True
     assert result.state_delta is not None

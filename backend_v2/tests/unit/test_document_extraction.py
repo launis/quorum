@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from fastapi import status
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.inputs import WorkflowInputsIngress
 from backend_v2.services.document_extraction import DocumentExtractionService
 
@@ -33,7 +33,7 @@ async def test_process_ingress_payload_strict_hydration_failure() -> None:
         await service.process_ingress_payload(ingress)
 
     assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    assert exc_info.value.details["error_code"] == "INVALID_ATTACHMENT_SCHEMA"
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio

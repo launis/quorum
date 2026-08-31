@@ -4,9 +4,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import litellm.exceptions
 import pytest
 
-from backend_v2.core.hook_registry import HookResult
+from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.v2_core import I18nText, StepRule, Workflow
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
@@ -49,22 +50,24 @@ def mock_repo() -> AsyncMock:
         "id": "exe_1111222233334444",
         "workflow_id": "wf_0000000000000000",
         "status": ExecutionStatus.PENDING,
+        "target_locale": "en",
         "raw_inputs": {"dynamic_inputs": {"log": "test"}},
         "metadata": {"profile_id": "prof_0000000000000000", "target_locale": "en"},
     }
-    repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_1234567890abcdef",
-            "slug": "task_bp",
-            "label": {"translations": {"fi": "Testi", "en": "Test"}},
-            "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
-            "ai_description": "Strict extraction protocol.",
-            "category_id": "system_rule",
-            "type": "string",
-            "allow_decimals": False,
-            "output_extensions": [],
-        }
-    ]
+    raw_prompt_block = {
+        "id": "blk_1234567890abcdef",
+        "slug": "task_bp",
+        "label": {"translations": {"fi": "Testi", "en": "Test"}},
+        "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
+        "ai_description": "Strict extraction protocol.",
+        "category_id": "system_rule",
+        "type": "string",
+        "allow_decimals": False,
+        "output_extensions": [],
+    }
+    typed_block = PromptBlockAdapter.validate_python(raw_prompt_block)
+    repo.get_all_prompt_blocks.return_value = [raw_prompt_block]
+    repo.get_prompt_blocks_by_ids.return_value = [typed_block]
     repo.get_output_profile_by_id.return_value = {
         "id": "prof_0000000000000000",
         "slug": "test_profile",
@@ -158,7 +161,9 @@ async def test_context_window_exceeded_error_maps_critical(
 
     with patch("litellm.Router.acompletion", new=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+            mock_hooks.execute = AsyncMock(
+                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            )
 
             with pytest.raises(AppException) as exc_info:
                 await executor.execute_workflow(
@@ -211,7 +216,9 @@ async def test_non_context_400_error_maps_malformed(
 
     with patch("litellm.Router.acompletion", new=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+            mock_hooks.execute = AsyncMock(
+                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            )
 
             with pytest.raises(AppException):
                 await executor.execute_workflow(
@@ -268,7 +275,9 @@ async def test_transient_503_error_triggers_resilience_loop(
 
     with patch("litellm.Router.acompletion", new=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={"log": "test"}))
+            mock_hooks.execute = AsyncMock(
+                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            )
 
             with pytest.raises(AppException) as exc_info:
                 await executor.execute_workflow(

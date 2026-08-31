@@ -169,8 +169,12 @@ class LogicNodeStrategy(NodeStrategy):
                 "inputs": ExecutionInputsDTO(
                     dynamic_inputs=state_data,
                     raw_inputs=state_data,
-                    target_locale=hook_state.inputs.target_locale if isinstance(hook_state.inputs, ExecutionInputsDTO) else None,
-                    user_role=hook_state.inputs.user_role if isinstance(hook_state.inputs, ExecutionInputsDTO) else None,
+                    target_locale=hook_state.inputs.target_locale
+                    if isinstance(hook_state.inputs, ExecutionInputsDTO)
+                    else None,
+                    user_role=hook_state.inputs.user_role
+                    if isinstance(hook_state.inputs, ExecutionInputsDTO)
+                    else None,
                 ),
             }
         )

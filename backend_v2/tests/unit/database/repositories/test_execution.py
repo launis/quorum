@@ -116,7 +116,13 @@ async def test_offload_and_hydrate_payloads(repo: ExecutionRepositoryImpl, mock_
     mock_storage = AsyncMock(spec=FileDriver)
     mock_storage.save.return_value = True
     mock_storage.read.return_value = json.dumps(
-        [{"step_id": "stp_1", "block_id": "blk_1", "data_type": "text", "payload": "ok"}]
+        [
+            {
+                "step_name": "stp_1",
+                "event_type": "output",
+                "content": {"result": "ok"},
+            }
+        ]
     )
 
     with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
@@ -135,3 +141,116 @@ async def test_offload_and_hydrate_payloads(repo: ExecutionRepositoryImpl, mock_
         # 2. Test hydrate
         await repo._hydrate_payloads(data)
         assert "execution_trace" in data
+
+        # 3. Test empty payload handling for pending/running status
+        pending_data = {
+            "id": "exe_pending",
+            "status": "RUNNING",
+            "execution_trace_storage_path": "executions/exe_pending/trace.json",
+        }
+        mock_storage.read.return_value = ""
+        await repo._hydrate_payloads(pending_data)
+        assert pending_data["execution_trace"] == []
+
+        # 4. Test error when blob data is corrupted / unparseable
+        mock_storage.read.side_effect = Exception("Storage error")
+        with pytest.raises(AppException) as exc_info:
+            await repo._hydrate_payloads(
+                {"id": "exe_err", "execution_trace_storage_path": "executions/exe_err/trace.json"}
+            )
+        assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_audit_trails_offload_and_hydrate(repo: ExecutionRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Positive & Negative: tests subcollection audit trails offloading and hydration."""
+    # Test offload audit trails
+    data = {
+        "id": "exe_audit",
+        "frozen_context": {
+            "mcp_tool_audit": [
+                {"id": "audit_1", "tool_name": "fetch", "timestamp": "2026-08-31T01:00:00Z"},
+                {"id": "audit_custom", "tool_name": "calc", "timestamp": "2026-08-31T00:00:00Z"},
+            ]
+        },
+    }
+    await repo._offload_payloads("exe_audit", data)
+    assert mock_driver.upsert.call_count >= 2
+
+    # Test audit trails failure on offload
+    data_fail = {
+        "id": "exe_audit_fail",
+        "frozen_context": {
+            "mcp_tool_audit": [
+                {"id": "audit_err", "tool_name": "fetch", "timestamp": "2026-08-31T01:00:00Z"},
+            ]
+        },
+    }
+    mock_driver.upsert.side_effect = Exception("DB error")
+    with pytest.raises(AppException) as exc_info:
+        await repo._offload_payloads("exe_audit_fail", data_fail)
+    assert exc_info.value.status_code == 500
+    mock_driver.upsert.side_effect = None
+
+    # Test hydrate audit trails
+    mock_driver.query.return_value = [
+        {"id": "a2", "tool_name": "fetch", "timestamp": "2026-08-31T01:00:00Z"},
+        {"id": "a1", "tool_name": "calc", "timestamp": "2026-08-31T00:00:00Z"},
+    ]
+    hydrate_data = {"id": "exe_audit"}
+    await repo._hydrate_payloads(hydrate_data)
+    assert "frozen_context" in hydrate_data
+    assert len(hydrate_data["frozen_context"]["mcp_tool_audit"]) == 2
+    # Check sorting
+    assert hydrate_data["frozen_context"]["mcp_tool_audit"][0]["id"] == "a1"
+
+    # Test hydrate audit trails failure
+    mock_driver.query.side_effect = Exception("Query error")
+    with pytest.raises(AppException):
+        await repo._hydrate_payloads({"id": "exe_fail_audit"})
+
+
+@pytest.mark.asyncio
+async def test_hydrate_frozen_context_and_context_vars(repo: ExecutionRepositoryImpl) -> None:
+    """Positive: tests hydration of frozen_context and context_variables blobs."""
+    mock_storage = AsyncMock(spec=FileDriver)
+    mock_storage.read.side_effect = [
+        json.dumps(
+            {
+                "compiled_prompts": {"p1": "prompt"},
+                "injected_theory": {},
+                "generated_schemas": {},
+                "ui_hints_snapshot": {},
+                "mcp_tool_audit": [],
+            }
+        ),
+        json.dumps({"var1": "val1"}),
+    ]
+
+    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
+        data = {
+            "frozen_context_storage_path": "executions/exe_1/frozen_context.json",
+            "context_variables_storage_path": "executions/exe_1/context_vars.json",
+        }
+        await repo._hydrate_payloads(data)
+        assert "frozen_context" in data
+        assert "context_variables" in data
+
+
+@pytest.mark.asyncio
+async def test_append_trace_event_errors(repo: ExecutionRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests append_trace_event when execution is missing or hydration fails."""
+    # 1. Missing execution
+    mock_driver.get.return_value = None
+    assert await repo.append_trace_event("exe_nonexistent", {"type": "log"}) is False
+
+    # 2. Hydration failure during append
+    mock_driver.get.return_value = {
+        "id": "exe_corrupt",
+        "execution_trace_storage_path": "executions/exe_corrupt/trace.json",
+    }
+    mock_storage = AsyncMock(spec=FileDriver)
+    mock_storage.read.side_effect = Exception("Read failure")
+    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
+        with pytest.raises(AppException):
+            await repo.append_trace_event("exe_corrupt", {"type": "log"})
