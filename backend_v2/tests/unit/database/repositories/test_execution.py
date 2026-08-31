@@ -87,7 +87,8 @@ async def test_get_all_executions_and_recent(
     repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict
 ) -> None:
     """Positive: tests get_all_executions with filters and get_recent_completed_executions."""
-    mock_driver.query.return_value = [{"id": "corrupted_1"}, valid_execution_doc]
+    # 1. Valid executions return list
+    mock_driver.query.return_value = [valid_execution_doc]
 
     all_execs = await repo.get_all_executions(organization_id="org_123", user_id="usr_123")
     assert len(all_execs) == 1
@@ -95,6 +96,16 @@ async def test_get_all_executions_and_recent(
 
     recent = await repo.get_recent_completed_executions(limit=5)
     assert len(recent) == 1
+
+    # 2. Corrupted execution in query fails fast with AppException (Fail-Fast Rule)
+    mock_driver.query.return_value = [{"id": "corrupted_1"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_all_executions()
+    assert exc_info.value.status_code == 500
+
+    with pytest.raises(AppException) as exc_info_recent:
+        await repo.get_recent_completed_executions()
+    assert exc_info_recent.value.status_code == 500
 
 
 @pytest.mark.asyncio

@@ -11,32 +11,32 @@ def test_contextual_override_cross_validation() -> None:
         "localized_anchors_found": ["test_anchor"],
         "semantic_reasoning": "Mapping explanation here",
         "contextual_override": True,
-        "exact_quotes": None,
+        "exact_quotes": [],
     }
     model = BaseTDAExtraction.model_validate(data_valid)
     assert model.contextual_override is True
     assert model.exact_quotes == []
 
-    # 2. Automatically coerces exact_quote to None if contextual_override is True
-    data_coerced = {
+    # 2. Invalid: combining contextual_override=True with non-empty exact_quotes raises ValidationError
+    data_invalid_override = {
         "localized_anchors_found": ["test_anchor"],
         "semantic_reasoning": "Mapping explanation here",
         "contextual_override": True,
-        "exact_quotes": ["This quote should be removed by validator"],
+        "exact_quotes": [{"text": "Quote", "source_id": "doc_1"}],
     }
-    model_coerced = BaseTDAExtraction.model_validate(data_coerced)
-    assert model_coerced.contextual_override is True
-    assert model_coerced.exact_quotes == []
+    with pytest.raises(ValidationError) as exc_info:
+        BaseTDAExtraction.model_validate(data_invalid_override, context={"alias_map": {}})
+    assert "contextual_override=True cannot be combined with exact_quotes" in str(exc_info.value)
 
     # 3. Invalid: [CONTEXTUAL_OVERRIDE_APPLIED] exact_quote is forbidden when contextual_override is False
     data_invalid = {
         "localized_anchors_found": ["test_anchor"],
         "semantic_reasoning": "Mapping explanation here",
         "contextual_override": False,
-        "exact_quotes": ["[CONTEXTUAL_OVERRIDE_APPLIED]"],
+        "exact_quotes": [{"text": "[CONTEXTUAL_OVERRIDE_APPLIED]", "source_id": "doc_1"}],
     }
     with pytest.raises(ValidationError) as exc_info:
-        BaseTDAExtraction.model_validate(data_invalid)
+        BaseTDAExtraction.model_validate(data_invalid, context={"alias_map": {}})
 
     assert "Cross-validation failed" in str(exc_info.value)
 

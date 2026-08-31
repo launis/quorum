@@ -65,3 +65,15 @@ def test_hook_delta_dto_strictness() -> None:
     """Verify HookDeltaDTO forbids extra fields and enforces immutability."""
     with pytest.raises(ValidationError):
         HookDeltaDTO(extra_field="fail")  # type: ignore[call-arg]
+
+
+def test_hook_delta_dto_subscript_and_contains() -> None:
+    """Verify HookDeltaDTO subscripting and membership operators."""
+    dto = HookDeltaDTO(delta={"result": "ok", "count": 42})
+    assert "result" in dto
+    assert "missing" not in dto
+    assert dto["result"] == "ok"
+    assert dto["count"] == 42
+    with pytest.raises(KeyError):
+        _ = dto["missing"]
+

@@ -57,7 +57,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       </constraint>
       <constraint name="PHASE_B_PANEL_OF_EXPERTS_AUDIT">
         Audit through Quorum Modernity Gate:
-        - Python Backend: Strict Pydantic V2 (`ConfigDict(strict=True, extra="forbid")`), discriminated unions, `asyncio.TaskGroup` over `gather`, zero naked dicts.
+        - Python Backend: 100% Pydantic V2 DTOs (`ConfigDict(strict=True, extra="forbid")`), pure discriminated unions, `asyncio.TaskGroup` over `gather`, absolute zero naked dicts (`dict[str, Any]`, `list[dict]`, `TypedDict`, `cast(Any, ...)`), zero `isinstance(dict)`, zero `match/case dict`, zero `# noqa: QGR`.
         - LLM Architect: `LLMClient.from_strategy()` via Model Garden, static cache prefix survival (Layer 1-3 prefix, Layer 4 dynamic tail), exact `str.find()` evidence.
         - Flutter &amp; SDUI: 1:1 cross-domain DTO parity with Dart Freezed (`@Freezed(unionKey: ...)` without fallback defaults), `AppErrorBoundary` wrapping.
         - Anti-Pattern Sweep: Eradicate "e.g." ambiguity, raw dict passing, hardcoded timeouts/strings, and lazy `.get()`/`or` defaults.

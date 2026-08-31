@@ -103,7 +103,7 @@
     </rule_block>
 
     <rule_block id="zero_legacy_fallback_hacks">
-        <mandate>NEVER add `@model_validator(mode="before")` or optional union types (`| None`) purely to silently scrub or appease old V1 legacy payload fields (e.g., `task_key`) from crashing `extra='forbid'`. ALWAYS maintain Pydantic `extra='forbid'` strictness; fix dirty historical databases at the source via `uv run python backend_v2/seed/run_seed.py local`.</mandate>
+        <mandate>NEVER add `@model_validator(mode="before")`, try/except enum coercions, or optional union types (`| None`) purely to silently scrub dictionary keys or appease raw strings. In Pydantic V2, Enum fields (like `StrEnum`) natively validate and coerce string inputs. For cross-field validation, ALWAYS use `@model_validator(mode="after")` on strongly typed `self` models with zero dictionary manipulation. ALWAYS maintain Pydantic `extra='forbid'` strictness; fix dirty historical databases at the source via `uv run python backend_v2/seed/run_seed.py local`.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_pure_hydration_boundary">
@@ -111,7 +111,7 @@
     </rule_block>
 
     <rule_block id="no_naked_dicts_in_state">
-        <mandate>NEVER push parsed LLM outputs directly into `state_delta` or intermediate caches as naked dictionaries. ALWAYS intercept raw datastreams with `.model_validate()` at the boundary. If storage requires dicts, chain explicitly: `MyModel.model_validate(data).model_dump(mode='json')`.</mandate>
+        <mandate>NEVER pass, store, or process raw dictionaries (`dict`, `dict[str, Any]`, `dict[str, object]`, `list[dict]`, `Mapping[str, Any]`), `TypedDict`, `cast(Any, ...)`, `Any` in state signatures, `isinstance(x, dict)`, or `match/case` dict patterns for domain state transit, function arguments, hook states, or intermediate execution data. ALWAYS validate raw incoming data at ingress boundaries using strongly typed Pydantic V2 DTOs and `TypeAdapter`. All function signatures, hook states, and DAG outputs MUST declare explicit typed Pydantic V2 models or strict discriminated union types. If database (MongoDB) or transport (FastAPI/HTTP) serialization requires JSON dictionaries, execute conversion explicitly at the absolute persistence/network boundary via `MyModel.model_dump(mode='json')` or `MyModel.model_validate(raw_doc)`.</mandate>
     </rule_block>
 
     <rule_block id="schema_convergence_mandate">
@@ -123,7 +123,7 @@
     </rule_block>
 
     <rule_block id="polymorphic_dag_payload_handling">
-        <mandate>NEVER assume `StepOutputDTO.payload` is always a `dict` or write consumers that crash on strings/Markdown, scalars, or empty payloads. Downstream consumers (`SynthesisPayloadCompressor`, `synthesis_distiller_hook`, reporting hooks) MUST polymorphically handle all 4 valid partitions (`dict`, `list`, `str`, `int`/`float`/`bool`), filter metadata (`_`) and empty payloads gracefully, and test all 4 partitions in unit tests.</mandate>
+        <mandate>NEVER inspect payload types using `isinstance(x, dict)` or `match x: case dict():`. Downstream payload consumers MUST validate heterogeneous DAG state via strict Pydantic V2 Discriminated Unions or TypeAdapters (`TypeAdapter(list[AtomResultDTO] | str | int | float).validate_python(payload)`), enforcing Fail-Fast upon malformed payloads with ZERO naked dictionaries.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_native_field_priority">
@@ -135,7 +135,7 @@
     </rule_block>
 
     <rule_block id="polymorphic_routing_o1">
-        <mandate>NEVER use implicit Unions or structural `isinstance()` chains with polymorphic DAG nodes. ALWAYS mandate Discriminated Unions (`Field(discriminator='type')`) and Python 3.10+ `match...case` structures.</mandate>
+        <mandate>NEVER use implicit Unions, structural `isinstance()` chains, or `match/case dict` on polymorphic nodes. ALWAYS mandate strict Pydantic V2 Discriminated Unions (`Field(discriminator='type')`) and `TypeAdapter` validation.</mandate>
     </rule_block>
 
     <rule_block id="dynamic_vs_static_localization_ssot_mandate">
@@ -174,7 +174,7 @@
     </rule_block>
 
     <rule_block id="service_layer_hydration_firewall">
-        <mandate>NEVER return raw DB dictionaries from the Data Access Layer (Repository) or Service layer. The Repository layer acts as the reconstitution firewall: internal database drivers return raw dictionaries, and Repository methods map them into strictly typed Pydantic Domain Models (`ConfigDict(frozen=True)`) before returning to the Service layer or callers.</mandate>
+        <mandate>NEVER return raw DB dictionaries from the Data Access Layer (Repository) or Service layer. The Repository layer acts as the reconstitution firewall: internal database drivers return raw dictionaries, and Repository methods map them immediately into strictly typed Pydantic Domain Models / DTOs (`ConfigDict(frozen=True, strict=True)`) before returning to the Service layer or callers. Zero dict leakage across the repository boundary.</mandate>
     </rule_block>
 
     <rule_block id="strict_dependency_injection">
@@ -245,8 +245,8 @@
         <mandate>NEVER use mutable types (list, dict) as default arguments (B006) or default critical data. DTO models MUST NOT use default values for critical data; use `None` and initialize inside the function block.</mandate>
     </rule_block>
 
-    <rule_block id="duck_typing_token_shield_exception">
-        <mandate>NEVER use `extra="ignore"` in Pydantic models. ABSOLUTE EXCEPTION: `SynthesisStepDataDTO`. You MUST NOT invent or classify arbitrary models as "Token Shields" without explicit USER pre-approval.</mandate>
+    <rule_block id="duck_typing_token_shield_ban">
+        <mandate>NEVER use `extra="ignore"` or `extra="allow"` in ANY Pydantic model across the entire codebase. ABSOLUTE ZERO TOLERANCE: All Pydantic models, Domain Models, schemas, and DTOs MUST enforce `model_config = ConfigDict(extra="forbid", strict=True)`. The creation, invention, or maintenance of "Token Shields" or permissive extra-field models is STRICTLY BANNED without exception.</mandate>
     </rule_block>
 
     <rule_block id="python_314_root_model_ban">
@@ -334,7 +334,7 @@
     </rule_block>
 
     <rule_block id="idiomatic_pattern_matching">
-        <mandate>NEVER use verbose `if-elif` cascades for data destructuring or type validation. ALWAYS use native Python `match` and `case` structures.</mandate>
+        <mandate>NEVER use verbose `if-elif` cascades for data destructuring or type validation, and NEVER use `case dict()` or `case {"key": ...}` patterns on raw untyped dictionaries. ALWAYS use native Python `match` and `case` structures exclusively on strictly typed Pydantic models, Enums, or Discriminated Unions. For heterogeneous or untyped DAG payloads, enforce Fail-Fast validation via `TypeAdapter` before destructuring (per `polymorphic_dag_payload_handling`).</mandate>
     </rule_block>
 
     <rule_block id="pathlib_over_ospath">
@@ -366,7 +366,7 @@
     </rule_block>
 
     <rule_block id="strict_attribute_integrity">
-        <mandate>NEVER convert strict dot-notation attribute access into dynamic `getattr(model, "model", "")` fallbacks. ALWAYS rely on Pydantic's static structure (EXCEPTIONS: Safe checks using `in` operator).</mandate>
+        <mandate>NEVER convert strict dot-notation attribute access into dynamic `getattr(model, "attr", default)` fallbacks, and NEVER use `if "key" in raw_dict:` or `if key in dict:` to check untyped dictionaries for duck-typing. ALWAYS access Pydantic model attributes directly via static dot-notation (e.g. `model.attr`). If an optional attribute may be unset, check `if model.attr is not None:`. The `in` operator is permitted EXCLUSIVELY for collection membership testing on typed collections (e.g. `if item in model.items_list` or `if key in typed_enum_mapping`), NEVER for inspecting untyped dictionary keys.</mandate>
     </rule_block>
 
     <rule_block id="api_service_separation_mandate">
@@ -378,7 +378,7 @@
     </rule_block>
 
     <rule_block id="pydantic_configuration_enforcement">
-        <mandate>NEVER tolerate loose `extra="allow"` or `extra="ignore"` in primary domain models. ALWAYS enforce `model_config = ConfigDict(extra="forbid", strict=True)` on all Domain DTOs unless explicitly defined as a Token Shield.</mandate>
+        <mandate>NEVER tolerate loose `extra="allow"` or `extra="ignore"` in ANY Pydantic model across the entire codebase. ALWAYS enforce `model_config = ConfigDict(extra="forbid", strict=True)` on all Domain Models, DTOs, and schemas without exception.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_v2_computed_field_order">

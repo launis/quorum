@@ -30,7 +30,8 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <mandatory_pattern>You MUST ruthlessly evaluate the code you write against these specific Quorum anti-patterns. If ANY are detected in your proposed code, you MUST rewrite it using the mandated replacement:
         * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)
         * `ConfigDict()` without strict/forbid → `ConfigDict(strict=True, extra='forbid')`
-        * Raw `dict` state passing between layers → Strict Pydantic V2 DTOs
+        * Raw `dict` state passing between layers (`dict[str, Any]`, `list[dict]`, `TypedDict`, `cast(Any, ...)`, `match/case dict`, `isinstance(dict)`) → 100% Strict Pydantic V2 DTOs (Zero Naked Dicts)
+        * `# noqa: QGR` inline comments → Structural architecture fixes (Zero Suppressions)
         * String concatenation for LLM prompts → PromptBlock assembly with message object isolation
         * Hardcoded model strings → `LLMClient.from_strategy()` via Unified Model Garden
         * Dynamic variables in prompt prefix → Dynamic variables at absolute end (cache prefix survival)

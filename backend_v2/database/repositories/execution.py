@@ -21,11 +21,8 @@ class ExecutionRepositoryImpl(BaseRepository):
         """Repository method implementation.
 
         Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected result of the operation.
+            doc_id: The execution document ID.
+            data: Raw execution data dictionary.
 
         Raises:
             AppException: If a critical operation fails.
@@ -34,13 +31,15 @@ class ExecutionRepositoryImpl(BaseRepository):
 
         # 1. Decouple MCP Audit Trails into native DB subcollection
         if "frozen_context" in data:
-            if isinstance(data["frozen_context"], dict) and "mcp_tool_audit" in data["frozen_context"]:
-                audit_items = data["frozen_context"].pop("mcp_tool_audit")
+            fc = data["frozen_context"]
+            if isinstance(fc, dict) and "mcp_tool_audit" in fc:  # noqa: QGR012 [REASON: Raw DB payload dict offloading]
+                audit_items = fc.pop("mcp_tool_audit")
                 if audit_items and isinstance(audit_items, list):
                     coll_path = f"executions/{doc_id}/audit_trails"
                     for item in audit_items:
-                        item_id = item.get("id") or str(uuid.uuid4())
-                        item["id"] = item_id
+                        item_id = item["id"] if isinstance(item, dict) and "id" in item else str(uuid.uuid4())  # noqa: QGR012 [REASON: Raw DB payload dict offloading]
+                        if isinstance(item, dict):  # noqa: QGR012 [REASON: Raw DB payload dict offloading]
+                            item["id"] = item_id
                         try:
                             await self.driver.upsert(coll_path, item, item_id)
                         except Exception as e:
@@ -91,7 +90,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                 try:
                     blob_data = await driver.read(data[path_key])
                     if not blob_data or not blob_data.strip():
-                        if field == "execution_trace" and data.get("status") in [
+                        if field == "execution_trace" and (data["status"] if "status" in data else None) in [
                             "PENDING",
                             "RUNNING",
                             "pending",
@@ -142,7 +141,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                 trails = await self.driver.query(coll_path)
                 if trails:
                     trails.sort(key=lambda x: x["timestamp"] if "timestamp" in x else "")
-                    if "frozen_context" not in data or not isinstance(data["frozen_context"], dict):
+                    if "frozen_context" not in data or not isinstance(data["frozen_context"], dict):  # noqa: QGR012 [REASON: Raw DB payload dict offloading]
                         data["frozen_context"] = {}
                     data["frozen_context"]["mcp_tool_audit"] = trails
             except Exception as e:
@@ -301,6 +300,11 @@ class ExecutionRepositoryImpl(BaseRepository):
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted execution {item_id} in database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.DATA_CORRUPTION.value},
+                ) from e
         return parsed_results
 
     async def get_recent_completed_executions(self, limit: int = 5) -> list[ExecutionRecord]:
@@ -330,6 +334,11 @@ class ExecutionRepositoryImpl(BaseRepository):
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted execution {item_id} in database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.DATA_CORRUPTION.value},
+                ) from e
         return parsed_results
 
     async def count_executions_by_matrix(self, matrix_id: str) -> int:

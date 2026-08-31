@@ -33,7 +33,7 @@ import json
 import logging
 import shutil
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -122,14 +122,14 @@ async def _seed_tinydb(
 
             # 1. Automatic Backup before dropping the DB
             if db_path.exists():
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
                 backup_dir = Path(get_settings().base_dir) / "seed" / "backups"
                 backup_dir.mkdir(parents=True, exist_ok=True)
                 backup_path = backup_dir / f"{db_path.name}.{timestamp}.bak"
                 try:
                     shutil.copy2(db_path, backup_path)
                     print(f"[SUCCESS] Backup created: {backup_path}")
-                except Exception as e:
+                except OSError as e:
                     logger.error(
                         "[Seeder] %s: Failed to create db backup: %s",
                         ErrorCodes.FILESYSTEM_VIOLATION.name,
@@ -153,7 +153,7 @@ async def _seed_tinydb(
         else:
             print("[Seeder V2] DRY-RUN ACTIVE: Bypassing DB wipe and backup.")
 
-    except Exception as e:
+    except OSError as e:
         _fail_fast("Error initializing TinyDB", e)
 
     # Seed Standard Strict Collections
@@ -166,7 +166,8 @@ async def _seed_tinydb(
 
         dumped_buffer: list[dict[str, Any]] = []
 
-        for item in seed_data.get(col_key, []):
+        items_to_process = seed_data[col_key] if col_key in seed_data else []
+        for item in items_to_process:
             try:
                 # Let Pydantic resolve strictness natively using model_config=ConfigDict(strict=True)
                 validated = pyd_adapter.validate_python(item)
@@ -182,8 +183,9 @@ async def _seed_tinydb(
                 dumped_buffer.append(dumped)
 
             except ValidationError as ve:
-                _fail_fast(f"Validation Error for {col_key} item {item.get(id_field, 'unknown')}", ve)
-            except Exception as e:
+                item_id = item[id_field] if id_field in item else "unknown"
+                _fail_fast(f"Validation Error for {col_key} item {item_id}", ve)
+            except (KeyError, ValueError, TypeError) as e:
                 _fail_fast(f"Processing Error for {col_key} item", e)
 
         # Synchronous UPSERT loop to prevent TinyDB concurrent async corruption
@@ -195,7 +197,7 @@ async def _seed_tinydb(
                     count += 1
                 else:
                     print(f"Item lacking {id_field}")
-            except Exception as e:
+            except (OSError, RuntimeError) as e:
                 _fail_fast(f"Database Error upserting {col_key} item", e)
 
         # ---------------------------------------------------------------------
@@ -252,7 +254,7 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
         count = 0
         total = 0
         for item in items:
-            doc_id = item.get(id_field)
+            doc_id = item[id_field] if id_field in item else None
             if not doc_id:
                 print(f"[Seeder V2] Error: Item in {collection_name} missing {id_field}. Skipping.")
                 continue
@@ -274,7 +276,8 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
         pyd_adapter: Any = config["model"]
 
         valid_items: list[dict[str, Any]] = []
-        for item in seed_data.get(col_key, []):
+        items_to_process = seed_data[col_key] if col_key in seed_data else []
+        for item in items_to_process:
             try:
                 validated = pyd_adapter.validate_python(item)
                 if col_key == "workflows":
@@ -285,8 +288,9 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
                 else:
                     valid_items.append(pyd_adapter.dump_python(validated, mode="json"))
             except ValidationError as ve:
-                _fail_fast(f"Validation Error for {col_key} item {item.get(id_field, 'unknown')}", ve)
-            except Exception as e:
+                item_id = item[id_field] if id_field in item else "unknown"
+                _fail_fast(f"Validation Error for {col_key} item {item_id}", ve)
+            except (KeyError, ValueError, TypeError) as e:
                 _fail_fast(f"Error validating {col_key} item", e)
 
         batch_upsert(col_key, valid_items, id_field=id_field)
@@ -372,7 +376,7 @@ def main(argv: list[str] | None = None) -> None:
     for t in targets:
         try:
             asyncio.run(seed_database(t, dry_run=args.dry_run))
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError) as e:
             logger.critical(
                 "[Seeder] %s: Failed to seed %s: %s",
                 ErrorCodes.INTERNAL_SERVER_ERROR.name,

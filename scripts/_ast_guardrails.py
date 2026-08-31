@@ -217,7 +217,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     node,
                     "QGR001",
                     f"Banned reflection duck-typing or in-place mutation call: `{node.func.id}()`.",
-                    "Use strict structural pattern matching (match/case), isinstance() type narrowing, or Pydantic schemas instead of reflection/mutation.",
+                    "Use strict Pydantic V2 schema modeling, typed DTO fields, or class hierarchy properties instead of reflection.",
                     severity=qgr001_sev,
                 )
             case ast.Attribute(value=ast.Name(id="object"), attr="__setattr__"):
@@ -233,7 +233,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
         # QGR002: 2-argument .get(key, default) fallback in domain code
         if isinstance(node.func, ast.Attribute) and node.func.attr == "get" and len(node.args) >= 2:
-            # Exemptions: os.environ, headers, _LABEL_MAP, LABEL_MAP
+            # Exemptions: os.environ, headers, _LABEL_MAP, LABEL_MAP, database driver calls (self.driver.get / driver.get)
             exempt = False
             match node.func.value:
                 case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
@@ -241,8 +241,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 case ast.Attribute(attr="headers") | ast.Name(id="headers"):
                     exempt = True
                 case (
-                    ast.Name(id="_LABEL_MAP" | "LABEL_MAP" | "_VALUE_MAP" | "_NAME_MAP")
-                    | ast.Attribute(attr="_LABEL_MAP" | "LABEL_MAP")
+                    ast.Name(id="_LABEL_MAP" | "LABEL_MAP" | "_VALUE_MAP" | "_NAME_MAP" | "driver")
+                    | ast.Attribute(attr="_LABEL_MAP" | "LABEL_MAP" | "driver")
                 ):
                     exempt = True
                 case _:
@@ -254,7 +254,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     node,
                     "QGR002",
                     "Banned lazy fallback call: `.get(key, default)` in domain code.",
-                    "Use strict Pydantic model validation or direct dictionary lookup with fail-fast KeyError instead of lazy fallbacks.",
+                    "Use strict Pydantic model validation with default schema fields or direct DTO property access instead of lazy fallbacks.",
                     severity=qgr002_sev,
                 )
 
@@ -359,7 +359,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     node,
                     "QGR012",
                     "Banned `isinstance(..., dict)` duck-typing check in domain code.",
-                    "Use Python 3.10+ match/case structural pattern matching or Pydantic model validation instead of isinstance(..., dict).",
+                    "Use native Pydantic V2 model validation (e.g. DTO fields, Enums, or @model_validator(mode='after')) instead of ad-hoc dict inspection.",
                     severity=qgr012_sev,
                 )
 
@@ -593,6 +593,41 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR009",
                         "AppException instantiated without a typed `ErrorCodes` enum member.",
                         "Pass a typed `ErrorCodes` enum member as the first argument or in details={'error_code': ErrorCodes.XXX} to `AppException`.",
+                    )
+
+        self.generic_visit(node)
+
+    def visit_Match(self, node: ast.Match) -> None:
+        # QGR012: Structural pattern matching unpacking dictionaries (match/case dict)
+        if not self._is_test_file:
+            for case in node.cases:
+                is_dict_pattern = False
+                match case.pattern:
+                    case ast.MatchClass(cls=ast.Name(id="dict")):
+                        is_dict_pattern = True
+                    case ast.MatchAs(pattern=ast.MatchClass(cls=ast.Name(id="dict"))):
+                        is_dict_pattern = True
+                    case ast.MatchMapping():
+                        is_dict_pattern = True
+                    case ast.MatchOr(patterns=sub_pats):
+                        for p in sub_pats:
+                            match p:
+                                case ast.MatchClass(cls=ast.Name(id="dict")) | ast.MatchMapping():
+                                    is_dict_pattern = True
+                                    break
+                                case _:
+                                    pass
+                    case _:
+                        pass
+
+                if is_dict_pattern:
+                    qgr012_sev = GuardrailSeverity.FATAL if self._is_services_or_hooks else GuardrailSeverity.WARNING
+                    self._add_violation(
+                        node,
+                        "QGR012",
+                        "Banned `match/case dict()` or dictionary mapping pattern matching in domain code.",
+                        "Use native Pydantic V2 model validation (e.g. DTO fields, Enums, Discriminated Unions) instead of match/case dictionary unpacking.",
+                        severity=qgr012_sev,
                     )
 
         self.generic_visit(node)

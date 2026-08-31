@@ -83,7 +83,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <constraint name="QUORUM MODERNITY GATE &amp; CROSS-EPIC INVARIANTS AUDIT">
         1. Zero Legacy State Support Mandate: No backward compatibility for past runs. Clean slate DB re-seeding (`uv run python backend_v2/seed/run_seed.py local`).
         2. Central Config Sovereignty: All RPM/concurrency limits in `backend_v2/settings.py`. Taxonomies in `models/enums.py`.
-        3. Pydantic Strictness: `ConfigDict(strict=True, extra='forbid')` on all domain models &amp; DTOs.
+        3. 100% Pydantic V2 & Zero Naked Dict Mandate: `ConfigDict(strict=True, extra='forbid')` on all domain models & DTOs. Absolute zero naked dictionaries (`dict[str, Any]`, `list[dict]`, `TypedDict`, `cast(Any, ...)`), zero `isinstance(dict)`, zero `match/case dict`, zero `# noqa: QGR`.
         4. Cross-Domain DTO Parity: Backend Pydantic changes MUST synchronously update Flutter Freezed models (`flutter_audit_loop.py --build`).
         5. Static-First Caching Topology: Prompt instructions static in `PromptBlock`; dynamic variables appended at absolute end inside `<execution_parameters>`.
         6. Python 3.14 Concurrency: `asyncio.TaskGroup` with `asyncio.Semaphore` (no `asyncio.gather`).

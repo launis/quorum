@@ -735,19 +735,6 @@ class HydratedAtomDTO(BaseModel):
     resolved_claim: Annotated[str, Field(description="Cleaned claim in human language")]
     source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote")]
 
-    @model_validator(mode="before")
-    @classmethod
-    def coerce_sdui_component(cls, data: Any) -> Any:
-        """Coerce string sdui_component to enum if needed."""
-        if isinstance(data, dict):
-            comp = data.get("sdui_component")
-            if isinstance(comp, str):
-                try:
-                    data["sdui_component"] = SDUIComponentType(comp)
-                except ValueError:
-                    pass
-        return data
-
 
 class ExtractedValueDTO(BaseModel):
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
@@ -788,41 +775,29 @@ class AtomResultDTO(BaseModel):
     )
     short_circuit_reason_tda_ids: Annotated[list[str], Field(default_factory=list)] = Field(default_factory=list)
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_cognitive_vs_system_state(cls, data: Any) -> Any:
-        """Fail-Fast & Graceful Healing: Prevents hallucinations and incomplete data before freeze."""
-        if isinstance(data, dict):
-            if data.get("contextual_override") is True and data.get("source_quote") is not None:
-                data["source_quote"] = None
+    @model_validator(mode="after")
+    def validate_cognitive_vs_system_state(self) -> Self:
+        """Fail-Fast validation for cognitive state consistency."""
+        # Enforce null hypothesis: FAILED atoms cannot have an override or a quote
+        if self.status == ExecutionStatus.FAILED:
+            if self.contextual_override or self.source_quote is not None:
+                raise ValueError("FAILED atoms cannot have contextual_override=True or source_quote")
 
-            status_val = data.get("status")
-            if isinstance(status_val, str):
-                try:
-                    data["status"] = ExecutionStatus(status_val)
-                    status_val = data["status"]
-                except ValueError:
-                    pass
+        if self.status in (ExecutionStatus.PASSED, ExecutionStatus.FAILED):
+            if not self.evaluation_reasoning:
+                raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
 
-            if status_val in ("PASSED", "FAILED", ExecutionStatus.PASSED, ExecutionStatus.FAILED):
-                if not data.get("evaluation_reasoning"):
-                    raise ValueError(f"Reasoning is mandatory for cognitive status {status_val}")
+            # PASSED atoms MUST have either a quote or a contextual_override
+            if self.status == ExecutionStatus.PASSED and not self.contextual_override and not self.source_quote:
+                raise ValueError("source_quote is mandatory unless contextual_override is True")
 
-                # Enforce null hypothesis: FAILED atoms cannot have an override or a quote
-                if status_val in ("FAILED", ExecutionStatus.FAILED):
-                    if data.get("contextual_override") is True:
-                        data["contextual_override"] = False
-                    if data.get("source_quote") is not None:
-                        data["source_quote"] = None
+        elif self.status == ExecutionStatus.SYSTEM_ERROR and not self.error_details:
+            raise ValueError("Error details are mandatory when status is SYSTEM_ERROR")
 
-                # PASSED atoms MUST have either a quote or a contextual_override
-                elif status_val in ("PASSED", ExecutionStatus.PASSED):
-                    if not data.get("contextual_override") and not data.get("source_quote"):
-                        raise ValueError("source_quote is mandatory unless contextual_override is True")
+        if self.contextual_override and self.source_quote is not None:
+            raise ValueError("contextual_override=True cannot be combined with source_quote")
 
-            if status_val in ("SYSTEM_ERROR", ExecutionStatus.SYSTEM_ERROR) and not data.get("error_details"):
-                raise ValueError("Error details are mandatory when status is SYSTEM_ERROR")
-        return data
+        return self
 
 
 class ExecutionMetricsDTO(BaseModel):
@@ -1479,44 +1454,29 @@ class BaseTDAExtraction(BaseModel):
     contextual_override: bool = Field(description="Escape hatch for implicit matches.")
     semantic_reasoning: str = Field(description="Mapping logic explanation in target language.")
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_override_logic(cls, data: Any) -> Any:
-        """Validates the consistency of the extraction rules before hydration.
+    @model_validator(mode="after")
+    def validate_override_logic(self) -> Self:
+        """Validates the consistency of the extraction rules after typed hydration.
 
         Raises:
-            AppException: If structure is malformed or internally inconsistent.
+            ValueError: If structure is malformed or internally inconsistent.
 
         Returns:
-            The sanitized data matching schema expectations.
+            The sanitized model instance matching schema expectations.
         """
-        if not isinstance(data, dict):
-            return data
-
-        is_override = data.get("contextual_override") is True
-        raw_quotes = data.get("exact_quotes")
-        quotes = raw_quotes if isinstance(raw_quotes, list) else []
-
-        if is_override:
-            data["exact_quotes"] = []
+        if self.contextual_override:
+            if self.exact_quotes:
+                raise ValueError("contextual_override=True cannot be combined with exact_quotes")
         else:
-            if isinstance(quotes, list):
-                for q in quotes:
-                    if isinstance(q, str) and q == "[CONTEXTUAL_OVERRIDE_APPLIED]":
-                        msg = (
-                            "Cross-validation failed: exact_quotes cannot contain "
-                            "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
-                        )
-                        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                        raise ValueError(msg)
-                    elif isinstance(q, dict) and q.get("text") == "[CONTEXTUAL_OVERRIDE_APPLIED]":
-                        msg = (
-                            "Cross-validation failed: exact_quotes cannot contain "
-                            "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
-                        )
-                        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                        raise ValueError(msg)
-        return data
+            for q in self.exact_quotes:
+                if q.text == "[CONTEXTUAL_OVERRIDE_APPLIED]":
+                    msg = (
+                        "Cross-validation failed: exact_quotes cannot contain "
+                        "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
+                    )
+                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                    raise ValueError(msg)
+        return self
 
 
 import backend_v2.models.view.sdui as sdui_mod

@@ -853,7 +853,7 @@ async def test_matrix_scoring_hook_contextual_override() -> None:
             "tda_id": generate_atom_hash("atom_5", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Overridden correctly",
-            "source_quote": "mock quote",
+            "source_quote": None,
             "contextual_override": True,
         }
     )
@@ -897,8 +897,8 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
         {
             "tda_id": atom_hash,
             "status": ExecutionStatus.FAILED,
-            "evaluation_reasoning": "Hyväksytty",
-            "source_quote": "mock quote",
+            "evaluation_reasoning": "Hylätty",
+            "source_quote": None,
             "contextual_override": False,
         }
     ]
@@ -975,7 +975,7 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
             "tda_id": atom_hash,
             "status": ExecutionStatus.FAILED,
             "evaluation_reasoning": "Missing requirement",
-            "source_quote": "mock quote",
+            "source_quote": None,
             "contextual_override": False,
             "extensions": {"coaching": "This is a coaching tip."},
         }

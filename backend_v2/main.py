@@ -150,12 +150,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     finally:
         logger.info("Shutting down...")
-        pool = getattr(app.state, "arq_pool", None)
+        pool: Any = app.state.arq_pool if hasattr(app.state, "arq_pool") else None  # noqa: QGR001 [REASON: Starlette application state dynamic attribute access]
         if pool is not None:
             try:
-                close_callable = getattr(pool, "aclose", None) or getattr(pool, "close", None)
-                if callable(close_callable):
-                    await close_callable()
+                if hasattr(pool, "aclose"):  # noqa: QGR001 [REASON: Arq Redis pool duck-type interface closing]
+                    await pool.aclose()
+                elif hasattr(pool, "close"):  # noqa: QGR001 [REASON: FakeRedis pool fallback interface closing]
+                    res = pool.close()
+                    if hasattr(res, "__await__"):  # noqa: QGR001 [REASON: Async close coroutine check]
+                        await res
             except (OSError, RuntimeError) as close_err:
                 logger.error(
                     "Error closing Arq pool: %s",

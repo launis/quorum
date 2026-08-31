@@ -491,18 +491,17 @@ def test_evaluated_atom_validation_branches() -> None:
     from backend_v2.models.enums import ExecutionStatus
     from backend_v2.models.v2_core import AtomResultDTO
 
-    # 1. FAILED atom with override resets override and quote
-    atom_fail = AtomResultDTO.model_validate(
-        {
-            "tda_id": "tda_11111111111111111111111111111111",
-            "status": ExecutionStatus.FAILED,
-            "evaluation_reasoning": "Reason for failure",
-            "contextual_override": True,
-            "source_quote": "Some quote",
-        }
-    )
-    assert atom_fail.contextual_override is False
-    assert atom_fail.source_quote is None
+    # 1. FAILED atom with override or quote raises ValueError (Fail-Fast)
+    with pytest.raises(ValueError, match="FAILED atoms cannot have contextual_override=True or source_quote"):
+        AtomResultDTO.model_validate(
+            {
+                "tda_id": "tda_11111111111111111111111111111111",
+                "status": ExecutionStatus.FAILED,
+                "evaluation_reasoning": "Reason for failure",
+                "contextual_override": True,
+                "source_quote": "Some quote",
+            }
+        )
 
     # 2. SYSTEM_ERROR without error_details raises ValueError
     with pytest.raises(ValueError, match="Error details are mandatory"):
