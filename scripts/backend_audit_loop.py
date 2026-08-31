@@ -120,10 +120,21 @@ def run_tests_with_strict_coverage(target: str) -> None:
                         break
             elif parts[0] == "backend_v2":
                 for cand in candidates:
+                    # 1. Direct subfolder match
                     p = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / cand
                     if p.exists():
                         test_path = str(p).replace("\\", "/")
                         break
+                    # 2. Parent package test file (e.g. backend_v2/hooks/scoring/passivity_hook.py -> test_scoring.py or test_hooks.py)
+                    for i in range(len(parts) - 2, 0, -1):
+                        parent_pkg = parts[i]
+                        parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / f"test_{parent_pkg}.py"
+                        if parent_cand.exists():
+                            test_path = str(parent_cand).replace("\\", "/")
+                            break
+                    if test_path:
+                        break
+                    # 3. Flat unit test match
                     flat = Path("backend_v2/tests/unit") / cand
                     if flat.exists():
                         test_path = str(flat).replace("\\", "/")
