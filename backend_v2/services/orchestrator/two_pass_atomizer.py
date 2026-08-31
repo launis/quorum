@@ -5,7 +5,8 @@ import logging
 import uuid
 from collections.abc import Awaitable, Callable
 
-from tenacity import retry, stop_after_attempt, wait_exponential
+from pydantic import ValidationError
+from tenacity import RetryError, retry, stop_after_attempt, wait_exponential
 
 from backend_v2.exceptions import AppException
 from backend_v2.llm.caching_service import LLMCachingService
@@ -479,8 +480,8 @@ class TwoPassAtomizer:
             return await self._extract_drafts_from_chunk_with_retry(
                 client, compiled_prompt, start_b, end_b, packet_keys, chunk_index, hydrated_text, sem
             )
-        except Exception as e:  # noqa: QGR003 [REASON: DLQ Worker error isolation and fallback return]
-            logger.error(f"DLQ Worker Failed: {e}", exc_info=True)
+        except (ValidationError, AppException, OSError, RuntimeError, ValueError, RetryError) as e:
+            logger.error("DLQ Worker Failed: %s", e, exc_info=True)
             return DraftAtomList(atoms=[], dlq_status="FAILED/DLQ"), TokenUsage(
                 prompt_tokens=0, completion_tokens=0, total_tokens=0
             )

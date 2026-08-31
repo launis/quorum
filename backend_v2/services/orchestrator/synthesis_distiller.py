@@ -10,6 +10,7 @@ import json
 import logging
 
 from fastapi import status
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -220,15 +221,17 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
     target_locale = str(raw_locale).strip().lower()
 
-    # Phase 2, Milestone 1.6: Parse available DTOs from state
     available_dtos: list[StepOutputDTO] = []
-    steps_list = inputs.dynamic_inputs["steps"]
+    steps_list = inputs.dynamic_inputs.get("steps")
     if isinstance(steps_list, list):
         for item in steps_list:
             if isinstance(item, StepOutputDTO):
                 available_dtos.append(item)
-            elif isinstance(item, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                available_dtos.append(StepOutputDTO.model_validate(item))
+            else:
+                try:
+                    available_dtos.append(StepOutputDTO.model_validate(item))
+                except ValidationError, TypeError, ValueError:
+                    pass
 
     # Phase 2, Milestone 1.6: Fetch workflow and execution for context resolution
     raw_workflow_data = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)

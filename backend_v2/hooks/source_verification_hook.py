@@ -55,7 +55,10 @@ def _extract_text_polymorphically(inputs: Any) -> str:
         return inputs.strip()
 
     if isinstance(inputs, ExecutionInputsDTO):
-        return _extract_text_polymorphically(inputs.raw_inputs)
+        text = _extract_text_polymorphically(inputs.raw_inputs)
+        if not text:
+            text = _extract_text_polymorphically(inputs.dynamic_inputs)
+        return text
 
     if isinstance(inputs, BaseModel):
         if isinstance(inputs, SourceVerificationInputsDTO):

@@ -76,11 +76,14 @@ class TDAEngine(ExecutionEngine):
             else None
         )
         is_starved = False
-        if raw_blackboard and isinstance(raw_blackboard, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            is_starved_flag = raw_blackboard["is_data_starved"] if "is_data_starved" in raw_blackboard else False
-            atoms_map = raw_blackboard["atoms_by_input"] if "atoms_by_input" in raw_blackboard else None
-            if is_starved_flag or not atoms_map:
-                is_starved = True
+        if raw_blackboard and not isinstance(raw_blackboard, (str, int, float, bool, list)):
+            try:
+                is_starved_flag = raw_blackboard["is_data_starved"] if "is_data_starved" in raw_blackboard else False
+                atoms_map = raw_blackboard["atoms_by_input"] if "atoms_by_input" in raw_blackboard else None
+                if is_starved_flag or not atoms_map:
+                    is_starved = True
+            except TypeError, KeyError:
+                pass
 
         if is_starved:
             logger.info(

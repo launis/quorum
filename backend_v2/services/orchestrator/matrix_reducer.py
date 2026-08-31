@@ -3,6 +3,8 @@
 import logging
 from typing import Any, Literal
 
+from pydantic import BaseModel
+
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
@@ -141,10 +143,22 @@ class MatrixReducer:
         # Extract raw_extensions from execution_trace
         raw_extensions: list[dict[str, Any]] = []
         for evt in record.execution_trace:
-            if evt.event_type == "output" and isinstance(evt.content, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                for _, val in evt.content.items():
-                    if isinstance(val, dict) and "extensions" in val and isinstance(val["extensions"], list):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                        raw_extensions.extend(val["extensions"])
+            if evt.event_type == "output":
+                content = evt.content
+                if isinstance(content, BaseModel):
+                    content = content.model_dump()
+                if not isinstance(content, (str, int, float, bool, list)) and content is not None:
+                    try:
+                        for _, val in content.items():
+                            if not isinstance(val, (str, int, float, bool, list)) and val is not None:
+                                try:
+                                    exts = val.get("extensions")
+                                    if isinstance(exts, list):
+                                        raw_extensions.extend(exts)
+                                except AttributeError, TypeError:
+                                    pass
+                    except AttributeError, TypeError:
+                        pass
 
         return LightweightMatrixDTO(
             execution_id=record.id,

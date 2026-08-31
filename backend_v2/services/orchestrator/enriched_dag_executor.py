@@ -8,6 +8,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 
+from backend_v2.exceptions import AppException
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
@@ -169,7 +170,7 @@ class EnrichedDagExecutor:
                     await LLMCachingService.teardown_workflow_caches(
                         provider_name=provider_name, workflow_run_id=execution_id
                     )
-                except Exception as teardown_err:  # noqa: QGR003 [REASON: Best-effort cache teardown on exit]
+                except (OSError, AppException, ValueError) as teardown_err:
                     logger.error("Error during orchestrator cache teardown: %s", teardown_err)
 
             return merged_results

@@ -71,11 +71,12 @@
   - [x] Step 2: Harden Processing, Validation & Telemetry Hooks
   - [x] Step 3: Comprehensive Test Expansion & AST Guardrail Validation
 - [x] **[OK] Audit (Sub-Phase 3A):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]` (Subsystem coverage 90.25%, global backend 93.57%, 0 AST violations)
-- [ ] **[NOK] Red-Teaming (Sub-Phase 3B):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
-- [ ] **[NOK] Execution (Sub-Phase 3B):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Harden Orchestrator Executors & Compilers
-  - [ ] Step 2: Harden Strategies & Pipeline Services
+- [x] **[OK] Red-Teaming (Sub-Phase 3B):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Execution (Sub-Phase 3B):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Implementation Cleanups
+  - [x] Step 1: Harden Orchestrator Executors & Compilers
+  - [x] Step 2: Harden Strategies & Pipeline Services
+  - [x] Step 3: Comprehensive Test Expansion & AST Guardrail Validation
 - [ ] **[NOK] Audit (Sub-Phase 3B):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
 - [ ] **[NOK] Red-Teaming (Sub-Phase 3C):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
 - [ ] **[NOK] Execution (Sub-Phase 3C):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
@@ -245,8 +246,8 @@
 | Surgical typing & telemetry cleanup in `worker.py` & `blueprint.py` | Epic Sec 3 (Phase 2) | Phase 2, Step 3 | `[x]` Passed |
 | Eradicate QGR suppressions & `isinstance(dict)` in scoring hooks | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[x]` Passed |
 | Eradicate QGR suppressions & duck-typing in processing & validation hooks | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[x]` Passed |
-| Harden DAG executor & synthesis payload compressor polymorphic handling | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[ ]` Pending |
-| Harden orchestrator strategies & pipeline services | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[ ]` Pending |
+| Harden DAG executor & synthesis payload compressor polymorphic handling | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[x]` Passed |
+| Harden orchestrator strategies & pipeline services | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[x]` Passed |
 | Repositories reconstitution firewall (zero dict leakage) | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[ ]` Pending |
 | Domain models & DTOs duck-typing elimination | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[ ]` Pending |
 | Harden AST guardrails `QGR001`, `QGR002`, `QGR012` to universal `FATAL` severity | Epic Sec 3 (Phase 4) | Phase 4, Step 1 | `[ ]` Pending |
@@ -288,25 +289,36 @@
   - **Scoring Hooks Core (`falsifier_hook.py`, `matrix_hook.py`, `normalization_hook.py`, `passivity_hook.py`)**: Eradicated all 14 `# noqa: QGR012` inline suppressions and duck-typing checks. Converted state handling to `AtomResultDTO` validation, typed `TypeAdapter(dict[str, float])` mapping, and direct `ExecutionInputsDTO` dot-notation access.
   - **Processing, Context & Telemetry Hooks (`context_mapper.py`, `references.py`, `llm.py`, `input_processing.py`, `validation.py`, `security.py`, `dlq_guard.py`, `atom_flattening.py`, `archival.py`, `hydration.py`, `metadata.py`, `metrics.py`)**: Strongly typed `all_blocks: list[PromptBlockBase] | None`, `knowledge_base: dict[str, str] | None`, `workflow_model_mapping` (`TypeAdapter(dict[str, str])`), and fixed tuple exception syntax in `input_processing.py`.
   - **Coverage Deficit Resolution**: Expanded test suites by creating `@[backend_v2/tests/unit/hooks/test_context_mapper.py]`, `@[backend_v2/tests/unit/hooks/test_security.py]`, `@[backend_v2/tests/unit/hooks/test_references.py]`, `@[backend_v2/tests/unit/hooks/test_metadata.py]`, and `@[backend_v2/tests/unit/hooks/test_validation.py]`.
-  - **Tier 8 Red-Team Audit Sign-Off**: 191 subsystem unit tests passed (4 xpassed, 0 failures), 0 AST violations in `--strict` mode, reaching **90.25% line coverage** for `backend_v2/hooks/`. Global backend quality gate passed with 2,717 passed tests, 0 failures, and **93.57% total coverage**.
+- **Sub-Phase 3B Execution Completed (`07_phase3b_orchestrator_suppression_eradication.md`)**:
+  - **Step 0 Pre-Implementation Cleanups**: Resolved Starlette `HTTP_413_REQUEST_ENTITY_TOO_LARGE` deprecation in `@[backend_v2/exceptions.py]`, converted `RoutingModeConfig` to `ConfigDict(strict=True, extra="forbid")` in `@[backend_v2/services/orchestrator/context_router.py]`, narrowed broad exception catches in `@[backend_v2/services/orchestrator/two_pass_atomizer.py]` and `@[backend_v2/services/orchestrator/enriched_dag_executor.py]`.
+  - **Step 1 Harden Orchestrator Executors & Compilers**: Eradicated all `# noqa: QGR` suppressions and `isinstance(..., dict)` checks in `@[backend_v2/services/orchestrator/dag_executor.py]`, `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]`, `@[backend_v2/services/orchestrator/prompt_compiler.py]`, `@[backend_v2/services/orchestrator/prompt_compiler_adapter.py]`, `@[backend_v2/services/orchestrator/context_router.py]`, and `@[backend_v2/services/orchestrator/matrix_reducer.py]`.
+  - **Step 2 Harden Strategies & Pipeline Services**: Eradicated all suppressions and duck-typing checks across `@[backend_v2/services/orchestrator/strategies/llm.py]`, `@[backend_v2/services/orchestrator/strategies/base.py]`, `@[backend_v2/services/orchestrator/strategies/logic.py]`, `@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]`, `@[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]`, `@[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]`, `@[backend_v2/services/orchestrator/synthesis_distiller.py]`, `@[backend_v2/services/orchestrator/matrix_explanation_service.py]`, `@[backend_v2/services/orchestrator/rag_preflight_service.py]`, `@[backend_v2/services/orchestrator/localization_compiler.py]`, `@[backend_v2/services/orchestrator/extraction_schema_factory.py]`, `@[backend_v2/services/orchestrator/anchor_validation_service.py]`, `@[backend_v2/services/orchestrator/engines/synthesis_engine.py]`, and `@[backend_v2/services/orchestrator/engines/tda_engine.py]`.
+  - **Step 3 Comprehensive Test Expansion & AST Guardrail Validation**:
+    - AST Codebase Guardrails (`scripts/_ast_guardrails.py --strict`): **0 violations (100% clean across all 41 orchestrator files)**.
+    - Ruff Format & Lint (`ruff check --fix`, `ruff format`): **100% clean**.
+    - MyPy Strict (`mypy --strict`): **100% clean**.
+    - Unit Tests (`pytest backend_v2/tests/unit/services/orchestrator/`): **395 / 395 passed, 90.98% coverage**.
+    - Integration & E2E Tests: **418 / 418 passed**.
 
 ## Learned
-- **Decorator-Inclusive AST Spans in Markdown Auditing**: The markdown boundary linter (`scripts/audit_markdown_boundaries.py`) includes decorator lines (`@router.get`, `@pytest.mark.asyncio`) in the starting line of function AST bounds. All plan line bounds for decorated handlers and test fixtures must align with the first decorator line.
+- **Decorator-Inclusive AST Spans in Markdown Auditing**: The markdown boundary linter (`scripts/audit_markdown_boundaries.py`) includes decorator lines (`@router.get`, `@pytest.mark.asyncio`, `@hook_registry.register`) in the starting line of function AST bounds. All plan line bounds for decorated handlers and test fixtures must align with the first decorator line.
 - **SSOT Response Direct Passthrough**: `StudioSimulationService` must return existing response DTOs (`WorkflowSimulationResponse`, `StepSimulationResponse`, `PromptBlockSimulationResponse`) directly, allowing FastAPI routers to return service outputs without intermediate `model_validate()` calls.
 - **Telemetry Typed Envelopes Over Dict `.get()`**: Co-locating `StepTraceMetadataDTO` and `TraceEventMetadataEnvelope` in `backend_v2/models/dtos/trace.py` enables strict hydration of `_step_metadata` without relying on dict indexing or `.get()` fallbacks.
 - **Provider Extra Params Isolation**: `ProviderExtraParamsDTO` cleanly restricts extra provider sampling parameters (`temperature`, `top_p`, `top_k`, `max_output_tokens`) while first-class provider options (`vertex_location`, `thinking_budget_tokens`) belong as direct typed properties on `LLMProviderConfig` and `ModelProfile`.
 - **Subsystem Coverage Deficit Strategy**: Several peripheral hook modules (`context_mapper.py`, `security.py`, `references.py`, `validation.py`, `metadata.py`) previously lacked dedicated tests, creating an overall coverage deficit (79.12%). Expanding tests with ISTQB equivalence partition and boundary value cases lifted subsystem coverage to 90.25% without sacrificing domain strictness.
 - **Hook State Polymorphic Envelope Validation**: In scoring and falsifier hooks, `StateInputWrapper` should validate nested `inputs` and `raw_inputs` as `ExecutionInputsDTO | dict[str, Any]` while maintaining `ConfigDict(strict=True, extra="ignore", frozen=True)` to accept dynamic matrix key projections alongside strict step arrays.
 - **Guarded TypeAdapter Hydration with RFC-7807 Mapping**: Replacing silent `except ValidationError: pass` blocks in hook extraction pathways with guarded `TypeAdapter` validation and explicit `AppException(ErrorCodes.VALIDATION_FAILED, status_code=422)` conversion prevents silent corruptions while strictly upholding Fail-Fast architecture.
+- **Orchestrator Scope & Multi-Target Density**: The Orchestrator subsystem spans 22 target files with 68 suppression sites and 47 duck-typing checks. Pre-filtering polymorphic DAG payloads via `TypeAdapter` and binding state directly to `ExecutionInputsDTO` / `GlobalContextVarsDTO` provides complete eradication of naked dicts without changing external pipeline contracts.
+- **Execution Strategy Batching for Sub-Phase 3B**: Due to the high number of files (22), execution proceeded systematically across 3 discrete stages: Core Executors & Compilers, Strategies & Context Resolvers, and Synthesis & Pipeline Services.
 
 ## Remaining
 - **Phase 3: Hooks, Orchestrator & Repository Suppression Eradication**:
-  - Sub-Phase 3B: Orchestrator Suppression Eradication (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md]`).
+  - Sub-Phase 3B: Audit Plan (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md]`).
   - Sub-Phase 3C: Repositories & Domain Models (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md]`).
 - **Phase 4: AST Hardening, Knowledge Base & Architectural Governance Lockdown**:
   - Phase 4: AST Hardening & Governance (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md]`).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]
 ```

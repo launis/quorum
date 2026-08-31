@@ -273,7 +273,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
             )
 
         assert exc_info.value.status_code == 500
-        assert "Workflow completed with failed steps" in exc_info.value.message
+        assert "Workflow failed" in exc_info.value.message
 
         # Verify that committer was called with FAILED status for the whole execution
         calls = mock_repo.update_execution.call_args_list

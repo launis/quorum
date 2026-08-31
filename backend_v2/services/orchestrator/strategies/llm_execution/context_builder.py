@@ -64,7 +64,7 @@ class ContextBuilder:
 
             match block_type:
                 case "MATRIX":
-                    if not isinstance(value, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                    if isinstance(value, (str, int, float, bool)) or value is None:
                         logger.error(
                             "Matrix value validation failed. Key: %s is not a dict.",
                             key,
@@ -80,10 +80,7 @@ class ContextBuilder:
                         if not pruned:
                             continue
 
-                        pruned_dump = pruned.model_dump()
-                        if not isinstance(pruned_dump, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                            continue
-                        pruned_dict: dict[str, Any] = pruned_dump
+                        pruned_dict: dict[str, Any] = pruned.model_dump()
 
                         if "evaluated_atoms" in pruned_dict:
                             del pruned_dict["evaluated_atoms"]
@@ -117,19 +114,22 @@ class ContextBuilder:
         Returns:
             New compressed structure sharing immutable leaves with original.
         """
-        if isinstance(obj, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            result: dict[str, Any] = {}
-            for k, v in obj.items():
-                if k in ("shuffled_atoms", "original_text", "raw_content"):
-                    continue
-                result[k] = ContextBuilder._project_compressed(v)
-            return result
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return [ContextBuilder._project_compressed(item) for item in obj]
         elif isinstance(obj, BaseModel):
             return ContextBuilder._project_compressed(obj.model_dump(mode="json"))
+        elif isinstance(obj, (str, int, float, bool)) or obj is None:
+            return obj
         else:
-            return obj  # str/int/float/bool/None — immutable, share reference
+            try:
+                result: dict[str, Any] = {}
+                for k, v in obj.items():
+                    if k in ("shuffled_atoms", "original_text", "raw_content"):
+                        continue
+                    result[k] = ContextBuilder._project_compressed(v)
+                return result
+            except AttributeError, TypeError:
+                return obj
 
     @staticmethod
     def _collect_rule_descriptions(criteria_blocks: list[Any]) -> list[str]:
@@ -237,12 +237,15 @@ class ContextBuilder:
         new_input_mappings: dict[str, Any] = {}
         schema_map = schema_map or {}
 
-        if isinstance(state_data, dict) and "raw_inputs" in state_data:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            state_raw = state_data["raw_inputs"]
-            if isinstance(state_raw, dict) and "dynamic_inputs" in state_raw:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                llm_context_data.setdefault("raw_inputs", {})["dynamic_inputs"] = copy.deepcopy(
-                    state_raw["dynamic_inputs"]
-                )
+        if state_data:
+            try:
+                state_raw = state_data.get("raw_inputs")
+                if state_raw:
+                    dyn_inputs = state_raw.get("dynamic_inputs")
+                    if dyn_inputs:
+                        llm_context_data.setdefault("raw_inputs", {})["dynamic_inputs"] = copy.deepcopy(dyn_inputs)
+            except AttributeError, TypeError:
+                pass
 
         for _logical_name, path in input_mappings.items():
             if not isinstance(path, str):
@@ -295,10 +298,17 @@ class ContextBuilder:
                 if clean_path == "steps":
                     dto_list = state_data["steps"] if "steps" in state_data else []
                     resolved_value = _prune_step_dtos(dto_list)
-                elif clean_path == "global_context_vars" and isinstance(resolved_value, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    resolved_value = copy.copy(resolved_value)
-                    if "steps" in resolved_value:
-                        resolved_value["steps"] = _prune_step_dtos(resolved_value["steps"])
+                elif (
+                    clean_path == "global_context_vars"
+                    and not isinstance(resolved_value, (str, int, float, bool, list))
+                    and resolved_value is not None
+                ):
+                    try:
+                        resolved_value = copy.copy(resolved_value)
+                        if "steps" in resolved_value:
+                            resolved_value["steps"] = _prune_step_dtos(resolved_value["steps"])
+                    except AttributeError, TypeError:
+                        pass
                 elif clean_path.startswith("steps."):
                     parts = clean_path.split(".")
                     step_key = parts[1]

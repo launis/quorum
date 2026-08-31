@@ -121,19 +121,18 @@ class LLMNodeStrategy(NodeStrategy):
         if running_event:
             running_event.set()
 
-        inputs_unwrapped = (
-            inputs_payload["inputs"]
-            if (isinstance(inputs_payload, dict) and "inputs" in inputs_payload)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            else inputs_payload
-        )
+        inputs_unwrapped = inputs_payload["inputs"] if "inputs" in inputs_payload else inputs_payload
 
         texts: list[str] = []
-        if isinstance(inputs_unwrapped, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            for v in inputs_unwrapped.values():
-                if isinstance(v, str):
-                    texts.append(v)
-        elif isinstance(inputs_unwrapped, str):
+        if isinstance(inputs_unwrapped, str):
             texts.append(inputs_unwrapped)
+        elif not isinstance(inputs_unwrapped, (int, float, bool)) and inputs_unwrapped is not None:
+            try:
+                for v in inputs_unwrapped.values():
+                    if isinstance(v, str):
+                        texts.append(v)
+            except AttributeError, TypeError:
+                pass
 
         global_source_text = "\n\n".join(texts)
         current_state: dict[str, Any] = {
@@ -202,14 +201,17 @@ class LLMNodeStrategy(NodeStrategy):
         hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
         if isinstance(hook_state.inputs, ExecutionInputsDTO):
             state_data = dict(hook_state.inputs.dynamic_inputs)
-        elif isinstance(hook_state.inputs, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            state_data = dict(hook_state.inputs)
+        elif not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
+            try:
+                state_data = dict(hook_state.inputs)
+            except ValueError, TypeError:
+                state_data = {}
         else:
             state_data = {}
 
-        # Tier 4 Fix: Removed rinnakkainen _apply_alias_chunks_and_audit() that created
+        # Removed parallel _apply_alias_chunks_and_audit() that created
         # conflicting doc IDs (doc1..docN) and <source ID="..." label="..."> XML wrappers
-        # INSIDE the data. AliasEngine + prompt_compiler.build_xml_context() are the
+        # inside the data. AliasEngine + prompt_compiler.build_xml_context() are the
         # Single Source of Truth for all source aliasing (alias_engine_llm_isolation_mandate).
 
         if isinstance(context.prompt_blocks, list) and context.prompt_blocks:
@@ -415,7 +417,12 @@ class LLMNodeStrategy(NodeStrategy):
             global_context_vars=(
                 hook_state.global_context_vars.vars
                 if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO)
-                else (hook_state.global_context_vars if isinstance(hook_state.global_context_vars, dict) else None)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                else (
+                    dict(hook_state.global_context_vars)
+                    if not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
+                    and hook_state.global_context_vars is not None
+                    else None
+                )
             ),
         )
 
@@ -434,8 +441,8 @@ class LLMNodeStrategy(NodeStrategy):
                     user_payload=user_payload,
                     expected_schema_name=f"Step_{step.id}_Response",
                 )
-            except Exception as e:  # noqa: QGR003 [REASON: Debug prompt logging failure should not halt pipeline]
-                logger.warning(f"[LLMStrategy] Failed to write debug prompt log: {e}")
+            except (OSError, ValueError, TypeError) as e:
+                logger.warning("[LLMStrategy] Failed to write debug prompt log: %s", e)
 
         if output_profile:
             exec_params = ["\n<execution_parameters>"]
@@ -450,8 +457,8 @@ class LLMNodeStrategy(NodeStrategy):
                         ensure_ascii=False,
                     )
                     exec_params.append(f"  <matrix_synthesis_groups>{groups_json}</matrix_synthesis_groups>")
-                except Exception as e:  # noqa: QGR003 [REASON: Group serialization warning should not halt execution]
-                    logger.warning(f"Failed to serialize matrix_synthesis_groups for prompt injection: {e}")
+                except (ValueError, TypeError) as e:
+                    logger.warning("Failed to serialize matrix_synthesis_groups for prompt injection: %s", e)
             exec_params.append("</execution_parameters>")
 
             if len(exec_params) > 2:
@@ -513,19 +520,18 @@ class LLMNodeStrategy(NodeStrategy):
                 manifest = exec_obj.source_identity_manifest or {}
 
                 source_docs = []
-                inputs_dict = (
-                    inputs_payload["inputs"]
-                    if ("inputs" in inputs_payload and isinstance(inputs_payload["inputs"], dict))  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    else inputs_payload
-                )
-                if isinstance(inputs_dict, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    for k, text_content in inputs_dict.items():
-                        if isinstance(text_content, str):
-                            display_name = str(manifest[k]) if k in manifest else k
-                            doc_ctx = SourceDocumentContext(
-                                opaque_id=k, text_content=text_content, display_name=display_name
-                            )
-                            source_docs.append(doc_ctx.model_dump(mode="json"))
+                inputs_dict = inputs_payload["inputs"] if "inputs" in inputs_payload else inputs_payload
+                if not isinstance(inputs_dict, (str, int, float, bool, list)) and inputs_dict is not None:
+                    try:
+                        for k, text_content in inputs_dict.items():
+                            if isinstance(text_content, str):
+                                display_name = str(manifest[k]) if k in manifest else k
+                                doc_ctx = SourceDocumentContext(
+                                    opaque_id=k, text_content=text_content, display_name=display_name
+                                )
+                                source_docs.append(doc_ctx.model_dump(mode="json"))
+                    except AttributeError, TypeError:
+                        pass
             except Exception as e:
                 logger.error(
                     "[LLMStrategy] %s: Failed to construct source documents context from execution record '%s'",
@@ -623,12 +629,19 @@ class LLMNodeStrategy(NodeStrategy):
                 gvars = (
                     hook_state.global_context_vars.vars
                     if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO)
-                    else (hook_state.global_context_vars if isinstance(hook_state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                    else (
+                        dict(hook_state.global_context_vars)
+                        if not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
+                        and hook_state.global_context_vars is not None
+                        else {}
+                    )
                 )
                 blackboard = gvars["__GLOBAL_ATOM_BLACKBOARD__"] if "__GLOBAL_ATOM_BLACKBOARD__" in gvars else {}
                 atoms_by_input = (
                     blackboard["atoms_by_input"]
-                    if (isinstance(blackboard, dict) and "atoms_by_input" in blackboard)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                    if not isinstance(blackboard, (str, int, float, bool, list))
+                    and blackboard is not None
+                    and "atoms_by_input" in blackboard
                     else {}
                 )
                 doc_aliases = list(atoms_by_input.keys()) if atoms_by_input else ["N/A"]
@@ -640,16 +653,26 @@ class LLMNodeStrategy(NodeStrategy):
                 dynamic_inputs_dict = (
                     hook_state.inputs.dynamic_inputs
                     if isinstance(hook_state.inputs, ExecutionInputsDTO)
-                    else (hook_state.inputs if isinstance(hook_state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                    else (
+                        dict(hook_state.inputs)
+                        if not isinstance(hook_state.inputs, (str, int, float, bool, list))
+                        and hook_state.inputs is not None
+                        else {}
+                    )
                 )
                 combined_inputs = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
                 for step_res in combined_inputs:
-                    if isinstance(step_res, dict) and "results" in step_res:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                        for ev in step_res["results"]:
-                            if isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                                a_id = ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
-                                if a_id:
-                                    dag_results[a_id] = ev
+                    try:
+                        if "results" in step_res:
+                            for ev in step_res["results"]:
+                                if not isinstance(ev, (str, int, float, bool)) and ev is not None:
+                                    a_id = (
+                                        ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
+                                    )
+                                    if a_id:
+                                        dag_results[a_id] = ev
+                    except TypeError, KeyError:
+                        pass
 
                 dynamic_schema = self.compiler.build_dynamic_schema(
                     schema_name=f"Step_{step.id}_Response",
@@ -688,12 +711,19 @@ class LLMNodeStrategy(NodeStrategy):
                 gvars = (
                     hook_state.global_context_vars.vars
                     if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO)
-                    else (hook_state.global_context_vars if isinstance(hook_state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                    else (
+                        dict(hook_state.global_context_vars)
+                        if not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
+                        and hook_state.global_context_vars is not None
+                        else {}
+                    )
                 )
                 blackboard = gvars["__GLOBAL_ATOM_BLACKBOARD__"] if "__GLOBAL_ATOM_BLACKBOARD__" in gvars else {}
                 atoms_by_input = (
                     blackboard["atoms_by_input"]
-                    if (isinstance(blackboard, dict) and "atoms_by_input" in blackboard)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                    if not isinstance(blackboard, (str, int, float, bool, list))
+                    and blackboard is not None
+                    and "atoms_by_input" in blackboard
                     else {}
                 )
                 doc_aliases = list(atoms_by_input.keys()) if atoms_by_input else ["N/A"]
@@ -705,16 +735,26 @@ class LLMNodeStrategy(NodeStrategy):
                 dynamic_inputs_dict = (
                     hook_state.inputs.dynamic_inputs
                     if isinstance(hook_state.inputs, ExecutionInputsDTO)
-                    else (hook_state.inputs if isinstance(hook_state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                    else (
+                        dict(hook_state.inputs)
+                        if not isinstance(hook_state.inputs, (str, int, float, bool, list))
+                        and hook_state.inputs is not None
+                        else {}
+                    )
                 )
                 combined_inputs = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
                 for step_res in combined_inputs:
-                    if isinstance(step_res, dict) and "results" in step_res:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                        for ev in step_res["results"]:
-                            if isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                                a_id = ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
-                                if a_id:
-                                    dag_results[a_id] = ev
+                    try:
+                        if "results" in step_res:
+                            for ev in step_res["results"]:
+                                if not isinstance(ev, (str, int, float, bool)) and ev is not None:
+                                    a_id = (
+                                        ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
+                                    )
+                                    if a_id:
+                                        dag_results[a_id] = ev
+                    except TypeError, KeyError:
+                        pass
 
                 dynamic_schema = self.compiler.build_dynamic_schema(
                     schema_name=f"Step_{step.id}_Response",
@@ -776,10 +816,13 @@ class LLMNodeStrategy(NodeStrategy):
             if engine_result.synthesis_output is not None:
                 if isinstance(engine_result.synthesis_output, BaseModel):
                     final_dict = engine_result.synthesis_output.model_dump()
-                elif isinstance(engine_result.synthesis_output, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    final_dict = engine_result.synthesis_output
-                else:
+                elif isinstance(engine_result.synthesis_output, (str, int, float, bool, list)):
                     final_dict = {"output": engine_result.synthesis_output}
+                else:
+                    try:
+                        final_dict = dict(engine_result.synthesis_output)
+                    except ValueError, TypeError:
+                        final_dict = {"output": engine_result.synthesis_output}
             else:
                 final_dict = {
                     "results": [r.model_dump() for r in engine_result.results],
@@ -795,7 +838,12 @@ class LLMNodeStrategy(NodeStrategy):
             post_gvars = (
                 hook_state.global_context_vars.vars
                 if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO)
-                else (hook_state.global_context_vars if isinstance(hook_state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                else (
+                    dict(hook_state.global_context_vars)
+                    if not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
+                    and hook_state.global_context_vars is not None
+                    else {}
+                )
             )
             safe_context: dict[str, Any] = {**post_gvars, "steps": projector.snapshot}
 
@@ -823,8 +871,14 @@ class LLMNodeStrategy(NodeStrategy):
             )
             if isinstance(post_hook_state.inputs, ExecutionInputsDTO):
                 final_dict = dict(post_hook_state.inputs.dynamic_inputs)
-            elif isinstance(post_hook_state.inputs, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                final_dict = dict(post_hook_state.inputs)
+            elif (
+                not isinstance(post_hook_state.inputs, (str, int, float, bool, list))
+                and post_hook_state.inputs is not None
+            ):
+                try:
+                    final_dict = dict(post_hook_state.inputs)
+                except ValueError, TypeError:
+                    final_dict = {}
             else:
                 final_dict = {}
 

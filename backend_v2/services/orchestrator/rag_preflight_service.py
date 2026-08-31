@@ -5,6 +5,8 @@ import re
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from pydantic import BaseModel
+
 from backend_v2.database.interfaces import ISystemRepository, IWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
@@ -69,10 +71,17 @@ def _extract_inputs_from_record(exec_record: ExecutionRecord) -> dict[str, Any]:
         Dictionary of dynamic inputs.
     """
     for event in reversed(exec_record.execution_trace):
-        if event.step_name == "inputs" and event.event_type == "input" and isinstance(event.content, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            inputs_payload = event.content.get("inputs")
-            if isinstance(inputs_payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                return inputs_payload
+        if event.step_name == "inputs" and event.event_type == "input":
+            content = event.content
+            if isinstance(content, BaseModel):
+                content = content.model_dump()
+            if not isinstance(content, (str, int, float, bool, list)) and content is not None:
+                try:
+                    inputs_payload = content.get("inputs")
+                    if not isinstance(inputs_payload, (str, int, float, bool, list)) and inputs_payload is not None:
+                        return dict(inputs_payload)
+                except AttributeError, TypeError, ValueError:
+                    pass
     return dict(exec_record.raw_inputs.dynamic_inputs)
 
 

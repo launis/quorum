@@ -236,14 +236,14 @@ def test_route_and_prune_missing_extension() -> None:
 
 def test_validate_routing_mode_success() -> None:
     """Test successful validation of routing mode."""
-    mapping_config = {"routing_mode": "strict_booleans_only", "other_key": "value"}
+    mapping_config = {"routing_mode": "strict_booleans_only", "target": "step_A"}
     result = ContextRouter.validate_routing_mode("$steps.step_A", mapping_config)
     assert result == "strict_booleans_only"
 
 
 def test_validate_routing_mode_missing() -> None:
     """Test that MissingRoutingModeError is raised when routing mode is missing."""
-    mapping_config = {"other_key": "value"}
+    mapping_config = {"target": "step_A"}
     with pytest.raises(MissingRoutingModeError) as exc_info:
         ContextRouter.validate_routing_mode("$steps.step_A", mapping_config)
 

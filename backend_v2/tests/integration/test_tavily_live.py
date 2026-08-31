@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import ExecutionInputsDTO, HookDependencies, HookState
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ConfigurationError
@@ -102,9 +102,9 @@ async def test_live_source_verification_hook_pipeline() -> None:
         execution_id="exe_live_test_0001",
         workflow_id="wor_live_test_0001",
         step_id="sp_76eedbc020274f66",
-        metadata={},
+        metadata={"target_locale": "fi"},
         global_context_vars={},
-        inputs={"document_text": document_text},
+        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -121,9 +121,9 @@ async def test_live_source_verification_hook_pipeline() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "metadata" in result.state_delta
+    assert result.state_delta.metadata_updates is not None
 
-    metadata_dict = result.state_delta["metadata"]
+    metadata_dict = result.state_delta.metadata_updates
     assert isinstance(metadata_dict, dict)
     assert "mcp_audit_traces" in metadata_dict
 
@@ -137,12 +137,8 @@ async def test_live_source_verification_hook_pipeline() -> None:
     assert isinstance(first_trace["source_urls"], list)
     assert len(first_trace["source_urls"]) >= 1
 
-    assert "global_context_vars" in result.state_delta
-    global_vars = result.state_delta["global_context_vars"]
-    assert isinstance(global_vars, dict)
-    assert "external_evidence" in global_vars
-
-    evidence_xml = global_vars["external_evidence"]
+    assert "external_evidence" in result.state_delta.delta
+    evidence_xml = result.state_delta.delta["external_evidence"]
     assert isinstance(evidence_xml, str)
     assert "<external_evidence>" in evidence_xml
     assert "</external_evidence>" in evidence_xml

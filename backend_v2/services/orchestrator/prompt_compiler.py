@@ -10,6 +10,7 @@ and localization/instruction compilation to LocalizationCompiler (SRP Rule 88).
 from __future__ import annotations
 
 import datetime
+import json
 import logging
 from typing import Any
 
@@ -281,16 +282,18 @@ class PromptCompiler:
         current = state_data
 
         for part in parts:
-            if isinstance(current, dict) and part in current:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                current = current[part]
-            elif isinstance(current, BaseModel) and part in current.model_fields:
-                current = current.model_dump()[part]
-            else:
-                msg = f"Path resolution failed: '{path}'. Component '{part}' is missing from state context."
-                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
+            if isinstance(current, BaseModel):
+                current = current.model_dump()
+            if not isinstance(current, (str, int, float, bool, list)) and current is not None:
+                try:
+                    if part in current:
+                        current = current[part]
+                        continue
+                except TypeError, KeyError:
+                    pass
+            msg = f"Path resolution failed: '{path}'. Component '{part}' is missing from state context."
+            logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         if isinstance(current, str):
             # Already a string, return directly
@@ -299,49 +302,67 @@ class PromptCompiler:
         if isinstance(current, BaseModel):
             return str(current.model_dump_json(indent=2))
 
-        if isinstance(current, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            # Epic 12: Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
-            formatted = []
-            for k, v in current.items():
-                clean_k = str(k).upper()
-                formatted.append(f"<{clean_k}>")
-                if isinstance(v, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    # Yritetään sukeltaa suoraan 'outputs' avaimeen jos se olemassa
-                    target_dict = v["outputs"] if "outputs" in v and isinstance(v["outputs"], dict) else v  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    for sub_k, sub_v in target_dict.items():
-                        # Epic 32: Prevent Context Snowballing (95k char prompts).
-                        # Never inject raw Matrix arrays into subsequent LLM contexts.
-                        if sub_k == "results" and isinstance(sub_v, list):
-                            continue
+        if isinstance(current, (int, float, bool)):
+            return str(current)
 
-                        if isinstance(sub_v, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                            formatted.append(f"<{str(sub_k).upper()}>")
-                            for micro_k, micro_v in sub_v.items():
-                                # Siivotaan kognitiiviset etuliitteet pois luettavuuden vuoksi
-                                clean_key = (
-                                    str(micro_k)
-                                    .replace("step_1_", "")
-                                    .replace("step_2_", "")
-                                    .replace("step_3_", "")
-                                    .replace("step_4_", "")
-                                    .replace("_", " ")
-                                    .title()
-                                )
-                                formatted.append(
-                                    f"  <{clean_key.replace(' ', '_')}>{TemplateProcessor.encapsulate_payload(micro_v)}</{clean_key.replace(' ', '_')}>"
-                                )
-                            formatted.append(f"</{str(sub_k).upper()}>")
-                        else:
-                            clean_sub_k = str(sub_k).title().replace(" ", "_")
-                            formatted.append(
-                                f"<{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
+        if not isinstance(current, list) and current is not None:
+            # Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
+            try:
+                formatted = []
+                for k, v in current.items():
+                    clean_k = str(k).upper()
+                    formatted.append(f"<{clean_k}>")
+                    if not isinstance(v, (str, int, float, bool, list)) and v is not None:
+                        try:
+                            # Attempt to access 'outputs' key directly if available
+                            target_dict = (
+                                v["outputs"]
+                                if ("outputs" in v and not isinstance(v["outputs"], (str, int, float, bool, list)))
+                                else v
                             )
-                else:
-                    formatted.append(TemplateProcessor.encapsulate_payload(v))
-                formatted.append(f"</{clean_k}>")
-            return "\n".join(formatted).strip()
+                            for sub_k, sub_v in target_dict.items():
+                                # Prevent Context Snowballing: never inject raw Matrix arrays into subsequent LLM contexts.
+                                if sub_k == "results" and isinstance(sub_v, list):
+                                    continue
 
-        return str(current)
+                                if not isinstance(sub_v, (str, int, float, bool, list)) and sub_v is not None:
+                                    try:
+                                        formatted.append(f"<{str(sub_k).upper()}>")
+                                        for micro_k, micro_v in sub_v.items():
+                                            # Clean cognitive prefixes for readability
+                                            clean_key = (
+                                                str(micro_k)
+                                                .replace("step_1_", "")
+                                                .replace("step_2_", "")
+                                                .replace("step_3_", "")
+                                                .replace("step_4_", "")
+                                                .replace("_", " ")
+                                                .title()
+                                            )
+                                            formatted.append(
+                                                f"  <{clean_key.replace(' ', '_')}>{TemplateProcessor.encapsulate_payload(micro_v)}</{clean_key.replace(' ', '_')}>"
+                                            )
+                                        formatted.append(f"</{str(sub_k).upper()}>")
+                                    except AttributeError, TypeError:
+                                        clean_sub_k = str(sub_k).title().replace(" ", "_")
+                                        formatted.append(
+                                            f"  <{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
+                                        )
+                                else:
+                                    clean_sub_k = str(sub_k).title().replace(" ", "_")
+                                    formatted.append(
+                                        f"  <{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
+                                    )
+                        except AttributeError, TypeError:
+                            formatted.append(f"  {TemplateProcessor.encapsulate_payload(v)}")
+                    else:
+                        formatted.append(f"  {TemplateProcessor.encapsulate_payload(v)}")
+                    formatted.append(f"</{clean_k}>")
+                return "\n".join(formatted)
+            except AttributeError, TypeError:
+                return json.dumps(current, indent=2, ensure_ascii=False)
+
+        return json.dumps(current, indent=2, ensure_ascii=False)
 
     def calibrate_strictness(self, level: int | float | None) -> str:
         """Convert a numeric strictness level (0-100) into a semantic directive.

@@ -68,15 +68,19 @@ class MatrixExplanationService:
         # Build map of tda_id -> list of quotes
         global_quotes_map: dict[str, list[str]] = {}
         for dto in available_dtos:
-            if not isinstance(dto.payload, dict) or "results" not in dto.payload:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+            if isinstance(dto.payload, (str, int, float, bool, list)) or dto.payload is None:
                 continue
 
-            results_list = dto.payload["results"]
+            try:
+                results_list = dto.payload.get("results")
+            except AttributeError, TypeError:
+                continue
+
             if not isinstance(results_list, list):
                 continue
 
             for atom_dict in results_list:
-                if not isinstance(atom_dict, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                if isinstance(atom_dict, (str, int, float, bool)) or atom_dict is None:
                     continue
                 try:
                     atom_res = AtomResultDTO.model_validate(atom_dict, strict=False)
@@ -103,10 +107,14 @@ class MatrixExplanationService:
             if pb.category_id != PromptBlockCategory.MATRIX:
                 continue
 
-            if not isinstance(payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+            if isinstance(payload, (str, int, float, bool, list)) or payload is None:
                 continue
 
-            payload_to_validate = dict(payload)
+            try:
+                payload_to_validate = dict(payload)
+            except ValueError, TypeError:
+                continue
+
             payload_to_validate.pop("results", None)
             raw_level_breakdown = payload_to_validate.pop("level_breakdown", None)
 
@@ -144,10 +152,10 @@ class MatrixExplanationService:
             quote_candidates: list[dict[str, Any]] = []
             unmet_claim_to_min_scale: dict[str, int] = {}
 
-            if isinstance(lw_matrix.evaluated_atoms, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+            if lw_matrix.evaluated_atoms:
                 for tda_id, hit_status in lw_matrix.evaluated_atoms.items():
                     if hit_status == ExecutionStatus.PASSED:
-                        claim_name = tda_to_claim[tda_id] if tda_id in tda_to_claim else "General Evidence"
+                        claim_name = tda_to_claim[tda_id] if tda_id in tda_to_claim else "Evidence"
                         if tda_id in global_quotes_map:
                             for q in global_quotes_map[tda_id]:
                                 if q not in seen_matrix_quotes:
@@ -189,22 +197,25 @@ class MatrixExplanationService:
                 )[:effective_max_unmet]
 
                 distribution_str = ""
-                if isinstance(raw_level_breakdown, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                if raw_level_breakdown and not isinstance(raw_level_breakdown, (str, int, float, bool, list)):
                     breakdowns = []
-                    for lvl, raw_stats in raw_level_breakdown.items():
-                        # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating
-                        # untrusted level stats dictionary
-                        try:
-                            stats_dto = LevelStatsDTO.model_validate(raw_stats, strict=False)
-                            breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")
-                        except (ValidationError, ValueError) as e:
-                            logger.warning(
-                                "[MatrixExplanationService] %s: Skipping malformed level stats for level %s",
-                                ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
-                                lvl,
-                                extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
-                            )
-                            continue
+                    try:
+                        for lvl, raw_stats in raw_level_breakdown.items():
+                            # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating
+                            # untrusted level stats dictionary
+                            try:
+                                stats_dto = LevelStatsDTO.model_validate(raw_stats, strict=False)
+                                breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")
+                            except (ValidationError, ValueError) as e:
+                                logger.warning(
+                                    "[MatrixExplanationService] %s: Skipping malformed level stats for level %s",
+                                    ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                                    lvl,
+                                    extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
+                                )
+                                continue
+                    except AttributeError, TypeError:
+                        pass
                     if breakdowns:
                         distribution_str = f"[DISTRIBUTION CONTEXT: {', '.join(breakdowns)}]"
 

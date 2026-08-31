@@ -11,7 +11,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
 
 from backend_v2.core.hook_registry import (
@@ -258,14 +258,37 @@ class NodeExecutor:
                 engine=engine,
             )
 
-            resolved_global_vars = (
-                global_context_vars
-                if global_context_vars is not None
-                else metadata.global_context_vars
-                if metadata.global_context_vars is not None
-                else {"language": metadata.target_locale}
+            if global_context_vars is not None:
+                resolved_global_vars = global_context_vars
+            elif isinstance(metadata, ExecutionMetadata):
+                resolved_global_vars = (
+                    metadata.global_context_vars
+                    if metadata.global_context_vars is not None
+                    else {"language": metadata.target_locale}
+                )
+            elif not isinstance(metadata, (str, int, float, bool, list)) and metadata is not None:
+                try:
+                    resolved_global_vars = (
+                        metadata["global_context_vars"]
+                        if "global_context_vars" in metadata and metadata["global_context_vars"] is not None
+                        else {"language": metadata["target_locale"] if "target_locale" in metadata else None}
+                    )
+                except KeyError, TypeError:
+                    resolved_global_vars = {}
+            else:
+                resolved_global_vars = {}
+
+            org_id = (
+                metadata.organization_id
+                if isinstance(metadata, ExecutionMetadata)
+                else (
+                    metadata["organization_id"]
+                    if not isinstance(metadata, (str, int, float, bool, list))
+                    and metadata is not None
+                    and "organization_id" in metadata
+                    else None
+                )
             )
-            org_id = metadata.organization_id
 
             context = StrategyContext(
                 execution_id=execution_id,
@@ -295,7 +318,7 @@ class NodeExecutor:
         except AppException as ae:
             logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae), exc_info=True)
             raise
-        except Exception as e:  # noqa: QGR003 [REASON: NodeExecutor converts unhandled exceptions into ErrorTraceEvent for DAG resilience]
+        except (ValidationError, RuntimeError, ValueError, TypeError, KeyError, OSError, TimeoutError) as e:
             logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step.id, str(e), exc_info=True)
             return [
                 ErrorTraceEvent(
@@ -460,7 +483,11 @@ class DAGExecutor:
                 user_lang = (
                     user_data.language
                     if isinstance(user_data, BaseModel)
-                    else (user_data["language"] if (isinstance(user_data, dict) and "language" in user_data) else None)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                    else (
+                        user_data.get("language")
+                        if not isinstance(user_data, (str, int, float, bool, list)) and user_data is not None
+                        else None
+                    )
                 )
                 if user_lang:
                     global_vars["language"] = user_lang
@@ -506,7 +533,12 @@ class DAGExecutor:
                     delta_content = (
                         processed_result.state_delta.delta
                         if isinstance(processed_result.state_delta, HookDeltaDTO)
-                        else (processed_result.state_delta if isinstance(processed_result.state_delta, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                        else (
+                            dict(processed_result.state_delta)
+                            if not isinstance(processed_result.state_delta, (str, int, float, bool, list))
+                            and processed_result.state_delta is not None
+                            else {}
+                        )
                     )
                     proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
                     exec_record.execution_trace.append(proc_event)
@@ -770,12 +802,25 @@ class DAGExecutor:
 
                 await _safe_commit()
 
-            except Exception as e:  # noqa: QGR003 [REASON: Step failure isolation in DAG worker pipeline]
+            except (
+                AppException,
+                ValidationError,
+                RuntimeError,
+                ValueError,
+                TypeError,
+                KeyError,
+                OSError,
+                TimeoutError,
+            ) as e:
                 err_code = "UNKNOWN_ERROR"
                 if isinstance(e, AppException):
                     if isinstance(e.error_code, ErrorCodes):
                         err_code = e.error_code.name
-                    elif isinstance(e.details, dict) and "error_code" in e.details:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                    elif (
+                        not isinstance(e.details, (str, int, float, bool, list))
+                        and e.details is not None
+                        and "error_code" in e.details
+                    ):
                         code_val = e.details["error_code"]
                         if isinstance(code_val, ErrorCodes):
                             err_code = code_val.name

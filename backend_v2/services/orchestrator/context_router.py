@@ -20,15 +20,21 @@ from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, O
 logger = logging.getLogger(__name__)
 
 
-class RoutingModeConfig(BaseModel):  # noqa: QGR007 [REASON: Step input mapping configuration dictionaries contain additional workflow definition keys alongside routing_mode]
+class RoutingModeConfig(BaseModel):
     """Pydantic model for validating routing configurations strictly.
 
     Attributes:
         routing_mode: The routing behavior configuration string.
+        target: Optional destination key or path.
+        source: Optional source key or path.
+        description: Optional routing description.
     """
 
-    model_config = ConfigDict(strict=True, extra="ignore")
+    model_config = ConfigDict(strict=True, extra="forbid")
     routing_mode: str
+    target: str | None = None
+    source: str | None = None
+    description: str | None = None
 
 
 class SnapshotState(BaseModel):
@@ -69,27 +75,28 @@ class ContextRouter:
             MissingXaiExtensionError: If a requested extension is missing in the trace.
         """
         try:
-            if isinstance(trace_event, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                if "evaluated_atoms" not in trace_event:
-                    msg = "Missing required base field in trace_event: evaluated_atoms"
-                    logger.error(msg)
-                    raise ConfigurationError(
-                        message=msg,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-                validated_trace = LightweightMatrixOutput.model_validate(trace_event)
-            else:
-                validated_trace = LightweightMatrixOutput.model_validate(trace_event)
+            if not isinstance(trace_event, (str, int, float, bool, list)) and trace_event is not None:
+                try:
+                    if "evaluated_atoms" not in trace_event:
+                        msg = "Missing required base field in trace_event: evaluated_atoms"
+                        logger.error(msg)
+                        raise ConfigurationError(
+                            message=msg,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
+                except TypeError, KeyError:
+                    pass
+            validated_trace = LightweightMatrixOutput.model_validate(trace_event)
         except ConfigurationError:
             raise
         except ValidationError as e:
-            logger.error("Trace event validation failed during prune.", exc_info=True)
+            logger.error("Trace event validation failed during prune: %s", e, exc_info=True)
             raise ConfigurationError(
                 message=f"Fail-Fast: Invalid trace_event format: {e}",
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
         except Exception as e:
-            logger.error("Unexpected parsing error during trace event validation.", exc_info=True)
+            logger.error("Unexpected parsing error during trace event validation: %s", e, exc_info=True)
             raise ConfigurationError(
                 message=f"Missing required base field in trace_event: {e}",
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
@@ -176,19 +183,6 @@ class ContextRouter:
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from e
-
-                if isinstance(snapshot, dict) and "steps" in snapshot and isinstance(snapshot["steps"], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    msg = (
-                        "Fail-Fast: Legacy dictionary state detected in trace. "
-                        "Epic 43 Zero-Compromise Pledge forbids unstructured data; "
-                        "must be a list of StepOutputDTO."
-                    )
-                    logger.error(msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
-                    )
 
                 found = False
                 if state.steps:

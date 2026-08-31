@@ -8,7 +8,7 @@ import json
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import DistilledEvaluation
@@ -71,7 +71,9 @@ class SynthesisPayloadCompressor:
         elif isinstance(v, list):
             v = [item.model_dump(mode="json") if isinstance(item, BaseModel) else item for item in v]
 
-        if not isinstance(v, (dict, list)):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+        try:
+            validated_payload: dict[str, Any] | list[Any] = TypeAdapter(dict[str, Any] | list[Any]).validate_python(v)
+        except ValidationError as val_err:
             logger.error(
                 "[SynthesisPayloadCompressor] %s: Payload must be a dict, list, string, or scalar for compression.",
                 ErrorCodes.VALIDATION_FAILED.name,
@@ -80,9 +82,9 @@ class SynthesisPayloadCompressor:
                 message="Payload must be a dict, list, string, or scalar for compression.",
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
+            ) from val_err
 
-        clean_v = copy.deepcopy(v)
+        clean_v = copy.deepcopy(validated_payload)
         settings = get_settings()
 
         def _prune_and_stratify_evaluations(evals: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
@@ -150,139 +152,143 @@ class SynthesisPayloadCompressor:
             return {k: v for k, v in item.items() if k in {"output_text", "status", "atom_id"}}
 
         def _strip_heavy_keys(obj: Any) -> None:
-            if isinstance(obj, dict):  # noqa: QGR012 [REASON: Polymorphic DAG dictionary key stripping]
-                obj.pop("shuffled_atoms", None)
-                obj.pop("atom_quotes", None)
-                obj.pop("hydrated_references", None)
-                obj.pop("_step_metadata", None)
-                obj.pop("_audit_signature", None)
-                obj.pop("_evaluative_matrices", None)
+            if isinstance(obj, list):
+                for item in obj:
+                    _strip_heavy_keys(item)
+                return
+            if not isinstance(obj, (str, int, float, bool)) and obj is not None:
+                try:
+                    obj.pop("shuffled_atoms", None)
+                    obj.pop("atom_quotes", None)
+                    obj.pop("hydrated_references", None)
+                    obj.pop("_step_metadata", None)
+                    obj.pop("_audit_signature", None)
+                    obj.pop("_evaluative_matrices", None)
 
-                if "results" in obj:
-                    results_data = obj["results"]
-                    if not isinstance(results_data, list):
-                        logger.error(
-                            "[SynthesisPayloadCompressor] %s: 'results' must be a list.",
-                            ErrorCodes.VALIDATION_FAILED.name,
-                        )
-                        raise AppException(
-                            message="'results' must be a list.",
-                            status_code=400,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        )
-
-                    lite_evals = []
-                    for ev in results_data:
-                        if not isinstance(ev, dict):  # noqa: QGR012 [REASON: Polymorphic evaluation payload validation]
+                    if "results" in obj:
+                        results_data = obj["results"]
+                        if not isinstance(results_data, list):
                             logger.error(
-                                "[SynthesisPayloadCompressor] %s: Evaluation item must be a dictionary.",
+                                "[SynthesisPayloadCompressor] %s: 'results' must be a list.",
                                 ErrorCodes.VALIDATION_FAILED.name,
                             )
                             raise AppException(
-                                message="Evaluation item must be a dictionary.",
+                                message="'results' must be a list.",
                                 status_code=400,
                                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
 
-                        if "exact_quotes" in ev:
-                            if not (ev.get("atom_id") or ev.get("tda_id")):
+                        lite_evals = []
+                        for ev in results_data:
+                            if isinstance(ev, (str, int, float, bool)) or ev is None:
                                 logger.error(
-                                    "[SynthesisPayloadCompressor] %s: Missing mandatory field in evaluation: atom_id",
+                                    "[SynthesisPayloadCompressor] %s: Evaluation item must be a dictionary.",
                                     ErrorCodes.VALIDATION_FAILED.name,
                                 )
                                 raise AppException(
-                                    message="Missing mandatory field in evaluation: 'atom_id'",
+                                    message="Evaluation item must be a dictionary.",
                                     status_code=400,
                                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                                 )
 
-                            try:
-                                lite_ev_dict = {
-                                    "atom_id": ev.get("atom_id") or ev.get("tda_id"),
-                                    "exact_quotes": ev["exact_quotes"],
-                                }
-                                if "semantic_reasoning" in ev:
-                                    lite_ev_dict["semantic_reasoning"] = ev["semantic_reasoning"]
-                                if "extensions" in ev:
-                                    lite_ev_dict["extensions"] = ev["extensions"]
+                            if "exact_quotes" in ev:
+                                if not (ev.get("atom_id") or ev.get("tda_id")):
+                                    logger.error(
+                                        "[SynthesisPayloadCompressor] %s: Missing mandatory field in evaluation: atom_id",
+                                        ErrorCodes.VALIDATION_FAILED.name,
+                                    )
+                                    raise AppException(
+                                        message="Missing mandatory field in evaluation: 'atom_id'",
+                                        status_code=400,
+                                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                    )
 
-                                lite_ev_obj = DistilledEvaluation.model_validate(lite_ev_dict, strict=False)
-                            except KeyError as e:
-                                logger.error(
-                                    "[SynthesisPayloadCompressor] %s: Missing mandatory field in evaluation: %s",
-                                    ErrorCodes.VALIDATION_FAILED.name,
-                                    str(e),
-                                )
-                                raise AppException(
-                                    message=f"Missing mandatory field in evaluation: {str(e)}",
-                                    status_code=400,
-                                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                ) from e
-                            except (ValidationError, ValueError) as e:
-                                logger.error(
-                                    "[SynthesisPayloadCompressor] %s: Failed to hydrate evaluation: %s",
-                                    ErrorCodes.VALIDATION_FAILED.name,
-                                    str(e),
-                                )
-                                raise AppException(
-                                    message=f"Failed to hydrate evaluation: {str(e)}",
-                                    status_code=400,
-                                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                ) from e
-
-                            valid_quotes = []
-                            for q_str in lite_ev_obj.exact_quotes:
-                                q_str = q_str.strip()
-                                if (
-                                    q_str
-                                    and q_str not in ("None", "null", "N/A", "N/A - insufficient data")
-                                    and not (q_str.startswith("[") and q_str.endswith("]"))
-                                ):
-                                    valid_quotes.append(q_str)
-
-                            if valid_quotes:
-                                sanitized_ev = DistilledEvaluation.model_validate(
-                                    lite_ev_obj.model_dump(exclude_unset=True)
-                                    | {
-                                        "exact_quotes": [
-                                            q[: settings.max_synthesis_quote_length] for q in valid_quotes
-                                        ],
-                                        "semantic_reasoning": (
-                                            str(lite_ev_obj.semantic_reasoning)[
-                                                : settings.max_synthesis_reasoning_length
-                                            ]
-                                            if lite_ev_obj.semantic_reasoning
-                                            else None
-                                        ),
+                                try:
+                                    lite_ev_dict = {
+                                        "atom_id": ev.get("atom_id") or ev.get("tda_id"),
+                                        "exact_quotes": ev["exact_quotes"],
                                     }
-                                )
-                                dumped = sanitized_ev.model_dump(mode="json")
-                                if "status" in ev and "status" not in dumped:
-                                    dumped["status"] = ev["status"]
-                                lite_evals.append(dumped)
-                        else:
-                            normalized = _normalize_result_item(ev)
-                            if normalized:
-                                lite_evals.append(normalized)
+                                    if "semantic_reasoning" in ev:
+                                        lite_ev_dict["semantic_reasoning"] = ev["semantic_reasoning"]
+                                    if "extensions" in ev:
+                                        lite_ev_dict["extensions"] = ev["extensions"]
 
-                    if not lite_evals:
-                        logger.error(
-                            "[SynthesisPayloadCompressor] %s: Results list cannot be empty after compression.",
-                            ErrorCodes.VALIDATION_FAILED.name,
-                        )
-                        raise AppException(
-                            message="Results list cannot be empty after compression.",
-                            status_code=400,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        )
+                                    lite_ev_obj = DistilledEvaluation.model_validate(lite_ev_dict, strict=False)
+                                except KeyError as e:
+                                    logger.error(
+                                        "[SynthesisPayloadCompressor] %s: Missing mandatory field in evaluation: %s",
+                                        ErrorCodes.VALIDATION_FAILED.name,
+                                        str(e),
+                                    )
+                                    raise AppException(
+                                        message=f"Missing mandatory field in evaluation: {str(e)}",
+                                        status_code=400,
+                                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                    ) from e
+                                except (ValidationError, ValueError) as e:
+                                    logger.error(
+                                        "[SynthesisPayloadCompressor] %s: Failed to hydrate evaluation: %s",
+                                        ErrorCodes.VALIDATION_FAILED.name,
+                                        str(e),
+                                    )
+                                    raise AppException(
+                                        message=f"Failed to hydrate evaluation: {str(e)}",
+                                        status_code=400,
+                                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                    ) from e
 
-                    obj["results"] = _prune_and_stratify_evaluations(lite_evals, settings.max_synthesis_evaluations)
+                                valid_quotes = []
+                                for q_str in lite_ev_obj.exact_quotes:
+                                    q_str = q_str.strip()
+                                    if (
+                                        q_str
+                                        and q_str not in ("None", "null", "N/A", "N/A - insufficient data")
+                                        and not (q_str.startswith("[") and q_str.endswith("]"))
+                                    ):
+                                        valid_quotes.append(q_str)
 
-                for _, val in list(obj.items()):
-                    _strip_heavy_keys(val)
-            elif isinstance(obj, list):
-                for item in obj:
-                    _strip_heavy_keys(item)
+                                if valid_quotes:
+                                    sanitized_ev = DistilledEvaluation.model_validate(
+                                        lite_ev_obj.model_dump(exclude_unset=True)
+                                        | {
+                                            "exact_quotes": [
+                                                q[: settings.max_synthesis_quote_length] for q in valid_quotes
+                                            ],
+                                            "semantic_reasoning": (
+                                                str(lite_ev_obj.semantic_reasoning)[
+                                                    : settings.max_synthesis_reasoning_length
+                                                ]
+                                                if lite_ev_obj.semantic_reasoning
+                                                else None
+                                            ),
+                                        }
+                                    )
+                                    dumped = sanitized_ev.model_dump(mode="json")
+                                    if "status" in ev and "status" not in dumped:
+                                        dumped["status"] = ev["status"]
+                                    lite_evals.append(dumped)
+                            else:
+                                normalized = _normalize_result_item(ev)
+                                if normalized:
+                                    lite_evals.append(normalized)
+
+                        if not lite_evals:
+                            logger.error(
+                                "[SynthesisPayloadCompressor] %s: Results list cannot be empty after compression.",
+                                ErrorCodes.VALIDATION_FAILED.name,
+                            )
+                            raise AppException(
+                                message="Results list cannot be empty after compression.",
+                                status_code=400,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+
+                        obj["results"] = _prune_and_stratify_evaluations(lite_evals, settings.max_synthesis_evaluations)
+
+                    for _, val in list(obj.items()):
+                        _strip_heavy_keys(val)
+                except AttributeError, TypeError:
+                    pass
 
         _strip_heavy_keys(clean_v)
         return json.dumps(clean_v, ensure_ascii=False, indent=2)

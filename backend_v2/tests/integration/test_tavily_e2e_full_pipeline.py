@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.core.hook_registry import HookDependencies, HookState
+from backend_v2.core.hook_registry import ExecutionInputsDTO, HookDependencies, HookState
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.hooks.source_verification_hook import source_verification_hook
@@ -56,7 +56,7 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
         step_id="sp_76eedbc020274f66",
         metadata={"target_locale": "fi"},
         global_context_vars={},
-        inputs={"document_text": document_text},
+        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -74,9 +74,9 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
     # Verify Hook Result
     assert hook_result.success is True
     assert hook_result.state_delta is not None
-    assert "metadata" in hook_result.state_delta
+    assert hook_result.state_delta.metadata_updates is not None
 
-    metadata_dict = hook_result.state_delta["metadata"]
+    metadata_dict = hook_result.state_delta.metadata_updates
     assert isinstance(metadata_dict, dict)
     assert "mcp_audit_traces" in metadata_dict
 
@@ -94,10 +94,8 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
         assert any(url.startswith("http") for url in typed_trace.source_urls)
 
     # 2. Pipeline Step 2: Verify Evidence XML for Step LLM Context
-    assert "global_context_vars" in hook_result.state_delta
-    global_vars = hook_result.state_delta["global_context_vars"]
-    assert isinstance(global_vars, dict)
-    evidence_xml = global_vars["external_evidence"]
+    assert "external_evidence" in hook_result.state_delta.delta
+    evidence_xml = hook_result.state_delta.delta["external_evidence"]
     assert isinstance(evidence_xml, str)
     assert "<external_evidence>" in evidence_xml
     assert "<claim status=" in evidence_xml
@@ -171,7 +169,7 @@ async def test_full_e2e_tavily_empty_claims_skips_search_and_hides_sdui_block() 
         step_id="sp_76eedbc020274f66",
         metadata={"target_locale": "fi"},
         global_context_vars={},
-        inputs={"document_text": document_text},
+        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -189,8 +187,8 @@ async def test_full_e2e_tavily_empty_claims_skips_search_and_hides_sdui_block() 
     assert hook_result.success is True
     assert hook_result.state_delta is not None
 
-    metadata_dict = hook_result.state_delta["metadata"]
-    traces = metadata_dict.get("mcp_audit_traces", [])
+    metadata_dict = hook_result.state_delta.metadata_updates
+    traces = metadata_dict.get("mcp_audit_traces", []) if metadata_dict else []
     assert len(traces) == 0
 
     # Build SDUI with empty audit map
@@ -217,4 +215,4 @@ async def test_full_e2e_tavily_empty_claims_skips_search_and_hides_sdui_block() 
     sdui_blocks = PrintableSourcesAdapter.build(adapter_context)
     # When no citations or search traces exist and summary box is enabled, PrintableSourcesAdapter renders empty notice
     assert len(sdui_blocks) == 1
-    assert "Ei erillisiä ulkoisia lähdeviittauksia" in sdui_blocks[0].text  # type: ignore[attr-defined]
+    assert "ei havaittu ulkoisia kirjallisuusviitteitä" in sdui_blocks[0].text  # type: ignore[attr-defined]

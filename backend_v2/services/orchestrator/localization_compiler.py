@@ -60,21 +60,16 @@ class LocalizationCompiler:
         if not text_obj:
             return ""
 
-        if isinstance(text_obj, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+        if not isinstance(text_obj, I18nText):
             try:
                 text_obj = I18nText.model_validate(text_obj)
-            except (ValidationError, ValueError) as e:
-                msg = f"Failed to hydrate I18nText from dictionary: {e}"
-                logger.error("[LocalizationCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            except (ValidationError, ValueError, TypeError) as e:
+                msg = (
+                    f"Legacy string fallback detected or invalid type: '{type(text_obj).__name__}'. "
+                    "All text MUST be valid I18nText dictionaries."
+                )
+                logger.error("[LocalizationCompiler] %s", msg)
                 raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}) from e
-
-        if not isinstance(text_obj, I18nText):
-            msg = (
-                f"Legacy string fallback detected or invalid type: '{type(text_obj).__name__}'. "
-                "All text MUST be valid I18nText dictionaries."
-            )
-            logger.error("[LocalizationCompiler] %s", msg)
-            raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         # V2 MANDATE: NO FALLBACKS. If a translation is requested, it MUST exist.
         target_lang = target_locale.split("-")[0].lower()

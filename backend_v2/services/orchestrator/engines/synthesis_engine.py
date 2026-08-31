@@ -81,18 +81,23 @@ class SynthesisEngine:
                 else None
             )
             has_matrix_evidence = False
-            if matrix_reducer_output and isinstance(matrix_reducer_output, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                reduced_atoms = (
-                    matrix_reducer_output["reduced_atoms"] if "reduced_atoms" in matrix_reducer_output else []
-                )
-                evaluated_matrices = (
-                    matrix_reducer_output["evaluated_matrices"] if "evaluated_matrices" in matrix_reducer_output else []
-                )
-                raw_extensions = (
-                    matrix_reducer_output["raw_extensions"] if "raw_extensions" in matrix_reducer_output else {}
-                )
-                if reduced_atoms or evaluated_matrices or raw_extensions:
-                    has_matrix_evidence = True
+            if matrix_reducer_output and not isinstance(matrix_reducer_output, (str, int, float, bool, list)):
+                try:
+                    reduced_atoms = (
+                        matrix_reducer_output["reduced_atoms"] if "reduced_atoms" in matrix_reducer_output else []
+                    )
+                    evaluated_matrices = (
+                        matrix_reducer_output["evaluated_matrices"]
+                        if "evaluated_matrices" in matrix_reducer_output
+                        else []
+                    )
+                    raw_extensions = (
+                        matrix_reducer_output["raw_extensions"] if "raw_extensions" in matrix_reducer_output else {}
+                    )
+                    if reduced_atoms or evaluated_matrices or raw_extensions:
+                        has_matrix_evidence = True
+                except TypeError, KeyError:
+                    pass
 
             is_starved = False
             starvation_reason = ""
@@ -138,13 +143,13 @@ class SynthesisEngine:
             local_messages = [dict(msg) for msg in request.hydrated_messages]
 
             raw_xai_extensions_str = ""
-            if (
-                matrix_reducer_output
-                and isinstance(matrix_reducer_output, dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                and "raw_extensions" in matrix_reducer_output
-            ):
-                extensions_json = json.dumps(matrix_reducer_output["raw_extensions"], indent=2)
-                raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
+            if matrix_reducer_output and not isinstance(matrix_reducer_output, (str, int, float, bool, list)):
+                try:
+                    if "raw_extensions" in matrix_reducer_output and matrix_reducer_output["raw_extensions"]:
+                        extensions_json = json.dumps(matrix_reducer_output["raw_extensions"], indent=2)
+                        raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
+                except TypeError, KeyError:
+                    pass
 
             raw_blackboard_markdown = blackboard.to_markdown_synthesis_injection()
             protected_user_payload = TemplateProcessor.encapsulate_payload(raw_blackboard_markdown)
