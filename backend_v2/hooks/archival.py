@@ -3,6 +3,7 @@
 import logging
 
 from fastapi import status
+from pydantic import TypeAdapter
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -14,6 +15,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.archival import ArchivalPrecedentDTO
 from backend_v2.models.domain.judge import JudgeOutput
+from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
@@ -51,15 +53,8 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
 
     try:
         # 1. Use Repository to get recent completed executions
-        recent_executions = await repository.get_recent_completed_executions(limit=5)
-
-        # STRICT Enforce: Repository must return List[ExecutionRecord] objects, NOT dicts.
-        if recent_executions and isinstance(recent_executions[0], dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            msg = "Repository returned dicts instead of Pydantic Models. Strict Pydantic Enforcement Violation."
-            logger.error("[ArchivalHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
-            raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value}
-            )
+        raw_recent = await repository.get_recent_completed_executions(limit=5)
+        recent_executions: list[ExecutionRecord] = TypeAdapter(list[ExecutionRecord]).validate_python(raw_recent)
 
         # 2. Filter and Format
         precedents = []
@@ -83,8 +78,6 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
             if not trace_events:
                 # Fallback levylle (data/files/executions) jos tietokannan kenttä on tyhjä
                 try:
-                    from pydantic import TypeAdapter
-
                     from backend_v2.models.state import TraceEvent
                     from backend_v2.services.storage import get_storage_driver
 

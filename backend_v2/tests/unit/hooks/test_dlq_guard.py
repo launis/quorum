@@ -108,3 +108,57 @@ def test_dlq_guard_fails_over_threshold(dummy_deps: HookDependencies) -> None:
     assert exc_info.value.status_code == 500
     assert "Strict Fail-Fast: DLQ ratio" in exc_info.value.message
     assert "exceeded the 10.00% absolute limit." in exc_info.value.message
+
+
+def test_dlq_guard_missing_inputs_bypasses(dummy_deps: HookDependencies) -> None:
+    state = HookState(
+        execution_id="exec_123",
+        workflow_id="wor_123",
+        inputs=ExecutionInputsDTO(),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    object.__setattr__(state, "inputs", None)
+    result = dlq_strict_mode_guard_hook(state, dummy_deps)
+    assert result.success is True
+
+
+def test_dlq_guard_missing_evaluations_bypasses(dummy_deps: HookDependencies) -> None:
+    state = HookState(
+        execution_id="exec_123",
+        workflow_id="wor_123",
+        inputs=ExecutionInputsDTO(raw_inputs={"other_key": "val"}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    result = dlq_strict_mode_guard_hook(state, dummy_deps)
+    assert result.success is True
+
+
+def test_dlq_guard_evaluations_not_list_raises(dummy_deps: HookDependencies) -> None:
+    state = HookState(
+        execution_id="exec_123",
+        workflow_id="wor_123",
+        inputs=ExecutionInputsDTO(raw_inputs={"evaluations": "not_a_list"}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    with pytest.raises(AppException) as exc:
+        dlq_strict_mode_guard_hook(state, dummy_deps)
+    assert exc.value.status_code == 500
+    assert "'evaluations' must be a list" in exc.value.message
+
+
+def test_dlq_guard_evaluations_atom_malformed_raises(dummy_deps: HookDependencies) -> None:
+    state = HookState(
+        execution_id="exec_123",
+        workflow_id="wor_123",
+        inputs=ExecutionInputsDTO(raw_inputs={"evaluations": [{"atom_id": 12345, "extra": "invalid"}]}),
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    with pytest.raises(AppException) as exc:
+        dlq_strict_mode_guard_hook(state, dummy_deps)
+    assert exc.value.status_code == 500
+    assert "Evaluation atom malformed" in exc.value.message
+

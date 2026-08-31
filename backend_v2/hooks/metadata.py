@@ -4,7 +4,6 @@ import logging
 from datetime import datetime, timezone
 
 from backend_v2.core.hook_registry import (
-    GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -63,11 +62,7 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
     workflow_id = state.workflow_id
 
     # Strict Validation via DTO inflation
-    gvars = (
-        state.global_context_vars.vars
-        if isinstance(state.global_context_vars, GlobalContextVarsDTO)
-        else (state.global_context_vars if isinstance(state.global_context_vars, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    gvars = state.global_context_vars.vars
     try:
         payload = MetadataHookPayloadDTO.model_validate(gvars)
     except Exception as e:

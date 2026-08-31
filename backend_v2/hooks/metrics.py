@@ -11,7 +11,6 @@ from fastapi import status
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -237,11 +236,7 @@ def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> Ho
     Raises:
         AppException: If input validation fails.
     """
-    raw_inputs = (
-        state.inputs.raw_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    raw_inputs = state.inputs.raw_inputs
     try:
         payload = MetricsPayloadDTO.model_validate(raw_inputs)
     except ValidationError as e:
@@ -275,11 +270,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     """
     logger.debug("[MetricsHook] Running text_metrics hook...")
 
-    raw_inputs = (
-        state.inputs.raw_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO)
-        else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-    )
+    raw_inputs = state.inputs.raw_inputs
     try:
         payload = MetricsPayloadDTO.model_validate(raw_inputs)
     except ValidationError as e:

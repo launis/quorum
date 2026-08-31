@@ -10,7 +10,6 @@ from fastapi import status
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -57,11 +56,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
 
     # 1. Isolation: Extract only current execution chat_log
     try:
-        inputs_source = (
-            state.inputs.raw_inputs
-            if isinstance(state.inputs, ExecutionInputsDTO)
-            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        )
+        inputs_source = state.inputs.raw_inputs
         input_data = InteractionInput.model_validate(inputs_source)
     except ValidationError as e:
         msg = f"Invalid inputs schema: {e}"

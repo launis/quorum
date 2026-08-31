@@ -2,7 +2,7 @@
 
 from collections.abc import Awaitable
 from typing import cast
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import status
@@ -41,7 +41,7 @@ def test_interaction_hook_system_instruction() -> None:
 
 @pytest.mark.asyncio
 async def test_analyze_interaction_role_empty_chat_log(mock_repository: AsyncMock) -> None:
-    """Test fail-fast validation when chat_log is empty or whitespace."""
+    """Test fail-fast validation when chat_log is whitespace."""
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
@@ -62,6 +62,34 @@ async def test_analyze_interaction_role_empty_chat_log(mock_repository: AsyncMoc
     with pytest.raises(AppException) as exc:
         await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
     assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.asyncio
+async def test_analyze_interaction_role_missing_system_repo(mock_repository: AsyncMock) -> None:
+    state = HookState(
+        execution_id="sub-123",
+        workflow_id="wf-123",
+        metadata=ExecutionMetadata(target_locale="en"),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "User: hello"}),
+    )
+    deps = HookDependencies(
+        exec_repo=mock_repository,
+        workflow_repo=mock_repository,
+        comp_repo=mock_repository,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repository,
+        audit_repo=mock_repository,
+        system_repo=None,  # type: ignore[arg-type]
+    )
+
+    with pytest.raises(AppException) as exc:
+        await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
+    assert exc.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert "Missing repository context" in exc.value.message
+
+
 
 
 @pytest.mark.asyncio

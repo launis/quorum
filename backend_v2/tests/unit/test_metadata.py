@@ -35,33 +35,69 @@ def test_inject_step_metadata_empty_state() -> None:
     assert result.state_delta.delta == {}
 
 
-def test_inject_step_metadata_missing_ids_fails() -> None:
-    """Test metadata injection fails fast when no IDs are provided."""
+def test_inject_step_metadata_missing_execution_id_fails() -> None:
     state = HookState(
         execution_id="",
-        workflow_id="",
+        workflow_id="wf_1",
+        step_id="step_1",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(),
+        metadata=ExecutionMetadata(target_locale="en"),
+    )
+    deps = MagicMock(spec=HookDependencies)
+    with pytest.raises(AppException) as exc_info:
+        inject_step_metadata(state, deps)
+    assert exc_info.value.status_code == 500
+    assert "state.execution_id is strictly required" in exc_info.value.message
+
+
+def test_inject_step_metadata_missing_step_id_fails() -> None:
+    state = HookState(
+        execution_id="exec_1",
+        workflow_id="wf_1",
         step_id="",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(target_locale="en"),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
-
+    deps = MagicMock(spec=HookDependencies)
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)
-
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "strictly required" in exc_info.value.message
+    assert "state.step_id is strictly required" in exc_info.value.message
+
+
+def test_inject_step_metadata_missing_workflow_id_fails() -> None:
+    state = HookState(
+        execution_id="exec_1",
+        workflow_id="",
+        step_id="step_1",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(),
+        metadata=ExecutionMetadata(target_locale="en"),
+    )
+    deps = MagicMock(spec=HookDependencies)
+    with pytest.raises(AppException) as exc_info:
+        inject_step_metadata(state, deps)
+    assert exc_info.value.status_code == 500
+    assert "state.workflow_id is strictly required" in exc_info.value.message
+
+
+def test_inject_step_metadata_missing_global_context_vars_fails() -> None:
+    state = HookState(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        step_id="step_1",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(),
+        metadata=ExecutionMetadata(target_locale="en"),
+    )
+    object.__setattr__(state, "global_context_vars", None)
+    deps = MagicMock(spec=HookDependencies)
+    with pytest.raises(AppException) as exc_info:
+        inject_step_metadata(state, deps)
+    assert exc_info.value.status_code == 500
+    assert "state.global_context_vars is strictly required" in exc_info.value.message
 
 
 def test_inject_step_metadata_custom_values() -> None:
