@@ -4,6 +4,7 @@
   <rule>@[.agents/rules/03_seed_vault.md]</rule>
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
   <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
   <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
   <knowledge_item>@[ki_ast_guardrail_engine.md]</knowledge_item>
   <knowledge_item>@[ki_seed_vault_verification_and_sanitization.md]</knowledge_item>
@@ -115,7 +116,7 @@ No fallback features, backward compatibility shims, or support for historical ex
 | `provider_metadata: dict[str, Any]` on `LLMResponse` | `@[backend_v2/models/llm.py]` | REPLACED by `[NEW]` defined `ProviderMetadataDTO` (fields: `finish_reason: str \| None`, `model_extra: dict[str, Any] \| None` mapped at LiteLLM boundary) |
 | Raw dict message literals `{"role": ..., "content": ...}` in test fixtures (~187 lines) | 20 test files across `backend_v2/tests/` | REPLACED by `[NEW]` created `LLMMessageDTO` instances / `make_llm_message()` in Phase 1 |
 | Dict subscript assertions `flat[n]["role"]`, `flat[n]["content"]` (~103 lines) | 16 test files across `backend_v2/tests/` | REPLACED by dot-notation `flat[n].role`, `flat[n].content` in Phase 1 |
-| `isinstance(raw_msg, dict)` and `raw_msg.get(...)` with `# noqa: QGR012` | `@[backend_v2/llm/adapters/base_adapter.py#L172-L219]` | REPLACED by direct `msg.role` and `msg.content` attribute access |
+| `isinstance(raw_msg, dict)` and `raw_msg.get(...)` with `# noqa: QGR012` | `@[backend_v2/llm/adapters/base_adapter.py#L181-L214]` | REPLACED by direct `msg.role` and `msg.content` attribute access |
 | `messages: list[dict[str, Any]]` on `_run_purity_scanner` | `@[backend_v2/llm/caching_service.py#L68]` | REPLACED by `messages: list[LLMMessageDTO]` with `msg.role` and `msg.content` |
 | `metadata: dict[str, Any] \| None` on `TaskDefinition` | `@[backend_v2/core/registry.py#L52]` | REPLACED by `[NEW]` defined `TaskMetadataDTO \| None` |
 | `result: dict[str, Any] \| None` on `ProgressState` | `@[backend_v2/services/progress.py#L34]` | REPLACED by typed optional fields |
