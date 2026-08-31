@@ -47,10 +47,17 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
     else:
         raw_list = []
 
-    typed_messages: list[ChatMessageDTO] = [
-        m if isinstance(m, ChatMessageDTO) else ChatMessageDTO.model_validate(m) for m in raw_list
-    ]
-    user_texts = [m.content for m in typed_messages if m.role == "user"]
+    from backend_v2.models.llm import LLMMessageDTO
+
+    user_texts: list[str] = []
+    for m in raw_list:
+        if isinstance(m, (ChatMessageDTO, LLMMessageDTO)):
+            if m.role == "user":
+                user_texts.append(m.content)
+        else:
+            typed_m = ChatMessageDTO.model_validate(m)
+            if typed_m.role == "user":
+                user_texts.append(typed_m.content)
 
     total_user_text = "".join(user_texts)
     if total_user_text:

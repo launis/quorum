@@ -25,10 +25,10 @@ class StrictnessConfig(BaseModel):
         dynamic_exponent: Non-linear exponent for penalty scaling.
     """
 
-    model_config = ConfigDict(frozen=True)
-    base_forgiveness: Annotated[float, Field()]
-    sigmoid_midpoint: Annotated[float, Field()]
-    dynamic_exponent: Annotated[float, Field()]
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    base_forgiveness: Annotated[float, Field(description="Base modifier for failure forgiveness.")]
+    sigmoid_midpoint: Annotated[float, Field(description="Midpoint for logistic scaling curves.")]
+    dynamic_exponent: Annotated[float, Field(description="Non-linear exponent for penalty scaling.")]
 
     @field_validator("base_forgiveness", "sigmoid_midpoint")
     @classmethod

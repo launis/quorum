@@ -1,15 +1,35 @@
 import logging
-from typing import Any, Self
+from typing import Annotated, Self
 
 from fastapi import status
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.base import BaseDTO
+from backend_v2.models.llm import LLMMessageDTO
 
 logger = logging.getLogger(__name__)
 
 
-class CompiledPrompt(BaseModel):
+class PromptMetadataDTO(BaseDTO):
+    """Strictly typed metadata for CompiledPrompt.
+
+    Attributes:
+        token_proxy_score: Token proxy score for cache evaluation.
+        cache_key: Deterministic cache identifier.
+        routing_tags: Routing or tier tags.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    token_proxy_score: Annotated[
+        float | None, Field(default=None, description="Token proxy score for cache evaluation.")
+    ] = None
+    cache_key: Annotated[str | None, Field(default=None, description="Deterministic cache identifier.")] = None
+    routing_tags: Annotated[list[str] | None, Field(default=None, description="Routing or tier tags.")] = None
+
+
+class CompiledPrompt(BaseDTO):
     """Strictly typed representation of compiled LLM prompt parts.
 
     Segregates immutable system state parameters from dynamic context layers to optimize
@@ -21,15 +41,20 @@ class CompiledPrompt(BaseModel):
         metadata: Arbitrary execution metadata (e.g., token proxy scores).
     """
 
-    static_messages: list[dict[str, Any]] = Field(
-        ..., description="Globally identical content across all chunks (base system prompt + source document)."
-    )
-    dynamic_messages: list[dict[str, Any]] = Field(
-        ..., description="Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors)."
-    )
-    metadata: dict[str, Any] = Field(
-        default_factory=dict, description="Arbitrary execution metadata (e.g., token proxy scores)."
-    )
+    static_messages: Annotated[
+        list[LLMMessageDTO],
+        Field(description="Globally identical content across all chunks (base system prompt + source document)."),
+    ]
+    dynamic_messages: Annotated[
+        list[LLMMessageDTO],
+        Field(description="Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors)."),
+    ]
+    metadata: Annotated[
+        PromptMetadataDTO,
+        Field(
+            default_factory=PromptMetadataDTO, description="Arbitrary execution metadata (e.g., token proxy scores)."
+        ),
+    ] = Field(default_factory=PromptMetadataDTO)
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -45,7 +70,7 @@ class CompiledPrompt(BaseModel):
             AppException: If 'system' role is found in dynamic_messages.
         """
         for msg in self.dynamic_messages:
-            if msg.get("role") == "system":
+            if msg.role == "system":
                 msg_text = (
                     "ARCHITECTURE VIOLATION: 'system' role forbidden in dynamic_messages. "
                     "System instructions must be in static_messages for caching integrity."
@@ -59,53 +84,53 @@ class CompiledPrompt(BaseModel):
         return self
 
     @staticmethod
-    def _merge_flat(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _merge_flat(messages: list[LLMMessageDTO]) -> list[LLMMessageDTO]:
         """Merge consecutive same-role messages into a single message per role boundary.
 
         Maintains pure alternating role structure required by LLM providers.
 
         Args:
-            messages: List of message dictionaries containing 'role' and 'content'.
+            messages: List of LLMMessageDTO instances containing role and content.
 
         Returns:
-            Merged list of message dictionaries.
+            Merged list of LLMMessageDTO instances.
         """
-        flat: list[dict[str, Any]] = []
+        flat: list[LLMMessageDTO] = []
         for msg in messages:
-            role = str(msg.get("role", ""))
-            content_str = str(msg.get("content", ""))
+            role = msg.role
+            content_str = msg.content
 
-            if flat and str(flat[-1].get("role", "")) == role:
-                existing_str = str(flat[-1].get("content", ""))
+            if flat and flat[-1].role == role:
+                existing_str = flat[-1].content
                 merged_content = (existing_str + "\n\n" + content_str).strip()
-                flat[-1] = {**flat[-1], "role": role, "content": merged_content}
+                flat[-1] = flat[-1].model_copy(update={"content": merged_content})
             else:
-                flat.append({**msg, "role": role, "content": content_str.strip()})
+                flat.append(msg.model_copy(update={"content": content_str.strip()}))
         return flat
 
-    def to_static_flat(self) -> list[dict[str, Any]]:
+    def to_static_flat(self) -> list[LLMMessageDTO]:
         """Flatten only static_messages for cache upload.
 
         Returns:
-            Merged list of static message dicts (system + base user content).
+            Merged list of static message DTOs (system + base user content).
         """
         return self._merge_flat(list(self.static_messages))
 
-    def to_dynamic_flat(self) -> list[dict[str, Any]]:
+    def to_dynamic_flat(self) -> list[LLMMessageDTO]:
         """Flatten only dynamic_messages for live request payload alongside cached content.
 
         Returns:
-            Merged list of dynamic message dicts (per-chunk rubrics, atoms, params).
+            Merged list of dynamic message DTOs (per-chunk rubrics, atoms, params).
         """
         return self._merge_flat(list(self.dynamic_messages))
 
-    def to_flat_messages(self) -> list[dict[str, Any]]:
+    def to_flat_messages(self) -> list[LLMMessageDTO]:
         """Flatten both tiers into a single list for backward-compatibility (no cache path).
 
         Seamlessly merges consecutive messages of the same role by joining content
         with a double newline to maintain pure alternating structure.
 
         Returns:
-            A flattened list of message dicts conforming strictly to role/content pairs.
+            A flattened list of message DTOs conforming strictly to role/content pairs.
         """
         return self._merge_flat(list(self.static_messages) + list(self.dynamic_messages))

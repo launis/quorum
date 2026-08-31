@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import ModelProfile
 
@@ -18,7 +19,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
         """Prepare the Anthropic-specific prompt payload with block-level cache tags.
 
         Args:
@@ -36,21 +37,21 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         if estimated_tokens < 1000:
             return compiled_prompt.to_flat_messages(), {}
 
-        system_msgs = [m for m in compiled_prompt.static_messages if m.get("role") == "system"]
-        other_static_msgs = [m for m in compiled_prompt.static_messages if m.get("role") != "system"]
+        system_msgs = [m for m in compiled_prompt.static_messages if m.role == "system"]
+        other_static_msgs = [m for m in compiled_prompt.static_messages if m.role != "system"]
 
-        dynamic_system_msgs = [m for m in compiled_prompt.dynamic_messages if m.get("role") == "system"]
-        other_dynamic_msgs = [m for m in compiled_prompt.dynamic_messages if m.get("role") != "system"]
+        dynamic_system_msgs = [m for m in compiled_prompt.dynamic_messages if m.role == "system"]
+        other_dynamic_msgs = [m for m in compiled_prompt.dynamic_messages if m.role != "system"]
 
         system_content_parts = []
         for m in system_msgs + dynamic_system_msgs:
-            content = m.get("content")
+            content = m.content
             if isinstance(content, str):
                 system_content_parts.append(content)
             elif isinstance(content, list):
                 for block in content:
                     if isinstance(block, dict) and block.get("type") == "text":
-                        system_content_parts.append(block.get("text", ""))
+                        system_content_parts.append(str(block.get("text", "")))
             elif content is not None:
                 system_content_parts.append(str(content))
 
@@ -67,9 +68,8 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         flat_static: list[dict[str, Any]] = []
         for msg in other_static_msgs:
-            role = msg.get("role")
-            content = msg["content"] if "content" in msg else ""
-            content_str = content if isinstance(content, str) else str(content)
+            role = msg.role
+            content_str = str(msg.content)
 
             if flat_static and flat_static[-1]["role"] == role:
                 flat_static[-1]["content"] = (flat_static[-1]["content"] + "\n\n" + content_str).strip()
@@ -84,9 +84,8 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         flat_dynamic: list[dict[str, Any]] = []
         for msg in other_dynamic_msgs:
-            role = msg.get("role")
-            content = msg["content"] if "content" in msg else ""
-            content_str = content if isinstance(content, str) else str(content)
+            role = msg.role
+            content_str = str(msg.content)
 
             if flat_dynamic and flat_dynamic[-1]["role"] == role:
                 flat_dynamic[-1]["content"] = (flat_dynamic[-1]["content"] + "\n\n" + content_str).strip()

@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import PromptCacheStatus
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import ChatMessageDTO, ModelProfile
 from backend_v2.settings import get_settings
@@ -43,21 +44,14 @@ async def get_redis_client() -> Any:
         The active Redis connection pool instance.
     """
     global _redis_pool, _redis_loop
-    try:
-        current_loop = asyncio.get_running_loop()
-    except RuntimeError:
-        current_loop = None
 
-    if _redis_pool is not None:
-        if "PYTEST_CURRENT_TEST" in os.environ and _redis_loop is not current_loop:
-            _redis_pool = None
-        else:
+    current_loop = asyncio.get_running_loop()
+    if _redis_pool is None or _redis_loop != current_loop:
+        if "PYTEST_CURRENT_TEST" in os.environ or os.environ.get("USE_FAKEREDIS") == "true":
+            _redis_pool = get_patched_fakeredis_pool()
+            _redis_loop = current_loop
             return _redis_pool
 
-    if "PYTEST_CURRENT_TEST" in os.environ:
-        _redis_pool = get_patched_fakeredis_pool()
-        _redis_loop = current_loop
-    else:
         settings = get_settings()
         _redis_pool = await create_pool(
             RedisSettings(
@@ -75,7 +69,7 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
 
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
         """Prepare the Google AI Studio specific prompt payload by setting up cached content.
 
         Args:
@@ -108,7 +102,12 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
             return compiled_prompt.to_flat_messages(), {}
 
         clean_model_name = model_name.split("/")[-1]
-        static_hash = hashlib.sha256(json.dumps(compiled_prompt.static_messages, sort_keys=True).encode()).hexdigest()
+        static_hash = hashlib.sha256(
+            json.dumps(
+                [m.model_dump(mode="json", exclude_none=True) for m in compiled_prompt.static_messages],
+                sort_keys=True,
+            ).encode()
+        ).hexdigest()
         redis_key = f"ai_studio_cache:{clean_model_name}:{static_hash}"
         lock_key = f"lock:ai_studio_cache:{clean_model_name}:{static_hash}"
 

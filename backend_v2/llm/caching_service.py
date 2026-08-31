@@ -6,6 +6,7 @@ from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class LLMCachingService:
         provider_name: str,
         compiled_prompt: CompiledPrompt,
         model_name: str,
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
         """Prepare the cache payload by delegating to the appropriate adapter.
 
         Args:
@@ -65,22 +66,22 @@ class LLMCachingService:
         await cls.prepare_caching_payload(provider_name, compiled_prompt, model_name)
 
     @classmethod
-    async def _run_purity_scanner(cls, messages: list[dict[str, Any]]) -> None:
+    async def _run_purity_scanner(cls, messages: list[LLMMessageDTO]) -> None:
         """Passive scanner to detect caching purity violations in system messages.
 
         Scans messages for dynamic traces like UUIDs and standard timestamps that
         will prevent downstream caches from achieving optimal hit rates.
 
         Args:
-            messages: A list of message dictionaries consisting of standard roles and content.
+            messages: A list of message DTOs consisting of standard roles and content.
         """
         uuid_pattern = re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
         # Matches ISO 8601 timestamps like 2026-05-31T06:22:07Z
         timestamp_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
         for msg in messages:
-            if "role" in msg and msg["role"] == "system" and "content" in msg:
-                content = str(msg["content"])
+            if msg.role == "system":
+                content = str(msg.content)
                 if uuid_pattern.search(content) or timestamp_pattern.search(content):
                     logger.warning(
                         "PROMPT_CACHING_PURITY_VIOLATION: Dynamic trace/timestamp pattern "

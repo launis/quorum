@@ -14,10 +14,56 @@ from fastapi import status
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.mcp import OpenAIToolCallDTO
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 
 logger = logging.getLogger(__name__)
+
+
+class LLMMessageDTO(BaseDTO):
+    """Strictly typed LLM Message Data Transfer Object.
+
+    Attributes:
+        role: Message role ('system', 'user', 'assistant', 'tool').
+        content: Message text payload.
+        tool_calls: Optional tool calls invoked.
+        tool_call_id: Optional tool call ID for tool outputs.
+        name: Optional name identifier for tool messages.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    role: Annotated[str, Field(min_length=1, description="Message role ('system', 'user', 'assistant', 'tool').")]
+    content: Annotated[str, Field(description="Message text payload.")]
+    tool_calls: Annotated[
+        list[OpenAIToolCallDTO] | None,
+        Field(default=None, description="Optional tool calls invoked."),
+    ] = None
+    tool_call_id: Annotated[
+        str | None,
+        Field(default=None, description="Optional tool call ID for tool outputs."),
+    ] = None
+    name: Annotated[
+        str | None,
+        Field(default=None, description="Optional name identifier for tool messages."),
+    ] = None
+
+
+class ProviderMetadataDTO(BaseDTO):
+    """Strictly typed metadata returned by the provider.
+
+    Attributes:
+        finish_reason: Provider termination reason.
+        model_extra: Provider-specific raw metadata.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    finish_reason: Annotated[str | None, Field(default=None, description="Provider termination reason.")] = None
+    model_extra: Annotated[
+        dict[str, Any] | None, Field(default=None, description="Provider-specific raw metadata.")
+    ] = None
 
 
 class LLMResponse(BaseDTO):
@@ -53,24 +99,24 @@ class LLMResponse(BaseDTO):
         ),
     ] = None
     tool_calls: Annotated[
-        list[dict[str, Any]] | None,
-        Field(description="List of tool use requests invoked by the model."),
+        list[OpenAIToolCallDTO] | None,
+        Field(default=None, description="List of tool use requests invoked by the model."),
     ] = None
     token_usage: Annotated[
         TokenUsage,
         Field(description="Token usage statistics (prompt, completion, total, cost)."),
     ] = Field(default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0))
     provider_metadata: Annotated[
-        dict[str, Any],
-        Field(description="Provider-specific raw metadata (e.g. finish_reason)."),
-    ] = Field(default_factory=dict)
+        ProviderMetadataDTO,
+        Field(default_factory=ProviderMetadataDTO, description="Provider-specific raw metadata (e.g. finish_reason)."),
+    ] = Field(default_factory=ProviderMetadataDTO)
     messages: Annotated[
-        list[dict[str, Any]] | None,
-        Field(description="The full list of messages (prompts) sent to the model for audit purposes."),
+        list[LLMMessageDTO] | None,
+        Field(default=None, description="The full list of messages (prompts) sent to the model for audit purposes."),
     ] = None
-    override_reason: Annotated[str | None, Field(description="Reason for override if applicable.")] = None
+    override_reason: Annotated[str | None, Field(default=None, description="Reason for override if applicable.")] = None
     system_fingerprint: Annotated[
-        str | None, Field(description="System fingerprint identifying exact model weights used.")
+        str | None, Field(default=None, description="System fingerprint identifying exact model weights used.")
     ] = None
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -352,15 +398,19 @@ class AdHocTestRequest(BaseDTO):
         system_instruction: System prompt.
         user_prompt: User prompt.
         model_params: Model parameters override.
+        frequency_penalty: Optional frequency penalty.
+        presence_penalty: Optional presence penalty.
     """
 
     provider: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="Provider identifier.")]
-    api_key: Annotated[str | None, Field(default=None, description="Optional API key for testing.")]
+    api_key: Annotated[str | None, Field(default=None, description="Optional API key for testing.")] = None
     system_instruction: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="System prompt.")]
     user_prompt: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="User prompt.")]
-    model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")]
-    frequency_penalty: Annotated[float | None, Field(default=None, description="Frequency penalty override.")]
-    presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty override.")]
+    model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")] = (
+        Field(default_factory=dict)
+    )
+    frequency_penalty: Annotated[float | None, Field(default=None, description="Frequency penalty override.")] = None
+    presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty override.")] = None
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

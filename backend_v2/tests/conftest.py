@@ -1,13 +1,19 @@
+from __future__ import annotations
+
 import json
 import os
 import socket
 import sys
 from collections.abc import Generator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, Literal
 from unittest.mock import AsyncMock
 
 import pytest
+
+if TYPE_CHECKING:
+    from backend_v2.models.domain.mcp import OpenAIToolCallDTO
+    from backend_v2.models.llm import LLMMessageDTO
 
 
 # Hotfix for Python 3.14 + pytest-cov import crash on BaseModel MRO matching and descriptor proxy reloads
@@ -177,3 +183,23 @@ def clear_litellm_provider_caches() -> Generator[None]:
     LiteLLMProvider._router_cache.clear()
     LiteLLMProvider._semaphores.clear()
     LiteLLMProvider._httpx_clients.clear()
+
+
+def make_llm_message(
+    role: Literal["system", "user", "assistant", "tool"],
+    content: str,
+    tool_calls: list[OpenAIToolCallDTO] | None = None,
+    tool_call_id: str | None = None,
+    name: str | None = None,
+) -> LLMMessageDTO:
+    """Helper to construct strictly validated LLMMessageDTO instances in tests."""
+    from backend_v2.models.llm import LLMMessageDTO
+
+    return LLMMessageDTO(
+        role=role,
+        content=content,
+        tool_calls=tool_calls,
+        tool_call_id=tool_call_id,
+        name=name,
+    )
+

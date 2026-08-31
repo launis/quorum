@@ -16,8 +16,8 @@ from pydantic import BaseModel
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -133,7 +133,7 @@ class BaseLLMAdapter(ABC):
     @abstractmethod
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
         """Prepare the payload for the API request by configuring caching structures.
 
         Args:
@@ -186,15 +186,9 @@ class BaseLLMAdapter(ABC):
         total_chars = 0
         has_non_system_static = False
 
-        for raw_msg in compiled_prompt.static_messages:
-            if isinstance(raw_msg, ChatMessageDTO):
-                role = raw_msg.role
-                raw_content = raw_msg.content
-            elif isinstance(raw_msg, dict):  # noqa: QGR012 [REASON: Inspection of raw message payload dictionary before DTO hydration]
-                role = str(raw_msg.get("role", ""))
-                raw_content = raw_msg.get("content", "")
-            else:
-                continue
+        for msg in compiled_prompt.static_messages:
+            role = msg.role
+            raw_content = msg.content
 
             if role == "system":
                 if exclude_system:
@@ -204,14 +198,6 @@ class BaseLLMAdapter(ABC):
 
             if isinstance(raw_content, str):
                 total_chars += len(raw_content)
-            elif isinstance(raw_content, list):
-                for block in raw_content:
-                    if isinstance(block, str):
-                        total_chars += len(block)
-                    elif isinstance(block, dict) and "text" in block:  # noqa: QGR012 [REASON: Polymorphic block dictionary inspection in token estimation]
-                        total_chars += len(str(block["text"]))
-                    else:
-                        total_chars += len(str(block))
             else:
                 total_chars += len(str(raw_content))
 

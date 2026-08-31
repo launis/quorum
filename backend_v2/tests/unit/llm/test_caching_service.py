@@ -1,10 +1,12 @@
 """Unit tests for the LLMCachingService."""
 
+import logging
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from backend_v2.llm.caching_service import LLMCachingService
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 
@@ -84,14 +86,12 @@ async def test_pre_cache_document() -> None:
 @pytest.mark.asyncio
 async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixture) -> None:
     """Verify purity scanner logs warning on dynamic traces in system instructions."""
-    import logging
-
     mock_adapter = AsyncMock()
     mock_adapter.prepare_caching_payload.return_value = ([], {})
 
     # UUID in system message
     uuid_prompt = CompiledPrompt(
-        static_messages=[{"role": "system", "content": "Trace: 12345678-1234-1234-1234-123456789abc"}],
+        static_messages=[LLMMessageDTO(role="system", content="Trace: 12345678-1234-1234-1234-123456789abc")],
         dynamic_messages=[],
     )
     with (
@@ -109,7 +109,7 @@ async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixtur
 
     # Timestamp in system message
     ts_prompt = CompiledPrompt(
-        static_messages=[{"role": "system", "content": "Timestamp: 2026-08-27T18:22:00"}],
+        static_messages=[LLMMessageDTO(role="system", content="Timestamp: 2026-08-27T18:22:00")],
         dynamic_messages=[],
     )
     with (
