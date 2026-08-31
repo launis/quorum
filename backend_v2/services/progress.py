@@ -274,11 +274,8 @@ class InMemoryProgressTracker(ProgressTracker):
         self.current_state = ProgressState.model_validate(base)
         # Pass the simplified view expected by API consumers
         dumped = self.current_state.model_dump(exclude_none=True)
-        match dumped.pop("details", None):
-            case dict() as details_dict:
-                dumped.update(details_dict)
-            case _:
-                pass
+        if details := dumped.pop("details", None):
+            dumped.update(details)
         self.callback(dumped)
 
     async def start(self, details: dict[str, Any] | None = None) -> None:

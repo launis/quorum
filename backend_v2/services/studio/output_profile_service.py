@@ -4,7 +4,7 @@ import logging
 import uuid
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.database.interfaces import IOutputProfileRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
@@ -54,13 +54,7 @@ class StudioOutputProfileService:
             try:
                 profiles.append(OutputProfile.model_validate(x, strict=False))
             except ValidationError as e:
-                match x:
-                    case OutputProfile(id=p_id):
-                        x_id = p_id
-                    case {"id": str() as p_id}:
-                        x_id = p_id
-                    case _:
-                        x_id = "unknown"
+                x_id = x.id if isinstance(x, OutputProfile) else "unknown"
                 logger.error(
                     "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -107,15 +101,13 @@ class StudioOutputProfileService:
         enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
         return profile
 
-    async def save_output_profile(
-        self, initiator: TokenData, id: str, data: dict[str, Any] | OutputProfile
-    ) -> OutputProfile:
+    async def save_output_profile(self, initiator: TokenData, id: str, data: OutputProfile) -> OutputProfile:
         """Save output profile.
 
         Args:
             initiator: The authenticated user.
             id: The output profile ID.
-            data: The profile data or OutputProfile object.
+            data: The OutputProfile domain model.
 
         Returns:
             The saved OutputProfile.
@@ -125,18 +117,7 @@ class StudioOutputProfileService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
             AppException (ErrorCodes.VALIDATION_FAILED): On validation errors.
         """
-        match data:
-            case OutputProfile() as profile_model:
-                profile = profile_model
-            case dict() as data_dict:
-                existing = await self.output_profile_repo.get_output_profile_by_id(id)
-                if existing:
-                    existing_dict = existing.model_dump(mode="json") if isinstance(existing, BaseModel) else existing
-                    merged = {**existing_dict, **data_dict}
-                    profile = OutputProfile.model_validate(merged)
-                else:
-                    profile = OutputProfile.model_validate(data_dict)
-
+        profile = data
         enforce_modification_rights(initiator, profile.organization_id)
 
         workflow = await self.workflow_service.get_workflow(initiator, profile.workflow_id)
@@ -218,8 +199,15 @@ class StudioOutputProfileService:
         draft_dict: dict[str, Any] = {
             "id": new_id,
             "slug": new_id,
+            "workflow_id": "*",
             "name": {"translations": {"en": "New Profile", "fi": "Uusi profiili"}},
-            "matrix_synthesis_groups": [],
+            "matrix_synthesis_groups": [
+                {
+                    "id": f"grp_{uuid.uuid4().hex[:16]}",
+                    "title": {"translations": {"en": "Default Group", "fi": "Oletusryhmä"}},
+                    "target_blocks": ["*"],
+                }
+            ],
             "organization_id": (
                 SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
             ),

@@ -10,12 +10,9 @@ from backend_v2.database.interfaces import IPromptBlockRepository, ISystemReposi
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.domain.prompt_blocks import (
-    MatrixPromptBlock,
-    PersonaPromptBlock,
     PromptBlock,
     PromptBlockAdapter,
-    ProtocolPromptBlock,
-    SystemRulePromptBlock,
+    PromptBlockBase,
 )
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
@@ -63,18 +60,7 @@ class StudioPromptBlockService:
             try:
                 blocks.append(PromptBlockAdapter.validate_python(x, strict=False))
             except ValidationError as e:
-                match x:
-                    case (
-                        MatrixPromptBlock(id=p_id)
-                        | SystemRulePromptBlock(id=p_id)
-                        | PersonaPromptBlock(id=p_id)
-                        | ProtocolPromptBlock(id=p_id)
-                    ):
-                        x_id = p_id
-                    case {"id": str() as p_id}:
-                        x_id = p_id
-                    case _:
-                        x_id = "unknown"
+                x_id = x.id if isinstance(x, PromptBlockBase) else "unknown"
                 logger.error(
                     "[StudioPromptBlockService] %s: PromptBlock %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,

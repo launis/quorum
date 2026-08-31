@@ -74,13 +74,7 @@ class StudioWorkflowService:
             try:
                 all_profiles.append(OutputProfile.model_validate(p_data, strict=False))
             except ValidationError as e:
-                match p_data:
-                    case OutputProfile(id=p_id):
-                        pass
-                    case {"id": str() as p_id}:
-                        pass
-                    case _:
-                        p_id = "unknown"
+                p_id = p_data.id if isinstance(p_data, OutputProfile) else "unknown"
                 logger.error(
                     "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -128,13 +122,7 @@ class StudioWorkflowService:
             try:
                 workflows.append(Workflow.model_validate(x, strict=False))
             except ValidationError as e:
-                match x:
-                    case Workflow(id=x_id):
-                        pass
-                    case {"id": str() as x_id}:
-                        pass
-                    case _:
-                        x_id = "unknown"
+                x_id = x.id if isinstance(x, Workflow) else "unknown"
                 logger.error(
                     "[StudioService] %s: Workflow %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -423,13 +411,7 @@ class StudioWorkflowService:
             try:
                 steps.append(Step.model_validate(x, strict=False))
             except ValidationError as e:
-                match x:
-                    case Step(id=x_id):
-                        pass
-                    case {"id": str() as x_id}:
-                        pass
-                    case _:
-                        x_id = "unknown"
+                x_id = x.id if isinstance(x, Step) else "unknown"
                 logger.error(
                     "[StudioService] %s: Step %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,

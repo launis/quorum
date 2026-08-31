@@ -115,8 +115,7 @@ async def save_output_profile(
         ResourceNotFoundError: If the output profile is not found.
         AppException: If updating the output profile fails.
     """
-    update_data = data.model_dump(exclude_unset=True)
-    profile = await studio_service.save_output_profile(current_user, profile_id, update_data)
+    profile = await studio_service.save_output_profile(current_user, profile_id, data)
     return _to_dto(profile)
 
 
