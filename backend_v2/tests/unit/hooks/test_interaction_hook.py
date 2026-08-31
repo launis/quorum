@@ -2,7 +2,7 @@
 
 from collections.abc import Awaitable
 from typing import cast
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import status
@@ -88,8 +88,6 @@ async def test_analyze_interaction_role_missing_system_repo(mock_repository: Asy
         await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
     assert exc.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "Missing repository context" in exc.value.message
-
-
 
 
 @pytest.mark.asyncio

@@ -11,7 +11,7 @@ from enum import Enum, StrEnum
 from typing import Annotated, Any, cast
 
 from fastapi import status
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model, field_validator
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -228,6 +228,13 @@ class StrippedBaseTDAExtraction(BaseModel):
     """Stripped core Pydantic model for Micro-CoT extraction without localized anchors to save tokens."""
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    @field_validator("exact_quotes", mode="before")
+    @classmethod
+    def _coerce_exact_quotes(cls, v: Any) -> Any:
+        if v is None:
+            return []
+        return v
 
     exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,

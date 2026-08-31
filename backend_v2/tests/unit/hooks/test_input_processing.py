@@ -164,8 +164,6 @@ class MockInputProcessingRepo:
 
 @pytest.mark.asyncio
 async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatch) -> None:
-    from collections.abc import Awaitable
-    from backend_v2.core.hook_registry import HookDependencies, HookResult
 
     state = HookState(
         execution_id="test_exec",
@@ -221,8 +219,6 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
 
 @pytest.mark.asyncio
 async def test_process_inputs_workflow_not_found() -> None:
-    from collections.abc import Awaitable
-    from backend_v2.core.hook_registry import HookDependencies, HookResult
 
     state = HookState(
         execution_id="test_exec",
@@ -248,8 +244,6 @@ async def test_process_inputs_workflow_not_found() -> None:
 
 @pytest.mark.asyncio
 async def test_process_inputs_missing_required_input(monkeypatch: pytest.MonkeyPatch) -> None:
-    from collections.abc import Awaitable
-    from backend_v2.core.hook_registry import HookDependencies, HookResult
 
     state = HookState(
         execution_id="test_exec",
@@ -268,11 +262,13 @@ async def test_process_inputs_missing_required_input(monkeypatch: pytest.MonkeyP
         audit_repo=AsyncMock(),
         system_repo=AsyncMock(),
     )
+
     class MockStorage:
         async def save(self, path: str, content: str) -> None:
             pass
 
     import backend_v2.services.storage
+
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
 
     with pytest.raises(AppException) as exc:
@@ -282,8 +278,6 @@ async def test_process_inputs_missing_required_input(monkeypatch: pytest.MonkeyP
 
 @pytest.mark.asyncio
 async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyPatch) -> None:
-    from collections.abc import Awaitable
-    from backend_v2.core.hook_registry import HookDependencies, HookResult
 
     class ChatWFRepo:
         async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
@@ -333,6 +327,7 @@ async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyP
             pass
 
     import backend_v2.services.storage
+
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
 
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
@@ -343,8 +338,6 @@ async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyP
 
 @pytest.mark.asyncio
 async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pytest.MonkeyPatch) -> None:
-    from collections.abc import Awaitable
-    from backend_v2.core.hook_registry import HookDependencies, HookResult
 
     class SmoothWFRepo:
         async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
@@ -396,6 +389,7 @@ async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pyte
             pass
 
     import backend_v2.services.storage
+
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
 
     mock_pii = MagicMock()
@@ -410,8 +404,6 @@ async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pyte
 
 @pytest.mark.asyncio
 async def test_process_inputs_dynamic_inputs_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
-    from collections.abc import Awaitable
-    from backend_v2.core.hook_registry import HookDependencies, HookResult
 
     state = HookState(
         execution_id="test_exec",
@@ -438,11 +430,13 @@ async def test_process_inputs_dynamic_inputs_resolution(monkeypatch: pytest.Monk
         audit_repo=AsyncMock(),
         system_repo=AsyncMock(),
     )
+
     class MockStorage:
         async def save(self, path: str, content: str) -> None:
             pass
 
     import backend_v2.services.storage
+
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
 
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
@@ -452,8 +446,6 @@ async def test_process_inputs_dynamic_inputs_resolution(monkeypatch: pytest.Monk
 
 @pytest.mark.asyncio
 async def test_process_inputs_missing_english_ai_description(monkeypatch: pytest.MonkeyPatch) -> None:
-    from collections.abc import Awaitable
-    from backend_v2.core.hook_registry import HookDependencies, HookResult
 
     class EmptyDescWFRepo:
         async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
@@ -504,8 +496,6 @@ async def test_process_inputs_missing_english_ai_description(monkeypatch: pytest
 
 @pytest.mark.asyncio
 async def test_process_inputs_with_gvars_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
-    from collections.abc import Awaitable
-    from backend_v2.core.hook_registry import HookDependencies, HookResult
 
     state = HookState(
         execution_id="test_exec",
@@ -531,11 +521,13 @@ async def test_process_inputs_with_gvars_resolution(monkeypatch: pytest.MonkeyPa
         audit_repo=AsyncMock(),
         system_repo=AsyncMock(),
     )
+
     class MockStorage:
         async def save(self, path: str, content: str) -> None:
             pass
 
     import backend_v2.services.storage
+
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
 
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
@@ -545,7 +537,10 @@ async def test_process_inputs_with_gvars_resolution(monkeypatch: pytest.MonkeyPa
 
 @pytest.mark.asyncio
 async def test_process_chat_history_unstructured_parser_failure() -> None:
-    with patch("backend_v2.hooks.input_processing.ChatParserService.parse_pasted_chat", side_effect=RuntimeError("Parsing error")):
+    with patch(
+        "backend_v2.hooks.input_processing.ChatParserService.parse_pasted_chat",
+        side_effect=RuntimeError("Parsing error"),
+    ):
         with pytest.raises(AppException) as exc:
             await _process_chat_history(
                 resolved_text="unstructured text",
@@ -578,7 +573,9 @@ def test_process_questionnaire_invalid_dict() -> None:
 async def test_save_forensic_input_storage_error() -> None:
     from backend_v2.hooks.input_processing import _save_forensic_input
 
-    with patch("backend_v2.hooks.input_processing.get_storage_driver", side_effect=RuntimeError("Storage driver offline")):
+    with patch(
+        "backend_v2.hooks.input_processing.get_storage_driver", side_effect=RuntimeError("Storage driver offline")
+    ):
         with pytest.raises(AppException) as exc:
             await _save_forensic_input("exec_1", "key_1", "content")
         assert exc.value.status_code == 500
@@ -592,9 +589,7 @@ async def test_process_chat_history_malformed_json_fallback_with_nlp(monkeypatch
     monkeypatch.setattr("backend_v2.hooks.input_processing.get_pii_service", lambda: mock_pii)
 
     with patch("backend_v2.hooks.input_processing.ChatParserService.parse_pasted_chat") as mock_parse:
-        mock_parse.return_value = ChatHistoryDTO(
-            conversation=[ChatMessageDTO(role="user", content="Parsed message")]
-        )
+        mock_parse.return_value = ChatHistoryDTO(conversation=[ChatMessageDTO(role="user", content="Parsed message")])
         result = await _process_chat_history(
             resolved_text="{invalid json: true}",
             key="chat_key",
@@ -614,10 +609,3 @@ def test_process_questionnaire_missing_english_label() -> None:
     with pytest.raises(AppException) as exc:
         _process_questionnaire({"pairs": [{"question": "Q", "answer": "A"}]}, "Q", mock_input)
     assert exc.value.status_code == 500
-
-
-
-
-
-
-

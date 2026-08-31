@@ -54,6 +54,7 @@ __all__ = [
     "LaxRiskLevel",
     "LaxRoleClassification",
     "LaxScoringStrategy",
+    "LaxSDUIComponentType",
     "LaxSearchStatus",
     "LaxStepType",
     "LaxSimulationType",
@@ -784,6 +785,7 @@ LaxInteractionStrategy = Annotated[InteractionStrategy, Field(strict=False)]
 LaxTargetBlockType = Annotated[TargetBlockType, Field(strict=False)]
 LaxSourcesDisplayMode = Annotated[SourcesDisplayMode, Field(strict=False)]
 LaxDisplayScale = Annotated[DisplayScale, Field(strict=False)]
+LaxSDUIComponentType = Annotated[SDUIComponentType, Field(strict=False)]
 
 
 class SpecialAliasChoices(StrEnum):

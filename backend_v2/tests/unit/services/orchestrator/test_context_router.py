@@ -271,7 +271,10 @@ def test_normalize_and_validate_variable_legacy_dict_steps() -> None:
     with pytest.raises(AppException) as exc_info:
         ContextRouter.normalize_and_validate_variable("$steps.step_1", legacy_snapshot)
 
-    assert "Snapshot validation failed" in exc_info.value.message or "Legacy dictionary state detected" in exc_info.value.message
+    assert (
+        "Snapshot validation failed" in exc_info.value.message
+        or "Legacy dictionary state detected" in exc_info.value.message
+    )
 
 
 def test_route_and_prune_validation_error() -> None:

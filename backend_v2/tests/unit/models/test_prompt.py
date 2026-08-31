@@ -5,7 +5,6 @@ from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import ChatMessageDTO
 
 
 def test_compiled_prompt_pydantic_strictness() -> None:

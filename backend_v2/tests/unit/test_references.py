@@ -38,6 +38,7 @@ async def test_generate_bibliography_hook_success() -> None:
 
     from collections.abc import Awaitable
     from typing import cast
+
     from backend_v2.core.hook_registry import HookResult
 
     result = await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))
@@ -56,6 +57,7 @@ async def test_generate_bibliography_hook_success() -> None:
 async def test_generate_bibliography_hook_none_state() -> None:
     from collections.abc import Awaitable
     from typing import cast
+
     from backend_v2.core.hook_registry import HookResult
 
     deps = MagicMock(spec=HookDependencies)
@@ -69,6 +71,7 @@ async def test_generate_bibliography_hook_none_state() -> None:
 async def test_generate_bibliography_hook_invalid_inputs_raises() -> None:
     from collections.abc import Awaitable
     from typing import cast
+
     from backend_v2.core.hook_registry import HookResult
     from backend_v2.exceptions import AppException
 
@@ -93,6 +96,7 @@ async def test_generate_bibliography_hook_invalid_inputs_raises() -> None:
 async def test_generate_bibliography_hook_none_gvars_raises() -> None:
     from collections.abc import Awaitable
     from typing import cast
+
     from backend_v2.core.hook_registry import HookResult
     from backend_v2.exceptions import AppException
 
@@ -115,6 +119,7 @@ async def test_generate_bibliography_hook_none_gvars_raises() -> None:
 async def test_generate_bibliography_hook_invalid_context_raises() -> None:
     from collections.abc import Awaitable
     from typing import cast
+
     from backend_v2.core.hook_registry import HookResult
     from backend_v2.exceptions import AppException
 
@@ -136,6 +141,7 @@ async def test_generate_bibliography_hook_invalid_context_raises() -> None:
 async def test_generate_bibliography_hook_empty_text_short_circuit() -> None:
     from collections.abc import Awaitable
     from typing import cast
+
     from backend_v2.core.hook_registry import HookResult
 
     state = HookState(
@@ -157,6 +163,7 @@ async def test_generate_bibliography_hook_empty_text_short_circuit() -> None:
 async def test_generate_bibliography_hook_with_step_coach_and_no_kb_in_gvars() -> None:
     from collections.abc import Awaitable
     from typing import cast
+
     from backend_v2.core.hook_registry import HookResult
 
     state = HookState(
@@ -176,6 +183,7 @@ async def test_generate_bibliography_hook_with_step_coach_and_no_kb_in_gvars() -
 
 def test_generate_bibliography_generic_error_raises() -> None:
     from unittest.mock import patch
+
     from backend_v2.exceptions import AppException
     from backend_v2.hooks.references import generate_bibliography
 
@@ -190,6 +198,7 @@ async def test_generate_bibliography_hook_unexpected_error_raises() -> None:
     from collections.abc import Awaitable
     from typing import cast
     from unittest.mock import patch
+
     from backend_v2.core.hook_registry import HookResult
     from backend_v2.exceptions import AppException
 
@@ -206,5 +215,3 @@ async def test_generate_bibliography_hook_unexpected_error_raises() -> None:
         with pytest.raises(AppException) as exc:
             await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))
         assert exc.value.status_code == 500
-
-

@@ -1,22 +1,23 @@
 """End-to-End Golden Master Test for Epic 93 SDUI Output Rendering Unification."""
 
-from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, FrozenContext, ReportDataDTO, WorkflowInputs
+from backend_v2.models.v2_core import (
+    ExecutionRecord,
+    ExecutionStatus,
+    FrozenContext,
+    ReportDataDTO,
+    Workflow,
+    WorkflowInputs,
+)
 from backend_v2.models.view.sdui import ReportView
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.sdui_mapper_service import SduiMapperService
-
-
-def dict_to_obj(d: dict[str, Any]) -> Any:
-    from types import SimpleNamespace
-
-    return SimpleNamespace(**{k: dict_to_obj(v) if isinstance(v, dict) else v for k, v in d.items()})
 
 
 @pytest.mark.asyncio
@@ -46,7 +47,8 @@ async def test_epic_93_e2e_golden_master() -> None:
         status=ExecutionStatus.PASSED,
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
         frozen_context=frozen,
-        metadata={"target_locale": "en"},
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en"),
         execution_trace=[
             TraceEvent(
                 step_name="step_analyst",
@@ -95,13 +97,12 @@ async def test_epic_93_e2e_golden_master() -> None:
         "version": 1,
         "organization_id": "root",
         "default_profile_id": profile_id,
-        "default_scoring_strategy": {"value": "WATERFALL"},
+        "default_scoring_strategy": "WATERFALL",
         "default_strictness_level": 85,
         "expected_inputs": [],
         "steps": [],
-        "output_profiles": [profile_id],
     }
-    mock_workflow_repo.get_workflow.return_value = dict_to_obj(mock_workflow)
+    mock_workflow_repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
 
     # Profile Mock
     mock_profile = {
@@ -286,7 +287,8 @@ async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
         status=ExecutionStatus.PASSED,
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
         frozen_context=FrozenContext(ui_hints_snapshot={}),
-        metadata={"target_locale": "en"},
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en"),
         execution_trace=[],
     )
 
@@ -294,11 +296,19 @@ async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
         "id": wf_id,
         "slug": "wf_neg01",
         "name": {"translations": {"en": "Mock Workflow"}},
+        "description": {"translations": {"en": "desc"}},
+        "status": "published",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "version": 1,
+        "organization_id": "root",
         "default_profile_id": "prf_11111111111111111111111111111111",
+        "default_scoring_strategy": "WATERFALL",
+        "default_strictness_level": 85,
+        "expected_inputs": [],
         "steps": [],
-        "output_profiles": [],
     }
-    mock_workflow_repo.get_workflow.return_value = dict_to_obj(mock_workflow)
+    mock_workflow_repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
     mock_output_profile_repo.get_all_output_profiles.return_value = []
     mock_prompt_block_repo.get_all_prompt_blocks.return_value = []
 
@@ -337,7 +347,8 @@ async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
         status=ExecutionStatus.PASSED,
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
         frozen_context=FrozenContext(ui_hints_snapshot={}),
-        metadata={},  # No target_locale!
+        target_locale="",
+        metadata=ExecutionMetadata(target_locale=""),
         execution_trace=[],
     )
 
@@ -345,11 +356,19 @@ async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
         "id": wf_id,
         "slug": "wf_neg02",
         "name": {"translations": {"en": "Mock Workflow"}},
+        "description": {"translations": {"en": "desc"}},
+        "status": "published",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "version": 1,
+        "organization_id": "root",
         "default_profile_id": "prf_22222222222222222222222222222222",
+        "default_scoring_strategy": "WATERFALL",
+        "default_strictness_level": 85,
+        "expected_inputs": [],
         "steps": [],
-        "output_profiles": [],
     }
-    mock_workflow_repo.get_workflow.return_value = dict_to_obj(mock_workflow)
+    mock_workflow_repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
 
     transformer = BlueprintTransformer(
         exec_repo=mock_exec_repo,
@@ -388,7 +407,8 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
         status=ExecutionStatus.PASSED,
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
         frozen_context=FrozenContext(ui_hints_snapshot={}),
-        metadata={"target_locale": "en"},
+        target_locale="en",
+        metadata=ExecutionMetadata(target_locale="en"),
         execution_trace=[
             TraceEvent(
                 step_name="step_analyst",
@@ -405,11 +425,19 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
         "id": wf_id,
         "slug": "wf_neg03",
         "name": {"translations": {"en": "Mock Workflow"}},
+        "description": {"translations": {"en": "desc"}},
+        "status": "published",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "version": 1,
+        "organization_id": "root",
         "default_profile_id": profile_id,
+        "default_scoring_strategy": "WATERFALL",
+        "default_strictness_level": 85,
+        "expected_inputs": [],
         "steps": [],
-        "output_profiles": [profile_id],
     }
-    mock_workflow_repo.get_workflow.return_value = dict_to_obj(mock_workflow)
+    mock_workflow_repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
 
     mock_profile = {
         "id": profile_id,

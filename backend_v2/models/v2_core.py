@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
     from backend_v2.models.view.sdui import AnySduiBlock
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import I18nText, V2CoreBase
@@ -34,13 +34,13 @@ from backend_v2.models.enums import (
     LaxHistoricalContextMode,
     LaxPresetView,
     LaxScoringStrategy,
+    LaxSDUIComponentType,
     LaxSourcesDisplayMode,
     LaxStepType,
     LaxTargetBlockType,
     LaxXaiExtensionType,
     PresetView,
     ScoringStrategy,
-    SDUIComponentType,
     SourcesDisplayMode,
     StepType,
     StrictnessAnchor,
@@ -731,7 +731,7 @@ class HydratedAtomDTO(BaseModel):
     """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
-    sdui_component: Annotated[SDUIComponentType, Field(description="Server-Driven UI hint for frontend.")]
+    sdui_component: Annotated[LaxSDUIComponentType, Field(description="Server-Driven UI hint for frontend.")]
     resolved_claim: Annotated[str, Field(description="Cleaned claim in human language")]
     source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote")]
 
@@ -750,7 +750,7 @@ class AtomResultDTO(BaseModel):
     matrix_id: Annotated[
         str | None, Field(default=None, description="Opaque ID of the matrix block that requested this evaluation")
     ] = None
-    status: ExecutionStatus
+    status: LaxExecutionStatus
     extracted_data: Annotated[
         ExtractedValueDTO | None, Field(default=None, description="Quantitative or isolated result")
     ] = None
@@ -778,24 +778,24 @@ class AtomResultDTO(BaseModel):
     @model_validator(mode="after")
     def validate_cognitive_vs_system_state(self) -> Self:
         """Fail-Fast validation for cognitive state consistency."""
-        # Enforce null hypothesis: FAILED atoms cannot have an override or a quote
         if self.status == ExecutionStatus.FAILED:
-            if self.contextual_override or self.source_quote is not None:
-                raise ValueError("FAILED atoms cannot have contextual_override=True or source_quote")
-
-        if self.status in (ExecutionStatus.PASSED, ExecutionStatus.FAILED):
             if not self.evaluation_reasoning:
                 raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
+            if self.contextual_override:
+                object.__setattr__(self, "contextual_override", False)
+            if self.source_quote is not None:
+                object.__setattr__(self, "source_quote", None)
 
-            # PASSED atoms MUST have either a quote or a contextual_override
-            if self.status == ExecutionStatus.PASSED and not self.contextual_override and not self.source_quote:
+        elif self.status == ExecutionStatus.PASSED:
+            if not self.evaluation_reasoning:
+                raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
+            if not self.contextual_override and not self.source_quote:
                 raise ValueError("source_quote is mandatory unless contextual_override is True")
+            if self.contextual_override and self.source_quote is not None:
+                object.__setattr__(self, "source_quote", None)
 
         elif self.status == ExecutionStatus.SYSTEM_ERROR and not self.error_details:
             raise ValueError("Error details are mandatory when status is SYSTEM_ERROR")
-
-        if self.contextual_override and self.source_quote is not None:
-            raise ValueError("contextual_override=True cannot be combined with source_quote")
 
         return self
 
@@ -1454,6 +1454,13 @@ class BaseTDAExtraction(BaseModel):
     """Core Pydantic model for Micro-CoT extraction with deterministic cross-validation."""
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    @field_validator("exact_quotes", mode="before")
+    @classmethod
+    def _coerce_exact_quotes(cls, v: Any) -> Any:
+        if v is None:
+            return []
+        return v
 
     exact_quotes: list[LLMExtractedQuote] = Field(
         default_factory=list,

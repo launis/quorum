@@ -161,4 +161,3 @@ def test_dlq_guard_evaluations_atom_malformed_raises(dummy_deps: HookDependencie
         dlq_strict_mode_guard_hook(state, dummy_deps)
     assert exc.value.status_code == 500
     assert "Evaluation atom malformed" in exc.value.message
-

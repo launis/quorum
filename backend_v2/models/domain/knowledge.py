@@ -29,22 +29,25 @@ class PromptTemplateDTO(V2CoreBase):
 class Concept(V2CoreBase):
     """Model for a knowledge base concept."""
 
-    model_config = ConfigDict(strict=False, extra="allow", frozen=True)
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     id: Annotated[str, Field(min_length=1, description="Unique concept ID.")]
+    name: Annotated[str | None, Field(default=None, description="Optional concept name.")] = None
 
 
 class Reference(V2CoreBase):
     """Model for a knowledge base reference."""
 
-    model_config = ConfigDict(strict=False, extra="allow", frozen=True)
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     id: Annotated[str, Field(min_length=1, description="Unique reference ID.")]
+    name: Annotated[str | None, Field(default=None, description="Optional reference name.")] = None
 
 
 class Claim(V2CoreBase):
     """Model for a knowledge base claim."""
 
-    model_config = ConfigDict(strict=False, extra="allow", frozen=True)
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     id: Annotated[str, Field(min_length=1, description="Unique claim ID.")]
+    name: Annotated[str | None, Field(default=None, description="Optional claim name.")] = None

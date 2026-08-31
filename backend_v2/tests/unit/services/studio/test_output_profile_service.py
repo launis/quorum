@@ -160,9 +160,7 @@ async def test_save_output_profile_fails_invalid_block(service: Any, mock_workfl
     assert exc_info.value.status_code == 400
 
 
-def _make_valid_profile(
-    profile_id: str, slug: str, workflow_id: str, org_id: str, name: str = "Test"
-) -> OutputProfile:
+def _make_valid_profile(profile_id: str, slug: str, workflow_id: str, org_id: str, name: str = "Test") -> OutputProfile:
     return OutputProfile(
         id=profile_id,
         slug=slug,

@@ -798,4 +798,3 @@ def test_qgr012_match_case_dict_patterns() -> None:
     assert len(v3) == 1
     assert v3[0].rule_code == "QGR012"
     assert v3[0].severity == GuardrailSeverity.FATAL
-

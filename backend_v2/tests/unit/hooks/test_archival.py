@@ -186,6 +186,7 @@ async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyP
             )
 
     import backend_v2.services.storage
+
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockDiskStorage())
 
     mock_exec_repo = AsyncMock()
@@ -272,6 +273,7 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
             return False
 
     import backend_v2.services.storage
+
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockDiskStorageMissing())
 
     mock_exec_repo = AsyncMock()
@@ -315,9 +317,10 @@ async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.Monke
             return True
 
         async def read(self, path: str) -> str:
-            raise IOError("Disk read error")
+            raise OSError("Disk read error")
 
     import backend_v2.services.storage
+
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockDiskStorageError())
 
     mock_exec_repo = AsyncMock()
@@ -329,6 +332,3 @@ async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.Monke
     with pytest.raises(AppException) as exc:
         await retrieve_precedent_hook(state, deps)
     assert exc.value.status_code == 500
-
-
-

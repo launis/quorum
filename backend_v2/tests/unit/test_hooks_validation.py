@@ -172,9 +172,7 @@ def test_verify_structure_success_with_valid_content() -> None:
 
 
 def test_verify_structure_fails_on_short_or_empty_field() -> None:
-    inputs = ExecutionInputsDTO(
-        raw_inputs={"inputs": {"doc_a": "short", "doc_b": ""}}
-    )
+    inputs = ExecutionInputsDTO(raw_inputs={"inputs": {"doc_a": "short", "doc_b": ""}})
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
@@ -330,7 +328,10 @@ def test_verify_structure_invalid_payload_source_raises() -> None:
 
 def test_verify_output_language_invalid_system_warnings_raises() -> None:
     inputs = ExecutionInputsDTO(
-        raw_inputs={"evaluation_notes": "The user was very good and the system is fine.", "_system_warnings": "not_a_list"}
+        raw_inputs={
+            "evaluation_notes": "The user was very good and the system is fine.",
+            "_system_warnings": "not_a_list",
+        }
     )
     state = HookState(
         execution_id="exec-1",
@@ -530,4 +531,3 @@ def test_verify_anomaly_none_state() -> None:
     )
     result = cast(HookResult, verify_anomaly(None, deps))
     assert result.success is True
-

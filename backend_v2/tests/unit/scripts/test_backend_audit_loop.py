@@ -402,6 +402,6 @@ def test_coverage_runner_directory_no_test_dir_or_file(mock_sub: MagicMock) -> N
 
 @patch("subprocess.run", return_value=_mock_completed_process(0))
 def test_coverage_runner_flat_unit_test_fallback(mock_sub: MagicMock) -> None:
-    with patch("scripts.backend_audit_loop.Path.exists", side_effect=[False, True]):
+    with patch("scripts.backend_audit_loop.Path.exists", side_effect=[False, False, False, True, True, True]):
         run_tests_with_strict_coverage("backend_v2/services/subservice/sample.py")
         assert mock_sub.call_count == 2

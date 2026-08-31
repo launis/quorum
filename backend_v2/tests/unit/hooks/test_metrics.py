@@ -142,4 +142,3 @@ def test_text_metrics_invalid_payload_raises() -> None:
     with pytest.raises(AppException) as exc:
         text_metrics(state, deps)
     assert exc.value.status_code == 400
-

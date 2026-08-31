@@ -3,7 +3,7 @@
 import hashlib
 from collections.abc import Awaitable
 from typing import Any, cast
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -322,6 +322,8 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
 
     justification = parsed_output["justification"]
     assert "Tämä on perustelu" in justification
+
+
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_missing_workflow_repo_raises() -> None:
     """Test that normalize_matrix_scores_hook raises HOOK_EXECUTION_FAILED when workflow_repo is missing."""
@@ -722,6 +724,8 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
     assert "false_atoms_count" in payload
     assert payload["true_atoms_count"] == 1
     assert payload["false_atoms_count"] == 1
+
+
 @pytest.mark.asyncio
 async def test_recalculate_unsupported_xai_extension_raises() -> None:
     """Test recalculate raises VALIDATION_FAILED when prompt block contains unsupported XAI extension."""

@@ -1,4 +1,5 @@
 from collections.abc import Awaitable
+from pathlib import Path
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -167,6 +168,7 @@ def test_verify_payload_citations_analyst() -> None:
 
 def test_verify_payload_citations_evaluation_result() -> None:
     from datetime import datetime, timezone
+
     from backend_v2.models.domain.evaluation import EvaluationResult
     from backend_v2.models.domain.judge import DimensionResultItem
 
@@ -178,9 +180,7 @@ def test_verify_payload_citations_evaluation_result() -> None:
         timestamp=datetime.now(timezone.utc),
         total_score=5.0,
         final_verdict="PASSED",
-        dimensions=[
-            DimensionResultItem(dimension_id="dim_1", dimension_label="Dim 1", score=5.0, reasoning="Good")
-        ],
+        dimensions=[DimensionResultItem(dimension_id="dim_1", dimension_label="Dim 1", score=5.0, reasoning="Good")],
         scale_min=1.0,
         scale_max=5.0,
         citation_snippets=["Valid quote", "Hallucinated quote"],
@@ -312,7 +312,7 @@ def test_enforce_hypothesis_linking_empty_hypotheses() -> None:
     assert result.success is True
 
 
-def test_read_docs_with_files(tmp_path: Any) -> None:
+def test_read_docs_with_files(tmp_path: Path) -> None:
     from backend_v2.hooks.integrity import _read_docs
 
     doc_file = tmp_path / "test.md"
@@ -322,5 +322,3 @@ def test_read_docs_with_files(tmp_path: Any) -> None:
         mock_settings.return_value.docs_dir = str(tmp_path)
         content = _read_docs()
     assert "Markdown documentation content" in content
-
-

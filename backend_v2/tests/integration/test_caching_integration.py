@@ -36,7 +36,6 @@ sys.modules["vertexai"] = cast(Any, MockVertexAI)
 sys.modules["vertexai.preview"] = cast(Any, MockPreview)
 sys.modules["vertexai.preview.generative_models"] = cast(Any, MockGenerativeModels)
 
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.llm import LLMProviderConfig

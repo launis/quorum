@@ -168,7 +168,7 @@ def test_stream_execution_status(override_dependencies: Any, mock_execution_serv
     client = TestClient(app)
 
     async def fake_stream(*args: Any, **kwargs: Any) -> Any:
-        yield "data: {\"status\": \"running\"}\n\n"
+        yield 'data: {"status": "running"}\n\n'
 
     mock_execution_service.stream_status = fake_stream
 
@@ -290,6 +290,3 @@ def test_reject_evidence_quote(override_dependencies: Any, mock_execution_servic
     )
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-
-
-

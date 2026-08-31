@@ -76,4 +76,3 @@ def test_hook_delta_dto_subscript_and_contains() -> None:
     assert dto["count"] == 42
     with pytest.raises(KeyError):
         _ = dto["missing"]
-

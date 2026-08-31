@@ -61,5 +61,3 @@ def test_cli_entrypoint_exception_raises_app_exception() -> None:
             backend_v2.run_worker.cli_entrypoint()
         assert exc.value.status_code == 500
         assert "Worker crashed outside main loop" in exc.value.message
-
-

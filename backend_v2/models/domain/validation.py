@@ -63,7 +63,7 @@ class GuttmanAtomItemDTO(V2CoreBase):
         hit: Whether the evaluation atom criterion was satisfied.
     """
 
-    model_config = ConfigDict(strict=True, extra="ignore")
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     score_level: Annotated[float, Field(description="Discrete score level / tier.")]
     hit: Annotated[bool, Field(description="Whether criterion was satisfied.")]
