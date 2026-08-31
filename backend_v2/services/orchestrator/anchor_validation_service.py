@@ -220,6 +220,7 @@ class AnchorValidationService:
             reasoning_trace: Optional trace containing the LLM's logical breakdown.
             contextual_override: If True, skips lexical validation.
             locale: Optional locale string to determine the fuzzy fallback threshold.
+            strictness_level: Strictness tolerance boundary percentage.
 
         Returns:
             The exact_quotes (overridden with original whitespace) if valid, or None if overridden.

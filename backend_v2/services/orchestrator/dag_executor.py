@@ -198,6 +198,7 @@ class NodeExecutor:
             context_variables: Execution level global variables.
             progress_callback: Optional progress reporter callback function.
             step_def: Optional pre-loaded Step blueprint.
+            global_context_vars: Optional global context variables.
 
         Returns:
             List of events generated during step evaluation.
@@ -349,6 +350,8 @@ class DAGExecutor:
             exec_repo: Primary database context for tracking runs.
             workflow_repo: Access parameters for templates definitions.
             comp_repo: UI configurations parameters.
+            prompt_block_repo: Prompt block repository instance.
+            output_profile_repo: Output profile repository instance.
             identity_repo: Access keys boundary metadata mappings.
             audit_repo: Compliance parameters interface.
             system_repo: Orchestrator environment constants limits.
@@ -552,6 +555,48 @@ class DAGExecutor:
 
         steps_by_id = {step.id: step for step in workflow.steps}
         step_events: dict[str, asyncio.Event] = {step.id: asyncio.Event() for step in workflow.steps}
+
+        try:
+            import litellm.exceptions as _litellm_exc
+
+            step_exceptions: tuple[type[BaseException], ...] = (
+                AppException,
+                ValidationError,
+                RuntimeError,
+                ValueError,
+                TypeError,
+                KeyError,
+                OSError,
+                TimeoutError,
+                ConnectionError,
+                ExceptionGroup,
+                _litellm_exc.APIConnectionError,
+                _litellm_exc.APIError,
+                _litellm_exc.RateLimitError,
+                _litellm_exc.Timeout,
+                _litellm_exc.ServiceUnavailableError,
+                _litellm_exc.InternalServerError,
+                _litellm_exc.BadGatewayError,
+                _litellm_exc.AuthenticationError,
+                _litellm_exc.PermissionDeniedError,
+                _litellm_exc.NotFoundError,
+                _litellm_exc.UnprocessableEntityError,
+                _litellm_exc.ContextWindowExceededError,
+                _litellm_exc.ContentPolicyViolationError,
+            )
+        except ImportError:
+            step_exceptions = (
+                AppException,
+                ValidationError,
+                RuntimeError,
+                ValueError,
+                TypeError,
+                KeyError,
+                OSError,
+                TimeoutError,
+                ConnectionError,
+                ExceptionGroup,
+            )
 
         failed_previous_steps = []
         for step_id, s_state in exec_record.step_states.items():
@@ -802,16 +847,7 @@ class DAGExecutor:
 
                 await _safe_commit()
 
-            except (
-                AppException,
-                ValidationError,
-                RuntimeError,
-                ValueError,
-                TypeError,
-                KeyError,
-                OSError,
-                TimeoutError,
-            ) as e:
+            except step_exceptions as e:
                 err_code = "UNKNOWN_ERROR"
                 if isinstance(e, AppException):
                     if isinstance(e.error_code, ErrorCodes):

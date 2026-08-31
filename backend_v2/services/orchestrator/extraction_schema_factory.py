@@ -22,6 +22,14 @@ class ExtractedFactsDTOBase(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def canonicalise_nulls(cls, data: Any) -> Any:
+        """Map cosmetic placeholder strings to None silently before validation.
+
+        Args:
+            data: Raw input dictionary or scalar data.
+
+        Returns:
+            Sanitized data structure with cosmetic placeholders replaced with None.
+        """
         # Phase 1, Milestone 2: Map cosmetic placeholders to None silently
         if not isinstance(data, (str, int, float, bool, list)) and data is not None:
             try:
@@ -42,6 +50,14 @@ class DynamicExtractionResponseBase(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def canonicalise_nulls(cls, data: Any) -> Any:
+        """Map cosmetic placeholder strings to None silently ONLY for search_context_anchor.
+
+        Args:
+            data: Raw input dictionary or scalar data.
+
+        Returns:
+            Sanitized data structure with cosmetic placeholders replaced with None for search_context_anchor.
+        """
         # Phase 1, Milestone 2: Map cosmetic placeholders to None silently ONLY for search_context_anchor
         if not isinstance(data, (str, int, float, bool, list)) and data is not None:
             try:
@@ -56,6 +72,17 @@ class DynamicExtractionResponseBase(BaseModel):
 
     @model_validator(mode="after")
     def validate_lazy_dumping(self, info: ValidationInfo) -> DynamicExtractionResponseBase:
+        """Enforce Lazy Dumping Ban (>80% of source text).
+
+        Args:
+            info: Pydantic validation context containing source_text.
+
+        Returns:
+            Self instance if validation passes.
+
+        Raises:
+            ValueError: If quote length exceeds 80% of source text.
+        """
         # Phase 1, Milestone 2: Enforce Lazy Dumping Ban (>80% of source text)
         context = info.context
         if context and "source_text" in context:

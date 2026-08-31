@@ -194,7 +194,8 @@ class SynthesisPayloadCompressor:
                             if "exact_quotes" in ev:
                                 if not (ev.get("atom_id") or ev.get("tda_id")):
                                     logger.error(
-                                        "[SynthesisPayloadCompressor] %s: Missing mandatory field in evaluation: atom_id",
+                                        "[SynthesisPayloadCompressor] %s: "
+                                        "Missing mandatory field in evaluation: atom_id",
                                         ErrorCodes.VALIDATION_FAILED.name,
                                     )
                                     raise AppException(

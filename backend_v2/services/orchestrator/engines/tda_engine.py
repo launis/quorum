@@ -64,7 +64,10 @@ class TDAEngine(ExecutionEngine):
                 extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
             )
             raise AppException(
-                message=f"Step '{request.step.id}' requires pre-compiled matrix assertions ('shuffled_atoms'). Free-form extraction fallback is prohibited.",
+                message=(
+                    f"Step '{request.step.id}' requires pre-compiled matrix assertions "
+                    "('shuffled_atoms'). Free-form extraction fallback is prohibited."
+                ),
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )

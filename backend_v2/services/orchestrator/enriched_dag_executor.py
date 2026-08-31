@@ -60,6 +60,9 @@ class EnrichedDagExecutor:
             source_text: The original document text for contextual evaluation.
             locale: Optional target locale/language code.
             progress_callback: Optional progress reporter callback function.
+            execution_id: Execution identifier path.
+            semaphore: Concurrency limiter semaphore.
+            matrix_context: Optional Matrix evaluation context.
 
         Returns:
             A tuple of:
@@ -138,6 +141,7 @@ class EnrichedDagExecutor:
 
             Args:
                 wave_nodes: A list of nodes from a single topological wave.
+                current_states: Mapping of tda_id to its current AtomExecutionState.
 
             Returns:
                 A dictionary mapping tda_id to its evaluated ExecutionStatus, reasoning, and extensions.
