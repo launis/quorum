@@ -6,7 +6,6 @@ from typing import Any
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -57,18 +56,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
         msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for normalize_matrix_scores_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
-    raw_inputs = (
-        state.inputs.dynamic_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.dynamic_inputs
-        else (
-            state.inputs.raw_inputs
-            if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.raw_inputs
-            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        )
-    )
-    if not isinstance(raw_inputs, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in normalize_matrix_scores_hook."
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+    raw_inputs = state.inputs.dynamic_inputs if state.inputs.dynamic_inputs else state.inputs.raw_inputs
 
     blueprint_id = state.task_blueprint or state.step_id
 
@@ -318,7 +306,6 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
                     atom_to_scale[tda.tda_id] = s_val
 
         raw_stats = {s_val: {"hits": 0, "total": 0, "dlqs": 0} for s_val in scale_values}
-        infra_dlqs = 0
 
         evaluated_atoms = existing_matrix.evaluated_atoms
         for atom_id, status in evaluated_atoms.items():
@@ -341,7 +328,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
         global_hits = sum(level_data["hits"] for level_data in raw_stats.values())
         global_dlqs = sum(level_data["dlqs"] for level_data in raw_stats.values())
 
-        is_indeterminate = global_total > 0 and (infra_dlqs / global_total) > 0.10
+        is_indeterminate = global_total > 0 and (global_dlqs / global_total) > 0.10
 
         total_true_atoms += global_hits
         total_false_atoms += global_total - global_hits - global_dlqs

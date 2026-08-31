@@ -7,7 +7,6 @@ from typing import Any, Literal
 from pydantic import BaseModel, ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
     GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
@@ -62,18 +61,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for matrix_scoring_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
-    raw_inputs = (
-        state.inputs.dynamic_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.dynamic_inputs
-        else (
-            state.inputs.raw_inputs
-            if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.raw_inputs
-            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        )
-    )
-    if not isinstance(raw_inputs, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        msg = "Strict Fail-Fast Enforced: State inputs must be a dictionary in matrix_scoring_hook."
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+    raw_inputs = state.inputs.dynamic_inputs if state.inputs.dynamic_inputs else state.inputs.raw_inputs
 
     blueprint_id = state.task_blueprint or state.step_id
     if not blueprint_id:

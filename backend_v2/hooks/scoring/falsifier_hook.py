@@ -6,7 +6,6 @@ from typing import Annotated, Any
 from pydantic import ConfigDict, Field, ValidationError
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -84,6 +83,9 @@ def _extract_payloads(data: dict[str, Any]) -> list[ScoringPayloadWrapper]:
 
     for valid_dto in hydrated_state.steps:
         if valid_dto.payload is None:
+            continue
+        if valid_dto.block_id == "_evaluative_matrices" and isinstance(valid_dto.payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+            payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": valid_dto.payload}))
             continue
         try:
             wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
@@ -194,15 +196,7 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         msg = "Strict Fail-Fast Enforced: Missing HookState in apply_scoring_logic_hook."
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    lookup_ctx = (
-        state.inputs.dynamic_inputs
-        if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.dynamic_inputs
-        else (
-            state.inputs.raw_inputs
-            if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.raw_inputs
-            else (state.inputs if isinstance(state.inputs, dict) else {})  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-        )
-    )
+    lookup_ctx = state.inputs.dynamic_inputs if state.inputs.dynamic_inputs else state.inputs.raw_inputs
 
     # 1. Security Penalty Check (Guard)
     security_threat = _extract_guard_flag(lookup_ctx)
@@ -216,7 +210,6 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     count = 0
     scores_found = []
 
-    candidates = [lookup_ctx]
     unique_matrices: dict[str, float] = {}
 
     def _extract_scores(source: ScoringPayloadWrapper) -> None:
@@ -224,25 +217,8 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
             for block_id, norm_val in source.evaluative_matrices.items():
                 unique_matrices[block_id] = float(norm_val)
 
-    for item in candidates:
-        if isinstance(item, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            for wrapper in _extract_payloads(item):
-                _extract_scores(wrapper)
-
-            try:
-                hydrated_item = StateInputWrapper.model_validate(item)
-            except ValidationError as e:
-                msg = f"Strict Fail-Fast Enforced: Invalid State Input Wrapper Context: {e}"
-                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                ) from e
-
-            if hydrated_item.steps:
-                for valid_dto in hydrated_item.steps:
-                    if valid_dto.block_id == "_evaluative_matrices" and isinstance(valid_dto.payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                        for block_id, norm_val in valid_dto.payload.items():
-                            unique_matrices[block_id] = float(norm_val)
+    for wrapper in _extract_payloads(lookup_ctx):
+        _extract_scores(wrapper)
 
     for v_float in unique_matrices.values():
         total_score_accum += v_float
@@ -255,27 +231,6 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
             if isinstance(v, dict) and "justification" in v and "[INDETERMINATE]" in str(v["justification"]):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 is_valid_indeterminate = True
                 break
-
-        if not is_valid_indeterminate and "steps" in lookup_ctx and isinstance(lookup_ctx["steps"], list):
-            for step_val in lookup_ctx["steps"]:
-                if isinstance(step_val, StepOutputDTO):
-                    payload = step_val.payload
-                elif isinstance(step_val, dict) and "payload" in step_val:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    payload = step_val["payload"]
-                else:
-                    payload = None
-
-                if isinstance(payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    for _, v in payload.items():
-                        if (
-                            isinstance(v, dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                            and "justification" in v
-                            and "[INDETERMINATE]" in str(v["justification"])
-                        ):
-                            is_valid_indeterminate = True
-                            break
-                    if is_valid_indeterminate:
-                        break
 
         if is_valid_indeterminate:
             logger.warning("[ScoringHook] All matrices are INDETERMINATE. Skipping aggregation.")
