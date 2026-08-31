@@ -21,6 +21,7 @@ from backend_v2.hooks.metrics import calculate_behavioral_metrics, calculate_con
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO, InteractionInput
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.hook_prompts import INTERACTION_OBJECTIVE, INTERACTION_RULES
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -114,9 +115,9 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         "</source_data>"
     )
 
-    messages: list[dict[str, str]] = [
-        {"role": "system", "content": _SYSTEM_INSTRUCTION},
-        {"role": "user", "content": user_content},
+    messages: list[LLMMessageDTO] = [
+        LLMMessageDTO(role="system", content=_SYSTEM_INSTRUCTION),
+        LLMMessageDTO(role="user", content=user_content),
     ]
 
     # 4. Structured Execution

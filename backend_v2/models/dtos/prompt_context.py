@@ -5,6 +5,7 @@ from typing import Annotated, Any
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.dtos.base import BaseDTO
+from backend_v2.models.llm import LLMMessageDTO
 
 
 class PromptContextDTO(BaseDTO):
@@ -13,14 +14,14 @@ class PromptContextDTO(BaseDTO):
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     static_messages: Annotated[
-        list[dict[str, Any]],
+        list[LLMMessageDTO],
         Field(
             description="Globally identical content across all chunks (base system prompt + source document).",
             default_factory=list,
         ),
     ]
     dynamic_messages: Annotated[
-        list[dict[str, Any]],
+        list[LLMMessageDTO],
         Field(
             description="Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors).",
             default_factory=list,

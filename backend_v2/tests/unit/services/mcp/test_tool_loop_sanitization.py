@@ -26,22 +26,23 @@ class TestOrphanedToolMessageSanitization:
         must be stripped from the message array to prevent LiteLLM crash.
         """
         from backend_v2.llm.adapters.vertex_adapter import VertexCacheAdapter
+        from backend_v2.models.llm import LLMMessageDTO
 
         messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Evaluate this document."},
+            LLMMessageDTO(role="system", content="You are a helpful assistant."),
+            LLMMessageDTO(role="user", content="Evaluate this document."),
             # Orphaned tool response — no preceding assistant with tool_calls
-            {
-                "role": "tool",
-                "tool_call_id": "call_abc123",
-                "content": "<tool_response><query>EUR to USD</query></tool_response>",
-            },
+            LLMMessageDTO(
+                role="tool",
+                tool_call_id="call_abc123",
+                content="<tool_response><query>EUR to USD</query></tool_response>",
+            ),
         ]
 
         sanitized = VertexCacheAdapter().sanitize_messages(messages)
 
         # The orphaned tool message must be removed
-        roles = [m["role"] for m in sanitized]
+        roles = [m.role for m in sanitized]
         assert "tool" not in roles, (
             "Orphaned tool message was not removed. This will crash LiteLLM Vertex transformation."
         )
@@ -49,66 +50,70 @@ class TestOrphanedToolMessageSanitization:
     def test_valid_tool_pair_is_preserved(self) -> None:
         """A properly paired `assistant(tool_calls)` + `tool` sequence must be kept intact."""
         from backend_v2.llm.adapters.vertex_adapter import VertexCacheAdapter
+        from backend_v2.models.domain.mcp import OpenAIFunctionCallDTO, OpenAIToolCallDTO
+        from backend_v2.models.llm import LLMMessageDTO
 
         messages = [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Evaluate this document."},
-            {
-                "role": "assistant",
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": "call_abc123",
-                        "type": "function",
-                        "function": {"name": "mcp_tavily_search", "arguments": '{"query": "test"}'},
-                    }
+            LLMMessageDTO(role="system", content="You are a helpful assistant."),
+            LLMMessageDTO(role="user", content="Evaluate this document."),
+            LLMMessageDTO(
+                role="assistant",
+                content="",
+                tool_calls=[
+                    OpenAIToolCallDTO(
+                        id="call_abc123",
+                        type="function",
+                        function=OpenAIFunctionCallDTO(name="mcp_tavily_search", arguments='{"query": "test"}'),
+                    )
                 ],
-            },
-            {
-                "role": "tool",
-                "tool_call_id": "call_abc123",
-                "content": "<tool_response><query>test query</query></tool_response>",
-            },
+            ),
+            LLMMessageDTO(
+                role="tool",
+                tool_call_id="call_abc123",
+                content="<tool_response><query>test query</query></tool_response>",
+            ),
         ]
 
         sanitized = VertexCacheAdapter().sanitize_messages(messages)
 
         # Both messages must be preserved
         assert len(sanitized) == 4
-        assert sanitized[2]["role"] == "assistant"
-        assert sanitized[3]["role"] == "tool"
+        assert sanitized[2].role == "assistant"
+        assert sanitized[3].role == "tool"
 
     def test_multiple_orphaned_and_valid_pairs(self) -> None:
         """Mixed scenario: valid pairs are kept, orphans are removed."""
         from backend_v2.llm.adapters.vertex_adapter import VertexCacheAdapter
+        from backend_v2.models.domain.mcp import OpenAIFunctionCallDTO, OpenAIToolCallDTO
+        from backend_v2.models.llm import LLMMessageDTO
 
         messages = [
-            {"role": "system", "content": "System prompt."},
-            {"role": "user", "content": "User message."},
+            LLMMessageDTO(role="system", content="System prompt."),
+            LLMMessageDTO(role="user", content="User message."),
             # Valid pair
-            {
-                "role": "assistant",
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": "call_valid",
-                        "type": "function",
-                        "function": {"name": "mcp_tavily_search", "arguments": '{"query": "valid"}'},
-                    }
+            LLMMessageDTO(
+                role="assistant",
+                content="",
+                tool_calls=[
+                    OpenAIToolCallDTO(
+                        id="call_valid",
+                        type="function",
+                        function=OpenAIFunctionCallDTO(name="mcp_tavily_search", arguments='{"query": "valid"}'),
+                    )
                 ],
-            },
-            {"role": "tool", "tool_call_id": "call_valid", "content": "valid response"},
+            ),
+            LLMMessageDTO(role="tool", tool_call_id="call_valid", content="valid response"),
             # Orphaned tool (no preceding assistant with tool_calls)
-            {"role": "tool", "tool_call_id": "call_orphan", "content": "orphan response"},
+            LLMMessageDTO(role="tool", tool_call_id="call_orphan", content="orphan response"),
             # Another user message
-            {"role": "user", "content": "Continue."},
+            LLMMessageDTO(role="user", content="Continue."),
         ]
 
         sanitized = VertexCacheAdapter().sanitize_messages(messages)
 
-        tool_messages = [m for m in sanitized if m["role"] == "tool"]
+        tool_messages = [m for m in sanitized if m.role == "tool"]
         assert len(tool_messages) == 1, f"Expected 1 valid tool message, got {len(tool_messages)}"
-        assert tool_messages[0]["tool_call_id"] == "call_valid"
+        assert tool_messages[0].tool_call_id == "call_valid"
 
 
 # ---------------------------------------------------------------------------

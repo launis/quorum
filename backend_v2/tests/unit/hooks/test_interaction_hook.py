@@ -177,10 +177,10 @@ async def test_analyze_interaction_role_prompt_injection(
     messages = call_kwargs["messages"]
 
     assert len(messages) == 2
-    assert messages[0]["role"] == "system"
-    assert messages[1]["role"] == "user"
-    assert "<user_payload>" in messages[1]["content"]
-    assert malicious_payload in messages[1]["content"]
+    assert messages[0].role == "system"
+    assert messages[1].role == "user"
+    assert "<user_payload>" in messages[1].content
+    assert malicious_payload in messages[1].content
 
 
 @pytest.mark.asyncio
@@ -292,7 +292,7 @@ async def test_analyze_interaction_role_cognitive_conflict(
     assert res.success is True
 
     messages = mock_execute_structured_task.call_args.kwargs["messages"]
-    user_content = messages[1]["content"]
+    user_content = messages[1].content
     assert "<control_ratio>0.05</control_ratio>" in user_content
     assert "<imperative_command_count>1</imperative_command_count>" in user_content
 

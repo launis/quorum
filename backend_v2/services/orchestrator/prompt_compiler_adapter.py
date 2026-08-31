@@ -2,6 +2,7 @@
 
 import datetime
 import re
+from collections.abc import Sequence
 from typing import Any
 
 from pydantic import BaseModel
@@ -111,9 +112,7 @@ class PromptCompilerAdapter:
             error_msg, is_logical_error, is_eof, strictness_level=strictness_level
         )
 
-    def compile_prompt(
-        self, messages: list[ChatMessageDTO] | list[LLMMessageDTO] | list[dict[str, Any]]
-    ) -> CompiledPrompt:
+    def compile_prompt(self, messages: Sequence[ChatMessageDTO | LLMMessageDTO | dict[str, Any]]) -> CompiledPrompt:
         """Splits an existing list of messages into static_messages and dynamic_messages.
 
         Acts as a robust fallback for general inputs by extracting dynamic blocks (execution

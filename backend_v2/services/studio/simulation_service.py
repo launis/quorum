@@ -16,6 +16,7 @@ from backend_v2.models.domain.prompt_blocks import (
     SystemRulePromptBlock,
 )
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.v2_core import (
     Step,
     Workflow,
@@ -201,7 +202,7 @@ class StudioSimulationService:
                             rendered += f"  Rule: {tda.concept_description.strip()}\n"
 
         prompt_context = PromptContextDTO(
-            static_messages=[{"role": "system", "content": rendered.strip()}],
+            static_messages=[LLMMessageDTO(role="system", content=rendered.strip())],
             dynamic_messages=[],
             metadata={"simulated_block": data.id},
         )

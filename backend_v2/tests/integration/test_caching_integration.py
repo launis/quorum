@@ -128,7 +128,7 @@ async def test_executor_with_mock_cache_adapter_success(
     # Verify that the flat messages compiled under caching are passed
     first_call_msg = captured_calls[0]
     assert isinstance(first_call_msg, CompiledPrompt)
-    assert first_call_msg.static_messages[0]["content"] == "You are a specialized parser system."
+    assert first_call_msg.static_messages[0].content == "You are a specialized parser system."
 
 
 @pytest.mark.asyncio
@@ -207,14 +207,18 @@ async def test_self_healing_static_purity_preservation(
     assert first_prompt.static_messages == second_prompt.static_messages
 
     # Get SHA-256 of static messages for both attempts
-    hash_1 = hashlib.sha256(json.dumps(first_prompt.static_messages, sort_keys=True).encode()).hexdigest()
-    hash_2 = hashlib.sha256(json.dumps(second_prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    hash_1 = hashlib.sha256(
+        json.dumps([m.model_dump() for m in first_prompt.static_messages], sort_keys=True).encode()
+    ).hexdigest()
+    hash_2 = hashlib.sha256(
+        json.dumps([m.model_dump() for m in second_prompt.static_messages], sort_keys=True).encode()
+    ).hexdigest()
 
     assert hash_1 == hash_2  # 100% static-purity preservation!
 
     # The error should reside strictly at the tail of dynamic_messages
     assert len(second_prompt.dynamic_messages) > 0
-    assert "<PREVIOUS_SCHEMA_ERROR>" in second_prompt.dynamic_messages[-1]["content"]
+    assert "<PREVIOUS_SCHEMA_ERROR>" in second_prompt.dynamic_messages[-1].content
 
 
 @pytest.mark.asyncio
@@ -289,7 +293,12 @@ async def test_vertex_fail_soft_resilience_integration(
 
     # The actual static_messages is compiled by PromptCompilerAdapter.compile_prompt
     compiled_p = PromptCompilerAdapter().compile_prompt(messages)
-    actual_hash = hashlib.sha256(json.dumps(compiled_p.static_messages, sort_keys=True).encode()).hexdigest()
+    actual_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in compiled_p.static_messages],
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
     redis_key = f"vertex_cache:europe-north1:vertex_ai/gemini-1.5-pro:{actual_hash}"
 
     status = await mock_redis_client.get(redis_key)

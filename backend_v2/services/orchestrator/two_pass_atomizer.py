@@ -17,6 +17,7 @@ from backend_v2.models.domain.blackboard import (
 )
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompts.atom_extraction import (
@@ -82,8 +83,8 @@ class TwoPassAtomizer:
 
         compiled_prompt = CompiledPrompt(
             static_messages=[
-                {"role": "system", "content": PHASE_0_SYSTEM_PROMPT},
-                {"role": "user", "content": f"<source_data>\n{hydrated_text}\n</source_data>"},
+                LLMMessageDTO(role="system", content=PHASE_0_SYSTEM_PROMPT),
+                LLMMessageDTO(role="user", content=f"<source_data>\n{hydrated_text}\n</source_data>"),
             ],
             dynamic_messages=[],
         )
@@ -131,7 +132,7 @@ class TwoPassAtomizer:
             )
             chunk_prompt = CompiledPrompt(
                 static_messages=compiled_prompt.static_messages,
-                dynamic_messages=[{"role": "user", "content": dynamic_instruction}],
+                dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
             )
             result, usage = await self.executor.execute_structured_task(
                 client=client,
@@ -167,8 +168,8 @@ class TwoPassAtomizer:
 
         compiled_prompt = CompiledPrompt(
             static_messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"<source_data>\n{hydrated_text}\n</source_data>"},
+                LLMMessageDTO(role="system", content=system_prompt),
+                LLMMessageDTO(role="user", content=f"<source_data>\n{hydrated_text}\n</source_data>"),
             ],
             dynamic_messages=[],
         )
@@ -227,7 +228,7 @@ class TwoPassAtomizer:
             )
             chunk_prompt = CompiledPrompt(
                 static_messages=compiled_prompt.static_messages,
-                dynamic_messages=[{"role": "user", "content": dynamic_instruction}],
+                dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
             )
 
             draft_result, usage = await self.executor.execute_structured_task(
@@ -314,8 +315,8 @@ class TwoPassAtomizer:
 
         compiled_prompt = CompiledPrompt(
             static_messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"<source_data>\n{hydrated_text}\n</source_data>"},
+                LLMMessageDTO(role="system", content=system_prompt),
+                LLMMessageDTO(role="user", content=f"<source_data>\n{hydrated_text}\n</source_data>"),
             ],
             dynamic_messages=[],
         )
@@ -386,7 +387,7 @@ class TwoPassAtomizer:
             )
             chunk_prompt = CompiledPrompt(
                 static_messages=compiled_prompt.static_messages,
-                dynamic_messages=[{"role": "user", "content": dynamic_instruction}],
+                dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
             )
 
             draft_result, usage = await self.executor.execute_structured_task(

@@ -889,10 +889,10 @@ class LiteLLMProvider(LLMProvider):
                         extracted_tool_calls.append(OpenAIToolCallDTO.model_validate(tc))
                     else:
                         fn = getattr(tc, "function", None)  # noqa: QGR001 [REASON: External LiteLLM tool call duck-typing]
-                        fn_name = getattr(fn, "name", "unknown") if fn else "unknown"  # noqa: QGR001
-                        fn_args = getattr(fn, "arguments", "{}") if fn else "{}"  # noqa: QGR001
+                        fn_name = getattr(fn, "name", "unknown") if fn else "unknown"  # noqa: QGR001 [REASON: External LiteLLM function name reflection]
+                        fn_args = getattr(fn, "arguments", "{}") if fn else "{}"  # noqa: QGR001 [REASON: External LiteLLM function arguments reflection]
                         fn_dto = OpenAIFunctionCallDTO(name=fn_name, arguments=fn_args)
-                        tc_id = str(getattr(tc, "id", f"call_{uuid.uuid4().hex[:8]}"))  # noqa: QGR001
+                        tc_id = str(getattr(tc, "id", f"call_{uuid.uuid4().hex[:8]}"))  # noqa: QGR001 [REASON: External LiteLLM tool call ID reflection]
                         extracted_tool_calls.append(OpenAIToolCallDTO(id=tc_id, function=fn_dto))
 
             provider_meta_dto = ProviderMetadataDTO(

@@ -49,28 +49,28 @@ def test_prompt_compiler_adapter_compile_prompt_fallback() -> None:
     prompt = adapter.compile_prompt(messages)
 
     # 1. System is static
-    assert prompt.static_messages[0]["role"] == "system"
-    assert prompt.static_messages[0]["content"] == "Static system prompt"
+    assert prompt.static_messages[0].role == "system"
+    assert prompt.static_messages[0].content == "Static system prompt"
 
     # 2. Static user contents are isolated in static
     static_user = prompt.static_messages[1]
-    assert static_user["role"] == "user"
-    assert "<source_data>Verbatim content</source_data>" in static_user["content"]
-    assert "<task>Execute task.</task>" in static_user["content"]
-    assert "<execution_parameters>" not in static_user["content"]
-    assert "<PREVIOUS_SCHEMA_ERROR>" not in static_user["content"]
+    assert static_user.role == "user"
+    assert "<source_data>Verbatim content</source_data>" in static_user.content
+    assert "<task>Execute task.</task>" in static_user.content
+    assert "<execution_parameters>" not in static_user.content
+    assert "<PREVIOUS_SCHEMA_ERROR>" not in static_user.content
 
     # 3. Dynamic blocks are isolated in dynamic
     dynamic_user = prompt.dynamic_messages[0]
-    assert dynamic_user["role"] == "user"
-    assert "<execution_parameters>" in dynamic_user["content"]
-    assert "<PREVIOUS_SCHEMA_ERROR>" in dynamic_user["content"]
-    assert "<source_data>" not in dynamic_user["content"]
-    assert "<task>" not in dynamic_user["content"]
+    assert dynamic_user.role == "user"
+    assert "<execution_parameters>" in dynamic_user.content
+    assert "<PREVIOUS_SCHEMA_ERROR>" in dynamic_user.content
+    assert "<source_data>" not in dynamic_user.content
+    assert "<task>" not in dynamic_user.content
 
     # 4. Assistant and subsequent users are kept in dynamic
-    assert prompt.dynamic_messages[1]["role"] == "assistant"
-    assert prompt.dynamic_messages[2]["role"] == "user"
+    assert prompt.dynamic_messages[1].role == "assistant"
+    assert prompt.dynamic_messages[2].role == "user"
 
 
 def test_prompt_compiler_adapter_compile_prompt_empty_dynamic_fallback() -> None:
@@ -86,9 +86,9 @@ def test_prompt_compiler_adapter_compile_prompt_empty_dynamic_fallback() -> None
 
     # 1. System is static
     assert len(prompt.static_messages) == 1
-    assert prompt.static_messages[0]["role"] == "system"
+    assert prompt.static_messages[0].role == "system"
 
     # 2. User message moved to dynamic as fallback
     assert len(prompt.dynamic_messages) == 1
-    assert prompt.dynamic_messages[0]["role"] == "user"
-    assert "plain user message" in prompt.dynamic_messages[0]["content"]
+    assert prompt.dynamic_messages[0].role == "user"
+    assert "plain user message" in prompt.dynamic_messages[0].content

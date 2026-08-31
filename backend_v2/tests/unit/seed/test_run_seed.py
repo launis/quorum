@@ -427,3 +427,69 @@ def test_delete_collection_pagination() -> None:
     run_seed._delete_collection(mock_coll, batch_size=2)
     doc1.reference.delete.assert_called_once()
     doc2.reference.delete.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_seeder_aborts_without_dropping_tables_on_corrupt_data() -> None:
+    """Contract 1: Negative test - corrupt seed data aborts during preflight without dropping tables."""
+    mock_db = MagicMock()
+    corrupt_payload = {"organizations": [{"id": "bad_item_lacking_fields"}]}
+
+    with (
+        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db) as mock_tinydb_cls,
+        pytest.raises(SystemExit) as excinfo,
+    ):
+        await run_seed._seed_tinydb(Path("db_v2.json"), corrupt_payload, "local")
+
+    assert excinfo.value.code == 1
+    # TinyDB was never initialized or tables dropped because pre-flight failed first
+    mock_tinydb_cls.assert_not_called()
+    mock_db.drop_tables.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_seeder_aborts_on_invalid_workflow_dag() -> None:
+    """Contract 2: Negative test - workflow with broken DAG compilation aborts before DB drop."""
+    mock_db = MagicMock()
+    seed_payload = {"workflows": [VALID_WORKFLOW]}
+
+    with (
+        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db) as mock_tinydb_cls,
+        patch(
+            "backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow",
+            side_effect=ValueError("Broken DAG circular dependency"),
+        ),
+        pytest.raises(SystemExit) as excinfo,
+    ):
+        await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local")
+
+    assert excinfo.value.code == 1
+    mock_tinydb_cls.assert_not_called()
+    mock_db.drop_tables.assert_not_called()
+
+
+def test_seeder_preflight_validates_all_standard_collections() -> None:
+    """Contract 3: Positive test - validate_all_seed_collections validates and serializes collections."""
+    valid_payload = {
+        "organizations": [VALID_ORGANIZATION],
+        "workflows": [VALID_WORKFLOW],
+        "users": [],
+        "system_config": [],
+        "prompt_blocks": [],
+        "steps": [],
+        "output_profiles": [],
+        "executions": [],
+    }
+
+    with patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"):
+        buffers = run_seed.validate_all_seed_collections(valid_payload)
+
+    assert "organizations" in buffers
+    assert len(buffers["organizations"]) == 1
+    assert buffers["organizations"][0]["id"] == VALID_ORGANIZATION["id"]
+    assert "workflows" in buffers
+    assert len(buffers["workflows"]) == 1
+    assert buffers["workflows"][0]["id"] == VALID_WORKFLOW["id"]
+    for col in ["users", "system_config", "prompt_blocks", "steps", "output_profiles", "executions"]:
+        assert col in buffers
+        assert buffers[col] == []

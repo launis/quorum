@@ -3,7 +3,7 @@
 import logging
 import re
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
 
 from pydantic import BaseModel
@@ -17,8 +17,9 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.llm import LLMMessageDTO
-from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
@@ -28,7 +29,9 @@ from backend_v2.utils.llm_debug_logger import write_llm_telemetry_log
 logger = logging.getLogger(__name__)
 
 
-def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt) -> None:
+def _validate_non_empty_payload(
+    messages: Sequence[LLMMessageDTO | dict[str, Any]] | CompiledPrompt | PromptContextDTO,
+) -> None:
     """Phase 1: Extract payload validation to prevent hallucinations.
 
     Scans the prompt payload to ensure the user message is not empty. If the payload
@@ -41,9 +44,9 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
         AppException: If the user payload text is critically short.
     """
     raw_list: list[Any]
-    if isinstance(messages, CompiledPrompt):
+    if isinstance(messages, (CompiledPrompt, PromptContextDTO)):
         raw_list = list(messages.static_messages) + list(messages.dynamic_messages)
-    elif isinstance(messages, list):
+    elif isinstance(messages, (list, tuple, Sequence)):
         raw_list = list(messages)
     else:
         raw_list = []
@@ -99,7 +102,7 @@ class LLMTaskExecutor:
     async def execute_structured_task[T: BaseModel](
         self,
         client: LLMClient,
-        messages: list[dict[str, Any]] | CompiledPrompt,
+        messages: Sequence[LLMMessageDTO | dict[str, Any]] | CompiledPrompt | PromptContextDTO,
         response_model: type[T],
         max_schema_retries: int | None = None,
         max_logical_retries: int | None = None,
@@ -137,11 +140,15 @@ class LLMTaskExecutor:
 
         if isinstance(messages, CompiledPrompt):
             compiled_prompt = messages
+        elif isinstance(messages, PromptContextDTO):
+            meta = PromptMetadataDTO.model_validate(messages.metadata) if messages.metadata else PromptMetadataDTO()
+            compiled_prompt = CompiledPrompt(
+                static_messages=messages.static_messages,
+                dynamic_messages=messages.dynamic_messages,
+                metadata=meta,
+            )
         else:
             compiled_prompt = prompt_adapter.compile_prompt(messages)
-
-        if effective_validation_context:
-            compiled_prompt = compiled_prompt.model_copy(update={"metadata": effective_validation_context})
 
         base_compiled_prompt = compiled_prompt.model_copy(deep=True)
 

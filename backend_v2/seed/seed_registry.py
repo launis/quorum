@@ -2,7 +2,7 @@
 Strictly maps collections to V2 Pydantic models (Zero V1 leak).
 """
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import Discriminator, Tag, TypeAdapter
 
@@ -21,25 +21,11 @@ from backend_v2.models.v2_core import (
 __all__ = ["STANDARD_REGISTRY", "SystemConfigUnion"]
 
 
-def _system_config_discriminator(v: dict[str, Any] | Any) -> str:
-    """Polymorphic Seeding: route by 'type' field.
-
-    Args:
-        v: The raw dictionary or object being validated.
-
-    Returns:
-        The discriminator string.
-    """
-    if isinstance(v, dict):
-        return str(v["type"])
-    return str(v.type)
-
-
 SystemConfigUnion = Annotated[
     Annotated[SystemConfigModelRegistry, Tag("model_registry")]
     | Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")]
     | Annotated[SystemConfigPerformativeLexicons, Tag("performative_lexicons")],
-    Discriminator(_system_config_discriminator),
+    Discriminator("type"),
 ]
 
 STANDARD_REGISTRY = {

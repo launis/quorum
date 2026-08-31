@@ -75,6 +75,7 @@ __all__ = [
     "SEED_PATH",
     "main",
     "seed_database",
+    "validate_all_seed_collections",
 ]
 
 
@@ -99,6 +100,55 @@ def _fail_fast(msg: str, error: Exception) -> None:
     sys.exit(1)
 
 
+def validate_all_seed_collections(seed_data: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Validates 100% of seed items in-memory across STANDARD_REGISTRY before any database operations.
+
+    Phase 1 of Two-Phase Seeding: validates schemas and DAG workflows in memory.
+    If ANY item is invalid, triggers Fail-Fast before tables or files are touched.
+
+    Args:
+        seed_data: Raw JSON payload loaded from the seed file.
+
+    Returns:
+        A dictionary mapping collection keys to their validated and serialized JSON dictionaries.
+
+    Raises:
+        SystemExit: If any validation or processing error occurs.
+    """
+    validated_buffers: dict[str, list[dict[str, Any]]] = {}
+
+    for col_key, config in STANDARD_REGISTRY.items():
+        id_field = str(config["id_field"])
+        pyd_adapter: Any = config["model"]
+        dumped_buffer: list[dict[str, Any]] = []
+
+        items_to_process = seed_data[col_key] if col_key in seed_data else []
+        for item in items_to_process:
+            try:
+                # Let Pydantic resolve strictness natively using model_config=ConfigDict(strict=True)
+                validated = pyd_adapter.validate_python(item)
+
+                if col_key == "workflows":
+                    DAGCompilerService.validate_workflow(validated)
+
+                if isinstance(validated, BaseModel):
+                    dumped = validated.model_dump(mode="json")
+                else:
+                    dumped = pyd_adapter.dump_python(validated, mode="json")
+
+                dumped_buffer.append(dumped)
+
+            except ValidationError as ve:
+                item_id = item[id_field] if id_field in item else "unknown"
+                _fail_fast(f"Validation Error for {col_key} item {item_id}", ve)
+            except (KeyError, ValueError, TypeError) as e:
+                _fail_fast(f"Processing Error for {col_key} item", e)
+
+        validated_buffers[col_key] = dumped_buffer
+
+    return validated_buffers
+
+
 async def _seed_tinydb(
     db_path: Path,
     seed_data: dict[str, Any],
@@ -106,6 +156,10 @@ async def _seed_tinydb(
     dry_run: bool = False,
 ) -> None:
     """Seeds the local TinyDB instance with parsed V2 registry data.
+
+    Enforces Two-Phase Pre-Flight In-Memory Validation:
+    Phase 1: Validates 100% of seed items in-memory via validate_all_seed_collections.
+    Phase 2: Performs backup, drops tables, and persists validated buffers.
 
     Args:
         db_path: Absolute path to the local JSON database.
@@ -116,6 +170,16 @@ async def _seed_tinydb(
     Raises:
         SystemExit: If TinyDB initialization, validation, or integrity checks fail.
     """
+    # -------------------------------------------------------------------------
+    # PHASE 1: Pre-Flight In-Memory Validation (Zero DB mutations if invalid)
+    # -------------------------------------------------------------------------
+    validated_buffers = validate_all_seed_collections(seed_data)
+    print("[Seeder V2] Pre-flight in-memory validation passed for all collections.")
+
+    # -------------------------------------------------------------------------
+    # PHASE 2: Database Persistence
+    # -------------------------------------------------------------------------
+    db: TinyDB | None = None
     try:
         if not dry_run:
             db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,34 +223,10 @@ async def _seed_tinydb(
     # Seed Standard Strict Collections
     for col_key, config in STANDARD_REGISTRY.items():
         table_name = str(config["table"])
-        target_table = db.table(table_name) if not dry_run else None
+        target_table = db.table(table_name) if (not dry_run and db is not None) else None
         id_field = str(config["id_field"])
-        pyd_adapter: Any = config["model"]
+        dumped_buffer = validated_buffers.get(col_key, [])
         count = 0
-
-        dumped_buffer: list[dict[str, Any]] = []
-
-        items_to_process = seed_data[col_key] if col_key in seed_data else []
-        for item in items_to_process:
-            try:
-                # Let Pydantic resolve strictness natively using model_config=ConfigDict(strict=True)
-                validated = pyd_adapter.validate_python(item)
-
-                if col_key == "workflows":
-                    DAGCompilerService.validate_workflow(validated)
-
-                if isinstance(validated, BaseModel):
-                    dumped = validated.model_dump(mode="json")
-                else:
-                    dumped = pyd_adapter.dump_python(validated, mode="json")
-
-                dumped_buffer.append(dumped)
-
-            except ValidationError as ve:
-                item_id = item[id_field] if id_field in item else "unknown"
-                _fail_fast(f"Validation Error for {col_key} item {item_id}", ve)
-            except (KeyError, ValueError, TypeError) as e:
-                _fail_fast(f"Processing Error for {col_key} item", e)
 
         # Synchronous UPSERT loop to prevent TinyDB concurrent async corruption
         for dumped in dumped_buffer:
@@ -216,7 +256,7 @@ async def _seed_tinydb(
 
         print(f"[Seeder V2] Upserted and verified {count} items to '{col_key}' registry.")
 
-    if not dry_run:
+    if not dry_run and db is not None:
         db.close()
         print(f"[Seeder V2] Closed DB. Final size: {db_path.stat().st_size} bytes.")
     else:
@@ -225,6 +265,10 @@ async def _seed_tinydb(
 
 async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
     """Seeds the Cloud Firestore database with parsed V2 registry data.
+
+    Enforces Two-Phase Pre-Flight In-Memory Validation:
+    Phase 1: Validates 100% of seed items in-memory via validate_all_seed_collections.
+    Phase 2: Clears collections and persists validated buffers.
 
     Args:
         seed_data: Raw JSON payload loaded from the seed file.
@@ -237,6 +281,15 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
         print("Firebase Admin not installed.")
         return
 
+    # -------------------------------------------------------------------------
+    # PHASE 1: Pre-Flight In-Memory Validation (Zero DB mutations if invalid)
+    # -------------------------------------------------------------------------
+    validated_buffers = validate_all_seed_collections(seed_data)
+    print("[Seeder V2] Pre-flight in-memory validation passed for all Firestore collections.")
+
+    # -------------------------------------------------------------------------
+    # PHASE 2: Firestore Persistence
+    # -------------------------------------------------------------------------
     if not firebase_admin._apps:
         cred = credentials.ApplicationDefault()
         firebase_admin.initialize_app(cred)
@@ -273,26 +326,7 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
 
     for col_key, config in STANDARD_REGISTRY.items():
         id_field = str(config["id_field"])
-        pyd_adapter: Any = config["model"]
-
-        valid_items: list[dict[str, Any]] = []
-        items_to_process = seed_data[col_key] if col_key in seed_data else []
-        for item in items_to_process:
-            try:
-                validated = pyd_adapter.validate_python(item)
-                if col_key == "workflows":
-                    DAGCompilerService.validate_workflow(validated)
-
-                if isinstance(validated, BaseModel):
-                    valid_items.append(validated.model_dump(mode="json"))
-                else:
-                    valid_items.append(pyd_adapter.dump_python(validated, mode="json"))
-            except ValidationError as ve:
-                item_id = item[id_field] if id_field in item else "unknown"
-                _fail_fast(f"Validation Error for {col_key} item {item_id}", ve)
-            except (KeyError, ValueError, TypeError) as e:
-                _fail_fast(f"Error validating {col_key} item", e)
-
+        valid_items = validated_buffers.get(col_key, [])
         batch_upsert(col_key, valid_items, id_field=id_field)
 
 

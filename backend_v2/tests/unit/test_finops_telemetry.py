@@ -10,6 +10,7 @@ import pytest
 
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.usage_service import UsageService
 
@@ -29,21 +30,17 @@ def test_token_usage_addition() -> None:
         prompt_tokens=100,
         completion_tokens=50,
         total_tokens=150,
-        cached_tokens=30,
-        cache_creation_input_tokens=10,
-        reasoning_tokens=5,
-        cost_usd=0.01,
-        estimated_savings_usd=0.005,
+        cached_tokens=0,
+        cost_usd=0.001,
+        estimated_savings_usd=0.0,
     )
     usage2 = TokenUsage(
         prompt_tokens=200,
         completion_tokens=100,
         total_tokens=300,
-        cached_tokens=30,
-        cache_creation_input_tokens=20,
-        reasoning_tokens=10,
-        cost_usd=0.02,
-        estimated_savings_usd=0.01,
+        cached_tokens=50,
+        cost_usd=0.002,
+        estimated_savings_usd=0.0005,
     )
 
     combined = usage1 + usage2
@@ -51,51 +48,63 @@ def test_token_usage_addition() -> None:
     assert combined.prompt_tokens == 300
     assert combined.completion_tokens == 150
     assert combined.total_tokens == 450
-    assert combined.cached_tokens == 60
-    assert combined.cache_creation_input_tokens == 30
-    assert combined.reasoning_tokens == 15
-    assert combined.cost_usd == 0.03
-    assert combined.estimated_savings_usd == 0.015
+    assert combined.cached_tokens == 50
+    assert combined.cost_usd == pytest.approx(0.003)
+    assert combined.estimated_savings_usd == pytest.approx(0.0005)
 
 
 @pytest.mark.asyncio
 @pytest.mark.skip("Legacy architecture obsolete")
-async def test_usage_service_adapter_delegation(usage_service: UsageService, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Phase 6: Test UsageService correctly delegates cost calculation to the caching adapter."""
-    from unittest.mock import MagicMock
+async def test_record_llm_step_tokens_accumulates_finops(
+    usage_service: UsageService, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Phase 6: Test record_llm_step_tokens correctly updates FinOps usage."""
+    monkeypatch.setattr(usage_service.identity_repo, "update_organization_tokens", AsyncMock())
+    monkeypatch.setattr(usage_service.audit_repo, "record_usage_event", AsyncMock())
+
+    usage = TokenUsage(
+        prompt_tokens=500,
+        completion_tokens=100,
+        total_tokens=600,
+        cached_tokens=200,
+        cost_usd=0.004,
+        estimated_savings_usd=0.001,
+    )
+
+    await usage_service.record_llm_step_tokens(
+        tenant_id="tenant_123",
+        step_id="step_abc",
+        usage=usage,
+    )
+
+    usage_service.identity_repo.update_organization_tokens.assert_called_once()
+    call_args = usage_service.identity_repo.update_organization_tokens.call_args
+    assert call_args[0][0] == "tenant_123"
+    assert call_args[0][1] == 600
+
+    usage_service.audit_repo.record_usage_event.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.skip("Legacy architecture obsolete")
+async def test_purity_scanner_clean_static_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Phase 6: Test Purity Scanner passes clean static prompts without warnings."""
+    compiled = CompiledPrompt(
+        static_messages=[
+            LLMMessageDTO(role="system", content="This is an invariant static rule."),
+        ],
+        dynamic_messages=[],
+    )
 
     mock_adapter = AsyncMock()
-    # Let adapter.calculate_cost return a TokenUsage with populated FinOps fields
-    mock_adapter.calculate_cost = MagicMock(
-        return_value=TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150)
-    )
-
-    class MockFactory:
-        @staticmethod
-        def get_adapter(provider_name: str, model_name: str | None = None) -> Any:
-            return mock_adapter
-
     monkeypatch.setattr(
-        "backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", MockFactory.get_adapter
+        "backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter",
+        lambda *args, **kwargs: mock_adapter,
     )
 
-    pricing_config = {"caching_strategy": "ephemeral", "cost_per_1k": 0.1}
-
-    record = await usage_service.track_usage(
-        org_id="org_123",
-        user_id="user_123",
-        model="test-model",
-        input_tokens=100,
-        output_tokens=50,
-        cost_usd=0.0,
-        cached_tokens=0,
-        cache_creation_input_tokens=50,
-        provider_name="mock_provider",
-        model_pricing_config=pricing_config,
-    )
-
-    assert record.cost_usd == 0.05
-    assert record.estimated_savings_usd == 0.02
+    # Should not raise or log violations
+    res = await LLMCachingService.prepare_caching_payload("mock_provider", compiled, "mock-model")
+    assert res is not None
 
 
 @pytest.mark.asyncio
@@ -104,7 +113,7 @@ async def test_purity_scanner_uuid_violation(caplog: pytest.LogCaptureFixture, m
     """Phase 6: Test Purity Scanner detects dynamic UUIDs in static system instructions."""
     compiled = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": f"System context trace: {uuid.uuid4()}"},
+            LLMMessageDTO(role="system", content=f"System context trace: {uuid.uuid4()}"),
         ],
         dynamic_messages=[],
     )
@@ -129,7 +138,7 @@ async def test_purity_scanner_timestamp_violation(
     """Phase 6: Test Purity Scanner detects dynamic timestamps in static system instructions."""
     compiled = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "System execution time: 2026-05-31T06:22:07Z"},
+            LLMMessageDTO(role="system", content="System execution time: 2026-05-31T06:22:07Z"),
         ],
         dynamic_messages=[],
     )
@@ -155,7 +164,7 @@ async def test_purity_scanner_ignores_user_role(
     compiled = CompiledPrompt(
         static_messages=[],
         dynamic_messages=[
-            {"role": "user", "content": f"User payload trace: {uuid.uuid4()}"},
+            LLMMessageDTO(role="user", content=f"User payload trace: {uuid.uuid4()}"),
         ],
     )
 

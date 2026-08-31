@@ -388,7 +388,7 @@ class SystemConfigModelRegistry(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
-    type: str = Field(description="Type of config")
+    type: Literal["model_registry"] = Field(default="model_registry", description="Type of config")
     slug: str | None = Field(default=None, description="System Config identifier slug")
     models: dict[str, ModelProfile] = Field(
         description="Dictionary mapping generic role names to specific ModelProfiles"
@@ -438,7 +438,7 @@ class SystemConfigMCPGateways(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
-    type: str = Field(description="Config type discriminator.")
+    type: Literal["mcp_gateways"] = Field(default="mcp_gateways", description="Config type discriminator.")
     slug: str | None = Field(default=None, description="System Config identifier slug")
     tools: list[AllowedMCPTool] = Field(
         default_factory=list, description="Registry of all available MCP tools in the system."

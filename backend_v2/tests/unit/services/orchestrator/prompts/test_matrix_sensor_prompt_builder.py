@@ -25,15 +25,15 @@ def test_build_caching_prefix_with_context() -> None:
 
     # Validate the generated compiled prompt
     assert len(prompt.static_messages) == 2
-    assert prompt.static_messages[0]["role"] == "system"
-    assert "<global_system_mandates>" in prompt.static_messages[0]["content"]
-    assert "Evaluate matrix rules." in prompt.static_messages[0]["content"]
-    assert "<theory_context>" in prompt.static_messages[0]["content"]
-    assert "Test Citation" in prompt.static_messages[0]["content"]
-    assert "https://arma.org/guidelines" not in prompt.static_messages[0]["content"]
+    assert prompt.static_messages[0].role == "system"
+    assert "<global_system_mandates>" in prompt.static_messages[0].content
+    assert "Evaluate matrix rules." in prompt.static_messages[0].content
+    assert "<theory_context>" in prompt.static_messages[0].content
+    assert "Test Citation" in prompt.static_messages[0].content
+    assert "https://arma.org/guidelines" not in prompt.static_messages[0].content
 
-    assert prompt.static_messages[1]["role"] == "user"
-    assert "Here is a massive document." in prompt.static_messages[1]["content"]
+    assert prompt.static_messages[1].role == "user"
+    assert "Here is a massive document." in prompt.static_messages[1].content
 
     assert len(prompt.dynamic_messages) == 0
 
@@ -49,7 +49,7 @@ def test_build_caching_prefix_theory_grounding_none_citation() -> None:
         matrix_objective="Evaluate matrix rules.",
     )
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
-    assert "<theory_context>" not in prompt.static_messages[0]["content"]
+    assert "<theory_context>" not in prompt.static_messages[0].content
 
 
 def test_build_caching_prefix_theory_grounding_empty_citation() -> None:
@@ -63,7 +63,7 @@ def test_build_caching_prefix_theory_grounding_empty_citation() -> None:
         matrix_objective="Evaluate matrix rules.",
     )
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
-    assert "<theory_context>" not in prompt.static_messages[0]["content"]
+    assert "<theory_context>" not in prompt.static_messages[0].content
 
 
 def test_build_caching_prefix_theory_grounding_whitespace_only() -> None:
@@ -77,7 +77,7 @@ def test_build_caching_prefix_theory_grounding_whitespace_only() -> None:
         matrix_objective="Evaluate matrix rules.",
     )
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
-    assert "<theory_context>" not in prompt.static_messages[0]["content"]
+    assert "<theory_context>" not in prompt.static_messages[0].content
 
 
 def test_build_caching_prefix_theory_grounding_omits_raw_urls() -> None:
@@ -90,9 +90,9 @@ def test_build_caching_prefix_theory_grounding_omits_raw_urls() -> None:
         theory_grounding=theory_grounding,
     )
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
-    assert "<theory_context>" in prompt.static_messages[0]["content"]
-    assert "Valid Scientific Citation" in prompt.static_messages[0]["content"]
-    assert "https://secret-internal-domain.org" not in prompt.static_messages[0]["content"]
+    assert "<theory_context>" in prompt.static_messages[0].content
+    assert "Valid Scientific Citation" in prompt.static_messages[0].content
+    assert "https://secret-internal-domain.org" not in prompt.static_messages[0].content
 
 
 def test_build_caching_prefix_theory_grounding_xml_injection_shield() -> None:
@@ -105,7 +105,7 @@ def test_build_caching_prefix_theory_grounding_xml_injection_shield() -> None:
         theory_grounding=theory_grounding,
     )
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Doc text", matrix_context)
-    system_content = prompt.static_messages[0]["content"]
+    system_content = prompt.static_messages[0].content
 
     assert "<theory_context>" in system_content
     assert "<![CDATA[Author (2020) <tag> & ]]]]><![CDATA[> </theory_context><injected>]]>" in system_content
@@ -118,11 +118,11 @@ def test_build_caching_prefix_without_context() -> None:
     prompt = MatrixSensorPromptBuilder.build_caching_prefix(context_text, None)
 
     assert len(prompt.static_messages) == 2
-    assert prompt.static_messages[0]["role"] == "system"
-    assert "Evaluate" in prompt.static_messages[0]["content"]
+    assert prompt.static_messages[0].role == "system"
+    assert "Evaluate" in prompt.static_messages[0].content
 
-    assert prompt.static_messages[1]["role"] == "user"
-    assert "Some small document." in prompt.static_messages[1]["content"]
+    assert prompt.static_messages[1].role == "user"
+    assert "Some small document." in prompt.static_messages[1].content
 
 
 def test_build_compiled_prompt_with_assertions() -> None:
@@ -157,12 +157,12 @@ def test_build_compiled_prompt_with_assertions() -> None:
 
     # Static prefix validation
     assert len(prompt.static_messages) == 2
-    assert prompt.static_messages[1]["role"] == "user"
+    assert prompt.static_messages[1].role == "user"
 
     # Dynamic message validation
     assert len(prompt.dynamic_messages) == 1
-    assert prompt.dynamic_messages[0]["role"] == "user"
-    content = prompt.dynamic_messages[0]["content"]
+    assert prompt.dynamic_messages[0].role == "user"
+    content = prompt.dynamic_messages[0].content
 
     # Should contain XML formatted elements mapped to alias a0
     assert "a0" in content
@@ -190,7 +190,7 @@ def test_build_compiled_prompt_fallback_claim() -> None:
     prompt = MatrixSensorPromptBuilder.build_compiled_prompt("Context", [node], {"tda_22222222": "a1"}, None)
 
     assert len(prompt.dynamic_messages) == 1
-    content = prompt.dynamic_messages[0]["content"]
+    content = prompt.dynamic_messages[0].content
     assert "a1" in content
     assert "Fallback claim text." in content
     assert "<question>" not in content
@@ -199,7 +199,7 @@ def test_build_compiled_prompt_fallback_claim() -> None:
 def test_build_caching_prefix_contains_evaluation_directives() -> None:
     """Regression test (RED): Ensure static system prompt includes anti-repetition and concise reasoning directives."""
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Sample document", None)
-    system_text = prompt.static_messages[0]["content"]
+    system_text = prompt.static_messages[0].content
 
     # Verify that the system prompt explicitly bans repetitive keyword iteration and mandates concise reasoning
     assert "repetitive" in system_text.lower()
@@ -257,7 +257,7 @@ def test_build_compiled_prompt_with_inverse_assertion() -> None:
     )
 
     prompt = MatrixSensorPromptBuilder.build_compiled_prompt("Context", [node], {"tda_33333333": "a3"}, matrix_context)
-    content = prompt.dynamic_messages[0]["content"]
+    content = prompt.dynamic_messages[0].content
     assert "<is_inverse>" in content
     assert "True" in content
 
@@ -303,7 +303,7 @@ def test_build_compiled_prompt_with_dependencies_and_status_map() -> None:
         matrix_context=None,
         atom_status_map=atom_status_map,
     )
-    content = prompt.dynamic_messages[0]["content"]
+    content = prompt.dynamic_messages[0].content
     assert "<causal_dependencies>" in content
     assert 'parent_alias="a_p1"' in content
     assert "<actual_status>" in content

@@ -11,6 +11,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
 from backend_v2.models.prompts.matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
@@ -68,8 +69,8 @@ class MatrixSensorPromptBuilder:
 
         return CompiledPrompt(
             static_messages=[
-                {"role": "system", "content": system_content},
-                {"role": "user", "content": context_content},
+                LLMMessageDTO(role="system", content=system_content),
+                LLMMessageDTO(role="user", content=context_content),
             ],
             dynamic_messages=[],
         )
@@ -99,8 +100,8 @@ class MatrixSensorPromptBuilder:
                 or an assertion question is empty.
         """
         prefix_prompt = MatrixSensorPromptBuilder.build_caching_prefix(context_text, matrix_context)
-        system_content = prefix_prompt.static_messages[0]["content"]
-        context_content = prefix_prompt.static_messages[1]["content"]
+        system_content = prefix_prompt.static_messages[0].content
+        context_content = prefix_prompt.static_messages[1].content
 
         # 2. Compile Dynamic User Messages using CDATA encapsulation (No Raw XML f-strings)
         claims_xml: list[str] = []
@@ -201,8 +202,8 @@ class MatrixSensorPromptBuilder:
 
         return CompiledPrompt(
             static_messages=[
-                {"role": "system", "content": system_content},
-                {"role": "user", "content": context_content},
+                LLMMessageDTO(role="system", content=system_content),
+                LLMMessageDTO(role="user", content=context_content),
             ],
-            dynamic_messages=[{"role": "user", "content": user_content}],
+            dynamic_messages=[LLMMessageDTO(role="user", content=user_content)],
         )

@@ -18,6 +18,7 @@ from backend_v2.models.domain.source_verification import (
     VerifiedSourceDTO,
 )
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts import (
     SOURCE_EXTRACTION_SYSTEM_INSTRUCTION,
     SOURCE_VERIFICATION_SYSTEM_INSTRUCTION,
@@ -42,11 +43,11 @@ class SourceVerificationService:
         llm_task_executor: LLMTaskExecutor,
         llm_client: LLMClient,
     ) -> None:
-        """Initializes the service with strict dependency injection.
+        """Initializes the service with explicit dependencies.
 
         Args:
-            llm_task_executor: Injected structured task executor.
-            llm_client: Injected LLM client strategy instance.
+            llm_task_executor: Injected LLMTaskExecutor instance.
+            llm_client: Injected LLMClient instance.
         """
         self.task_executor: LLMTaskExecutor = llm_task_executor
         self.llm_client: LLMClient = llm_client
@@ -72,8 +73,8 @@ class SourceVerificationService:
 
         try:
             messages = [
-                {"role": "system", "content": SOURCE_EXTRACTION_SYSTEM_INSTRUCTION},
-                {"role": "user", "content": user_message},
+                LLMMessageDTO(role="system", content=SOURCE_EXTRACTION_SYSTEM_INSTRUCTION),
+                LLMMessageDTO(role="user", content=user_message),
             ]
 
             result, _usage = await self.task_executor.execute_structured_task(
@@ -131,8 +132,8 @@ class SourceVerificationService:
             )
 
             messages = [
-                {"role": "system", "content": SOURCE_VERIFICATION_SYSTEM_INSTRUCTION},
-                {"role": "user", "content": user_msg},
+                LLMMessageDTO(role="system", content=SOURCE_VERIFICATION_SYSTEM_INSTRUCTION),
+                LLMMessageDTO(role="user", content=user_msg),
             ]
 
             eval_res = await self.task_executor.execute_chat_task(

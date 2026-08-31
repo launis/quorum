@@ -40,11 +40,11 @@ def test_build_caching_prefix_success() -> None:
 
     assert isinstance(prompt, CompiledPrompt)
     assert len(prompt.static_messages) == 2
-    assert prompt.static_messages[0]["role"] == "system"
-    assert "Test objective." in prompt.static_messages[0]["content"]
+    assert prompt.static_messages[0].role == "system"
+    assert "Test objective." in prompt.static_messages[0].content
 
-    assert prompt.static_messages[1]["role"] == "user"
-    assert "Massive Context Text" in prompt.static_messages[1]["content"]
+    assert prompt.static_messages[1].role == "user"
+    assert "Massive Context Text" in prompt.static_messages[1].content
     assert len(prompt.dynamic_messages) == 0
 
 
@@ -62,7 +62,7 @@ def test_build_caching_prefix_with_theory_grounding_xml() -> None:
     )
 
     prompt = MatrixSensorPromptBuilder.build_caching_prefix("Massive Context Text", matrix_context=matrix_ctx)
-    system_content = prompt.static_messages[0]["content"]
+    system_content = prompt.static_messages[0].content
 
     assert "<theory_context>" in system_content
     assert "Test Framework Citation (2026)" in system_content
@@ -94,7 +94,7 @@ def test_build_compiled_prompt_cdata_encapsulation() -> None:
     )
 
     assert len(prompt.dynamic_messages) == 1
-    dyn_content = prompt.dynamic_messages[0]["content"]
+    dyn_content = prompt.dynamic_messages[0].content
 
     assert f'alias="{alias}"' in dyn_content
     assert "Is this a test? <bad>tag</bad>" in dyn_content
@@ -165,7 +165,7 @@ def test_build_compiled_prompt_dependency_injection() -> None:
     )
 
     assert len(prompt.dynamic_messages) == 1
-    dyn_content = prompt.dynamic_messages[0]["content"]
+    dyn_content = prompt.dynamic_messages[0].content
 
     assert "<causal_dependencies>" in dyn_content
     assert f'<dependency parent_alias="{parent_alias}">' in dyn_content

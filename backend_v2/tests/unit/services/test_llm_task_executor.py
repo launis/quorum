@@ -80,11 +80,11 @@ async def test_execute_structured_task_retry_on_schema_error(
 
     # Should still only be 2 messages (system, user), no new assistant message appended
     assert len(flat_messages) == 2
-    assert flat_messages[0]["role"] == "system"
-    assert flat_messages[1]["role"] == "user"
-    assert "user_payload" in flat_messages[1]["content"]
-    assert "<PREVIOUS_SCHEMA_ERROR>" in flat_messages[1]["content"]
-    assert "FIX THIS JSON" in flat_messages[1]["content"]
+    assert flat_messages[0].role == "system"
+    assert flat_messages[1].role == "user"
+    assert "user_payload" in flat_messages[1].content
+    assert "<PREVIOUS_SCHEMA_ERROR>" in flat_messages[1].content
+    assert "FIX THIS JSON" in flat_messages[1].content
 
 
 @pytest.mark.asyncio
@@ -177,11 +177,11 @@ async def test_execute_structured_task_logical_error_retry(
     flat_messages = retry_prompt.to_flat_messages()
 
     assert len(flat_messages) == 2
-    assert flat_messages[0]["role"] == "system"
-    assert flat_messages[1]["role"] == "user"
-    assert "user_payload" in flat_messages[1]["content"]
-    assert "<PREVIOUS_SCHEMA_ERROR>" in flat_messages[1]["content"]
-    assert "Failed Output" in flat_messages[1]["content"]
+    assert flat_messages[0].role == "system"
+    assert flat_messages[1].role == "user"
+    assert "user_payload" in flat_messages[1].content
+    assert "<PREVIOUS_SCHEMA_ERROR>" in flat_messages[1].content
+    assert "Failed Output" in flat_messages[1].content
 
 
 @pytest.mark.asyncio
@@ -348,5 +348,63 @@ async def test_execute_structured_task_logical_error_coaching_notes(
     calls = mock_client.run_structured_task.call_args_list
     retry_prompt = calls[1].kwargs["messages"]
     flat_messages = retry_prompt.to_flat_messages()
-    assert "COACHING: You used ellipses" in flat_messages[-1]["content"]
-    assert "COACHING: You injected square brackets" in flat_messages[-1]["content"]
+    assert "COACHING: You used ellipses" in flat_messages[-1].content
+    assert "COACHING: You injected square brackets" in flat_messages[-1].content
+
+
+@pytest.mark.asyncio
+async def test_execute_structured_task_with_prompt_context_dto(
+    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+) -> None:
+    """PROMISE: Prove PromptContextDTO is properly accepted and converted by execute_structured_task."""
+    from backend_v2.models.dtos.prompt_context import PromptContextDTO
+    from backend_v2.models.llm import LLMMessageDTO
+
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+    expected_model = MockResponseSchema(value="context_dto_success")
+    expected_usage = {"total_tokens": 80, "prompt_tokens": 40, "completion_tokens": 40}
+
+    mock_client.run_structured_task.return_value = (expected_model, expected_usage)
+
+    prompt_context = PromptContextDTO(
+        static_messages=[LLMMessageDTO(role="system", content="System instruction context.")],
+        dynamic_messages=[LLMMessageDTO(role="user", content="User payload for analysis.")],
+        metadata={"token_proxy_score": 0.95},
+    )
+
+    res_model, res_usage = await executor.execute_structured_task(
+        client=mock_client,
+        messages=prompt_context,
+        response_model=MockResponseSchema,
+    )
+
+    assert res_model.value == "context_dto_success"
+    assert res_usage.total_tokens == 80
+
+
+@pytest.mark.asyncio
+async def test_execute_chat_task(mock_prompt_compiler: MagicMock, mock_client: AsyncMock) -> None:
+    """PROMISE: Prove execute_chat_task delegates cleanly to client.run_chat."""
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+    mock_client.run_chat.return_value = "chat response output"
+
+    res = await executor.execute_chat_task(client=mock_client, prompt="hello chat")
+
+    assert res == "chat response output"
+    mock_client.run_chat.assert_called_once_with(prompt="hello chat")
+
+
+@pytest.mark.asyncio
+async def test_validate_non_empty_payload_edge_cases(mock_prompt_compiler: MagicMock) -> None:
+    """PROMISE: Prove _validate_non_empty_payload edge cases and type validations."""
+    from backend_v2.exceptions import AppException
+    from backend_v2.models.llm import LLMMessageDTO
+    from backend_v2.services.llm_task_executor import _validate_non_empty_payload
+
+    # Valid message list with LLMMessageDTO
+    _validate_non_empty_payload([LLMMessageDTO(role="user", content="Adequate non-empty payload content here.")])
+
+    # Too short payload raises AppException
+    with pytest.raises(AppException):
+        _validate_non_empty_payload([LLMMessageDTO(role="user", content="a")])
+
