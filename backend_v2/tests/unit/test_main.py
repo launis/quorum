@@ -92,17 +92,19 @@ async def test_lifespan_test_environment() -> None:
 
 
 @pytest.mark.asyncio
-async def test_lifespan_production_redis_failure() -> None:
+async def test_lifespan_production_redis_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test lifespan startup fails-fast when Redis connection fails in production mode."""
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
     test_app = FastAPI()
     with (
-        patch.dict("os.environ", {}, clear=True),
+        patch("backend_v2.main.setup_logging"),
+        patch("backend_v2.main.configure_logfire"),
         patch("backend_v2.main._validate_database_preflight"),
         patch("backend_v2.main.create_pool", side_effect=ConnectionError("Redis down")),
-        pytest.raises(ConnectionError),
     ):
-        async with lifespan(test_app):
-            pass
+        with pytest.raises(ConnectionError):
+            async with lifespan(test_app):
+                pass
 
 
 @pytest.mark.asyncio
