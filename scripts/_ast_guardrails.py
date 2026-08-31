@@ -354,7 +354,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     pass
 
             if is_dict_check:
-                qgr012_sev = GuardrailSeverity.FATAL if self._is_services_or_hooks else GuardrailSeverity.WARNING
+                qgr012_sev = GuardrailSeverity.WARNING if self._is_test_file else GuardrailSeverity.FATAL
                 self._add_violation(
                     node,
                     "QGR012",
