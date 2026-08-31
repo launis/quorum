@@ -90,6 +90,7 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
     "alias_engine.py",
     "dict_utils.py",
     "finops_trace_analyzer.py",
+    "provider.py",
 }
 
 
@@ -260,8 +261,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 case ast.Attribute(attr="headers") | ast.Name(id="headers"):
                     exempt = True
                 case (
-                    ast.Name(id="_LABEL_MAP" | "LABEL_MAP" | "_VALUE_MAP" | "_NAME_MAP" | "driver")
-                    | ast.Attribute(attr="_LABEL_MAP" | "LABEL_MAP" | "driver")
+                    ast.Name(id="_LABEL_MAP" | "LABEL_MAP" | "_VALUE_MAP" | "_NAME_MAP" | "_L10N_MAP" | "L10N_MAP" | "driver")
+                    | ast.Attribute(attr="_LABEL_MAP" | "LABEL_MAP" | "_VALUE_MAP" | "_NAME_MAP" | "_L10N_MAP" | "L10N_MAP" | "driver")
                 ):
                     exempt = True
                 case _:

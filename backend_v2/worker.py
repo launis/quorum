@@ -45,7 +45,7 @@ from backend_v2.models.dtos.synthesis import (
     XaiHighlightItem,
     XaiHighlightsResult,
 )
-from backend_v2.models.dtos.trace import StepTraceMetadataDTO
+from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlockType
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,

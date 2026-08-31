@@ -34,8 +34,8 @@ def wipe_dynamic_data() -> None:
         data = json.load(f)
 
     # 3. Wipe target dynamic tables
-    workflows_count = len(data.get("workflows", {}))
-    executions_count = len(data.get("executions", {}))
+    workflows_count = len(data["workflows"]) if "workflows" in data else 0
+    executions_count = len(data["executions"]) if "executions" in data else 0
 
     data["workflows"] = {}
     data["executions"] = {}

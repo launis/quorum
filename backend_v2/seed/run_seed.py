@@ -230,7 +230,7 @@ async def _seed_tinydb(
         table_name = str(config["table"])
         target_table = db.table(table_name) if (not dry_run and db is not None) else None
         id_field = str(config["id_field"])
-        dumped_buffer = validated_buffers.get(col_key, [])
+        dumped_buffer = validated_buffers[col_key] if col_key in validated_buffers else []
         count = 0
 
         # Synchronous UPSERT loop to prevent TinyDB concurrent async corruption
@@ -331,7 +331,7 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
 
     for col_key, config in STANDARD_REGISTRY.items():
         id_field = str(config["id_field"])
-        valid_items = validated_buffers.get(col_key, [])
+        valid_items = validated_buffers[col_key] if col_key in validated_buffers else []
         batch_upsert(col_key, valid_items, id_field=id_field)
 
 

@@ -151,7 +151,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     finally:
         logger.info("Shutting down...")
-        pool = getattr(app.state, "arq_pool", None)
+        pool = getattr(app.state, "arq_pool", None)  # noqa: QGR001 [REASON: FastAPI dynamic app.state lifespan pool lookup]
         if pool is not None:
             try:
                 if isinstance(pool, ArqRedis):

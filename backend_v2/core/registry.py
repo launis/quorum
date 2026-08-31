@@ -18,12 +18,14 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.prompts.field_prompts import (
     DESC_CONTEXTUAL_OVERRIDE,
     DESC_EVALUATION_NOTES,
     DESC_EXACT_QUOTES,
     DESC_REASONING_TRACE,
 )
+from backend_v2.models.v2_core import AtomResultDTO
 from backend_v2.models.view.sdui import HeroInsightBlock, MarkdownBlock
 from backend_v2.utils.alias_engine import AliasEngine
 
@@ -455,12 +457,19 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                                 break
                             for tda in claim.tda_assertions:
                                 atom_id = str(tda.tda_id)
-                                status = dag_results.get(atom_id, {}).get("status", "")
-                                if hasattr(status, "name"):
-                                    status = status.name
-                                if str(status) == "PASSED":
-                                    has_evidence = True
-                                    break
+                                if atom_id in dag_results:
+                                    atom_item = dag_results[atom_id]
+                                    if (
+                                        isinstance(atom_item, AtomResultDTO)
+                                        and atom_item.status == ExecutionStatus.PASSED
+                                    ):
+                                        has_evidence = True
+                                        break
+                                    if "status" in atom_item and (
+                                        atom_item["status"] == "PASSED" or atom_item["status"] == ExecutionStatus.PASSED
+                                    ):
+                                        has_evidence = True
+                                        break
                     if not has_evidence:
                         logger.warning("Zero evidence found for Matrix %s, omitting from LLM schema", matrix_id)
                         continue

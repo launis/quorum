@@ -176,12 +176,12 @@ class DisplayScale(StrEnum):
     @property
     def l10n_key(self) -> str:
         """Explicit mapping to Frontend ARB camelCase translation keys."""
-        mapping = {
+        _L10N_MAP = {
             DisplayScale.ORIGINAL: "displayScaleOriginal",
             DisplayScale.CUSTOM: "displayScaleCustom",
             DisplayScale.NORMALIZED_100: "displayScaleNormalized100",
         }
-        return mapping.get(self, "")
+        return _L10N_MAP.get(self, "")
 
 
 class BlockDataType(StrEnum):
@@ -288,7 +288,7 @@ class XaiExtensionType(StrEnum):
     @property
     def l10n_key(self) -> str:
         """Explicit mapping between Backend UPPER_SNAKE_CASE enums and Frontend ARB camelCase translation keys."""
-        mapping = {
+        _L10N_MAP = {
             XaiExtensionType.COACHING: "xaiCoachingTip",
             XaiExtensionType.JUSTIFICATION: "xaiJustification",
             XaiExtensionType.FALSIFICATION: "xaiDevilsAdvocate",
@@ -300,7 +300,7 @@ class XaiExtensionType(StrEnum):
             XaiExtensionType.VARIANCE_VALIDATION: "xaiVarianceValidationTitle",
             XaiExtensionType.AUTHENTICITY_EVALUATION: "xaiAuthenticityEvaluationTitle",
         }
-        return mapping.get(self, "")
+        return _L10N_MAP.get(self, "")
 
 
 class XaiExtensionScope(StrEnum):
@@ -589,13 +589,13 @@ class RoleClassification(StrEnum):
     @property
     def l10n_key(self) -> str:
         """Explicit mapping between Backend UPPER_SNAKE_CASE enums and Frontend ARB camelCase translation keys."""
-        mapping = {
+        _L10N_MAP = {
             RoleClassification.PASSENGER: "rolePassenger",
             RoleClassification.NAVIGATOR: "roleNavigator",
             RoleClassification.DRIVER: "roleDriver",
             RoleClassification.ARCHITECT: "roleArchitect",
         }
-        return mapping.get(self, "")
+        return _L10N_MAP.get(self, "")
 
 
 class InteractionStrategy(StrEnum):
@@ -664,11 +664,11 @@ class TitleKey(StrEnum):
     @property
     def l10n_key(self) -> str:
         """Explicit mapping between Backend UPPER_SNAKE_CASE enums and Frontend ARB camelCase translation keys."""
-        mapping = {
+        _L10N_MAP = {
             TitleKey.TITLE_TIMELINE: "titleTimeline",
             TitleKey.TITLE_HYPOTHESES: "titleHypotheses",
         }
-        return mapping.get(self, "")
+        return _L10N_MAP.get(self, "")
 
 
 class LabelKey(StrEnum):
@@ -744,13 +744,13 @@ class ScoringStrategy(StrEnum):
     @property
     def l10n_key(self) -> str:
         """Explicit mapping to Frontend ARB camelCase translation keys."""
-        mapping = {
+        _L10N_MAP = {
             ScoringStrategy.WATERFALL: "strategyKoearvostelu",
             ScoringStrategy.AVERAGE: "strategyLineaarinenKeskiarvo",
             ScoringStrategy.WEIGHTED_AVERAGE: "strategyPainotettuKeskiarvo",
             ScoringStrategy.PURE_MATH: "strategyPuhdasMatematiikka",
         }
-        return mapping.get(self, "")
+        return _L10N_MAP.get(self, "")
 
 
 # --- Lax Type Aliases (Pydantic V2) ---

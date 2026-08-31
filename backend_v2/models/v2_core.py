@@ -789,9 +789,9 @@ class AtomResultDTO(BaseModel):
             if not self.evaluation_reasoning:
                 raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
             if self.contextual_override:
-                object.__setattr__(self, "contextual_override", False)
+                object.__setattr__(self, "contextual_override", False)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
             if self.source_quote is not None:
-                object.__setattr__(self, "source_quote", None)
+                object.__setattr__(self, "source_quote", None)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
 
         elif self.status == ExecutionStatus.PASSED:
             if not self.evaluation_reasoning:
@@ -799,7 +799,7 @@ class AtomResultDTO(BaseModel):
             if not self.contextual_override and not self.source_quote:
                 raise ValueError("source_quote is mandatory unless contextual_override is True")
             if self.contextual_override and self.source_quote is not None:
-                object.__setattr__(self, "source_quote", None)
+                object.__setattr__(self, "source_quote", None)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
 
         elif self.status == ExecutionStatus.SYSTEM_ERROR and not self.error_details:
             raise ValueError("Error details are mandatory when status is SYSTEM_ERROR")

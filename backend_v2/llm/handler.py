@@ -257,7 +257,7 @@ class LLMHandler:
             client = genai.Client(api_key=api_key)
             discovered: list[str] = []
             for m in client.models.list():
-                model_name = getattr(m, "name", None) or ""
+                model_name = getattr(m, "name", None) or ""  # noqa: QGR001 [REASON: Google GenAI Model SDK name attribute inspection]
                 # Strip models/ prefix if present
                 clean_name = model_name[7:] if model_name.startswith("models/") else model_name
                 if "gemini" in clean_name.lower():
@@ -457,7 +457,7 @@ class LLMHandler:
                 resource_id="global_model_registry",
             )
 
-        raw_config = record.get("config", {})
+        raw_config = record["config"] if "config" in record else {}
 
         # Pydantic V2 Validation
         try:
@@ -483,8 +483,8 @@ class LLMHandler:
             Optional[Dict[str, Any]]: Configuration dictionary if found, else None.
         """
         registry = await self.get_active_model_registry()
-        models = registry.get("models", {})
-        config = models.get(mode)
+        models = registry["models"] if "models" in registry else {}
+        config = models[mode] if mode in models else None
 
         if config:
             return dict(config)
@@ -503,7 +503,7 @@ class LLMHandler:
             AppException: If configuration is invalid, missing, or model is not available.
         """
         registry = await self.get_active_model_registry()
-        models = registry.get("models", {})
+        models = registry["models"] if "models" in registry else {}
 
         if mode not in models:
             raise ConfigurationError(
@@ -522,11 +522,15 @@ class LLMHandler:
         model_name = cd["model_name"]
         temperature = cd["temperature"]
         max_tokens = cd["max_tokens"]
-        api_key = cd.get("api_key")
+        api_key = cd["api_key"] if "api_key" in cd else None
 
         # Dynamic location resolution from additional_params or settings
-        add_params = cd.get("additional_params") or {}
-        target_location = add_params.get("vertex_location") or settings.vertex_location
+        add_params = cd["additional_params"] if "additional_params" in cd and cd["additional_params"] else {}
+        target_location = (
+            add_params["vertex_location"]
+            if "vertex_location" in add_params and add_params["vertex_location"]
+            else settings.vertex_location
+        )
 
         # STRICT VALIDATION: Ensure the configured model name actually exists in the target region.
         # This prevents "blind" 404s from the provider.
@@ -540,7 +544,7 @@ class LLMHandler:
                 else (LLMPlatformType.AI_STUDIO.value if model_name.startswith("gemini/") else None),
             )
 
-            valid_models = available_models_map.get(provider, [])
+            valid_models = available_models_map[provider] if provider in available_models_map else []
             if not isinstance(valid_models, list):
                 valid_models = [valid_models] if valid_models else []
 

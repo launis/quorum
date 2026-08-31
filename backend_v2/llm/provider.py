@@ -748,14 +748,18 @@ class LiteLLMProvider(LLMProvider):
 
             # --- EMERGENCY DIAGNOSTIC DUMP (TIER 4) ---
             if not raw_content:
-                dump_str = response.model_dump_json() if hasattr(response, "model_dump_json") else str(response)
+                dump_str = (
+                    response.model_dump_json()  # noqa: QGR001 [REASON: Third-party LiteLLM response model dump check]
+                    if hasattr(response, "model_dump_json")  # noqa: QGR001 [REASON: Third-party LiteLLM response model dump check]
+                    else str(response)
+                )
                 logger.critical("[DIAGNOSTIC] LLM Output was completely empty! Raw response object dump: %s", dump_str)
 
             # Extract Reasoning Token (Gemini 3 / GPT-5.1)
             reasoning_token = None
 
             # Check standard LiteLLM extra fields
-            if hasattr(message, "provider_specific_fields") and message.provider_specific_fields:
+            if hasattr(message, "provider_specific_fields") and message.provider_specific_fields:  # noqa: QGR001 [REASON: Third-party LiteLLM message provider fields]
                 psf = message.provider_specific_fields
                 if "thought_signature" in psf:
                     reasoning_token = psf["thought_signature"]
@@ -765,15 +769,15 @@ class LiteLLMProvider(LLMProvider):
                     reasoning_token = None
 
             # Fallback: Check top level attributes
-            if not reasoning_token and hasattr(response, "model_extra"):
+            if not reasoning_token and hasattr(response, "model_extra"):  # noqa: QGR001 [REASON: Third-party LiteLLM response model_extra check]
                 me = response.model_extra
                 reasoning_token = me["thought_signature"] if "thought_signature" in me else None
 
             usage: dict[str, Any] = {}
-            if hasattr(response, "usage") and response.usage:
-                p_tokens = getattr(response.usage, "prompt_tokens", None)
-                c_tokens = getattr(response.usage, "completion_tokens", None)
-                t_tokens = getattr(response.usage, "total_tokens", None)
+            if hasattr(response, "usage") and response.usage:  # noqa: QGR001 [REASON: Third-party LiteLLM usage object check]
+                p_tokens = getattr(response.usage, "prompt_tokens", None)  # noqa: QGR001 [REASON: Third-party LiteLLM prompt tokens lookup]
+                c_tokens = getattr(response.usage, "completion_tokens", None)  # noqa: QGR001 [REASON: Third-party LiteLLM completion tokens lookup]
+                t_tokens = getattr(response.usage, "total_tokens", None)  # noqa: QGR001 [REASON: Third-party LiteLLM total tokens lookup]
 
                 if p_tokens is not None:
                     usage["prompt_tokens"] = p_tokens
@@ -786,14 +790,14 @@ class LiteLLMProvider(LLMProvider):
                     # rather than relying on silent fallbacks in the domain model.
                     usage["total_tokens"] = (p_tokens or 0) + (c_tokens or 0)
 
-                if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details:
+                if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details:  # noqa: QGR001 [REASON: Third-party LiteLLM prompt tokens details]
                     details = response.usage.prompt_tokens_details
-                    if hasattr(details, "cached_tokens") and details.cached_tokens is not None:
+                    if hasattr(details, "cached_tokens") and details.cached_tokens is not None:  # noqa: QGR001 [REASON: Third-party LiteLLM cached tokens check]
                         usage["cached_tokens"] = details.cached_tokens
 
-                if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:
+                if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:  # noqa: QGR001 [REASON: Third-party LiteLLM completion tokens details]
                     details = response.usage.completion_tokens_details
-                    if hasattr(details, "reasoning_tokens") and details.reasoning_tokens is not None:
+                    if hasattr(details, "reasoning_tokens") and details.reasoning_tokens is not None:  # noqa: QGR001 [REASON: Third-party LiteLLM reasoning tokens check]
                         usage["reasoning_tokens"] = details.reasoning_tokens
 
             final_content = raw_content
