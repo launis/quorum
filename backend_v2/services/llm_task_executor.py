@@ -18,6 +18,7 @@ from backend_v2.exceptions import (
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.settings import get_settings
@@ -38,21 +39,18 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
     Raises:
         AppException: If the user payload text is critically short.
     """
-    user_texts = []
+    raw_list: list[Any]
     if isinstance(messages, CompiledPrompt):
-        static = [
-            str(m["content"])
-            for m in messages.static_messages
-            if "role" in m and m["role"] == "user" and "content" in m
-        ]
-        dynamic = [
-            str(m["content"])
-            for m in messages.dynamic_messages
-            if "role" in m and m["role"] == "user" and "content" in m
-        ]
-        user_texts = static + dynamic
+        raw_list = list(messages.static_messages) + list(messages.dynamic_messages)
     elif isinstance(messages, list):
-        user_texts = [str(m["content"]) for m in messages if "role" in m and m["role"] == "user" and "content" in m]
+        raw_list = list(messages)
+    else:
+        raw_list = []
+
+    typed_messages: list[ChatMessageDTO] = [
+        m if isinstance(m, ChatMessageDTO) else ChatMessageDTO.model_validate(m) for m in raw_list
+    ]
+    user_texts = [m.content for m in typed_messages if m.role == "user"]
 
     total_user_text = "".join(user_texts)
     if total_user_text:
@@ -287,16 +285,21 @@ class LLMTaskExecutor:
 
                 healing_content = f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
 
-                new_dynamic = [dict(m) for m in base_compiled_prompt.dynamic_messages]
-                if new_dynamic:
-                    last_content = str(new_dynamic[-1]["content"]) if "content" in new_dynamic[-1] else ""
-                    new_dynamic[-1] = {
-                        **new_dynamic[-1],
-                        "content": last_content + healing_content,
-                    }
+                typed_dynamic: list[ChatMessageDTO] = [
+                    m if isinstance(m, ChatMessageDTO) else ChatMessageDTO.model_validate(m)
+                    for m in base_compiled_prompt.dynamic_messages
+                ]
+                if typed_dynamic:
+                    last_msg = typed_dynamic[-1]
+                    typed_dynamic[-1] = ChatMessageDTO(
+                        role=last_msg.role,
+                        content=last_msg.content + healing_content,
+                    )
                 else:
-                    new_dynamic.append({"role": "user", "content": healing_content.strip()})
-                compiled_prompt = base_compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic})
+                    typed_dynamic.append(ChatMessageDTO(role="user", content=healing_content.strip()))
+                compiled_prompt = base_compiled_prompt.model_copy(
+                    update={"dynamic_messages": [m.model_dump(mode="json") for m in typed_dynamic]}
+                )
 
             except LogicalValidationError as e:
                 error_msg = e.validation_error_msg
@@ -380,16 +383,21 @@ class LLMTaskExecutor:
                     f"</PREVIOUS_SCHEMA_ERROR>"
                 )
 
-                new_dynamic = [dict(m) for m in base_compiled_prompt.dynamic_messages]
-                if new_dynamic:
-                    last_content = str(new_dynamic[-1]["content"]) if "content" in new_dynamic[-1] else ""
-                    new_dynamic[-1] = {
-                        **new_dynamic[-1],
-                        "content": last_content + healing_content,
-                    }
+                typed_dynamic_logical: list[ChatMessageDTO] = [
+                    m if isinstance(m, ChatMessageDTO) else ChatMessageDTO.model_validate(m)
+                    for m in base_compiled_prompt.dynamic_messages
+                ]
+                if typed_dynamic_logical:
+                    last_msg = typed_dynamic_logical[-1]
+                    typed_dynamic_logical[-1] = ChatMessageDTO(
+                        role=last_msg.role,
+                        content=last_msg.content + healing_content,
+                    )
                 else:
-                    new_dynamic.append({"role": "user", "content": healing_content.strip()})
-                compiled_prompt = base_compiled_prompt.model_copy(update={"dynamic_messages": new_dynamic})
+                    typed_dynamic_logical.append(ChatMessageDTO(role="user", content=healing_content.strip()))
+                compiled_prompt = base_compiled_prompt.model_copy(
+                    update={"dynamic_messages": [m.model_dump(mode="json") for m in typed_dynamic_logical]}
+                )
 
         logger.error("LLM task failed to complete within retry budgets.")
         raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)

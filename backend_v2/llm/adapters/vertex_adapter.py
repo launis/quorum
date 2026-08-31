@@ -17,7 +17,7 @@ from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import GCPVertexLocation, PromptCacheStatus
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import ModelProfile
+from backend_v2.models.v2_core import ChatMessageDTO, ModelProfile
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
@@ -190,9 +190,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     # Convert to native Vertex AI GAPIC format: role/parts instead of role/content
                     vertex_contents = []
                     system_text = ""
-                    for msg in static_flat:
-                        role = msg.get("role", "user")  # noqa: QGR002 [REASON: Defaulting untyped message role in vertex payload]
-                        content = msg.get("content", "")  # noqa: QGR002 [REASON: Defaulting untyped message content in vertex payload]
+                    for raw_msg in static_flat:
+                        msg = raw_msg if isinstance(raw_msg, ChatMessageDTO) else ChatMessageDTO.model_validate(raw_msg)
+                        role = msg.role
+                        content = msg.content
 
                         if role == "system":
                             system_text += content + "\n"

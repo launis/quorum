@@ -36,7 +36,7 @@ sys.modules["vertexai"] = cast(Any, MockVertexAI)
 sys.modules["vertexai.preview"] = cast(Any, MockPreview)
 sys.modules["vertexai.preview.generative_models"] = cast(Any, MockGenerativeModels)
 
-from backend_v2.exceptions import LLMSchemaValidationError
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.llm import LLMProviderConfig
@@ -96,7 +96,11 @@ async def test_executor_with_mock_cache_adapter_success(
     # 2. Spy on run_structured_task calls
     captured_calls = []
 
-    async def spy_run(messages: Any, response_model: Any, **kwargs: Any) -> Any:
+    async def spy_run(
+        response_model: Any,
+        messages: Any,
+        **kwargs: Any,
+    ) -> Any:
         captured_calls.append(messages)
         # Mock LLM success return
         return IntegrationResponseSchema(extracted_value="mocked-success"), TokenUsage(
@@ -147,27 +151,45 @@ async def test_self_healing_static_purity_preservation(
     client = LLMClient(config=provider_config)
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
 
-    # We will trigger a Schema Error on the first run, and succeed on the second
-    captured_messages = []
-    expected_model = IntegrationResponseSchema(extracted_value="healed-success")
+    call_count = 0
+    captured_messages: list[Any] = []
 
-    async def mock_run(messages: Any, response_model: Any, **kwargs: Any) -> Any:
+    async def mock_run_structured(
+        response_model: Any,
+        messages: Any,
+        **kwargs: Any,
+    ) -> Any:
+        nonlocal call_count
+        call_count += 1
         captured_messages.append(messages)
-        if len(captured_messages) == 1:
+
+        if call_count == 1:
+            # First call fails schema validation (syntax error)
+            from backend_v2.exceptions import LLMSchemaValidationError
+
             raise LLMSchemaValidationError(
                 raw_llm_payload="invalid-json",
                 validation_error_msg="Missing closing brace",
                 is_eof=False,
                 token_usage=TokenUsage(prompt_tokens=10, completion_tokens=0, total_tokens=10),
             )
-        return expected_model, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
 
-    monkeypatch.setattr(client, "run_structured_task", mock_run)
+        # Second call succeeds
+        return IntegrationResponseSchema(extracted_value="healed-success"), TokenUsage(
+            prompt_tokens=200, completion_tokens=50, total_tokens=250
+        )
 
-    # Run execution with retries allowed
-    res_model, total_usage = await executor.execute_structured_task(
+    monkeypatch.setattr(client, "run_structured_task", mock_run_structured)
+
+    # 3. Execute with caching active
+    initial_messages = [
+        {"role": "system", "content": "Primal instructions"},
+        {"role": "user", "content": "Analyze document"},
+    ]
+
+    res_model, usage = await executor.execute_structured_task(
         client=client,
-        messages=[{"role": "system", "content": "Primal instructions"}, {"role": "user", "content": "Data payload"}],
+        messages=initial_messages,
         response_model=IntegrationResponseSchema,
         max_schema_retries=2,
     )

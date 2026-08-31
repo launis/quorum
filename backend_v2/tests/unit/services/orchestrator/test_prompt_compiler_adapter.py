@@ -1,10 +1,11 @@
 """Unit tests for PromptCompilerAdapter and static-first cryptographic determinism verification."""
 
+from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 
 
 def test_prompt_compiler_adapter_delegation() -> None:
-    """Verifies that PromptCompilerAdapter correctly delegates unknown methods to PromptCompiler."""
+    """Verifies that PromptCompilerAdapter correctly delegates methods to PromptCompiler."""
     adapter = PromptCompilerAdapter()
 
     # Verify delegation of build_dynamic_schema
@@ -15,6 +16,14 @@ def test_prompt_compiler_adapter_delegation() -> None:
     # Verify delegation of calibrate_strictness
     assert "SCORING_STRICTNESS: 0/100" in adapter.calibrate_strictness(0)
     assert "SCORING_STRICTNESS: 100/100" in adapter.calibrate_strictness(100)
+
+    # Verify delegation of get_schema_healing_prompt
+    healing = adapter.get_schema_healing_prompt("Test error", is_logical_error=False, is_eof=False)
+    assert "STRICT JSON SCHEMA VALIDATION FAILED" in healing
+
+    # Verify delegation of compile_chunk_payload_instruction
+    chunk_inst = adapter.compile_chunk_payload_instruction("chunk_1", "Sample text")
+    assert "<user_payload>" in chunk_inst
 
 
 def test_prompt_compiler_adapter_compile_prompt_fallback() -> None:
@@ -31,10 +40,10 @@ def test_prompt_compiler_adapter_compile_prompt_fallback() -> None:
     )
 
     messages = [
-        {"role": "system", "content": "Static system prompt"},
-        {"role": "user", "content": user_content},
-        {"role": "assistant", "content": "Previous response"},
-        {"role": "user", "content": "Follow-up question"},
+        ChatMessageDTO(role="system", content="Static system prompt"),
+        ChatMessageDTO(role="user", content=user_content),
+        ChatMessageDTO(role="assistant", content="Previous response"),
+        ChatMessageDTO(role="user", content="Follow-up question"),
     ]
 
     prompt = adapter.compile_prompt(messages)

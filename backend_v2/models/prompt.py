@@ -1,11 +1,3 @@
-from __future__ import annotations
-
-"""Structured Prompt models for prompt caching and context management.
-
-This module defines clean Pydantic DTO models supporting structured, layered prompt
-packaging designed to optimize Anthropic/OpenAI prompt cache hit ratios.
-"""
-
 import logging
 from typing import Any, Self
 
@@ -80,15 +72,15 @@ class CompiledPrompt(BaseModel):
         """
         flat: list[dict[str, Any]] = []
         for msg in messages:
-            role = str(msg["role"])
-            content_str = str(msg["content"])
+            role = str(msg.get("role", ""))
+            content_str = str(msg.get("content", ""))
 
-            if flat and str(flat[-1]["role"]) == role:
-                existing_str = str(flat[-1]["content"])
+            if flat and str(flat[-1].get("role", "")) == role:
+                existing_str = str(flat[-1].get("content", ""))
                 merged_content = (existing_str + "\n\n" + content_str).strip()
-                flat[-1] = {"role": role, "content": merged_content}
+                flat[-1] = {**flat[-1], "role": role, "content": merged_content}
             else:
-                flat.append({"role": role, "content": content_str.strip()})
+                flat.append({**msg, "role": role, "content": content_str.strip()})
         return flat
 
     def to_static_flat(self) -> list[dict[str, Any]]:

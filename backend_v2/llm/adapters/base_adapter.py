@@ -17,6 +17,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -185,29 +186,34 @@ class BaseLLMAdapter(ABC):
         total_chars = 0
         has_non_system_static = False
 
-        for msg in compiled_prompt.static_messages:
-            role = msg.get("role", "user")  # noqa: QGR002 [REASON: Defaulting untyped message role in token estimation]
+        for raw_msg in compiled_prompt.static_messages:
+            if isinstance(raw_msg, ChatMessageDTO):
+                role = raw_msg.role
+                raw_content = raw_msg.content
+            elif isinstance(raw_msg, dict):  # noqa: QGR012 [REASON: Inspection of raw message payload dictionary before DTO hydration]
+                role = str(raw_msg.get("role", ""))
+                raw_content = raw_msg.get("content", "")
+            else:
+                continue
+
             if role == "system":
                 if exclude_system:
                     continue
             else:
                 has_non_system_static = True
 
-            content = msg.get("content")
-            if isinstance(content, str):
-                total_chars += len(content)
-            elif isinstance(content, list):
-                for block in content:
-                    if (
-                        isinstance(block, dict) and block.get("type") == "text"  # noqa: QGR002 [REASON: Parsing polymorphic text block type]
-                    ):
-                        total_chars += len(
-                            block.get("text", "")  # noqa: QGR002 [REASON: Extracting polymorphic text block content]
-                        )
-                    elif isinstance(block, str):
+            if isinstance(raw_content, str):
+                total_chars += len(raw_content)
+            elif isinstance(raw_content, list):
+                for block in raw_content:
+                    if isinstance(block, str):
                         total_chars += len(block)
-            elif content is not None:
-                total_chars += len(str(content))
+                    elif isinstance(block, dict) and "text" in block:  # noqa: QGR012 [REASON: Polymorphic block dictionary inspection in token estimation]
+                        total_chars += len(str(block["text"]))
+                    else:
+                        total_chars += len(str(block))
+            else:
+                total_chars += len(str(raw_content))
 
         estimated_tokens = total_chars // 4
         return estimated_tokens, has_non_system_static
@@ -299,7 +305,7 @@ class BaseLLMAdapter(ABC):
             # Extract any explicit discriminator property names declared in the schema
             self._collect_discriminator_names(schema_dict, known_discriminators)
 
-        if isinstance(schema_dict, dict):
+        if isinstance(schema_dict, dict):  # noqa: QGR012 [REASON: Recursive raw JSON schema dictionary stripping and normalization for LLM provider API]
             # [2026-07-03] Targeted Schema Stripping:
             # We MUST strip mechanical constraints that cause Vertex's Guided Decoding state machine to explode
             # ("too many states for serving"). These include lengths, regexes, and bounds.
@@ -328,7 +334,7 @@ class BaseLLMAdapter(ABC):
 
                 # Ensure any discriminator property present in properties is marked required
                 properties = schema_dict["properties"]
-                if isinstance(properties, dict):
+                if isinstance(properties, dict):  # noqa: QGR012 [REASON: JSON schema properties dictionary inspection]
                     if "required" not in schema_dict or not isinstance(schema_dict["required"], list):
                         schema_dict["required"] = []
                     for disc in known_discriminators:
@@ -354,8 +360,8 @@ class BaseLLMAdapter(ABC):
             node: The schema node to inspect.
             result: The accumulator set of discriminator names.
         """
-        if isinstance(node, dict):
-            if "discriminator" in node and isinstance(node["discriminator"], dict):
+        if isinstance(node, dict):  # noqa: QGR012 [REASON: Recursive raw JSON schema discriminator extraction]
+            if "discriminator" in node and isinstance(node["discriminator"], dict):  # noqa: QGR012 [REASON: JSON schema discriminator object inspection]
                 prop_name = node["discriminator"].get("propertyName")
                 if isinstance(prop_name, str) and prop_name:
                     result.add(prop_name)

@@ -3,7 +3,9 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.v2_core import ChatMessageDTO
 
 
 def test_compiled_prompt_pydantic_strictness() -> None:
@@ -53,3 +55,24 @@ def test_compiled_prompt_to_flat_messages_role_merging() -> None:
         "<PREVIOUS_SCHEMA_ERROR>Syntax error</PREVIOUS_SCHEMA_ERROR>"
     )
     assert flat[1]["content"] == expected_content
+
+    # Verify to_static_flat and to_dynamic_flat
+    static_flat = prompt.to_static_flat()
+    assert len(static_flat) == 2
+    assert static_flat[0]["role"] == "system"
+    assert static_flat[1]["role"] == "user"
+
+    dynamic_flat = prompt.to_dynamic_flat()
+    assert len(dynamic_flat) == 1
+    assert dynamic_flat[0]["role"] == "user"
+
+
+def test_compiled_prompt_forbids_system_in_dynamic() -> None:
+    """Verifies that system role is strictly prohibited in dynamic_messages."""
+    with pytest.raises(AppException) as exc_info:
+        CompiledPrompt(
+            static_messages=[{"role": "system", "content": "Valid system prompt"}],
+            dynamic_messages=[{"role": "system", "content": "Illegal system prompt"}],
+        )
+    assert exc_info.value.status_code == 400
+    assert "ARCHITECTURE VIOLATION" in exc_info.value.message
