@@ -645,15 +645,36 @@
 - **Test Suite Modernization & Lifespan Redis Isolation**:
   - In `backend_v2/tests/unit/test_main.py`, `test_lifespan_production_redis_failure` was modernized using `monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)` and patching `setup_logging` & `configure_logfire`, eliminating test lifespan network/OpenTelemetry leakage while testing production Redis connection failure fail-fast behavior.
   - In `backend_v2/services/progress.py`, `ProgressState` extra payload fields are encapsulated in `details: dict[str, Any] | None` and unpacked cleanly using structural `match/case` to satisfy strict Pydantic V2 and `QGR012` compliance.
+- **Final Milestone Plan System 2 Research & Red-Teaming (`/tier0-research-plan`) Completed**:
+  - Executed Five-Axis System 2 Deconstruction of the final milestone plan (`implementation_plan.md`): Complete Elimination of Permissive Typing Bypasses & AST Hardening.
+  - **CRITICAL SCOPE RECALIBRATION**: Deterministic codebase scanning revealed 516 actual `dict[str, Any]` annotations (4× the plan's 130+ claim), 152 `isinstance(dict)` checks, 130 `# noqa: QGR` suppressions, and 77 unsuppressed `hasattr`/`getattr` reflection calls.
+  - Established formal **Boundary Exemption Classification**: 115 annotations across `database/interfaces.py` (55), `database/wrapper.py` (19), `database/driver.py` (4), `database/tinydb_driver.py` (6), `database/firestore_driver.py` (5), `logging_config.py` (12 hasattr/getattr), and `exceptions.py` (13) are EXEMPT as persistence/transport/stdlib boundaries per `no_naked_dicts_in_state`.
+  - **Pruned over-engineering**: Deleted proposed `ClientErrorContextDTO` (transport boundary), deduplicated `ProgressStateDTO` with existing `ProgressState`, prevented `GlobalContextVarsDTO` duplicate (already exists in `hook_state.py`).
+  - **God Code Prevention routing**: `LLMMessageDTO` → `models/llm.py`, `TaskMetadataDTO` → `core/registry.py`, `SimulationResultDTO` → `simulation_service.py` (not `system.py`).
+  - Identified 6 Red-Team failure points: session explosion, LiteLLM SDK boundary collision, interfaces.py AST FATAL collision, ProgressTracker SSE blast radius, redis_patcher test infrastructure, client.py response duck-typing.
+  - Session budget recalibrated from 8 to 12-16 focused sessions.
+  - Injected `Phase 1: Pre-Implementation Cleanups & Boundary Classification` covering StrictnessConfig fix, redis_patcher refactor, dict_utils caller verification, and ClientErrorPayload exemption comment.
+  - Synthesized exhaustive 12-row 5-Column Architectural Directives Table (including 2 explicit EXEMPT rows for database drivers and logging infrastructure).
+  - Structured mandatory Three-Stage Iterative Quality Gate (AST unit tests → Full Backend Audit Loop → Live Real LLM E2E Integration test).
+
+## Learned
+- Pre-flight AST sweeps identify subtle technical debt in auxiliary modules (specifically: `ClientErrorPayload.context_data` loose dicts, `StrictnessConfig` missing `strict=True`, `redis_patcher.py` test mock reflection) that must be addressed in Phase 1 before core domain refactoring.
+- In `backend_v2/worker.py`, telemetry extraction across lines 260-285 previously relied on loose dictionaries and `.get()` fallbacks; refactoring to typed `StepMetadataDTO` and `TokenUsage` eliminates telemetry type bypasses.
+- Universal FATAL enforcement for `QGR001`, `QGR002`, and `QGR012` across all non-test files in `backend_v2/` requires eliminating all 130 inline suppressions, ensuring mathematical zero-tolerance against permissive typing.
+- **Scope Miscalibration Root Cause**: The original plan's "130+" count likely only counted service/hook layer annotations visible to `_ast_guardrails.py` in advisory mode, missing the 386 additional annotations across models, LLM, database, core, utils, and worker layers. Deterministic codebase-wide `os.walk` scanning is the only reliable enumeration method.
+- **Boundary Exemption Principle**: `dict[str, Any]` at the absolute persistence boundary (database drivers, Protocol interfaces) and stdlib infrastructure (LogRecord, exception formatting) is architecturally correct per `no_naked_dicts_in_state`. Blanket eradication would violate the persistence boundary contract and break stdlib compatibility.
+- **God Code Prevention in DTO placement**: Dumping all new DTOs into a single `system.py` file violates `anti_god_file_dumping`. DTOs MUST be co-located with their primary consumer or domain concept.
 
 ## Remaining
+- **Final Milestone Execution**:
+  - Execute the researched and red-teamed implementation plan. Start a fresh chat session.
 - **Post-Implementation Gates**:
-- Continue `/tier2-hardening-backend` on remaining backend files (starting with `backend_v2/database/repositories/execution.py`).
-- `/tier2-hardening-frontend` on modified Flutter client files.
-- `/tier7-describe-architecture` for As-Built architectural documentation synchronization.
-- `/tier8-audit-epic @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md]` for final System 2 reverse verification.
+  - `/tier2-hardening-backend` on remaining backend files.
+  - `/tier2-hardening-frontend` on modified Flutter client files.
+  - `/tier7-describe-architecture` for As-Built architectural documentation synchronization.
+  - `/tier8-audit-epic @[docs/epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition.md]` for final System 2 reverse verification.
 
 ## Resume Command
-```powershell
-/tier5-resume --target="@[docs/epic/EPIC_149_tracker.md]" --workflow="/tier2-hardening-backend" --rules="00-antigravity-core.md,01-python-backend.md"
+```
+/tier2-execute @[c:\Users\risto\.gemini\antigravity-ide\brain\4d175ddd-70e7-4eb6-9418-d3c21589c122\implementation_plan.md] @[docs/epic/EPIC_149_tracker.md]
 ```
