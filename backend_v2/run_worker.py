@@ -9,8 +9,9 @@ to ensure immediate fail-fast logging configuration on startup.
 import asyncio
 import logging
 import sys
-from typing import Any, cast
+from typing import Any  # noqa: F401
 
+from arq.typing import WorkerSettingsType
 from arq.worker import create_worker
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -36,9 +37,9 @@ async def main() -> None:
     try:
         logger.info("Starting Arq Worker (Manual Script)...")
 
-        # Cast to Any to satisfy type checker if WorkerSettings structure is strict
         # 2. Validate Settings (Implicitly via import/create_worker)
-        worker = create_worker(cast(Any, WorkerSettings))
+        worker_settings: WorkerSettingsType = WorkerSettings
+        worker = create_worker(worker_settings)
 
         await worker.async_run()
     except KeyboardInterrupt:
@@ -60,7 +61,8 @@ async def main() -> None:
         ) from e
 
 
-if __name__ == "__main__":
+def cli_entrypoint() -> None:
+    """CLI entrypoint wrapping main() execution with clean exit handling."""
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
@@ -75,4 +77,12 @@ if __name__ == "__main__":
             exc_info=True,
             extra={"error_code": ErrorCodes.UNKNOWN_ERROR.value},
         )
-        sys.exit(1)
+        raise AppException(
+            message=f"Worker crashed outside main loop: {e}",
+            status_code=500,
+            details={"error_code": ErrorCodes.UNKNOWN_ERROR.value},
+        ) from e
+
+
+if __name__ == "__main__":  # pragma: no cover
+    cli_entrypoint()

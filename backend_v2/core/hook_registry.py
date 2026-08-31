@@ -64,8 +64,8 @@ class HookDependencies:
     prompt_block_repo: IPromptBlockRepository
     output_profile_repo: IOutputProfileRepository
     identity_repo: IIdentityRepository
-    audit_repo: IAuditRepository
     system_repo: ISystemRepository
+    audit_repo: IAuditRepository | None = None
     search_client: ISearchClient | None = None
 
 

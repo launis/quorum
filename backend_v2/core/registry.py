@@ -388,18 +388,21 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                     json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN},
                 )
 
+            atom_resp_base: tuple[type[BaseModel], ...]
             if strictness_level >= 100:
-                AtomResponseClass = create_model(
-                    "AtomResponseStrict", __base__=cast(Any, (step_strict_class, AtomResponseBase))
-                )
+                atom_resp_base = (step_strict_class, AtomResponseBase)
+                atom_resp_name = "AtomResponseStrict"
             else:
-                AtomResponseClass = create_model(  # type: ignore[misc]
-                    "AtomResponseSemantic", __base__=cast(Any, (step_semantic_class, AtomResponseBase))
-                )
+                atom_resp_base = (step_semantic_class, AtomResponseBase)
+                atom_resp_name = "AtomResponseSemantic"
 
-            eval_type: Any = list[AtomResponseClass]
+            atom_resp_type: type[BaseModel] = create_model(
+                atom_resp_name,
+                __base__=atom_resp_base,
+            )
+
             fields["evaluations"] = (
-                eval_type,
+                list[atom_resp_type],
                 Field(
                     ...,
                     description="List of atomic evaluations. You MUST evaluate ONLY the exact atoms explicitly listed in <BLIND_ATOMS_TO_EVALUATE>. You MUST include the exact 'atom_id' for each evaluation. Do NOT hallucinate, invent, or evaluate any unlisted concepts.",

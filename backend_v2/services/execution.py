@@ -9,7 +9,7 @@ import logging
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import pandas as pd
@@ -1057,7 +1057,7 @@ class ExecutionService:
             prompt_block_repo=self.prompt_block_repo,
             output_profile_repo=self.output_profile_repo,
             identity_repo=self.identity_repo,
-            audit_repo=cast(Any, None),
+            audit_repo=None,
             system_repo=self.system_repo,
         )
         await recalculate(record.context_variables, record.active_profile_id, deps)

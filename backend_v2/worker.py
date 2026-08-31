@@ -6,11 +6,14 @@ Modernized for GraphEngine and TaskRegistry (V2.9).
 import asyncio
 import logging
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any, cast
 
 import logfire
 from arq.connections import RedisSettings
+from arq.typing import StartupShutdown, WorkerCoroutine
+from arq.worker import Function
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 import backend_v2.hooks  # noqa: F401
@@ -1461,13 +1464,19 @@ async def health_check(ctx: Any) -> str:
 class WorkerSettings:
     """Configuration for the Arq worker."""
 
-    functions = [health_check, execute_workflow_job, generate_pdf_job, render_profile_job]
-    on_startup = startup
-    on_shutdown = shutdown
+    functions: Sequence[WorkerCoroutine | Function] = [
+        health_check,
+        execute_workflow_job,
+        generate_pdf_job,
+        render_profile_job,
+    ]
+    cron_jobs: Sequence[Any] | None = None
+    on_startup: StartupShutdown | None = startup
+    on_shutdown: StartupShutdown | None = shutdown
 
-    redis_settings = RedisSettings(
+    redis_settings: RedisSettings = RedisSettings(
         host=settings.redis_host,
         port=settings.redis_port,
     )
-    job_timeout = settings.worker_job_timeout
-    max_jobs = get_settings().max_concurrent_workflows
+    job_timeout: int = settings.worker_job_timeout
+    max_jobs: int = get_settings().max_concurrent_workflows
