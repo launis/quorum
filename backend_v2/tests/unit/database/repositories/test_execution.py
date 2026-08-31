@@ -68,6 +68,20 @@ async def test_get_execution_success(
 
 
 @pytest.mark.asyncio
+async def test_repository_reconstitutes_typed_domain_models(
+    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict
+) -> None:
+    """Contract: Raw database record dictionary from driver reconstitutes into strict frozen Pydantic Domain model."""
+    from backend_v2.models.v2_core import ExecutionRecord
+
+    mock_driver.get.return_value = valid_execution_doc
+    record = await repo.get_execution("exe_1234567890abcdef")
+    assert record is not None
+    assert isinstance(record, ExecutionRecord)
+    assert record.id == "exe_1234567890abcdef"
+
+
+@pytest.mark.asyncio
 async def test_get_execution_not_found(repo: ExecutionRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: returns None if execution is not found."""
     mock_driver.get.return_value = None

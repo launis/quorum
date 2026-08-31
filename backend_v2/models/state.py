@@ -227,6 +227,7 @@ class WorkflowState(ExecutionCoreFields):
 
     @property
     def start_time(self) -> datetime:
+        """Returns the creation timestamp representing start time."""
         return self.created_at
 
     def add_event(self, event: TraceEvent) -> WorkflowState:
@@ -302,46 +303,57 @@ class WorkflowState(ExecutionCoreFields):
 
     @property
     def step_logician(self) -> Any | None:
+        """Retrieves parsed logician step output from context."""
         return self.get_context("step_logician", LogicianOutput)
 
     @property
     def step_falsifier(self) -> Any | None:
+        """Retrieves parsed falsifier step output from context."""
         return self.get_context("step_falsifier", FalsifierOutput)
 
     @property
     def step_profiler(self) -> Any | None:
+        """Retrieves parsed profiler step output from context."""
         return self.get_context("step_profiler", ProfilerOutput)
 
     @property
     def step_archivist(self) -> Any | None:
+        """Retrieves parsed archivist step output from context."""
         return self.get_context("step_archivist", ArchivistOutput)
 
     @property
     def step_overseer(self) -> Any | None:
+        """Retrieves parsed overseer step output from context."""
         return self.get_context("step_overseer", OverseerOutput)
 
     @property
     def step_causal(self) -> Any | None:
+        """Retrieves parsed causal step output from context."""
         return self.get_context("step_causal", CausalOutput)
 
     @property
     def organization_id(self) -> str | None:
+        """Retrieves organization ID from context variables."""
         return self.context_variables.get("organization_id")
 
     @property
     def user_id(self) -> str | None:
+        """Retrieves user ID from context variables."""
         return self.context_variables.get("user_id")
 
     @property
     def audit_results(self) -> dict[str, Any] | None:
+        """Retrieves audit results from context variables."""
         return self.context_variables.get("audit_results")
 
     @property
     def step_detector(self) -> Any | None:
+        """Retrieves parsed performativity detector step output from context."""
         return self.get_context("step_detector", PerformativityOutput)
 
     @property
     def step_judge_cognitive(self) -> Any | None:
+        """Retrieves parsed cognitive judge step output from context."""
         return self.get_context("step_judge_cognitive", JudgeOutput)
 
 
@@ -352,6 +364,11 @@ class StateProjector:
     """
 
     def __init__(self, trace: list[TraceEvent] | None = None) -> None:
+        """Initializes the state projector and optionally folds an initial trace.
+
+        Args:
+            trace: Optional list of TraceEvents to initialize snapshot.
+        """
         self._snapshot: dict[str, Any] = {}
         self._schema_version: int = 0
         self._trace_length: int = 0
@@ -369,14 +386,12 @@ class StateProjector:
         return self._schema_version
 
     def fold_trace(self, trace: list[TraceEvent], max_tokens: int | None = None) -> list[StepOutputDTO]:
-        """Folds the entire trace into a strictly typed list of StepOutputDTOs.
+        """Calculates and folds the read-model snapshot from the given trace.
 
-        If max_tokens is provided, reads the trace backwards (newest first),
-        accumulating events until the estimated token limit is reached,
-        dropping older events to prevent LLM Token Explosion.
+        Optimized with token-window compaction: drops old events if max_tokens is exceeded.
 
         Args:
-            trace: List of TraceEvent objects.
+            trace: List of TraceEvents to fold.
             max_tokens: Maximum estimated tokens to include.
 
         Returns:
@@ -394,10 +409,11 @@ class StateProjector:
 
         for event in sorted_trace:
             if max_tokens is not None:
-                if isinstance(event.content, (dict, list)):
-                    event_str = json.dumps(event.content, default=str)
+                content = event.content
+                if isinstance(content, str):
+                    event_str = content
                 else:
-                    event_str = str(event.content)
+                    event_str = json.dumps(content, default=str)
                 est_tokens = len(event_str) // 4
                 if current_tokens + est_tokens > max_tokens:
                     # Token limit reached, drop older events from LLM context
@@ -423,7 +439,9 @@ class StateProjector:
         """
         output: list[StepOutputDTO] = []
         for step_id, step_output in self._snapshot.items():
-            if not isinstance(step_output, dict):
+            try:
+                items_iter = step_output.items()
+            except (AttributeError, TypeError) as err:
                 # Epic 43 Phase 2 Fail-Fast: Legacy unstructured traces are strictly forbidden.
                 msg = (
                     f"Legacy flat trace detected for step '{step_id}'. "
@@ -433,14 +451,17 @@ class StateProjector:
 
                 raise AppException(
                     status_code=500, message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
+                ) from err
 
-            for block_id, payload in step_output.items():
+            for block_id, payload in items_iter:
                 output.append(StepOutputDTO(step_id=step_id, block_id=block_id, data_type="unknown", payload=payload))
         return output
 
     def apply_delta(self, event: TraceEvent) -> None:
-        """Applies a single event to the snapshot in O(1) time.
+        """Applies a single Delta / Event to the in-memory cache.
+
+        Supports nested step payloads and automatically unpacks ExecutionInputsDTO
+        dictionaries without crashing when state contains step metadata.
 
         Args:
             event: The TraceEvent to apply.

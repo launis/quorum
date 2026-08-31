@@ -32,7 +32,18 @@ async def test_persist_audit_trace_fails_fast() -> None:
     mock_driver.upsert.side_effect = Exception("DB crash")
 
     repo = UnifiedWorkflowRepository(driver=mock_driver)
-    data = {"frozen_context": {"mcp_tool_audit": [{"id": "audit_123"}]}}
+    data = {
+        "frozen_context": {
+            "mcp_tool_audit": [
+                {
+                    "id": "audit_123",
+                    "tool_id": "tool_1",
+                    "step_name": "step_1",
+                    "query": "query_text",
+                }
+            ]
+        }
+    }
 
     with pytest.raises(AppException) as exc_info:
         await repo._offload_payloads("doc_123", data)

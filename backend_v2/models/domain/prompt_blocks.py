@@ -5,7 +5,7 @@ Fuses legacy components and matrices into a strict Pydantic V2 discriminated uni
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     ConfigDict,
@@ -85,20 +85,38 @@ class MatrixPromptBlock(PromptBlockBase):
     computed_min: int | None = Field(default=None, description="Derived or calculated minimum score.")
     computed_max: int | None = Field(default=None, description="Derived or calculated maximum score.")
 
-    @model_validator(mode="after")
-    def compute_min_max(self) -> Self:
+    @model_validator(mode="before")
+    @classmethod
+    def _compute_extrema(cls, data: Any) -> Any:
         """Dynamically computes absolute minimum and maximum scores from scales if not provided."""
-        if self.scales:
-            min_score = min(s.score for s in self.scales)
-            max_score = max(s.score for s in self.scales)
-            updates: dict[str, int] = {}
-            if self.computed_min is None:
-                updates["computed_min"] = min_score
-            if self.computed_max is None:
-                updates["computed_max"] = max_score
-            if updates:
-                return self.model_copy(update=updates)
-        return self
+        try:
+            d = dict(data)
+        except TypeError, ValueError:
+            return data
+
+        scales = d.get("scales")
+        if isinstance(scales, list) and scales:
+            scores: list[int] = []
+            for s in scales:
+                match s:
+                    case MatrixScale(score=score):
+                        scores.append(score)
+                    case _:
+                        try:
+                            score_raw = s.get("score")
+                            if score_raw is not None:
+                                scores.append(int(score_raw))
+                        except AttributeError, TypeError, ValueError:
+                            try:
+                                scores.append(int(s.score))
+                            except AttributeError, TypeError, ValueError:
+                                pass
+            if scores:
+                if d.get("computed_min") is None:
+                    d["computed_min"] = min(scores)
+                if d.get("computed_max") is None:
+                    d["computed_max"] = max(scores)
+        return d
 
 
 class SystemRulePromptBlock(PromptBlockBase):

@@ -122,14 +122,13 @@ class ScorecardAtomDTO(V2CoreBase):
         Returns:
             Sanitized dictionary with visual_intent adjusted if contested.
         """
-        if not isinstance(data, dict):
+        try:
+            d = dict(data)
+        except TypeError, ValueError:
             return data
 
-        d = dict(data)
         status_val = d.get("status")
-        is_passed = status_val == "PASSED" or (
-            isinstance(status_val, ExecutionStatus) and status_val == ExecutionStatus.PASSED
-        )
+        is_passed = status_val == "PASSED" or status_val == ExecutionStatus.PASSED
         if is_passed and d.get("contextual_override"):
             d["visual_intent"] = VisualIntent.WARNING
         return d
@@ -264,7 +263,9 @@ class MatrixScorecardRowDTO(V2CoreBase):
         str | None,
         Field(
             default=None,
-            description="Dynamic input file or stream key evaluated, including 'chat_log', 'product_text', or filename.",
+            description=(
+                "Dynamic input file or stream key evaluated, including 'chat_log', 'product_text', or filename."
+            ),
         ),
     ] = None
     context_target_label: Annotated[

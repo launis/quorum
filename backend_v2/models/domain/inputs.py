@@ -71,10 +71,15 @@ class WorkflowInputs(WorkflowInputsIngress):
         Raises:
             AppException: If base64 content is detected (VALIDATION_FAILED).
         """
-        # Inspect dynamic_inputs directly on typed model instance
         if self.dynamic_inputs:
             for k, v in self.dynamic_inputs.items():
-                if isinstance(v, Base64Attachment) or (isinstance(v, dict) and "content_base64" in v):
+                has_b64 = isinstance(v, Base64Attachment)
+                if not has_b64:
+                    try:
+                        has_b64 = "content_base64" in v
+                    except TypeError:
+                        has_b64 = False
+                if has_b64:
                     msg = (
                         f"V2 Strict Mandate: Binary 'content_base64' payload detected in dynamic_inputs '{k}'. "
                         "All Base64 extraction MUST occur synchronously at the API Router level "

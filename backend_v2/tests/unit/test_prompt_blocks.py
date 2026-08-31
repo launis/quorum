@@ -76,6 +76,35 @@ def test_matrix_prompt_block_computed_min_max(
     assert block.is_evaluative is True
 
 
+def test_matrix_prompt_block_compute_min_max_immutable(
+    sample_i18n_text: I18nText,
+    sample_matrix_scale: MatrixScale,
+) -> None:
+    """Contract: MatrixPromptBlock dynamically computes min and max scores from scales."""
+    scale_1 = MatrixScale(
+        score=1,
+        ai_label="POOR",
+        claims=sample_matrix_scale.claims,
+    )
+    scale_5 = MatrixScale(
+        score=5,
+        ai_label="EXCELLENT",
+        claims=sample_matrix_scale.claims,
+    )
+
+    block = MatrixPromptBlock(
+        id="blk_0123456789abcdef0123456789abcdef",
+        slug="test-matrix-contract",
+        label=sample_i18n_text,
+        description=sample_i18n_text,
+        scales=[scale_1, sample_matrix_scale, scale_5],
+        rows=[MatrixRow(label=sample_i18n_text, ai_description="Row instruction text")],
+    )
+
+    assert block.computed_min == 1
+    assert block.computed_max == 5
+
+
 def test_system_rule_prompt_block_instantiation(sample_i18n_text: I18nText) -> None:
     """Tests direct instantiation and default fields of SystemRulePromptBlock."""
     block = SystemRulePromptBlock(

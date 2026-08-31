@@ -261,7 +261,12 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
     delta: dict[str, Any] = {}
     if leakage_detected:
         try:
-            warnings_payload = SystemWarningsStateDTO.model_validate(inputs_source)
+            raw_warnings = inputs_source.get("_system_warnings") or []
+        except AttributeError, TypeError:
+            raw_warnings = []
+
+        try:
+            warnings_payload = SystemWarningsStateDTO.model_validate({"_system_warnings": raw_warnings})
             existing_warnings = list(warnings_payload.system_warnings)
         except ValidationError as e:
             msg = "Invalid '_system_warnings' schema in state inputs."

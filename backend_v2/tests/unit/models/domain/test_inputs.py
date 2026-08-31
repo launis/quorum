@@ -32,6 +32,15 @@ def test_workflow_inputs_ingress_valid() -> None:
     assert inputs.dynamic_inputs == {"foo": "bar"}
 
 
+def test_workflow_inputs_prevent_base64_rejection() -> None:
+    """Contract: WorkflowInputs payload containing binary content_base64 raises AppException."""
+    with pytest.raises(AppException) as exc_info:
+        WorkflowInputs(
+            dynamic_inputs={"file": {"content_base64": "binary_blob_here"}},
+        )
+    assert "content_base64" in str(exc_info.value)
+
+
 def test_workflow_inputs_prevent_base64_pollution() -> None:
     """Test that WorkflowInputs bans content_base64 in payload to protect DB."""
     # Should raise AppException if content_base64 is inside dynamic_inputs

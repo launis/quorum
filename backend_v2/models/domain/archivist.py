@@ -133,7 +133,8 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
 
 
 class ArchivistOutput(ArchivistOutputDTO, ReasoningTrace):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Domain model for Archivist Agent (Content + Metadata)."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     pass

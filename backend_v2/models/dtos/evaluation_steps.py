@@ -23,17 +23,21 @@ class BaseExtractionDTO(V2CoreBase):
 
     used_source_aliases: Annotated[
         list[str],
-        Field(description="List of exact <search_result id> strings you relied upon for this specific extraction."),
-    ]
+        Field(
+            default_factory=list,
+            description="List of exact <search_result id> strings you relied upon for this specific extraction.",
+        ),
+    ] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
     def _sanitize_source_aliases(cls, data: Any) -> Any:
         """Sanitizes source aliases by fixing typos and nullifying invalid ones before Literal validation."""
-        if not isinstance(data, dict):
+        try:
+            d = dict(data)
+        except TypeError, ValueError:
             return data
 
-        d = dict(data)
         for list_field in ["used_source_aliases", "source_document_aliases"]:
             raw_list = d.get(list_field)
             if isinstance(raw_list, list):
@@ -78,7 +82,7 @@ class StepDTOStrict(BaseExtractionDTO):
 
     Attributes:
         rule_internalization: Brief internalization of the rule requirements.
-        source_document_ids: Dynamic literals corresponding to available documents.
+        source_document_aliases: Dynamic literals corresponding to available documents.
         exact_quotes: Verbatim quotes in original language.
         reasoning_steps: Step by step breakdown of the text reasoning.
         falsification_argument: Critical counter-argument details.
@@ -111,7 +115,10 @@ class StepDTOStrict(BaseExtractionDTO):
     semantic_reasoning: Annotated[
         str,
         Field(
-            description="Final summary of the decision. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis."
+            description=(
+                "Final summary of the decision. You MUST use Markdown formatting "
+                "(e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis."
+            )
         ),
     ]
     decision: Annotated[bool, Field(description="True if the condition is physically met, False otherwise.")]

@@ -59,7 +59,13 @@ class ExecutionRepositoryImpl(BaseRepository):
                         fc_without_audit = fc.model_copy(update={"mcp_tool_audit": []})
                         data["frozen_context"] = fc_without_audit.model_dump(mode="json")
                 except ValidationError as ve:
-                    logger.warning("[ExecutionRepository] Could not parse FrozenContext during offload: %s", ve)
+                    msg = f"Invalid FrozenContext payload during offload for {doc_id}: {ve}"
+                    logger.error("[ExecutionRepository] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                    raise AppException(
+                        message=msg,
+                        status_code=422,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from ve
 
         # 2. Extract massive payloads to Storage Blobs
         for field in ["execution_trace", "frozen_context", "context_variables"]:

@@ -46,67 +46,85 @@ class MechanicalAnchorsPayload(V2CoreBase):
             return cls(performative_patterns=[])
 
         try:
-            from pydantic import BaseModel, ConfigDict
+            source = data
+            try:
+                raw_inputs = data.get("raw_inputs")
+            except AttributeError, TypeError:
+                raw_inputs = None
 
-            class _RawContextDTO(BaseModel):
-                model_config = ConfigDict(strict=False, extra="ignore")
-                word_count: int | float | None = None
-                say_do_gap: float | None = None
-                automation_bias: float | None = None
-                performative_patterns: list[PerformativePattern | dict[str, Any] | str] | None = None
-                performative_phrases: list[PerformativePattern | dict[str, Any] | str] | None = None
-                raw_inputs: dict[str, Any] | None = None
+            if raw_inputs:
+                try:
+                    if (
+                        "word_count" not in source
+                        and "say_do_gap" not in source
+                        and "automation_bias" not in source
+                        and "performative_patterns" not in source
+                        and "performative_phrases" not in source
+                    ):
+                        source = raw_inputs
+                except TypeError, KeyError:
+                    pass
 
-            ctx = _RawContextDTO.model_validate(data)
-            word_count = ctx.word_count
-            say_do_gap = ctx.say_do_gap
-            automation_bias = ctx.automation_bias
-            patterns_raw = ctx.performative_patterns or ctx.performative_phrases
+            try:
+                raw_wc = source.get("word_count")
+                raw_sd = source.get("say_do_gap")
+                raw_ab = source.get("automation_bias")
+            except AttributeError, TypeError:
+                raw_wc = raw_sd = raw_ab = None
 
-            if ctx.raw_inputs:
-                raw_ctx = _RawContextDTO.model_validate(ctx.raw_inputs)
-                if word_count is None:
-                    word_count = raw_ctx.word_count
-                if say_do_gap is None:
-                    say_do_gap = raw_ctx.say_do_gap
-                if automation_bias is None:
-                    automation_bias = raw_ctx.automation_bias
-                if patterns_raw is None:
-                    patterns_raw = raw_ctx.performative_patterns or raw_ctx.performative_phrases
+            word_count = int(raw_wc) if isinstance(raw_wc, (int, float)) else 0
+            say_do_gap = float(raw_sd) if isinstance(raw_sd, (int, float)) else 0.0
+            automation_bias = float(raw_ab) if isinstance(raw_ab, (int, float)) else 0.0
+
+            raw_patterns = None
+            try:
+                raw_patterns = source.get("performative_patterns") or source.get("performative_phrases")
+            except AttributeError, TypeError:
+                pass
+
+            if raw_patterns is None and raw_inputs:
+                try:
+                    raw_patterns = raw_inputs.get("performative_patterns") or raw_inputs.get("performative_phrases")
+                except AttributeError, TypeError:
+                    pass
 
             patterns: list[PerformativePattern] = []
-            if patterns_raw:
-                for pat in patterns_raw:
-                    if isinstance(pat, PerformativePattern):
-                        patterns.append(pat)
-                    elif isinstance(pat, str) and pat.strip():
-                        patterns.append(
-                            PerformativePattern(
-                                pattern_id="pat_marker",
-                                detected_phrase=pat.strip(),
-                                category="linguistic_marker",
-                            )
-                        )
-                    elif isinstance(pat, dict):
-                        phrase = pat.get("detected_phrase") or pat.get("phrase")
-                        if phrase:
-                            pattern_id = pat.get("pattern_id") or pat.get("pattern_name") or "pat_marker"
-                            category = pat.get("category") or "linguistic_marker"
+            if isinstance(raw_patterns, list):
+                for item in raw_patterns:
+                    match item:
+                        case PerformativePattern():
+                            patterns.append(item)
+                        case str() if item.strip():
                             patterns.append(
                                 PerformativePattern(
-                                    pattern_id=str(pattern_id),
-                                    detected_phrase=str(phrase),
-                                    category=str(category),
+                                    pattern_id="pat_marker",
+                                    detected_phrase=item.strip(),
+                                    category="linguistic_marker",
                                 )
                             )
+                        case _:
+                            try:
+                                phrase = item.get("detected_phrase") or item.get("phrase")
+                                if phrase and isinstance(phrase, str):
+                                    pat_id = item.get("pattern_id") or item.get("pattern_name") or "pat_marker"
+                                    cat = item.get("category") or "linguistic_marker"
+                                    patterns.append(
+                                        PerformativePattern(
+                                            pattern_id=str(pat_id),
+                                            detected_phrase=phrase,
+                                            category=str(cat),
+                                        )
+                                    )
+                            except AttributeError, TypeError:
+                                pass
 
             return cls(
-                word_count=int(word_count) if word_count is not None else 0,
-                say_do_gap=float(say_do_gap) if say_do_gap is not None else 0.0,
-                automation_bias=float(automation_bias) if automation_bias is not None else 0.0,
+                word_count=max(0, word_count),
+                say_do_gap=max(0.0, say_do_gap),
+                automation_bias=max(0.0, automation_bias),
                 performative_patterns=patterns,
             )
-        except Exception as e:
+        except (ValueError, TypeError) as e:
             logger.warning("[MechanicalAnchors] Could not parse context: %s", e)
             return cls(performative_patterns=[])
 

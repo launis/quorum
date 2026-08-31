@@ -11,6 +11,12 @@ from backend_v2.models.domain.validation import (
 )
 
 
+def test_domain_models_forbid_duck_typing() -> None:
+    """Contract: Malformed payload with untyped dictionary or extra keys raises pydantic.ValidationError."""
+    with pytest.raises(ValidationError):
+        SystemWarningsStateDTO.model_validate({"unexpected_duck_key": "duck_val"})
+
+
 def test_validation_hook_payload_accepts_dict() -> None:
     """Test that ValidationHookPayloadDTO accepts a dictionary."""
     data = {"key": "value", "another": 123}

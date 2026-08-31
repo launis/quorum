@@ -83,6 +83,31 @@ def test_scorecard_atom_dto() -> None:
     assert atom.visual_intent == VisualIntent.WARNING
 
 
+def test_tda_scorecard_atom_warning_intent_on_override() -> None:
+    """Contract: TDAScorecardAtom with status=PASSED and contextual_override=True sets visual_intent=WARNING."""
+    atom = ScorecardAtomDTO(
+        atom_id="atm_override_1",
+        level=2,
+        level_name="Taso 2",
+        claim_label="Override Claim",
+        extracted_facts={"fact": "verified"},
+        exact_quotes=[],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="1",
+            step_2_scan_source="2",
+            step_3_evaluate_anti_patterns="3",
+            step_4_final_conclusion="4",
+        ),
+        status=ExecutionStatus.PASSED,
+        semantic_reasoning="Reasoning with override",
+        contextual_override=True,
+        structural_location="L2",
+        chart_display_label="Chart Override",
+        visual_intent=VisualIntent.NEUTRAL,
+    )
+    assert atom.visual_intent == VisualIntent.WARNING
+
+
 def test_matrix_scorecard_row_dto() -> None:
     row = MatrixScorecardRowDTO(
         block_id="blk_1234567890123456",
