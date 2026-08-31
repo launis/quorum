@@ -14,7 +14,7 @@ import logfire
 from arq.connections import RedisSettings
 from arq.typing import StartupShutdown, WorkerCoroutine
 from arq.worker import Function
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 
 import backend_v2.hooks  # noqa: F401
 import backend_v2.utils.scoring.variance_engine as variance_engine
@@ -259,20 +259,24 @@ async def execute_workflow_job(
                     if event.event_type != "output":
                         continue
 
-                    if not isinstance(event.content, dict):
+                    try:
+                        content_dict = TypeAdapter(dict[str, Any]).validate_python(event.content)
+                        step_meta_raw = content_dict.get("_step_metadata") if "_step_metadata" in content_dict else {}
+                        step_meta = TypeAdapter(dict[str, Any]).validate_python(step_meta_raw)
+                        usage_raw = step_meta.get("token_usage") if "token_usage" in step_meta else {}
+                        usage = TypeAdapter(dict[str, Any]).validate_python(usage_raw)
+                    except Exception:
                         continue
 
-                    step_meta = event.content["_step_metadata"] if "_step_metadata" in event.content else {}
-                    usage = step_meta["token_usage"] if "token_usage" in step_meta else {}
-                    model_strategy = step_meta["model_strategy"] if "model_strategy" in step_meta else "unknown"
-                    chunk_size = step_meta["chunk_size"] if "chunk_size" in step_meta else 1
+                    model_strategy = step_meta.get("model_strategy", "unknown")
+                    chunk_size = step_meta.get("chunk_size", 1)
 
-                    p_tokens = usage["prompt_tokens"] if "prompt_tokens" in usage else 0
-                    c_tokens = usage["completion_tokens"] if "completion_tokens" in usage else 0
-                    t_tokens = usage["total_tokens"] if "total_tokens" in usage else 0
-                    c_cost = usage["cost_usd"] if "cost_usd" in usage else 0.0
-                    cached_t = usage["cached_tokens"] if "cached_tokens" in usage else 0
-                    reasoning_t = usage["reasoning_tokens"] if "reasoning_tokens" in usage else 0
+                    p_tokens = usage.get("prompt_tokens", 0)
+                    c_tokens = usage.get("completion_tokens", 0)
+                    t_tokens = usage.get("total_tokens", 0)
+                    c_cost = usage.get("cost_usd", 0.0)
+                    cached_t = usage.get("cached_tokens", 0)
+                    reasoning_t = usage.get("reasoning_tokens", 0)
 
                     total_prompt_tokens += p_tokens
                     total_completion_tokens += c_tokens
@@ -703,14 +707,14 @@ async def generate_profile_synthesis_and_pdf_task(
         # Check for starvation short-circuit from SynthesisEngine
         starvation_detected = False
         for trace_evt in execution.execution_trace:
-            if (
-                trace_evt.event_type == "output"
-                and isinstance(trace_evt.content, dict)
-                and "event_type" in trace_evt.content
-                and trace_evt.content["event_type"] == "starvation"
-            ):
-                starvation_detected = True
-                break
+            if trace_evt.event_type == "output":
+                try:
+                    t_content = TypeAdapter(dict[str, Any]).validate_python(trace_evt.content)
+                    if t_content.get("event_type") == "starvation":
+                        starvation_detected = True
+                        break
+                except Exception:
+                    continue
 
         if starvation_detected:
             logger.warning(
@@ -789,11 +793,11 @@ async def generate_profile_synthesis_and_pdf_task(
             data = step_dto.payload
             if pb_id in blocks_meta:
                 try:
-                    clean_data = (
-                        {k: v for k, v in data.items() if k in LightweightMatrixOutput.model_fields}
-                        if isinstance(data, dict)
-                        else data
-                    )
+                    try:
+                        data_dict = TypeAdapter(dict[str, Any]).validate_python(data)
+                        clean_data = {k: v for k, v in data_dict.items() if k in LightweightMatrixOutput.model_fields}
+                    except Exception:
+                        clean_data = data
                     lw_matrix = LightweightMatrixOutput.model_validate(clean_data, strict=False)
                     if lw_matrix.level_breakdown:
                         stats = {
@@ -1121,30 +1125,41 @@ async def generate_profile_synthesis_and_pdf_task(
                             continue
 
                         # Fallback for Linguistics (decision event with is_context_update)
-                        if (
-                            event.event_type == "decision"
-                            and performative_phrases_count is None
-                            and isinstance(event.content, dict)
-                            and "step_linguistics" in event.content
-                        ):
-                            trace_ling = event.content["step_linguistics"]
-                            ling_out = LinguisticsResultDTO.model_validate(trace_ling, strict=False)
-                            patterns = ling_out.performative_patterns
-                            if isinstance(patterns, list):
-                                performative_phrases_count = len(patterns)
+                        if event.event_type == "decision" and performative_phrases_count is None:
+                            try:
+                                dec_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
+                                if "step_linguistics" in dec_content:
+                                    trace_ling = dec_content["step_linguistics"]
+                                    ling_out = LinguisticsResultDTO.model_validate(trace_ling, strict=False)
+                                    patterns = ling_out.performative_patterns
+                                    if isinstance(patterns, list):
+                                        performative_phrases_count = len(patterns)
+                            except Exception:
+                                pass
 
                         # Extract Performativity Detector output using the canonical step_id from profile
                         if event.event_type == "output" and perf_step_id and authenticity_score is None:
                             is_match = False
+                            out_content: dict[str, Any] | None = None
+                            try:
+                                out_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
+                            except Exception:
+                                out_content = None
+
                             if event.step_name == perf_step_id:
                                 is_match = True
-                            elif isinstance(event.content, dict) and "_step_metadata" in event.content:
-                                step_meta = event.content["_step_metadata"]
-                                if isinstance(step_meta, dict) and step_meta.get("task_blueprint") == perf_step_id:
-                                    is_match = True
+                            elif out_content and "_step_metadata" in out_content:
+                                try:
+                                    step_meta_d = TypeAdapter(dict[str, Any]).validate_python(
+                                        out_content["_step_metadata"]
+                                    )
+                                    if step_meta_d.get("task_blueprint") == perf_step_id:
+                                        is_match = True
+                                except Exception:
+                                    pass
 
-                            if is_match and isinstance(event.content, dict):
-                                for key, val in event.content.items():
+                            if is_match and out_content:
+                                for key, val in out_content.items():
                                     if key.startswith("blk_"):
                                         det_out = LightweightMatrixOutput.model_validate(val, strict=False)
                                         if det_out.raw_score is not None:
