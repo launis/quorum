@@ -77,7 +77,7 @@
   - [x] Step 1: Harden Orchestrator Executors & Compilers
   - [x] Step 2: Harden Strategies & Pipeline Services
   - [x] Step 3: Comprehensive Test Expansion & AST Guardrail Validation
-- [ ] **[NOK] Audit (Sub-Phase 3B):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Audit (Sub-Phase 3B):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]` (Subsystem coverage 90.98%, global backend 93.49%, 0 AST violations)
 - [ ] **[NOK] Red-Teaming (Sub-Phase 3C):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
 - [ ] **[NOK] Execution (Sub-Phase 3C):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
   - [ ] Step 0: Strategic Alignment Check
@@ -167,25 +167,25 @@
   - [x] @[backend_v2/hooks/metadata.py]
   - [x] @[backend_v2/hooks/metrics.py]
   - [x] @[backend_v2/hooks/references.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
-  - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
-  - [ ] @[backend_v2/services/orchestrator/prompt_compiler.py]
-  - [ ] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py]
-  - [ ] @[backend_v2/services/orchestrator/context_router.py]
-  - [ ] @[backend_v2/services/orchestrator/matrix_reducer.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/base.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/logic.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]
-  - [ ] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
-  - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
-  - [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py]
-  - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
-  - [ ] @[backend_v2/services/orchestrator/rag_preflight_service.py]
-  - [ ] @[backend_v2/services/orchestrator/localization_compiler.py]
-  - [ ] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
-  - [ ] @[backend_v2/services/orchestrator/anchor_validation_service.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor.py]
+  - [x] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
+  - [x] @[backend_v2/services/orchestrator/prompt_compiler.py]
+  - [x] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py]
+  - [x] @[backend_v2/services/orchestrator/context_router.py]
+  - [x] @[backend_v2/services/orchestrator/matrix_reducer.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/base.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/logic.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]
+  - [x] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
+  - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
+  - [x] @[backend_v2/services/orchestrator/synthesis_distiller.py]
+  - [x] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
+  - [x] @[backend_v2/services/orchestrator/rag_preflight_service.py]
+  - [x] @[backend_v2/services/orchestrator/localization_compiler.py]
+  - [x] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
+  - [x] @[backend_v2/services/orchestrator/anchor_validation_service.py]
   - [ ] @[backend_v2/database/repositories/execution.py]
   - [ ] @[backend_v2/database/repositories/component.py]
   - [ ] @[backend_v2/database/repositories/components/matrix.py]
@@ -313,12 +313,11 @@
 
 ## Remaining
 - **Phase 3: Hooks, Orchestrator & Repository Suppression Eradication**:
-  - Sub-Phase 3B: Audit Plan (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md]`).
   - Sub-Phase 3C: Repositories & Domain Models (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md]`).
 - **Phase 4: AST Hardening, Knowledge Base & Architectural Governance Lockdown**:
   - Phase 4: AST Hardening & Governance (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]
 ```
