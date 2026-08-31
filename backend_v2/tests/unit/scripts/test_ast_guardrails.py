@@ -777,3 +777,25 @@ def test_qgr012_warning_severity_outside_services_and_hooks() -> None:
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR012"
     assert violations[0].severity == GuardrailSeverity.WARNING
+
+
+def test_qgr012_match_case_dict_patterns() -> None:
+    """Verifies that match/case dict, MatchMapping, and MatchOr dict patterns are detected."""
+    code_match_class = "match data:\n    case dict():\n        pass\n"
+    v1 = _scan_snippet(code_match_class, filepath="backend_v2/services/execution.py")
+    assert len(v1) == 1
+    assert v1[0].rule_code == "QGR012"
+    assert v1[0].severity == GuardrailSeverity.FATAL
+
+    code_match_mapping = "match data:\n    case {'key': val}:\n        pass\n"
+    v2 = _scan_snippet(code_match_mapping, filepath="backend_v2/services/execution.py")
+    assert len(v2) == 1
+    assert v2[0].rule_code == "QGR012"
+    assert v2[0].severity == GuardrailSeverity.FATAL
+
+    code_match_or = "match data:\n    case int() | dict():\n        pass\n"
+    v3 = _scan_snippet(code_match_or, filepath="backend_v2/services/execution.py")
+    assert len(v3) == 1
+    assert v3[0].rule_code == "QGR012"
+    assert v3[0].severity == GuardrailSeverity.FATAL
+
