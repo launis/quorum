@@ -17,6 +17,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -46,8 +47,6 @@ def _validate_non_empty_payload(messages: list[dict[str, Any]] | CompiledPrompt)
         raw_list = list(messages)
     else:
         raw_list = []
-
-    from backend_v2.models.llm import LLMMessageDTO
 
     user_texts: list[str] = []
     for m in raw_list:
@@ -292,21 +291,19 @@ class LLMTaskExecutor:
 
                 healing_content = f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
 
-                typed_dynamic: list[ChatMessageDTO] = [
-                    m if isinstance(m, ChatMessageDTO) else ChatMessageDTO.model_validate(m)
+                typed_dynamic: list[LLMMessageDTO] = [
+                    m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m)
                     for m in base_compiled_prompt.dynamic_messages
                 ]
                 if typed_dynamic:
                     last_msg = typed_dynamic[-1]
-                    typed_dynamic[-1] = ChatMessageDTO(
+                    typed_dynamic[-1] = LLMMessageDTO(
                         role=last_msg.role,
                         content=last_msg.content + healing_content,
                     )
                 else:
-                    typed_dynamic.append(ChatMessageDTO(role="user", content=healing_content.strip()))
-                compiled_prompt = base_compiled_prompt.model_copy(
-                    update={"dynamic_messages": [m.model_dump(mode="json") for m in typed_dynamic]}
-                )
+                    typed_dynamic.append(LLMMessageDTO(role="user", content=healing_content.strip()))
+                compiled_prompt = base_compiled_prompt.model_copy(update={"dynamic_messages": typed_dynamic})
 
             except LogicalValidationError as e:
                 error_msg = e.validation_error_msg
@@ -390,21 +387,19 @@ class LLMTaskExecutor:
                     f"</PREVIOUS_SCHEMA_ERROR>"
                 )
 
-                typed_dynamic_logical: list[ChatMessageDTO] = [
-                    m if isinstance(m, ChatMessageDTO) else ChatMessageDTO.model_validate(m)
+                typed_dynamic_logical: list[LLMMessageDTO] = [
+                    m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m)
                     for m in base_compiled_prompt.dynamic_messages
                 ]
                 if typed_dynamic_logical:
                     last_msg = typed_dynamic_logical[-1]
-                    typed_dynamic_logical[-1] = ChatMessageDTO(
+                    typed_dynamic_logical[-1] = LLMMessageDTO(
                         role=last_msg.role,
                         content=last_msg.content + healing_content,
                     )
                 else:
-                    typed_dynamic_logical.append(ChatMessageDTO(role="user", content=healing_content.strip()))
-                compiled_prompt = base_compiled_prompt.model_copy(
-                    update={"dynamic_messages": [m.model_dump(mode="json") for m in typed_dynamic_logical]}
-                )
+                    typed_dynamic_logical.append(LLMMessageDTO(role="user", content=healing_content.strip()))
+                compiled_prompt = base_compiled_prompt.model_copy(update={"dynamic_messages": typed_dynamic_logical})
 
         logger.error("LLM task failed to complete within retry budgets.")
         raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)

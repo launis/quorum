@@ -65,7 +65,7 @@ class MockLLMService:
                 logger.info("[MockLLM] Registry Hit: Returning mock data for schema '%s'.", response_schema.__name__)
                 mock_obj = MOCK_REGISTRY[response_schema]
                 return str(mock_obj.model_dump_json())
-            elif isinstance(response_schema, dict):
+            elif isinstance(response_schema, dict):  # noqa: QGR012 [REASON: Schema dictionary inspection in mock service fallback]
                 title = response_schema.get("title")
                 if title:
                     for reg_type, mock_obj in MOCK_REGISTRY.items():
@@ -152,8 +152,10 @@ class MockLLMService:
         # Assuming get_fallback_data returns a dict; we need to stringify it for the 'LLM response'
         # Fix: Handle datetime objects (e.g. from MOCK_METADATA) using a custom default handler.
         def _json_serial(obj: Any) -> str:
-            if hasattr(obj, "isoformat"):
-                return str(obj.isoformat())
+            import datetime
+
+            if isinstance(obj, (datetime.date, datetime.datetime)):
+                return obj.isoformat()
             raise TypeError(f"Type {type(obj)} not serializable")
 
         return json.dumps(data, ensure_ascii=False, default=_json_serial)

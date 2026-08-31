@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -110,14 +111,16 @@ class PromptCompilerAdapter:
             error_msg, is_logical_error, is_eof, strictness_level=strictness_level
         )
 
-    def compile_prompt(self, messages: list[ChatMessageDTO] | list[dict[str, Any]]) -> CompiledPrompt:
+    def compile_prompt(
+        self, messages: list[ChatMessageDTO] | list[LLMMessageDTO] | list[dict[str, Any]]
+    ) -> CompiledPrompt:
         """Splits an existing list of messages into static_messages and dynamic_messages.
 
         Acts as a robust fallback for general inputs by extracting dynamic blocks (execution
         parameters and error blocks) from user messages and placing them in the dynamic tail.
 
         Args:
-            messages: The list of conversation messages (ChatMessageDTOs or raw dicts).
+            messages: The list of conversation messages (ChatMessageDTOs, LLMMessageDTOs, or raw dicts).
 
         Returns:
             A CompiledPrompt object with separated static and dynamic messages.
@@ -127,7 +130,12 @@ class PromptCompilerAdapter:
         in_dynamic_tail = False
 
         typed_messages: list[ChatMessageDTO] = [
-            m if isinstance(m, ChatMessageDTO) else ChatMessageDTO.model_validate(m) for m in messages
+            m
+            if isinstance(m, ChatMessageDTO)
+            else ChatMessageDTO(role=m.role, content=m.content)
+            if isinstance(m, LLMMessageDTO)
+            else ChatMessageDTO.model_validate(m)
+            for m in messages
         ]
 
         for msg in typed_messages:
@@ -194,6 +202,6 @@ class PromptCompilerAdapter:
             dynamic_msgs.append(last_msg)
 
         return CompiledPrompt(
-            static_messages=[m.model_dump(mode="json") for m in static_msgs],
-            dynamic_messages=[m.model_dump(mode="json") for m in dynamic_msgs],
+            static_messages=[LLMMessageDTO(role=m.role, content=m.content) for m in static_msgs],
+            dynamic_messages=[LLMMessageDTO(role=m.role, content=m.content) for m in dynamic_msgs],
         )

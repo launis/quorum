@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 from backend_v2.llm.adapters.anthropic_adapter import AnthropicCacheAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import ModelProfile
 
@@ -20,11 +21,11 @@ async def test_anthropic_adapter_threshold_under() -> None:
     # 40 characters in static content (way under 4,000)
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Static text."},
+            LLMMessageDTO(role="system", content="You are a helpful assistant."),
+            LLMMessageDTO(role="user", content="Static text."),
         ],
         dynamic_messages=[
-            {"role": "assistant", "content": "Hello!"},
+            LLMMessageDTO(role="assistant", content="Hello!"),
         ],
     )
 
@@ -46,13 +47,13 @@ async def test_anthropic_adapter_tagging_flow() -> None:
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": long_system},
-            {"role": "system", "content": "Another system instruction."},
-            {"role": "user", "content": long_user_static},
+            LLMMessageDTO(role="system", content=long_system),
+            LLMMessageDTO(role="system", content="Another system instruction."),
+            LLMMessageDTO(role="user", content=long_user_static),
         ],
         dynamic_messages=[
-            {"role": "assistant", "content": "Dynamic assistant message."},
-            {"role": "user", "content": "Dynamic user query."},
+            LLMMessageDTO(role="assistant", content="Dynamic assistant message."),
+            LLMMessageDTO(role="user", content="Dynamic user query."),
         ],
     )
 
@@ -95,12 +96,12 @@ async def test_anthropic_adapter_boundary_merging() -> None:
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": long_system},
-            {"role": "user", "content": long_user_static},
+            LLMMessageDTO(role="system", content=long_system),
+            LLMMessageDTO(role="user", content=long_user_static),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Dynamic user query."},
-            {"role": "assistant", "content": "Dynamic assistant response."},
+            LLMMessageDTO(role="user", content="Dynamic user query."),
+            LLMMessageDTO(role="assistant", content="Dynamic assistant response."),
         ],
     )
 

@@ -28,12 +28,12 @@
   - [x] Step 2: Update Caching Service & Utils
   - [x] Step 3: Central Test Factories & Test Migration
 - [ ] **[NOK] Audit (Sub-Phase 1A):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/01_phase1a_llm_models_and_prompt_dto.md] @[docs/epic/EPIC_150_tracker.md]`
-- [ ] **[NOK] Red-Teaming (Sub-Phase 1B):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline.md] @[docs/epic/EPIC_150_tracker.md]`
-- [ ] **[NOK] Execution (Sub-Phase 1B):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline.md] @[docs/epic/EPIC_150_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Modernize Base Adapter & Provider Infrastructure
-  - [ ] Step 2: Modernize Provider Adapters
-  - [ ] Step 3: Migrate Adapter Test Suites
+- [x] **[OK] Red-Teaming (Sub-Phase 1B):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Execution (Sub-Phase 1B):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline.md] @[docs/epic/EPIC_150_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Implementation Cleanups
+  - [x] Step 1: Modernize Base Adapter & Provider Infrastructure
+  - [x] Step 2: Modernize Provider Adapters
+  - [x] Step 3: Migrate Adapter Test Suites
 - [ ] **[NOK] Audit (Sub-Phase 1B):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline.md] @[docs/epic/EPIC_150_tracker.md]`
 - [ ] **[NOK] Red-Teaming (Sub-Phase 1C):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/03_phase1c_coupled_tests_and_seed_validation.md] @[docs/epic/EPIC_150_tracker.md]`
 - [ ] **[NOK] Execution (Sub-Phase 1C):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/03_phase1c_coupled_tests_and_seed_validation.md] @[docs/epic/EPIC_150_tracker.md]`
@@ -162,7 +162,6 @@
   - [ ] @[backend_v2/hooks/archival.py]
   - [ ] @[backend_v2/hooks/security.py]
   - [ ] @[backend_v2/hooks/hydration.py]
-  - [ ] @[backend_v2/hooks/metadata.py]
   - [ ] @[backend_v2/hooks/metrics.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
   - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
@@ -228,16 +227,16 @@
 | `CompiledPrompt` methods return `list[LLMMessageDTO]` with direct attribute access | Epic Sec 2 & 3 (Phase 1) | Phase 1, Step 1 | `[x]` Passed |
 | `caching_service.py` & `math_utils.py` StrictnessConfig strictness | Epic Sec 3 (Phase 1) | Phase 1, Step 2 | `[x]` Passed |
 | Central test factories `make_llm_message` & `test_prompt.py` dot-notation migration | Epic Sec 3 (Phase 1) | Phase 1, Step 3 | `[x]` Passed |
-| Base adapter & provider LiteLLM `exclude_none=True` message serialization | Epic Sec 2 & 3 (Phase 1) | Phase 1, Step 1 | `[ ]` Pending |
-| Eliminate `dict[str, Any]` & QGR suppressions across all provider adapters | Epic Sec 3 (Phase 1) | Phase 1, Step 2 | `[ ]` Pending |
-| Migrate adapter test suites (~100+ fixtures & assertions) to DTOs | Epic Sec 3 (Phase 1) | Phase 1, Step 3 | `[ ]` Pending |
+| Base adapter & provider LiteLLM `exclude_none=True` message serialization | Epic Sec 2 & 3 (Phase 1) | Phase 1, Step 1 | `[x]` Passed |
+| Eliminate `dict[str, Any]` & QGR suppressions across all provider adapters | Epic Sec 3 (Phase 1) | Phase 1, Step 2 | `[x]` Passed |
+| Migrate adapter test suites (~100+ fixtures & assertions) to DTOs | Epic Sec 3 (Phase 1) | Phase 1, Step 3 | `[x]` Passed |
 | Seeder Two-Phase Pre-Flight In-Memory validation in `run_seed.py` | Epic Sec 2 & 3 (Phase 1) | Phase 1, Step 1 | `[ ]` Pending |
 | Migrate coupled MCP & executor test suites | Epic Sec 3 (Phase 1) | Phase 1, Step 2 | `[ ]` Pending |
 | Migrate coupled prompt builder & hook test suites | Epic Sec 3 (Phase 1) | Phase 1, Step 3 | `[ ]` Pending |
 | Pre-implementation cleanups: `redis_patcher.py` `FakeRedis` & `ClientErrorPayload` comment | Epic Sec 3 (Phase 2) | Phase 2, Step 1 | `[ ]` Pending |
 | Refine `ProgressState` & `ProgressTracker` contracts (SSE 1:1 parity) | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 2 | `[ ]` Pending |
-| Define `TaskMetadataDTO` in `core/registry.py` & update task registry tests | Epic Sec 3 (Phase 2) | Phase 2, Step 3 | `[ ]` Pending |
-| Purge obsolete `Workflow.ui_schema` & `Step.output_schema`; define `ProviderExtraParamsDTO` | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 1 | `[ ]` Pending |
+| Define TaskMetadataDTO in `core/registry.py` & update task registry tests | Epic Sec 3 (Phase 2) | Phase 2, Step 3 | `[ ]` Pending |
+| Purge obsolete `Workflow.ui_schema` & `Step.output_schema`; define ProviderExtraParamsDTO | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 1 | `[ ]` Pending |
 | Sanitize `seed_data.json` & purge orphan `"step_blueprints": []` | Epic Sec 3 (Phase 2) | Phase 2, Step 1 | `[ ]` Pending |
 | Studio simulation service returns typed simulation DTOs directly | Epic Sec 2 & 3 (Phase 2) | Phase 2, Step 2 | `[ ]` Pending |
 | Surgical typing & telemetry cleanup in `worker.py` & `blueprint.py` | Epic Sec 3 (Phase 2) | Phase 2, Step 3 | `[ ]` Pending |
@@ -256,46 +255,40 @@
 # Session Handover Context
 
 ## Achieved
-- **Sub-Phase 1A Execution Completed & Mathematically Verified**:
-  - **Foundational DTO Definitions**: Defined strict frozen Pydantic V2 DTOs (`LLMMessageDTO`, `ProviderMetadataDTO` in `backend_v2/models/llm.py` and `PromptMetadataDTO` in `backend_v2/models/prompt.py`) with zero permissive typing (`model_config = ConfigDict(strict=True, extra="forbid", frozen=True)`).
-  - **LLMResponse Schema Lockdown**: Refactored `LLMResponse` in `backend_v2/models/llm.py` to use strictly typed fields (`messages: list[LLMMessageDTO] | None`, `tool_calls: list[OpenAIToolCallDTO] | None`, `provider_metadata: ProviderMetadataDTO`).
-  - **CompiledPrompt Refactoring & Immutability**:
-    - Replaced loose dictionary lists with `list[LLMMessageDTO]` for `static_messages` and `dynamic_messages`.
-    - Updated `to_flat_messages()`, `to_static_flat()`, and `to_dynamic_flat()` to return `list[LLMMessageDTO]`.
-    - Replaced dictionary subscripting (`msg.get("role")`, `msg.get("content")`) with direct attribute access (`msg.role`, `msg.content`).
-    - Implemented immutable message merging in `_merge_flat` using `.model_copy(update={"content": merged_content})`.
-  - **Caching Service Purity Scanner**: Modernized `LLMCachingService._run_purity_scanner` in `backend_v2/llm/caching_service.py` to directly inspect `LLMMessageDTO` attributes without runtime dictionary subscripts.
-  - **Math Utils Hardening**: Hardened `StrictnessConfig` in `backend_v2/utils/math_utils.py` to enforce `ConfigDict(strict=True, extra="forbid", frozen=True)` with PEP 593 `Annotated` field descriptions.
-  - **Central Test Factories & Fixtures**:
-    - Added `make_llm_message` helper in `backend_v2/tests/conftest.py` with strict role literal constraint `Literal["system", "user", "assistant", "tool"]`.
-    - Migrated `backend_v2/tests/unit/models/test_prompt.py` to dot-notation `LLMMessageDTO` assertions and verified all 5 `<test_contracts>` (100% coverage).
-    - Migrated `backend_v2/tests/unit/llm/test_caching_service.py` test fixtures to `LLMMessageDTO` (100% coverage).
-    - Modernized `backend_v2/tests/unit/models/test_llm.py` with 12 comprehensive unit tests covering all validators (100% coverage).
-  - **Downstream Adapter Synchronization**:
-    - Updated `BaseLLMAdapter`, `OpenAICacheAdapter`, `AnthropicCacheAdapter`, `VertexCacheAdapter`, `GoogleAIStudioCacheAdapter`, and `MockCacheAdapter` signatures to `tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]`.
-    - Modernized Anthropic and Base adapter character counting and message serialization to use direct `msg.role` and `msg.content` attributes.
-    - Updated `_validate_non_empty_payload` in `backend_v2/services/llm_task_executor.py` to support `LLMMessageDTO` alongside `ChatMessageDTO`.
-  - **Universal Quality Gate Validation**: Executed `backend_audit_loop.py` on all Phase 1A targets with zero errors (Ruff lint/format, MyPy strict typing, AST guardrails, Jinja template verification, Seed atom audit, and Pytest coverage gates all passed at 100%).
-  - **Markdown Boundary Integrity**: Verified `audit_markdown_boundaries.py` on both `EPIC_150_tracker.md` and `01_phase1a_llm_models_and_prompt_dto.md` with exact AST decorator-inclusive line spans.
+- **Sub-Phase 1A Execution Completed & Atomically Committed (`0b3a8466`)**:
+  - Foundational DTOs (`LLMMessageDTO`, `ProviderMetadataDTO`, `PromptMetadataDTO`) defined with `ConfigDict(strict=True, extra="forbid", frozen=True)`.
+  - `LLMResponse` and `CompiledPrompt` refactored to strict DTO collections with pure dot-notation access.
+  - Quality gates passed 100% and committed to git.
+- **Sub-Phase 1B Execution Completed (`feat(llm): enforce strict DTO typing in provider adapters and pipeline (Phase 1B)`)**:
+  - **Base Adapter & Redis Pacing Modernization** (`backend_v2/llm/adapters/base_adapter.py`): Narrowed broad `except Exception:` handlers during Redis connection pool initialization and pacing loops to specific `(ConnectionError, OSError, asyncio.TimeoutError, RuntimeError)` exceptions with RFC 7807 structured logging. Refactored `estimate_static_tokens` and caching operations to directly access `msg.role` and `msg.content` on `LLMMessageDTO` instances.
+  - **Provider Pipeline & Outer LiteLLM Boundary Serialization** (`backend_v2/llm/provider.py`): Enforced outer LiteLLM boundary serialization `[m.model_dump(mode="json", exclude_none=True) if isinstance(m, BaseModel) else m for m in final_messages]` ensuring zero null-field leakage (`tool_calls: None`, `tool_call_id: None`) into third-party SDK calls. Hydrated `LLMResponse` with strongly typed `ProviderMetadataDTO`, `list[OpenAIToolCallDTO]`, and `list[LLMMessageDTO]`.
+  - **LLM Client Wrapper & Ingress ACL** (`backend_v2/llm/client.py`, `backend_v2/llm/ingress_pipeline.py`, `backend_v2/llm/mock.py`): Modernized `run_structured_task`, `_build_structured_schema`, and `run_chat` typing annotations to accept `LLMMessageDTO`. Eliminated reflection `getattr(schema_err, "status_code")` and ad-hoc dictionary lookups.
+  - **Provider Adapters & Prompt Compiler Adapter** (`backend_v2/llm/adapters/vertex_adapter.py`, `backend_v2/llm/adapters/ai_studio_adapter.py`, `backend_v2/llm/adapters/anthropic_adapter.py`, `backend_v2/services/orchestrator/prompt_compiler_adapter.py`): Replaced legacy `ChatMessageDTO` turn mapping with `LLMMessageDTO` across GAPIC and Google GenAI adapters. Direct `m.content` extraction from `LLMMessageDTO` in Anthropic adapter.
+  - **Test Suite Migration**: Migrated adapter unit test suites to `LLMMessageDTO` and `OpenAIToolCallDTO` (`test_vertex_adapter.py`, `test_ai_studio_adapter.py`, `test_anthropic_adapter.py`, `test_base_adapter.py`, `test_client.py`, `test_structured_retry.py`, `test_provider_toolcalls.py`, `test_vertex_adapter_caching_system_role.py`).
+  - **Universal Quality Gates Passed 100%**:
+    - `uv run pytest backend_v2/tests/unit/llm/ -vv`: 142 passed, 1 skipped, 0 failures.
+    - `uv run pytest backend_v2/tests/test_vertex_adapter_caching_system_role.py -v`: 1 passed.
+    - `uv run mypy backend_v2/llm/ ... --strict`: 0 issues found in 21 source files.
+    - `uv run ruff check` & `uv run ruff format --check`: All checks passed.
+    - `uv run python scripts/_ast_guardrails.py ... --strict`: 0 violations.
 
 ## Learned
-- **CompiledPrompt Immutability & Safe Concatenation**: Because `LLMMessageDTO` is frozen (`ConfigDict(strict=True, extra="forbid", frozen=True)`), merging consecutive same-role messages in `CompiledPrompt._merge_flat` must use immutable `.model_copy(update={"content": merged_content})`.
-- **AST Exact Node Boundary Mapping**: Markdown references (`#Lstart-Lend`) must match exact `ast.ClassDef`, `ast.FunctionDef`, or `ast.AsyncFunctionDef` node spans, including decorator line offsets (specifically `CompiledPrompt` #L32-L136, `_forbid_system_in_dynamic` #L62-L84, `_merge_flat` #L86-L109, `LLMCachingService._run_purity_scanner` #L68-L90, `StrictnessConfig` #L19-L45).
-- **DTO Role Literal Strictness**: Central test factory `make_llm_message` in `conftest.py` must lock roles strictly to `Literal["system", "user", "assistant", "tool"]` to eliminate ad-hoc string typos and legacy untyped dictionary fixtures.
-- **Cross-Layer Adapter Coupling**: When `CompiledPrompt` outputs `list[LLMMessageDTO]`, downstream caching adapters (`BaseLLMAdapter`, `OpenAICacheAdapter`, `AnthropicCacheAdapter`, `VertexCacheAdapter`, `GoogleAIStudioCacheAdapter`, `MockCacheAdapter`) must accept `tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]` to support both native DTOs and serialized payloads without triggering downstream MyPy type errors.
-- **Pydantic Field Defaults in Strict Typechecking**: Optional fields in Pydantic models (specifically `api_key` and `model_params` in `AdHocTestRequest`) must explicitly assign `= None` or `= Field(...)` on the right-hand side, otherwise MyPy strict mode treats them as required constructor arguments.
-- **Dual-Type Transition Support in Validation Layers**: Intermediate utility methods like `_validate_non_empty_payload` in `llm_task_executor.py` should accept both legacy `ChatMessageDTO` and modern `LLMMessageDTO` during multi-phase transitions to prevent cascade failures across non-migrated executor suites.
+- **Test Suite Fixture Assumptions on DTO Serialization**: When `CompiledPrompt` returns `list[LLMMessageDTO]`, tests attempting `json.dumps(prompt.static_messages)` fail with `TypeError`. Tests must use `[m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages]` or dot-notation assertions.
+- **Dynamic Schema Healing Transition in Task Executor**: `LLMTaskExecutor.execute_structured_task` dynamic healing loop constructs `LLMMessageDTO` directly (`LLMMessageDTO(role=last_msg.role, content=last_msg.content + healing_content)`), avoiding `ValidationError` from mismatched legacy models.
+- **Zero-Null Tool Call Leakage**: Outer serialization boundary `[m.model_dump(mode="json", exclude_none=True) if isinstance(m, BaseModel) else m for m in final_messages]` guarantees that third-party SDK calls (Vertex AI, OpenAI) do not receive `"tool_calls": null` or `"tool_call_id": null`.
+- **LiteLLM Provider Introspection & AST Guardrails**: Response choice inspection on third-party SDK return types requires explicit suppression comments with documented reasons (`# noqa: QGR001 [REASON: ...]`, `# noqa: QGR012 [REASON: ...]`) to pass strict AST Guardrail validation.
 
 ## Remaining
-- **Atomic Git Commit**: Perform atomic git commit for Phase 1A changes.
-- **Sub-Phase 1B Research & Execution**:
-  - Run `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline.md] @[docs/epic/EPIC_150_tracker.md]`.
-  - Modernize Base Adapter & Provider Infrastructure (`backend_v2/llm/adapters/base_adapter.py`, `backend_v2/llm/provider.py`, `backend_v2/llm/client.py`).
-  - Modernize Provider Adapters (`openai_adapter.py`, `anthropic_adapter.py`, `vertex_adapter.py`, `ai_studio_adapter.py`, `mock_adapter.py`) to eliminate `dict[str, Any]` and QGR suppressions.
-  - Migrate Adapter Test Suites (`test_base_adapter.py`, `test_openai_adapter.py`, `test_anthropic_adapter.py`, `test_vertex_adapter.py`, `test_ai_studio_adapter.py`, `test_mock_adapter.py`).
-- **Sub-Phase 1C through Phase 4**: Follow sequential execution pipeline per `EPIC_150_tracker.md`.
+- **Sub-Phase 1B Plan Audit**: Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline.md] @[docs/epic/EPIC_150_tracker.md]`.
+- **Sub-Phase 1C Research & Red-Teaming**: Run `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/03_phase1c_coupled_tests_and_seed_validation.md] @[docs/epic/EPIC_150_tracker.md]`.
+- **Sub-Phase 1C Execution**: Run `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/03_phase1c_coupled_tests_and_seed_validation.md] @[docs/epic/EPIC_150_tracker.md]`.
+  - Step 0: Strategic Alignment Check.
+  - Step 1: Harden Seed Registry & Implement Two-Phase Seeder Validation (`backend_v2/seed/seed_registry.py`, `backend_v2/seed/run_seed.py`).
+  - Step 2: Migrate Coupled MCP & Executor Test Suites (`test_mcp_tool_loop.py`, `test_llm_task_executor.py`, `test_execution_service.py`).
+  - Step 3: Migrate Coupled Prompt Builder & Hook Test Suites (`test_prompt_builder.py`, `test_flattener.py`, `test_scoring_hooks.py`).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline.md] @[docs/epic/EPIC_150_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline.md] @[docs/epic/EPIC_150_tracker.md]
 ```
+

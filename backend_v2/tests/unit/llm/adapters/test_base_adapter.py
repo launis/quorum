@@ -14,6 +14,7 @@ from backend_v2.llm.adapters.base_adapter import (
 )
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 
@@ -22,7 +23,7 @@ class ConcreteAdapter(BaseLLMAdapter):
 
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
         return compiled_prompt.to_flat_messages(), {}
 
     async def teardown_cache(self, workflow_run_id: str) -> None:
@@ -202,24 +203,17 @@ def test_base_adapter_strip_unsupported_constraints_list_and_explicit_discrimina
 
 
 def test_base_adapter_estimate_static_tokens() -> None:
-    """Verify estimate_static_tokens correctly handles string, list of blocks, and system exclusion."""
+    """Verify estimate_static_tokens correctly handles string and system exclusion."""
     adapter = ConcreteAdapter()
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "System instruction 16c"},  # 22 chars
-            {"role": "user", "content": "User static content 24c"},  # 23 chars
-            {
-                "role": "assistant",
-                "content": [
-                    {"type": "text", "text": "Block text 1234"},  # 15 chars
-                    "Direct text str",  # 15 chars
-                    12345,  # 5 chars
-                ],
-            },
+            LLMMessageDTO(role="system", content="System instruction 16c"),  # 22 chars
+            LLMMessageDTO(role="user", content="User static content 24c"),  # 23 chars
+            LLMMessageDTO(role="assistant", content="Block text 1234 Direct text str 12345"),  # 37 chars
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Dynamic text"},
+            LLMMessageDTO(role="user", content="Dynamic text"),
         ],
     )
 
@@ -236,7 +230,7 @@ def test_base_adapter_estimate_static_tokens() -> None:
     # System only prompt
     sys_only_prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "Only system message"},
+            LLMMessageDTO(role="system", content="Only system message"),
         ],
         dynamic_messages=[],
     )

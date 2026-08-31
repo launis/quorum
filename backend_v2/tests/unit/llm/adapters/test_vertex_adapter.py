@@ -10,7 +10,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 from backend_v2.models.v2_core import ModelProfile
 
 # Setup mock modules for heavy GCP / Vertex AI SDK libraries BEFORE importing adapter
@@ -153,7 +154,11 @@ async def test_vertex_thundering_herd_protection() -> None:
 
     # Clear shared ledger keys before starting
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
@@ -189,7 +194,11 @@ async def test_vertex_instant_exit_on_failed() -> None:
 
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
@@ -224,7 +233,11 @@ async def test_vertex_fail_soft_gcp_error(caplog: pytest.LogCaptureFixture) -> N
 
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
@@ -268,7 +281,11 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
 
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
@@ -281,9 +298,15 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
 
     # V3: Returned messages are dynamic-only (rubrics, atoms, params)
     assert returned_msgs == prompt.to_dynamic_flat()
-    assert any("<evaluation_criteria>" in str(m.get("content", "")) for m in returned_msgs)
+    assert any(
+        "<evaluation_criteria>" in str(m.content if isinstance(m, LLMMessageDTO) else m.get("content", ""))
+        for m in returned_msgs
+    )
     # V3: Static source_data must NOT be in returned messages
-    assert not any("<source_data>" in str(m.get("content", "")) for m in returned_msgs)
+    assert not any(
+        "<source_data>" in str(m.content if isinstance(m, LLMMessageDTO) else m.get("content", ""))
+        for m in returned_msgs
+    )
 
     # Retrieve arguments passed to GCP CachedContent.create
     _, kwargs = mock_cached_contents.CachedContent.create.call_args
@@ -409,18 +432,21 @@ def test_vertex_adapter_prepare_structured_output() -> None:
 
 @pytest.mark.asyncio
 async def test_vertex_adapter_bypasses_cache_when_static_messages_below_1024() -> None:
-    """Verify VertexCacheAdapter pre-flight check bypasses cache when static prompt is <1024 tokens even if metadata token count is high."""
+    """Verify VertexCacheAdapter pre-flight check bypasses cache when static prompt is <1024 tokens.
+
+    Even if metadata token count is reported high, short static messages bypass caching.
+    """
     adapter = VertexCacheAdapter()
 
     # Short static messages (~30 chars = ~7 tokens), but metadata reports 50k tokens (document payload)
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are a concise classifier."},
+            LLMMessageDTO(role="system", content="You are a concise classifier."),
         ],
         dynamic_messages=[
-            {"role": "user", "content": "Document text " * 5000},
+            LLMMessageDTO(role="user", content="Document text " * 5000),
         ],
-        metadata={"estimated_token_count": 50000},
+        metadata=PromptMetadataDTO(token_proxy_score=50000.0),
     )
 
     flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
@@ -435,13 +461,7 @@ async def test_vertex_adapter_static_chars_with_content_blocks() -> None:
 
     prompt = CompiledPrompt(
         static_messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "Block one. "},
-                    {"type": "text", "text": "Block two."},
-                ],
-            },
+            LLMMessageDTO(role="user", content="Block one. Block two."),
         ],
         dynamic_messages=[],
     )
@@ -480,7 +500,11 @@ async def test_vertex_cache_immediate_hit_in_shared_ledger() -> None:
     )
 
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     existing_cache_id = "projects/mock-proj/locations/europe-north1/cachedContents/hit-12345"
     await redis_client.set(redis_key, existing_cache_id, ex=300)
@@ -511,7 +535,11 @@ async def test_vertex_cache_assistant_role_and_unqualified_name() -> None:
 
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
@@ -544,7 +572,11 @@ async def test_vertex_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyPatc
 
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
 
@@ -613,7 +645,11 @@ async def test_vertex_adapter_dynamic_location_caching(monkeypatch: pytest.Monke
 
     adapter = VertexCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"vertex_cache:us-central1:gemini-1.5-pro:{static_hash}"
     lock_key = f"lock:vertex_cache:us-central1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
@@ -627,7 +663,7 @@ async def test_vertex_adapter_dynamic_location_caching(monkeypatch: pytest.Monke
 
 @pytest.mark.asyncio
 async def test_vertex_adapter_caching_consecutive_system_messages_empty_contents_proof() -> None:
-    """Verify that multiple or single static system messages without non-system static messages never attempt GCP cache creation.
+    """Verify static system messages without non-system static messages never attempt GCP cache creation.
 
     In DAG synthesis steps (matrix_block is None), CompiledPrompt has static_messages=[{"role": "system", ...}]
     and dynamic_messages=[{"role": "user", ...}].

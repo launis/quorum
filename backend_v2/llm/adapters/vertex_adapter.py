@@ -14,11 +14,12 @@ from arq.connections import RedisSettings, create_pool
 from pydantic import BaseModel
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
+from backend_v2.models.domain.mcp import OpenAIToolCallDTO
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import GCPVertexLocation, PromptCacheStatus
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import ChatMessageDTO, ModelProfile
+from backend_v2.models.v2_core import ModelProfile
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
@@ -190,7 +191,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     vertex_contents = []
                     system_text = ""
                     for raw_msg in static_flat:
-                        msg = raw_msg if isinstance(raw_msg, ChatMessageDTO) else ChatMessageDTO.model_validate(raw_msg)
+                        msg = raw_msg if isinstance(raw_msg, LLMMessageDTO) else LLMMessageDTO.model_validate(raw_msg)
                         role = msg.role
                         content = msg.content
 
@@ -236,7 +237,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
                 except Exception as exc:  # noqa: QGR003 [REASON: Fail-Soft graceful degradation to uncached completion on cloud SDK failure]
                     logger.warning(
-                        "Fail-Soft: Vertex AI Context Cache creation bypassed/failed (%s). Continuing with uncached completion.",
+                        "Fail-Soft: Vertex AI Context Cache creation bypassed/failed (%s). "
+                        "Continuing with uncached completion.",
                         str(exc),
                     )
                     await redis_client.set(
@@ -339,7 +341,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
         """
         return {"safety_settings": _VERTEX_SAFETY_SETTINGS}
 
-    def sanitize_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def sanitize_messages(self, messages: list[Any]) -> list[Any]:
         """Sanitize message array to prevent LiteLLM Vertex transformation crashes.
 
         Vertex AI transformation in LiteLLM requires every `role: tool` message to be
@@ -350,24 +352,35 @@ class VertexCacheAdapter(BaseLLMAdapter):
         This function removes any `role: tool` message that lacks a valid pairing.
 
         Args:
-            messages: A list of message dictionaries.
+            messages: A list of message objects or dictionaries.
 
         Returns:
-            A sanitized list of message dictionaries.
+            A sanitized list of message objects or dictionaries.
         """
-        valid_tool_call_ids = set()
-        sanitized = []
+        valid_tool_call_ids: set[str] = set()
+        sanitized: list[Any] = []
 
         for msg in messages:
-            if msg.get("role") == "assistant" and "tool_calls" in msg:
-                # Collect all valid tool_call_ids from assistant message
-                for tc in msg["tool_calls"]:
-                    if "id" in tc:
-                        valid_tool_call_ids.add(tc["id"])
+            role = msg.role if isinstance(msg, LLMMessageDTO) else msg.get("role")
+            tool_calls = msg.tool_calls if isinstance(msg, LLMMessageDTO) else msg.get("tool_calls")
+            tool_call_id = msg.tool_call_id if isinstance(msg, LLMMessageDTO) else msg.get("tool_call_id")
+
+            if role == "assistant" and tool_calls:
+                for tc in tool_calls:
+                    tc_id: str | None = None
+                    if isinstance(tc, OpenAIToolCallDTO):
+                        tc_id = tc.id
+                    elif isinstance(tc, dict):  # noqa: QGR012 [REASON: External boundary dict inspection in sanitize_messages]
+                        raw_dict_id = tc.get("id")
+                        tc_id = str(raw_dict_id) if raw_dict_id is not None else None
+                    else:
+                        raw_obj_id = getattr(tc, "id", None)  # noqa: QGR001 [REASON: External boundary object inspection in sanitize_messages]
+                        tc_id = str(raw_obj_id) if raw_obj_id is not None else None
+                    if tc_id:
+                        valid_tool_call_ids.add(tc_id)
                 sanitized.append(msg)
-            elif msg.get("role") == "tool":
-                tool_call_id = msg.get("tool_call_id")
-                if tool_call_id in valid_tool_call_ids:
+            elif role == "tool":
+                if tool_call_id and str(tool_call_id) in valid_tool_call_ids:
                     sanitized.append(msg)
                 else:
                     logger.warning(
@@ -476,7 +489,11 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
                 # V3 Cache Fix: Diagnostic guard replacing blind system scrubber
                 if "messages" in call_kwargs:
-                    system_msgs = [m for m in call_kwargs["messages"] if m.get("role") == "system"]
+                    system_msgs = [
+                        m
+                        for m in call_kwargs["messages"]
+                        if (m.role == "system" if isinstance(m, LLMMessageDTO) else m.get("role") == "system")
+                    ]
                     if system_msgs:
                         logger.critical(
                             "ARCHITECTURE VIOLATION: %d system message(s) detected in cached payload. "
@@ -484,7 +501,11 @@ class VertexCacheAdapter(BaseLLMAdapter):
                             "This indicates a CompiledPrompt construction defect.",
                             len(system_msgs),
                         )
-                        call_kwargs["messages"] = [m for m in call_kwargs["messages"] if m.get("role") != "system"]
+                        call_kwargs["messages"] = [
+                            m
+                            for m in call_kwargs["messages"]
+                            if (m.role != "system" if isinstance(m, LLMMessageDTO) else m.get("role") != "system")
+                        ]
 
         return call_kwargs
 

@@ -57,8 +57,12 @@ async def get_redis_client_for_pacing() -> Any:
                 )
             )
             return _redis_pool
-    except Exception as e:
-        logger.error("Failed to initialize Redis pool for pacing.", exc_info=True)
+    except (TimeoutError, ConnectionError, OSError, RuntimeError) as e:
+        logger.error(
+            "Failed to initialize Redis pool for pacing.",
+            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.name, "error_details": str(e)},
+            exc_info=True,
+        )
         raise AppException(
             message=f"Redis initialization failed: {str(e)}",
             status_code=500,
@@ -118,8 +122,13 @@ async def apply_provider_pacing(
 
             logger.info(f"Wait-and-Poll: Pacing lock active for {lock_target}. Waiting...")
             await asyncio.sleep(poll_interval_s)
-    except Exception as e:
-        logger.error(f"Provider pacing operation failed for {provider_name}.", exc_info=True)
+    except (TimeoutError, ConnectionError, OSError, RuntimeError) as e:
+        logger.error(
+            "Provider pacing operation failed for %s.",
+            provider_name,
+            extra={"error_code": ErrorCodes.NETWORK_UNAVAILABLE.name, "error_details": str(e)},
+            exc_info=True,
+        )
         raise AppException(
             message=f"Pacing failed: {str(e)}",
             status_code=500,
@@ -219,17 +228,17 @@ class BaseLLMAdapter(ABC):
         """
         pass
 
-    def sanitize_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def sanitize_messages(self, messages: list[Any]) -> list[Any]:
         """Sanitize message array to prevent provider-specific API crashes.
 
         Defaults to returning the messages unmodified. Can be overridden by
         specific adapters to handle provider quirks (like orphaned tool messages).
 
         Args:
-            messages: A list of message dictionaries.
+            messages: A list of message objects or dictionaries.
 
         Returns:
-            A sanitized list of message dictionaries.
+            A sanitized list of message objects or dictionaries.
         """
         return messages
 
@@ -293,9 +302,10 @@ class BaseLLMAdapter(ABC):
 
         if isinstance(schema_dict, dict):  # noqa: QGR012 [REASON: Recursive raw JSON schema dictionary stripping and normalization for LLM provider API]
             # [2026-07-03] Targeted Schema Stripping:
-            # We MUST strip mechanical constraints that cause Vertex's Guided Decoding state machine to explode
-            # ("too many states for serving"). These include lengths, regexes, and bounds.
-            # We MUST NOT strip semantic fields ("title", "description", "enum") because the LLM relies on them to prevent hallucinations.
+            # We MUST strip mechanical constraints that cause Vertex's Guided Decoding state machine
+            # to explode ("too many states for serving"). These include lengths, regexes, and bounds.
+            # We MUST NOT strip semantic fields ("title", "description", "enum") because the LLM
+            # relies on them to prevent hallucinations.
             keys_to_strip: list[str] = [
                 "maxLength",
                 "minLength",

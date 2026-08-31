@@ -41,9 +41,12 @@ async def test_lite_llm_provider_tool_calls_content_extraction(monkeypatch: pyte
     provider.router.acompletion = AsyncMock()
 
     class MockFunction:
+        name = "test_func"
         arguments = '{"answer": "structured data from tool calls"}'
 
     class MockToolCall:
+        id = "call_test123"
+        type = "function"
         function = MockFunction()
 
     class MockMessage:

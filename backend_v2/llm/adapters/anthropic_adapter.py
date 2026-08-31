@@ -43,18 +43,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         dynamic_system_msgs = [m for m in compiled_prompt.dynamic_messages if m.role == "system"]
         other_dynamic_msgs = [m for m in compiled_prompt.dynamic_messages if m.role != "system"]
 
-        system_content_parts = []
-        for m in system_msgs + dynamic_system_msgs:
-            content = m.content
-            if isinstance(content, str):
-                system_content_parts.append(content)
-            elif isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        system_content_parts.append(str(block.get("text", "")))
-            elif content is not None:
-                system_content_parts.append(str(content))
-
+        system_content_parts = [m.content for m in system_msgs + dynamic_system_msgs if m.content]
         combined_system_text = "\n\n".join(system_content_parts).strip()
         final_messages: list[dict[str, Any]] = []
 
@@ -120,7 +109,10 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         Formula:
             Cost = (regular_input_tokens * P_in) + (cache_creation_input_tokens * P_creation)
                    + (cached_tokens * P_cached) + (output_tokens * P_out)
-            Savings = max(0.0, (cached_tokens * (P_in - P_cached)) - (cache_creation_input_tokens * (P_creation - P_in)))
+            Savings = max(
+                0.0,
+                (cached_tokens * (P_in - P_cached)) - (cache_creation_input_tokens * (P_creation - P_in)),
+            )
 
         Args:
             usage: The source TokenUsage object.

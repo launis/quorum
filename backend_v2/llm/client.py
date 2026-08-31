@@ -1,4 +1,3 @@
-import copy
 import json
 import logging
 import uuid
@@ -21,7 +20,7 @@ from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import PIPELINE_REGISTRY, ExecutionProfile
-from backend_v2.models.llm import LLMProviderConfig
+from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
@@ -61,7 +60,7 @@ class LLMClient:
     def _build_structured_schema(
         self,
         response_model: type[BaseModel],
-        final_messages: list[dict[str, Any]],
+        final_messages: list[LLMMessageDTO] | list[dict[str, Any]],
         validation_context: dict[str, Any] | None,
     ) -> Any:
         """Build the structured JSON schema for the provider, applying caching and strictness constraints."""
@@ -70,7 +69,7 @@ class LLMClient:
             try:
                 adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider, model_name=self.model_name)
                 adapter_schema = adapter.prepare_structured_output(response_model)
-            except Exception as e:
+            except Exception as e:  # noqa: QGR003 [REASON: Non-fatal fallback to basic JSON mode if custom adapter fails]
                 logger.error(
                     "[LLMClient] Could not fetch adapter for structured output. Fallback to basic JSON mode. Error: %s",
                     e,
@@ -119,7 +118,7 @@ class LLMClient:
                         "[LLMClient] Routed pipeline '%s' to strategy '%s'", pipeline_name, pipeline.default_strategy
                     )
                     strategy_name = pipeline.default_strategy
-        except Exception as e:
+        except (KeyError, ValueError, AttributeError) as e:
             logger.warning("[LLMClient] Execution pipelines lookup failed: %s", e)
 
         # 0.5 Apply generic system strategy aliases (if any exist in config)
@@ -219,7 +218,7 @@ class LLMClient:
 
     async def run_structured_task[T: BaseModel](
         self,
-        messages: list[dict[str, Any]] | CompiledPrompt,
+        messages: list[LLMMessageDTO] | list[dict[str, Any]] | CompiledPrompt,
         response_model: type[T],
         model: str | None = None,
         temperature: float | None = None,
@@ -279,14 +278,12 @@ class LLMClient:
             presence_penalty = None
 
         compiled_prompt: CompiledPrompt | None = None
+        final_messages: list[LLMMessageDTO] | list[dict[str, Any]]
         if isinstance(messages, CompiledPrompt):
             compiled_prompt = messages
             final_messages = compiled_prompt.to_flat_messages()
         else:
-            final_messages = []
-            for msg in messages:
-                # Create a deep copy to prevent mutating the original Orchestrator payload
-                final_messages.append(copy.deepcopy(msg))
+            final_messages = [m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages]
 
         # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
         # We process the raw messages array dynamically before handing it to the provider.
@@ -335,14 +332,20 @@ class LLMClient:
                     "[LLMClient] Context Cache ACTIVE: %s | Dynamic payload: %d messages, ~%d chars",
                     extra_kwargs["cached_content"],
                     num_msgs,
-                    sum(len(str(m.get("content", ""))) for m in final_messages),
+                    sum(
+                        len(m.content)
+                        if isinstance(m, LLMMessageDTO)
+                        else (len(str(m["content"])) if isinstance(m, dict) and "content" in m else 0)  # noqa: QGR012 [REASON: Dictionary inspection in debug logging telemetry]
+                        for m in final_messages
+                    ),
                 )
 
                 if num_msgs == 0:
                     error_msg = (
                         "Fail-Fast: Context Caching FATAL ERROR. The dynamic payload is empty (0 messages). "
                         "This usually means PromptCompilerAdapter failed to find an <execution_parameters> or "
-                        "similar tag to separate the static cache from the dynamic prompt. Vertex AI will reject this with a 400 Bad Request."
+                        "similar tag to separate the static cache from the dynamic prompt. "
+                        "Vertex AI will reject this with a 400 Bad Request."
                     )
                     logger.error(error_msg)
                     raise AppException(
@@ -444,9 +447,9 @@ class LLMClient:
                 # 4. Parse Result
                 raw_content = response.content
 
-                finish_reason = ""
-                if hasattr(response, "choices") and response.choices:
-                    finish_reason = getattr(response.choices[0], "finish_reason", "")
+                finish_reason = (
+                    response.provider_metadata.finish_reason if response and response.provider_metadata else ""
+                )
 
                 if finish_reason and str(finish_reason).lower() in ("safety", "content_filtered", "recitation"):
                     raise AgentExecutionError(
@@ -458,7 +461,9 @@ class LLMClient:
 
                 if not raw_content or not str(raw_content).strip():
                     raise LLMSchemaValidationError(
-                        validation_error_msg="Safety Filter Triggered - LLM output was empty or blocked without explicit reason.",
+                        validation_error_msg=(
+                            "Safety Filter Triggered - LLM output was empty or blocked without explicit reason."
+                        ),
                         raw_llm_payload="",
                         is_eof=True,
                         token_usage=token_usage,
@@ -486,7 +491,7 @@ class LLMClient:
                 if isinstance(schema_err, (ServiceUnavailableError, ConfigurationError)):
                     raise schema_err
                 if isinstance(schema_err, AppException) and (
-                    getattr(schema_err, "status_code", 0) in (502, 503, 504)
+                    schema_err.status_code in (502, 503, 504)
                     or (
                         schema_err.details and schema_err.details.get("error_code") == ErrorCodes.UPSTREAM_TIMEOUT.value
                     )
@@ -536,7 +541,7 @@ class LLMClient:
 
     async def run_chat(
         self,
-        messages: list[dict[str, Any]] | CompiledPrompt,
+        messages: list[LLMMessageDTO] | list[dict[str, Any]] | CompiledPrompt,
         model: str | None = None,
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | None = None,
@@ -596,13 +601,12 @@ class LLMClient:
         strict_timeout = get_settings().llm_default_timeout_seconds
 
         compiled_prompt: CompiledPrompt | None = None
+        final_messages: list[LLMMessageDTO] | list[dict[str, Any]]
         if isinstance(messages, CompiledPrompt):
             compiled_prompt = messages
             final_messages = compiled_prompt.to_flat_messages()
         else:
-            final_messages = []
-            for msg in messages:
-                final_messages.append(copy.deepcopy(msg))
+            final_messages = [m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages]
 
         # 1. Evaluate Context Caching Requirements
         has_ephemeral_caching = False

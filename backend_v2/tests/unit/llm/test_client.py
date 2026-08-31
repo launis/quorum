@@ -132,7 +132,8 @@ async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> N
 
     # The self-healing loop appends to the existing user message
     assert len(msgs) == 1
-    socratic_system = msgs[-1].get("content", "")
+    last_msg = msgs[-1]
+    socratic_system = last_msg.content if hasattr(last_msg, "content") else last_msg.get("content", "")
 
     # Confirm Semantic instruction strings
     assert "CRITICAL LOGICAL ERROR" in socratic_system

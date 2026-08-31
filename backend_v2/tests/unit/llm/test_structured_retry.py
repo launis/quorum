@@ -21,6 +21,7 @@ class MockLLMResponse:
             "reasoning_tokens": 0,
             "cost_usd": 0.0,
         }
+        self.provider_metadata = None
 
 
 class DummyModel(BaseModel):

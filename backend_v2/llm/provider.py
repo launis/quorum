@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import time
+import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
@@ -28,8 +29,9 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.adapters.base_adapter import apply_provider_pacing
 from backend_v2.llm.mock import MockLLMService
+from backend_v2.models.domain.mcp import OpenAIFunctionCallDTO, OpenAIToolCallDTO
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.llm import LLMProviderConfig, LLMResponse
+from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig, LLMResponse, ProviderMetadataDTO
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import get_settings
 
@@ -224,7 +226,7 @@ class LLMProvider(ABC):
         self,
         prompt: str | None = None,
         system_instruction: str | None = None,
-        messages: list[dict[str, Any]] | None = None,
+        messages: list[LLMMessageDTO] | list[dict[str, Any]] | None = None,
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
@@ -437,7 +439,7 @@ class LiteLLMProvider(LLMProvider):
         self,
         prompt: str | None = None,
         system_instruction: str | None = None,
-        messages: list[dict[str, Any]] | None = None,
+        messages: list[LLMMessageDTO] | list[dict[str, Any]] | None = None,
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
@@ -478,10 +480,16 @@ class LiteLLMProvider(LLMProvider):
         """
         import litellm
 
-        final_messages: list[dict[str, Any]] = []
+        final_messages: list[LLMMessageDTO | dict[str, Any]] = []
         if messages:
             if "cached_content" in kwargs:
-                final_messages.extend([m for m in messages if m.get("role") != "system"])
+                final_messages.extend(
+                    [
+                        m
+                        for m in messages
+                        if (m.role != "system" if isinstance(m, LLMMessageDTO) else m.get("role") != "system")
+                    ]
+                )
             else:
                 final_messages.extend(messages)
         else:
@@ -571,10 +579,14 @@ class LiteLLMProvider(LLMProvider):
 
             logger.info("[LiteLLM] Calling %s...", self.model_name)
 
+            serialized_messages = [
+                m.model_dump(mode="json", exclude_none=True) if isinstance(m, BaseModel) else m for m in final_messages
+            ]
+
             # Prepare arguments
             call_kwargs: dict[str, Any] = {
                 "model": self.model_name,
-                "messages": final_messages,
+                "messages": serialized_messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
                 "top_p": top_p,
@@ -784,17 +796,18 @@ class LiteLLMProvider(LLMProvider):
                         usage["reasoning_tokens"] = details.reasoning_tokens
 
             final_content = raw_content
-            parsed_obj = None  # --- ADVANCED TELEMETRY & METADATA ---
-            system_fingerprint = response.system_fingerprint if hasattr(response, "system_fingerprint") else None
+            parsed_obj = None
+            # --- ADVANCED TELEMETRY & METADATA ---
+            system_fingerprint = response.system_fingerprint if hasattr(response, "system_fingerprint") else None  # noqa: QGR001 [REASON: External LiteLLM response choice inspection]
             if finish_reason in ["stop", "eos"]:
                 finish_reason = None
 
-            provider_meta = response.model_dump() if hasattr(response, "model_dump") else {}
+            provider_meta = response.model_dump() if hasattr(response, "model_dump") else {}  # noqa: QGR001 [REASON: External LiteLLM response model dump]
 
             # Rate limits
-            if hasattr(response, "_hidden_params") and isinstance(response._hidden_params, dict):
+            if hasattr(response, "_hidden_params") and isinstance(response._hidden_params, dict):  # noqa: QGR001, QGR012 [REASON: External LiteLLM hidden params inspection]
                 headers = response._hidden_params["headers"] if "headers" in response._hidden_params else {}
-                if isinstance(headers, dict):
+                if isinstance(headers, dict):  # noqa: QGR012 [REASON: External LiteLLM response headers inspection]
                     ratelimit_key = "x-ratelimit-remaining-requests"
                     rem_reqs = headers[ratelimit_key] if ratelimit_key in headers else None
                     if rem_reqs:
@@ -803,15 +816,15 @@ class LiteLLMProvider(LLMProvider):
                             logger.warning("[LiteLLMProvider] QUOTA WARNING: Only %s requests remaining.", rem_reqs)
 
             # Vertex AI Safety & Grounding Citations
-            if hasattr(response, "model_extra") and isinstance(response.model_extra, dict):
+            if hasattr(response, "model_extra") and isinstance(response.model_extra, dict):  # noqa: QGR001, QGR012 [REASON: External LiteLLM model_extra metadata inspection]
                 if "safety_ratings" in response.model_extra:
                     provider_meta["safety_ratings"] = response.model_extra["safety_ratings"]
                 gm = response.model_extra["grounding_metadata"] if "grounding_metadata" in response.model_extra else {}
-                if isinstance(gm, dict) and "grounding_chunks" in gm:
+                if isinstance(gm, dict) and "grounding_chunks" in gm:  # noqa: QGR012 [REASON: External LiteLLM grounding metadata inspection]
                     urls = [
                         chunk["web"]["uri"]
                         for chunk in gm["grounding_chunks"]
-                        if isinstance(chunk, dict) and "web" in chunk and "uri" in chunk["web"]
+                        if isinstance(chunk, dict) and "web" in chunk and "uri" in chunk["web"]  # noqa: QGR012 [REASON: External LiteLLM grounding chunks inspection]
                     ]
                     if urls:
                         provider_meta["grounding_urls"] = urls
@@ -864,26 +877,42 @@ class LiteLLMProvider(LLMProvider):
             usage["cost_usd"] = cost
 
             # Extract tool_calls from LLM response (MCP Tool Loop support)
-            extracted_tool_calls: list[dict[str, Any]] = []
-            if hasattr(message, "tool_calls") and message.tool_calls:
-                for tc in message.tool_calls:
-                    if hasattr(tc, "model_dump"):
-                        tc_dict = tc.model_dump()
-                    elif isinstance(tc, dict):
-                        tc_dict = tc
+            extracted_tool_calls: list[OpenAIToolCallDTO] = []
+            raw_tool_calls = getattr(message, "tool_calls", None)  # noqa: QGR001 [REASON: External LiteLLM response choice message inspection]
+            if raw_tool_calls:
+                for tc in raw_tool_calls:
+                    if isinstance(tc, OpenAIToolCallDTO):
+                        extracted_tool_calls.append(tc)
+                    elif hasattr(tc, "model_dump"):  # noqa: QGR001 [REASON: Pydantic model serialization]
+                        extracted_tool_calls.append(OpenAIToolCallDTO.model_validate(tc.model_dump()))
+                    elif isinstance(tc, dict):  # noqa: QGR012 [REASON: External LiteLLM tool call dictionary validation]
+                        extracted_tool_calls.append(OpenAIToolCallDTO.model_validate(tc))
                     else:
-                        tc_dict = vars(tc) if hasattr(tc, "__dict__") else {}
-                    extracted_tool_calls.append(tc_dict)
+                        fn = getattr(tc, "function", None)  # noqa: QGR001 [REASON: External LiteLLM tool call duck-typing]
+                        fn_name = getattr(fn, "name", "unknown") if fn else "unknown"  # noqa: QGR001
+                        fn_args = getattr(fn, "arguments", "{}") if fn else "{}"  # noqa: QGR001
+                        fn_dto = OpenAIFunctionCallDTO(name=fn_name, arguments=fn_args)
+                        tc_id = str(getattr(tc, "id", f"call_{uuid.uuid4().hex[:8]}"))  # noqa: QGR001
+                        extracted_tool_calls.append(OpenAIToolCallDTO(id=tc_id, function=fn_dto))
+
+            provider_meta_dto = ProviderMetadataDTO(
+                finish_reason=str(finish_reason) if finish_reason else None,
+                model_extra=provider_meta if provider_meta else None,
+            )
+
+            typed_messages: list[LLMMessageDTO] = [
+                m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in final_messages
+            ]
 
             return LLMResponse(
                 content=final_content,
                 parsed_content=parsed_obj if response_schema else None,
                 reasoning_token=reasoning_token,
                 token_usage=TokenUsage.model_validate(usage),
-                provider_metadata=provider_meta,
+                provider_metadata=provider_meta_dto,
                 system_fingerprint=system_fingerprint,
-                tool_calls=extracted_tool_calls if extracted_tool_calls else [],
-                messages=final_messages,
+                tool_calls=extracted_tool_calls if extracted_tool_calls else None,
+                messages=typed_messages,
                 override_reason=None,
             )
 
@@ -897,7 +926,7 @@ class LiteLLMProvider(LLMProvider):
 
             # 0. DIRECT PASS-THROUGH (Network Errors for BaseAgent)
             if (
-                isinstance(e, getattr(litellm, "APIConnectionError", type(None)))
+                isinstance(e, getattr(litellm, "APIConnectionError", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
                 or "NameResolutionError" in error_type
                 or "ConnectTimeout" in error_type
                 or "gaierror" in error_type
@@ -907,8 +936,8 @@ class LiteLLMProvider(LLMProvider):
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             # 429s are natively handled in the inner retry loop! If they bubble here, retries were exhausted.
             if (
-                isinstance(e, getattr(litellm, "RateLimitError", type(None)))
-                or (hasattr(e, "status_code") and e.status_code == 429)
+                isinstance(e, getattr(litellm, "RateLimitError", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
+                or (hasattr(e, "status_code") and e.status_code == 429)  # noqa: QGR001 [REASON: Dynamic exception status code check]
                 or "Resource exhausted" in error_msg
             ):
                 logger.error(
@@ -936,8 +965,8 @@ class LiteLLMProvider(LLMProvider):
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif (
-                isinstance(e, getattr(litellm, "AuthenticationError", type(None)))
-                or (hasattr(e, "status_code") and e.status_code == 401)
+                isinstance(e, getattr(litellm, "AuthenticationError", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
+                or (hasattr(e, "status_code") and e.status_code == 401)  # noqa: QGR001 [REASON: Dynamic exception status code check]
                 or "invalid_api_key" in error_msg
             ):
                 logger.critical(
@@ -952,8 +981,8 @@ class LiteLLMProvider(LLMProvider):
                 ) from e
 
             # 3. CONTEXT WINDOW (Data/Prompt Engineering)
-            elif isinstance(e, getattr(litellm, "ContextWindowExceededError", type(None))) or (
-                hasattr(e, "status_code")
+            elif isinstance(e, getattr(litellm, "ContextWindowExceededError", type(None))) or (  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
+                hasattr(e, "status_code")  # noqa: QGR001 [REASON: Dynamic exception status code check]
                 and e.status_code == 400
                 and ("context" in error_msg.lower() or "token" in error_msg.lower())
             ):
@@ -965,7 +994,7 @@ class LiteLLMProvider(LLMProvider):
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
                 ) from e
-            elif hasattr(e, "status_code") and e.status_code == 400:
+            elif hasattr(e, "status_code") and e.status_code == 400:  # noqa: QGR001 [REASON: Dynamic exception status code check]
                 logger.error("[LiteLLM] %s: BAD REQUEST (400): %s", ErrorCodes.AGENT_RESPONSE_MALFORMED.name, error_msg)
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
@@ -973,10 +1002,10 @@ class LiteLLMProvider(LLMProvider):
 
             # 4. SERVICE INSTABILITY (Infra)
             elif (
-                isinstance(e, getattr(litellm, "ServiceUnavailableError", type(None)))
-                or isinstance(e, getattr(litellm, "Timeout", type(None)))
+                isinstance(e, getattr(litellm, "ServiceUnavailableError", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
+                or isinstance(e, getattr(litellm, "Timeout", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
                 or isinstance(e, asyncio.TimeoutError)
-                or (hasattr(e, "status_code") and e.status_code in (500, 502, 503, 504))
+                or (hasattr(e, "status_code") and e.status_code in (500, 502, 503, 504))  # noqa: QGR001 [REASON: Dynamic exception status code check]
             ):
                 logger.error(
                     "[LiteLLM] %s: SERVICE UNAVAILABLE (Upstream/Timeout): %s",
@@ -1047,7 +1076,7 @@ class MockProvider(LLMProvider):
         self,
         prompt: str | None = None,
         system_instruction: str | None = None,
-        messages: list[dict[str, Any]] | None = None,
+        messages: list[LLMMessageDTO] | list[dict[str, Any]] | None = None,
         response_schema: type[BaseModel] | dict[str, Any] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
@@ -1115,7 +1144,9 @@ class MockProvider(LLMProvider):
                 ) from e
 
         # Simulate network delay for verification of async behavior
-        await asyncio.sleep(0.5)
+        mock_pacing_delay = get_settings().pacing_delay_mock_seconds
+        if mock_pacing_delay > 0:
+            await asyncio.sleep(mock_pacing_delay)
 
         mock = MockLLMService()  # MockLLMService on untyped legacy moduuli
 
@@ -1125,7 +1156,9 @@ class MockProvider(LLMProvider):
         prompt_str = prompt or ""
         if messages and not prompt_str:
             # Fallback to serializing messages if prompt is empty
-            prompt_str = json.dumps(messages)
+            prompt_str = json.dumps(
+                [m.model_dump(mode="json", exclude_none=True) if isinstance(m, BaseModel) else m for m in messages]
+            )
 
         result = mock.generate_content(
             prompt_str,
@@ -1138,7 +1171,7 @@ class MockProvider(LLMProvider):
         content_str = ""
         parsed_result = None
 
-        if isinstance(result, dict) and "message" in result and result["message"] == "Mock data not found for key":
+        if isinstance(result, dict) and "message" in result and result["message"] == "Mock data not found for key":  # noqa: QGR012 [REASON: Mock LLM service dictionary payload inspection]
             # STRICT MANDATE: No mock hydration fallbacks. If seed missing, crash properly.
             raise ConfigurationError(
                 message=(
@@ -1147,7 +1180,7 @@ class MockProvider(LLMProvider):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         else:
-            if isinstance(result, dict):
+            if isinstance(result, dict):  # noqa: QGR012 [REASON: Mock LLM service dictionary payload inspection]
                 content_str = json.dumps(result, ensure_ascii=False)
                 parsed_result = result
             elif isinstance(result, BaseModel):
@@ -1197,6 +1230,12 @@ class MockProvider(LLMProvider):
                     details={"error_code": ErrorCodes.UNKNOWN_ERROR.value},
                 ) from e
 
+        mock_messages: list[LLMMessageDTO] = []
+        if system_instruction:
+            mock_messages.append(LLMMessageDTO(role="system", content=system_instruction))
+        if prompt:
+            mock_messages.append(LLMMessageDTO(role="user", content=prompt))
+
         return LLMResponse(
             content=content_str,
             parsed_content=parsed_result,
@@ -1207,12 +1246,9 @@ class MockProvider(LLMProvider):
                 total_tokens=int(usage_data["total_tokens"]),
                 cost_usd=float(usage_data["total_cost"]),
             ),
-            tool_calls=[],
-            provider_metadata={},
-            messages=[
-                {"role": "system", "content": system_instruction} if system_instruction else {},
-                {"role": "user", "content": prompt},
-            ],
+            tool_calls=None,
+            provider_metadata=ProviderMetadataDTO(),
+            messages=mock_messages,
         )
 
 

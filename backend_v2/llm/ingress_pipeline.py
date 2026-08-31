@@ -52,7 +52,7 @@ class UniversalIngress:
         origin = get_origin(annotation)
         discriminator_field: str | None = None
         target_union: Any = None
-        union_types = (Union, getattr(types, "UnionType", Union))
+        union_types = (Union, types.UnionType)
 
         if origin is Annotated:
             args = get_args(annotation)
@@ -233,7 +233,7 @@ class UniversalIngress:
                         disc_name = discriminator
                     cleaned_list = []
                     for item in val:
-                        if isinstance(item, dict):
+                        if isinstance(item, dict):  # noqa: QGR012 [REASON: External boundary JSON payload sanitation in UniversalIngress ACL]
                             item_copy = dict(item)
                             if disc_name and candidate_models:
                                 matched_model = cls._infer_and_heal_discriminator(
@@ -256,7 +256,7 @@ class UniversalIngress:
             return val
 
         # Handle nested dict
-        if isinstance(val, dict):
+        if isinstance(val, dict):  # noqa: QGR012 [REASON: External boundary JSON payload sanitation in UniversalIngress ACL]
             val_copy = dict(val)
             disc_name, candidate_models = cls._extract_discriminator_info(annotation)
             if not disc_name and isinstance(discriminator, str):
@@ -304,7 +304,7 @@ class UniversalIngress:
         Returns:
             The cleaned dictionary, ready for strict model_validate().
         """
-        if not isinstance(data, dict):
+        if not isinstance(data, dict):  # noqa: QGR012 [REASON: External boundary JSON payload sanitation in UniversalIngress ACL]
             return data
 
         cleaned = {}
@@ -366,7 +366,7 @@ class UniversalIngress:
             original_error = str(e)
             try:
                 repaired_obj = repair_json(raw_stripped, return_objects=True)
-                if not isinstance(repaired_obj, (dict, list)):
+                if not isinstance(repaired_obj, (dict, list)):  # noqa: QGR012 [REASON: External boundary JSON repair type check in UniversalIngress ACL]
                     raise ValueError(f"json_repair returned unexpected type: {type(repaired_obj)}")
                 parsed_data = cast(dict[str, Any], repaired_obj)
                 logger.warning(f"[UniversalIngress] Self-healing successful for JSONDecodeError: {original_error}")

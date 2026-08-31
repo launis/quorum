@@ -4,7 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.llm.adapters.vertex_adapter import VertexCacheAdapter
-from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 
 
 @pytest.mark.asyncio
@@ -15,11 +16,11 @@ async def test_vertex_adapter_caching_system_role_bug() -> None:
     # Create a prompt with a system message and high estimated tokens to force caching
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are a strict validation system."},
-            {"role": "user", "content": "Some very long text to cache " * 10000},
+            LLMMessageDTO(role="system", content="You are a strict validation system."),
+            LLMMessageDTO(role="user", content="Some very long text to cache " * 10000),
         ],
         dynamic_messages=[],
-        metadata={"estimated_token_count": 35000},
+        metadata=PromptMetadataDTO(token_proxy_score=35000.0),
     )
 
     mock_cached_content = MagicMock()

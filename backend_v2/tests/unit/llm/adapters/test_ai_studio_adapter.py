@@ -16,6 +16,7 @@ from backend_v2.llm.adapters.ai_studio_adapter import (  # noqa: E402
     get_redis_client,
 )
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import ModelProfile
 
@@ -234,7 +235,11 @@ async def test_ai_studio_thundering_herd_protection() -> None:
 
     adapter = GoogleAIStudioCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"ai_studio_cache:gemini-3.7-flash:{static_hash}"
     lock_key = f"lock:ai_studio_cache:gemini-3.7-flash:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
@@ -270,7 +275,11 @@ async def test_ai_studio_fail_soft_error(caplog: pytest.LogCaptureFixture) -> No
 
     adapter = GoogleAIStudioCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"ai_studio_cache:gemini-3.7-flash:{static_hash}"
     lock_key = f"lock:ai_studio_cache:gemini-3.7-flash:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
@@ -302,7 +311,11 @@ async def test_ai_studio_cache_immediate_hit_in_shared_ledger() -> None:
     )
 
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"ai_studio_cache:gemini-3.7-flash:{static_hash}"
     existing_cache_id = "cachedContents/hit-12345"
     await redis_client.set(redis_key, existing_cache_id, ex=300)
@@ -328,7 +341,11 @@ async def test_ai_studio_instant_exit_on_failed() -> None:
 
     adapter = GoogleAIStudioCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"ai_studio_cache:gemini-3.7-flash:{static_hash}"
     lock_key = f"lock:ai_studio_cache:gemini-3.7-flash:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
@@ -357,7 +374,11 @@ async def test_ai_studio_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyP
 
     adapter = GoogleAIStudioCacheAdapter()
     redis_client = await get_redis_client()
-    static_hash = hashlib.sha256(json.dumps(prompt.static_messages, sort_keys=True).encode()).hexdigest()
+    static_hash = hashlib.sha256(
+        json.dumps(
+            [m.model_dump(mode="json", exclude_none=True) for m in prompt.static_messages], sort_keys=True
+        ).encode()
+    ).hexdigest()
     redis_key = f"ai_studio_cache:gemini-3.7-flash:{static_hash}"
     lock_key = f"lock:ai_studio_cache:gemini-3.7-flash:{static_hash}"
 
@@ -385,8 +406,8 @@ async def test_ai_studio_adapter_static_chars_with_content_blocks() -> None:
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "System instructions here."},
-            {"role": "assistant", "content": [{"type": "text", "text": large_block}]},
+            LLMMessageDTO(role="system", content="System instructions here."),
+            LLMMessageDTO(role="assistant", content=large_block),
         ],
         dynamic_messages=[],
     )

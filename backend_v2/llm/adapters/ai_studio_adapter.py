@@ -20,7 +20,7 @@ from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import PromptCacheStatus
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import ChatMessageDTO, ModelProfile
+from backend_v2.models.v2_core import ModelProfile
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
@@ -170,7 +170,7 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                     ai_studio_contents = []
                     system_text = ""
                     for raw_msg in static_flat:
-                        msg = raw_msg if isinstance(raw_msg, ChatMessageDTO) else ChatMessageDTO.model_validate(raw_msg)
+                        msg = raw_msg if isinstance(raw_msg, LLMMessageDTO) else LLMMessageDTO.model_validate(raw_msg)
                         role = msg.role
                         content = msg.content
 
