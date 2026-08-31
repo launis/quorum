@@ -257,11 +257,10 @@ async def execute_workflow_job(
                 for event in updated_exec_record.execution_trace:
                     if event.event_type in ("error", "dlq_routed"):
                         is_degraded = True
-                    if not isinstance(event.content, dict) or "_step_metadata" not in event.content:
-                        continue
-
                     try:
-                        step_meta = StepTraceMetadataDTO.model_validate(event.content["_step_metadata"])
+                        step_meta = TraceEventMetadataEnvelope.model_validate(event.content).step_metadata
+                        if step_meta is None:
+                            continue
                         usage = step_meta.token_usage
                     except ValidationError, ValueError:
                         continue

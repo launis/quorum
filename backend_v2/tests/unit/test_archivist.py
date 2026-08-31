@@ -3,7 +3,6 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
 from backend_v2.models.domain.archivist import (
     ArchiveCase,
     ArchivistInput,

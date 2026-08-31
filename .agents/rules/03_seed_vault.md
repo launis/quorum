@@ -32,8 +32,8 @@
          <mandate>NEVER hesitate to wipe `db_v2.json` or update `db_v2.json` manually on the fly. This is purely a local testing environment; always prioritize architectural purity and wipe/re-seed the local database via `uv run python backend_v2/seed/run_seed.py local` whenever corrupted states arise.</mandate>
     </rule_block>
 
-    <rule_block id="ai_context_amnesia_guard">
-         <mandate>NEVER use `grep_search` on `seed_data.json` or read the entire file using `view_file` without explicit line bounds (Windows CRLF silently breaks grep). To search, verify, or interrogate, write and execute deterministic Python audit scripts via `run_command` (e.g., `uv run python audit_seed.py` reading via `json.load`). Bounded reads (`StartLine`/`EndLine`) are permitted ONLY after verifying exact line numbers via Python.</mandate>
+    <rule_block id="unregistered_collection_ban">
+         <mandate>NEVER add unregistered top-level collections or loose dictionary arrays to `seed_data.json`. Every top-level collection MUST be registered in `SeedCollectionName` SSOT and validated by `validate_all_seed_collections()` in `backend_v2/seed/run_seed.py`.</mandate>
     </rule_block>
 </catastrophic_system_bans>
 
@@ -43,7 +43,7 @@
     <step id="1_propose">PROPOSE: Generate an `implementation_plan.md` artifact showing the intended JSON snippet delta and set `RequestFeedback: true`. PAUSE execution and wait for the user to click the Proceed button in the IDE UI.</step>
     <step id="2_backup">BACKUP: Store a precise timestamped backup copy inside `backend_v2/seed/backups/` (automatically created by `sanitize_seed_vault.py` or manual copy) BEFORE making any modifications.</step>
     <step id="3_modify">MODIFY: Perform structural edits using `multi_replace_file_content` or automate large-scale ontological sanitization via `uv run python scripts/sanitize_seed_vault.py --reseed --test`. Formatter uses strict Pydantic V2 re-serialization and atomic temporary file replacement.</step>
-    <step id="3.5_syntax_check">JSON INTEGRITY CHECK: Immediately after modification, verify JSON syntax and referential integrity via `uv run python scripts/audit_database_atoms.py --strict`. CIRCUIT BREAKER: If any verification gate fails, immediately restore the backup from step `2_backup` and STOP.</step>
+    <step id="3.5_preflight_check">TWO-PHASE PRE-FLIGHT IN-MEMORY VALIDATION: Verify seed data integrity via `uv run python backend_v2/seed/run_seed.py local --dry-run` and `uv run python scripts/audit_database_atoms.py --strict`. All collections must validate 100% in-memory with strict schemas (`extra='forbid'`) before any DB wipe. CIRCUIT BREAKER: If any verification gate fails, immediately restore the backup from step `2_backup` and STOP.</step>
     <step id="4_verify">VERIFY (Critical Gate): Run full quality gates via `uv run python scripts/backend_audit_loop.py backend_v2 --test` and Flutter domain parity tests (`uv run python scripts/flutter_audit_loop.py client_app_v2/test/models/domain_parity_test.dart`). If tests fail, YOU MUST revert.</step>
     <step id="5_report">REPORT: Describe specifically what paths aligned with expectations contextually.</step>
     <step id="6_reseed">RE-SEED: Once verified, autonomously execute the final seeding command via `run_command`: `uv run python backend_v2/seed/run_seed.py local` (or append `--reseed` to `sanitize_seed_vault.py`).</step>

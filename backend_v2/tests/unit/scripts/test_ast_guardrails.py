@@ -576,11 +576,14 @@ def test_multifile_scanning_resilience(tmp_path: Path) -> None:
 
 
 def test_multifile_scanning_advisory_pass(tmp_path: Path) -> None:
+    # QGR006 (asyncio.gather) is a WARNING severity rule
     file1 = tmp_path / "warning_only.py"
-    file1.write_text("val = getattr(obj, 'x', None)\n", encoding="utf-8")
+    file1.write_text("import asyncio\nasync def f(): await asyncio.gather(t1(), t2())\n", encoding="utf-8")
 
     violations, is_success = scan_files_for_guardrails([tmp_path], strict=False)
     assert len(violations) == 1
+    assert violations[0].rule_code == "QGR006"
+    assert violations[0].severity == GuardrailSeverity.WARNING
     assert is_success is True  # In advisory mode, warnings don't fail
 
 
@@ -743,7 +746,7 @@ def test_qgr012_allows_valid_inline_suppression() -> None:
 
 
 def test_relative_path_fatal_enforcement() -> None:
-    """Verifies that relative path inputs (services/foo.py, hooks/bar.py) trigger FATAL severity."""
+    """Verifies that relative path inputs (models/foo.py, services/foo.py, hooks/bar.py) trigger FATAL severity."""
     code_qgr001 = "x = getattr(obj, 'attr', None)\n"
     code_qgr002 = "x = data.get('key', 'default')\n"
     code_qgr012 = "if isinstance(data, dict):\n    pass\n"
@@ -770,10 +773,17 @@ def test_relative_path_fatal_enforcement() -> None:
     assert v4[0].rule_code == "QGR012"
     assert v4[0].severity == GuardrailSeverity.FATAL
 
+    # Models relative path -> FATAL
+    v5 = scan_source_code_for_guardrails("backend_v2/models/sample.py", code_qgr012.encode("utf-8"))
+    assert len(v5) == 1
+    assert v5[0].rule_code == "QGR012"
+    assert v5[0].severity == GuardrailSeverity.FATAL
 
-def test_qgr012_warning_severity_outside_services_and_hooks() -> None:
+
+def test_qgr012_warning_severity_in_test_files() -> None:
+    """Verifies that test files receive WARNING severity for isinstance dict checks."""
     code = "if isinstance(payload, dict):\n    pass\n"
-    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/item.py")
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_item.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR012"
     assert violations[0].severity == GuardrailSeverity.WARNING
@@ -798,3 +808,35 @@ def test_qgr012_match_case_dict_patterns() -> None:
     assert len(v3) == 1
     assert v3[0].rule_code == "QGR012"
     assert v3[0].severity == GuardrailSeverity.FATAL
+
+
+# ==============================================================================
+# Contract Tests: Explicit Epic 150 Phase 4 Test Contracts
+# ==============================================================================
+
+
+def test_ast_guardrails_fatal_rejection_on_dict_messages() -> None:
+    """Contract 1: isinstance(payload, dict) in models returns QGR012 with FATAL severity."""
+    code = "if isinstance(payload, dict):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/models/sample.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR012"
+    assert violations[0].severity == GuardrailSeverity.FATAL
+
+
+def test_ast_guardrails_allows_exempt_driver_annotations() -> None:
+    """Contract 2: Exempt boundary files receive WARNING severity instead of FATAL."""
+    code = "val = getattr(obj, 'x', None)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/database/interfaces.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR001"
+    assert violations[0].severity == GuardrailSeverity.WARNING
+
+
+def test_ast_guardrails_qgr001_fatal_in_models() -> None:
+    """Contract 3: getattr(obj, 'attr') in domain models returns QGR001 with FATAL severity."""
+    code = "val = getattr(obj, 'attr', None)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/models/domain.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR001"
+    assert violations[0].severity == GuardrailSeverity.FATAL

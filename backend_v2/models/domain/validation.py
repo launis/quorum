@@ -133,6 +133,17 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
     @field_validator("max_retries", mode="before")
     @classmethod
     def validate_max_retries(cls, v: int) -> int:
+        """Validate max_retries boundary value.
+
+        Args:
+            v: Maximum retries limit to validate.
+
+        Returns:
+            Validated integer value.
+
+        Raises:
+            AppException: If value is not between 1 and 5.
+        """
         if v < 1 or v > 5:
             msg = "max_retries must be between 1 and 5"
             logger.error("[HardeningRetryDirectiveDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -142,6 +153,17 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
     @field_validator("current_retry_count", mode="before")
     @classmethod
     def validate_current_retry_count(cls, v: int) -> int:
+        """Validate current_retry_count non-negative boundary value.
+
+        Args:
+            v: Current retry count to validate.
+
+        Returns:
+            Validated integer value.
+
+        Raises:
+            AppException: If value is negative.
+        """
         if v < 0:
             msg = "current_retry_count must be non-negative"
             logger.error("[HardeningRetryDirectiveDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -151,6 +173,17 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
     @field_validator("strictness_override", mode="before")
     @classmethod
     def validate_strictness_override(cls, v: int | None) -> int | None:
+        """Validate strictness_override percentage boundary value.
+
+        Args:
+            v: Optional strictness percentage to validate.
+
+        Returns:
+            Validated integer or None.
+
+        Raises:
+            AppException: If value is not between 0 and 100.
+        """
         if v is not None and (v < 0 or v > 100):
             msg = "strictness_override must be between 0 and 100"
             logger.error("[HardeningRetryDirectiveDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

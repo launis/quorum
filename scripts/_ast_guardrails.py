@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
     "BANNED_REASON_PLACEHOLDERS",
+    "BOUNDARY_EXEMPTION_FILES",
     "CommentSuppressor",
     "GuardrailSeverity",
     "GuardrailViolation",
@@ -75,6 +76,20 @@ BANNED_REASON_PLACEHOLDERS: set[str] = {
     "temporary",
     "temp",
     "",
+}
+
+
+BOUNDARY_EXEMPTION_FILES: set[str] = {
+    "interfaces.py",
+    "wrapper.py",
+    "driver.py",
+    "tinydb_driver.py",
+    "firestore_driver.py",
+    "logging_config.py",
+    "exceptions.py",
+    "alias_engine.py",
+    "dict_utils.py",
+    "finops_trace_analyzer.py",
 }
 
 
@@ -160,7 +175,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.violations: list[GuardrailViolation] = []
         path_parts = set(filepath.replace("\\", "/").strip("/").split("/"))
         self._is_test_file = "tests" in path_parts or Path(filepath).name.startswith("test_")
-        self._is_services_or_hooks = bool(path_parts & {"services", "hooks"}) and not self._is_test_file
+        self._is_boundary_exempt = Path(filepath).name in BOUNDARY_EXEMPTION_FILES
         self._pydantic_base_classes_in_file: set[str] = set()
 
     def _add_violation(
@@ -210,7 +225,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         # QGR001: getattr / hasattr / setattr reflection duck-typing and frozen mutations
-        qgr001_sev = GuardrailSeverity.FATAL if self._is_services_or_hooks else GuardrailSeverity.WARNING
+        qgr001_sev = (
+            GuardrailSeverity.FATAL
+            if (not self._is_test_file and not self._is_boundary_exempt)
+            else GuardrailSeverity.WARNING
+        )
         match node.func:
             case ast.Name(id="getattr" | "hasattr" | "setattr"):
                 self._add_violation(
@@ -249,7 +268,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     exempt = False
 
             if not exempt:
-                qgr002_sev = GuardrailSeverity.FATAL if self._is_services_or_hooks else GuardrailSeverity.WARNING
+                qgr002_sev = (
+                    GuardrailSeverity.FATAL
+                    if (not self._is_test_file and not self._is_boundary_exempt)
+                    else GuardrailSeverity.WARNING
+                )
                 self._add_violation(
                     node,
                     "QGR002",
@@ -354,7 +377,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     pass
 
             if is_dict_check:
-                qgr012_sev = GuardrailSeverity.FATAL if self._is_services_or_hooks else GuardrailSeverity.WARNING
+                qgr012_sev = (
+                    GuardrailSeverity.FATAL
+                    if (not self._is_test_file and not self._is_boundary_exempt)
+                    else GuardrailSeverity.WARNING
+                )
                 self._add_violation(
                     node,
                     "QGR012",
@@ -621,7 +648,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         pass
 
                 if is_dict_pattern:
-                    qgr012_sev = GuardrailSeverity.FATAL if self._is_services_or_hooks else GuardrailSeverity.WARNING
+                    qgr012_sev = (
+                        GuardrailSeverity.FATAL
+                        if (not self._is_test_file and not self._is_boundary_exempt)
+                        else GuardrailSeverity.WARNING
+                    )
                     self._add_violation(
                         node,
                         "QGR012",

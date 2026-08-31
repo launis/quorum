@@ -6,6 +6,7 @@
   <rule>@[.agents/rules/03_seed_vault.md]</rule>
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
   <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
   <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
   <knowledge_item>@[ki_ast_guardrail_engine.md]</knowledge_item>
   <knowledge_item>@[ki_seed_vault_verification_and_sanitization.md]</knowledge_item>
@@ -81,16 +82,19 @@
 - [x] **[OK] Red-Teaming (Sub-Phase 3C):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
 - [x] **[OK] Execution (Sub-Phase 3C):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
   - [x] Step 0: Strategic Alignment Check & Pre-Implementation Cleanups
-- [ ] **[NOK] Audit (Sub-Phase 3C):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]` (Remediated: 0 AST violations, 0 ruff errors, 2,722 / 2,722 backend tests passing, 93.42% coverage)
+  - [x] Step 1: Harden Repository Reconstitution Layer
+  - [x] Step 2: Harden Domain Models, DTOs & State Projectors
+  - [x] Step 3: Test Expansion & Universal Quality Gate
+- [x] **[OK] Audit (Sub-Phase 3C):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]` (Subsystem coverage: Repositories 94.13%, Models 93.54%; Global backend: 2,722 passed, 93.42% coverage; 0 AST violations; 0 ruff errors)
 
 ### Phase 4: AST Hardening, Knowledge Base & Architectural Governance Lockdown
 - **Plan:** @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Harden AST Guardrail Engine & Audit Loop
-  - [ ] Step 2: Create & Update Knowledge Items
-  - [ ] Step 3: Synchronize Architectural Rules
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Implementation Cleanups
+  - [x] Step 1: Harden AST Guardrail Engine & Audit Loop
+  - [x] Step 2: Create & Update Knowledge Items
+  - [x] Step 3: Synchronize Architectural Rules
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
 
 ---
@@ -183,19 +187,20 @@
   - [x] @[backend_v2/services/orchestrator/rag_preflight_service.py]
   - [x] @[backend_v2/services/orchestrator/localization_compiler.py]
   - [x] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
-  - [x] @[backend_v2/services/orchestrator/anchor_validation_service.py]
-  - [ ] @[backend_v2/database/repositories/execution.py]
-  - [ ] @[backend_v2/database/repositories/component.py]
-  - [ ] @[backend_v2/database/repositories/components/matrix.py]
-  - [ ] @[backend_v2/database/repositories/audit.py]
-  - [ ] @[backend_v2/database/repositories/workflow.py]
-  - [ ] @[backend_v2/models/domain/inputs.py]
-  - [ ] @[backend_v2/models/domain/mechanical_anchors.py]
-  - [ ] @[backend_v2/models/dtos/evaluation_steps.py]
-  - [ ] @[backend_v2/models/dtos/quote_evidence.py]
-  - [ ] @[backend_v2/models/state.py]
-  - [ ] @[backend_v2/models/domain/archivist.py]
-  - [ ] @[backend_v2/models/dtos/matrix_scorecard.py]
+  - [x] @[backend_v2/database/repositories/execution.py]
+  - [x] @[backend_v2/database/repositories/component.py]
+  - [x] @[backend_v2/database/repositories/components/matrix.py]
+  - [x] @[backend_v2/database/repositories/audit.py]
+  - [x] @[backend_v2/database/repositories/workflow.py]
+  - [x] @[backend_v2/models/domain/inputs.py]
+  - [x] @[backend_v2/models/domain/mechanical_anchors.py]
+  - [x] @[backend_v2/models/dtos/evaluation_steps.py]
+  - [x] @[backend_v2/models/dtos/quote_evidence.py]
+  - [x] @[backend_v2/models/state.py]
+  - [x] @[backend_v2/models/domain/archivist.py]
+  - [x] @[backend_v2/models/dtos/matrix_scorecard.py]
+  - [x] @[backend_v2/models/domain/prompt_blocks.py]
+  - [x] @[backend_v2/models/domain/validation.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/backend_audit_loop.py]
   - [ ] @[.agents/rules/01-python-backend.md]
@@ -248,9 +253,9 @@
 | Harden orchestrator strategies & pipeline services | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[x]` Passed |
 | Repositories reconstitution firewall (zero dict leakage) | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[x]` Passed |
 | Domain models & DTOs duck-typing elimination | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[x]` Passed |
-| Harden AST guardrails `QGR001`, `QGR002`, `QGR012` to universal `FATAL` severity | Epic Sec 3 (Phase 4) | Phase 4, Step 1 | `[ ]` Pending |
-| Create `ki_zero_permissive_typing.md` & update existing KIs | Epic Sec 3 (Phase 4) | Phase 4, Step 2 | `[ ]` Pending |
-| Synchronize architectural rules in `01-python-backend.md` & `03_seed_vault.md` | Epic Sec 3 (Phase 4) | Phase 4, Step 3 | `[ ]` Pending |
+| Harden AST guardrails `QGR001`, `QGR002`, `QGR012` to universal `FATAL` severity | Epic Sec 3 (Phase 4) | Phase 4, Step 1 | `[x]` Passed |
+| Create `ki_zero_permissive_typing.md` & update existing KIs | Epic Sec 3 (Phase 4) | Phase 4, Step 2 | `[x]` Passed |
+| Synchronize architectural rules in `01-python-backend.md` & `03_seed_vault.md` | Epic Sec 3 (Phase 4) | Phase 4, Step 3 | `[x]` Passed |
 
 ---
 
@@ -317,6 +322,17 @@
     - Resolved all 23 PEP 257 docstring and line-length violations.
     - Fixed mock fixture in `test_persist_audit_trace_fails_fast`.
     - Global Backend Completion Gate (`backend_audit_loop.py backend_v2/ --test`): **2,722 passed, 0 failed, 93.42% overall test coverage**.
+- **Phase 4 Execution Completed (`100% clean`)**:
+  - **Step 0 Pre-Implementation Cleanups**: Initial codebase AST scan and test baseline executed cleanly.
+  - **Step 1 Harden AST Guardrail Engine & Audit Loop**: Defined `BOUNDARY_EXEMPTION_FILES` in `@[scripts/_ast_guardrails.py]`. Upgraded `QGR001` (reflection), `QGR002` (lazy `.get()` fallbacks), and `QGR012` (`isinstance(..., dict)` / `match/case dict`) to universal `FATAL` severity across all non-test, non-boundary-exempt files. Verified Stage 4 of `@[scripts/backend_audit_loop.py]` enforcing zero-tolerance exit codes. Updated and expanded unit tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]` (62 passed, 94% coverage, all 3 new Phase 4 test contracts verified).
+  - **Step 2 Create & Update Knowledge Items**: Created `@[ki_zero_permissive_typing.md]` in knowledge base artifacts directory (`<appDataDir>/knowledge/zero_permissive_typing/artifacts/ki_zero_permissive_typing.md` & `metadata.json`). Updated `@[ki_seed_vault_verification_and_sanitization.md]` documenting Two-Phase Seeder Pre-Flight In-Memory validation. Synchronized `@[ki_ast_guardrail_engine.md]` SSOT table with universal FATAL classifications and the Multi-Category Boundary Exemption Register.
+  - **Step 3 Synchronize Architectural Rules**: Updated `@[.agents/rules/01-python-backend.md]` (rules `no_naked_dicts_in_state`, `duck_typing_token_shield_ban`, `strict_attribute_integrity`) and `@[.agents/rules/03_seed_vault.md]` with Two-Phase Pre-Flight In-Memory validation and unregistered top-level collection ban.
+  - **Full-Stack Validation Gates Passed 100%**:
+    - `scripts/_ast_guardrails.py backend_v2/ --strict`: 0 unsuppressed violations outside exempt files.
+    - `backend_audit_loop.py scripts/backend_audit_loop.py scripts/_ast_guardrails.py --test`: Ruff format/lint 100% clean, MyPy strict 100% clean, 90+ unit tests passed, 94% test coverage.
+    - `run_seed.py local --dry-run`: Seeder V2 pre-flight in-memory validation passed for all collections.
+    - `sanitize_seed_vault.py --reseed --test`: 100% clean, reseeded database at `data/db_v2.json`.
+    - `test_sdui_semantic_parity.py`: Passed 100% (Flutter client and Jinja PDF semantic parity verified).
 
 ## Learned
 - **Decorator-Inclusive AST Spans in Markdown Auditing**: The markdown boundary linter (`scripts/audit_markdown_boundaries.py`) includes decorator lines (`@router.get`, `@pytest.mark.asyncio`, `@hook_registry.register`) in the starting line of function AST bounds. All plan line bounds for decorated handlers and test fixtures must align with the first decorator line.
@@ -333,17 +349,17 @@
 - **Pydantic V2 Model Validator Return Invariant on Instantiation**: Returning an altered instance via `self.model_copy(update=...)` in `@model_validator(mode="after")` during direct `__init__` constructor invocation is ignored by Pydantic V2. Mathematical extrema like `computed_min` and `computed_max` on `MatrixPromptBlock` must be calculated in `@model_validator(mode="before")` before instantiation.
 - **SystemWarnings Ingress Isolation**: `SystemWarningsStateDTO` with `extra="forbid"` cannot be validated directly against raw execution inputs dictionaries containing arbitrary step inputs (`evaluation_notes`, `language`); inputs must be extracted via `inputs_dict.get("_system_warnings", [])` and validated via `TypeAdapter(list[ValidationWarningItemDTO])` or isolated schema payloads.
 - **Token Shield & Duck-Typing Anti-Pattern (`extra="ignore"`)**: Helper DTOs created during refactoring must not use `extra="ignore"` to bypass strict schemas. All models must declare explicit fields and enforce `extra="forbid"`.
+- **AST Universal FATAL Severity & Boundary Exemption Isolation**: Upgrading QGR001, QGR002, and QGR012 to universal FATAL severity across all non-test files locks the entire domain, API, and models layers against permissive regressions, while `BOUNDARY_EXEMPTION_FILES` cleanly isolates external driver boundaries.
 
 ## Remaining
-- **Phase 3: Hooks, Orchestrator & Repository Suppression Eradication**:
-  - Re-Audit (Sub-Phase 3C): `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
-- **Phase 4: AST Hardening, Knowledge Base & Architectural Governance Lockdown**:
+- **Phase 4 Audit**:
   - Plan: @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md]
-  - Red-Teaming: `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
-  - Execution: `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
   - Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
+- **Epic 150 Final Integration Checkpoints & Hardening**:
+  - Integration Checkpoints: Seed vault verification, Backend audit loop, AST guardrails strict audit, SDUI semantic parity, Live E2E.
+  - Final Epic Audit: `/tier8-audit-epic @[docs/epic/EPIC_150_Zero_Permissive_Typing_Lockdown.md]`
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]
 ```
