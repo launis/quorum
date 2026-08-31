@@ -38,19 +38,20 @@ class LLMExtractedQuote(BaseSourceId):
         if not isinstance(data, dict):
             return data
 
-        source_id = data.get("source_id")
+        d = dict(data)
+        source_id = d.get("source_id")
         if not source_id:
-            return data
+            return d
 
         if info.context is None:
-            raise RuntimeError("ValidationInfo.context is missing. Cannot resolve source_id without context.")
+            return d
 
-        alias_map = info.context.get("alias_map", {})
-        allowed_dynamic_keys = info.context.get("allowed_dynamic_keys", [])
-        allowed_mcp_prefixes = info.context.get("allowed_mcp_prefixes", [])
+        alias_map = info.context.get("alias_map", {}) if isinstance(info.context, dict) else {}
+        allowed_dynamic_keys = info.context.get("allowed_dynamic_keys", []) if isinstance(info.context, dict) else []
+        allowed_mcp_prefixes = info.context.get("allowed_mcp_prefixes", []) if isinstance(info.context, dict) else []
 
         if not alias_map and not allowed_dynamic_keys and not allowed_mcp_prefixes:
-            return data
+            return d
 
         engine = AliasEngine(alias_map=alias_map)
 
@@ -61,9 +62,9 @@ class LLMExtractedQuote(BaseSourceId):
 
         resolved = engine.resolve_alias(source_id)
         if resolved:
-            data["source_id"] = resolved
+            d["source_id"] = resolved
 
-        return data
+        return d
 
 
 class QuoteEvidenceDTO(V2CoreBase):
@@ -92,15 +93,16 @@ class QuoteEvidenceDTO(V2CoreBase):
         if not isinstance(data, dict):
             return data
 
+        d = dict(data)
         if info.context is None:
-            if "verified_source_ids" in data or "unverified_aliases" in data:
-                return data
+            if "verified_source_ids" in d or "unverified_aliases" in d:
+                return d
             raise RuntimeError("ValidationInfo.context is missing. Cannot resolve aliases without context.")
 
-        registry = info.context.get("alias_registry", {})
+        registry = info.context.get("alias_registry", {}) if isinstance(info.context, dict) else {}
 
         # Original input could be in 'source_alias' string or list
-        raw_aliases = data.get("source_alias")
+        raw_aliases = d.get("source_alias")
         if raw_aliases is None:
             raw_aliases = []
         elif isinstance(raw_aliases, str):
@@ -131,12 +133,12 @@ class QuoteEvidenceDTO(V2CoreBase):
             else:
                 unverified.append(alias)
 
-        data["verified_source_ids"] = verified
-        data["unverified_aliases"] = unverified
-        data["is_verified"] = len(unverified) == 0
+        d["verified_source_ids"] = verified
+        d["unverified_aliases"] = unverified
+        d["is_verified"] = len(unverified) == 0
 
         # Remove the raw source_alias as it is replaced by verified/unverified lists
-        if "source_alias" in data:
-            del data["source_alias"]
+        if "source_alias" in d:
+            del d["source_alias"]
 
-        return data
+        return d

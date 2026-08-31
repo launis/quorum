@@ -114,9 +114,8 @@ def test_archivist_output_dto_invalid_compliance() -> None:
         "compliance_analysis": "Invalid Value",
         "description_key": "desc_1",
     }
-    with pytest.raises(AppException) as exc_info:
+    with pytest.raises(ValidationError):
         ArchivistOutputDTO.model_validate(data)
-    assert "Invalid compliance_analysis" in str(exc_info.value.message)
 
 
 def test_archivist_output_dto_min_length() -> None:

@@ -91,10 +91,13 @@ class MatrixPromptBlock(PromptBlockBase):
         if self.scales:
             min_score = min(s.score for s in self.scales)
             max_score = max(s.score for s in self.scales)
+            updates: dict[str, int] = {}
             if self.computed_min is None:
-                object.__setattr__(self, "computed_min", min_score)
+                updates["computed_min"] = min_score
             if self.computed_max is None:
-                object.__setattr__(self, "computed_max", max_score)
+                updates["computed_max"] = max_score
+            if updates:
+                return self.model_copy(update=updates)
         return self
 
 

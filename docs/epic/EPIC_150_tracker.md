@@ -78,11 +78,12 @@
   - [x] Step 2: Harden Strategies & Pipeline Services
   - [x] Step 3: Comprehensive Test Expansion & AST Guardrail Validation
 - [x] **[OK] Audit (Sub-Phase 3B):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication.md] @[docs/epic/EPIC_150_tracker.md]` (Subsystem coverage 90.98%, global backend 93.49%, 0 AST violations)
-- [ ] **[NOK] Red-Teaming (Sub-Phase 3C):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
-- [ ] **[NOK] Execution (Sub-Phase 3C):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1: Harden Repository Reconstitution Layer
-  - [ ] Step 2: Harden Domain Models & DTOs
+- [x] **[OK] Red-Teaming (Sub-Phase 3C):** `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
+- [x] **[OK] Execution (Sub-Phase 3C):** `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check & Pre-Implementation Cleanups
+  - [x] Step 1: Harden Repository Reconstitution Layer
+  - [x] Step 2: Harden Domain Models, DTOs & State Projectors
+  - [x] Step 3: Test Expansion & Universal Quality Gate
 - [ ] **[NOK] Audit (Sub-Phase 3C):** `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`
 
 ### Phase 4: AST Hardening, Knowledge Base & Architectural Governance Lockdown
@@ -248,8 +249,8 @@
 | Eradicate QGR suppressions & duck-typing in processing & validation hooks | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[x]` Passed |
 | Harden DAG executor & synthesis payload compressor polymorphic handling | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[x]` Passed |
 | Harden orchestrator strategies & pipeline services | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[x]` Passed |
-| Repositories reconstitution firewall (zero dict leakage) | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[ ]` Pending |
-| Domain models & DTOs duck-typing elimination | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[ ]` Pending |
+| Repositories reconstitution firewall (zero dict leakage) | Epic Sec 3 (Phase 3) | Phase 3, Step 1 | `[x]` Passed |
+| Domain models & DTOs duck-typing elimination | Epic Sec 3 (Phase 3) | Phase 3, Step 2 | `[x]` Passed |
 | Harden AST guardrails `QGR001`, `QGR002`, `QGR012` to universal `FATAL` severity | Epic Sec 3 (Phase 4) | Phase 4, Step 1 | `[ ]` Pending |
 | Create `ki_zero_permissive_typing.md` & update existing KIs | Epic Sec 3 (Phase 4) | Phase 4, Step 2 | `[ ]` Pending |
 | Synchronize architectural rules in `01-python-backend.md` & `03_seed_vault.md` | Epic Sec 3 (Phase 4) | Phase 4, Step 3 | `[ ]` Pending |
@@ -300,6 +301,15 @@
     - MyPy Strict (`mypy --strict`): **100% clean (0 errors)**.
     - Subsystem Unit Tests (`pytest backend_v2/tests/unit/services/orchestrator/`): **395 / 395 passed, 90.98% line coverage**.
     - Global Backend Completion Gate (`backend_audit_loop.py backend_v2/ --test`): **2,717 passed, 0 failed, 93.49% overall test coverage**.
+- **Sub-Phase 3C Execution Completed (`08_phase3c_repositories_and_domain_models.md`)**:
+  - **Step 0 Pre-Implementation Cleanups**: Eliminated `object.__setattr__()` in `MatrixPromptBlock.compute_min_max` (`@[backend_v2/models/domain/prompt_blocks.py]`) via immutable `.model_copy(update=...)`. Replaced `extra="ignore"` with `ConfigDict(strict=True, extra="forbid", frozen=True)` in `SystemWarningsStateDTO` (`@[backend_v2/models/domain/validation.py]`). Updated test suites and AST security guardrails.
+  - **Step 1 Harden Repository Reconstitution Layer**: Eradicated all 4 `# noqa: QGR012` suppressions in `@[backend_v2/database/repositories/execution.py]` by validating `FrozenContext` and `MCPAuditTrace` directly using typed Pydantic models. Replaced nested dictionary traversals in `@[backend_v2/database/repositories/component.py]` and `@[backend_v2/database/repositories/components/matrix.py]` with `TypeAdapter(list[_MatrixComponentDTO])`. Eliminated `hasattr(record, "model_dump")` and `isinstance(dict)` in `@[backend_v2/database/repositories/audit.py]` via typed `isinstance(record, UsageRecord)` and `TypeAdapter(dict[str, int])`. Validated steps in `@[backend_v2/database/repositories/workflow.py]` via `Step.model_validate(s, strict=False)`.
+  - **Step 2 Harden Domain Models, DTOs & State Projectors**: Converted `WorkflowInputs.prevent_base64_pollution` in `@[backend_v2/models/domain/inputs.py]` to `@model_validator(mode="after")`. Refactored `MechanicalAnchorsPayload.from_context` in `@[backend_v2/models/domain/mechanical_anchors.py]` to typed `_RawContextDTO` and `TypeAdapter`. Cleaned `BaseExtractionDTO` and `StepDTOSemantic` validators in `@[backend_v2/models/dtos/evaluation_steps.py]`. Hardened alias resolution in `@[backend_v2/models/dtos/quote_evidence.py]`. Cleaned `StateProjector.fold_trace` and `_build_dto_list` in `@[backend_v2/models/state.py]`. Converted `ArchivistOutputDTO.calc_compliance` (`@[backend_v2/models/domain/archivist.py]`) and `ScorecardAtomDTO.map_contested_to_warning` (`@[backend_v2/models/dtos/matrix_scorecard.py]`) to immutable/typed validators.
+  - **Step 3 Test Expansion & Universal Quality Gate**:
+    - Ran `backend_audit_loop.py` on `backend_v2/database/repositories/` and `backend_v2/models/`:
+      - Ruff format & lint: **100% clean**.
+      - MyPy strict typing: **100% clean**.
+      - Pytest: **465 / 465 passed**, >90% coverage maintained.
 
 ## Learned
 - **Decorator-Inclusive AST Spans in Markdown Auditing**: The markdown boundary linter (`scripts/audit_markdown_boundaries.py`) includes decorator lines (`@router.get`, `@pytest.mark.asyncio`, `@hook_registry.register`) in the starting line of function AST bounds. All plan line bounds for decorated handlers and test fixtures must align with the first decorator line.
@@ -310,16 +320,20 @@
 - **Hook State Polymorphic Envelope Validation**: In scoring and falsifier hooks, `StateInputWrapper` should validate nested `inputs` and `raw_inputs` as `ExecutionInputsDTO | dict[str, Any]` while maintaining `ConfigDict(strict=True, extra="ignore", frozen=True)` to accept dynamic matrix key projections alongside strict step arrays.
 - **Guarded TypeAdapter Hydration with RFC-7807 Mapping**: Replacing silent `except ValidationError: pass` blocks in hook extraction pathways with guarded `TypeAdapter` validation and explicit `AppException(ErrorCodes.VALIDATION_FAILED, status_code=422)` conversion prevents silent corruptions while strictly upholding Fail-Fast architecture.
 - **Orchestrator Scope & Multi-Target Density**: The Orchestrator subsystem spans 22 target files with 68 suppression sites and 47 duck-typing checks. Pre-filtering polymorphic DAG payloads via `TypeAdapter` and binding state directly to `ExecutionInputsDTO` / `GlobalContextVarsDTO` provides complete eradication of naked dicts without changing external pipeline contracts.
-- **Third-Party Exception Tuple Definition without Reflection**: LiteLLM exception types (such as `APIConnectionError`, `RateLimitError`) inherit from `openai.OpenAIError` rather than stdlib base classes. Binding an explicit static tuple of LiteLLM exception types (`_litellm_exc.APIConnectionError`, etc.) inside method scopes avoids dynamic `getattr()` reflection calls (complying with `QGR001`), satisfies `QGR003` (by avoiding broad `except Exception:`), and adheres to `eager_llm_dependency_loading` lazy import laws.
-- **Execution Strategy Batching for Sub-Phase 3B**: Due to the high number of files (22), execution proceeded systematically across 3 discrete stages: Core Executors & Compilers, Strategies & Context Resolvers, and Synthesis & Pipeline Services.
+- **Third-Party Exception Tuple Definition without Reflection**: LiteLLM exception types (specifically `APIConnectionError` and `RateLimitError`) inherit from `openai.OpenAIError` rather than stdlib base classes. Binding an explicit static tuple of LiteLLM exception types (`_litellm_exc.APIConnectionError`, etc.) inside method scopes avoids dynamic `getattr()` reflection calls (complying with `QGR001`), satisfies `QGR003` (by avoiding broad `except Exception:`), and adheres to `eager_llm_dependency_loading` lazy import laws.
+- **Repository Reconstitution Firewall & Mode='After' Validation**: Moving from `@model_validator(mode="before")` inspecting untyped dictionaries to `@model_validator(mode="after")` operating on typed model instances allows direct property access (`self.compliance_analysis`, `self.status`, `self.contextual_override`) and returning `self.model_copy(update=...)`, completely eliminating `isinstance(..., dict)` duck-typing without reflection.
+- **Subcollection Hydration with MCPAuditTrace Timestamps**: When hydrating subcollection audit trails into `FrozenContext`, ensure database records deserialize ISO timestamps into `datetime` instances matching `MCPAuditTrace.timestamp` constraints, avoiding runtime type adapter validation failures.
 
 ## Remaining
 - **Phase 3: Hooks, Orchestrator & Repository Suppression Eradication**:
-  - Sub-Phase 3C: Repositories & Domain Models (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md]`).
+  - Audit (Sub-Phase 3C): `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]`.
 - **Phase 4: AST Hardening, Knowledge Base & Architectural Governance Lockdown**:
-  - Phase 4: AST Hardening & Governance (`@[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md]`).
+  - Plan: @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md]
+  - Red-Teaming: `/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
+  - Execution: `/tier2-execute @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
+  - Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance.md] @[docs/epic/EPIC_150_tracker.md]`
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models.md] @[docs/epic/EPIC_150_tracker.md]
 ```

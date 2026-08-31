@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated, Any, Self
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -61,42 +61,25 @@ class WorkflowInputs(WorkflowInputsIngress):
     It rigorously BANS base64 payloads to protect the DB.
     """
 
-    @model_validator(mode="before")
-    @classmethod
-    def prevent_base64_pollution(cls, data: Any) -> Any:
+    @model_validator(mode="after")
+    def prevent_base64_pollution(self) -> Self:
         """Fail-Fast filter: BANS content_base64 to protect against massive DB memory blobs.
 
-        Args:
-            data: The unvalidated data dictionary.
-
         Returns:
-            The safe data dictionary if no base64 payloads are found.
+            The validated WorkflowInputs instance if no base64 payloads are found.
 
         Raises:
             AppException: If base64 content is detected (VALIDATION_FAILED).
         """
-        if not isinstance(data, dict):
-            return data
-
-        for k, v in data.items():
-            if isinstance(v, dict) and "content_base64" in v:
-                msg = (
-                    f"V2 Strict Mandate: Binary 'content_base64' payload detected in input '{k}'. "
-                    "All Base64 extraction MUST occur synchronously at the API Router level "
-                    "before reaching the Domain models. Do not serialize PDFs into the DB!"
-                )
-                logger.error("[WorkflowInputs] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-
-            # Recursively check dynamic_inputs if present
-            if k == "dynamic_inputs" and isinstance(v, dict):
-                for sub_k, sub_v in v.items():
-                    if isinstance(sub_v, dict) and "content_base64" in sub_v:
-                        msg = (
-                            f"V2 Strict Mandate: Binary 'content_base64' payload detected in dynamic_inputs '{sub_k}'. "
-                            "All Base64 extraction MUST occur synchronously at the API Router level "
-                            "before reaching the Domain models. Do not serialize PDFs into the DB!"
-                        )
-                        logger.error("[WorkflowInputs] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                        raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
-        return data
+        # Inspect dynamic_inputs directly on typed model instance
+        if self.dynamic_inputs:
+            for k, v in self.dynamic_inputs.items():
+                if isinstance(v, Base64Attachment) or (isinstance(v, dict) and "content_base64" in v):
+                    msg = (
+                        f"V2 Strict Mandate: Binary 'content_base64' payload detected in dynamic_inputs '{k}'. "
+                        "All Base64 extraction MUST occur synchronously at the API Router level "
+                        "before reaching the Domain models. Do not serialize PDFs into the DB!"
+                    )
+                    logger.error("[WorkflowInputs] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        return self

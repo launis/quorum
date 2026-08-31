@@ -1,6 +1,7 @@
 """Unit tests for ExecutionRepositoryImpl."""
 
 import json
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -142,7 +143,17 @@ async def test_offload_and_hydrate_payloads(repo: ExecutionRepositoryImpl, mock_
         data = {
             "id": "exe_big",
             "execution_trace": big_trace,
-            "frozen_context": {"mcp_tool_audit": [{"id": "audit_1", "tool": "calc"}]},
+            "frozen_context": {
+                "mcp_tool_audit": [
+                    {
+                        "id": "audit_1",
+                        "tool_id": "calc",
+                        "step_name": "stp_1",
+                        "query": "2+2",
+                        "reasoning": "math",
+                    }
+                ]
+            },
         }
         await repo._offload_payloads("exe_big", data)
         assert "execution_trace_storage_path" in data
@@ -180,8 +191,22 @@ async def test_audit_trails_offload_and_hydrate(repo: ExecutionRepositoryImpl, m
         "id": "exe_audit",
         "frozen_context": {
             "mcp_tool_audit": [
-                {"id": "audit_1", "tool_name": "fetch", "timestamp": "2026-08-31T01:00:00Z"},
-                {"id": "audit_custom", "tool_name": "calc", "timestamp": "2026-08-31T00:00:00Z"},
+                {
+                    "id": "audit_1",
+                    "tool_id": "fetch",
+                    "step_name": "stp_1",
+                    "query": "q1",
+                    "reasoning": "r1",
+                    "timestamp": "2026-08-31T01:00:00Z",
+                },
+                {
+                    "id": "audit_custom",
+                    "tool_id": "calc",
+                    "step_name": "stp_2",
+                    "query": "q2",
+                    "reasoning": "r2",
+                    "timestamp": "2026-08-31T00:00:00Z",
+                },
             ]
         },
     }
@@ -193,7 +218,14 @@ async def test_audit_trails_offload_and_hydrate(repo: ExecutionRepositoryImpl, m
         "id": "exe_audit_fail",
         "frozen_context": {
             "mcp_tool_audit": [
-                {"id": "audit_err", "tool_name": "fetch", "timestamp": "2026-08-31T01:00:00Z"},
+                {
+                    "id": "audit_err",
+                    "tool_id": "fetch",
+                    "step_name": "stp_err",
+                    "query": "q_err",
+                    "reasoning": "r_err",
+                    "timestamp": "2026-08-31T01:00:00Z",
+                },
             ]
         },
     }
@@ -205,15 +237,29 @@ async def test_audit_trails_offload_and_hydrate(repo: ExecutionRepositoryImpl, m
 
     # Test hydrate audit trails
     mock_driver.query.return_value = [
-        {"id": "a2", "tool_name": "fetch", "timestamp": "2026-08-31T01:00:00Z"},
-        {"id": "a1", "tool_name": "calc", "timestamp": "2026-08-31T00:00:00Z"},
+        {
+            "id": "a2",
+            "tool_id": "fetch",
+            "step_name": "stp_2",
+            "query": "q2",
+            "reasoning": "r2",
+            "timestamp": datetime(2026, 8, 31, 1, 0, 0, tzinfo=timezone.utc),
+        },
+        {
+            "id": "a1",
+            "tool_id": "calc",
+            "step_name": "stp_1",
+            "query": "q1",
+            "reasoning": "r1",
+            "timestamp": datetime(2026, 8, 31, 0, 0, 0, tzinfo=timezone.utc),
+        },
     ]
     hydrate_data = {"id": "exe_audit"}
     await repo._hydrate_payloads(hydrate_data)
     assert "frozen_context" in hydrate_data
-    assert len(hydrate_data["frozen_context"]["mcp_tool_audit"]) == 2
+    assert len(hydrate_data["frozen_context"].mcp_tool_audit) == 2
     # Check sorting
-    assert hydrate_data["frozen_context"]["mcp_tool_audit"][0]["id"] == "a1"
+    assert hydrate_data["frozen_context"].mcp_tool_audit[0].id == "a1"
 
     # Test hydrate audit trails failure
     mock_driver.query.side_effect = Exception("Query error")

@@ -5,11 +5,10 @@ including precedent analysis and compliance checks.
 """
 
 import logging
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import ConfigDict, Field, model_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
@@ -94,9 +93,13 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
         ),
     ]
     compliance_score: Annotated[
-        float,
-        Field(description="Numeric Compliance score (1-5).", json_schema_extra={"x-ui-label": "Compliance Score"}),
-    ]
+        float | None,
+        Field(
+            default=None,
+            description="Numeric Compliance score (1-5).",
+            json_schema_extra={"x-ui-label": "Compliance Score"},
+        ),
+    ] = None
     description_key: Annotated[
         str,
         Field(min_length=1, description="Localization key."),
@@ -106,42 +109,27 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
         Field(description="Localized description.", json_schema_extra={"x-ui-label": "Description"}),
     ] = ""
 
-    @model_validator(mode="before")
-    @classmethod
-    def calc_compliance(cls, data: Any) -> Any:
+    @model_validator(mode="after")
+    def calc_compliance(self) -> Self:
         """Calculate numerical compliance score from literal.
 
-        Args:
-            data: Raw input dictionary.
-
         Returns:
-            Mutated dictionary with compliance_score.
-
-        Raises:
-            AppException: If compliance_analysis is invalid (ErrorCodes.VALIDATION_FAILED).
+            Validated instance with compliance_score updated.
         """
-        if isinstance(data, dict):
-            # Map Literal to Score
-            mapping = {
-                "Critically Misaligned": 1.0,
-                "Misaligned": 2.0,
-                "Neutral": 3.0,
-                "Aligned": 4.0,
-                "Strongly Aligned": 5.0,
-            }
+        mapping: dict[str, float] = {
+            "Critically Misaligned": 1.0,
+            "Misaligned": 2.0,
+            "Neutral": 3.0,
+            "Aligned": 4.0,
+            "Strongly Aligned": 5.0,
+        }
 
-            # Access the raw string value
-            val = data.get("compliance_analysis")
-            if val and val not in mapping:
-                # STRICT VALIDATION: No fallback allowed.
-                msg = f"Invalid compliance_analysis: {val}. Must be one of {list(mapping.keys())}"
-                logger.error("[ArchivistModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+        if self.compliance_analysis in mapping:
+            expected_score = mapping[self.compliance_analysis]
+            if self.compliance_score != expected_score:
+                return self.model_copy(update={"compliance_score": expected_score})
 
-            if val:
-                data.setdefault("compliance_score", mapping[val])
-
-        return data
+        return self
 
 
 class ArchivistOutput(ArchivistOutputDTO, ReasoningTrace):

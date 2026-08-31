@@ -78,7 +78,6 @@ class DomainSecurityVisitor(ast.NodeVisitor):
                             if isinstance(stmt.value, ast.Call):
                                 match stmt.value.func:
                                     case ast.Name(id="ConfigDict"):
-                                        allowed_exceptions = {"SystemWarningsStateDTO"}
                                         for kw in stmt.value.keywords:
                                             if (
                                                 kw.arg == "strict"
@@ -86,11 +85,12 @@ class DomainSecurityVisitor(ast.NodeVisitor):
                                                 and kw.value.value is True
                                             ):
                                                 has_strict = True
-                                            if kw.arg == "extra" and isinstance(kw.value, ast.Constant):
-                                                if kw.value.value == "forbid" or (
-                                                    node.name in allowed_exceptions and kw.value.value == "ignore"
-                                                ):
-                                                    has_forbid = True
+                                            if (
+                                                kw.arg == "extra"
+                                                and isinstance(kw.value, ast.Constant)
+                                                and kw.value.value == "forbid"
+                                            ):
+                                                has_forbid = True
                                     case _:
                                         pass
             self.pydantic_classes.append((node.name, has_strict, has_forbid))

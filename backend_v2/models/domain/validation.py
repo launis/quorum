@@ -170,4 +170,4 @@ class SystemWarningsStateDTO(V2CoreBase):
         Field(alias="_system_warnings", description="Validation warnings captured from the execution state."),
     ] = Field(default_factory=list)
 
-    model_config = ConfigDict(frozen=True, populate_by_name=True, strict=True, extra="ignore")
+    model_config = ConfigDict(frozen=True, populate_by_name=True, strict=True, extra="forbid")

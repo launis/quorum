@@ -34,17 +34,18 @@ def test_workflow_inputs_ingress_valid() -> None:
 
 def test_workflow_inputs_prevent_base64_pollution() -> None:
     """Test that WorkflowInputs bans content_base64 in payload to protect DB."""
-    # Should raise error if content_base64 is at root level payload
+    # Should raise AppException if content_base64 is inside dynamic_inputs
     with pytest.raises(AppException) as exc_info:
         WorkflowInputs(
             dynamic_inputs={"file": {"content_base64": "binary_blob_here"}},
         )
     assert "content_base64" in str(exc_info.value)
 
-    # Should also raise error if content_base64 is passed directly in extra kwargs
-    with pytest.raises(AppException) as exc_info:
+    # Should raise ValidationError if extra fields are passed directly in kwargs
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
         WorkflowInputs.model_validate({"malicious_attachment": {"content_base64": "binary_blob_here"}})
-    assert "content_base64" in str(exc_info.value)
 
 
 def test_workflow_inputs_valid() -> None:

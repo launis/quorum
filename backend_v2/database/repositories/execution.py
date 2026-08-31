@@ -5,10 +5,13 @@ import logging
 import uuid
 from typing import Any
 
+from pydantic import TypeAdapter, ValidationError
+
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import ExecutionRecord
+from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+from backend_v2.models.v2_core import ExecutionRecord, FrozenContext, MCPAuditTrace
 from backend_v2.services.storage import get_storage_driver
 
 logger = logging.getLogger(__name__)
@@ -31,25 +34,32 @@ class ExecutionRepositoryImpl(BaseRepository):
 
         # 1. Decouple MCP Audit Trails into native DB subcollection
         if "frozen_context" in data:
-            fc = data["frozen_context"]
-            if isinstance(fc, dict) and "mcp_tool_audit" in fc:  # noqa: QGR012 [REASON: Raw DB payload dict offloading]
-                audit_items = fc.pop("mcp_tool_audit")
-                if audit_items and isinstance(audit_items, list):
-                    coll_path = f"executions/{doc_id}/audit_trails"
-                    for item in audit_items:
-                        item_id = item["id"] if isinstance(item, dict) and "id" in item else str(uuid.uuid4())  # noqa: QGR012 [REASON: Raw DB payload dict offloading]
-                        if isinstance(item, dict):  # noqa: QGR012 [REASON: Raw DB payload dict offloading]
-                            item["id"] = item_id
-                        try:
-                            await self.driver.upsert(coll_path, item, item_id)
-                        except Exception as e:
-                            msg = f"Failed to persist audit trace {item_id}: {e}"
-                            logger.error("[ExecutionRepository] %s", msg)
-                            raise AppException(
-                                message=msg,
-                                status_code=500,
-                                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                            ) from e
+            fc_raw = data["frozen_context"]
+            if fc_raw:
+                try:
+                    fc = FrozenContext.model_validate(fc_raw, strict=False)
+                    if fc.mcp_tool_audit:
+                        coll_path = f"executions/{doc_id}/audit_trails"
+                        for audit_trace in fc.mcp_tool_audit:
+                            item_id = audit_trace.id or str(uuid.uuid4())
+                            trace_dict = audit_trace.model_dump(mode="json")
+                            trace_dict["id"] = item_id
+                            try:
+                                await self.driver.upsert(coll_path, trace_dict, item_id)
+                            except Exception as e:
+                                msg = f"Failed to persist audit trace {item_id}: {e}"
+                                logger.error("[ExecutionRepository] %s", msg)
+                                raise AppException(
+                                    message=msg,
+                                    status_code=500,
+                                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                                ) from e
+
+                        # Remove audit trails from frozen context in-place for offloaded payload
+                        fc_without_audit = fc.model_copy(update={"mcp_tool_audit": []})
+                        data["frozen_context"] = fc_without_audit.model_dump(mode="json")
+                except ValidationError as ve:
+                    logger.warning("[ExecutionRepository] Could not parse FrozenContext during offload: %s", ve)
 
         # 2. Extract massive payloads to Storage Blobs
         for field in ["execution_trace", "frozen_context", "context_variables"]:
@@ -101,24 +111,14 @@ class ExecutionRepositoryImpl(BaseRepository):
                         raise ValueError(f"Hydration payload is empty for {field} at {data[path_key]}")
 
                     if field == "execution_trace":
-                        from pydantic import TypeAdapter
-
-                        from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
-
                         data[field] = TypeAdapter(list[ErrorTraceEvent | TombstoneEvent | TraceEvent]).validate_json(
                             blob_data
                         )
                     elif field == "frozen_context":
-                        from backend_v2.models.v2_core import FrozenContext
-
                         data[field] = FrozenContext.model_validate_json(blob_data)
                     elif field == "context_variables":
-                        from pydantic import TypeAdapter
-
                         data[field] = TypeAdapter(dict[str, Any]).validate_json(blob_data)
                     else:
-                        from pydantic import TypeAdapter
-
                         data[field] = TypeAdapter(Any).validate_json(blob_data)
                 except Exception as e:
                     logger.warning(
@@ -141,9 +141,18 @@ class ExecutionRepositoryImpl(BaseRepository):
                 trails = await self.driver.query(coll_path)
                 if trails:
                     trails.sort(key=lambda x: x["timestamp"] if "timestamp" in x else "")
-                    if "frozen_context" not in data or not isinstance(data["frozen_context"], dict):  # noqa: QGR012 [REASON: Raw DB payload dict offloading]
-                        data["frozen_context"] = {}
-                    data["frozen_context"]["mcp_tool_audit"] = trails
+                    audit_models = TypeAdapter(list[MCPAuditTrace]).validate_python(trails)
+                    fc_data = data["frozen_context"] if "frozen_context" in data else None
+                    if fc_data:
+                        fc = (
+                            fc_data
+                            if isinstance(fc_data, FrozenContext)
+                            else FrozenContext.model_validate(fc_data, strict=False)
+                        )
+                        fc_updated = fc.model_copy(update={"mcp_tool_audit": audit_models})
+                        data["frozen_context"] = fc_updated
+                    else:
+                        data["frozen_context"] = FrozenContext(mcp_tool_audit=audit_models)
             except Exception as e:
                 msg = f"Failed to hydrate audit_trails for {doc_id}: {e}"
                 logger.error("[ExecutionRepository] %s", msg, exc_info=True)

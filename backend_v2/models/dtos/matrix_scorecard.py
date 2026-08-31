@@ -6,7 +6,7 @@ Decoupled schema definitions for evaluated matrix rows and presentation logic.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -113,7 +113,7 @@ class ScorecardAtomDTO(V2CoreBase):
 
     @model_validator(mode="before")
     @classmethod
-    def map_contested_to_warning(cls, data: dict[str, object] | object) -> dict[str, object] | object:
+    def map_contested_to_warning(cls, data: Any) -> Any:
         """Remaps visual intent to WARNING if passed atom has contextual override applied.
 
         Args:
@@ -122,14 +122,17 @@ class ScorecardAtomDTO(V2CoreBase):
         Returns:
             Sanitized dictionary with visual_intent adjusted if contested.
         """
-        if isinstance(data, dict):
-            status_val = data.get("status")
-            is_passed = status_val == "PASSED" or (
-                isinstance(status_val, ExecutionStatus) and status_val == ExecutionStatus.PASSED
-            )
-            if is_passed and data.get("contextual_override"):
-                data["visual_intent"] = VisualIntent.WARNING
-        return data
+        if not isinstance(data, dict):
+            return data
+
+        d = dict(data)
+        status_val = d.get("status")
+        is_passed = status_val == "PASSED" or (
+            isinstance(status_val, ExecutionStatus) and status_val == ExecutionStatus.PASSED
+        )
+        if is_passed and d.get("contextual_override"):
+            d["visual_intent"] = VisualIntent.WARNING
+        return d
 
 
 class TDAPending(V2CoreBase):

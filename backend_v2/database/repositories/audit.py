@@ -71,14 +71,14 @@ class AuditRepositoryImpl(BaseRepository):
                 )
         return logs
 
-    async def log_usage(self, record: Any) -> None:
+    async def log_usage(self, record: UsageRecord | dict[str, Any]) -> None:
         """Logs a resource usage record.
 
         Args:
             record: UsageRecord model or dictionary.
         """
-        if hasattr(record, "model_dump"):
-            data = record.model_dump()
+        if isinstance(record, UsageRecord):
+            data = record.model_dump(mode="json")
         else:
             data = record
 
@@ -229,9 +229,15 @@ class AuditRepositoryImpl(BaseRepository):
             if "workflow_id" in e and e["workflow_id"]:
                 wid = str(e["workflow_id"])
                 workflows_used[wid] = (workflows_used[wid] if wid in workflows_used else 0) + 1
-            if "models_used" in e and isinstance(e["models_used"], dict):
-                for m, count in e["models_used"].items():
-                    models_used[m] = (models_used[m] if m in models_used else 0) + count
+            if "models_used" in e and e["models_used"]:
+                try:
+                    from pydantic import TypeAdapter
+
+                    parsed_models = TypeAdapter(dict[str, int]).validate_python(e["models_used"])
+                    for m, count in parsed_models.items():
+                        models_used[m] = (models_used[m] if m in models_used else 0) + count
+                except Exception:
+                    pass
 
         if workflows_used:
             try:

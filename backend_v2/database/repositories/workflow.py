@@ -226,10 +226,14 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
 
         all_wfs = await self.driver.query("workflows")
         for wf in all_wfs:
-            if "steps" in wf and isinstance(wf["steps"], list):
+            if "steps" in wf and wf["steps"]:
                 for s in wf["steps"]:
-                    if isinstance(s, dict) and "id" in s and s["id"] == step_id:
-                        return Step.model_validate(s, strict=False)
+                    try:
+                        validated_step = Step.model_validate(s, strict=False)
+                        if validated_step.id == step_id:
+                            return validated_step
+                    except Exception:
+                        continue
         return None
 
     async def get_step(self, step_id: str) -> Step | None:

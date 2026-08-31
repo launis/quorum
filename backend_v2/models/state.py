@@ -394,7 +394,10 @@ class StateProjector:
 
         for event in sorted_trace:
             if max_tokens is not None:
-                event_str = json.dumps(event.content) if isinstance(event.content, dict) else str(event.content)
+                if isinstance(event.content, (dict, list)):
+                    event_str = json.dumps(event.content, default=str)
+                else:
+                    event_str = str(event.content)
                 est_tokens = len(event_str) // 4
                 if current_tokens + est_tokens > max_tokens:
                     # Token limit reached, drop older events from LLM context

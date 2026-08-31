@@ -88,15 +88,26 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
         Returns:
             List of matching matrix IDs.
         """
-        matrices = await self.get_all_matrices()
-        matches = []
-        for m in matrices:
-            if "content" in m and isinstance(m["content"], dict):
-                content = m["content"]
-                if "criteria" in content and isinstance(content["criteria"], list):
-                    for crit in content["criteria"]:
-                        if isinstance(crit, dict) and "dimension_id" in crit and crit["dimension_id"] == dimension_id:
-                            if "id" in m:
-                                matches.append(m["id"])
-                            break
+        from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+
+        class _MatrixCriteriaDTO(BaseModel):
+            model_config = ConfigDict(strict=False, extra="ignore")
+            dimension_id: str | None = None
+
+        class _MatrixContentDTO(BaseModel):
+            model_config = ConfigDict(strict=False, extra="ignore")
+            criteria: list[_MatrixCriteriaDTO] = Field(default_factory=list)
+
+        class _MatrixComponentDTO(BaseModel):
+            model_config = ConfigDict(strict=False, extra="ignore")
+            id: str | None = None
+            content: _MatrixContentDTO | None = None
+
+        raw_matrices = await self.get_all_matrices()
+        validated_matrices = TypeAdapter(list[_MatrixComponentDTO]).validate_python(raw_matrices)
+        matches: list[str] = []
+        for m in validated_matrices:
+            if m.id and m.content and m.content.criteria:
+                if any(crit.dimension_id == dimension_id for crit in m.content.criteria):
+                    matches.append(m.id)
         return matches

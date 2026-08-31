@@ -62,8 +62,8 @@ def test_validation_result_valid() -> None:
     assert len(result.errors) == 1
 
 
-def test_system_warnings_state_extracts_and_ignores_extra() -> None:
-    """Test that SystemWarningsStateDTO extracts _system_warnings and ignores other state fields."""
+def test_system_warnings_state_extracts_and_forbids_extra() -> None:
+    """Test that SystemWarningsStateDTO extracts _system_warnings and rejects extra fields."""
     warning_data = {
         "type": "Error",
         "title": "State Error",
@@ -72,14 +72,18 @@ def test_system_warnings_state_extracts_and_ignores_extra() -> None:
     }
     data = {
         "_system_warnings": [warning_data],
-        "random_execution_state_field": "Value",
-        "another_field": 123,
     }
     state = SystemWarningsStateDTO.model_validate(data)
-    # The extra fields are ignored
     assert len(state.system_warnings) == 1
-    with pytest.raises(AttributeError):
-        _ = state.random_execution_state_field  # type: ignore[attr-defined]
+
+    # Extra fields raise ValidationError due to extra="forbid"
+    with pytest.raises(ValidationError):
+        SystemWarningsStateDTO.model_validate(
+            {
+                "_system_warnings": [warning_data],
+                "random_execution_state_field": "Value",
+            }
+        )
 
 
 def test_validation_warning_telemetry() -> None:
