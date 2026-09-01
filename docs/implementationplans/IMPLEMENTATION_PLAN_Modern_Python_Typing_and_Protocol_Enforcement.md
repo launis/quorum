@@ -1,6 +1,6 @@
 # Unified Implementation Plan: Modern Python Typing, 100% Protocol Reconstitution, Dict Eradication & Strict Boundary Lockdown
 
-This comprehensive implementation plan combines Python 3.12–3.14+ typing modernization, 100% typing reconstitution of ALL 15 database protocols and repositories (Ingress DTOs & Egress Domain Models), eradication of permissive dictionary utility anti-patterns (`dict_utils.py`), new stateful In-Memory Protocol Fake testing infrastructure, static AST Guardrail engine expansion alongside **Permanent Lockdown of `BOUNDARY_EXEMPTION_FILES` to ONLY 5 physical SDK/storage & pre-validation drivers (`interfaces.py`, `driver.py`, `wrapper.py`, `exceptions.py`, `finops_trace_analyzer.py`, and `dict_utils.py` removed/deleted; `alias_engine.py` retained as pre-validation boundary)**.
+This comprehensive implementation plan combines Python 3.12–3.14+ typing modernization, 100% typing reconstitution of ALL 15 database protocols and repositories (Ingress DTOs & Egress Domain Models), eradication of permissive dictionary utility anti-patterns (`dict_utils.py`), new stateful In-Memory Protocol Fake testing infrastructure, static AST Guardrail engine expansion alongside **Permanent Lockdown of `BOUNDARY_EXEMPTION_FILES` to ONLY 4 physical SDK/storage drivers (`interfaces.py`, `driver.py`, `wrapper.py`, `exceptions.py`, `finops_trace_analyzer.py`, `alias_engine.py`, and `dict_utils.py` removed/deleted)**.
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
@@ -26,10 +26,10 @@ This comprehensive implementation plan combines Python 3.12–3.14+ typing moder
 >     - **DELETE `dict_utils.py` & `test_dict_utils.py`**: Relocate pure `resolve_dot_notation()` utility into `@[backend_v2/utils/math_utils.py]` and update `@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]`. Relocate `deep_merge_dicts` as a private `_deep_merge()` helper in `@[backend_v2/services/orchestrator/strategies/base.py]` for dynamic input blackboard reduction, while all domain-level updates enforce canonical Pydantic V2 `.model_copy(update=...)` and typed DTOs.
 >     - **Modernize `exceptions.py`**: Refactor `AppException` and validation error formatting to use typed `ErrorDetails` (Pydantic V2) with 0 `.get()` / `getattr()` calls.
 >     - **Modernize `finops_trace_analyzer.py`**: Introduce `MonitorState` and `TelemetryRecord` DTOs, replacing raw `.get()` calls with dot-notation.
->     - **Alias Engine Pre-Validation Boundary**: `alias_engine.py` is preserved as a legitimate pre-validation boundary driver in `BOUNDARY_EXEMPTION_FILES` per `atom_aliasing_hydration_mandate`.
->   - **Part C: Permanent Boundary Exemption Lockdown (Strict 5-Driver Firewall)**
->     - **6 Files Removed/Deleted from `BOUNDARY_EXEMPTION_FILES`**: `interfaces.py`, `driver.py`, `wrapper.py`, `exceptions.py`, `finops_trace_analyzer.py`, `dict_utils.py`.
->     - **ONLY 5 Legitimate Physical & Pre-Validation Drivers Retained**: `tinydb_driver.py` (disk JSON driver), `firestore_driver.py` (GCP Firestore SDK), `provider.py` (LiteLLM / AI Provider network boundary), `logging_config.py` (Python stdlib logging formatter), `alias_engine.py` (LLM pre-validation hydration boundary).
+>     - **Modernize `alias_engine.py` (Full SSOT Compliance)**: Refactor `alias_engine.py` to 100% AST guardrail compliance (0 `isinstance(dict)` duck-typing violations, strict `AliasManifest`), allowing complete removal from `BOUNDARY_EXEMPTION_FILES`.
+>   - **Part C: Permanent Boundary Exemption Lockdown (Strict 4-Driver Firewall)**
+>     - **7 Files Removed/Deleted from `BOUNDARY_EXEMPTION_FILES`**: `interfaces.py`, `driver.py`, `wrapper.py`, `exceptions.py`, `finops_trace_analyzer.py`, `alias_engine.py`, `dict_utils.py`.
+>     - **ONLY 4 Legitimate Physical Drivers Retained**: `tinydb_driver.py` (disk JSON driver), `firestore_driver.py` (GCP Firestore SDK), `provider.py` (LiteLLM / AI Provider network boundary), `logging_config.py` (Python stdlib logging formatter).
 >     - Expand AST Guardrail engine with `QGR013` (ban `TypeVar`), `QGR014` (warn on `AsyncMock` in services), and `QGR015` (ban `TypeGuard` per PEP 742 `pep742_typeis_over_typeguard`).
 >     - Synchronize existing test in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L827-L835]` (`test_ast_guardrails_allows_exempt_driver_annotations`) from `interfaces.py` to `tinydb_driver.py`.
 
@@ -63,7 +63,7 @@ This comprehensive implementation plan combines Python 3.12–3.14+ typing moder
 | `dict_utils.py` | `deep_merge_dicts()` and loose helper functions | **PERMANENTLY DELETED**; `_deep_merge` in `base.py` | `[x]` | Banned dict module completely removed |
 | `finops_trace_analyzer.py` | 9x `.get()` calls on raw dicts | `MonitorState` & `TelemetryRecord` Pydantic DTOs | `[x]` | Strongly typed telemetria DTOs |
 | `exceptions.py` | `.get("error_code")` & `.get("loc")` | Typed `ErrorDetails` (Pydantic V2) | `[x]` | Typed RFC 7807 problem details |
-| `alias_engine.py` | `isinstance(node, dict)` recursion | Retained in `BOUNDARY_EXEMPTION_FILES` | `[x]` | Pre-validation LLM hydration boundary |
+| `alias_engine.py` | `isinstance(node, dict)` recursion | Refactored to 0 AST violations; purged from exemptions | `[x]` | Central SSOT for ID aliasing without exemptions |
 | `ISearchClient.search()` (`hook_registry.py`) | `-> list[dict[str, Any]]` | `-> TavilySearchResultDTO` | `[x]` | Reconstituted retrieval DTO |
 | `ComponentRepositoryImpl.get_all_components` | `c["type"] not in exclude_types` | `c.type not in exclude_types` | `[x]` | Dot-notation attribute filtering |
 | `ComponentRepositoryImpl.get_components_using_dimension` | `c.get("content").get("criteria")` + `try/except` | Dot-notation on `PromptBlock.content.criteria` | `[x]` | Typed dot-notation, zero fallback dicts |
@@ -74,7 +74,7 @@ This comprehensive implementation plan combines Python 3.12–3.14+ typing moder
 | `HookRegistry._hooks` (`hook_registry.py`) | `_hooks: dict[str, HookFunction]` | Retained `dict[str, HookFunction]` | `[ ]` | Permissible in-memory registry map |
 | Repository Persistence Drivers (`tinydb_driver.py`) | `doc: dict[str, Any]` | Internal JSON serialization boundary | `[ ]` | Permissible driver storage boundary |
 | `ExecutionUpdateDTO.step_states` (`trace.py`) | `dict[str, Any] \| None` | Validated via `TypeAdapter` on consumer | `[ ]` | Permissible polymorphic DAG payload |
-| `BOUNDARY_EXEMPTION_FILES` Lockdown | 11 files exempt | **LOCKED TO 5 PHYSICAL & PRE-VAL DRIVERS** | `[x]` | 6 non-driver files purged from exemption |
+| `BOUNDARY_EXEMPTION_FILES` Lockdown | 11 files exempt | **LOCKED TO 4 PHYSICAL DRIVERS ONLY** | `[x]` | 7 non-driver files purged from exemption |
 
 ---
 
@@ -101,7 +101,7 @@ This comprehensive implementation plan combines Python 3.12–3.14+ typing moder
 | **Dictionary Utilities Deletion & Relocation** (`@[backend_v2/utils/dict_utils.py]`) | Banned `deep_merge_dicts()` and dictionary mutation helper functions in domain services. | Delete `dict_utils.py` entirely. Relocate `deep_merge_dicts()` as a private `_deep_merge()` helper in `@[backend_v2/services/orchestrator/strategies/base.py]` for dynamic inputs blackboard reduction, while all domain-level updates enforce canonical Pydantic V2 `.model_copy(update=...)` and typed DTOs. Relocate pure utility `resolve_dot_notation()` to `@[backend_v2/utils/math_utils.py]` and update `context_builder.py`. | Pruned: Eliminate psychological anti-pattern magnet entirely from repository. | `grep_search` verifies 0 imports of `dict_utils` across entire codebase. |
 | **Modern Generics & Registry** (`@[backend_v2/core/hook_registry.py]`) | Banned legacy `TypeVar("F", bound=HookFunction)` instantiation, `list[dict]` search return, and outdated docstrings referencing `Dict -> Dict`. | PEP 695 generic method syntax: `def register[F: HookFunction](self, name: str) -> Callable[[F], F]:`, and `ISearchClient.search()` returning `TavilySearchResultDTO`. | Pruned: Eradicate module-level `TypeVar` boilerplate, naked search result dicts, and legacy dictionary docstrings. | `uv run mypy --strict backend_v2/core/hook_registry.py` and `uv run pytest backend_v2/tests/unit/core/test_hook_registry.py -v`. |
 | **In-Memory Protocol Fakes** (`@[backend_v2/tests/fakes/in_memory_repositories.py]`) | Banned brittle mock fixtures with manual dict configurations for database repositories. | State-backed `InMemoryWorkflowRepository`, `InMemoryExecutionRepository`, `InMemoryComponentRepository`, `InMemoryIdentityRepository`, `InMemoryKnowledgeRepository` adhering 100% to typed Protocols. | Pruned: No ad-hoc mock patches in service tests; deterministic in-memory dict state engine. | `uv run pytest backend_v2/tests/unit/fakes/test_in_memory_repositories.py -v`. |
-| **AST Guardrail 5-Driver Lockdown** (`@[scripts/_ast_guardrails.py]`) | Banned unchecked legacy typing patterns (`TypeVar`, `TypeGuard`, `AsyncMock` in service tests) and **PURGED 6 non-driver files from `BOUNDARY_EXEMPTION_FILES`**. | Add `QGR013` (`TypeVar`), `QGR014` (`AsyncMock`), and `QGR015` (`TypeGuard` ban per PEP 742 `pep742_typeis_over_typeguard`). Enforce FATAL AST scan across all domain files. Synchronize test fixture in `test_ast_guardrails.py#L830`. | Pruned: No complex runtime reflection; pure static AST visitor pattern. | `uv run python scripts/_ast_guardrails.py backend_v2/` passes with 0 fatal violations. |
+| **AST Guardrail 4-Driver Lockdown** (`@[scripts/_ast_guardrails.py]`) | Banned unchecked legacy typing patterns (`TypeVar`, `TypeGuard`, `AsyncMock` in service tests) and **PURGED 7 non-driver files from `BOUNDARY_EXEMPTION_FILES`** (including `alias_engine.py`). | Add `QGR013` (`TypeVar`), `QGR014` (`AsyncMock`), and `QGR015` (`TypeGuard` ban per PEP 742 `pep742_typeis_over_typeguard`). Enforce FATAL AST scan across all domain files. Synchronize test fixture in `test_ast_guardrails.py#L830`. | Pruned: No complex runtime reflection; pure static AST visitor pattern. | `uv run python scripts/_ast_guardrails.py backend_v2/` passes with 0 fatal violations. |
 
 ---
 
@@ -497,9 +497,11 @@ This comprehensive implementation plan combines Python 3.12–3.14+ typing moder
 - Replace all 9 `.get()` calls with typed dot-notation.
 
 #### [MODIFY] [`backend_v2/utils/alias_engine.py`](file:///c:/src/quorum/backend_v2/utils/alias_engine.py#L1-L338)
-- **Pre-Validation Boundary Exemption**: Retain `alias_engine.py` in `BOUNDARY_EXEMPTION_FILES` as a legitimate LLM pre-validation hydration boundary per `atom_aliasing_hydration_mandate`.
+- **Full SSOT Compliance & Exemption Purge**: Refactor `alias_engine.py` to achieve 0 AST violations and purge from `BOUNDARY_EXEMPTION_FILES`.
 - **Model Hardening (`AliasManifest`)**: Add `model_config = ConfigDict(strict=True, extra="forbid", frozen=True)` to `AliasManifest` DTO for type-safe cross-boundary transport.
-- **Type Signature Tightening**: Replace untyped `Any` in traversal methods (`hydrate_and_filter_aliases`) with typed `JsonNode` recursive type alias (`type JsonScalar = str | int | float | bool | None; type JsonNode = dict[str, Any] | list[Any] | JsonScalar`).
+- **Eradicate Duck-Typing (`hydrate_dict_list` & `hydrate_and_filter_aliases`)**:
+  - Remove dead code `hydrate_dict_list()` (and update unit tests to test typed methods).
+  - Refactor `hydrate_and_filter_aliases()` to eliminate `isinstance(node, dict)` duck-typing in favor of typed Pydantic DTO attribute hydration.
 - **Two-Phase Parsing Target Architecture**: Document the roadmap pattern: (1) LLM produces `AliasedExtractionDTO` with short semantic aliases (`a0`, `doc1`), (2) `alias_engine` translates aliases to real opaque UUIDs (`tda_...`), (3) validated into domain `AtomResultDTO`/`PromptBlock` with zero ad-hoc dictionary manipulation.
 
 ---
@@ -552,15 +554,15 @@ This comprehensive implementation plan combines Python 3.12–3.14+ typing moder
 ### AST Guardrails Lockdown & Rule Expansion (`scripts/`)
 
 #### [MODIFY] [`scripts/_ast_guardrails.py`](file:///c:/src/quorum/scripts/_ast_guardrails.py#L82-L665)
-- **`BOUNDARY_EXEMPTION_FILES` STRICT 5-DRIVER LOCKDOWN**:
-  - Purge 6 non-driver files from `BOUNDARY_EXEMPTION_FILES`: `interfaces.py`, `driver.py`, `wrapper.py`, `exceptions.py`, `finops_trace_analyzer.py`, `dict_utils.py`.
-  - Lock exemption set to ONLY 5 legitimate drivers: `tinydb_driver.py`, `firestore_driver.py`, `provider.py`, `logging_config.py`, `alias_engine.py` (LLM pre-validation hydration boundary).
+- **`BOUNDARY_EXEMPTION_FILES` STRICT 4-DRIVER LOCKDOWN**:
+  - Purge ALL 7 non-driver files from `BOUNDARY_EXEMPTION_FILES`: `interfaces.py`, `driver.py`, `wrapper.py`, `exceptions.py`, `finops_trace_analyzer.py`, `alias_engine.py`, `dict_utils.py`.
+  - Lock exemption set to ONLY 4 legitimate physical drivers: `tinydb_driver.py`, `firestore_driver.py`, `provider.py`, `logging_config.py`.
   - Add `QGR013`: Ban `TypeVar()` instantiation (Severity: `WARNING`). Preventative rule — single current instance fixed in Step 2.
   - Add `QGR014`: Ban `AsyncMock` / `MagicMock` in `backend_v2/tests/unit/services/` (Severity: `WARNING`).
   - Add `QGR015`: Ban `TypeGuard` import / type annotation (Severity: `WARNING`). Preventative rule enforcing PEP 742 `TypeIs` (`pep742_typeis_over_typeguard`).
 
 #### [MODIFY] [`backend_v2/tests/unit/scripts/test_ast_guardrails.py`](file:///c:/src/quorum/backend_v2/tests/unit/scripts/test_ast_guardrails.py#L1-L100)
-- Append unit tests for `QGR013`, `QGR014`, and `QGR015`. Verify purged files are no longer in `BOUNDARY_EXEMPTION_FILES`.
+- Append unit tests for `QGR013`, `QGR014`, and `QGR015`. Verify purged files (including `alias_engine.py`) are no longer in `BOUNDARY_EXEMPTION_FILES`.
 
 ---
 
@@ -638,14 +640,15 @@ This comprehensive implementation plan combines Python 3.12–3.14+ typing moder
     <constraint invariant="repository_reconstitution_mandate">All repositories accept and return strictly typed models.</constraint>
   </step>
 
-  <step id="6" name="Delete dict_utils.py, Relocate resolve_dot_notation & Modernize exceptions, finops Utilities">
+  <step id="6" name="Delete dict_utils.py, Relocate resolve_dot_notation & Modernize exceptions, finops, alias_engine Utilities">
     <action>Move `resolve_dot_notation()` from `dict_utils.py` into `@[backend_v2/utils/math_utils.py]` and update `@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]` imports.</action>
     <action>Relocate `deep_merge_dicts()` as a private `_deep_merge()` helper in `@[backend_v2/services/orchestrator/strategies/base.py]` for dynamic inputs blackboard reduction, while all domain-level state mutations enforce canonical Pydantic V2 `.model_copy(update=...)` and typed DTOs.</action>
     <action>Delete `@[backend_v2/utils/dict_utils.py]` and `@[backend_v2/tests/unit/test_dict_utils.py]`, and clean up `@[backend_v2/tests/unit/utils/test_dict_utils.py]` into `@[backend_v2/tests/unit/utils/test_math_utils.py]`.</action>
     <action>Refactor @[backend_v2/exceptions.py] to eliminate `.get()` and `getattr()` using typed `pydantic_core.ErrorDetails`.</action>
     <action>Refactor @[backend_v2/utils/finops_trace_analyzer.py] to use typed `MonitorState` and `TelemetryRecord` models with dot-notation.</action>
+    <action>Refactor @[backend_v2/utils/alias_engine.py] to eliminate `isinstance(node, dict)` duck-typing recursion and add `ConfigDict(strict=True, extra="forbid", frozen=True)` to `AliasManifest`.</action>
     <action>Run `uv run python scripts/backend_audit_loop.py backend_v2/utils/ --test`.</action>
-    <constraint invariant="no_naked_dicts_in_state">dict_utils completely purged from codebase.</constraint>
+    <constraint invariant="no_naked_dicts_in_state">dict_utils completely purged; alias_engine 100% compliant.</constraint>
   </step>
 
   <step id="7" name="Build In-Memory Protocol Fakes Infrastructure">
@@ -663,11 +666,11 @@ This comprehensive implementation plan combines Python 3.12–3.14+ typing moder
     <constraint invariant="deterministic_testing_delegation">Test suite must achieve >90% coverage with zero failures.</constraint>
   </step>
 
-  <step id="9" name="AST Guardrails Strict 5-Driver Lockdown & Rule Expansion (QGR013-QGR015)">
-    <action>PURGE 6 non-driver files from `BOUNDARY_EXEMPTION_FILES` in @[scripts/_ast_guardrails.py#L82-L94], locking it strictly to `tinydb_driver.py`, `firestore_driver.py`, `provider.py`, `logging_config.py`, and `alias_engine.py`.</action>
+  <step id="9" name="AST Guardrails Strict 4-Driver Lockdown & Rule Expansion (QGR013-QGR015)">
+    <action>PURGE ALL 7 non-driver files from `BOUNDARY_EXEMPTION_FILES` in @[scripts/_ast_guardrails.py#L82-L94], locking it strictly to `tinydb_driver.py`, `firestore_driver.py`, `provider.py`, and `logging_config.py`.</action>
     <action>Add `QGR013` (TypeVar ban), `QGR014` (AsyncMock ban), and `QGR015` (TypeGuard ban per PEP 742 `pep742_typeis_over_typeguard`) visitor rules to @[scripts/_ast_guardrails.py#L200-L665].</action>
     <action>Update @[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L830] `test_ast_guardrails_allows_exempt_driver_annotations` to test `tinydb_driver.py` instead of purged `interfaces.py`.</action>
-    <action>Append unit tests in @[backend_v2/tests/unit/scripts/test_ast_guardrails.py] verifying QGR013, QGR014, and QGR015, and verifying purged files are no longer exempt.</action>
+    <action>Append unit tests in @[backend_v2/tests/unit/scripts/test_ast_guardrails.py] verifying QGR013, QGR014, and QGR015, and verifying purged files (including `alias_engine.py`) are no longer exempt.</action>
     <action>Run `uv run pytest backend_v2/tests/unit/scripts/test_ast_guardrails.py -v`.</action>
     <action>Run `uv run python scripts/_ast_guardrails.py backend_v2/` to mathematically verify 0 fatal violations.</action>
     <constraint invariant="ast_guardrail_mandate">All domain files pass 100% FATAL AST inspection without exemption.</constraint>
