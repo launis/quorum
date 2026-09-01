@@ -1,13 +1,14 @@
 import 'dart:isolate';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 
 void main() {
   // Phase 1, Step 4: Renamed from 'Epic 11 Phase B: NodeStrategy Strict Parsing'
   group('NodeStrategy Strict Parsing', () {
     test(
-      'Successfully parses valid expectedInputs and outputSchema via Isolate',
+      'Successfully parses valid expectedInputs via Isolate',
       () async {
         final payload = {
           'id': 'st_a1b2c3d4e5f60000',
@@ -18,12 +19,6 @@ void main() {
           'type': 'llm',
           'model_strategy': 'fast',
           'expected_inputs': ['doc_id', 'prompt_text'],
-          'output_schema': {
-            'type': 'object',
-            'properties': {
-              'result': {'type': 'string'},
-            },
-          },
         };
 
         final NodeStrategy parsed = await Isolate.run(() {
@@ -36,8 +31,6 @@ void main() {
         switch (parsed) {
           case NodeStrategyLlm l:
             expect(l.expectedInputs, equals(['doc_id', 'prompt_text']));
-            expect(l.outputSchema, isNotNull);
-            expect(l.outputSchema?['type'], equals('object'));
           case NodeStrategyLogic _:
             fail('Should be LLM');
         }
@@ -69,7 +62,7 @@ void main() {
     );
 
     test(
-      'Logic nodes parse successfully without requiring outputSchema',
+      'Logic nodes parse successfully without requiring expectedInputs',
       () async {
         final payload = {
           'id': 'st_a1b2c3d4e5f60002',
@@ -79,7 +72,7 @@ void main() {
           },
           'type': 'logic',
           'hook': 'my_logic_hook',
-          // Omitting outputSchema and expectedInputs entirely to test correct @Default injection
+          // Omitting expectedInputs entirely to test correct @Default injection
         };
 
         final NodeStrategy parsed = await Isolate.run(() {
@@ -93,7 +86,6 @@ void main() {
             fail('Should be Logic');
           case NodeStrategyLogic l:
             expect(l.expectedInputs, isEmpty);
-            expect(l.outputSchema, isNull);
         }
       },
     );
@@ -252,4 +244,47 @@ void main() {
       },
     );
   });
+
+  group('Workflow Schema Parity & Purged Fields Verification', () {
+    test(
+      'Workflow.toJson() must not contain purged legacy field ui_schema',
+      () {
+        const workflow = Workflow(
+          id: 'wf_0123456789abcdef',
+          slug: 'test_wf',
+          name: I18nText(translations: {'en': 'Test Workflow'}),
+          description: I18nText(translations: {'en': 'Test Description'}),
+        );
+
+        final json = workflow.toJson();
+        expect(
+          json.containsKey('ui_schema'),
+          isFalse,
+          reason:
+              'ui_schema was purged in Epic 150 and causes 422 extra_forbidden on backend PUT',
+        );
+      },
+    );
+
+    test(
+      'NodeStrategy.toJson() must not contain purged legacy field output_schema',
+      () {
+        const node = NodeStrategy.llm(
+          id: 'st_0123456789abcdef',
+          slug: 'test_step',
+          name: I18nText(translations: {'en': 'Test Step'}),
+          modelStrategy: 'fast',
+        );
+
+        final json = node.toJson();
+        expect(
+          json.containsKey('output_schema'),
+          isFalse,
+          reason:
+              'output_schema was purged in Epic 150 and causes 422 extra_forbidden on backend PUT',
+        );
+      },
+    );
+  });
 }
+

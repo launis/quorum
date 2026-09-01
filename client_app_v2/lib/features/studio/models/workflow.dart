@@ -89,7 +89,6 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
     @Default([]) List<String> expectedInputs,
-    Map<String, dynamic>? outputSchema,
     String? modelStrategy,
     String? organizationId,
     // Phase 1, Step 3: System core protection governance field
@@ -113,7 +112,6 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
     @Default([]) List<String> expectedInputs,
-    Map<String, dynamic>? outputSchema,
     String? modelStrategy,
     String? organizationId,
     // Phase 1, Step 3: System core protection governance field
@@ -138,7 +136,6 @@ abstract class Workflow with _$Workflow {
     @Default(1) int version,
     @Default(false) bool isPublic,
     String? organizationId,
-    @Default({}) Map<String, dynamic> uiSchema,
     @Default({}) Map<String, OutputProfile> outputProfiles,
     @Default("default") String defaultProfileId,
     @JsonKey(name: 'mcp_gateway_id')

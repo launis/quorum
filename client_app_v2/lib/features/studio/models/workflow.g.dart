@@ -236,7 +236,6 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'safety',
         'allowed_mcp_tools',
         'expected_inputs',
-        'output_schema',
         'model_strategy',
         'organization_id',
         'is_system_core',
@@ -305,10 +304,6 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
-      outputSchema: $checkedConvert(
-        'output_schema',
-        (v) => v as Map<String, dynamic>?,
-      ),
       modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
       isSystemCore: $checkedConvert(
@@ -328,7 +323,6 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
     'expectedInputs': 'expected_inputs',
-    'outputSchema': 'output_schema',
     'modelStrategy': 'model_strategy',
     'organizationId': 'organization_id',
     'isSystemCore': 'is_system_core',
@@ -361,7 +355,6 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
       'expected_inputs': instance.expectedInputs,
-      'output_schema': instance.outputSchema,
       'model_strategy': instance.modelStrategy,
       'organization_id': instance.organizationId,
       'is_system_core': instance.isSystemCore,
@@ -401,7 +394,6 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'safety',
         'allowed_mcp_tools',
         'expected_inputs',
-        'output_schema',
         'model_strategy',
         'organization_id',
         'is_system_core',
@@ -470,10 +462,6 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
-      outputSchema: $checkedConvert(
-        'output_schema',
-        (v) => v as Map<String, dynamic>?,
-      ),
       modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
       isSystemCore: $checkedConvert(
@@ -493,7 +481,6 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
     'expectedInputs': 'expected_inputs',
-    'outputSchema': 'output_schema',
     'modelStrategy': 'model_strategy',
     'organizationId': 'organization_id',
     'isSystemCore': 'is_system_core',
@@ -526,7 +513,6 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
       'expected_inputs': instance.expectedInputs,
-      'output_schema': instance.outputSchema,
       'model_strategy': instance.modelStrategy,
       'organization_id': instance.organizationId,
       'is_system_core': instance.isSystemCore,
@@ -548,7 +534,6 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'version',
         'is_public',
         'organization_id',
-        'ui_schema',
         'output_profiles',
         'default_profile_id',
         'mcp_gateway_id',
@@ -582,10 +567,6 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
       version: $checkedConvert('version', (v) => (v as num?)?.toInt() ?? 1),
       isPublic: $checkedConvert('is_public', (v) => v as bool? ?? false),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
-      uiSchema: $checkedConvert(
-        'ui_schema',
-        (v) => v as Map<String, dynamic>? ?? const {},
-      ),
       outputProfiles: $checkedConvert(
         'output_profiles',
         (v) =>
@@ -663,7 +644,6 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
   fieldKeyMap: const {
     'isPublic': 'is_public',
     'organizationId': 'organization_id',
-    'uiSchema': 'ui_schema',
     'outputProfiles': 'output_profiles',
     'defaultProfileId': 'default_profile_id',
     'mcpGatewayId': 'mcp_gateway_id',
@@ -688,7 +668,6 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'version': instance.version,
   'is_public': instance.isPublic,
   'organization_id': instance.organizationId,
-  'ui_schema': instance.uiSchema,
   'output_profiles': instance.outputProfiles.map(
     (k, e) => MapEntry(k, e.toJson()),
   ),
