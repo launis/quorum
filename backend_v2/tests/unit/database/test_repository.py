@@ -4,6 +4,32 @@ import pytest
 
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.models.auth import (
+    Organization,
+    OrganizationUpdateDTO,
+    SubscriptionStatus,
+    User,
+    UserRole,
+    UserUpdate,
+)
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.base import AuditLogCreateDTO
+from backend_v2.models.domain.knowledge import (
+    ClaimCreateDTO,
+    ConceptCreateDTO,
+    ReferenceCreateDTO,
+)
+from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
+from backend_v2.models.dtos.studio import (
+    StepCreateDTO,
+    StepUpdateDTO,
+    WorkflowCreateDTO,
+    WorkflowUpdateDTO,
+)
+from backend_v2.models.dtos.system import SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory, TargetBlockType
+from backend_v2.models.v2_core import OutputProfile
 
 
 @pytest.mark.asyncio
@@ -113,48 +139,66 @@ async def test_all_passthrough_methods() -> None:
 
     await repo.get_execution("1")
     await repo.get_execution_status("1")
-    await repo.create_execution({"id": "1"})
-    await repo.update_execution("1", {"status": "ok"})
+    await repo.create_execution(
+        ExecutionCreateDTO(id="exe_0123456789abcdef", workflow_id="wor_0123456789abcdef", raw_inputs=None)
+    )
+    await repo.update_execution("exe_0123456789abcdef", ExecutionUpdateDTO(status=ExecutionStatus.PASSED))
     await repo.delete_execution("1")
     await repo.get_all_executions()
     await repo.get_recent_completed_executions()
-    await repo.log_audit_event({"data": "test"})
+    await repo.log_audit_event(
+        AuditLogCreateDTO(
+            organization_id="org_1234abcd",
+            actor_id="usr_1234abcd",
+            action="test",
+            details={"resource_type": "workflow", "resource_id": "wor_1234"},
+        )
+    )
     await repo.get_audit_logs()
     await repo.get_all_workflows()
     await repo.get_workflow_by_id("1")
-    await repo.create_workflow({"id": "1"})
+    await repo.create_workflow(WorkflowCreateDTO(slug="wf_slug", name="WF"))
     mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
-    await repo.update_workflow("1", {})
-    await repo.update_workflow_definition("1", {})
+    await repo.update_workflow("1", WorkflowUpdateDTO(name="WF New"))
+    await repo.update_workflow_definition("1", WorkflowUpdateDTO(name="WF New"))
     await repo.delete_workflow("1")
     await repo.get_all_steps()
     mock_driver.get.return_value = None
     await repo.get_step_by_id("1")
-    await repo.create_step({"id": "1"})
+    await repo.create_step(StepCreateDTO(slug="step_slug", name=I18nText(translations={"en": "Step"})))
     mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
-    await repo.update_step("1", {})
+    await repo.update_step("1", StepUpdateDTO(name=I18nText(translations={"en": "Step"})))
     await repo.delete_step("1", force_delete=True)
     await repo.get_all_components()
     mock_driver.get.return_value = None
     await repo.get_component_by_id("1")
-    await repo.get_component_by_name("name")
-    mock_driver.get.return_value = {"id": "1", "type": "agent"}
+    persona_block = PersonaPromptBlock(
+        id="blk_0123456789abcdef",
+        slug="blk_1",
+        label=I18nText(translations={"en": "Block"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.EXECUTION_PERSONA,
+        type=BlockDataType.INSTRUCTION,
+        organization_id="org_1234abcd",
+        role_enforcement="Persona",
+    )
+    mock_driver.get.return_value = persona_block.model_dump(mode="json")
     await repo.update_component_metadata("1", "mod", "cls")
-    await repo.register_component({"id": "1"})
-    await repo.create_component({"id": "1"})
+    await repo.register_component(persona_block)
+    await repo.create_component(persona_block)
     mock_driver.get.return_value = None
     await repo.get_prompt_block_by_id("1")
     await repo.get_all_prompt_blocks()
-    await repo.create_prompt_block({"id": "1"})
+    await repo.create_prompt_block(persona_block)
     mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
-    await repo.update_prompt_block("1", {})
+    await repo.update_prompt_block("1", persona_block)
     await repo.delete_prompt_block("1", force_delete=True)
     mock_driver.get.return_value = None
     await repo.get_agent_by_id("1")
     await repo.get_all_agents()
-    await repo.create_agent({"id": "1"})
+    await repo.create_agent(persona_block)
     mock_driver.get.return_value = {"id": "1", "version": 1, "slug": "s"}
-    await repo.update_agent("1", {})
+    await repo.update_agent("1", persona_block)
     await repo.delete_agent("1")
     mock_driver.get.return_value = None
     await repo.get_banned_phrases()
@@ -164,34 +208,75 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_prompt_template("1")
     mock_driver.query.return_value = [{"id": "sys_1234567890abcdef", "type": "model_registry", "models": {}}]
     await repo.get_model_registry()
-    await repo.update_model_registry({})
+    await repo.update_model_registry(
+        SystemConfigModelRegistry(id="sys_1234567890abcdef", type="model_registry", models={})
+    )
     mock_driver.query.return_value = [{"id": "sys_1234567890abcdef", "type": "mcp_gateways", "tools": []}]
     await repo.get_mcp_gateways()
-    await repo.update_mcp_gateways({})
+    await repo.update_mcp_gateways(SystemConfigMCPGateways(id="sys_1234567890abcdef", type="mcp_gateways", tools=[]))
     mock_driver.query.return_value = []
     await repo.count_executions_by_matrix("1")
     await repo.get_matrices_using_dimension("1")
     await repo.list_organizations()
     mock_driver.get.return_value = None
     await repo.get_organization("1")
-    await repo.create_organization({"id": "1"})
-    await repo.update_organization("1", {})
+    await repo.create_organization(
+        Organization(
+            id="org_0123456789abcdef",
+            name="Org",
+            tier="enterprise",
+            is_active=True,
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=50000,
+            rpm_limit=500,
+        )
+    )
+    await repo.update_organization("1", OrganizationUpdateDTO(name="Org New"))
     await repo.delete_organization("1")
     await repo.list_users()
     await repo.get_user("1")
     await repo.get_user_by_email("email")
-    await repo.create_user({"id": "1"})
-    await repo.update_user("1", {})
+    await repo.create_user(
+        User(
+            id="usr_0123456789abcdef",
+            email="test@test.com",
+            role=UserRole.MEMBER,
+            is_active=True,
+            language="en",
+            theme_mode="system",
+            created_at="2026-01-01T00:00:00Z",
+            organization_id="org_0123456789abcdef",
+        )
+    )
+    await repo.update_user("1", UserUpdate(name="User New"))
     await repo.delete_user("1")
     await repo.delete_org_data("1")
     await repo.get_org_usage_total("1")
-    await repo.add_concept({"id": "1"})
-    await repo.add_reference({"id": "1"})
-    await repo.add_claim({"id": "1"})
+    await repo.add_concept(ConceptCreateDTO(name="concept_1"))
+    await repo.add_reference(ReferenceCreateDTO(name="reference_1"))
+    await repo.add_claim(ClaimCreateDTO(name="claim_1"))
     await repo.get_all_output_profiles()
     await repo.get_output_profile_by_id("1")
-    await repo.create_output_profile({"id": "1"})
-    await repo.update_output_profile("1", {})
+    await repo.create_output_profile(
+        OutputProfile(
+            id="prf_0123456789abcdef",
+            slug="prf_1",
+            workflow_id="wor_0123456789abcdef",
+            name=I18nText(translations={"en": "Profile"}),
+            target_block_order=[TargetBlockType.METADATA_BLOCK],
+        )
+    )
+    await repo.update_output_profile(
+        "1",
+        OutputProfile(
+            id="prf_0123456789abcdef",
+            slug="prf_1",
+            workflow_id="wor_0123456789abcdef",
+            name=I18nText(translations={"en": "Profile"}),
+            target_block_order=[TargetBlockType.METADATA_BLOCK],
+        ),
+    )
     await repo.delete_output_profile("1")
 
 

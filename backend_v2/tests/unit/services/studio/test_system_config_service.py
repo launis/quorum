@@ -1,5 +1,7 @@
 """Unit tests for StudioSystemConfigService."""
 
+from __future__ import annotations
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -104,11 +106,11 @@ async def test_get_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
 ) -> None:
     """Positive: returns hydrated SystemConfigModelRegistry."""
-    mock_system_repo.get_model_registry.return_value = {
-        "id": "sys_0123456789abcdef",
-        "type": "model_registry",
-        "models": {},
-    }
+    mock_system_repo.get_model_registry.return_value = SystemConfigModelRegistry(
+        id="sys_0123456789abcdef",
+        type="model_registry",
+        models={},
+    )
     res = await service.get_system_config(root_token, "sys_0123456789abcdef")
     assert res.id == "sys_0123456789abcdef"
 
@@ -140,7 +142,7 @@ async def test_save_system_config_success(
         type="model_registry",
         models={},
     )
-    mock_system_repo.get_model_registry.return_value = reg.model_dump(mode="json")
+    mock_system_repo.get_model_registry.return_value = reg
 
     res = await service.save_system_config(root_token, "sys_0123456789abcdef", reg)
     assert res.id == "sys_0123456789abcdef"
@@ -166,12 +168,12 @@ async def test_create_model_registry_draft(
     service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
 ) -> None:
     """Positive: creates draft model registry."""
-    mock_system_repo.get_model_registry.return_value = {
-        "id": "sys_0123456789abcdef",
-        "type": "model_registry",
-        "models": {},
-    }
-    res = await service.create_model_registry_draft(root_token)
+    mock_system_repo.get_model_registry.return_value = SystemConfigModelRegistry(
+        id="sys_0123456789abcdef",
+        type="model_registry",
+        models={},
+    )
+    res = await service.create_system_config_draft(root_token)
     assert res.id == "sys_0123456789abcdef"
 
 
@@ -181,8 +183,8 @@ async def test_clone_system_config_success(
 ) -> None:
     """Positive: clones existing model registry."""
     mock_system_repo.get_model_registry.side_effect = [
-        {"id": "sys_0123456789abcdef", "type": "model_registry", "models": {}},
-        {"id": "sys_fedcba9876543210", "type": "model_registry", "models": {}},
+        SystemConfigModelRegistry(id="sys_0123456789abcdef", type="model_registry", models={}),
+        SystemConfigModelRegistry(id="sys_fedcba9876543210", type="model_registry", models={}),
     ]
     res = await service.clone_system_config(root_token, "sys_0123456789abcdef")
     assert res.id == "sys_fedcba9876543210"
@@ -218,11 +220,11 @@ async def test_delete_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
 ) -> None:
     """Positive: ROOT user deletes system config successfully."""
-    mock_system_repo.get_model_registry.return_value = {
-        "id": "sys_0123456789abcdef",
-        "type": "model_registry",
-        "models": {},
-    }
+    mock_system_repo.get_model_registry.return_value = SystemConfigModelRegistry(
+        id="sys_0123456789abcdef",
+        type="model_registry",
+        models={},
+    )
     await service.delete_system_config(root_token, "sys_0123456789abcdef")
 
 
@@ -250,11 +252,11 @@ async def test_list_system_configs(
     service: StudioSystemConfigService, root_token: TokenData, member_token: TokenData, mock_system_repo: AsyncMock
 ) -> None:
     """Positive & Negative: lists configs for ROOT, empty for non-ROOT."""
-    mock_system_repo.get_model_registry.return_value = {
-        "id": "sys_0123456789abcdef",
-        "type": "model_registry",
-        "models": {},
-    }
+    mock_system_repo.get_model_registry.return_value = SystemConfigModelRegistry(
+        id="sys_0123456789abcdef",
+        type="model_registry",
+        models={},
+    )
     configs = await service.list_system_configs(root_token)
     assert len(configs) == 1
 
@@ -272,11 +274,11 @@ async def test_list_mcp_gateways(
     service: StudioSystemConfigService, root_token: TokenData, member_token: TokenData, mock_system_repo: AsyncMock
 ) -> None:
     """Positive: returns list of MCP gateways for ROOT, empty for non-ROOT."""
-    mock_system_repo.get_mcp_gateways.return_value = {
-        "id": "sys_8172bda70c8641c5",
-        "type": "mcp_gateways",
-        "tools": [],
-    }
+    mock_system_repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
+        id="sys_8172bda70c8641c5",
+        type="mcp_gateways",
+        tools=[],
+    )
 
     res = await service.list_mcp_gateways(root_token)
     assert len(res) == 1
@@ -291,18 +293,18 @@ async def test_get_mcp_gateways_success(
     service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
 ) -> None:
     """Positive: retrieves specific MCP gateway by id."""
-    mock_system_repo.get_mcp_gateways.return_value = {
-        "id": "sys_8172bda70c8641c5",
-        "type": "mcp_gateways",
-        "tools": [
-            {
-                "tool_id": "mcp_tavily_search",
-                "name": {"translations": {"en": "Tavily Search"}},
-                "description": "Tavily web search",
-                "input_schema": {},
-            }
+    mock_system_repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
+        id="sys_8172bda70c8641c5",
+        type="mcp_gateways",
+        tools=[
+            AllowedMCPTool(
+                tool_id="mcp_tavily_search",
+                name=I18nText(translations={"en": "Tavily Search"}),
+                description="Tavily web search",
+                input_schema={},
+            )
         ],
-    }
+    )
 
     res = await service.get_mcp_gateways(root_token, "sys_8172bda70c8641c5")
     assert res.id == "sys_8172bda70c8641c5"
@@ -334,7 +336,7 @@ async def test_save_mcp_gateways_success(
             )
         ],
     )
-    mock_system_repo.get_mcp_gateways.return_value = gw.model_dump(mode="json")
+    mock_system_repo.get_mcp_gateways.return_value = gw
 
     res = await service.save_mcp_gateways(root_token, "sys_8172bda70c8641c5", gw)
     assert res.id == "sys_8172bda70c8641c5"
@@ -359,11 +361,11 @@ async def test_create_mcp_gateway_draft(
     service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
 ) -> None:
     """Positive: creates draft MCP gateway."""
-    mock_system_repo.get_mcp_gateways.return_value = {
-        "id": "sys_0123456789abcdef",
-        "type": "mcp_gateways",
-        "tools": [],
-    }
+    mock_system_repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
+        id="sys_0123456789abcdef",
+        type="mcp_gateways",
+        tools=[],
+    )
 
     res = await service.create_mcp_gateway_draft(root_token)
     assert res.id == "sys_0123456789abcdef"
@@ -375,8 +377,8 @@ async def test_clone_mcp_gateways_success(
 ) -> None:
     """Positive: clones existing MCP gateway."""
     mock_system_repo.get_mcp_gateways.side_effect = [
-        {"id": "sys_8172bda70c8641c5", "type": "mcp_gateways", "tools": []},
-        {"id": "sys_fedcba9876543210", "type": "mcp_gateways", "tools": []},
+        SystemConfigMCPGateways(id="sys_8172bda70c8641c5", type="mcp_gateways", tools=[]),
+        SystemConfigMCPGateways(id="sys_fedcba9876543210", type="mcp_gateways", tools=[]),
     ]
 
     res = await service.clone_mcp_gateways(root_token, "sys_8172bda70c8641c5")

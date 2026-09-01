@@ -17,7 +17,7 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.settings import get_settings
-from backend_v2.utils.dict_utils import resolve_dot_notation
+from backend_v2.utils.math_utils import resolve_dot_notation
 
 logger = logging.getLogger(__name__)
 

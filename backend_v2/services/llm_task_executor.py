@@ -205,7 +205,7 @@ class LLMTaskExecutor:
                         tokens=tokens,
                         trigger_reason=trigger_reason,
                     )
-                except Exception as t_err:  # noqa: QGR003 [REASON: Telemetry logging errors must never abort LLM generation pipeline]
+                except (OSError, ValueError, TypeError) as t_err:
                     logger.warning(f"Telemetry logging failed: {t_err}")
 
                 # FinOps Accumulation

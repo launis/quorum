@@ -1,11 +1,13 @@
 """Extracted Repository for Task Blueprints."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.studio import StepUpdateDTO
 from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
@@ -72,11 +74,11 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
                 ) from e
         return blueprints
 
-    async def create_task_blueprint(self, blueprint_data: dict[str, Any]) -> str:
+    async def create_task_blueprint(self, blueprint_data: Step) -> str:
         """Creates a new task blueprint.
 
         Args:
-            blueprint_data: The dictionary containing the task blueprint data.
+            blueprint_data: The Step domain model containing the task blueprint data.
 
         Returns:
             The ID of the created task blueprint.
@@ -84,15 +86,16 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if the upsert operation fails.
         """
-        doc_id = blueprint_data["id"]
-        return await self.driver.upsert("task_blueprints", blueprint_data, doc_id)
+        payload = blueprint_data.model_dump(mode="json")
+        doc_id = payload["id"]
+        return await self.driver.upsert("task_blueprints", payload, doc_id)
 
-    async def update_task_blueprint(self, blueprint_id: str, updates: dict[str, Any]) -> bool:
+    async def update_task_blueprint(self, blueprint_id: str, updates: StepUpdateDTO) -> bool:
         """Updates an existing task blueprint using versioned append-only logic.
 
         Args:
             blueprint_id: The ID of the task blueprint to update.
-            updates: A dictionary of key-value pairs to update.
+            updates: StepUpdateDTO containing updated fields.
 
         Returns:
             True if the update was successful, False if the document was not found.
@@ -109,7 +112,7 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
         base_id, new_id, ver = self._increment_version(blueprint_id)
 
         new_doc = dict(old_doc)
-        new_doc.update(updates)
+        new_doc.update(updates.model_dump(mode="json", exclude_unset=True))
         new_doc["id"] = new_id
         new_doc["is_latest"] = True
         new_doc["version"] = ver
@@ -130,7 +133,7 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if database operations fail.
         """
-        blueprint = await self.driver.get("task_blueprints", blueprint_id)
-        if not blueprint:
+        doc = await self.driver.get("task_blueprints", blueprint_id)
+        if not doc:
             return False
         return await self.driver.delete("task_blueprints", blueprint_id)

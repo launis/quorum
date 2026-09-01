@@ -80,7 +80,7 @@ async def get_all_model_registries(
     Raises:
         AppException: If fetching model registries fails.
     """
-    return await studio_service.list_system_configs(current_user)
+    return await studio_service.get_all_system_configs(current_user)
 
 
 @router.post("/", response_model=SystemConfigModelRegistry)
@@ -99,7 +99,7 @@ async def create_model_registry(
     Raises:
         AppException: If creating the draft fails.
     """
-    return await studio_service.create_model_registry_draft(current_user)
+    return await studio_service.create_system_config_draft(current_user)
 
 
 @router.get("/{registry_id}", response_model=SystemConfigModelRegistry)

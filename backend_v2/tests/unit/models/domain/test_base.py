@@ -83,3 +83,61 @@ def test_metadata_strictness() -> None:
         Metadata(
             luontiaika=datetime.fromisoformat("2026-05-04T12:00:00+00:00"), agentti="", suoritus_ymparisto="production"
         )
+
+
+def test_audit_and_usage_dtos_validation_partitions() -> None:
+    """Test AuditLogCreateDTO, UsageAggregateUpdateDTO, UsageAggregateDTO, DetailedUsageDTO."""
+    from backend_v2.models.domain.base import (
+        AuditLogCreateDTO,
+        DetailedUsageDTO,
+        UsageAggregateDTO,
+        UsageAggregateUpdateDTO,
+    )
+
+    # 1. AuditLogCreateDTO
+    audit_dto = AuditLogCreateDTO(
+        action="USER_LOGIN",
+        actor_id="usr_1234567890abcdef",
+        details={"ip": "127.0.0.1", "attempts": 1},
+    )
+    assert audit_dto.action == "USER_LOGIN"
+    assert audit_dto.actor_id == "usr_1234567890abcdef"
+    assert audit_dto.details == {"ip": "127.0.0.1", "attempts": 1}
+
+    # Extra forbid
+    with pytest.raises(ValidationError) as exc:
+        AuditLogCreateDTO.model_validate({"action": "LOGIN", "actor_id": "usr_1", "extra": 123})
+    assert "extra_forbidden" in str(exc.value) or "Extra inputs are not permitted" in str(exc.value)
+
+    # 2. UsageAggregateUpdateDTO
+    agg_up = UsageAggregateUpdateDTO(input_tokens=100, cost_usd=0.05)
+    assert agg_up.input_tokens == 100
+    assert agg_up.cost_usd == 0.05
+
+    # Negative tokens < 0
+    with pytest.raises(ValidationError):
+        UsageAggregateUpdateDTO(input_tokens=-5)
+
+    # 3. UsageAggregateDTO
+    agg_dto = UsageAggregateDTO(
+        organization_id="org_123",
+        period="2026-09",
+        total_input_tokens=500,
+        total_output_tokens=200,
+        total_cached_tokens=50,
+        total_cost_usd=0.25,
+        execution_count=10,
+    )
+    assert agg_dto.organization_id == "org_123"
+    assert agg_dto.total_cost_usd == 0.25
+
+    # 4. DetailedUsageDTO
+    detailed = DetailedUsageDTO(
+        organization_id="org_123",
+        total_cost_usd=1.5,
+        total_tokens=10000,
+        by_model={"gemini-2.5-pro": 8000, "gemini-2.5-flash": 2000},
+        by_workflow={"wor_1": 5},
+    )
+    assert detailed.total_tokens == 10000
+    assert detailed.by_model["gemini-2.5-pro"] == 8000

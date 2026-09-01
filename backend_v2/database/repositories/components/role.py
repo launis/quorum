@@ -1,7 +1,8 @@
 """Extracted Repository for Roles."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
@@ -58,25 +59,26 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
-    async def create_role(self, role_data: dict[str, Any]) -> str:
+    async def create_role(self, role_data: Role) -> str:
         """Creates a new role.
 
         Args:
-            role_data: Dictionary containing role fields.
+            role_data: Role domain model containing role fields.
 
         Returns:
             The created role ID.
         """
-        doc_id = role_data["id"]
-        role_data["type"] = "role"
-        return await self.driver.upsert("components", role_data, doc_id)
+        payload = role_data.model_dump(mode="json")
+        doc_id = payload["id"]
+        payload["type"] = "role"
+        return await self.driver.upsert("components", payload, doc_id)
 
-    async def update_role(self, role_id: str, updates: dict[str, Any]) -> str:
+    async def update_role(self, role_id: str, updates: Role) -> str:
         """Updates an existing role.
 
         Args:
             role_id: Unique identifier for the role.
-            updates: Dictionary of fields to update.
+            updates: Role domain model containing updated fields.
 
         Returns:
             The updated role ID.
@@ -84,10 +86,11 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             ResourceNotFoundError: If the role does not exist.
         """
-        doc = await self.driver.get("components", role_id)
+        doc = await self.get_role_by_id(role_id)
         if not doc:
             raise ResourceNotFoundError(resource_type="Role", resource_id=role_id)
-        await self.driver.update("components", role_id, updates)
+        payload = updates.model_dump(mode="json", exclude_unset=True)
+        await self.driver.update("components", role_id, payload)
         return role_id
 
     async def delete_role(self, role_id: str) -> bool:
@@ -99,7 +102,7 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
         Returns:
             True if deleted, False if role does not exist.
         """
-        doc = await self.driver.get("components", role_id)
+        doc = await self.get_role_by_id(role_id)
         if not doc:
             return False
         return await self.driver.delete("components", role_id)

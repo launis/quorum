@@ -112,8 +112,14 @@ async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMoc
             calls = mock_repo.update_execution.call_args_list
             final_call_args = calls[-1][0]
             payload = final_call_args[1]
-            assert payload["step_states"]["step_5555222255552222"]["status"] == ExecutionStatus.PASSED.value
-            assert payload["step_states"]["step_ffff1111ffff1111"]["status"] == ExecutionStatus.FAILED.value
+            assert payload.step_states["step_5555222255552222"].status in (
+                ExecutionStatus.PASSED,
+                ExecutionStatus.PASSED.value,
+            )
+            assert payload.step_states["step_ffff1111ffff1111"].status in (
+                ExecutionStatus.FAILED,
+                ExecutionStatus.FAILED.value,
+            )
 
 
 @pytest.mark.asyncio
@@ -181,8 +187,14 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
             calls = mock_repo.update_execution.call_args_list
             final_call_args = calls[-1][0]
             payload = final_call_args[1]
-            assert payload["step_states"]["step_aaaa1111aaaa1111"]["status"] == ExecutionStatus.FAILED.value
-            assert payload["step_states"]["step_cccc3333cccc3333"]["status"] == ExecutionStatus.FAILED.value
+            assert payload.step_states["step_aaaa1111aaaa1111"].status in (
+                ExecutionStatus.FAILED,
+                ExecutionStatus.FAILED.value,
+            )
+            assert payload.step_states["step_cccc3333cccc3333"].status in (
+                ExecutionStatus.FAILED,
+                ExecutionStatus.FAILED.value,
+            )
 
 
 @pytest.mark.asyncio
@@ -261,7 +273,10 @@ async def test_step_transient_failure_exhausts_retries(mock_repo: AsyncMock, moc
                 calls = mock_repo.update_execution.call_args_list
                 final_call_args = calls[-1][0]
                 payload = final_call_args[1]
-                assert payload["step_states"]["step_ffaa9999ffaa9999"]["status"] == ExecutionStatus.FAILED.value
+                assert payload.step_states["step_ffaa9999ffaa9999"].status in (
+                    ExecutionStatus.FAILED,
+                    ExecutionStatus.FAILED.value,
+                )
 
 
 @pytest.mark.asyncio

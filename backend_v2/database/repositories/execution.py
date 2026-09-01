@@ -10,6 +10,7 @@ from pydantic import TypeAdapter, ValidationError
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, FrozenContext, MCPAuditTrace
 from backend_v2.services.storage import get_storage_driver
@@ -216,39 +217,41 @@ class ExecutionRepositoryImpl(BaseRepository):
         data = await self.driver.get("executions", execution_id)
         return data["status"] if (data and "status" in data) else None
 
-    async def create_execution(self, execution_data: dict[str, Any]) -> str:
+    async def create_execution(self, execution_data: ExecutionCreateDTO) -> str:
         """Creates a new execution record.
 
         Args:
-            execution_data: Dictionary containing execution fields.
+            execution_data: DTO containing execution fields.
 
         Returns:
             The created execution ID.
         """
-        doc_id = execution_data["id"] if "id" in execution_data else str(uuid.uuid4())
-        execution_data["id"] = doc_id
-        await self._offload_payloads(doc_id, execution_data)
-        return await self.driver.upsert("executions", execution_data, doc_id)
+        data = execution_data.model_dump(mode="json", exclude_unset=True)
+        doc_id = data["id"] if "id" in data else str(uuid.uuid4())
+        data["id"] = doc_id
+        await self._offload_payloads(doc_id, data)
+        return await self.driver.upsert("executions", data, doc_id)
 
-    async def update_execution(self, execution_id: str, updates: dict[str, Any]) -> bool:
+    async def update_execution(self, execution_id: str, updates: ExecutionUpdateDTO) -> bool:
         """Updates an existing execution record.
 
         Args:
             execution_id: The ID of the execution to update.
-            updates: Dictionary of fields to update.
+            updates: DTO of fields to update.
 
         Returns:
             True if the update succeeded, False otherwise.
         """
-        await self._offload_payloads(execution_id, updates)
-        return await self.driver.update("executions", execution_id, updates)
+        data = updates.model_dump(mode="json", exclude_unset=True)
+        await self._offload_payloads(execution_id, data)
+        return await self.driver.update("executions", execution_id, data)
 
-    async def append_trace_event(self, execution_id: str, event_data: dict[str, Any]) -> bool:
+    async def append_trace_event(self, execution_id: str, event_data: TraceEvent) -> bool:
         """Appends a trace event to the execution trace log.
 
         Args:
             execution_id: The ID of the execution.
-            event_data: The TraceEvent dictionary to append.
+            event_data: The TraceEvent instance to append.
 
         Returns:
             True if updated successfully, False if execution not found.
@@ -256,6 +259,7 @@ class ExecutionRepositoryImpl(BaseRepository):
         Raises:
             AppException: If hydration or persistence fails.
         """
+        event_dict = event_data.model_dump(mode="json")
         data = await self.driver.get("executions", execution_id)
         if not data:
             return False
@@ -267,9 +271,9 @@ class ExecutionRepositoryImpl(BaseRepository):
             raise
 
         trace = data["execution_trace"] if "execution_trace" in data else []
-        trace.append(event_data)
+        trace.append(event_dict)
 
-        return await self.update_execution(execution_id, {"execution_trace": trace})
+        return await self.driver.update("executions", execution_id, {"execution_trace": trace})
 
     async def delete_execution(self, execution_id: str) -> bool:
         """Deletes an execution record by ID.

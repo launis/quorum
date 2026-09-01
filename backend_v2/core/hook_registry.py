@@ -1,16 +1,15 @@
 """Dynamic Hook Registry for the Cognitive Quorum System (V2).
 
 This module provides a singleton registry for registering and executing Python
-functions (hooks) dynamically. It enforces strict typing (Dict -> Dict) and
-"Fail-Fast" principles, allowing legacy V1 capabilities to be exposed without
-hardcoded domain model dependencies.
+functions (hooks) dynamically. It enforces strict typing and Fail-Fast principles,
+allowing domain lifecycle hooks to be orchestrated with explicit dependencies.
 """
 
 import inspect
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Protocol, TypeVar
+from typing import Protocol
 
 from fastapi import status
 from pydantic import Field
@@ -28,6 +27,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO, HookDeltaDTO
+from backend_v2.models.dtos.retrieval import TavilySearchResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ __all__ = [
 class ISearchClient(Protocol):
     """Protocol for abstracting search client I/O from hook execution."""
 
-    async def search(self, query: str, max_results: int = 5) -> list[dict[str, Any]]:
+    async def search(self, query: str, max_results: int = 5) -> list[TavilySearchResultDTO]:
         """Executes a search query and returns search results."""
         ...
 
@@ -95,7 +95,6 @@ class HookResult(V2CoreBase):
 # It accepts HookState and HookDependencies, returning a HookResult State Delta
 # It can be either synchronous or asynchronous
 HookFunction = Callable[[HookState, HookDependencies], HookResult | Awaitable[HookResult]]
-F = TypeVar("F", bound=HookFunction)
 
 
 class HookRegistry:
@@ -111,14 +110,14 @@ class HookRegistry:
             cls._instance._hooks = {}
         return cls._instance
 
-    def register(self, name: str) -> Callable[[F], F]:
+    def register[F: HookFunction](self, name: str) -> Callable[[F], F]:
         """Decorator to register a function in the hook registry.
 
         Args:
-            name (str): The unique identifier for the hook.
+            name: The unique identifier for the hook.
 
         Returns:
-            Callable: The decorator function.
+            The decorator function.
 
         Raises:
             AppException: If a hook with the given name is already registered.

@@ -1113,13 +1113,28 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
 
             assert mock_repo.update_execution.call_count >= 1
             calls_with_syntheses = [
-                call[0][1] for call in mock_repo.update_execution.call_args_list if "profile_syntheses" in call[0][1]
+                call[0][1]
+                for call in mock_repo.update_execution.call_args_list
+                if (hasattr(call[0][1], "profile_syntheses") and call[0][1].profile_syntheses is not None)
+                or (isinstance(call[0][1], dict) and "profile_syntheses" in call[0][1])
             ]
             assert len(calls_with_syntheses) == 1
             call_payload = calls_with_syntheses[0]
-            saved_cache = call_payload["profile_syntheses"]["prof_1111222233334444"]
-            assert saved_cache["data_starvation"]["event_type"] == "starvation"
-            assert saved_cache["data_starvation"]["total_atoms"] == 0
+            ps = getattr(call_payload, "profile_syntheses", None) or call_payload.get("profile_syntheses")
+            saved_cache = ps["prof_1111222233334444"]
+            starvation = getattr(saved_cache, "data_starvation", None) or (
+                saved_cache.get("data_starvation") if isinstance(saved_cache, dict) else None
+            )
+            ev_type = getattr(starvation, "event_type", None) or (
+                starvation.get("event_type") if isinstance(starvation, dict) else None
+            )
+            total_atoms = (
+                getattr(starvation, "total_atoms", None)
+                if getattr(starvation, "total_atoms", None) is not None
+                else (starvation.get("total_atoms") if isinstance(starvation, dict) else None)
+            )
+            assert ev_type == "starvation"
+            assert total_atoms == 0
             mock_redis.enqueue_job.assert_called_once_with(
                 "generate_pdf_job", "exe_1234567890123456", "en", "prof_1111222233334444"
             )

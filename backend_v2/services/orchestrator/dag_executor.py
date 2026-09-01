@@ -35,6 +35,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ScoringStrategy, StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
@@ -101,21 +102,15 @@ class ExecutionCommitter:
             AppException: Triggered with PROGRESS_UPDATE_FAILED if db commit transaction fails.
         """
         try:
-            payload: dict[str, Any] = {
-                "status": status.value,
-                "execution_trace": [e.model_dump(mode="json") for e in trace],
-                "step_states": {k: v.model_dump(mode="json") for k, v in step_states.items()},
-            }
-            if frozen_context:
-                payload["frozen_context"] = frozen_context.model_dump(mode="json")
-
-            if context_variables is not None:
-                payload["context_variables"] = context_variables
-
-            if error:
-                payload["error"] = error
-
-            await self.exec_repo.update_execution(self.execution_id, payload)
+            update_dto = ExecutionUpdateDTO(
+                status=status,
+                execution_trace=trace,
+                step_states=step_states,
+                frozen_context=frozen_context,
+                context_variables=context_variables,
+                error=error,
+            )
+            await self.exec_repo.update_execution(self.execution_id, update_dto)
         except Exception as e:
             msg = f"Failed to commit execution trace for {self.execution_id}"
             logger.error("[ExecutionCommitter] %s: %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, exc_info=True)

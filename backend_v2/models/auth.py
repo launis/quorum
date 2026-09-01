@@ -359,6 +359,22 @@ class OrganizationCreate(BaseDTO):
         return v.strip()
 
 
+class OrganizationUpdateDTO(BaseDTO):
+    """Payload for updating an existing organization."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    name: Annotated[str | None, Field(default=None, description="Updated display name")] = None
+    tier: Annotated[str | None, Field(default=None, description="Updated service tier")] = None
+    is_active: Annotated[bool | None, Field(default=None, description="Updated active status")] = None
+    contact_email: Annotated[str | None, Field(default=None, description="Updated contact email")] = None
+    billing_id: Annotated[str | None, Field(default=None, description="Updated billing ID")] = None
+    subscription_status: Annotated[LaxSubscriptionStatus | None, Field(default=None)] = None
+    quota_limit: Annotated[float | None, Field(default=None, ge=0.0)] = None
+    tpm_limit: Annotated[int | None, Field(default=None, ge=1000)] = None
+    rpm_limit: Annotated[int | None, Field(default=None, ge=1)] = None
+
+
 class UserUpdate(BaseDTO):
     """Payload for updating an existing user.
 

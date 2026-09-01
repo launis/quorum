@@ -270,9 +270,7 @@ async def test_execute_structured_task_telemetry_failure(
         {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
     )
 
-    with patch(
-        "backend_v2.services.llm_task_executor.write_llm_telemetry_log", side_effect=Exception("Telemetry fail")
-    ):
+    with patch("backend_v2.services.llm_task_executor.write_llm_telemetry_log", side_effect=OSError("Telemetry fail")):
         res, _ = await executor.execute_structured_task(
             client=mock_client,
             messages=[LLMMessageDTO(role="user", content="Long enough payload text for passing validation")],

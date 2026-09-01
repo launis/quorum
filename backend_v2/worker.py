@@ -45,7 +45,11 @@ from backend_v2.models.dtos.synthesis import (
     XaiHighlightItem,
     XaiHighlightsResult,
 )
-from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
+from backend_v2.models.dtos.trace import (
+    ExecutionUpdateDTO,
+    StepTraceMetadataDTO,
+    TraceEventMetadataEnvelope,
+)
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlockType
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
@@ -352,21 +356,18 @@ async def execute_workflow_job(
                     new_states = dict(updated_exec_record.step_states)
                     new_states[v_step_id] = v_step
                     updated_exec_record = updated_exec_record.model_copy(update={"step_states": new_states})
-                    step_states_dict = {k: v.model_dump() for k, v in updated_exec_record.step_states.items()}
 
                     await repository.update_execution(
                         exec_id,
-                        {
-                            "status": ExecutionStatus.RUNNING,  # keep execution running until PDF is done
-                            "step_states": step_states_dict,
-                            "duration_ms": duration_ms,
-                            "models_used": models_used,
-                            "metadata": updated_exec_record.metadata.model_dump(mode="json"),
-                            "cost_estimate": total_cost_usd,
-                            "execution_trace": [
-                                evt.model_dump(mode="json") for evt in updated_exec_record.execution_trace
-                            ],
-                        },
+                        ExecutionUpdateDTO(
+                            status=ExecutionStatus.RUNNING,  # keep execution running until PDF is done
+                            step_states=updated_exec_record.step_states,
+                            duration_ms=duration_ms,
+                            models_used=models_used,
+                            metadata=updated_exec_record.metadata,
+                            cost_estimate=total_cost_usd,
+                            execution_trace=updated_exec_record.execution_trace,
+                        ),
                     )
 
                 if redis:
@@ -379,17 +380,15 @@ async def execute_workflow_job(
                     logger.warning(f"[Job] Redis context missing. Could not enqueue render_profile_job for {exec_id}")
                     await repository.update_execution(
                         exec_id,
-                        {
-                            "status": ExecutionStatus.PASSED,
-                            "completed_at": datetime.now(UTC).isoformat(),
-                            "duration_ms": duration_ms,
-                            "models_used": models_used,
-                            "metadata": updated_exec_record.metadata.model_dump(mode="json"),
-                            "cost_estimate": total_cost_usd,
-                            "execution_trace": [
-                                evt.model_dump(mode="json") for evt in updated_exec_record.execution_trace
-                            ],
-                        },
+                        ExecutionUpdateDTO(
+                            status=ExecutionStatus.PASSED,
+                            completed_at=datetime.now(UTC),
+                            duration_ms=duration_ms,
+                            models_used=models_used,
+                            metadata=updated_exec_record.metadata,
+                            cost_estimate=total_cost_usd,
+                            execution_trace=updated_exec_record.execution_trace,
+                        ),
                     )
 
             return {
@@ -414,11 +413,11 @@ async def execute_workflow_job(
                 try:
                     await repository.update_execution(
                         exec_id,
-                        {
-                            "status": ExecutionStatus.FAILED,
-                            "error": str(e),
-                            "completed_at": datetime.now(UTC).isoformat(),
-                        },
+                        ExecutionUpdateDTO(
+                            status=ExecutionStatus.FAILED,
+                            error=str(e),
+                            completed_at=datetime.now(UTC),
+                        ),
                     )
                 except Exception as update_err:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
                     update_msg = f"Failed to update execution failure status: {update_err}"
@@ -435,11 +434,11 @@ async def execute_workflow_job(
                 try:
                     await repository.update_execution(
                         exec_id,
-                        {
-                            "status": ExecutionStatus.FAILED,
-                            "error": "Task execution was cancelled or timed out.",
-                            "completed_at": datetime.now(UTC).isoformat(),
-                        },
+                        ExecutionUpdateDTO(
+                            status=ExecutionStatus.FAILED,
+                            error="Task execution was cancelled or timed out.",
+                            completed_at=datetime.now(UTC),
+                        ),
                     )
                 except Exception as update_err:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
                     update_msg = f"Failed to update execution cancellation status: {update_err}"
@@ -541,11 +540,8 @@ async def generate_pdf_task(
         # 4. Save path to DB so frontend can fetch it
         v_step_id = f"sys_render_{profile_id}"
 
-        updates: dict[str, Any] = {}
-        updates["pdf_report_path"] = saved_path
-        updates["status"] = ExecutionStatus.PASSED
-
         exec_record_local = await repo.get_execution(execution_id, hydrate=False)
+        step_states = None
         if exec_record_local:
             exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
             if v_step_id in exec_record_local.step_states:
@@ -553,9 +549,16 @@ async def generate_pdf_task(
                 new_states = dict(exec_record_local.step_states)
                 new_states[v_step_id] = old_state.model_copy(update={"status": ExecutionStatus.PASSED})
                 exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
-            updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
+            step_states = exec_record_local.step_states
 
-        await repo.update_execution(execution_id, updates)
+        await repo.update_execution(
+            execution_id,
+            ExecutionUpdateDTO(
+                pdf_report_path=saved_path,
+                status=ExecutionStatus.PASSED,
+                step_states=step_states,
+            ),
+        )
         logger.info(f"[Task] PDF generated successfully and path saved: {saved_path}")
 
     except Exception as e:
@@ -570,10 +573,7 @@ async def generate_pdf_task(
             driver = await get_driver(get_settings())
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
-            updates = {}
-            updates["status"] = ExecutionStatus.FAILED
-            updates["error"] = f"PDF Generation failed: {str(e)}"
-            updates["completed_at"] = datetime.now(UTC).isoformat()
+            fail_step_states = None
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
                 exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
@@ -584,9 +584,17 @@ async def generate_pdf_task(
                         update={"status": ExecutionStatus.FAILED, "last_error": str(e)}
                     )
                     exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
-                updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
+                fail_step_states = exec_record_local.step_states
 
-            await repo.update_execution(execution_id, updates)
+            await repo.update_execution(
+                execution_id,
+                ExecutionUpdateDTO(
+                    status=ExecutionStatus.FAILED,
+                    error=f"PDF Generation failed: {str(e)}",
+                    completed_at=datetime.now(UTC),
+                    step_states=fail_step_states,
+                ),
+            )
         except Exception:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
             logger.error(
                 "[Task] Failed to update execution failure status",
@@ -680,8 +688,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     updated_state = ExecutionStepState(id=v_step_id, label=msg, status=ExecutionStatus.RUNNING)
                 new_states = dict(exec_record_local.step_states)
                 new_states[v_step_id] = updated_state
-                updates = {"step_states": {k: v.model_dump() for k, v in new_states.items()}}
-                await repo.update_execution(execution_id, updates)
+                await repo.update_execution(execution_id, ExecutionUpdateDTO(step_states=new_states))
 
         await _update_render_status("Lasketaan dynaamisia tuloksia...")
 
@@ -733,13 +740,11 @@ async def generate_profile_synthesis_and_pdf_task(
             current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
             starvation_pid: str = profile_id if profile_id is not None else "default"
             current_syntheses[starvation_pid] = cache
-            dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
 
-            starvation_payload: dict[str, Any] = {
-                "profile_syntheses": dict_syntheses,
-            }
-
-            await repo.update_execution(execution_id, starvation_payload)
+            await repo.update_execution(
+                execution_id,
+                ExecutionUpdateDTO(profile_syntheses=current_syntheses),
+            )
 
             logger.info(f"[Task] Starvation synthesis cached for {execution_id} (Profile: {profile_id})")
 
@@ -1301,20 +1306,20 @@ async def generate_profile_synthesis_and_pdf_task(
         current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
         pid: str = profile_id if profile_id is not None else "default"
         current_syntheses[pid] = cache
-        dict_syntheses = {k: v.model_dump(mode="json") for k, v in current_syntheses.items()}
 
         prev_tokens = execution.cumulative_synthesis_tokens or 0
         prev_cost = execution.cumulative_synthesis_cost or 0.0
         new_cum_tokens = prev_tokens + synth_tokens
         new_cum_cost = prev_cost + synth_cost
 
-        update_payload: dict[str, Any] = {
-            "profile_syntheses": dict_syntheses,
-            "cumulative_synthesis_tokens": new_cum_tokens,
-            "cumulative_synthesis_cost": new_cum_cost,
-        }
-
-        await repo.update_execution(execution_id, update_payload)
+        await repo.update_execution(
+            execution_id,
+            ExecutionUpdateDTO(
+                profile_syntheses=current_syntheses,
+                cumulative_synthesis_tokens=new_cum_tokens,
+                cumulative_synthesis_cost=new_cum_cost,
+            ),
+        )
 
         logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
 
@@ -1356,10 +1361,7 @@ async def generate_profile_synthesis_and_pdf_task(
             driver = await get_driver(get_settings())
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
-            updates: dict[str, Any] = {}
-            updates["status"] = ExecutionStatus.FAILED
-            updates["error"] = f"Text Synthesis failed: {str(e)}"
-            updates["completed_at"] = datetime.now(UTC).isoformat()
+            fail_step_states = None
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
                 exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
@@ -1371,9 +1373,17 @@ async def generate_profile_synthesis_and_pdf_task(
                     new_step_states = dict(exec_record_local.step_states)
                     new_step_states[v_step_id] = updated_state
                     exec_record_local = exec_record_local.model_copy(update={"step_states": new_step_states})
-                updates["step_states"] = {k: v.model_dump() for k, v in exec_record_local.step_states.items()}
+                fail_step_states = exec_record_local.step_states
 
-            await repo.update_execution(execution_id, updates)
+            await repo.update_execution(
+                execution_id,
+                ExecutionUpdateDTO(
+                    status=ExecutionStatus.FAILED,
+                    error=f"Text Synthesis failed: {str(e)}",
+                    completed_at=datetime.now(UTC),
+                    step_states=fail_step_states,
+                ),
+            )
         except Exception:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
             logger.error(
                 "[Task] Failed to update execution failure status",

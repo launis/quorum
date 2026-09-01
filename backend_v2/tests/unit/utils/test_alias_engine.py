@@ -238,3 +238,74 @@ class TestAliasManifestEdgeCases:
 
         assert "inputs" in valid_choices, "'inputs' missing from QuoteIdsLiteral choices!"
         assert "prior_analysis" in valid_choices, "'prior_analysis' missing from QuoteIdsLiteral choices!"
+
+    def test_build_doc_ids_literal(self) -> None:
+        """Test build_doc_ids_literal generation."""
+        lit = AliasEngine.build_doc_ids_literal(["doc_1", "doc_2"], allowed_dynamic_keys=["input_x"])
+        choices = AliasEngine.extract_literal_values(lit)
+        assert "doc_1" in choices
+        assert "input_x" in choices
+
+    def test_build_atom_ids_literal(self) -> None:
+        """Test build_atom_ids_literal generation."""
+        lit = AliasEngine.build_atom_ids_literal(["a0", "a1"], allowed_dynamic_keys=["meta"])
+        choices = AliasEngine.extract_literal_values(lit)
+        assert "a0" in choices
+        assert "meta" in choices
+
+    def test_text_replace_alias(self) -> None:
+        """Test text_replace_alias substitution."""
+        engine = AliasEngine()
+        res = engine.text_replace_alias('id="real_123"', "real_123", "a0")
+        assert res == 'id="a0"'
+        assert engine.text_replace_alias("", "", "a0") == ""
+
+    def test_hydrate_reasoning_text(self) -> None:
+        """Test hydrate_reasoning_text."""
+        engine = AliasEngine()
+        engine.register("tda_1234", prefix="a")
+        text = "See atom 'a0' and \"a0\" and `a0` and standalone a0 here."
+        hydrated = engine.hydrate_reasoning_text(text)
+        assert "tda_1234" in hydrated
+        assert engine.hydrate_reasoning_text("") == ""
+
+    def test_hydrate_and_filter_aliases(self) -> None:
+        """Test hydrate_and_filter_aliases in-place mutations."""
+        engine = AliasEngine()
+        engine.register("tda_real_1", prefix="a")
+
+        data = {
+            "atom_id": "a0",
+            "source_id": "unknown_alias",
+            "sources": ["a0", "unknown_source", 123],
+            "nested": {
+                "atom_id": "a0",
+                "other_field": "keep_me",
+            },
+            "list_of_dicts": [
+                {"atom_id": "a0"},
+                {"atom_id": "hallucinated_a99"},
+            ],
+        }
+
+        engine.hydrate_and_filter_aliases(data, {"atom_id", "source_id", "sources"})
+        assert data["atom_id"] == "tda_real_1"
+        assert data["source_id"] is None
+        assert data["sources"] == ["tda_real_1", 123]
+        assert data["nested"]["atom_id"] == "tda_real_1"
+        assert data["list_of_dicts"][0]["atom_id"] == "tda_real_1"
+        assert data["list_of_dicts"][1]["atom_id"] is None
+
+    def test_is_valid_source_id(self) -> None:
+        """Test is_valid_source_id validation checks."""
+        engine = AliasEngine()
+        engine.register("doc_abc", prefix="doc")
+        assert engine.is_valid_source_id("doc0", allowed_dynamic_keys=["meta"])
+        assert engine.is_valid_source_id("meta", allowed_dynamic_keys=["meta"])
+        assert engine.is_valid_source_id("tavily_search_1", allowed_dynamic_keys=[])
+        assert not engine.is_valid_source_id("", allowed_dynamic_keys=[])
+        assert not engine.is_valid_source_id("invalid_src", allowed_dynamic_keys=[])
+
+    def test_extract_literal_values_non_literal(self) -> None:
+        """Test extract_literal_values on non-literal type."""
+        assert AliasEngine.extract_literal_values(str) == []

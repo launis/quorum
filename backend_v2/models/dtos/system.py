@@ -4,11 +4,29 @@ All DTOs defined here adhere to strict Pydantic V2 configurations and PEP 695
 standards for type hint safety and runtime validation.
 """
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, TypeAdapter
 
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
+from backend_v2.models.v2_core import (
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+    SystemConfigPerformativeLexicons,
+)
+
+__all__ = [
+    "HookListResponse",
+    "ClientErrorPayload",
+    "StrictnessConfigDTO",
+    "StrictnessConfigListResponse",
+    "SystemSettingsDTO",
+    "AnySystemConfig",
+    "AnySystemConfigAdapter",
+    "SystemConfigUpdateDTO",
+    "SystemConfigCreateDTO",
+    "SystemConfigUpsertDTO",
+]
 
 
 class HookListResponse(BaseResponseDTO):
@@ -76,3 +94,66 @@ class StrictnessConfigListResponse(BaseResponseDTO):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     configs: Annotated[list[StrictnessConfigDTO], Field(description="The list of configs")]
+
+
+class SystemSettingsDTO(BaseDTO):
+    """DTO representing global system settings and tuning flags."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="system_settings")
+
+    type: Annotated[
+        Literal["system_settings"], Field(default="system_settings", description="Config type discriminator")
+    ] = "system_settings"
+    environment: Annotated[str, Field(default="development", description="Runtime environment")] = "development"
+    maintenance_mode: Annotated[bool, Field(default=False, description="Maintenance mode flag")] = False
+    debug_logging: Annotated[bool, Field(default=False, description="Debug logging flag")] = False
+    default_locale: Annotated[str, Field(default="fi", description="Default system locale")] = "fi"
+
+
+# Strict Discriminated Union for System Configurations ensuring O(1) deterministic resolution and zero silent coercion (RT-1)
+type AnySystemConfig = Annotated[
+    SystemConfigModelRegistry | SystemConfigMCPGateways | SystemConfigPerformativeLexicons | SystemSettingsDTO,
+    Field(discriminator="type"),
+]
+
+AnySystemConfigAdapter: TypeAdapter[AnySystemConfig] = TypeAdapter(AnySystemConfig)
+
+
+class SystemConfigUpdateDTO(BaseDTO):
+    """DTO for updating system configuration entries with strict SSOT domain models."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    model_registry: Annotated[
+        SystemConfigModelRegistry | None, Field(default=None, description="Updated model registry")
+    ] = None
+    mcp_gateways: Annotated[SystemConfigMCPGateways | None, Field(default=None, description="Updated MCP gateways")] = (
+        None
+    )
+    performative_lexicons: Annotated[
+        SystemConfigPerformativeLexicons | None, Field(default=None, description="Updated performative lexicons")
+    ] = None
+    system_settings: Annotated[SystemSettingsDTO | None, Field(default=None, description="Updated system settings")] = (
+        None
+    )
+
+
+class SystemConfigCreateDTO(BaseDTO):
+    """DTO for creating a new system configuration document at ingress boundary."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    type: Annotated[str, Field(min_length=1, description="Configuration type identifier")]
+    content: Annotated[AnySystemConfig, Field(description="Strict discriminated union of system configurations")]
+    slug: Annotated[str | None, Field(default=None, description="Optional configuration slug")] = None
+
+
+class SystemConfigUpsertDTO(BaseDTO):
+    """DTO for upserting system configuration documents."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    id: Annotated[str | None, Field(default=None, description="Existing system config ID")] = None
+    type: Annotated[str, Field(min_length=1, description="Configuration type identifier")]
+    content: Annotated[AnySystemConfig, Field(description="Strict discriminated union of system configurations")]
+    slug: Annotated[str | None, Field(default=None, description="Optional configuration slug")] = None

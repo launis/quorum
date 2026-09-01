@@ -1,5 +1,7 @@
 """Unit tests for TaskBlueprintRepositoryImpl."""
 
+from __future__ import annotations
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -7,6 +9,8 @@ import pytest
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
 from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.v2_core import Step
 
 
 @pytest.fixture
@@ -28,25 +32,26 @@ def repo(mock_driver: AsyncMock) -> TaskBlueprintRepositoryImpl:
 
 
 @pytest.fixture
-def valid_step_doc() -> dict:
-    """Valid Step document fixture."""
-    return {
-        "id": "stp_1234567890abcdef",
-        "slug": "step_guard",
-        "name": {"translations": {"en": "Guard Step", "fi": "Suojavaihe"}},
-        "model_strategy": "fast",
-        "criteria_block_ids": ["blk_1234567890abcdef"],
-        "extraction_protocol_block_id": "blk_1234567890abcdef",
-    }
+def sample_step() -> Step:
+    """Valid Step domain model fixture."""
+    return Step(
+        id="stp_1234567890abcdef",
+        slug="step_guard",
+        name=I18nText(translations={"en": "Guard Step", "fi": "Suojavaihe"}),
+        model_strategy="fast",
+        criteria_block_ids=["blk_1234567890abcdef"],
+        extraction_protocol_block_id="blk_1234567890abcdef",
+    )
 
 
 @pytest.mark.asyncio
 async def test_task_blueprint_crud(
-    repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock, valid_step_doc: dict
+    repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock, sample_step: Step
 ) -> None:
     """Positive: tests CRUD operations for TaskBlueprints."""
-    mock_driver.get.return_value = valid_step_doc
-    mock_driver.query.return_value = [valid_step_doc]
+    sample_doc = sample_step.model_dump(mode="json")
+    mock_driver.get.return_value = sample_doc
+    mock_driver.query.return_value = [sample_doc]
 
     model = await repo.get_task_blueprint_by_id("stp_1234567890abcdef")
     assert model is not None
@@ -57,20 +62,20 @@ async def test_task_blueprint_crud(
     assert len(all_models) == 1
     assert all_models[0].id == "stp_1234567890abcdef"
 
-    assert await repo.create_task_blueprint(valid_step_doc) == "stp_1234567890abcdef"
+    assert await repo.create_task_blueprint(sample_step) == "stp_1234567890abcdef"
     assert await repo.delete_task_blueprint("stp_1234567890abcdef") is True
 
 
 @pytest.mark.asyncio
 async def test_update_task_blueprint(
-    repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock, valid_step_doc: dict
+    repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock, sample_step: Step
 ) -> None:
     """Positive: tests versioned update of TaskBlueprint."""
-    doc_with_version = dict(valid_step_doc)
+    doc_with_version = sample_step.model_dump(mode="json")
     doc_with_version["version"] = 1
     mock_driver.get.return_value = doc_with_version
     repo._increment_version = MagicMock(return_value=("stp_guard", "stp_1234567890abcdef_v2", 2))  # type: ignore[method-assign]
-    res = await repo.update_task_blueprint("stp_1234567890abcdef", {"slug": "updated"})
+    res = await repo.update_task_blueprint("stp_1234567890abcdef", sample_step.model_copy(update={"slug": "updated"}))
     assert res is True
     mock_driver.upsert.assert_called()
 
@@ -90,10 +95,12 @@ async def test_task_blueprint_parsing_failures(repo: TaskBlueprintRepositoryImpl
 
 
 @pytest.mark.asyncio
-async def test_task_blueprint_not_found(repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock) -> None:
+async def test_task_blueprint_not_found(
+    repo: TaskBlueprintRepositoryImpl, mock_driver: AsyncMock, sample_step: Step
+) -> None:
     """Negative: tests not found branches for get, update, and delete."""
     mock_driver.get.return_value = None
 
     assert await repo.get_task_blueprint_by_id("stp_missing") is None
-    assert await repo.update_task_blueprint("stp_missing", {"slug": "new"}) is False
+    assert await repo.update_task_blueprint("stp_missing", sample_step) is False
     assert await repo.delete_task_blueprint("stp_missing") is False

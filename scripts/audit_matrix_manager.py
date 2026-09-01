@@ -21,7 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 try:
     from scripts._ast_guardrails import GuardrailViolation, scan_files_for_guardrails
 except ModuleNotFoundError:
-    from _ast_guardrails import GuardrailViolation, scan_files_for_guardrails
+    from _ast_guardrails import GuardrailViolation, scan_files_for_guardrails  # type: ignore[no-redef]
 
 # Force UTF-8 encoding for stdout on Windows without reflection
 if isinstance(sys.stdout, io.TextIOWrapper):

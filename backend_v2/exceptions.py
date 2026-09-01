@@ -370,8 +370,9 @@ class AppException(Exception):
         Returns:
             String representation of the error code mapped in details.
         """
-        val = self.details.get("error_code", "INTERNAL_SERVER_ERROR")
-        return str(val)
+        if "error_code" in self.details and self.details["error_code"] is not None:
+            return str(self.details["error_code"])
+        return "INTERNAL_SERVER_ERROR"
 
     def to_problem_detail(self, instance: str | None = None) -> dict[str, Any]:
         """Convert to RFC 7807 Problem Details format.
@@ -557,28 +558,27 @@ def format_validation_error(exc: Exception) -> str:
     try:
         if isinstance(exc, ValidationError):
             errors = exc.errors()
-            missing_fields = []
-            other_errors = []
+            missing_fields: list[str] = []
+            other_errors: list[str] = []
 
             for err in errors:
                 # Parse location (e.g. ['body', 'field'] -> body.field)
-                loc = ".".join(str(loc_item) for loc_item in err.get("loc", []))
-                msg = err.get("msg", "Unknown error")
-                err_type = err.get("type", "")
+                loc = ".".join(str(loc_item) for loc_item in err["loc"]) if "loc" in err else "unknown"
+                msg = err["msg"] if "msg" in err else "Unknown error"
+                err_type = err["type"] if "type" in err else ""
 
                 if err_type == "missing":
                     missing_fields.append(loc)
                 else:
                     other_errors.append(f"{loc}: {msg}")
 
-            parts = []
+            parts: list[str] = []
             if missing_fields:
                 parts.append(f"Missing required fields: {', '.join(missing_fields)}")
             if other_errors:
                 parts.append("; ".join(other_errors))
 
-            # Use title if available (e.g. "ContextData")
-            title = getattr(exc, "title", "Schema")
+            title = exc.title
             return f"{title} validation failed. " + "; ".join(parts)
     except Exception as e:
         logger.error(f"Failed to format validation error for {type(exc).__name__}", exc_info=True)

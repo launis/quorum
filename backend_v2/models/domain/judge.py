@@ -5,7 +5,7 @@ including scorecards and dimension results.
 """
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
@@ -75,7 +75,8 @@ class JudgeInput(V2CoreBase):
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
     dynamic_inputs: Annotated[
-        dict[str, Any], Field(default_factory=dict, description="Structured dictionary for dynamic inputs.")
+        dict[str, str | int | float | bool | list[str]],
+        Field(default_factory=dict, description="Structured dictionary for dynamic inputs."),
     ]
 
 

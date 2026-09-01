@@ -1,15 +1,16 @@
 """Output Profile Service."""
 
+from __future__ import annotations
+
 import logging
 import uuid
-from typing import Any
-
-from pydantic import ValidationError
 
 from backend_v2.database.interfaces import IOutputProfileRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
-from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.enums import TargetBlockType
+from backend_v2.models.v2_core import OutputProfile
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
@@ -48,24 +49,7 @@ class StudioOutputProfileService:
         Raises:
             AppException (ErrorCodes.STATE_INTEGRITY_ERROR): If an output profile fails strict validation.
         """
-        all_data = await self.output_profile_repo.get_all_output_profiles()
-        profiles = []
-        for x in all_data:
-            try:
-                profiles.append(OutputProfile.model_validate(x, strict=False))
-            except ValidationError as e:
-                x_id = x.id if isinstance(x, OutputProfile) else "unknown"
-                logger.error(
-                    "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
-                    ErrorCodes.STATE_INTEGRITY_ERROR.name,
-                    x_id,
-                    str(e),
-                )
-                raise AppException(
-                    message=f"Database integrity error: OutputProfile {x_id} failed strict validation.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
-                ) from e
+        profiles = await self.output_profile_repo.get_all_output_profiles()
 
         if initiator.role == UserRole.ROOT:
             return profiles
@@ -87,8 +71,8 @@ class StudioOutputProfileService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        data = await self.output_profile_repo.get_output_profile_by_id(id)
-        if not data:
+        profile = await self.output_profile_repo.get_output_profile_by_id(id)
+        if not profile:
             logger.error(
                 "[StudioOutputProfileService] %s: Output Profile %s not found (Initiator: %s).",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -97,7 +81,6 @@ class StudioOutputProfileService:
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
-        profile = OutputProfile.model_validate(data, strict=False)
         enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
         return profile
 
@@ -141,11 +124,10 @@ class StudioOutputProfileService:
                         message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED}
                     )
 
-        dump = profile.model_dump(mode="json")
-        if "id" not in dump:
-            dump["id"] = id
+        if profile.id != id:
+            profile = profile.model_copy(update={"id": id})
 
-        await self.output_profile_repo.create_output_profile(dump)
+        await self.output_profile_repo.create_output_profile(profile)
 
         saved = await self.output_profile_repo.get_output_profile_by_id(id)
         if not saved:
@@ -156,7 +138,7 @@ class StudioOutputProfileService:
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
-        return OutputProfile.model_validate(saved, strict=False)
+        return saved
 
     async def delete_output_profile(self, initiator: TokenData, id: str) -> None:
         """Delete output profile.
@@ -169,8 +151,8 @@ class StudioOutputProfileService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        data = await self.output_profile_repo.get_output_profile_by_id(id)
-        if not data:
+        profile = await self.output_profile_repo.get_output_profile_by_id(id)
+        if not profile:
             logger.error(
                 "[StudioOutputProfileService] %s: Output Profile %s not found (Initiator: %s).",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -179,8 +161,7 @@ class StudioOutputProfileService:
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
-        profile_obj = data if isinstance(data, OutputProfile) else OutputProfile.model_validate(data, strict=False)
-        enforce_modification_rights(initiator, profile_obj.organization_id)
+        enforce_modification_rights(initiator, profile.organization_id)
         await self.output_profile_repo.delete_output_profile(id)
 
     async def create_output_profile_draft(self, initiator: TokenData) -> OutputProfile:
@@ -196,23 +177,19 @@ class StudioOutputProfileService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
         new_id = f"prf_{uuid.uuid4().hex[:16]}"
-        draft_dict: dict[str, Any] = {
-            "id": new_id,
-            "slug": new_id,
-            "workflow_id": "*",
-            "name": {"translations": {"en": "New Profile", "fi": "Uusi profiili"}},
-            "matrix_synthesis_groups": [
-                {
-                    "id": f"grp_{uuid.uuid4().hex[:16]}",
-                    "title": {"translations": {"en": "Default Group", "fi": "Oletusryhmä"}},
-                    "target_blocks": ["*"],
-                }
+        target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
+        draft = OutputProfile(
+            id=new_id,
+            slug=new_id,
+            workflow_id="*",
+            name=I18nText(translations={"en": "New Profile", "fi": "Uusi profiili"}),
+            organization_id=target_org,
+            target_block_order=[
+                TargetBlockType.METADATA_BLOCK,
+                TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+                TargetBlockType.SYNTHESIS_TEXT_BLOCK,
             ],
-            "organization_id": (
-                SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
-            ),
-        }
-        draft = OutputProfile.model_validate(draft_dict)
+        )
         return await self.save_output_profile(initiator, new_id, draft)
 
     async def clone_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
@@ -229,8 +206,8 @@ class StudioOutputProfileService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        data = await self.output_profile_repo.get_output_profile_by_id(id)
-        if not data:
+        profile = await self.output_profile_repo.get_output_profile_by_id(id)
+        if not profile:
             logger.error(
                 "[StudioOutputProfileService] %s: OutputProfile %s not found (Initiator: %s).",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -239,23 +216,23 @@ class StudioOutputProfileService:
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
-        profile = OutputProfile.model_validate(data, strict=False)
         enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
 
         new_id = f"prf_{uuid.uuid4().hex[:16]}"
-
-        cloned_data = profile.model_dump(mode="json")
-        cloned_data["id"] = new_id
-
-        if initiator.role != UserRole.ROOT:
-            cloned_data["organization_id"] = initiator.organization_id
-
+        target_org = profile.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
         new_translations = {
             loc: f"{txt} (Copy)" if loc == "en" else txt for loc, txt in profile.name.translations.items()
         }
-        cloned_data["name"] = {"translations": new_translations}
 
-        await self.output_profile_repo.create_output_profile(cloned_data)
+        cloned_obj = profile.model_copy(
+            update={
+                "id": new_id,
+                "organization_id": target_org,
+                "name": I18nText(translations=new_translations),
+            }
+        )
+
+        await self.output_profile_repo.create_output_profile(cloned_obj)
 
         saved = await self.output_profile_repo.get_output_profile_by_id(new_id)
         if not saved:
@@ -267,4 +244,4 @@ class StudioOutputProfileService:
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=new_id)
 
-        return OutputProfile.model_validate(saved, strict=False)
+        return saved

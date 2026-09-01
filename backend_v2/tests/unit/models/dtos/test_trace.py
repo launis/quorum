@@ -58,3 +58,41 @@ def test_trace_matrix_payload_rejects_raw_bool() -> None:
     with pytest.raises(ValidationError) as exc_true:
         TraceMatrixPayloadDTO.model_validate(payload_true)
     assert "Input should be" in str(exc_true.value)
+
+
+def test_execution_create_and_update_dto_negative_partitions() -> None:
+    """Test ExecutionCreateDTO and ExecutionUpdateDTO validation and extra='forbid'."""
+    from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
+
+    # Positive test ExecutionCreateDTO
+    create_dto = ExecutionCreateDTO(workflow_id="wor_1234567890abcdef")
+    assert create_dto.workflow_id == "wor_1234567890abcdef"
+    assert create_dto.target_locale == "fi"
+    assert create_dto.status == "PENDING"
+
+    # Negative ExecutionCreateDTO: missing workflow_id
+    with pytest.raises(ValidationError):
+        ExecutionCreateDTO.model_validate({})
+
+    # Negative ExecutionCreateDTO: extra forbidden field
+    with pytest.raises(ValidationError) as exc:
+        ExecutionCreateDTO.model_validate({"workflow_id": "wor_123", "unknown_field": "fail"})
+    assert "extra_forbidden" in str(exc.value) or "Extra inputs are not permitted" in str(exc.value)
+
+    # Positive test ExecutionUpdateDTO
+    update_dto = ExecutionUpdateDTO(progress=50, current_step="Evaluating atom graph")
+    assert update_dto.progress == 50
+    assert update_dto.current_step == "Evaluating atom graph"
+
+    # Negative ExecutionUpdateDTO: progress > 100
+    with pytest.raises(ValidationError):
+        ExecutionUpdateDTO(progress=150)
+
+    # Negative ExecutionUpdateDTO: progress < 0
+    with pytest.raises(ValidationError):
+        ExecutionUpdateDTO(progress=-10)
+
+    # Negative ExecutionUpdateDTO: extra forbidden field
+    with pytest.raises(ValidationError) as exc_up:
+        ExecutionUpdateDTO.model_validate({"progress": 20, "unauthorized_extra": True})
+    assert "extra_forbidden" in str(exc_up.value) or "Extra inputs are not permitted" in str(exc_up.value)

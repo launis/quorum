@@ -16,7 +16,7 @@ async def test_vertex_adapter_caching_name_format_bug() -> None:
     prompt = CompiledPrompt(
         static_messages=[{"role": "user", "content": "Some text " * 1000}],
         dynamic_messages=[],
-        metadata={"estimated_token_count": 3000},
+        metadata={"token_proxy_score": 3000.0},
     )
 
     mock_cached_content = MagicMock()

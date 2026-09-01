@@ -1,13 +1,23 @@
 """Database repository implementation module for Knowledge base, Banned phrases and Prompts."""
 
+from __future__ import annotations
+
 import logging
 import uuid
-from typing import Any
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.domain.knowledge import BannedPhrase, Claim, Concept, PromptTemplateDTO, Reference
+from backend_v2.models.domain.knowledge import (
+    BannedPhrase,
+    Claim,
+    ClaimCreateDTO,
+    Concept,
+    ConceptCreateDTO,
+    PromptTemplateDTO,
+    Reference,
+    ReferenceCreateDTO,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -153,41 +163,47 @@ class KnowledgeRepositoryImpl(BaseRepository):
                 )
         return claims
 
-    async def add_concept(self, item: dict[str, Any]) -> str:
+    async def add_concept(self, item: ConceptCreateDTO) -> str:
         """Adds a concept to knowledge base.
 
         Args:
-            item: Concept data dictionary.
+            item: ConceptCreateDTO data.
 
         Returns:
             The created concept ID.
         """
-        doc_id = item["id"]
-        return await self.driver.upsert("concepts", item, doc_id)
+        payload = item.model_dump(mode="json")
+        doc_id = str(uuid.uuid4())
+        payload["id"] = doc_id
+        return await self.driver.upsert("concepts", payload, doc_id)
 
-    async def add_reference(self, item: dict[str, Any]) -> str:
+    async def add_reference(self, item: ReferenceCreateDTO) -> str:
         """Adds a reference to knowledge base.
 
         Args:
-            item: Reference data dictionary.
+            item: ReferenceCreateDTO data.
 
         Returns:
             The created reference ID.
         """
-        doc_id = item["id"]
-        return await self.driver.upsert("references", item, doc_id)
+        payload = item.model_dump(mode="json")
+        doc_id = str(uuid.uuid4())
+        payload["id"] = doc_id
+        return await self.driver.upsert("references", payload, doc_id)
 
-    async def add_claim(self, item: dict[str, Any]) -> str:
+    async def add_claim(self, item: ClaimCreateDTO) -> str:
         """Adds a claim to knowledge base.
 
         Args:
-            item: Claim data dictionary.
+            item: ClaimCreateDTO data.
 
         Returns:
             The created claim ID.
         """
-        doc_id = item["id"]
-        return await self.driver.upsert("claims", item, doc_id)
+        payload = item.model_dump(mode="json")
+        doc_id = str(uuid.uuid4())
+        payload["id"] = doc_id
+        return await self.driver.upsert("claims", payload, doc_id)
 
     async def clear_knowledge_base(self) -> None:
         """Clears all concepts, references, and claims from the database."""

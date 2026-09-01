@@ -1,5 +1,7 @@
 """Unit tests for RoleRepositoryImpl."""
 
+from __future__ import annotations
+
 from unittest.mock import AsyncMock
 
 import pytest
@@ -7,6 +9,8 @@ import pytest
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.components.role import RoleRepositoryImpl
 from backend_v2.exceptions import AppException, ResourceNotFoundError
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.v2_core import Role
 
 
 @pytest.fixture
@@ -28,21 +32,22 @@ def repo(mock_driver: AsyncMock) -> RoleRepositoryImpl:
 
 
 @pytest.fixture
-def valid_role_doc() -> dict:
+def sample_role() -> Role:
     """Valid Role document fixture."""
-    return {
-        "id": "rol_1234567890abcdef",
-        "name": {"translations": {"en": "Executive Coach", "fi": "Johdon Valmentaja"}},
-        "model_role": "analyst_model",
-        "type": "role",
-    }
+    return Role(
+        id="rol_1234567890abcdef",
+        name=I18nText(translations={"en": "Executive Coach", "fi": "Johdon Valmentaja"}),
+        model_role="analyst_model",
+        type="role",
+    )
 
 
 @pytest.mark.asyncio
-async def test_role_crud_lifecycle(repo: RoleRepositoryImpl, mock_driver: AsyncMock, valid_role_doc: dict) -> None:
+async def test_role_crud_lifecycle(repo: RoleRepositoryImpl, mock_driver: AsyncMock, sample_role: Role) -> None:
     """Positive: tests role listing, getting by ID, creation, update, and deletion."""
-    mock_driver.query.return_value = [valid_role_doc]
-    mock_driver.get.return_value = valid_role_doc
+    sample_doc = sample_role.model_dump(mode="json")
+    mock_driver.query.return_value = [sample_doc]
+    mock_driver.get.return_value = sample_doc
 
     roles = await repo.get_all_roles()
     assert len(roles) == 1
@@ -52,8 +57,11 @@ async def test_role_crud_lifecycle(repo: RoleRepositoryImpl, mock_driver: AsyncM
     assert role is not None
     assert role.model_role == "analyst_model"
 
-    assert await repo.create_role(valid_role_doc) == "rol_1234567890abcdef"
-    assert await repo.update_role("rol_1234567890abcdef", {"model_role": "critic_model"}) == "rol_1234567890abcdef"
+    assert await repo.create_role(sample_role) == "rol_1234567890abcdef"
+    assert (
+        await repo.update_role("rol_1234567890abcdef", sample_role.model_copy(update={"model_role": "critic_model"}))
+        == "rol_1234567890abcdef"
+    )
     assert await repo.delete_role("rol_1234567890abcdef") is True
 
 
@@ -72,13 +80,13 @@ async def test_role_parsing_failures(repo: RoleRepositoryImpl, mock_driver: Asyn
 
 
 @pytest.mark.asyncio
-async def test_role_not_found_branches(repo: RoleRepositoryImpl, mock_driver: AsyncMock) -> None:
+async def test_role_not_found_branches(repo: RoleRepositoryImpl, mock_driver: AsyncMock, sample_role: Role) -> None:
     """Negative: verifies behavior when role is missing."""
     mock_driver.get.return_value = None
 
     assert await repo.get_role_by_id("rol_missing") is None
 
     with pytest.raises(ResourceNotFoundError):
-        await repo.update_role("rol_missing", {"model_role": "critic_model"})
+        await repo.update_role("rol_missing", sample_role)
 
     assert await repo.delete_role("rol_missing") is False

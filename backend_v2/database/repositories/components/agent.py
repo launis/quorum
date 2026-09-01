@@ -1,10 +1,13 @@
 """Extracted Repository for Agents."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -24,36 +27,60 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
         """
         super().__init__(driver)
 
-    async def get_agent_by_id(self, agent_id: str) -> dict[str, Any] | None:
+    async def get_agent_by_id(self, agent_id: str) -> PromptBlock | None:
         """Retrieves an agent by its ID.
 
         Args:
             agent_id: The unique identifier of the agent.
 
         Returns:
-            A dictionary containing the agent data if found, otherwise None.
+            The validated PromptBlock domain model if found, otherwise None.
 
         Raises:
             AppException: Propagated from driver if the database query fails.
         """
-        return await self.driver.get("agents", agent_id)
+        doc = await self.driver.get("agents", agent_id)
+        if not doc:
+            return None
+        try:
+            return PromptBlockAdapter.validate_python(doc, strict=False)
+        except Exception as e:
+            logger.error("Failed to parse Agent %s: %s", agent_id, e, exc_info=True)
+            raise AppException(
+                message=f"Failed to parse Agent {agent_id} from database",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
-    async def get_all_agents(self) -> list[dict[str, Any]]:
+    async def get_all_agents(self) -> list[PromptBlock]:
         """Retrieves all agents from the database.
 
         Returns:
-            A list of dictionaries representing the agents.
+            A list of validated PromptBlock domain models.
 
         Raises:
             AppException: Propagated from driver if the database query fails.
         """
-        return await self.driver.query("agents")
+        raw_items = await self.driver.query("agents")
+        agents: list[PromptBlock] = []
+        for item in raw_items:
+            try:
+                agents.append(PromptBlockAdapter.validate_python(item, strict=False))
+            except Exception as e:
+                item_id = item["id"] if "id" in item else "unknown"
+                logger.error("Failed to parse Agent %s: %s", item_id, e, exc_info=True)
+                raise AppException(
+                    message=f"Failed to parse Agent {item_id} from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+        return agents
 
-    async def create_agent(self, agent_data: dict[str, Any]) -> str:
+    async def create_agent(self, agent_data: PromptBlock) -> str:
         """Creates a new agent.
 
         Args:
-            agent_data: The dictionary containing the agent data.
+            agent_data: The PromptBlock domain model containing the agent data.
 
         Returns:
             The ID of the created agent.
@@ -61,15 +88,16 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if the upsert operation fails.
         """
-        doc_id = agent_data["id"]
-        return await self.driver.upsert("agents", agent_data, doc_id)
+        payload = agent_data.model_dump(mode="json")
+        doc_id = payload["id"]
+        return await self.driver.upsert("agents", payload, doc_id)
 
-    async def update_agent(self, agent_id: str, updates: dict[str, Any]) -> bool:
+    async def update_agent(self, agent_id: str, updates: PromptBlock) -> bool:
         """Updates an existing agent using versioned append-only logic.
 
         Args:
             agent_id: The ID of the agent to update.
-            updates: A dictionary of key-value pairs to update.
+            updates: PromptBlock domain model containing updated fields.
 
         Returns:
             True if the update was successful, False if the document was not found.
@@ -86,7 +114,7 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
         base_id, new_id, ver = self._increment_version(agent_id)
 
         new_doc = dict(old_doc)
-        new_doc.update(updates)
+        new_doc.update(updates.model_dump(mode="json", exclude_unset=True))
         new_doc["id"] = new_id
         new_doc["is_latest"] = True
         new_doc["version"] = ver

@@ -5,7 +5,7 @@ including Toulmin argumentation analysis and Walton schemes.
 """
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -42,9 +42,10 @@ class LogicianInput(V2CoreBase):
     ]
     step_analyst: Annotated[AnalystOutput | None, Field(description="Analyst hypotheses/timeline.")] = None
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
-    dynamic_inputs: Annotated[dict[str, Any], Field(description="Structured dictionary for dynamic inputs.")] = Field(
-        default_factory=dict
-    )
+    dynamic_inputs: Annotated[
+        dict[str, str | int | float | bool | list[str]],
+        Field(default_factory=dict, description="Structured dictionary for dynamic inputs."),
+    ]
 
 
 class ToulminComponent(V2CoreBase):

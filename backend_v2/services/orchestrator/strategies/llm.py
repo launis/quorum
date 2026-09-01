@@ -37,6 +37,7 @@ from backend_v2.models.domain.prompt_blocks import (
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import PromptBlockCategory, VirtualSystemStepID
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
@@ -908,8 +909,9 @@ class LLMNodeStrategy(NodeStrategy):
                             update={"status": "processing", "message_code": "event_llm_anomaly_retry"}
                         )
                         new_states = {**exec_record.step_states, step.id: new_state}
-                        new_states_raw = {k: v.model_dump(mode="json") for k, v in new_states.items()}
-                        await self.exec_repo.update_execution(context.execution_id, {"step_states": new_states_raw})
+                        await self.exec_repo.update_execution(
+                            context.execution_id, ExecutionUpdateDTO(step_states=new_states)
+                        )
                     continue
 
             break

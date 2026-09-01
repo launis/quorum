@@ -157,3 +157,41 @@ def test_workflow_simulation_response_with_actual_fields() -> None:
     assert dto.errors == []
     assert dto.step_status == {"stp_1": "OK"}
     assert dto.execution_order == ["stp_1"]
+
+
+def test_workflow_update_dto_negative_partitions() -> None:
+    """Test WorkflowUpdateDTO strictness and extra='forbid' validation."""
+    from backend_v2.models.dtos.studio import WorkflowUpdateDTO
+
+    # Positive test
+    dto = WorkflowUpdateDTO(slug="custom_slug_123", status="DRAFT")
+    assert dto.slug == "custom_slug_123"
+    assert dto.status == "DRAFT"
+
+    # Negative partition 1: Extra forbidden fields
+    with pytest.raises(ValidationError) as exc:
+        WorkflowUpdateDTO.model_validate({"slug": "test_slug", "extra_forbidden_key": "fail"})
+    assert "extra_forbidden" in str(exc.value) or "Extra inputs are not permitted" in str(exc.value)
+
+    # Negative partition 2: Invalid slug regex pattern
+    with pytest.raises(ValidationError):
+        WorkflowUpdateDTO(slug="Invalid Slug with Spaces!")
+
+
+def test_step_update_dto_negative_partitions() -> None:
+    """Test StepUpdateDTO strictness and extra='forbid' validation."""
+    from backend_v2.models.dtos.studio import StepUpdateDTO
+
+    # Positive test
+    dto = StepUpdateDTO(slug="step_slug", safety="safe")
+    assert dto.slug == "step_slug"
+    assert dto.safety == "safe"
+
+    # Negative partition 1: Extra forbidden fields
+    with pytest.raises(ValidationError) as exc:
+        StepUpdateDTO.model_validate({"slug": "step_slug", "unrecognized": 123})
+    assert "extra_forbidden" in str(exc.value) or "Extra inputs are not permitted" in str(exc.value)
+
+    # Negative partition 2: Invalid safety literal value
+    with pytest.raises(ValidationError):
+        StepUpdateDTO.model_validate({"safety": "invalid_safety_mode"})

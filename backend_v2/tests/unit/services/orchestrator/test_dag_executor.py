@@ -5,6 +5,7 @@ import pytest
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow, WorkflowInputs
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor, ExecutionCommitter
@@ -141,9 +142,9 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
     mock_repo.update_execution.assert_called_once()
     args, kwargs = mock_repo.update_execution.call_args
     assert args[0] == "exec_123"
-    assert args[1]["status"] == "PENDING"
-    assert args[1]["error"] == "test error"
-    assert args[1]["context_variables"] == {"test_key": "test_val"}
+    assert args[1].status == ExecutionStatus.PENDING
+    assert args[1].error == "test error"
+    assert args[1].context_variables == {"test_key": "test_val"}
 
 
 @pytest.mark.asyncio
@@ -278,10 +279,13 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         # Verify that committer was called with FAILED status for the whole execution
         calls = mock_repo.update_execution.call_args_list
         final_call_args = calls[-1][0]
-        assert final_call_args[1]["status"] == ExecutionStatus.FAILED.value
+        assert final_call_args[1].status in (ExecutionStatus.FAILED, ExecutionStatus.FAILED.value)
 
         # Verify that the original error was committed at some point
-        error_recorded = any("System Crash" in call[0][1].get("error", "") for call in calls)
+        error_recorded = any(
+            isinstance(call[0][1], ExecutionUpdateDTO) and call[0][1].error and "System Crash" in call[0][1].error
+            for call in calls
+        )
         assert error_recorded, "The exception 'System Crash' should have been committed as an error"
 
 

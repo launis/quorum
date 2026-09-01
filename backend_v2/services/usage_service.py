@@ -4,6 +4,8 @@ This module persists immutable usage records to the repository, utilizing
 the cost calculated by LiteLLM (no local pricing logic).
 """
 
+from __future__ import annotations
+
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -13,6 +15,7 @@ from backend_v2.database.interfaces import IAuditRepository, IIdentityRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import SystemOrganizations
 from backend_v2.models.domain import UsageRecord
+from backend_v2.models.domain.base import UsageAggregateUpdateDTO
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage, UsageReport
 
 logger = logging.getLogger(__name__)
@@ -38,63 +41,21 @@ class UsageService:
         model: str,
         input_tokens: int,
         output_tokens: int,
-        cost_usd: float,
+        latency_ms: int = 0,
         cached_tokens: int = 0,
         cache_creation_input_tokens: int = 0,
-        estimated_savings_usd: float = 0.0,
         reasoning_tokens: int = 0,
-        latency_ms: int | None = None,
         finish_reason: str | None = None,
         system_fingerprint: str | None = None,
-        provider_name: str | None = None,
+        cost_usd: float = 0.0,
+        estimated_savings_usd: float = 0.0,
         model_pricing_config: PricingConfig | dict[str, Any] | None = None,
     ) -> UsageRecord:
-        """Track and persist a usage record.
+        """Tracks and logs usage securely to the audit repository.
 
-        This method accepts the cost calculated by the LLM Provider (LiteLLM)
-        and persists the record.
-
-        Args:
-            org_id (str): Organization ID.
-            user_id (str): User ID.
-            model (str): Model name.
-            input_tokens (int): Input token count.
-            output_tokens (int): Output token count.
-            cost_usd (float): The cost calculated by LiteLLM.
-
-        Returns:
-            UsageRecord: The created record.
-
-        Raises:
-            AppException: If logging usage fails.
+        Calculates no pricing internally; persists metadata and cost passed from LiteLLM.
         """
         try:
-            from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
-
-            if provider_name and model_pricing_config:
-                usage_obj = TokenUsage(
-                    prompt_tokens=input_tokens,
-                    completion_tokens=output_tokens,
-                    total_tokens=input_tokens + output_tokens,
-                    cached_tokens=cached_tokens,
-                    cache_creation_input_tokens=cache_creation_input_tokens,
-                    reasoning_tokens=reasoning_tokens,
-                    cost_usd=cost_usd,
-                    estimated_savings_usd=estimated_savings_usd,
-                )
-                try:
-                    pricing_dto = (
-                        model_pricing_config
-                        if isinstance(model_pricing_config, PricingConfig)
-                        else PricingConfig.model_validate(model_pricing_config)
-                    )
-                    adapter = LLMCacheAdapterFactory.get_adapter(provider_name, model_name=model)
-                    final_usage = adapter.calculate_cost(usage_obj, pricing_dto)
-                    cost_usd = final_usage.cost_usd
-                    estimated_savings_usd = final_usage.estimated_savings_usd
-                except (AppException, ValueError, TypeError, KeyError, RuntimeError, OSError) as e:
-                    logger.warning("Failed to calculate cost via adapter: %s", e)
-
             record = UsageRecord(
                 id=str(uuid.uuid4()),
                 org_id=org_id,
@@ -117,32 +78,25 @@ class UsageService:
 
             # --- CUMULATIVE AGGREGATION ---
             period = datetime.now(UTC).strftime("%Y-%m")
-            total_t = input_tokens + output_tokens
-            update_data = {
-                "total_executions": 1,
-                "usage": TokenUsage(
-                    prompt_tokens=input_tokens,
-                    completion_tokens=output_tokens,
-                    total_tokens=total_t,
-                    cached_tokens=cached_tokens,
-                    cache_creation_input_tokens=cache_creation_input_tokens,
-                    reasoning_tokens=reasoning_tokens,
-                    cost_usd=cost_usd,
-                    estimated_savings_usd=estimated_savings_usd,
-                ).model_dump(mode="json"),
-            }
+            update_dto = UsageAggregateUpdateDTO(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cached_tokens=cached_tokens,
+                cost_usd=cost_usd,
+                execution_count=1,
+            )
 
             # System Level (All traffic)
-            await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, period, update_data)
-            await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, "all-time", update_data)  # noqa: E501
+            await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, period, update_dto)
+            await self.audit_repo.upsert_usage_aggregate(SystemOrganizations.ROOT_SYSTEM, None, "all-time", update_dto)
 
             # Organization Level
             if org_id:
-                await self.audit_repo.upsert_usage_aggregate("organization", org_id, period, update_data)
-                await self.audit_repo.upsert_usage_aggregate("organization", org_id, "all-time", update_data)
+                await self.audit_repo.upsert_usage_aggregate("organization", org_id, period, update_dto)
+                await self.audit_repo.upsert_usage_aggregate("organization", org_id, "all-time", update_dto)
             if user_id:
-                await self.audit_repo.upsert_usage_aggregate("user", user_id, period, update_data)
-                await self.audit_repo.upsert_usage_aggregate("user", user_id, "all-time", update_data)
+                await self.audit_repo.upsert_usage_aggregate("user", user_id, period, update_dto)
+                await self.audit_repo.upsert_usage_aggregate("user", user_id, "all-time", update_dto)
 
             # --- PROMPT_CACHING_DRIFT_ALERT ---
             pricing_cfg = (
@@ -155,18 +109,18 @@ class UsageService:
             if has_prompt_caching:
                 recent_records_data = await self.audit_repo.get_usage_records(scope="user", entity_id=user_id)
                 # Use last 4 from DB + current record
-                recent_records_data = recent_records_data[-4:]
-                records = [UsageRecord.model_validate(r) for r in recent_records_data]
+                records = list(recent_records_data[-4:])
                 records.append(record)
 
-                if len(records) == 5:
+                if len(records) >= 5:
+                    total_tokens = sum(r.input_tokens for r in records)
                     total_cached = sum(r.cached_tokens for r in records)
-                    total_all_tokens = sum((r.input_tokens + r.output_tokens + r.cached_tokens) for r in records)
 
-                    if total_all_tokens > 0:
-                        hit_rate = total_cached / total_all_tokens
-                        if hit_rate < 0.80:
-                            hit_rate_pct = int(hit_rate * 100)
+                    if total_tokens > 0:
+                        hit_rate = total_cached / total_tokens
+                        hit_rate_pct = round(hit_rate * 100, 2)
+
+                        if hit_rate < 0.70:
                             logger.error(
                                 "PROMPT_CACHING_DRIFT_ALERT: Cache hit rate has degraded "
                                 f"to {hit_rate_pct}% for workflow Y. Investigate prompt mutations immediately."
@@ -209,10 +163,8 @@ class UsageService:
             if org_id == SystemOrganizations.ROOT_SYSTEM:
                 return True  # System internal tasks are exempt from hard quota ceilings
 
-            from backend_v2.models.auth import Organization
-
-            org_data = await self.identity_repo.get_organization(org_id)
-            if not org_data:
+            org = await self.identity_repo.get_organization(org_id)
+            if not org:
                 # Fail-Fast: Unknown orgs cannot consume LLM traffic
                 msg = f"Quota Check: Organization '{org_id}' not found. Execution denied."
                 logger.error("[UsageService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
@@ -220,12 +172,10 @@ class UsageService:
                     message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
                 )
 
-            org = Organization.model_validate(org_data)
             limit = float(org.quota_limit)
 
             # 2. Calculate Usage (Current Month)
             now = datetime.now(UTC)
-            # ISO Format for simple string comparison in JSON/TinyDB
             start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
             used = await self.identity_repo.get_org_usage_total(org_id, since=start_of_month)
@@ -272,18 +222,20 @@ class UsageService:
             if since >= start_of_month:
                 period = now.strftime("%Y-%m")
 
-        from backend_v2.models.domain.usage import UsageAggregate
-
         # Map frontend scope 'org' to 'organization' exactly as aggregated
         mapped_scope = "organization" if scope == "org" else scope
-        agg_data = await self.audit_repo.get_usage_aggregate(mapped_scope, entity_id, period)
+        agg_dto = await self.audit_repo.get_usage_aggregate(mapped_scope, entity_id, period)
 
-        if agg_data:
-            agg = UsageAggregate.model_validate(agg_data)
-            token_usage = agg.usage
+        if agg_dto:
+            token_usage = TokenUsage(
+                prompt_tokens=agg_dto.total_input_tokens,
+                completion_tokens=agg_dto.total_output_tokens,
+                total_tokens=agg_dto.total_input_tokens + agg_dto.total_output_tokens,
+                cached_tokens=agg_dto.total_cached_tokens,
+                cost_usd=agg_dto.total_cost_usd,
+            )
         else:
-            records_data = await self.audit_repo.get_usage_records(scope=mapped_scope, entity_id=entity_id, since=since)
-            records = [UsageRecord.model_validate(r) for r in records_data]
+            records = await self.audit_repo.get_usage_records(scope=mapped_scope, entity_id=entity_id, since=since)
 
             prompt_tokens = sum(r.input_tokens for r in records)
             completion_tokens = sum(r.output_tokens for r in records)
@@ -305,11 +257,8 @@ class UsageService:
         percentage_used = None
         mapped_scope = "organization" if scope == "org" else scope
         if mapped_scope == "organization" and entity_id:
-            from backend_v2.models.auth import Organization
-
-            org_data = await self.identity_repo.get_organization(entity_id)
-            if org_data:
-                org = Organization.model_validate(org_data)
+            org = await self.identity_repo.get_organization(entity_id)
+            if org:
                 quota_limit = float(org.quota_limit)
                 if quota_limit > 0:
                     percentage_used = min(100.0, (token_usage.cost_usd / quota_limit) * 100.0)

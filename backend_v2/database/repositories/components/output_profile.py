@@ -1,7 +1,8 @@
 """Extracted Repository for Output Profiles."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
@@ -82,11 +83,11 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
-    async def create_output_profile(self, profile_data: dict[str, Any]) -> str:
+    async def create_output_profile(self, profile_data: OutputProfile) -> str:
         """Creates a new output profile.
 
         Args:
-            profile_data: The dictionary containing the output profile data.
+            profile_data: The OutputProfile domain model.
 
         Returns:
             The ID of the created output profile.
@@ -94,15 +95,16 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if the upsert operation fails.
         """
-        doc_id = profile_data["id"]
-        return await self.driver.upsert("output_profiles", profile_data, doc_id)
+        payload = profile_data.model_dump(mode="json")
+        doc_id = payload["id"]
+        return await self.driver.upsert("output_profiles", payload, doc_id)
 
-    async def update_output_profile(self, profile_id: str, updates: dict[str, Any]) -> bool:
-        """Updates an existing output profile directly (no version increment).
+    async def update_output_profile(self, profile_id: str, updates: OutputProfile) -> bool:
+        """Updates an existing output profile.
 
         Args:
             profile_id: The ID of the output profile to update.
-            updates: A dictionary of key-value pairs to update.
+            updates: The OutputProfile domain model containing updated fields.
 
         Returns:
             True if the update was successful, False if the document was not found.
@@ -110,7 +112,13 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if database operations fail.
         """
-        return await self.driver.update("output_profiles", profile_id, updates)
+        old_doc = await self.driver.get("output_profiles", profile_id)
+        if not old_doc:
+            return False
+
+        payload = updates.model_dump(mode="json", exclude_unset=True)
+        await self.driver.update("output_profiles", profile_id, payload)
+        return True
 
     async def delete_output_profile(self, profile_id: str) -> bool:
         """Deletes an output profile by ID.
@@ -124,4 +132,7 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if database operations fail.
         """
+        profile = await self.driver.get("output_profiles", profile_id)
+        if not profile:
+            return False
         return await self.driver.delete("output_profiles", profile_id)

@@ -19,7 +19,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
-from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDTO, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     ScoringStrategy,
     TargetBlockType,
@@ -367,9 +367,7 @@ class BlueprintTransformer:
 
         if modified_step_states:
             execution = execution.model_copy(update={"step_states": new_step_states})
-            await self.exec_repo.update_execution(
-                execution.id, {"step_states": {k: v.model_dump(mode="json") for k, v in new_step_states.items()}}
-            )
+            await self.exec_repo.update_execution(execution.id, ExecutionUpdateDTO(step_states=new_step_states))
 
         total_exec_cost = 0.0
         total_exec_tokens = 0

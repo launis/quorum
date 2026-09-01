@@ -54,9 +54,9 @@ class SynthesisMetadataDTO(V2CoreBase):
     dag_cost_usd: Annotated[float | None, Field()] = None
 
     # Injected by System 2 Reliability Tracker in worker.py
-    global_context_vars: Annotated[dict[str, Any] | None, Field()] = None
-    execution_summary: Annotated[dict[str, Any] | None, Field()] = None
-    step_metrics: Annotated[dict[str, Any] | None, Field()] = None
+    global_context_vars: Annotated[dict[str, Any] | None, Field(default=None)] = None
+    execution_summary: Annotated[dict[str, Any] | None, Field(default=None)] = None
+    step_metrics: Annotated[dict[str, Any] | None, Field(default=None)] = None
 
 
 class DistilledEvaluation(V2CoreBase):
@@ -74,7 +74,7 @@ class DistilledEvaluation(V2CoreBase):
     atom_id: Annotated[str | None, Field()] = None
     exact_quotes: Annotated[list[str], Field()] = Field(default_factory=list)
     semantic_reasoning: Annotated[str | None, Field()] = None
-    extensions: Annotated[dict[str, Any] | None, Field()] = None
+    extensions: Annotated[dict[str, str | int | float | bool | list[str]] | None, Field(default=None)] = None
 
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):

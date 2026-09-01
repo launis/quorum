@@ -7,6 +7,13 @@ import pytest
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
 from backend_v2.exceptions import AppException, WorkflowNotFoundError
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.dtos.studio import (
+    StepCreateDTO,
+    StepUpdateDTO,
+    WorkflowCreateDTO,
+    WorkflowUpdateDTO,
+)
 
 
 @pytest.fixture
@@ -101,14 +108,26 @@ async def test_workflow_lifecycle_and_versioning(
     repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict
 ) -> None:
     """Positive: tests create, versioned update, definition update, count, and delete."""
-    assert await repo.create_workflow(valid_workflow_doc) == "wf_1234567890abcdef"
+    mock_driver.upsert.return_value = "wf_1234567890abcdef"
+    wf_dto = WorkflowCreateDTO(
+        slug=valid_workflow_doc["slug"],
+        name=I18nText(translations=valid_workflow_doc["name"]["translations"]),
+        description=I18nText(translations=valid_workflow_doc["description"]["translations"]),
+        default_profile_id=valid_workflow_doc["default_profile_id"],
+        allowed_exports=valid_workflow_doc["allowed_exports"],
+        historical_context_mode=valid_workflow_doc["historical_context_mode"],
+        steps=[],
+    )
+    assert await repo.create_workflow(wf_dto) == "wf_1234567890abcdef"
 
     mock_driver.get.return_value = valid_workflow_doc
     repo._increment_version = MagicMock(return_value=("wf_exec", "wf_1234567890abcdef_v2", 2))  # type: ignore[method-assign]
-    new_id = await repo.update_workflow("wf_1234567890abcdef", {"name": {"translations": {"en": "Updated"}}})
+    new_id = await repo.update_workflow(
+        "wf_1234567890abcdef", WorkflowUpdateDTO(name=I18nText(translations={"en": "Updated"}))
+    )
     assert new_id == "wf_1234567890abcdef_v2"
 
-    def_id = await repo.update_workflow_definition("wf_1234567890abcdef", {"slug": "new_slug"})
+    def_id = await repo.update_workflow_definition("wf_1234567890abcdef", WorkflowUpdateDTO(slug="new_slug"))
     assert def_id == "wf_1234567890abcdef_v2"
 
     assert await repo.count_workflows() == 1
@@ -120,7 +139,7 @@ async def test_update_workflow_not_found(repo: WorkflowRepositoryImpl, mock_driv
     """Negative: update_workflow raises WorkflowNotFoundError if workflow does not exist."""
     mock_driver.get.return_value = None
     with pytest.raises(WorkflowNotFoundError):
-        await repo.update_workflow("wf_missing", {"name": "New"})
+        await repo.update_workflow("wf_missing", WorkflowUpdateDTO(slug="new_slug"))
 
 
 @pytest.mark.asyncio
@@ -140,8 +159,15 @@ async def test_step_crud_and_query(repo: WorkflowRepositoryImpl, mock_driver: As
     assert len(all_steps) == 1
 
     mock_driver.upsert.return_value = "stp_1234567890abcdef"
-    assert await repo.create_step(valid_step_doc) == "stp_1234567890abcdef"
-    assert await repo.update_step("stp_1234567890abcdef", {"slug": "updated"}) == "stp_1234567890abcdef"
+    step_dto = StepCreateDTO(
+        slug=valid_step_doc["slug"],
+        name=I18nText(translations=valid_step_doc["name"]["translations"]),
+        model_strategy=valid_step_doc["model_strategy"],
+        criteria_block_ids=valid_step_doc["criteria_block_ids"],
+        extraction_protocol_block_id=valid_step_doc["extraction_protocol_block_id"],
+    )
+    assert await repo.create_step(step_dto) == "stp_1234567890abcdef"
+    assert await repo.update_step("stp_1234567890abcdef", StepUpdateDTO(slug="updated")) == "stp_1234567890abcdef"
     assert await repo.delete_step("stp_1234567890abcdef", force_delete=True) is True
 
 

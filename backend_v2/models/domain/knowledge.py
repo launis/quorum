@@ -5,6 +5,31 @@ from typing import Annotated
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.base import BaseDTO
+
+
+class ConceptCreateDTO(BaseDTO):
+    """DTO for adding a concept to the knowledge base."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    name: Annotated[str, Field(min_length=1, description="Concept name")]
+
+
+class ReferenceCreateDTO(BaseDTO):
+    """DTO for adding a reference to the knowledge base."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    name: Annotated[str, Field(min_length=1, description="Reference name")]
+
+
+class ClaimCreateDTO(BaseDTO):
+    """DTO for adding a claim to the knowledge base."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    name: Annotated[str, Field(min_length=1, description="Claim name")]
 
 
 class BannedPhrase(V2CoreBase):

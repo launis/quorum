@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import uuid
 from typing import Any, cast
 
 from fastapi.concurrency import run_in_threadpool
@@ -11,6 +12,12 @@ from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.dtos.studio import (
+    StepCreateDTO,
+    StepUpdateDTO,
+    WorkflowCreateDTO,
+    WorkflowUpdateDTO,
+)
 from backend_v2.models.v2_core import Step, Workflow
 
 logger = logging.getLogger(__name__)
@@ -113,24 +120,29 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             return None
         return Workflow.model_validate(data, strict=False)
 
-    async def create_workflow(self, workflow_data: dict[str, Any]) -> str:
+    async def create_workflow(self, workflow_data: WorkflowCreateDTO) -> str:
         """Creates a new workflow.
 
         Args:
-            workflow_data: Dictionary containing workflow fields.
+            workflow_data: DTO containing workflow fields.
 
         Returns:
             The created workflow ID.
         """
-        doc_id = workflow_data["id"]
-        return await self.driver.upsert("workflows", workflow_data, doc_id)
+        data = workflow_data.model_dump(mode="json", exclude_unset=True)
+        doc_id = data.get("id") or str(uuid.uuid4())
+        data["id"] = doc_id
+        data.setdefault("version", 1)
+        data.setdefault("status", "draft")
+        data.setdefault("is_latest", True)
+        return await self.driver.upsert("workflows", data, doc_id)
 
-    async def update_workflow(self, workflow_id: str, updates: dict[str, Any]) -> str:
+    async def update_workflow(self, workflow_id: str, updates: WorkflowUpdateDTO) -> str:
         """Updates a workflow, creating a new versioned entry.
 
         Args:
             workflow_id: Unique identifier for the workflow to update.
-            updates: Dictionary of fields to update.
+            updates: DTO of fields to update.
 
         Returns:
             The new versioned workflow ID.
@@ -146,8 +158,10 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
 
         base_id, new_id, ver = self._increment_version(workflow_id)
 
+        update_dict = updates.model_dump(mode="json", exclude_unset=True)
+
         new_doc = dict(old_doc)
-        new_doc.update(updates)
+        new_doc.update(update_dict)
         new_doc["id"] = new_id
         new_doc["is_latest"] = True
         new_doc["version"] = ver
@@ -156,12 +170,12 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         await self.driver.upsert("workflows", new_doc, new_id)
         return new_id
 
-    async def update_workflow_definition(self, workflow_id: str, definition_data: dict[str, Any]) -> str:
+    async def update_workflow_definition(self, workflow_id: str, definition_data: WorkflowUpdateDTO) -> str:
         """Updates workflow definition.
 
         Args:
             workflow_id: Unique identifier for the workflow.
-            definition_data: Dictionary of fields to update.
+            definition_data: DTO of fields to update.
 
         Returns:
             The new versioned workflow ID.
@@ -247,29 +261,32 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         """
         return await self.get_step_by_id(step_id)
 
-    async def create_step(self, step_data: dict[str, Any]) -> str:
+    async def create_step(self, step_data: StepCreateDTO) -> str:
         """Creates a new step.
 
         Args:
-            step_data: Dictionary containing step fields.
+            step_data: DTO containing step fields.
 
         Returns:
             The created step ID.
         """
-        doc_id = step_data["id"]
-        return await self.driver.upsert("steps", step_data, doc_id)
+        data = step_data.model_dump(mode="json", exclude_unset=True)
+        doc_id = data.get("id") or str(uuid.uuid4())
+        data["id"] = doc_id
+        return await self.driver.upsert("steps", data, doc_id)
 
-    async def update_step(self, step_id: str, updates: dict[str, Any]) -> str:
+    async def update_step(self, step_id: str, updates: StepUpdateDTO) -> str:
         """Updates an existing step.
 
         Args:
             step_id: Unique identifier for the step.
-            updates: Dictionary of fields to update.
+            updates: DTO of fields to update.
 
         Returns:
             The step ID.
         """
-        await self.driver.update("steps", step_id, updates)
+        data = updates.model_dump(mode="json", exclude_unset=True)
+        await self.driver.update("steps", step_id, data)
         return step_id
 
     async def delete_step(self, step_id: str, force_delete: bool = False) -> bool:

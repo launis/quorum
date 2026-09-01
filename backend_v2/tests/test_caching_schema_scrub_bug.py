@@ -50,7 +50,10 @@ async def test_caching_schema_scrub_bug() -> None:
     # If the bug exists, client.py injected it as a SYSTEM message.
     # Our RED state test will assert that it is NOT a system message, meaning it fails BEFORE the fix.
 
-    has_system_msg = any(msg.get("role") == "system" for msg in final_messages)
+    has_system_msg = any(
+        (getattr(msg, "role", None) == "system" or (isinstance(msg, dict) and msg.get("role") == "system"))
+        for msg in final_messages
+    )
 
     # The fix should ensure the schema mandate is injected into a USER message.
     # So if has_system_msg is True, we fail the test to prove the bug exists.

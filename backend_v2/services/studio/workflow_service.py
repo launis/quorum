@@ -19,7 +19,7 @@ from backend_v2.models.domain.prompt_blocks import (
     PromptBlockAdapter,
 )
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-from backend_v2.models.dtos.studio import WorkflowResponseDTO
+from backend_v2.models.dtos.studio import StepCreateDTO, WorkflowCreateDTO, WorkflowResponseDTO
 from backend_v2.models.v2_core import (
     I18nText,
     Step,
@@ -222,12 +222,14 @@ class StudioWorkflowService:
 
         DAGCompilerService.validate_workflow(data)
 
-        dump = data.model_dump(mode="json")
-        if "id" not in dump:
-            dump["id"] = id
-        await self.workflow_repo.create_workflow(dump)
+        dump = data.model_dump(mode="json", exclude={"id"})
+        create_dto = WorkflowCreateDTO.model_validate(dump, strict=False)
+        created_id = await self.workflow_repo.create_workflow(create_dto)
 
-        saved = await self.workflow_repo.get_workflow_by_id(id)
+        target_id = id or created_id
+        saved = await self.workflow_repo.get_workflow_by_id(target_id)
+        if not saved and created_id:
+            saved = await self.workflow_repo.get_workflow_by_id(created_id)
         if not saved:
             logger.error(
                 "[StudioService] %s: Workflow %s not found after save (Initiator: %s).",
@@ -372,12 +374,15 @@ class StudioWorkflowService:
             if p_obj.workflow_id == id:
                 new_profile_id = f"prf_{uuid.uuid4().hex[:16]}"
                 profile_mapping[p_obj.id] = new_profile_id
-
-                cloned_profile = p_obj.model_dump(mode="json")
-                cloned_profile["id"] = new_profile_id
-                cloned_profile["workflow_id"] = new_id
-                if initiator.role != UserRole.ROOT:
-                    cloned_profile["organization_id"] = initiator.organization_id
+                cloned_profile = p_obj.model_copy(
+                    update={
+                        "id": new_profile_id,
+                        "workflow_id": new_id,
+                        "organization_id": (
+                            p_obj.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
+                        ),
+                    }
+                )
 
                 await self.output_profile_repo.create_output_profile(cloned_profile)
 
@@ -400,29 +405,8 @@ class StudioWorkflowService:
 
         Returns:
             A list of steps.
-
-        Raises:
-            AppException (ErrorCodes.STATE_INTEGRITY_ERROR): On core validation errors.
         """
-        all_data = await self.workflow_repo.get_all_steps()
-
-        steps = []
-        for x in all_data:
-            try:
-                steps.append(Step.model_validate(x, strict=False))
-            except ValidationError as e:
-                x_id = x.id if isinstance(x, Step) else "unknown"
-                logger.error(
-                    "[StudioService] %s: Step %s failed hydration. DB is corrupt. Error: %s",
-                    ErrorCodes.STATE_INTEGRITY_ERROR.name,
-                    x_id,
-                    str(e),
-                )
-                raise AppException(
-                    message=f"Database integrity error: Step {x_id} failed strict validation.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
-                ) from e
+        steps = await self.workflow_repo.get_all_steps()
 
         if initiator.role == UserRole.ROOT:
             return steps
@@ -441,10 +425,10 @@ class StudioWorkflowService:
             The step.
 
         Raises:
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the step is missing.
         """
-        data = await self.workflow_repo.get_step_by_id(id)
-        if not data:
+        step = await self.workflow_repo.get_step_by_id(id)
+        if not step:
             logger.error(
                 "[StudioService] %s: Step %s not found (Initiator: %s).",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -453,7 +437,6 @@ class StudioWorkflowService:
             )
             raise ResourceNotFoundError(resource_type="step", resource_id=id)
 
-        step = Step.model_validate(data, strict=False)
         enforce_tenant_isolation(initiator, step.organization_id, "step", step.id)
         return step
 
@@ -477,9 +460,8 @@ class StudioWorkflowService:
         enforce_modification_rights(initiator, org_id)
 
         # System Core Protection
-        existing_raw = await self.workflow_repo.get_step_by_id(id)
-        if existing_raw:
-            existing_step = Step.model_validate(existing_raw, strict=False)
+        existing_step = await self.workflow_repo.get_step_by_id(id)
+        if existing_step:
             if existing_step.is_system_core:
                 if data.slug != existing_step.slug or data.is_system_core != existing_step.is_system_core:
                     logger.error(
@@ -493,12 +475,14 @@ class StudioWorkflowService:
                         details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
                     )
 
-        dump = data.model_dump(mode="json")
-        if "id" not in dump:
-            dump["id"] = id
-        await self.workflow_repo.create_step(dump)
+        dump = data.model_dump(mode="json", exclude={"id"})
+        create_dto = StepCreateDTO.model_validate(dump, strict=False)
+        created_id = await self.workflow_repo.create_step(create_dto)
 
-        saved = await self.workflow_repo.get_step_by_id(id)
+        target_id = id or created_id
+        saved = await self.workflow_repo.get_step_by_id(target_id)
+        if not saved and created_id:
+            saved = await self.workflow_repo.get_step_by_id(created_id)
         if not saved:
             logger.error(
                 "[StudioService] %s: Step %s not found after save (Initiator: %s).",
@@ -507,7 +491,7 @@ class StudioWorkflowService:
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="step", resource_id=id)
-        return Step.model_validate(saved, strict=False)
+        return saved
 
     async def delete_step(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
         """Delete step.

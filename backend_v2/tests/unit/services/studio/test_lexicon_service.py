@@ -39,13 +39,13 @@ def admin_token() -> TokenData:
 async def test_get_performative_lexicons_config_success(
     lexicon_service: StudioLexiconService, mock_system_repo: AsyncMock
 ) -> None:
-    mock_system_repo.get_system_config.return_value = {
-        "id": SystemConfigID.PERFORMATIVE_LEXICONS.value,
-        "lexicon_configs": {
-            "en": {"language_code": "en", "language_name": "English", "words": ["synergy", "delve"]},
-            "fi": {"language_code": "fi", "language_name": "Finnish", "words": ["synergia"]},
+    mock_system_repo.get_system_config.return_value = SystemConfigPerformativeLexicons(
+        id=SystemConfigID.PERFORMATIVE_LEXICONS.value,
+        lexicon_configs={
+            "en": LexiconConfigPayload(language_code="en", language_name="English", words=["synergy", "delve"]),
+            "fi": LexiconConfigPayload(language_code="fi", language_name="Finnish", words=["synergia"]),
         },
-    }
+    )
     result = await lexicon_service.get_performative_lexicons_config()
     assert result.id == SystemConfigID.PERFORMATIVE_LEXICONS.value
     assert "en" in result.lexicon_configs
@@ -73,7 +73,7 @@ async def test_save_performative_lexicons_config(
             "en": LexiconConfigPayload(language_code="en", language_name="English", words=["pivot"]),
         },
     )
-    mock_system_repo.get_system_config.return_value = config.model_dump(mode="json")
+    mock_system_repo.get_system_config.return_value = config
     saved = await lexicon_service.save_performative_lexicons_config(admin_token, config)
     assert saved.lexicon_configs["en"].words == ["pivot"]
     mock_system_repo.create_system_config.assert_called_once()
@@ -105,17 +105,18 @@ async def test_translate_performative_phrases_empty_en(
 async def test_translate_performative_phrases_with_en_lexicon(
     lexicon_service: StudioLexiconService, mock_system_repo: AsyncMock
 ) -> None:
-    mock_system_repo.get_system_config.return_value = {
-        "id": SystemConfigID.PERFORMATIVE_LEXICONS.value,
-        "lexicon_configs": {
-            "en": {"language_code": "en", "language_name": "English", "words": ["synergy"]},
-            "fi": {"language_code": "fi", "language_name": "Finnish", "words": []},
+    config = SystemConfigPerformativeLexicons(
+        id=SystemConfigID.PERFORMATIVE_LEXICONS.value,
+        lexicon_configs={
+            "en": LexiconConfigPayload(language_code="en", language_name="English", words=["synergy", "pivot"]),
         },
-    }
-    expected = LexiconSuggestionListDTO(suggested_phrases=["synergia"])
+    )
+    mock_system_repo.get_system_config.return_value = config
+    expected = LexiconSuggestionListDTO(suggested_phrases=["synergia", "suunnanmuutos"])
+
     with patch("backend_v2.services.studio.lexicon_service.LLMTaskExecutor.execute_structured_task") as mock_exec:
         mock_exec.return_value = (expected, None)
         with patch("backend_v2.services.studio.lexicon_service.LLMClient.from_strategy") as mock_client:
             mock_client.return_value = AsyncMock()
             result = await lexicon_service.translate_performative_phrases("fi")
-            assert result.suggested_phrases == ["synergia"]
+            assert result.suggested_phrases == ["synergia", "suunnanmuutos"]

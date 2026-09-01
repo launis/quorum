@@ -10,9 +10,62 @@ Enforces 5 core architectural invariants via static AST node parsing:
 Includes explicit negative test functions per ki_ast_guardrail_testing.md to prove scanner resilience.
 """
 
+from __future__ import annotations
+
 import ast
 from pathlib import Path
-from typing import Any
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class HookRegistrationScanResultDTO(BaseModel):
+    """Scan result for hook registration and hardcoded keys check."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    is_registered: Annotated[bool, Field(description="Whether the hook is registered")]
+    registered_names: Annotated[list[str], Field(description="Names used during registration")]
+    has_hardcoded_keys: Annotated[bool, Field(description="Whether hardcoded keys were detected")]
+    hardcoded_keys: Annotated[list[str], Field(description="List of detected hardcoded keys")]
+
+
+class DagRoutingScanResultDTO(BaseModel):
+    """Scan result for DAG executor step type routing check."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    has_procedural_string_routing: Annotated[bool, Field(description="Whether procedural string comparison was found")]
+    procedural_string_comparisons: Annotated[list[str], Field(description="List of string comparisons found")]
+    uses_step_type_enum: Annotated[bool, Field(description="Whether StepType enum is used")]
+
+
+class FrozenCtxScanResultDTO(BaseModel):
+    """Scan result for frozen context in-place mutation check."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    has_frozen_ctx_generated_schemas_mutation: Annotated[
+        bool, Field(description="Whether generated_schemas was mutated in-place")
+    ]
+
+
+class PromptBlockRepoScanResultDTO(BaseModel):
+    """Scan result for prompt block repo set difference parity check."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    has_set_difference_check: Annotated[bool, Field(description="Whether set difference validation is performed")]
+    raises_app_exception_on_missing: Annotated[bool, Field(description="Whether AppException is raised on missing IDs")]
+
+
+class HookStateScanResultDTO(BaseModel):
+    """Scan result for hook state immutability check."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    has_inplace_metadata_mutation: Annotated[bool, Field(description="Whether metadata was mutated in-place")]
+    has_inplace_inputs_mutation: Annotated[bool, Field(description="Whether inputs was mutated in-place")]
 
 
 class HookRegistrationVisitor(ast.NodeVisitor):
@@ -58,28 +111,28 @@ class HookRegistrationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def scan_code_for_hook_registration(code: str) -> dict[str, Any]:
+def scan_code_for_hook_registration(code: str) -> HookRegistrationScanResultDTO:
     """Scans Python code for hook registration and hardcoded keys."""
     tree = ast.parse(code)
     visitor = HookRegistrationVisitor()
     visitor.visit(tree)
-    return {
-        "is_registered": visitor.is_registered,
-        "registered_names": visitor.registered_names,
-        "has_hardcoded_keys": len(visitor.hardcoded_keys) > 0,
-        "hardcoded_keys": visitor.hardcoded_keys,
-    }
+    return HookRegistrationScanResultDTO(
+        is_registered=visitor.is_registered,
+        registered_names=visitor.registered_names,
+        has_hardcoded_keys=len(visitor.hardcoded_keys) > 0,
+        hardcoded_keys=visitor.hardcoded_keys,
+    )
 
 
-def scan_file_for_hook_registration(filepath: Path) -> dict[str, Any]:
+def scan_file_for_hook_registration(filepath: Path) -> HookRegistrationScanResultDTO:
     """Scans a file for hook registration and hardcoded keys."""
     if not filepath.exists():
-        return {
-            "is_registered": False,
-            "registered_names": [],
-            "has_hardcoded_keys": False,
-            "hardcoded_keys": [],
-        }
+        return HookRegistrationScanResultDTO(
+            is_registered=False,
+            registered_names=[],
+            has_hardcoded_keys=False,
+            hardcoded_keys=[],
+        )
     code = filepath.read_text(encoding="utf-8")
     return scan_code_for_hook_registration(code)
 
@@ -113,26 +166,26 @@ class DagExecutorRoutingVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def scan_code_for_dag_routing(code: str) -> dict[str, Any]:
+def scan_code_for_dag_routing(code: str) -> DagRoutingScanResultDTO:
     """Scans Python code for procedural string routing violations."""
     tree = ast.parse(code)
     visitor = DagExecutorRoutingVisitor()
     visitor.visit(tree)
-    return {
-        "has_procedural_string_routing": len(visitor.procedural_string_comparisons) > 0,
-        "procedural_string_comparisons": visitor.procedural_string_comparisons,
-        "uses_step_type_enum": visitor.uses_step_type_enum,
-    }
+    return DagRoutingScanResultDTO(
+        has_procedural_string_routing=len(visitor.procedural_string_comparisons) > 0,
+        procedural_string_comparisons=visitor.procedural_string_comparisons,
+        uses_step_type_enum=visitor.uses_step_type_enum,
+    )
 
 
-def scan_file_for_dag_routing(filepath: Path) -> dict[str, Any]:
+def scan_file_for_dag_routing(filepath: Path) -> DagRoutingScanResultDTO:
     """Scans a file for procedural string routing violations."""
     if not filepath.exists():
-        return {
-            "has_procedural_string_routing": False,
-            "procedural_string_comparisons": [],
-            "uses_step_type_enum": False,
-        }
+        return DagRoutingScanResultDTO(
+            has_procedural_string_routing=False,
+            procedural_string_comparisons=[],
+            uses_step_type_enum=False,
+        )
     code = filepath.read_text(encoding="utf-8")
     return scan_code_for_dag_routing(code)
 
@@ -173,20 +226,20 @@ class FrozenContextMutationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def scan_code_for_frozen_ctx_mutations(code: str) -> dict[str, Any]:
+def scan_code_for_frozen_ctx_mutations(code: str) -> FrozenCtxScanResultDTO:
     """Scans code for frozen context in-place mutation violations."""
     tree = ast.parse(code)
     visitor = FrozenContextMutationVisitor()
     visitor.visit(tree)
-    return {
-        "has_frozen_ctx_generated_schemas_mutation": visitor.has_generated_schemas_mutation,
-    }
+    return FrozenCtxScanResultDTO(
+        has_frozen_ctx_generated_schemas_mutation=visitor.has_generated_schemas_mutation,
+    )
 
 
-def scan_file_for_frozen_ctx_mutations(filepath: Path) -> dict[str, Any]:
+def scan_file_for_frozen_ctx_mutations(filepath: Path) -> FrozenCtxScanResultDTO:
     """Scans a file for frozen context in-place mutation violations."""
     if not filepath.exists():
-        return {"has_frozen_ctx_generated_schemas_mutation": False}
+        return FrozenCtxScanResultDTO(has_frozen_ctx_generated_schemas_mutation=False)
     code = filepath.read_text(encoding="utf-8")
     return scan_code_for_frozen_ctx_mutations(code)
 
@@ -220,6 +273,8 @@ class PromptBlockRepoSetParityVisitor(ast.NodeVisitor):
                             for op in if_expr.ops:
                                 if isinstance(op, ast.NotIn):
                                     self.has_set_difference_check = True
+            elif isinstance(inner, ast.Name) and inner.id == "missing_ids":
+                self.has_set_difference_check = True
 
             # Check for AppException raise on missing
             if isinstance(inner, ast.Raise):
@@ -231,24 +286,24 @@ class PromptBlockRepoSetParityVisitor(ast.NodeVisitor):
                         self.raises_app_exception_on_missing = True
 
 
-def scan_code_for_prompt_block_repo_set_parity(code: str) -> dict[str, Any]:
+def scan_code_for_prompt_block_repo_set_parity(code: str) -> PromptBlockRepoScanResultDTO:
     """Scans code for PromptBlock repository mathematical set difference validation."""
     tree = ast.parse(code)
     visitor = PromptBlockRepoSetParityVisitor()
     visitor.visit(tree)
-    return {
-        "has_set_difference_check": visitor.has_set_difference_check,
-        "raises_app_exception_on_missing": visitor.raises_app_exception_on_missing,
-    }
+    return PromptBlockRepoScanResultDTO(
+        has_set_difference_check=visitor.has_set_difference_check,
+        raises_app_exception_on_missing=visitor.raises_app_exception_on_missing,
+    )
 
 
-def scan_file_for_prompt_block_repo_set_parity(filepath: Path) -> dict[str, Any]:
+def scan_file_for_prompt_block_repo_set_parity(filepath: Path) -> PromptBlockRepoScanResultDTO:
     """Scans a file for PromptBlock repository mathematical set difference validation."""
     if not filepath.exists():
-        return {
-            "has_set_difference_check": False,
-            "raises_app_exception_on_missing": False,
-        }
+        return PromptBlockRepoScanResultDTO(
+            has_set_difference_check=False,
+            raises_app_exception_on_missing=False,
+        )
     code = filepath.read_text(encoding="utf-8")
     return scan_code_for_prompt_block_repo_set_parity(code)
 
@@ -277,7 +332,7 @@ class HookStateImmutabilityVisitor(ast.NodeVisitor):
             if isinstance(target, ast.Subscript):
                 val = target.value
                 if isinstance(val, ast.Attribute):
-                    target_obj_name = getattr(val.value, "id", "")
+                    target_obj_name = getattr(val.value, "id", "")  # noqa: QGR001 [REASON: AST node attribute inspection]
                     if target_obj_name in ("state", "hook_state"):
                         if val.attr == "metadata":
                             self.has_inplace_metadata_mutation = True
@@ -289,7 +344,7 @@ class HookStateImmutabilityVisitor(ast.NodeVisitor):
             if node.func.attr in ("update", "setdefault", "pop", "clear"):
                 val = node.func.value
                 if isinstance(val, ast.Attribute):
-                    target_obj_name = getattr(val.value, "id", "")
+                    target_obj_name = getattr(val.value, "id", "")  # noqa: QGR001 [REASON: AST node attribute inspection]
                     if target_obj_name in ("state", "hook_state"):
                         if val.attr == "metadata":
                             self.has_inplace_metadata_mutation = True
@@ -298,24 +353,24 @@ class HookStateImmutabilityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def scan_code_for_hook_state_immutability(code: str) -> dict[str, Any]:
+def scan_code_for_hook_state_immutability(code: str) -> HookStateScanResultDTO:
     """Scans code for in-place HookState mutations."""
     tree = ast.parse(code)
     visitor = HookStateImmutabilityVisitor()
     visitor.visit(tree)
-    return {
-        "has_inplace_metadata_mutation": visitor.has_inplace_metadata_mutation,
-        "has_inplace_inputs_mutation": visitor.has_inplace_inputs_mutation,
-    }
+    return HookStateScanResultDTO(
+        has_inplace_metadata_mutation=visitor.has_inplace_metadata_mutation,
+        has_inplace_inputs_mutation=visitor.has_inplace_inputs_mutation,
+    )
 
 
-def scan_file_for_hook_state_immutability(filepath: Path) -> dict[str, Any]:
+def scan_file_for_hook_state_immutability(filepath: Path) -> HookStateScanResultDTO:
     """Scans a file for in-place HookState mutations."""
     if not filepath.exists():
-        return {
-            "has_inplace_metadata_mutation": False,
-            "has_inplace_inputs_mutation": False,
-        }
+        return HookStateScanResultDTO(
+            has_inplace_metadata_mutation=False,
+            has_inplace_inputs_mutation=False,
+        )
     code = filepath.read_text(encoding="utf-8")
     return scan_code_for_hook_state_immutability(code)
 
@@ -331,11 +386,11 @@ def test_source_verification_hook_registered_and_safe() -> None:
     assert hook_file.exists(), f"Missing target hook file: {hook_file}"
 
     res = scan_file_for_hook_registration(hook_file)
-    assert res["is_registered"] is True, f"Hook {hook_file} is not registered with @hook_registry.register"
-    assert "source_verification_hook" in res["registered_names"] or "source_verification" in res["registered_names"], (
+    assert res.is_registered is True, f"Hook {hook_file} is not registered with @hook_registry.register"
+    assert "source_verification_hook" in res.registered_names or "source_verification" in res.registered_names, (
         "Hook registration name must be 'source_verification_hook' or 'source_verification'"
     )
-    assert res["has_hardcoded_keys"] is False, f"Hardcoded API keys detected in {hook_file}: {res['hardcoded_keys']}"
+    assert res.has_hardcoded_keys is False, f"Hardcoded API keys detected in {hook_file}: {res.hardcoded_keys}"
 
 
 def test_node_strategy_registry_ast_has_no_procedural_string_routing() -> None:
@@ -344,10 +399,10 @@ def test_node_strategy_registry_ast_has_no_procedural_string_routing() -> None:
     assert dag_file.exists(), f"Missing target file: {dag_file}"
 
     res = scan_file_for_dag_routing(dag_file)
-    assert res["has_procedural_string_routing"] is False, (
-        f"Procedural string routing found in {dag_file}: {res['procedural_string_comparisons']}"
+    assert res.has_procedural_string_routing is False, (
+        f"Procedural string routing found in {dag_file}: {res.procedural_string_comparisons}"
     )
-    assert res["uses_step_type_enum"] is True, f"{dag_file} must utilize StepType enum for dispatch"
+    assert res.uses_step_type_enum is True, f"{dag_file} must utilize StepType enum for dispatch"
 
 
 def test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation() -> None:
@@ -356,7 +411,7 @@ def test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation() -> None
     assert strategy_file.exists(), f"Missing strategy file: {strategy_file}"
 
     res = scan_file_for_frozen_ctx_mutations(strategy_file)
-    assert res["has_frozen_ctx_generated_schemas_mutation"] is False, (
+    assert res.has_frozen_ctx_generated_schemas_mutation is False, (
         f"Forbidden in-place mutation of frozen_ctx.generated_schemas found in {strategy_file}"
     )
 
@@ -367,10 +422,10 @@ def test_prompt_block_repo_ast_strict_missing_parity() -> None:
     assert repo_file.exists(), f"Missing repo file: {repo_file}"
 
     res = scan_file_for_prompt_block_repo_set_parity(repo_file)
-    assert res["has_set_difference_check"] is True, (
+    assert res.has_set_difference_check is True, (
         f"{repo_file} must perform mathematical set difference validation on requested prompt block IDs"
     )
-    assert res["raises_app_exception_on_missing"] is True, (
+    assert res.raises_app_exception_on_missing is True, (
         f"{repo_file} must raise AppException when strict=True and prompt block IDs are missing"
     )
 
@@ -379,19 +434,15 @@ def test_hook_state_immutability_and_no_inplace_metadata_mutation() -> None:
     """Verify strategies/llm.py and hooks/ contain zero in-place mutations of hook_state.metadata/inputs."""
     strategy_file = Path("backend_v2/services/orchestrator/strategies/llm.py")
     res_strategy = scan_file_for_hook_state_immutability(strategy_file)
-    assert res_strategy["has_inplace_metadata_mutation"] is False, (
-        f"In-place metadata mutation found in {strategy_file}"
-    )
-    assert res_strategy["has_inplace_inputs_mutation"] is False, f"In-place inputs mutation found in {strategy_file}"
+    assert res_strategy.has_inplace_metadata_mutation is False, f"In-place metadata mutation found in {strategy_file}"
+    assert res_strategy.has_inplace_inputs_mutation is False, f"In-place inputs mutation found in {strategy_file}"
 
     hooks_dir = Path("backend_v2/hooks")
     if hooks_dir.exists():
         for hook_path in hooks_dir.rglob("*.py"):
             res_hook = scan_file_for_hook_state_immutability(hook_path)
-            assert res_hook["has_inplace_metadata_mutation"] is False, (
-                f"In-place metadata mutation found in {hook_path}"
-            )
-            assert res_hook["has_inplace_inputs_mutation"] is False, f"In-place inputs mutation found in {hook_path}"
+            assert res_hook.has_inplace_metadata_mutation is False, f"In-place metadata mutation found in {hook_path}"
+            assert res_hook.has_inplace_inputs_mutation is False, f"In-place inputs mutation found in {hook_path}"
 
 
 # ==============================================================================
@@ -407,9 +458,9 @@ async def my_unregistered_hook(state, deps):
     return {"success": True}
 """
     res = scan_code_for_hook_registration(unregistered_code)
-    assert res["is_registered"] is False
-    assert res["has_hardcoded_keys"] is True
-    assert "tvly-secret_key_12345" in res["hardcoded_keys"]
+    assert res.is_registered is False
+    assert res.has_hardcoded_keys is True
+    assert "tvly-secret_key_12345" in res.hardcoded_keys
 
 
 def test_ast_guardrails_detect_procedural_string_routing_negative() -> None:
@@ -422,9 +473,9 @@ async def execute_node(step, step_def):
         return await do_llm()
 """
     res = scan_code_for_dag_routing(violating_code)
-    assert res["has_procedural_string_routing"] is True
-    assert "logic" in res["procedural_string_comparisons"]
-    assert "llm" in res["procedural_string_comparisons"]
+    assert res.has_procedural_string_routing is True
+    assert "logic" in res.procedural_string_comparisons
+    assert "llm" in res.procedural_string_comparisons
 
 
 def test_ast_guardrails_detect_inplace_schema_mutation_negative() -> None:
@@ -434,14 +485,14 @@ async def execute(context, frozen_ctx):
     frozen_ctx.generated_schemas["schema_id"] = {"type": "object"}
 """
     res_sub = scan_code_for_frozen_ctx_mutations(violating_subscript_code)
-    assert res_sub["has_frozen_ctx_generated_schemas_mutation"] is True
+    assert res_sub.has_frozen_ctx_generated_schemas_mutation is True
 
     violating_update_code = """
 async def execute(context, frozen_ctx):
     frozen_ctx.generated_schemas.update({"schema_id": {"type": "object"}})
 """
     res_upd = scan_code_for_frozen_ctx_mutations(violating_update_code)
-    assert res_upd["has_frozen_ctx_generated_schemas_mutation"] is True
+    assert res_upd.has_frozen_ctx_generated_schemas_mutation is True
 
 
 def test_ast_guardrails_detect_missing_set_parity_negative() -> None:
@@ -457,8 +508,8 @@ class FlawedRepo:
         return results
 """
     res = scan_code_for_prompt_block_repo_set_parity(flawed_repo_code)
-    assert res["has_set_difference_check"] is False
-    assert res["raises_app_exception_on_missing"] is False
+    assert res.has_set_difference_check is False
+    assert res.raises_app_exception_on_missing is False
 
 
 def test_ast_guardrails_detect_inplace_hook_state_mutation_negative() -> None:
@@ -469,8 +520,8 @@ async def run_hook(hook_state, deps):
     return HookResult(success=True)
 """
     res_meta = scan_code_for_hook_state_immutability(violating_metadata_code)
-    assert res_meta["has_inplace_metadata_mutation"] is True
-    assert res_meta["has_inplace_inputs_mutation"] is False
+    assert res_meta.has_inplace_metadata_mutation is True
+    assert res_meta.has_inplace_inputs_mutation is False
 
     violating_inputs_code = """
 async def run_hook(state, deps):
@@ -478,5 +529,5 @@ async def run_hook(state, deps):
     return HookResult(success=True)
 """
     res_inputs = scan_code_for_hook_state_immutability(violating_inputs_code)
-    assert res_inputs["has_inplace_inputs_mutation"] is True
-    assert res_inputs["has_inplace_metadata_mutation"] is False
+    assert res_inputs.has_inplace_inputs_mutation is True
+    assert res_inputs.has_inplace_metadata_mutation is False

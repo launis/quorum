@@ -73,9 +73,10 @@ class XAIReporterInput(V2CoreBase):
     step_linguistics: Annotated[LinguisticsResultDTO | None, Field(description="Mechanical linguistic patterns.")] = (
         None
     )
-    dynamic_inputs: Annotated[dict[str, Any], Field(description="Dynamically passed variables.")] = Field(
-        default_factory=dict
-    )
+    dynamic_inputs: Annotated[
+        dict[str, str | int | float | bool | list[str]],
+        Field(default_factory=dict, description="Dynamically passed variables."),
+    ]
 
 
 class XAIScoreItem(V2CoreBase):

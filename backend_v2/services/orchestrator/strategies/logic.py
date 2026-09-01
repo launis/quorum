@@ -16,8 +16,8 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import FrozenContext, StepRule
 from backend_v2.models.v2_core import Step as V2Step
+from backend_v2.services.orchestrator.state_reducer import merge_dynamic_inputs
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
-from backend_v2.utils.dict_utils import deep_merge_dicts
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +149,7 @@ class LogicNodeStrategy(NodeStrategy):
 
         if main_res.success and main_res.state_delta:
             delta_dict = main_res.state_delta.delta
-            state_data = deep_merge_dicts(state_data, delta_dict)
+            state_data = merge_dynamic_inputs(state_data, delta_dict)
             hook_state = hook_state.model_copy(update={"inputs": ExecutionInputsDTO(dynamic_inputs=state_data)})
         elif not main_res.success:
             # Fail-Fast: The primary logic hook returning success=False is a hard execution error.

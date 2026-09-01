@@ -42,6 +42,7 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import (
     EvidenceOverrideDTO,
@@ -579,7 +580,18 @@ class ExecutionService:
             organization_id=initiator.organization_id,
         )
 
-        await self.exec_repo.create_execution(initial_record.model_dump(mode="json"))
+        create_dto = ExecutionCreateDTO(
+            workflow_id=workflow.id,
+            id=execution_id,
+            target_locale=target_locale,
+            status=ExecutionStatus.PENDING.value,
+            active_profile_id=resolved_profile_id,
+            raw_inputs=payload.raw_inputs,
+            organization_id=initiator.organization_id,
+            created_by=initiator.id,
+            metadata=initial_record.metadata,
+        )
+        await self.exec_repo.create_execution(create_dto)
 
         # Fire Async Process into durable Redis Queue
         await arq_pool.enqueue_job(
@@ -696,7 +708,7 @@ class ExecutionService:
                 )
 
         record = record.model_copy(update={"status": ExecutionStatus.RUNNING})
-        await self.exec_repo.update_execution(execution_id, {"status": ExecutionStatus.RUNNING.value})
+        await self.exec_repo.update_execution(execution_id, ExecutionUpdateDTO(status=ExecutionStatus.RUNNING))
 
         # 2. Fire Async Process into durable Redis Queue using original raw inputs
         await arq_pool.enqueue_job(
@@ -860,18 +872,7 @@ class ExecutionService:
 
         # 4. Reconstruct the Raakadata directly from the ExecutionStepState's scorecard_atoms
         components = await self.comp_repo.get_all_components("prompt_block")
-        blocks_by_id = {}
-        for b in components:
-            try:
-                b_obj = PromptBlockAdapter.validate_python(b, strict=False)
-                blocks_by_id[b_obj.id] = b_obj
-            except ValidationError as e:
-                b_id = b["id"] if isinstance(b, dict) and "id" in b else "unknown"  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                msg = f"Strict Fail-Fast Enforced: Invalid PromptBlock '{b_id}' in DB: {e}"
-                logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                ) from e
+        blocks_by_id = {b.id: b for b in components}
 
         rows: list[dict[str, Any]] = []
         for _step_id, step_state in execution.step_states.items():
@@ -970,8 +971,7 @@ class ExecutionService:
         workflow_obj = Workflow.model_validate(workflow_data)
         default_pid = workflow_obj.default_profile_id
 
-        update_payload: dict[str, Any] = {"profile_syntheses": execution.profile_syntheses}
-
+        target_pdf_path = execution.pdf_report_path
         if profile_id == default_pid and execution.pdf_report_path:
             try:
                 storage = get_storage_driver()
@@ -993,11 +993,15 @@ class ExecutionService:
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
                 ) from e
-            update_payload["pdf_report_path"] = None
+            target_pdf_path = None
 
         # Always update timestamp to invalidate any cached Arq background task locks
-        update_payload["updated_at"] = datetime.now(timezone.utc).isoformat()
-        await self.exec_repo.update_execution(execution_id, update_payload)
+        update_dto = ExecutionUpdateDTO(
+            profile_syntheses=execution.profile_syntheses,
+            pdf_report_path=target_pdf_path,
+            updated_at=datetime.now(timezone.utc),
+        )
+        await self.exec_repo.update_execution(execution_id, update_dto)
 
         logger.info(
             "[ExecutionService] Cleared profile synthesis",
@@ -1077,18 +1081,18 @@ class ExecutionService:
         )
         await recalculate(record.context_variables, record.active_profile_id, deps)
 
-        update_payload = {
-            "step_states": {k: v.model_dump(mode="json") for k, v in record.step_states.items()},
-            "context_variables": record.context_variables,
-        }
-        await self.exec_repo.update_execution(execution_id, update_payload)
+        update_dto = ExecutionUpdateDTO(
+            step_states=record.step_states,
+            context_variables=record.context_variables,
+        )
+        await self.exec_repo.update_execution(execution_id, update_dto)
 
         event = TraceEvent(
             step_name="manual_override",
             event_type="evidence_override",
             content={"atom_id": atom_id, "override": override_dto.model_dump(mode="json")},
         )
-        await self.exec_repo.append_trace_event(execution_id, event.model_dump(mode="json"))
+        await self.exec_repo.append_trace_event(execution_id, event)
 
     async def reject_evidence_quote(self, initiator: TokenData, execution_id: str, evq_id: str, reason: str) -> None:
         """Reject an evidence quote and append the event to the execution trace."""
@@ -1112,7 +1116,7 @@ class ExecutionService:
             step_name="manual_override", event_type="evidence_override", content=dto.model_dump(mode="json")
         )
 
-        await self.exec_repo.append_trace_event(execution_id, event.model_dump(mode="json"))
+        await self.exec_repo.append_trace_event(execution_id, event)
 
     async def render_execution(
         self,
@@ -1309,7 +1313,9 @@ class ExecutionService:
                     output_path_rel = f"executions/{execution_id}/report.pdf"
                     saved_path = await storage.save(output_path_rel, pdf_bytes)
                     if not execution.pdf_report_path or execution.pdf_report_path != saved_path:
-                        await self.exec_repo.update_execution(execution_id, {"pdf_report_path": saved_path})
+                        await self.exec_repo.update_execution(
+                            execution_id, ExecutionUpdateDTO(pdf_report_path=saved_path)
+                        )
                     logger.info(
                         "[ExecutionService] Generated missing PDF",
                         extra={"execution_id": execution_id, "saved_path": saved_path},
@@ -1411,10 +1417,10 @@ class ExecutionService:
             exec_record_local.step_states[v_step_id] = v_step
             await self.exec_repo.update_execution(
                 execution_id,
-                {
-                    "status": ExecutionStatus.RUNNING.value,
-                    "step_states": {k: v.model_dump() for k, v in exec_record_local.step_states.items()},
-                },
+                ExecutionUpdateDTO(
+                    status=ExecutionStatus.RUNNING,
+                    step_states=exec_record_local.step_states,
+                ),
             )
 
         # 3. Queue the background task into Redis

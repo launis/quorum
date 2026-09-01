@@ -9,6 +9,8 @@ import pytest
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
+from backend_v2.models.state import TraceEvent
 from backend_v2.services.file_driver import FileDriver
 
 
@@ -126,10 +128,19 @@ async def test_get_all_executions_and_recent(
 @pytest.mark.asyncio
 async def test_crud_and_query_operations(repo: ExecutionRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests create, update, append_trace_event, delete, and count operations."""
-    assert await repo.create_execution({"id": "exe_1234567890abcdef"}) == "exec_1234567890abcdef"
-    assert await repo.update_execution("exe_1234567890abcdef", {"status": "RUNNING"}) is True
+    create_dto = ExecutionCreateDTO(
+        id="exe_1234567890abcdef",
+        workflow_id="wf_1234567890abcdef",
+        target_locale="fi",
+        active_profile_id="prof_1",
+        organization_id="org_1",
+        created_by="usr_1",
+    )
+    assert await repo.create_execution(create_dto) == "exec_1234567890abcdef"
+    assert await repo.update_execution("exe_1234567890abcdef", ExecutionUpdateDTO(status="RUNNING")) is True
     mock_driver.get.return_value = {"id": "exe_1234567890abcdef"}
-    assert await repo.append_trace_event("exe_1234567890abcdef", {"type": "log"}) is True
+    event = TraceEvent(step_name="stp_1", event_type="output", content={"type": "log"})
+    assert await repo.append_trace_event("exe_1234567890abcdef", event) is True
     assert await repo.delete_execution("exe_1234567890abcdef") is True
 
     count = await repo.count_executions_by_matrix("mat_1234567890abcdef")
@@ -311,9 +322,10 @@ async def test_hydrate_frozen_context_and_context_vars(repo: ExecutionRepository
 @pytest.mark.asyncio
 async def test_append_trace_event_errors(repo: ExecutionRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Negative: tests append_trace_event when execution is missing or hydration fails."""
+    event = TraceEvent(step_name="stp_1", event_type="output", content={"type": "log"})
     # 1. Missing execution
     mock_driver.get.return_value = None
-    assert await repo.append_trace_event("exe_nonexistent", {"type": "log"}) is False
+    assert await repo.append_trace_event("exe_nonexistent", event) is False
 
     # 2. Hydration failure during append
     mock_driver.get.return_value = {
@@ -324,4 +336,4 @@ async def test_append_trace_event_errors(repo: ExecutionRepositoryImpl, mock_dri
     mock_storage.read.side_effect = Exception("Read failure")
     with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
         with pytest.raises(AppException):
-            await repo.append_trace_event("exe_corrupt", {"type": "log"})
+            await repo.append_trace_event("exe_corrupt", event)

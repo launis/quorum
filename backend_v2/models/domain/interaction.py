@@ -7,7 +7,7 @@ including user role classification and input quality assessment.
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -47,7 +47,7 @@ class InteractionInput(V2CoreBase):
         ),
     ] = None
     dynamic_inputs: Annotated[
-        dict[str, Any],
+        dict[str, str | int | float | bool | list[str]],
         Field(
             default_factory=dict,
             description="Structured dictionary for dynamic inputs.",

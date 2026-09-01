@@ -28,6 +28,7 @@ from backend_v2.exceptions import (
 from backend_v2.models.auth import (
     Organization,
     OrganizationCreate,
+    OrganizationUpdateDTO,
     SubscriptionStatus,
     SystemOrganizations,
     TokenData,
@@ -87,7 +88,7 @@ class OrganizationRepository:
         Returns:
             The created Organization object.
         """
-        await self.repo.create_organization(org.model_dump(mode="json"))
+        await self.repo.create_organization(org)
         return org
 
     async def list_all(self) -> list[Organization]:
@@ -96,10 +97,7 @@ class OrganizationRepository:
         Returns:
             A list of all Organization objects.
         """
-        results = []
-        for o in await self.repo.list_organizations():
-            results.append(Organization.model_validate(o, strict=False))
-        return results
+        return await self.repo.list_organizations()
 
 
 # --- Repository Layer (User) ---
@@ -125,8 +123,7 @@ class UserRepository:
         Returns:
             The User object if found, else None.
         """
-        data = await self.repo.get_user(id)
-        return User.model_validate(data, strict=False) if data else None
+        return await self.repo.get_user(id)
 
     async def get_by_email(self, email: str) -> User | None:
         """Fetches a user by their email address.
@@ -137,8 +134,7 @@ class UserRepository:
         Returns:
             The User object if found, else None.
         """
-        data = await self.repo.get_user_by_email(email)
-        return User.model_validate(data, strict=False) if data else None
+        return await self.repo.get_user_by_email(email)
 
     async def create(self, user: User) -> User:
         """Creates a new user in the database.
@@ -159,7 +155,7 @@ class UserRepository:
                 details={"error_code": ErrorCodes.CONFLICT_ERROR.value},
             )
 
-        await self.repo.create_user(user.model_dump(mode="json"))
+        await self.repo.create_user(user)
         return user
 
     async def update(self, id: str, updates: UserUpdate) -> User | None:
@@ -177,10 +173,7 @@ class UserRepository:
         if not user:
             return None
 
-        update_data = updates.model_dump(exclude_unset=True)
-        if update_data:
-            await self.repo.update_user(id, update_data)
-
+        await self.repo.update_user(id, updates)
         return await self.get_by_id(id)
 
     async def list_all(self) -> list[User]:
@@ -189,7 +182,7 @@ class UserRepository:
         Returns:
             A list of all User objects.
         """
-        return [User.model_validate(u, strict=False) for u in await self.repo.list_users()]
+        return await self.repo.list_users()
 
     async def delete(self, id: str) -> bool:
         """Deletes a user by their ID.
@@ -1053,7 +1046,9 @@ class AuthService:
 
         return org
 
-    async def update_organization(self, initiator: TokenData, org_id: str, data: OrganizationCreate) -> Organization:
+    async def update_organization(
+        self, initiator: TokenData, org_id: str, data: OrganizationUpdateDTO | OrganizationCreate
+    ) -> Organization:
         """Update an organization securely.
 
         Args:
@@ -1074,9 +1069,16 @@ class AuthService:
         # Verify it exists
         await self.get_organization(initiator, org_id)
 
-        update_dict = data.model_dump(exclude_unset=True)
-        if update_dict:
-            await self.org_repo.repo.update_organization(org_id, update_dict)
+        update_dto = (
+            data
+            if isinstance(data, OrganizationUpdateDTO)
+            else OrganizationUpdateDTO(
+                name=data.name,
+                tpm_limit=data.tpm_limit,
+                rpm_limit=data.rpm_limit,
+            )
+        )
+        await self.org_repo.repo.update_organization(org_id, update_dto)
 
         return await self.get_organization(initiator, org_id)
 

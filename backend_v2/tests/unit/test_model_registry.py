@@ -27,6 +27,6 @@ def test_get_available_models(mock_current_user: TokenData, mock_studio_service:
 
 @pytest.mark.asyncio
 async def test_get_all_model_registries(mock_current_user: TokenData, mock_studio_service: AsyncMock) -> None:
-    mock_studio_service.list_system_configs.return_value = []
+    mock_studio_service.get_all_system_configs.return_value = []
     res = await get_all_model_registries(current_user=mock_current_user, studio_service=mock_studio_service)
     assert res == []

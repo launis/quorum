@@ -189,11 +189,12 @@ class StepOutputDTO(V2CoreBase):
 
 # Resolve deferred annotations on ExecutionCoreFields and ExecutionRecord (Pydantic V2 circular reference pattern).
 # execution_core.py uses TYPE_CHECKING for TraceEvent types → annotations are strings.
-from backend_v2.models.dtos.trace import DataStarvationEvent
+from backend_v2.models.dtos.trace import DataStarvationEvent, ExecutionUpdateDTO
 from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace
 from backend_v2.models.view.sdui import AnySduiBlock
 
 _state_localns = {
+    "Any": Any,
     "MCPAuditTrace": MCPAuditTrace,
     "TraceEvent": TraceEvent,
     "ErrorTraceEvent": ErrorTraceEvent,
@@ -203,6 +204,7 @@ _state_localns = {
 }
 ExecutionCoreFields.model_rebuild(_types_namespace=_state_localns)
 ExecutionRecord.model_rebuild(_types_namespace=_state_localns)
+ExecutionUpdateDTO.model_rebuild(_types_namespace=_state_localns)
 
 
 class WorkflowState(ExecutionCoreFields):
@@ -334,15 +336,17 @@ class WorkflowState(ExecutionCoreFields):
     @property
     def organization_id(self) -> str | None:
         """Retrieves organization ID from context variables."""
-        return self.context_variables.get("organization_id")
+        val = self.context_variables.get("organization_id")
+        return str(val) if val is not None else None
 
     @property
     def user_id(self) -> str | None:
         """Retrieves user ID from context variables."""
-        return self.context_variables.get("user_id")
+        val = self.context_variables.get("user_id")
+        return str(val) if val is not None else None
 
     @property
-    def audit_results(self) -> dict[str, Any] | None:
+    def audit_results(self) -> str | int | float | bool | list[str] | None:
         """Retrieves audit results from context variables."""
         return self.context_variables.get("audit_results")
 

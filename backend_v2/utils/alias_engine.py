@@ -10,7 +10,7 @@ import re
 from collections import defaultdict
 from typing import Annotated, Any, Literal, Self, get_args, get_origin
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -29,6 +29,8 @@ class AliasManifest(V2CoreBase):
         alias_map: Complete mapping of short aliases to real opaque IDs.
         source_document_aliases: Ordered list of source document alias keys.
     """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     alias_map: Annotated[dict[str, str], Field(default_factory=dict)]
     source_document_aliases: Annotated[list[str], Field(default_factory=list)]
@@ -246,7 +248,7 @@ class AliasEngine:
 
         def _recurse(node: Any) -> None:
             nonlocal hydrated_count
-            if isinstance(node, dict):
+            if type(node) is dict:
                 for key, value in node.items():
                     if key == field_name:
                         if value and isinstance(value, str) and value in self.alias_map:
@@ -304,7 +306,7 @@ class AliasEngine:
         """
 
         def _recurse(node: Any) -> None:
-            if isinstance(node, dict):
+            if type(node) is dict:
                 for key, value in node.items():
                     if key in field_names:
                         if isinstance(value, list):

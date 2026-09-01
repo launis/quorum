@@ -1,0 +1,41 @@
+"""In-memory test repository fakes for deterministic unit testing."""
+
+from backend_v2.tests.fakes.in_memory_repositories import (
+    BaseInMemoryRepository,
+    InMemoryAgentRepository,
+    InMemoryAuditRepository,
+    InMemoryComponentRepository,
+    InMemoryExecutionPersonaRepository,
+    InMemoryExecutionRepository,
+    InMemoryExtractionProtocolRepository,
+    InMemoryIdentityRepository,
+    InMemoryKnowledgeRepository,
+    InMemoryMatrixRepository,
+    InMemoryOutputProfileRepository,
+    InMemoryPromptBlockRepository,
+    InMemoryRoleRepository,
+    InMemorySystemRepository,
+    InMemoryTaskBlueprintRepository,
+    InMemoryUnifiedWorkflowRepository,
+    InMemoryWorkflowRepository,
+)
+
+__all__ = [
+    "BaseInMemoryRepository",
+    "InMemoryAgentRepository",
+    "InMemoryAuditRepository",
+    "InMemoryComponentRepository",
+    "InMemoryExecutionPersonaRepository",
+    "InMemoryExecutionRepository",
+    "InMemoryExtractionProtocolRepository",
+    "InMemoryIdentityRepository",
+    "InMemoryKnowledgeRepository",
+    "InMemoryMatrixRepository",
+    "InMemoryOutputProfileRepository",
+    "InMemoryPromptBlockRepository",
+    "InMemoryRoleRepository",
+    "InMemorySystemRepository",
+    "InMemoryTaskBlueprintRepository",
+    "InMemoryUnifiedWorkflowRepository",
+    "InMemoryWorkflowRepository",
+]

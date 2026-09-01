@@ -54,7 +54,7 @@ class TypedCacheService:
             )
             try:
                 await self.redis.delete(key)
-            except Exception as e:  # noqa: QGR003 [REASON: Best-effort cache auto-eviction cleanup]
+            except (ConnectionError, TimeoutError, OSError) as e:
                 logger.error("Failed to auto-evict corrupted cache key %s: %s", key, e)
             return None
 

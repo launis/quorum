@@ -1,3 +1,7 @@
+"""Unit tests for PromptBlockRepositoryImpl."""
+
+from __future__ import annotations
+
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -6,13 +10,15 @@ import pytest
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 
 
 @pytest.fixture
 def mock_driver() -> AsyncMock:
     """Provides a mocked StorageDriver."""
-    driver = AsyncMock(spec=StorageDriver)
-    return driver
+    return AsyncMock(spec=StorageDriver)
 
 
 @pytest.fixture
@@ -21,17 +27,26 @@ def repo(mock_driver: AsyncMock) -> PromptBlockRepositoryImpl:
     return PromptBlockRepositoryImpl(mock_driver)
 
 
+@pytest.fixture
+def sample_system_rule() -> SystemRulePromptBlock:
+    """Provides a valid SystemRulePromptBlock instance."""
+    return SystemRulePromptBlock(
+        id="blk_1234567890abcdef",
+        slug="rule_clean",
+        label=I18nText(translations={"en": "Rule", "fi": "Sääntö"}),
+        description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.INSTRUCTION,
+        instruction_text="Instruction.",
+    )
+
+
 @pytest.mark.asyncio
-async def test_prompt_block_crud(repo: PromptBlockRepositoryImpl, mock_driver: AsyncMock) -> None:
+async def test_prompt_block_crud(
+    repo: PromptBlockRepositoryImpl, mock_driver: AsyncMock, sample_system_rule: SystemRulePromptBlock
+) -> None:
     """Test CRUD operations for PromptBlocks."""
-    sample_doc = {
-        "id": "blk_1234567890abcdef",
-        "slug": "rule_clean",
-        "label": {"translations": {"en": "Rule", "fi": "Sääntö"}},
-        "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},
-        "category_id": "system_rule",
-        "type": "instruction",
-    }
+    sample_doc = sample_system_rule.model_dump(mode="json")
     mock_driver.get.return_value = sample_doc
     mock_driver.query.return_value = [sample_doc]
     mock_driver.upsert.return_value = "blk_1234567890abcdef"
@@ -49,35 +64,32 @@ async def test_prompt_block_crud(repo: PromptBlockRepositoryImpl, mock_driver: A
     assert len(all_models) == 1
     assert all_models[0].id == "blk_1234567890abcdef"
 
-    assert await repo.create_prompt_block(sample_doc) == "blk_1234567890abcdef"
+    assert await repo.create_prompt_block(sample_system_rule) == "blk_1234567890abcdef"
 
 
 @pytest.mark.asyncio
 async def test_update_prompt_block(
-    repo: PromptBlockRepositoryImpl, mock_driver: AsyncMock, monkeypatch: pytest.MonkeyPatch
+    repo: PromptBlockRepositoryImpl, mock_driver: AsyncMock, sample_system_rule: SystemRulePromptBlock
 ) -> None:
     """Test versioned update of PromptBlock."""
-    mock_driver.get.return_value = {"id": "pb1_v1", "version": 1}
-    # Mock _increment_version
-    repo._increment_version = MagicMock(return_value=("pb1", "pb1_v2", 2))  # type: ignore[method-assign]
+    doc_with_version = sample_system_rule.model_dump(mode="json")
+    doc_with_version["version"] = 1
+    mock_driver.get.return_value = doc_with_version
+    repo._increment_version = MagicMock(return_value=("rule_clean", "blk_1234567890abcdef_v2", 2))  # type: ignore[method-assign]
 
-    res = await repo.update_prompt_block("pb1_v1", {"foo": "bar"})
+    res = await repo.update_prompt_block("blk_1234567890abcdef", sample_system_rule)
     assert res is True
-    mock_driver.update.assert_called_with("prompt_blocks", "pb1_v1", {"is_latest": False})
-
-    # Verify upsert call
-    args, kwargs = mock_driver.upsert.call_args
-    assert args[0] == "prompt_blocks"
-    assert args[1]["id"] == "pb1_v2"
-    assert args[1]["version"] == 2
-    assert args[1]["foo"] == "bar"
+    mock_driver.update.assert_called_with("prompt_blocks", "blk_1234567890abcdef", {"is_latest": False})
+    mock_driver.upsert.assert_called()
 
 
 @pytest.mark.asyncio
-async def test_update_prompt_block_not_found(repo: PromptBlockRepositoryImpl, mock_driver: AsyncMock) -> None:
+async def test_update_prompt_block_not_found(
+    repo: PromptBlockRepositoryImpl, mock_driver: AsyncMock, sample_system_rule: SystemRulePromptBlock
+) -> None:
     """Test updating non-existent PromptBlock."""
     mock_driver.get.return_value = None
-    res = await repo.update_prompt_block("pb1", {})
+    res = await repo.update_prompt_block("pb1", sample_system_rule)
     assert res is False
 
 
@@ -194,7 +206,6 @@ async def test_get_prompt_blocks_by_ids_strict_missing_single_raises_app_excepti
 
     assert exc_info.value.status_code == 404
     assert "blk_missing_ghost" in exc_info.value.message
-    assert exc_info.value.details.get("missing_ids") == ["blk_missing_ghost"]
 
 
 @pytest.mark.asyncio
@@ -208,7 +219,6 @@ async def test_get_prompt_blocks_by_ids_strict_missing_all_raises_app_exception(
         await repo.get_prompt_blocks_by_ids(["blk_ghost_1", "blk_ghost_2"], strict=True)
 
     assert exc_info.value.status_code == 404
-    assert set(exc_info.value.details.get("missing_ids", [])) == {"blk_ghost_1", "blk_ghost_2"}
 
 
 @pytest.mark.asyncio

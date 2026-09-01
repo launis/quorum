@@ -27,7 +27,9 @@ from backend_v2.models.domain.references import (
 logger = logging.getLogger(__name__)
 
 
-def generate_bibliography(text_dump: str, knowledge_base: dict[str, str] | None) -> list[ReferenceDTO]:
+def generate_bibliography(
+    text_dump: str, knowledge_base: dict[str, str | int | float | bool | list[str]] | None
+) -> list[ReferenceDTO]:
     """Scan the provided text dump for references using the ReferenceManager.
 
     Supports "advanced scan" which detects both explicit citations (e.g. "Author 2020")
@@ -101,7 +103,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
 
         raw_inputs = state.inputs.raw_inputs
         try:
-            parsed_inputs = ReferencesInputsDTO.model_validate(raw_inputs)
+            parsed_inputs = ReferencesInputsDTO(root=raw_inputs)
             if parsed_inputs.root:
                 for val in parsed_inputs.root.values():
                     text = str(val) if val else ""

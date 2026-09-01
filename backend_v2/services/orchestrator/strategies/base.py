@@ -28,8 +28,8 @@ from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import ExpectedInput, FrozenContext, StepRule
 from backend_v2.models.v2_core import Step as V2Step
+from backend_v2.services.orchestrator.state_reducer import merge_dynamic_inputs
 from backend_v2.services.usage_service import UsageService
-from backend_v2.utils.dict_utils import deep_merge_dicts
 
 logger = logging.getLogger(__name__)
 
@@ -275,9 +275,9 @@ class NodeStrategy(ABC):
                     new_dynamic = dict(hook_state.inputs.dynamic_inputs)
                     new_raw = dict(hook_state.inputs.raw_inputs)
                     if "dynamic_inputs" in delta:
-                        new_dynamic = deep_merge_dicts(new_dynamic, delta["dynamic_inputs"])
+                        new_dynamic = merge_dynamic_inputs(new_dynamic, delta["dynamic_inputs"])
                     if "inputs" in delta:
-                        new_raw = deep_merge_dicts(new_raw, delta["inputs"])
+                        new_raw = merge_dynamic_inputs(new_raw, delta["inputs"])
                     for k, v in delta.items():
                         if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
                             new_dynamic[k] = v
@@ -354,9 +354,9 @@ class NodeStrategy(ABC):
                     new_dynamic = dict(hook_state.inputs.dynamic_inputs)
                     new_raw = dict(hook_state.inputs.raw_inputs)
                     if "dynamic_inputs" in delta:
-                        new_dynamic = deep_merge_dicts(new_dynamic, delta["dynamic_inputs"])
+                        new_dynamic = merge_dynamic_inputs(new_dynamic, delta["dynamic_inputs"])
                     if "inputs" in delta:
-                        new_raw = deep_merge_dicts(new_raw, delta["inputs"])
+                        new_raw = merge_dynamic_inputs(new_raw, delta["inputs"])
                     for k, v in delta.items():
                         if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
                             new_dynamic[k] = v

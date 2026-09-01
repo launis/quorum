@@ -14,6 +14,7 @@ from pydantic import ConfigDict, Field, field_validator
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.base import BaseDTO
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +272,7 @@ class UsageRecord(V2CoreBase):
             description="Unique ID for the usage event.",
             json_schema_extra={"x-ui-label": "ID"},
         ),
-    ]
+    ] = Field(default_factory=lambda: f"usg_{uuid.uuid4().hex}")
     org_id: Annotated[
         str,
         Field(min_length=1, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"}),
@@ -347,3 +348,56 @@ class UsageRecord(V2CoreBase):
             logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
+
+
+class AuditLogCreateDTO(BaseDTO):
+    """DTO for creating a new audit log entry."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    action: Annotated[str, Field(min_length=1, description="Audit action identifier")]
+    actor_id: Annotated[str, Field(min_length=1, description="Actor user or system ID")]
+    organization_id: Annotated[str | None, Field(default=None, description="Associated organization ID")] = None
+    details: Annotated[
+        dict[str, str | int | float | bool | list[str]] | None,
+        Field(default=None, description="Typed scalar details dictionary"),
+    ] = None
+    timestamp: Annotated[datetime | None, Field(default=None, description="Creation timestamp")] = None
+
+
+class UsageAggregateUpdateDTO(BaseDTO):
+    """DTO for incrementing usage aggregates."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    input_tokens: Annotated[int, Field(ge=0, description="Input tokens consumed")] = 0
+    output_tokens: Annotated[int, Field(ge=0, description="Output tokens consumed")] = 0
+    cached_tokens: Annotated[int, Field(ge=0, description="Cached tokens read")] = 0
+    cost_usd: Annotated[float, Field(ge=0.0, description="Total cost incurred in USD")] = 0.0
+    execution_count: Annotated[int, Field(ge=0, description="Number of executions")] = 1
+
+
+class UsageAggregateDTO(BaseDTO):
+    """DTO for representing an aggregated usage summary."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    organization_id: Annotated[str, Field(description="Organization ID")]
+    period: Annotated[str, Field(description="Usage period (e.g. YYYY-MM)")]
+    total_input_tokens: Annotated[int, Field(ge=0, description="Total input tokens")]
+    total_output_tokens: Annotated[int, Field(ge=0, description="Total output tokens")]
+    total_cached_tokens: Annotated[int, Field(ge=0, description="Total cached tokens")]
+    total_cost_usd: Annotated[float, Field(ge=0.0, description="Total cost in USD")]
+    execution_count: Annotated[int, Field(ge=0, description="Total execution count")]
+
+
+class DetailedUsageDTO(BaseDTO):
+    """DTO representing detailed usage analysis across models and workflows."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    organization_id: Annotated[str, Field(description="Organization ID")]
+    total_cost_usd: Annotated[float, Field(ge=0.0, description="Total cost across all models")]
+    total_tokens: Annotated[int, Field(ge=0, description="Total tokens across all models")]
+    by_model: Annotated[dict[str, int], Field(default_factory=dict, description="Tokens by model name")]
+    by_workflow: Annotated[dict[str, int], Field(default_factory=dict, description="Executions by workflow ID")]

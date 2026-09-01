@@ -42,35 +42,38 @@ async def test_database_progress_tracker() -> None:
     mock_repo.update_execution.assert_called_once()
     call_args = mock_repo.update_execution.call_args[0]
     assert call_args[0] == "exe_123"
-    assert call_args[1]["status"] == STATUS_STARTED
-    assert "created_at" in call_args[1]
+    payload = call_args[1]
+    assert getattr(payload, "status", None) == STATUS_STARTED or payload.get("status") == STATUS_STARTED
+    assert getattr(payload, "created_at", None) is not None or "created_at" in payload
 
     # Test update
     mock_repo.reset_mock()
     await tracker.update(current_step="processing", progress=50)
     mock_repo.update_execution.assert_called_once()
     payload = mock_repo.update_execution.call_args[0][1]
-    assert payload["status"] == STATUS_RUNNING
-    assert payload["progress"] == 50
-    assert payload["current_step"] == "processing"
-    assert payload["current_step_name"] == "processing"
+    assert getattr(payload, "status", None) == STATUS_RUNNING or payload.get("status") == STATUS_RUNNING
+    assert getattr(payload, "progress", None) == 50 or payload.get("progress") == 50
+    assert getattr(payload, "current_step", None) == "processing" or payload.get("current_step") == "processing"
+    assert (
+        getattr(payload, "current_step_name", None) == "processing" or payload.get("current_step_name") == "processing"
+    )
 
     # Test complete
     mock_repo.reset_mock()
     await tracker.complete()
     mock_repo.update_execution.assert_called_once()
     payload = mock_repo.update_execution.call_args[0][1]
-    assert payload["status"] == STATUS_COMPLETED
-    assert "completed_at" in payload
+    assert getattr(payload, "status", None) == STATUS_COMPLETED or payload.get("status") == STATUS_COMPLETED
+    assert getattr(payload, "completed_at", None) is not None or "completed_at" in payload
 
     # Test fail
     mock_repo.reset_mock()
     await tracker.fail(error="fatal error")
     mock_repo.update_execution.assert_called_once()
     payload = mock_repo.update_execution.call_args[0][1]
-    assert payload["status"] == STATUS_FAILED
-    assert payload["error"] == "fatal error"
-    assert "completed_at" in payload
+    assert getattr(payload, "status", None) == STATUS_FAILED or payload.get("status") == STATUS_FAILED
+    assert getattr(payload, "error", None) == "fatal error" or payload.get("error") == "fatal error"
+    assert getattr(payload, "completed_at", None) is not None or "completed_at" in payload
 
 
 @pytest.mark.asyncio

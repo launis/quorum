@@ -1,18 +1,17 @@
 """Prompt Block Service."""
 
+from __future__ import annotations
+
 import logging
 import uuid
-from typing import Any
-
-from pydantic import ValidationError
 
 from backend_v2.database.interfaces import IPromptBlockRepository, ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import (
     PromptBlock,
-    PromptBlockAdapter,
-    PromptBlockBase,
+    SystemRulePromptBlock,
 )
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
@@ -53,25 +52,7 @@ class StudioPromptBlockService:
         Raises:
             AppException (ErrorCodes.STATE_INTEGRITY_ERROR): On core errors.
         """
-        all_data = await self.prompt_block_repo.get_all_prompt_blocks()
-
-        blocks: list[PromptBlock] = []
-        for x in all_data:
-            try:
-                blocks.append(PromptBlockAdapter.validate_python(x, strict=False))
-            except ValidationError as e:
-                x_id = x.id if isinstance(x, PromptBlockBase) else "unknown"
-                logger.error(
-                    "[StudioPromptBlockService] %s: PromptBlock %s failed hydration. DB is corrupt. Error: %s",
-                    ErrorCodes.STATE_INTEGRITY_ERROR.name,
-                    x_id,
-                    str(e),
-                )
-                raise AppException(
-                    message=f"Database integrity error: PromptBlock {x_id} failed strict validation.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
-                ) from e
+        blocks = await self.prompt_block_repo.get_all_prompt_blocks()
 
         if initiator.role == UserRole.ROOT:
             return blocks
@@ -93,8 +74,8 @@ class StudioPromptBlockService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        data = await self.prompt_block_repo.get_prompt_block_by_id(id)
-        if not data:
+        block = await self.prompt_block_repo.get_prompt_block_by_id(id)
+        if not block:
             logger.error(
                 "[StudioPromptBlockService] %s: PromptBlock %s not found (Initiator: %s).",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -103,7 +84,6 @@ class StudioPromptBlockService:
             )
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        block = PromptBlockAdapter.validate_python(data, strict=False)
         enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
         return block
 
@@ -142,10 +122,9 @@ class StudioPromptBlockService:
                 details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
             ) from e
 
-        dump = data.model_dump(mode="json")
-        if "id" not in dump:
-            dump["id"] = id
-        await self.prompt_block_repo.create_prompt_block(dump)
+        if data.id != id:
+            data = data.model_copy(update={"id": id})
+        await self.prompt_block_repo.create_prompt_block(data)
 
         saved = await self.prompt_block_repo.get_prompt_block_by_id(id)
         if not saved:
@@ -156,7 +135,7 @@ class StudioPromptBlockService:
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
-        return PromptBlockAdapter.validate_python(saved, strict=False)
+        return saved
 
     async def delete_prompt_block(self, initiator: TokenData, id: str, force_delete: bool = False) -> None:
         """Delete prompt block.
@@ -170,8 +149,8 @@ class StudioPromptBlockService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        data = await self.prompt_block_repo.get_prompt_block_by_id(id)
-        if not data:
+        block = await self.prompt_block_repo.get_prompt_block_by_id(id)
+        if not block:
             logger.error(
                 "[StudioPromptBlockService] %s: PromptBlock %s not found (Initiator: %s).",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -180,7 +159,6 @@ class StudioPromptBlockService:
             )
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        block = PromptBlockAdapter.validate_python(data, strict=False)
         enforce_modification_rights(initiator, block.organization_id)
         await self.prompt_block_repo.delete_prompt_block(id, force_delete=force_delete)
 
@@ -197,21 +175,19 @@ class StudioPromptBlockService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
         new_id = f"blk_{uuid.uuid4().hex[:16]}"
+        target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
 
-        draft_dict: dict[str, Any] = {
-            "id": new_id,
-            "slug": new_id,
-            "label": {"translations": {"en": "New Block", "fi": "Uusi lohko"}},
-            "description": {"translations": {"en": "Draft block", "fi": "Luonnos"}},
-            "instruction_text": "Initial AI logic draft.",
-            "category_id": PromptBlockCategory.SYSTEM_RULE.value,
-            "type": BlockDataType.INSTRUCTION.value,
-            "output_extensions": [],
-            "organization_id": (
-                SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
-            ),
-        }
-        draft = PromptBlockAdapter.validate_python(draft_dict, strict=False)
+        draft = SystemRulePromptBlock(
+            id=new_id,
+            slug=new_id,
+            label=I18nText(translations={"en": "New Block", "fi": "Uusi lohko"}),
+            description=I18nText(translations={"en": "Draft block", "fi": "Luonnos"}),
+            instruction_text="Initial AI logic draft.",
+            category_id=PromptBlockCategory.SYSTEM_RULE,
+            type=BlockDataType.INSTRUCTION,
+            output_extensions=[],
+            organization_id=target_org,
+        )
         return await self.save_prompt_block(initiator, new_id, draft)
 
     async def clone_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
@@ -228,8 +204,8 @@ class StudioPromptBlockService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        data = await self.prompt_block_repo.get_prompt_block_by_id(id)
-        if not data:
+        block = await self.prompt_block_repo.get_prompt_block_by_id(id)
+        if not block:
             logger.error(
                 "[StudioPromptBlockService] %s: PromptBlock %s not found (Initiator: %s).",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -238,19 +214,17 @@ class StudioPromptBlockService:
             )
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
-        block = PromptBlockAdapter.validate_python(data, strict=False)
         enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
 
         new_id = f"blk_{uuid.uuid4().hex[:16]}"
-
-        cloned_data = block.model_dump(mode="json")
-        cloned_data["id"] = new_id
-
-        if initiator.role != UserRole.ROOT:
-            cloned_data["organization_id"] = initiator.organization_id
-
+        target_org = block.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
         new_translations = {locale: f"{text} (Copy)" for locale, text in block.label.translations.items()}
-        cloned_data["label"] = {"translations": new_translations}
 
-        cloned_obj = PromptBlockAdapter.validate_python(cloned_data, strict=False)
+        cloned_obj = block.model_copy(
+            update={
+                "id": new_id,
+                "organization_id": target_org,
+                "label": I18nText(translations=new_translations),
+            }
+        )
         return await self.save_prompt_block(initiator, new_id, cloned_obj)

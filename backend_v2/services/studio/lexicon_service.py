@@ -10,6 +10,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.llm.directives import STUDIO_DISCOVER_SLOP_PHRASES, STUDIO_TRANSLATE_SLOP_PHRASES
 from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.auth import SystemOrganizations, TokenData
+from backend_v2.models.dtos.system import SystemConfigCreateDTO
 from backend_v2.models.enums import SystemConfigID
 from backend_v2.models.v2_core import (
     LexiconSuggestionListDTO,
@@ -43,7 +44,7 @@ class StudioLexiconService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
         config_data = await self.system_repo.get_system_config(SystemConfigID.PERFORMATIVE_LEXICONS.value)
-        if not config_data:
+        if not config_data or not isinstance(config_data, SystemConfigPerformativeLexicons):
             logger.error(
                 "[StudioLexiconService] %s: Performative lexicons config %s not found.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -52,7 +53,7 @@ class StudioLexiconService:
             raise ResourceNotFoundError(
                 resource_type="system_config", resource_id=SystemConfigID.PERFORMATIVE_LEXICONS.value
             )
-        return SystemConfigPerformativeLexicons.model_validate(config_data, strict=False)
+        return config_data
 
     async def save_performative_lexicons_config(
         self, initiator: TokenData, data: SystemConfigPerformativeLexicons
@@ -67,9 +68,12 @@ class StudioLexiconService:
             The updated performative lexicons configuration.
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
-        dump = data.model_dump(mode="json")
-        dump["id"] = SystemConfigID.PERFORMATIVE_LEXICONS.value
-        await self.system_repo.create_system_config(dump)
+        create_dto = SystemConfigCreateDTO(
+            type="performative_lexicons",
+            content=data,
+            slug=SystemConfigID.PERFORMATIVE_LEXICONS.value,
+        )
+        await self.system_repo.create_system_config(create_dto)
         return await self.get_performative_lexicons_config()
 
     async def discover_new_performative_phrases(self, lang_code: str) -> LexiconSuggestionListDTO:

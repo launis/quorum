@@ -211,8 +211,10 @@ async def test_global_exception_handler() -> None:
 @pytest.mark.asyncio
 async def test_lifespan_shutdown_closes_arq_pool() -> None:
     """Test that lifespan shutdown invokes aclose on the arq pool."""
+    from arq.connections import ArqRedis
+
     test_app = FastAPI()
-    mock_pool = AsyncMock()
+    mock_pool = AsyncMock(spec=ArqRedis)
     with patch("backend_v2.main._validate_database_preflight"):
         async with lifespan(test_app):
             test_app.state.arq_pool = mock_pool

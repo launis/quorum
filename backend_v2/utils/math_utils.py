@@ -5,11 +5,11 @@ prioritizing strict validation and Fail Fast principles.
 """
 
 import logging
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, MissingInputMappingError
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import StrictnessAnchor, WaterfallThreshold
 
@@ -339,3 +339,41 @@ def calculate_linear_ratio_score(
     scaled_val = math_min + (proportional_fraction * (math_max - math_min))
 
     return float(max(math_min, min(math_max, scaled_val)))
+
+
+def resolve_dot_notation(state: Any, path: str) -> Any:
+    """Safely resolves a dot-notation path against a state dictionary or object.
+
+    Uses strictly iterative lookup. Never uses eval, exec, dict.get, or hasattr.
+    Raises MissingInputMappingError on any resolution failure.
+
+    Args:
+        state: The object or dictionary to traverse.
+        path: Dot-separated string path (e.g. 'user.profile.age').
+
+    Returns:
+        The resolved value.
+
+    Raises:
+        MissingInputMappingError: If the path cannot be resolved.
+    """
+    if not path:
+        return state
+
+    parts = path.split(".")
+    curr = state
+
+    for _i, part in enumerate(parts):
+        try:
+            if isinstance(curr, dict):  # noqa: QGR012 [REASON: Generic state traversal utility must distinguish dict/list/object navigation]
+                curr = curr[part]
+            elif isinstance(curr, list):
+                curr = curr[int(part)]
+            else:
+                curr = getattr(curr, part)  # noqa: QGR001 [REASON: Generic dot-notation resolver operates on heterogeneous state types including raw dicts at dynamic input boundaries]
+        except (KeyError, AttributeError, IndexError, ValueError) as e:
+            raise MissingInputMappingError(
+                path=path, state_type=type(curr).__name__, reason=f"Failed at '{part}': {type(e).__name__}"
+            ) from e
+
+    return curr

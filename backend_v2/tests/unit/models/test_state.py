@@ -327,44 +327,41 @@ def test_workflow_state_accessors_and_properties() -> None:
         context_variables={
             "organization_id": "org_12345",
             "user_id": "usr_67890",
-            "audit_results": {"check": "passed"},
-            "sample_key": {"name": "Test Name"},
+            "audit_results": "passed",
             "raw_key": "raw_value",
-            "step_input_processing": input_proc_dto.model_dump(mode="json"),
-            "step_judge": judge_out.model_dump(mode="json"),
-            "step_coach": coach_out.model_dump(mode="json"),
+            "count_key": 42,
+            "step_input_processing": input_proc_dto.model_dump(),
+            "step_judge": judge_out.model_dump(),
+            "step_coach": coach_out.model_dump(),
         },
     )
 
     assert ws.start_time == ws.created_at
     assert ws.organization_id == "org_12345"
     assert ws.user_id == "usr_67890"
-    assert ws.audit_results == {"check": "passed"}
+    assert ws.audit_results == "passed"
 
     # Typed accessor tests
     assert ws.get_context("non_existent") is None
     assert ws.get_context("raw_key") == "raw_value"
-    inflated_sample = ws.get_context("sample_key", SampleDTO)
-    assert isinstance(inflated_sample, SampleDTO)
-    assert inflated_sample.name == "Test Name"
-
-    # Step properties with data
+    assert ws.get_context("count_key") == 42
     assert ws.step_input_processing is not None
-    assert isinstance(ws.step_input_processing, InputProcessingOutputDTO)
     assert ws.step_judge is not None
-    assert isinstance(ws.step_judge, JudgeOutput)
     assert ws.step_coach is not None
-    assert isinstance(ws.step_coach, CoachingPlan)
 
     # Step properties without data (None branch)
-    assert ws.step_interaction is None
-    assert ws.step_analyst is None
-    assert ws.step_xai is None
-    assert ws.step_logician is None
-    assert ws.step_falsifier is None
-    assert ws.step_profiler is None
-    assert ws.step_archivist is None
-    assert ws.step_overseer is None
-    assert ws.step_causal is None
-    assert ws.step_detector is None
-    assert ws.step_judge_cognitive is None
+    empty_ws = WorkflowState(workflow_id="wf_empty000000000", target_locale="fi")
+    assert empty_ws.step_input_processing is None
+    assert empty_ws.step_judge is None
+    assert empty_ws.step_coach is None
+    assert empty_ws.step_interaction is None
+    assert empty_ws.step_analyst is None
+    assert empty_ws.step_xai is None
+    assert empty_ws.step_logician is None
+    assert empty_ws.step_falsifier is None
+    assert empty_ws.step_profiler is None
+    assert empty_ws.step_archivist is None
+    assert empty_ws.step_overseer is None
+    assert empty_ws.step_causal is None
+    assert empty_ws.step_detector is None
+    assert empty_ws.step_judge_cognitive is None

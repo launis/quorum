@@ -1,12 +1,21 @@
 """Database repository implementation module for Users and Organizations."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.auth import Organization, SystemOrganizations, User
+from backend_v2.models.auth import (
+    Organization,
+    OrganizationCreate,
+    OrganizationUpdateDTO,
+    SystemOrganizations,
+    User,
+    UserCreate,
+    UserUpdate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,29 +70,34 @@ class IdentityRepositoryImpl(BaseRepository):
         """
         return await self.get_organization(org_id)
 
-    async def create_organization(self, org_data: dict[str, Any]) -> str:
+    async def create_organization(self, org_data: OrganizationCreate | Organization) -> str:
         """Creates a new organization.
 
         Args:
-            org_data: Dictionary containing organization fields.
+            org_data: Organization domain model or creation DTO.
 
         Returns:
             The created organization ID.
         """
-        doc_id = org_data["id"]
-        return await self.driver.upsert("organizations", org_data, doc_id)
+        payload = org_data.model_dump(mode="json")
+        doc_id = payload["id"] if "id" in payload else f"org_{payload['name'].lower()}"
+        payload["id"] = doc_id
+        return await self.driver.upsert("organizations", payload, doc_id)
 
-    async def update_organization(self, org_id: str, updates: dict[str, Any]) -> bool:
+    async def update_organization(self, org_id: str, updates: OrganizationUpdateDTO) -> bool:
         """Updates an existing organization.
 
         Args:
             org_id: Unique identifier for the organization.
-            updates: Dictionary of fields to update.
+            updates: OrganizationUpdateDTO containing update fields.
 
         Returns:
             True if updated successfully, False otherwise.
         """
-        return await self.driver.update("organizations", org_id, updates)
+        payload = updates.model_dump(mode="json", exclude_unset=True)
+        if not payload:
+            return True
+        return await self.driver.update("organizations", org_id, payload)
 
     async def delete_organization(self, org_id: str) -> bool:
         """Deletes an organization by ID.
@@ -152,29 +166,33 @@ class IdentityRepositoryImpl(BaseRepository):
             return None
         return User.model_validate(res[0], strict=False)
 
-    async def create_user(self, user_data: dict[str, Any]) -> str:
+    async def create_user(self, user_data: UserCreate | User) -> str:
         """Creates a new user.
 
         Args:
-            user_data: Dictionary containing user fields.
+            user_data: User domain model or creation DTO.
 
         Returns:
             The created user ID.
         """
-        doc_id = user_data["id"]
-        return await self.driver.upsert("users", user_data, doc_id)
+        payload = user_data.model_dump(mode="json")
+        doc_id = payload["id"]
+        return await self.driver.upsert("users", payload, doc_id)
 
-    async def update_user(self, user_id: str, updates: dict[str, Any]) -> bool:
+    async def update_user(self, user_id: str, updates: UserUpdate) -> bool:
         """Updates an existing user.
 
         Args:
             user_id: Unique identifier for the user.
-            updates: Dictionary of fields to update.
+            updates: UserUpdate DTO containing update fields.
 
         Returns:
             True if updated successfully, False otherwise.
         """
-        return await self.driver.update("users", user_id, updates)
+        payload = updates.model_dump(mode="json", exclude_unset=True)
+        if not payload:
+            return True
+        return await self.driver.update("users", user_id, payload)
 
     async def delete_user(self, user_id: str) -> bool:
         """Deletes a user by ID.
@@ -199,18 +217,16 @@ class IdentityRepositoryImpl(BaseRepository):
 
         execs = await self.driver.query("executions", [Filter("organization_id", "==", org_id)])
         for e in execs:
-            item_id = e["id"] if "id" in e else ""
-            if item_id:
-                await self.driver.delete("executions", item_id)
+            if "id" in e and e["id"]:
+                await self.driver.delete("executions", e["id"])
 
         wfs = await self.driver.query(
             "workflows", [Filter("organization_id", "in", [org_id, SystemOrganizations.ROOT_SYSTEM])]
         )
         for w in wfs:
             if "organization_id" in w and w["organization_id"] == org_id:
-                item_id = w["id"] if "id" in w else ""
-                if item_id:
-                    await self.driver.delete("workflows", item_id)
+                if "id" in w and w["id"]:
+                    await self.driver.delete("workflows", w["id"])
 
     async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
         """Calculates total usage cost for an organization.

@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR012).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR015).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -80,17 +80,10 @@ BANNED_REASON_PLACEHOLDERS: set[str] = {
 
 
 BOUNDARY_EXEMPTION_FILES: set[str] = {
-    "interfaces.py",
-    "wrapper.py",
-    "driver.py",
     "tinydb_driver.py",
     "firestore_driver.py",
-    "logging_config.py",
-    "exceptions.py",
-    "alias_engine.py",
-    "dict_utils.py",
-    "finops_trace_analyzer.py",
     "provider.py",
+    "logging_config.py",
 }
 
 
@@ -176,6 +169,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.violations: list[GuardrailViolation] = []
         path_parts = set(filepath.replace("\\", "/").strip("/").split("/"))
         self._is_test_file = "tests" in path_parts or Path(filepath).name.startswith("test_")
+        self._is_domain_code = not (
+            "tests" in path_parts or "scripts" in path_parts or Path(filepath).name.startswith("test_")
+        )
         self._is_boundary_exempt = Path(filepath).name in BOUNDARY_EXEMPTION_FILES
         self._pydantic_base_classes_in_file: set[str] = set()
 
@@ -228,7 +224,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         # QGR001: getattr / hasattr / setattr reflection duck-typing and frozen mutations
         qgr001_sev = (
             GuardrailSeverity.FATAL
-            if (not self._is_test_file and not self._is_boundary_exempt)
+            if (self._is_domain_code and not self._is_boundary_exempt)
             else GuardrailSeverity.WARNING
         )
         match node.func:
@@ -261,8 +257,18 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 case ast.Attribute(attr="headers") | ast.Name(id="headers"):
                     exempt = True
                 case (
-                    ast.Name(id="_LABEL_MAP" | "LABEL_MAP" | "_VALUE_MAP" | "_NAME_MAP" | "_L10N_MAP" | "L10N_MAP" | "driver")
-                    | ast.Attribute(attr="_LABEL_MAP" | "LABEL_MAP" | "_VALUE_MAP" | "_NAME_MAP" | "_L10N_MAP" | "L10N_MAP" | "driver")
+                    ast.Name(
+                        id="_LABEL_MAP" | "LABEL_MAP" | "_VALUE_MAP" | "_NAME_MAP" | "_L10N_MAP" | "L10N_MAP" | "driver"
+                    )
+                    | ast.Attribute(
+                        attr="_LABEL_MAP"
+                        | "LABEL_MAP"
+                        | "_VALUE_MAP"
+                        | "_NAME_MAP"
+                        | "_L10N_MAP"
+                        | "L10N_MAP"
+                        | "driver"
+                    )
                 ):
                     exempt = True
                 case _:
@@ -271,7 +277,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             if not exempt:
                 qgr002_sev = (
                     GuardrailSeverity.FATAL
-                    if (not self._is_test_file and not self._is_boundary_exempt)
+                    if (self._is_domain_code and not self._is_boundary_exempt)
                     else GuardrailSeverity.WARNING
                 )
                 self._add_violation(
@@ -380,7 +386,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             if is_dict_check:
                 qgr012_sev = (
                     GuardrailSeverity.FATAL
-                    if (not self._is_test_file and not self._is_boundary_exempt)
+                    if (self._is_domain_code and not self._is_boundary_exempt)
                     else GuardrailSeverity.WARNING
                 )
                 self._add_violation(
@@ -390,6 +396,78 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Use native Pydantic V2 model validation (e.g. DTO fields, Enums, or @model_validator(mode='after')) instead of ad-hoc dict inspection.",
                     severity=qgr012_sev,
                 )
+
+        # QGR013: TypeVar() instantiation ban
+        match node.func:
+            case (
+                ast.Name(id="TypeVar")
+                | ast.Attribute(value=ast.Name(id="typing" | "typing_extensions"), attr="TypeVar")
+            ):
+                self._add_violation(
+                    node,
+                    "QGR013",
+                    "Banned legacy `TypeVar()` instantiation detected.",
+                    "Use modern Python 3.12+ PEP 695 generic syntax `[T]` or `[F: HookFunction]` instead of TypeVar.",
+                    severity=GuardrailSeverity.WARNING,
+                )
+            case _:
+                pass
+
+        # QGR014: AsyncMock / MagicMock on repository interfaces in tests
+        match node.func:
+            case (
+                ast.Name(id="AsyncMock" | "MagicMock" | "Mock")
+                | ast.Attribute(
+                    value=ast.Name(id="mock" | "unittest" | "unittest.mock"),
+                    attr="AsyncMock" | "MagicMock" | "Mock",
+                )
+            ):
+                is_repo_mock = False
+                for kw in node.keywords:
+                    if kw.arg in ("spec", "spec_set"):
+                        match kw.value:
+                            case ast.Name(id=name) if (
+                                name.startswith("I") and name.endswith("Repository")
+                            ) or name == "IUnifiedWorkflowRepository":
+                                is_repo_mock = True
+                            case ast.Attribute(attr=attr_name) if (
+                                attr_name.startswith("I") and attr_name.endswith("Repository")
+                            ) or attr_name == "IUnifiedWorkflowRepository":
+                                is_repo_mock = True
+                            case _:
+                                pass
+                if is_repo_mock:
+                    self._add_violation(
+                        node,
+                        "QGR014",
+                        "Banned `AsyncMock`/`MagicMock` repository interface mock detected.",
+                        "Use strongly typed In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` (`InMemoryWorkflowRepository`, etc.) with `inject_fault()` instead of ad-hoc mocks.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
+            case (
+                ast.Name(id="patch")
+                | ast.Attribute(value=ast.Name(id="mock" | "unittest" | "unittest.mock"), attr="patch")
+            ):
+                if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                    target_str = node.args[0].value
+                    if "interfaces.I" in target_str or (
+                        ("repository" in target_str.lower() or "repo" in target_str.lower())
+                        and "service" in self.filepath.lower()
+                    ):
+                        qgr014_patch_sev = (
+                            GuardrailSeverity.FATAL
+                            if ("service" in self.filepath.lower() or "interfaces.I" in target_str)
+                            else GuardrailSeverity.WARNING
+                        )
+                        self._add_violation(
+                            node,
+                            "QGR014",
+                            f"Banned `@patch` targeting repository `{target_str}` in tests.",
+                            "Use dependency-injected In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of monkey-patching repositories.",
+                            severity=qgr014_patch_sev,
+                        )
+            case _:
+                pass
 
         self.generic_visit(node)
 
@@ -651,7 +729,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 if is_dict_pattern:
                     qgr012_sev = (
                         GuardrailSeverity.FATAL
-                        if (not self._is_test_file and not self._is_boundary_exempt)
+                        if (self._is_domain_code and not self._is_boundary_exempt)
                         else GuardrailSeverity.WARNING
                     )
                     self._add_violation(
@@ -662,6 +740,55 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         severity=qgr012_sev,
                     )
 
+        self.generic_visit(node)
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        # QGR014: mock repository variable assignment in test files
+        if self._is_test_file:
+            for target in node.targets:
+                if isinstance(target, ast.Name) and (
+                    "_repo" in target.id or "repo_" in target.id or target.id.endswith("repo")
+                ):
+                    match node.value:
+                        case ast.Call(
+                            func=ast.Name(id="AsyncMock" | "MagicMock" | "Mock")
+                            | ast.Attribute(attr="AsyncMock" | "MagicMock" | "Mock")
+                        ):
+                            self._add_violation(
+                                node,
+                                "QGR014",
+                                f"Banned mock repository variable `{target.id} = AsyncMock/MagicMock()` detected.",
+                                "Use strongly typed In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of mock repository fixtures.",
+                                severity=GuardrailSeverity.WARNING,
+                            )
+                        case _:
+                            pass
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        # QGR015: TypeGuard import ban per PEP 742 (pep742_typeis_over_typeguard)
+        if node.module in ("typing", "typing_extensions"):
+            for alias in node.names:
+                if alias.name == "TypeGuard":
+                    self._add_violation(
+                        node,
+                        "QGR015",
+                        "Banned `TypeGuard` import detected.",
+                        "Use modern PEP 742 `TypeIs` from `typing` (or `typing_extensions`) instead of `TypeGuard` for narrowing.",
+                        severity=GuardrailSeverity.WARNING,
+                    )
+        self.generic_visit(node)
+
+    def visit_Name(self, node: ast.Name) -> None:
+        # QGR015: TypeGuard usage in annotations/expressions
+        if node.id == "TypeGuard" and not self._is_test_file:
+            self._add_violation(
+                node,
+                "QGR015",
+                "Banned legacy `TypeGuard` type annotation detected.",
+                "Use modern PEP 742 `TypeIs` from `typing` (or `typing_extensions`) instead of `TypeGuard` for narrowing.",
+                severity=GuardrailSeverity.WARNING,
+            )
         self.generic_visit(node)
 
 

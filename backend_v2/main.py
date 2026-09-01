@@ -151,14 +151,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     finally:
         logger.info("Shutting down...")
-        pool = getattr(app.state, "arq_pool", None)  # noqa: QGR001 [REASON: FastAPI dynamic app.state lifespan pool lookup]
+        try:
+            pool = app.state.arq_pool
+        except AttributeError:
+            pool = None
+
         if pool is not None:
             try:
-                if isinstance(pool, ArqRedis):
-                    await pool.aclose()
-                elif isinstance(pool, FakeRedis):
-                    await pool.aclose()
-                elif hasattr(pool, "aclose"):  # noqa: QGR001 [REASON: Third-party generic async redis connection duck-typing]
+                if isinstance(pool, (ArqRedis, FakeRedis)):
                     await pool.aclose()
             except (OSError, RuntimeError) as close_err:
                 logger.error(

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,6 +13,16 @@ from backend_v2.database.repositories import (
     SystemRepositoryImpl,
     WorkflowRepositoryImpl,
 )
+from backend_v2.models.domain.base import (
+    AuditLogCreateDTO,
+    DetailedUsageDTO,
+    UsageAggregateUpdateDTO,
+    UsageRecord,
+)
+from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory, StepType
+from backend_v2.models.v2_core import I18nText
 
 
 @pytest.fixture
@@ -64,8 +75,13 @@ async def test_workflow_repo(mock_driver: AsyncMock) -> None:
     await repo.count_workflows()
 
     await repo.get_all_steps()
-    await repo.create_step({"id": "s1"})
-    await repo.update_step("s1", {"name": "Test"})
+    step_dto = StepCreateDTO(
+        slug="s1",
+        name=I18nText(translations={"en": "Step 1"}),
+        type=StepType.LLM,
+    )
+    await repo.create_step(step_dto)
+    await repo.update_step("s1", StepUpdateDTO(name=I18nText(translations={"en": "Test"})))
 
 
 @pytest.mark.asyncio
@@ -85,10 +101,18 @@ async def test_component_repo(mock_driver: AsyncMock) -> None:
     assert res == []
 
     await repo.delete_component("comp_1")
-    # Will be false since get_component_by_id returns None from mock
     assert mock_driver.delete.call_count == 0
 
-    await repo.create_component({"id": "comp2"})
+    block = SystemRulePromptBlock(
+        id="blk_0000000000000001",
+        slug="comp2",
+        label=I18nText(translations={"en": "Component 2"}),
+        description=I18nText(translations={"en": "Description"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.INSTRUCTION,
+        instruction_text="Test instruction",
+    )
+    await repo.create_component(block)
 
 
 @pytest.mark.asyncio
@@ -113,24 +137,34 @@ async def test_audit_repo(mock_driver: AsyncMock) -> None:
     res = await repo.get_audit_logs(organization_id="org1", actor_id="user1", action="run")
     assert res == []
 
-    await repo.log_audit_event({"action": "test"})
-    await repo.log_usage({"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10})
-    await repo.get_usage_records("organization", "org1")
-    await repo.get_detailed_usage("org", "org1")
-
-    await repo.upsert_usage_aggregate(
-        "org",
-        "org1",
-        "2026-04",
-        {"usage": {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10}, "total_executions": 1},
-    )  # noqa: E501
-    mock_driver.get.return_value = {
-        "usage": {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
-        "total_executions": 1,
-    }
-    await repo.upsert_usage_aggregate(
-        "org",
-        "org1",
-        "2026-04",
-        {"usage": {"prompt_tokens": 5, "completion_tokens": 0, "total_tokens": 5}, "total_executions": 1},
+    await repo.log_audit_event(
+        AuditLogCreateDTO(
+            action="test",
+            actor_id="user1",
+            organization_id="org1",
+        )
     )
+    await repo.log_usage(
+        UsageRecord(
+            org_id="org1",
+            user_id="user1",
+            model="gpt-4o",
+            input_tokens=10,
+            output_tokens=0,
+            cached_tokens=0,
+            cost_usd=0.0,
+            timestamp=datetime.now(UTC),
+        )
+    )
+    await repo.get_usage_records("organization", "org1")
+    rep = await repo.get_detailed_usage("org", "org1")
+    assert isinstance(rep, DetailedUsageDTO)
+
+    agg = UsageAggregateUpdateDTO(
+        input_tokens=10,
+        output_tokens=0,
+        cached_tokens=0,
+        cost_usd=0.0,
+        execution_count=1,
+    )
+    await repo.upsert_usage_aggregate("org", "org1", "2026-04", agg)

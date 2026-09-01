@@ -1,11 +1,14 @@
 """Unit tests for KnowledgeRepositoryImpl."""
 
+from __future__ import annotations
+
 from unittest.mock import AsyncMock
 
 import pytest
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
+from backend_v2.models.domain.knowledge import ClaimCreateDTO, ConceptCreateDTO, ReferenceCreateDTO
 
 
 @pytest.fixture
@@ -95,9 +98,9 @@ async def test_concepts_references_claims_lifecycle(repo: KnowledgeRepositoryImp
     assert len(claims) == 1
     assert claims[0].id == "cl1"
 
-    assert await repo.add_concept({"id": "c2"}) == "id_123"
-    assert await repo.add_reference({"id": "r2"}) == "id_123"
-    assert await repo.add_claim({"id": "cl2"}) == "id_123"
+    assert await repo.add_concept(ConceptCreateDTO(name="Concept 2")) == "id_123"
+    assert await repo.add_reference(ReferenceCreateDTO(name="Ref 2")) == "id_123"
+    assert await repo.add_claim(ClaimCreateDTO(name="Claim 2")) == "id_123"
 
     await repo.clear_knowledge_base()
     assert mock_driver.clear.call_count == 3

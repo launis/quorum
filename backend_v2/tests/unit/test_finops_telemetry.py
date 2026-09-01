@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.llm.caching_service import LLMCachingService
+from backend_v2.models.domain.base import UsageRecord
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
@@ -172,21 +173,23 @@ async def test_purity_scanner_ignores_user_role(
 @pytest.mark.asyncio
 async def test_prompt_caching_drift_alert(usage_service: UsageService, caplog: pytest.LogCaptureFixture) -> None:
     """Phase 6: Test PROMPT_CACHING_DRIFT_ALERT triggers when hit rate drops below 80% over 5 calls."""
+    from datetime import UTC, datetime
+
     # Provide 4 prior records from DB where hit rate is 0
     prior_records = []
     for _ in range(4):
         prior_records.append(
-            {
-                "id": str(uuid.uuid4()),
-                "org_id": "org_123",
-                "user_id": "user_123",
-                "model": "test-model",
-                "input_tokens": 100,
-                "output_tokens": 50,
-                "cached_tokens": 0,
-                "cost_usd": 0.01,
-                "timestamp": "2026-05-31T06:00:00+00:00",
-            }
+            UsageRecord(
+                id=str(uuid.uuid4()),
+                org_id="org_123",
+                user_id="user_123",
+                model="test-model",
+                input_tokens=100,
+                output_tokens=50,
+                cached_tokens=0,
+                cost_usd=0.01,
+                timestamp=datetime.now(UTC),
+            )
         )
 
     mock_audit_repo = typing.cast(AsyncMock, usage_service.audit_repo)
@@ -208,8 +211,7 @@ async def test_prompt_caching_drift_alert(usage_service: UsageService, caplog: p
             output_tokens=50,
             cost_usd=0.01,
             cached_tokens=0,
-            provider_name="mock_provider",
             model_pricing_config=pricing_config,
         )
 
-    assert "PROMPT_CACHING_DRIFT_ALERT: Cache hit rate has degraded to 0% for workflow Y." in caplog.text
+    assert "PROMPT_CACHING_DRIFT_ALERT: Cache hit rate has degraded to 0.0% for workflow Y." in caplog.text

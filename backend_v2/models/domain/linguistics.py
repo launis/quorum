@@ -4,7 +4,7 @@ Provides strict Pydantic V2 validation schemas for the linguistics hooks
 to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protocols.
 """
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -53,11 +53,14 @@ class LinguisticsPayloadDTO(BaseModel):
     """
 
     language: Annotated[str | None, Field(description="Optional explicit language code")] = None
-    dynamic_inputs: Annotated[dict[str, Any], Field(default_factory=dict, description="Dictionary of texts to scan")]
+    dynamic_inputs: Annotated[
+        dict[str, str | int | float | bool | list[str]],
+        Field(default_factory=dict, description="Dictionary of texts to scan"),
+    ]
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
-    def extract_language(self, global_vars: dict[str, Any]) -> str:
+    def extract_language(self, global_vars: dict[str, str | int | float | bool | list[str]]) -> str:
         """Determines language safely without dict.get() fallbacks.
 
         Args:

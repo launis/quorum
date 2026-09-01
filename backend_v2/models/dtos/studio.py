@@ -15,9 +15,12 @@ from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.enums import (
     BlockDataType,
+    HistoricalContextMode,
     LaxHistoricalContextMode,
+    LaxScoringStrategy,
     LaxStepType,
     PromptBlockCategory,
+    ScoringStrategy,
     StepType,
 )
 from backend_v2.models.v2_core import (
@@ -51,6 +54,8 @@ __all__ = [
     "WorkflowAvailableExtensionsResponse",
     "OutputProfileListResponse",
     "GCPLocationDTO",
+    "WorkflowUpdateDTO",
+    "StepUpdateDTO",
 ]
 
 
@@ -68,6 +73,10 @@ class GCPLocationDTO(BaseDTO):
     id: Annotated[str, Field(description="Canonical GCP region identifier")]
     label: Annotated[str, Field(description="Human-readable regional label")]
     description: Annotated[str, Field(description="Informational region description")]
+
+
+def _default_allowed_exports() -> list[Literal["pdf", "docx", "raw_json", "xlsx"]]:
+    return ["pdf"]
 
 
 class WorkflowCreateDTO(V2CoreBase):
@@ -92,18 +101,36 @@ class WorkflowCreateDTO(V2CoreBase):
     description: Annotated[I18nText | str | None, Field(default=None, description="Detailed workflow description.")]
     expected_inputs: Annotated[
         list[ExpectedInput], Field(default_factory=list, description="Expected input variables.")
-    ]
-    steps: Annotated[list[StepRule], Field(default_factory=list, description="Sequence of step routing rules.")]
+    ] = Field(default_factory=list)
+    steps: Annotated[list[StepRule], Field(default_factory=list, description="Sequence of step routing rules.")] = (
+        Field(default_factory=list)
+    )
     allowed_exports: Annotated[
         list[Literal["pdf", "docx", "raw_json", "xlsx"]],
-        Field(default_factory=lambda: ["pdf"], description="Permitted export formats."),
-    ]
+        Field(default_factory=_default_allowed_exports, description="Permitted export formats."),
+    ] = Field(default_factory=_default_allowed_exports)
     historical_context_mode: Annotated[
         LaxHistoricalContextMode,
-        Field(default="DISABLED", description="Historical context mode."),
-    ]
-    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
-    default_profile_id: Annotated[str | None, Field(default=None, description="Default output profile ID.")]
+        Field(default=HistoricalContextMode.DISABLED, description="Historical context mode."),
+    ] = HistoricalContextMode.DISABLED
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")] = None
+    default_profile_id: Annotated[str | None, Field(default=None, description="Default output profile ID.")] = None
+    status: Annotated[str, Field(default="draft", description="Workflow lifecycle status")] = "draft"
+    version: Annotated[int, Field(default=1, description="Workflow schema version")] = 1
+    is_public: Annotated[bool, Field(default=False, description="Public visibility flag")] = False
+    mcp_gateway_id: Annotated[str | None, Field(default="sys_8172bda70c8641c5", description="MCP gateway ID")] = (
+        "sys_8172bda70c8641c5"
+    )
+    default_strictness_level: Annotated[int, Field(default=50, ge=0, le=100, description="Strictness level")] = 50
+    default_scoring_strategy: Annotated[
+        LaxScoringStrategy, Field(default=ScoringStrategy.AVERAGE, description="Default scoring strategy")
+    ] = ScoringStrategy.AVERAGE
+    enable_contextual_overrides: Annotated[bool, Field(default=False, description="Enable contextual overrides")] = (
+        False
+    )
+    enable_semantic_smoothing: Annotated[bool, Field(default=False, description="Enable semantic smoothing")] = False
+    enable_eager_anonymization: Annotated[bool, Field(default=False, description="Enable eager anonymization")] = False
+    system_audit_trail: Annotated[bool, Field(default=False, description="Enable system audit trail")] = False
 
 
 class StepCreateDTO(V2CoreBase):
@@ -133,13 +160,17 @@ class StepCreateDTO(V2CoreBase):
 
     slug: Annotated[str, Field(..., description="Human-readable identifier (e.g., 'step_guard')")]
     name: Annotated[I18nText, Field(..., description="Localized step name")]
-    description: Annotated[I18nText | None, Field(default=None, description="Detailed step context")]
-    type: Annotated[LaxStepType, Field(default=StepType.LLM, description="Step execution type (llm or native logic)")]
-    hook: Annotated[str | None, Field(default=None, description="Native Python hook to execute if type is 'logic'")]
+    description: Annotated[I18nText | None, Field(default=None, description="Detailed step context")] = None
+    type: Annotated[
+        LaxStepType, Field(default=StepType.LLM, description="Step execution type (llm or native logic)")
+    ] = StepType.LLM
+    hook: Annotated[str | None, Field(default=None, description="Native Python hook to execute if type is 'logic'")] = (
+        None
+    )
     role_block_id: Annotated[
         str | None,
         Field(default=None, pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Role block reference"),
-    ]
+    ] = None
     extraction_protocol_block_id: Annotated[
         str | None,
         Field(
@@ -147,7 +178,7 @@ class StepCreateDTO(V2CoreBase):
             pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
             description="Global evidence extraction protocol reference",
         ),
-    ]
+    ] = None
     execution_persona_block_id: Annotated[
         str | None,
         Field(
@@ -155,18 +186,26 @@ class StepCreateDTO(V2CoreBase):
             pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
             description="Reference to Execution Persona PromptBlock",
         ),
-    ]
+    ] = None
     criteria_block_ids: Annotated[
         list[str], Field(default_factory=list, description="References to matrix or text blocks")
-    ]
-    pre_hooks: Annotated[list[str], Field(default_factory=list, description="Pre-execution hooks")]
-    post_hooks: Annotated[list[str], Field(default_factory=list, description="Post-execution hooks")]
-    safety: Annotated[Literal["safe", "unsafe"], Field(default="safe", description="Safety execution rating")]
-    allowed_mcp_tools: Annotated[list[str], Field(default_factory=list, description="Allowed MCP tools")]
-    model_strategy: Annotated[str | None, Field(default=None, description="Cognitive strategy profile override")]
-    expected_inputs: Annotated[list[str], Field(default_factory=list, description="List of expected input keys")]
-    is_system_core: Annotated[bool, Field(default=False, description="Protected system core flag")]
-    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID")]
+    ] = Field(default_factory=list)
+    pre_hooks: Annotated[list[str], Field(default_factory=list, description="Pre-execution hooks")] = Field(
+        default_factory=list
+    )
+    post_hooks: Annotated[list[str], Field(default_factory=list, description="Post-execution hooks")] = Field(
+        default_factory=list
+    )
+    safety: Annotated[Literal["safe", "unsafe"], Field(default="safe", description="Safety execution rating")] = "safe"
+    allowed_mcp_tools: Annotated[list[str], Field(default_factory=list, description="Allowed MCP tools")] = Field(
+        default_factory=list
+    )
+    model_strategy: Annotated[str | None, Field(default=None, description="Cognitive strategy profile override")] = None
+    expected_inputs: Annotated[list[str], Field(default_factory=list, description="List of expected input keys")] = (
+        Field(default_factory=list)
+    )
+    is_system_core: Annotated[bool, Field(default=False, description="Protected system core flag")] = False
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization ID")] = None
 
 
 class PromptBlockCreateDTO(V2CoreBase):
@@ -201,24 +240,34 @@ class PromptBlockCreateDTO(V2CoreBase):
     label: Annotated[I18nText, Field(..., description="Localizable label for the UI")]
     description: Annotated[I18nText, Field(..., description="Localizable description or help text")]
     category_id: Annotated[PromptBlockCategory, Field(..., description="Prompt block category")]
-    type: Annotated[BlockDataType, Field(default=BlockDataType.INSTRUCTION, description="Block data type")]
-    output_extensions: Annotated[list[str], Field(default_factory=list, description="Requested XAI extensions")]
-    ai_description: Annotated[str | None, Field(default=None, description="English cognitive instructions")]
-    theory_grounding: Annotated[TheoryGrounding | None, Field(default=None, description="Theory grounding metadata")]
-    is_evaluative: Annotated[bool, Field(default=False, description="Whether the block evaluates claims")]
-    allow_decimals: Annotated[bool, Field(default=False, description="Whether decimal scores are allowed")]
+    type: Annotated[BlockDataType, Field(default=BlockDataType.INSTRUCTION, description="Block data type")] = (
+        BlockDataType.INSTRUCTION
+    )
+    output_extensions: Annotated[list[str], Field(default_factory=list, description="Requested XAI extensions")] = (
+        Field(default_factory=list)
+    )
+    ai_description: Annotated[str | None, Field(default=None, description="English cognitive instructions")] = None
+    theory_grounding: Annotated[
+        TheoryGrounding | None, Field(default=None, description="Theory grounding metadata")
+    ] = None
+    is_evaluative: Annotated[bool, Field(default=False, description="Whether the block evaluates claims")] = False
+    allow_decimals: Annotated[bool, Field(default=False, description="Whether decimal scores are allowed")] = False
     allow_contextual_override: Annotated[
         bool, Field(default=False, description="Whether contextual override is allowed")
-    ]
-    is_lightweight_protocol: Annotated[bool, Field(default=False, description="Lightweight protocol flag")]
-    scales: Annotated[list[MatrixScale] | None, Field(default=None, description="BARS scale definitions")]
-    rows: Annotated[list[MatrixRow] | None, Field(default=None, description="Matrix rows")]
-    columns: Annotated[list[I18nText] | None, Field(default=None, description="Matrix columns")]
-    instruction_text: Annotated[str | None, Field(default=None, description="Instruction text for system rules")]
-    role_enforcement: Annotated[str | None, Field(default=None, description="Role enforcement for personas")]
-    tone_directives: Annotated[list[str], Field(default_factory=list, description="Tone directives for personas")]
-    protocol_instructions: Annotated[str | None, Field(default=None, description="Protocol instructions for protocols")]
-    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope")]
+    ] = False
+    is_lightweight_protocol: Annotated[bool, Field(default=False, description="Lightweight protocol flag")] = False
+    scales: Annotated[list[MatrixScale] | None, Field(default=None, description="BARS scale definitions")] = None
+    rows: Annotated[list[MatrixRow] | None, Field(default=None, description="Matrix rows")] = None
+    columns: Annotated[list[I18nText] | None, Field(default=None, description="Matrix columns")] = None
+    instruction_text: Annotated[str | None, Field(default=None, description="Instruction text for system rules")] = None
+    role_enforcement: Annotated[str | None, Field(default=None, description="Role enforcement for personas")] = None
+    tone_directives: Annotated[list[str], Field(default_factory=list, description="Tone directives for personas")] = (
+        Field(default_factory=list)
+    )
+    protocol_instructions: Annotated[
+        str | None, Field(default=None, description="Protocol instructions for protocols")
+    ] = None
+    organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope")] = None
 
 
 class WorkflowResponseDTO(BaseResponseDTO, Workflow):
@@ -443,3 +492,45 @@ class OutputProfileListResponse(BaseResponseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     items: list[OutputProfileResponseDTO]
+
+
+class WorkflowUpdateDTO(BaseDTO):
+    """DTO for updating an existing Workflow definition."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    name: Annotated[I18nText | str | None, Field(default=None, description="Updated localized workflow name")] = None
+    description: Annotated[I18nText | str | None, Field(default=None, description="Updated description")] = None
+    slug: Annotated[
+        str | None, Field(default=None, pattern=r"^[a-zA-Z0-9_\-]+$", description="Updated routing slug")
+    ] = None
+    expected_inputs: Annotated[
+        list[ExpectedInput] | None, Field(default=None, description="Updated expected inputs")
+    ] = None
+    steps: Annotated[list[StepRule] | None, Field(default=None, description="Updated step rules")] = None
+    allowed_exports: Annotated[list[Literal["pdf", "docx", "raw_json", "xlsx"]] | None, Field(default=None)] = None
+    historical_context_mode: Annotated[LaxHistoricalContextMode | None, Field(default=None)] = None
+    default_profile_id: Annotated[str | None, Field(default=None)] = None
+    status: Annotated[str | None, Field(default=None)] = None
+
+
+class StepUpdateDTO(BaseDTO):
+    """DTO for updating an existing Step blueprint."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    name: Annotated[I18nText | None, Field(default=None)] = None
+    description: Annotated[I18nText | None, Field(default=None)] = None
+    slug: Annotated[str | None, Field(default=None)] = None
+    type: Annotated[LaxStepType | None, Field(default=None)] = None
+    hook: Annotated[str | None, Field(default=None)] = None
+    role_block_id: Annotated[str | None, Field(default=None)] = None
+    extraction_protocol_block_id: Annotated[str | None, Field(default=None)] = None
+    execution_persona_block_id: Annotated[str | None, Field(default=None)] = None
+    criteria_block_ids: Annotated[list[str] | None, Field(default=None)] = None
+    pre_hooks: Annotated[list[str] | None, Field(default=None)] = None
+    post_hooks: Annotated[list[str] | None, Field(default=None)] = None
+    safety: Annotated[Literal["safe", "unsafe"] | None, Field(default=None)] = None
+    allowed_mcp_tools: Annotated[list[str] | None, Field(default=None)] = None
+    model_strategy: Annotated[str | None, Field(default=None)] = None
+    expected_inputs: Annotated[list[str] | None, Field(default=None)] = None

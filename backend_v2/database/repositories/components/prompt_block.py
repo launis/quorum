@@ -1,7 +1,8 @@
 """Extracted Repository for Prompt Blocks."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
@@ -98,43 +99,33 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             strict: If True, raises AppException when any requested ID is missing.
 
         Returns:
-            List of hydrated PromptBlock models.
+            List of validated PromptBlock domain models.
 
         Raises:
-            AppException: If strict=True and one or more block IDs are not found in DB.
+            AppException: If strict=True and any requested block ID is missing.
         """
         if not block_ids:
             return []
 
         unique_ids = list(dict.fromkeys(block_ids))
         results: list[PromptBlock] = []
+        missing_ids: list[str] = []
 
-        for bid in unique_ids:
-            model = await self.get_prompt_block_by_id(bid)
-            if model:
-                results.append(model)
-
-        found_ids = {b.id for b in results}
-        missing_ids = [bid for bid in unique_ids if bid not in found_ids]
+        for block_id in unique_ids:
+            block = await self.get_prompt_block_by_id(block_id)
+            if block is not None:
+                results.append(block)
+            else:
+                missing_ids.append(block_id)
 
         if strict and missing_ids:
-            msg = f"Failed to batch resolve prompt blocks. Missing block IDs: {missing_ids}"
-            logger.error(
-                "[PromptBlockRepo] %s: %s",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                msg,
-                extra={
-                    "error_code": ErrorCodes.RESOURCE_NOT_FOUND.name,
-                    "missing_ids": missing_ids,
-                },
-            )
             raise AppException(
-                message=msg,
-                status_code=404,
+                message=f"Missing required prompt blocks: {', '.join(missing_ids)}",
                 details={
                     "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
                     "missing_ids": missing_ids,
                 },
+                status_code=404,
             )
 
         return results
@@ -147,11 +138,11 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         """
         return await self.get_all_prompt_blocks()
 
-    async def create_prompt_block(self, block_data: dict[str, Any]) -> str:
+    async def create_prompt_block(self, block_data: PromptBlock) -> str:
         """Creates a new prompt block.
 
         Args:
-            block_data: The dictionary containing the prompt block data.
+            block_data: The PromptBlock model containing the prompt block data.
 
         Returns:
             The ID of the created prompt block.
@@ -159,15 +150,16 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         Raises:
             AppException: Propagated from driver if the upsert operation fails.
         """
-        doc_id = block_data["id"]
-        return await self.driver.upsert("prompt_blocks", block_data, doc_id)
+        payload = block_data.model_dump(mode="json")
+        doc_id = payload["id"]
+        return await self.driver.upsert("prompt_blocks", payload, doc_id)
 
-    async def update_prompt_block(self, block_id: str, updates: dict[str, Any]) -> bool:
+    async def update_prompt_block(self, block_id: str, updates: PromptBlock) -> bool:
         """Updates an existing prompt block using versioned append-only logic.
 
         Args:
             block_id: The ID of the prompt block to update.
-            updates: A dictionary of key-value pairs to update.
+            updates: PromptBlock domain model containing updated fields.
 
         Returns:
             True if the update was successful, False if the document was not found.
@@ -184,7 +176,7 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
         base_id, new_id, ver = self._increment_version(block_id)
 
         new_doc = dict(old_doc)
-        new_doc.update(updates)
+        new_doc.update(updates.model_dump(mode="json", exclude_unset=True))
         new_doc["id"] = new_id
         new_doc["is_latest"] = True
         new_doc["version"] = ver

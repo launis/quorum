@@ -827,7 +827,7 @@ def test_ast_guardrails_fatal_rejection_on_dict_messages() -> None:
 def test_ast_guardrails_allows_exempt_driver_annotations() -> None:
     """Contract 2: Exempt boundary files receive WARNING severity instead of FATAL."""
     code = "val = getattr(obj, 'x', None)\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/interfaces.py")
+    violations = _scan_snippet(code, filepath="backend_v2/database/tinydb_driver.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
     assert violations[0].severity == GuardrailSeverity.WARNING
@@ -840,3 +840,75 @@ def test_ast_guardrails_qgr001_fatal_in_models() -> None:
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
     assert violations[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr013_typevar_warning() -> None:
+    """QGR013: Banned TypeVar instantiation returns WARNING severity."""
+    code = "from typing import TypeVar\nT = TypeVar('T')\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/sample.py")
+    qgr013 = [v for v in violations if v.rule_code == "QGR013"]
+    assert len(qgr013) == 1
+    assert qgr013[0].severity == GuardrailSeverity.WARNING
+    assert "TypeVar" in qgr013[0].message
+
+
+def test_qgr014_asyncmock_repository_fatal() -> None:
+    """QGR014: AsyncMock(spec=IWorkflowRepository) returns FATAL severity."""
+    code = "from unittest.mock import AsyncMock\nfrom backend_v2.database.interfaces import IWorkflowRepository\nmock = AsyncMock(spec=IWorkflowRepository)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/services/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) >= 1
+    assert qgr014[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr014_mock_repo_variable_assignment_warning() -> None:
+    """QGR014: Variable assignment to mock_repo = AsyncMock() returns WARNING severity."""
+    code = "from unittest.mock import AsyncMock\nmock_repo = AsyncMock()\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/services/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) >= 1
+    assert any(v.severity == GuardrailSeverity.WARNING for v in qgr014)
+
+
+def test_qgr014_patch_repository_fatal() -> None:
+    """QGR014: patch('backend_v2.database.interfaces.IWorkflowRepository') returns FATAL."""
+    code = (
+        "from unittest.mock import patch\nwith patch('backend_v2.database.interfaces.IWorkflowRepository'):\n    pass\n"
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/services/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) >= 1
+    assert qgr014[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr015_typeguard_import_and_usage_warning() -> None:
+    """QGR015: TypeGuard import and annotation returns WARNING severity."""
+    code = "from typing import TypeGuard\ndef is_str(val: object) -> TypeGuard[str]:\n    return isinstance(val, str)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/utils/narrowing.py")
+    qgr015 = [v for v in violations if v.rule_code == "QGR015"]
+    assert len(qgr015) >= 1
+    assert qgr015[0].severity == GuardrailSeverity.WARNING
+
+
+def test_purged_boundary_exemption_files() -> None:
+    """Verify non-driver files are purged from BOUNDARY_EXEMPTION_FILES."""
+    from scripts._ast_guardrails import BOUNDARY_EXEMPTION_FILES
+
+    purged = [
+        "interfaces.py",
+        "wrapper.py",
+        "driver.py",
+        "exceptions.py",
+        "alias_engine.py",
+        "state_reducer.py",
+        "finops_trace_analyzer.py",
+    ]
+    for filename in purged:
+        assert filename not in BOUNDARY_EXEMPTION_FILES
+
+    assert BOUNDARY_EXEMPTION_FILES == {
+        "tinydb_driver.py",
+        "firestore_driver.py",
+        "provider.py",
+        "logging_config.py",
+    }

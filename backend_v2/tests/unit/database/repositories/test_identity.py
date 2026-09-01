@@ -1,11 +1,14 @@
 """Unit tests for IdentityRepositoryImpl."""
 
+from __future__ import annotations
+
 from unittest.mock import AsyncMock
 
 import pytest
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
+from backend_v2.models.auth import Organization, OrganizationUpdateDTO, User, UserRole, UserUpdate
 
 
 @pytest.fixture
@@ -27,41 +30,43 @@ def repo(mock_driver: AsyncMock) -> IdentityRepositoryImpl:
 
 
 @pytest.fixture
-def valid_org_doc() -> dict:
-    """Valid organization document fixture."""
-    return {
-        "id": "org_1234567890abcdef",
-        "name": "Test Org",
-        "is_active": True,
-        "tier": "enterprise",
-        "subscription_status": "active",
-        "quota_limit": 1000,
-        "tpm_limit": 10000,
-        "rpm_limit": 100,
-        "created_at": "2026-08-30T12:00:00Z",
-    }
+def sample_organization() -> Organization:
+    """Valid Organization domain model fixture."""
+    return Organization(
+        id="org_1234567890abcdef",
+        name="Test Org",
+        is_active=True,
+        tier="enterprise",
+        subscription_status="active",
+        quota_limit=1000.0,
+        tpm_limit=10000,
+        rpm_limit=100,
+    )
 
 
 @pytest.fixture
-def valid_user_doc() -> dict:
-    """Valid user document fixture."""
-    return {
-        "id": "usr_1234567890abcdef",
-        "email": "user@example.com",
-        "role": "ADMIN",
-        "is_active": True,
-        "language": "fi",
-        "theme_mode": "system",
-        "organization_id": "org_1234567890abcdef",
-        "created_at": "2026-08-30T12:00:00Z",
-    }
+def sample_user() -> User:
+    """Valid User domain model fixture."""
+    return User(
+        id="usr_1234567890abcdef",
+        email="user@example.com",
+        role=UserRole.ADMIN,
+        is_active=True,
+        language="fi",
+        theme_mode="system",
+        organization_id="org_1234567890abcdef",
+        created_at="2026-08-30T12:00:00Z",
+    )
 
 
 @pytest.mark.asyncio
-async def test_organization_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, valid_org_doc: dict) -> None:
+async def test_organization_crud(
+    repo: IdentityRepositoryImpl, mock_driver: AsyncMock, sample_organization: Organization
+) -> None:
     """Positive: tests organization CRUD operations and corrupted record skipping."""
-    mock_driver.get.return_value = valid_org_doc
-    mock_driver.query.return_value = [{"id": "corrupted_org"}, valid_org_doc]
+    org_dict = sample_organization.model_dump(mode="json")
+    mock_driver.get.return_value = org_dict
+    mock_driver.query.return_value = [{"id": "corrupted_org"}, org_dict]
 
     org = await repo.get_organization("org_1234567890abcdef")
     assert org is not None
@@ -75,8 +80,8 @@ async def test_organization_crud(repo: IdentityRepositoryImpl, mock_driver: Asyn
     assert len(orgs) == 1
     assert orgs[0].id == "org_1234567890abcdef"
 
-    assert await repo.create_organization(valid_org_doc) == "org_1234567890abcdef"
-    assert await repo.update_organization("org_1234567890abcdef", {"name": "Updated Org"}) is True
+    assert await repo.create_organization(sample_organization) == "org_1234567890abcdef"
+    assert await repo.update_organization("org_1234567890abcdef", OrganizationUpdateDTO(name="Updated Org")) is True
     assert await repo.delete_organization("org_1234567890abcdef") is True
 
 
@@ -88,10 +93,11 @@ async def test_get_organization_not_found(repo: IdentityRepositoryImpl, mock_dri
 
 
 @pytest.mark.asyncio
-async def test_user_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, valid_user_doc: dict) -> None:
+async def test_user_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, sample_user: User) -> None:
     """Positive: tests user CRUD operations and corrupted record skipping."""
-    mock_driver.get.return_value = valid_user_doc
-    mock_driver.query.return_value = [{"id": "corrupted_user"}, valid_user_doc]
+    user_dict = sample_user.model_dump(mode="json")
+    mock_driver.get.return_value = user_dict
+    mock_driver.query.return_value = [{"id": "corrupted_user"}, user_dict]
 
     user = await repo.get_user("usr_1234567890abcdef")
     assert user is not None
@@ -102,14 +108,14 @@ async def test_user_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, v
     assert len(users) == 1
     assert users[0].email == "user@example.com"
 
-    mock_driver.query.return_value = [valid_user_doc]
+    mock_driver.query.return_value = [user_dict]
     by_email = await repo.get_user_by_email("user@example.com")
     assert by_email is not None
     assert by_email.id == "usr_1234567890abcdef"
 
     mock_driver.upsert.return_value = "usr_1234567890abcdef"
-    assert await repo.create_user(valid_user_doc) == "usr_1234567890abcdef"
-    assert await repo.update_user("usr_1234567890abcdef", {"language": "en"}) is True
+    assert await repo.create_user(sample_user) == "usr_1234567890abcdef"
+    assert await repo.update_user("usr_1234567890abcdef", UserUpdate(language="en")) is True
     assert await repo.delete_user("usr_1234567890abcdef") is True
 
 
@@ -124,12 +130,10 @@ async def test_get_user_not_found(repo: IdentityRepositoryImpl, mock_driver: Asy
 
 
 @pytest.mark.asyncio
-async def test_delete_org_data_cascade(
-    repo: IdentityRepositoryImpl, mock_driver: AsyncMock, valid_user_doc: dict
-) -> None:
+async def test_delete_org_data_cascade(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, sample_user: User) -> None:
     """Positive: tests cascading purge of users, executions, and custom workflows."""
     mock_driver.query.side_effect = [
-        [valid_user_doc],  # users for org
+        [sample_user.model_dump(mode="json")],  # users for org
         [{"id": "exe_1", "organization_id": "org_1"}],  # executions
         [{"id": "wf_1", "organization_id": "org_1"}],  # workflows
     ]

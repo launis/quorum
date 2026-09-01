@@ -1,11 +1,13 @@
 """Extracted Repository for Execution Personas."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
-from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -13,45 +15,70 @@ logger = logging.getLogger(__name__)
 class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Execution Personas."""
 
-    async def get_all_execution_personas(self) -> list[dict[str, Any]]:
+    async def get_all_execution_personas(self) -> list[PromptBlock]:
         """Retrieves all execution personas from the database.
 
         Returns:
-            List of execution persona dictionaries.
+            List of execution persona PromptBlock models.
         """
         filters = [Filter("type", "==", "execution_persona")]
-        return await self.driver.query("components", filters)
+        raw_items = await self.driver.query("components", filters)
+        personas: list[PromptBlock] = []
+        for item in raw_items:
+            try:
+                personas.append(PromptBlockAdapter.validate_python(item, strict=False))
+            except Exception as e:
+                item_id = item["id"] if "id" in item else "unknown"
+                logger.error("Failed to parse ExecutionPersona %s: %s", item_id, e, exc_info=True)
+                raise AppException(
+                    message=f"Failed to parse ExecutionPersona {item_id} from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+        return personas
 
-    async def get_execution_persona_by_id(self, persona_id: str) -> dict[str, Any] | None:
+    async def get_execution_persona_by_id(self, persona_id: str) -> PromptBlock | None:
         """Retrieves an execution persona by its ID.
 
         Args:
             persona_id: Unique identifier for the execution persona.
 
         Returns:
-            The execution persona dictionary if found, otherwise None.
+            The execution persona PromptBlock if found, otherwise None.
         """
-        return await self.driver.get("components", persona_id)
+        doc = await self.driver.get("components", persona_id)
+        if not doc:
+            return None
+        try:
+            return PromptBlockAdapter.validate_python(doc, strict=False)
+        except Exception as e:
+            logger.error("Failed to parse ExecutionPersona %s: %s", persona_id, e, exc_info=True)
+            raise AppException(
+                message=f"Failed to parse ExecutionPersona {persona_id} from database",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
-    async def create_execution_persona(self, persona_data: dict[str, Any]) -> str:
+    async def create_execution_persona(self, persona_data: PromptBlock) -> str:
         """Creates a new execution persona.
 
         Args:
-            persona_data: Dictionary containing execution persona fields.
+            persona_data: PromptBlock containing execution persona fields.
 
         Returns:
             The created persona ID.
         """
-        doc_id = persona_data["id"]
-        persona_data["type"] = "execution_persona"
-        return await self.driver.upsert("components", persona_data, doc_id)
+        payload = persona_data.model_dump(mode="json")
+        doc_id = payload["id"]
+        payload["type"] = "execution_persona"
+        return await self.driver.upsert("components", payload, doc_id)
 
-    async def update_execution_persona(self, persona_id: str, updates: dict[str, Any]) -> str:
+    async def update_execution_persona(self, persona_id: str, updates: PromptBlock) -> str:
         """Updates an existing execution persona.
 
         Args:
             persona_id: Unique identifier for the execution persona.
-            updates: Dictionary of fields to update.
+            updates: PromptBlock containing fields to update.
 
         Returns:
             The updated persona ID.
@@ -62,7 +89,8 @@ class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
         comp = await self.get_execution_persona_by_id(persona_id)
         if not comp:
             raise ResourceNotFoundError(resource_type="ExecutionPersona", resource_id=persona_id)
-        await self.driver.update("components", persona_id, updates)
+        payload = updates.model_dump(mode="json", exclude_unset=True)
+        await self.driver.update("components", persona_id, payload)
         return persona_id
 
     async def delete_execution_persona(self, persona_id: str) -> bool:

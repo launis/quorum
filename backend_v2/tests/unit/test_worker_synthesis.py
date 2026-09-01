@@ -22,6 +22,24 @@ from backend_v2.settings import get_settings
 from backend_v2.worker import generate_profile_synthesis_and_pdf_task
 
 
+def _find_profile_syntheses(calls: list[Any], exec_id: str = "exec_1234567812345678") -> dict[str, Any] | None:
+    for call in calls:
+        args, _kwargs = call
+        if len(args) >= 2 and args[0] == exec_id:
+            payload = args[1]
+            ps = getattr(payload, "profile_syntheses", None) or (
+                payload.get("profile_syntheses") if isinstance(payload, dict) else None
+            )
+            if ps is not None:
+                if isinstance(ps, dict):
+                    res = {}
+                    for k, v in ps.items():
+                        res[k] = v.model_dump(mode="json") if hasattr(v, "model_dump") else v
+                    return res
+                return ps
+    return None
+
+
 @pytest.mark.asyncio
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
@@ -144,15 +162,9 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
     )
 
-    found_payload = None
-    for call in mock_repo.update_execution.call_args_list:
-        args, kwargs = call
-        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
-            found_payload = args[1]
-            break
-
-    assert found_payload is not None, "Execution record was not updated with profile_syntheses"
-    assert isinstance(found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"], dict)
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None, "Execution record was not updated with profile_syntheses"
+    assert isinstance(prof_synth["prof_1111111111111111"]["section_syntheses"], dict)
 
 
 def _setup_mock_repo_for_metrics(
@@ -302,15 +314,9 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
         execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
     )
 
-    found_payload = None
-    for call in mock_repo.update_execution.call_args_list:
-        args, kwargs = call
-        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
-            found_payload = args[1]
-            break
-
-    assert found_payload is not None
-    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
     assert metrics is not None
     assert metrics["authenticity_score"] == 2.5
     assert metrics["performative_phrases_count"] == 2.0
@@ -333,15 +339,9 @@ async def test_worker_synthesis_missing_metrics_remains_none(
         execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
     )
 
-    found_payload = None
-    for call in mock_repo.update_execution.call_args_list:
-        args, kwargs = call
-        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
-            found_payload = args[1]
-            break
-
-    assert found_payload is not None
-    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
     assert metrics is None
 
 
@@ -383,15 +383,9 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
         execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
     )
 
-    found_payload = None
-    for call in mock_repo.update_execution.call_args_list:
-        args, kwargs = call
-        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
-            found_payload = args[1]
-            break
-
-    assert found_payload is not None
-    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
     assert metrics is None
 
 
@@ -421,15 +415,9 @@ async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock
         execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
     )
 
-    found_payload = None
-    for call in mock_repo.update_execution.call_args_list:
-        args, kwargs = call
-        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
-            found_payload = args[1]
-            break
-
-    assert found_payload is not None
-    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
     assert metrics is None
 
 
@@ -470,15 +458,9 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
         execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
     )
 
-    found_payload = None
-    for call in mock_repo.update_execution.call_args_list:
-        args, kwargs = call
-        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
-            found_payload = args[1]
-            break
-
-    assert found_payload is not None
-    metrics = found_payload["profile_syntheses"]["prof_1111111111111111"].get("extension_metrics")
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
     assert metrics is None
 
 
@@ -725,15 +707,9 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in all_user_content
     assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in all_user_content
 
-    found_payload = None
-    for call in mock_repo.update_execution.call_args_list:
-        args, kwargs = call
-        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
-            found_payload = args[1]
-            break
-
-    assert found_payload is not None
-    sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    sec_synth = prof_synth["prof_1111111111111111"]["section_syntheses"]
     assert "executive_summary_block" in sec_synth
     assert len(sec_synth["executive_summary_block"]) == 1
     assert sec_synth["executive_summary_block"][0]["text"] == "Executive summary narrative paragraph 1."
@@ -817,15 +793,9 @@ async def test_worker_synthesis_multi_section_aggregation(
         execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
     )
 
-    found_payload = None
-    for call in mock_repo.update_execution.call_args_list:
-        args, kwargs = call
-        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
-            found_payload = args[1]
-            break
-
-    assert found_payload is not None
-    sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    sec_synth = prof_synth["prof_1111111111111111"]["section_syntheses"]
     assert "grp_c5804a9143c34cb1" in sec_synth
     assert len(sec_synth["grp_c5804a9143c34cb1"]) == 2
     assert sec_synth["grp_c5804a9143c34cb1"][0]["text"] == "Paragraph 1 text"
@@ -899,13 +869,7 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
         execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
     )
 
-    found_payload = None
-    for call in mock_repo.update_execution.call_args_list:
-        args, kwargs = call
-        if args[0] == "exec_1234567812345678" and "profile_syntheses" in args[1]:
-            found_payload = args[1]
-            break
-
-    assert found_payload is not None
-    sec_synth = found_payload["profile_syntheses"]["prof_1111111111111111"]["section_syntheses"]
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    sec_synth = prof_synth["prof_1111111111111111"]["section_syntheses"]
     assert "grp_0000000000000000" not in sec_synth

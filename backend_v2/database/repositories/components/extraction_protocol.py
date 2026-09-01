@@ -1,11 +1,13 @@
 """Extracted Repository for Extraction Protocols."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
-from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -13,45 +15,70 @@ logger = logging.getLogger(__name__)
 class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Extraction Protocols."""
 
-    async def get_all_extraction_protocols(self) -> list[dict[str, Any]]:
+    async def get_all_extraction_protocols(self) -> list[PromptBlock]:
         """Retrieves all extraction protocols from the database.
 
         Returns:
-            List of extraction protocol dictionaries.
+            List of extraction protocol PromptBlock models.
         """
         filters = [Filter("type", "==", "extraction_protocol")]
-        return await self.driver.query("components", filters)
+        raw_items = await self.driver.query("components", filters)
+        protocols: list[PromptBlock] = []
+        for item in raw_items:
+            try:
+                protocols.append(PromptBlockAdapter.validate_python(item, strict=False))
+            except Exception as e:
+                item_id = item["id"] if "id" in item else "unknown"
+                logger.error("Failed to parse ExtractionProtocol %s: %s", item_id, e, exc_info=True)
+                raise AppException(
+                    message=f"Failed to parse ExtractionProtocol {item_id} from database",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+        return protocols
 
-    async def get_extraction_protocol_by_id(self, protocol_id: str) -> dict[str, Any] | None:
+    async def get_extraction_protocol_by_id(self, protocol_id: str) -> PromptBlock | None:
         """Retrieves an extraction protocol by its ID.
 
         Args:
             protocol_id: Unique identifier for the extraction protocol.
 
         Returns:
-            The extraction protocol dictionary if found, otherwise None.
+            The extraction protocol PromptBlock if found, otherwise None.
         """
-        return await self.driver.get("components", protocol_id)
+        doc = await self.driver.get("components", protocol_id)
+        if not doc:
+            return None
+        try:
+            return PromptBlockAdapter.validate_python(doc, strict=False)
+        except Exception as e:
+            logger.error("Failed to parse ExtractionProtocol %s: %s", protocol_id, e, exc_info=True)
+            raise AppException(
+                message=f"Failed to parse ExtractionProtocol {protocol_id} from database",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
-    async def create_extraction_protocol(self, protocol_data: dict[str, Any]) -> str:
+    async def create_extraction_protocol(self, protocol_data: PromptBlock) -> str:
         """Creates a new extraction protocol.
 
         Args:
-            protocol_data: Dictionary containing extraction protocol fields.
+            protocol_data: PromptBlock containing extraction protocol fields.
 
         Returns:
             The created protocol ID.
         """
-        doc_id = protocol_data["id"]
-        protocol_data["type"] = "extraction_protocol"
-        return await self.driver.upsert("components", protocol_data, doc_id)
+        payload = protocol_data.model_dump(mode="json")
+        doc_id = payload["id"]
+        payload["type"] = "extraction_protocol"
+        return await self.driver.upsert("components", payload, doc_id)
 
-    async def update_extraction_protocol(self, protocol_id: str, updates: dict[str, Any]) -> str:
+    async def update_extraction_protocol(self, protocol_id: str, updates: PromptBlock) -> str:
         """Updates an existing extraction protocol.
 
         Args:
             protocol_id: Unique identifier for the extraction protocol.
-            updates: Dictionary of fields to update.
+            updates: PromptBlock containing fields to update.
 
         Returns:
             The updated protocol ID.
@@ -62,7 +89,8 @@ class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
         comp = await self.get_extraction_protocol_by_id(protocol_id)
         if not comp:
             raise ResourceNotFoundError(resource_type="ExtractionProtocol", resource_id=protocol_id)
-        await self.driver.update("components", protocol_id, updates)
+        payload = updates.model_dump(mode="json", exclude_unset=True)
+        await self.driver.update("components", protocol_id, payload)
         return protocol_id
 
     async def delete_extraction_protocol(self, protocol_id: str) -> bool:

@@ -396,7 +396,7 @@ class ModelProfile(V2CoreBase):
 class SystemConfigModelRegistry(V2CoreBase):
     """V2 Flattened Model Registry System Config."""
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="model_registry")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
     type: Literal["model_registry"] = Field(default="model_registry", description="Type of config")
@@ -446,7 +446,7 @@ class MCPAuditTrace(V2CoreBase):
 class SystemConfigMCPGateways(V2CoreBase):
     """System-level registry of available MCP tool gateways."""
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="mcp_gateways")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
     type: Literal["mcp_gateways"] = Field(default="mcp_gateways", description="Config type discriminator.")
@@ -470,7 +470,7 @@ class LexiconConfigPayload(V2CoreBase):
 class SystemConfigPerformativeLexicons(V2CoreBase):
     """System configuration for multi-language performative lexicons."""
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="performative_lexicons")
 
     id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
     type: Literal["performative_lexicons"] = Field(

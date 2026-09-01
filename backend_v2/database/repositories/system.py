@@ -1,11 +1,19 @@
 """Database repository implementation module for System config, MCP config, and Model registries."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.models.dtos.system import (
+    AnySystemConfig,
+    AnySystemConfigAdapter,
+    SystemConfigCreateDTO,
+    SystemConfigUpdateDTO,
+    SystemSettingsDTO,
+)
 from backend_v2.models.v2_core import SystemConfigMCPGateways, SystemConfigModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -30,20 +38,21 @@ class SystemRepositoryImpl(BaseRepository):
             raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
         return SystemConfigModelRegistry.model_validate(res, strict=False)
 
-    async def update_model_registry(self, registry_data: dict[str, Any]) -> bool:
+    async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
         """Updates the system model registry configuration.
 
         Args:
-            registry_data: Dictionary containing updated model registry fields.
+            registry_data: SystemConfigModelRegistry containing updated model registry fields.
 
         Returns:
             True if updated successfully.
         """
         res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")], limit=1)
-        doc_id = res_list[0]["id"] if res_list else (registry_data["id"] if "id" in registry_data else "model_registry")
-        if doc_id != "model_registry" and "type" not in registry_data:
-            registry_data["type"] = "model_registry"
-        await self.driver.upsert("system_config", registry_data, doc_id)
+        payload = registry_data.model_dump(mode="json", exclude_unset=True)
+        doc_id = res_list[0]["id"] if res_list else (payload["id"] if "id" in payload else "model_registry")
+        payload["id"] = doc_id
+        payload["type"] = "model_registry"
+        await self.driver.upsert("system_config", payload, doc_id)
         return True
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
@@ -72,29 +81,28 @@ class SystemRepositoryImpl(BaseRepository):
             raise ResourceNotFoundError(resource_type="system_config", resource_id=target_id)
         return SystemConfigMCPGateways.model_validate(res, strict=False)
 
-    async def update_mcp_gateways(self, gateways_data: dict[str, Any]) -> bool:
+    async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
         """Updates the MCP gateways configuration.
 
         Args:
-            gateways_data: Dictionary containing MCP gateway settings.
+            gateways_data: SystemConfigMCPGateways containing MCP gateway settings.
 
         Returns:
             True if updated successfully.
         """
         res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
-        doc_id = (
-            res_list[0]["id"] if res_list else (gateways_data["id"] if "id" in gateways_data else "cfg_mcpGateways01")
-        )
-        if doc_id != "cfg_mcpGateways01" and "type" not in gateways_data:
-            gateways_data["type"] = "mcp_gateways"
-        await self.driver.upsert("system_config", gateways_data, doc_id)
+        payload = gateways_data.model_dump(mode="json", exclude_unset=True)
+        doc_id = res_list[0]["id"] if res_list else (payload["id"] if "id" in payload else "cfg_mcpGateways01")
+        payload["id"] = doc_id
+        payload["type"] = "mcp_gateways"
+        await self.driver.upsert("system_config", payload, doc_id)
         return True
 
-    async def get_system_settings(self) -> dict[str, Any] | None:
+    async def get_system_settings(self) -> SystemSettingsDTO | None:
         """Retrieves global system settings.
 
         Returns:
-            The global settings dictionary if found.
+            The SystemSettingsDTO if found.
 
         Raises:
             ResourceNotFoundError: If the global_settings document is missing.
@@ -104,43 +112,49 @@ class SystemRepositoryImpl(BaseRepository):
         if not res:
             logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: 'global_settings' document is missing.")
             raise ResourceNotFoundError(resource_type="system_config", resource_id="global_settings")
-        return res
+        return SystemSettingsDTO.model_validate(res, strict=False)
 
-    async def update_system_settings(self, updates: dict[str, Any]) -> bool:
+    async def update_system_settings(self, updates: SystemConfigUpdateDTO) -> bool:
         """Updates global system settings.
 
         Args:
-            updates: Dictionary of settings updates.
+            updates: SystemConfigUpdateDTO containing settings updates.
 
         Returns:
             True if updated successfully.
         """
         res_list = await self.driver.query("system_config", [Filter("type", "==", "global_settings")], limit=1)
-        doc_id = res_list[0]["id"] if res_list else (updates["id"] if "id" in updates else "global_settings")
-        if doc_id != "global_settings" and "type" not in updates:
-            updates["type"] = "global_settings"
-        await self.driver.upsert("system_config", updates, doc_id)
+        payload = updates.model_dump(mode="json", exclude_unset=True)
+        doc_id = res_list[0]["id"] if res_list else (payload["id"] if "id" in payload else "global_settings")
+        payload["id"] = doc_id
+        payload["type"] = "global_settings"
+        await self.driver.upsert("system_config", payload, doc_id)
         return True
 
-    async def get_system_config(self, config_id: str) -> dict[str, Any] | None:
+    async def get_system_config(self, config_id: str) -> AnySystemConfig | None:
         """Gets a system configuration document by its ID.
 
         Args:
             config_id: Unique identifier for the system config document.
 
         Returns:
-            The document dictionary if found, otherwise None.
+            The typed AnySystemConfig if found, otherwise None.
         """
-        return await self.driver.get("system_config", config_id)
+        doc = await self.driver.get("system_config", config_id)
+        if not doc:
+            return None
+        return AnySystemConfigAdapter.validate_python(doc, strict=False)
 
-    async def create_system_config(self, config_data: dict[str, Any]) -> str:
+    async def create_system_config(self, config_data: SystemConfigCreateDTO) -> str:
         """Creates a new system configuration document.
 
         Args:
-            config_data: Dictionary containing configuration fields.
+            config_data: SystemConfigCreateDTO containing configuration fields.
 
         Returns:
             The document ID.
         """
-        doc_id = str(config_data["id"])
-        return await self.driver.upsert("system_config", config_data, doc_id)
+        payload = config_data.model_dump(mode="json")
+        doc_id = payload["id"] if "id" in payload else f"cfg_{config_data.type}"
+        payload["id"] = doc_id
+        return await self.driver.upsert("system_config", payload, doc_id)

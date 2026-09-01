@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.auth import Organization, SystemOrganizations
+from backend_v2.models.domain.base import UsageAggregateDTO
 from backend_v2.services.usage_service import UsageService
 
 
@@ -53,16 +54,16 @@ async def test_check_quota_system_root(usage_service: UsageService, mock_repo: A
 
 @pytest.mark.asyncio
 async def test_check_quota_pass(usage_service: UsageService, mock_repo: AsyncMock) -> None:
-    mock_repo.get_organization.return_value = {
-        "id": "org_1234abcd",
-        "name": "Test Org",
-        "is_active": True,
-        "tier": "basic",
-        "subscription_status": "active",
-        "quota_limit": 10.0,
-        "tpm_limit": 1000,
-        "rpm_limit": 10,
-    }
+    mock_repo.get_organization.return_value = Organization(
+        id="org_1234abcd",
+        name="Test Org",
+        is_active=True,
+        tier="basic",
+        subscription_status="active",
+        quota_limit=10.0,
+        tpm_limit=1000,
+        rpm_limit=10,
+    )
     mock_repo.get_org_usage_total.return_value = 5.0  # Used less than 10.0
 
     res = await usage_service.check_quota("org_1234abcd")
@@ -72,16 +73,16 @@ async def test_check_quota_pass(usage_service: UsageService, mock_repo: AsyncMoc
 
 @pytest.mark.asyncio
 async def test_check_quota_exceed(usage_service: UsageService, mock_repo: AsyncMock) -> None:
-    mock_repo.get_organization.return_value = {
-        "id": "org_1234abcd",
-        "name": "Test Org",
-        "is_active": True,
-        "tier": "basic",
-        "subscription_status": "active",
-        "quota_limit": 10.0,
-        "tpm_limit": 1000,
-        "rpm_limit": 10,
-    }
+    mock_repo.get_organization.return_value = Organization(
+        id="org_1234abcd",
+        name="Test Org",
+        is_active=True,
+        tier="basic",
+        subscription_status="active",
+        quota_limit=10.0,
+        tpm_limit=1000,
+        rpm_limit=10,
+    )
     mock_repo.get_org_usage_total.return_value = 15.0  # Used more than 10.0
 
     res = await usage_service.check_quota("org_1234abcd")
@@ -100,31 +101,26 @@ async def test_check_quota_org_not_found(usage_service: UsageService, mock_repo:
 
 @pytest.mark.asyncio
 async def test_get_usage_report_with_aggregate(usage_service: UsageService, mock_repo: AsyncMock) -> None:
-    mock_repo.get_usage_aggregate.return_value = {
-        "scope": "organization",
-        "entity_id": "org_1234abcd",
-        "period": "2026-04",
-        "total_executions": 5,
-        "usage": {
-            "prompt_tokens": 100,
-            "completion_tokens": 200,
-            "total_tokens": 300,
-            "cached_tokens": 0,
-            "reasoning_tokens": 0,
-            "cost_usd": 0.5,
-        },
-    }
+    mock_repo.get_usage_aggregate.return_value = UsageAggregateDTO(
+        organization_id="org_1234abcd",
+        period="2026-04",
+        total_input_tokens=100,
+        total_output_tokens=200,
+        total_cached_tokens=0,
+        total_cost_usd=0.5,
+        execution_count=5,
+    )
 
-    mock_repo.get_organization.return_value = {
-        "id": "org_1234abcd",
-        "name": "Test Org",
-        "is_active": True,
-        "tier": "basic",
-        "subscription_status": "active",
-        "quota_limit": 10.0,
-        "tpm_limit": 1000,
-        "rpm_limit": 10,
-    }
+    mock_repo.get_organization.return_value = Organization(
+        id="org_1234abcd",
+        name="Test Org",
+        is_active=True,
+        tier="basic",
+        subscription_status="active",
+        quota_limit=10.0,
+        tpm_limit=1000,
+        rpm_limit=10,
+    )
 
     report = await usage_service.get_usage_report(scope="org", entity_id="org_1234abcd")
 

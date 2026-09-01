@@ -146,14 +146,8 @@ class StudioSystemConfigService:
         """
         if initiator.role == UserRole.ROOT:
             data = await self.system_repo.get_model_registry()
-            if data:
-                registry = (
-                    data
-                    if isinstance(data, SystemConfigModelRegistry)
-                    else SystemConfigModelRegistry.model_validate(data, strict=False)
-                )
-                if registry.type == "model_registry":
-                    return [registry]
+            if data and data.type == "model_registry":
+                return [data]
         return []
 
     async def get_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
@@ -186,7 +180,7 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
-        return SystemConfigModelRegistry.model_validate(data, strict=False)
+        return data
 
     async def save_system_config(
         self, initiator: TokenData, id: str, data: SystemConfigModelRegistry
@@ -213,10 +207,9 @@ class StudioSystemConfigService:
             )
             raise PermissionDeniedError("Only ROOT can modify system configs.")
 
-        dump = data.model_dump(mode="json")
-        if "id" not in dump:
-            dump["id"] = id
-        await self.system_repo.update_model_registry(dump)
+        if data.id != id:
+            data = data.model_copy(update={"id": id})
+        await self.system_repo.update_model_registry(data)
 
         saved = await self.system_repo.get_model_registry()
         if not saved:
@@ -227,39 +220,10 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
-        return SystemConfigModelRegistry.model_validate(saved, strict=False)
+        return saved
 
-    async def delete_system_config(self, initiator: TokenData, id: str) -> None:
-        """Delete system config.
-
-        Args:
-            initiator: The authenticated user.
-            id: The system config identifier.
-
-        Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
-        """
-        if initiator.role != UserRole.ROOT:
-            logger.error(
-                "[StudioSystemConfigService] %s: Only ROOT can delete system configs (Initiator: %s).",
-                ErrorCodes.PERMISSION_DENIED.name,
-                initiator.id,
-            )
-            raise PermissionDeniedError("Only ROOT can delete system configs.")
-
-        data = await self.system_repo.get_model_registry()
-        if not data:
-            logger.error(
-                "[StudioSystemConfigService] %s: SystemConfig %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
-
-    async def create_model_registry_draft(self, initiator: TokenData) -> SystemConfigModelRegistry:
-        """Create model registry draft.
+    async def create_system_config_draft(self, initiator: TokenData) -> SystemConfigModelRegistry:
+        """Create system config draft.
 
         Args:
             initiator: The authenticated user.
@@ -270,8 +234,12 @@ class StudioSystemConfigService:
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
 
         new_id = f"sys_{uuid.uuid4().hex[:16]}"
-        draft_dict: dict[str, Any] = {"id": new_id, "slug": new_id, "type": "model_registry", "models": {}}
-        draft = SystemConfigModelRegistry.model_validate(draft_dict, strict=False)
+        draft = SystemConfigModelRegistry(
+            id=new_id,
+            slug=new_id,
+            type="model_registry",
+            models={},
+        )
         return await self.save_system_config(initiator, new_id, draft)
 
     async def clone_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
@@ -298,28 +266,50 @@ class StudioSystemConfigService:
         data = await self.system_repo.get_model_registry()
         if not data:
             logger.error(
-                "[StudioSystemConfigService] %s: SystemConfig %s not found (Initiator: %s).",
+                "[StudioSystemConfigService] %s: Model registry not found for cloning (Initiator: %s).",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
 
         new_id = f"sys_{uuid.uuid4().hex[:16]}"
+        cloned_obj = data.model_copy(
+            update={
+                "id": new_id,
+                "slug": f"{data.slug}-copy" if data.slug else None,
+            }
+        )
 
-        cloned_data = SystemConfigModelRegistry.model_validate(data, strict=False).model_dump(mode="json")
-        cloned_data["id"] = new_id
-        if (
-            "description" in cloned_data
-            and isinstance(cloned_data["description"], str)
-            and cloned_data["description"].strip()
-        ):
-            cloned_data["description"] = f"{cloned_data['description']} (Copy)"
+        await self.system_repo.update_model_registry(cloned_obj)
+        return await self.system_repo.get_model_registry()
 
-        await self.system_repo.update_model_registry(cloned_data)
+    async def delete_system_config(self, initiator: TokenData, id: str) -> None:
+        """Delete system config.
 
-        saved = await self.system_repo.get_model_registry()
-        return SystemConfigModelRegistry.model_validate(saved, strict=False)
+        Args:
+            initiator: The authenticated user.
+            id: The system config identifier.
+
+        Raises:
+            PermissionDeniedError: If non-ROOT user attempts deletion.
+            ResourceNotFoundError: If the system config is missing.
+        """
+        if initiator.role != UserRole.ROOT:
+            logger.error(
+                "[StudioSystemConfigService] %s: Only ROOT can delete system configs (Initiator: %s).",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+            )
+            raise PermissionDeniedError("Only ROOT can delete system configs.")
+        data = await self.system_repo.get_model_registry()
+        if not data:
+            logger.error(
+                "[StudioSystemConfigService] %s: SystemConfig %s not found for deletion (Initiator: %s).",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                id,
+                initiator.id,
+            )
+            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
 
     async def list_mcp_gateways(self, initiator: TokenData) -> list[SystemConfigMCPGateways]:
         """List mcp gateways.
@@ -333,14 +323,8 @@ class StudioSystemConfigService:
         if initiator.role != UserRole.ROOT:
             return []
         data = await self.system_repo.get_mcp_gateways()
-        if data:
-            gateways = (
-                data
-                if isinstance(data, SystemConfigMCPGateways)
-                else SystemConfigMCPGateways.model_validate(data, strict=False)
-            )
-            if gateways.type == "mcp_gateways":
-                return [gateways]
+        if data and data.type == "mcp_gateways":
+            return [data]
         return []
 
     async def get_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
@@ -364,8 +348,7 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise PermissionDeniedError("Only ROOT can view system configs.")
-        data = await self.system_repo.get_mcp_gateways(id=id)
-        return SystemConfigMCPGateways.model_validate(data, strict=False)
+        return await self.system_repo.get_mcp_gateways(id=id)
 
     async def save_mcp_gateways(
         self, initiator: TokenData, id: str, data: SystemConfigMCPGateways
@@ -392,13 +375,11 @@ class StudioSystemConfigService:
             )
             raise PermissionDeniedError("Only ROOT can modify system configs.")
 
-        dump = data.model_dump(mode="json")
-        if "id" not in dump:
-            dump["id"] = id
-        await self.system_repo.update_mcp_gateways(dump)
+        if data.id != id:
+            data = data.model_copy(update={"id": id})
+        await self.system_repo.update_mcp_gateways(data)
 
-        saved = await self.system_repo.get_mcp_gateways(id=id)
-        return SystemConfigMCPGateways.model_validate(saved, strict=False)
+        return await self.system_repo.get_mcp_gateways(id=id)
 
     async def create_mcp_gateway_draft(self, initiator: TokenData) -> SystemConfigMCPGateways:
         """Create mcp gateway draft.
@@ -412,8 +393,7 @@ class StudioSystemConfigService:
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
 
         new_id = f"sys_{uuid.uuid4().hex[:16]}"
-        draft_dict: dict[str, Any] = {"id": new_id, "slug": new_id, "type": "mcp_gateways", "tools": []}
-        draft = SystemConfigMCPGateways.model_validate(draft_dict, strict=False)
+        draft = SystemConfigMCPGateways(id=new_id, slug=new_id, type="mcp_gateways", tools=[])
         return await self.save_mcp_gateways(initiator, new_id, draft)
 
     async def clone_mcp_gateways(self, initiator: TokenData, id: str) -> SystemConfigMCPGateways:
@@ -440,13 +420,10 @@ class StudioSystemConfigService:
         data = await self.system_repo.get_mcp_gateways(id=id)
 
         new_id = f"sys_{uuid.uuid4().hex[:16]}"
-        cloned_data = SystemConfigMCPGateways.model_validate(data, strict=False).model_dump(mode="json")
-        cloned_data["id"] = new_id
+        cloned_obj = data.model_copy(update={"id": new_id})
 
-        await self.system_repo.update_mcp_gateways(cloned_data)
-
-        saved = await self.system_repo.get_mcp_gateways(id=new_id)
-        return SystemConfigMCPGateways.model_validate(saved, strict=False)
+        await self.system_repo.update_mcp_gateways(cloned_obj)
+        return await self.system_repo.get_mcp_gateways(id=new_id)
 
     async def list_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
         """List system configs.
@@ -459,5 +436,5 @@ class StudioSystemConfigService:
         """
         data = await self.system_repo.get_model_registry()
         if data and initiator.role == UserRole.ROOT:
-            return [SystemConfigModelRegistry.model_validate(data, strict=False)]
+            return [data]
         return []

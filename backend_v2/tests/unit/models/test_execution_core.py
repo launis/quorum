@@ -167,7 +167,7 @@ class TestExecutionMetadata:
             "target_locale": "fi",
             "global_context_vars": {"language": "fi"},
             "execution_summary": {"strictness_level": 85},
-            "step_metrics": {"sr_1": {"cost_usd": 0.05}},
+            "step_metrics": {"sr_1_cost_usd": 0.05},
             "dag_cost_usd": 0.414,
             "prompt_tokens": 1000,
             "completion_tokens": 200,
@@ -177,9 +177,71 @@ class TestExecutionMetadata:
         meta = ExecutionMetadata.model_validate(payload)
         assert meta.global_context_vars == {"language": "fi"}
         assert meta.execution_summary == {"strictness_level": 85}
-        assert meta.step_metrics == {"sr_1": {"cost_usd": 0.05}}
+        assert meta.step_metrics == {"sr_1_cost_usd": 0.05}
         assert meta.dag_cost_usd == 0.414
         assert meta.prompt_tokens == 1000
         assert meta.completion_tokens == 200
         assert meta.cached_tokens == 300
         assert meta.reasoning_tokens == 50
+
+    def test_execution_metadata_worker_nested_summary_and_metrics_regression(self) -> None:
+        """Regression test for 500 error when hydrating ExecutionRecord from database.
+
+        Worker generates structured execution_summary (with system_concurrency_snapshot,
+        models_used, aggregated_usage) and step_metrics (with nested dicts per step).
+        ExecutionMetadata and ExecutionRecord must accept this exact structure.
+        """
+        from backend_v2.models.v2_core import ExecutionRecord
+
+        worker_metadata_payload = {
+            "target_locale": "fi",
+            "execution_summary": {
+                "strictness_level": 85,
+                "target_locale": "fi",
+                "is_ensemble_run": True,
+                "system_concurrency_snapshot": {
+                    "LLM_MAX_CHUNK_SIZE": 8,
+                    "SCHEMA_MAX_EVALUATIONS": 7,
+                    "SCHEMA_MAX_CHUNK_RECORDS": 10,
+                    "MATRIX_SAMPLING_LIMIT": 2,
+                },
+                "models_used": {"gemini-2.5-flash": 1500},
+                "cost_estimate": 0.005,
+                "is_degraded": False,
+                "aggregated_usage": {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 50,
+                    "cached_tokens": 20,
+                    "reasoning_tokens": 10,
+                },
+            },
+            "step_metrics": {
+                "step_1": {
+                    "model": "synthesis",
+                    "cost_usd": 0.005,
+                    "total_tokens": 150,
+                    "chunk_count": 2,
+                }
+            },
+            "dag_cost_usd": 0.005,
+            "prompt_tokens": 100,
+            "completion_tokens": 50,
+            "cached_tokens": 20,
+            "reasoning_tokens": 10,
+        }
+
+        # Validate directly on ExecutionMetadata
+        meta = ExecutionMetadata.model_validate(worker_metadata_payload)
+        assert meta.execution_summary is not None
+
+        # Validate on full ExecutionRecord (simulating database hydration in get_all_executions)
+        execution_record_payload = {
+            "id": "exe_3626b3d8d8fe47cb9de6d6c74d90585f",
+            "workflow_id": "wor_1234567890123456",
+            "status": "PASSED",
+            "target_locale": "fi",
+            "metadata": worker_metadata_payload,
+        }
+        record = ExecutionRecord.model_validate(execution_record_payload, strict=False)
+        assert record.id == "exe_3626b3d8d8fe47cb9de6d6c74d90585f"
+

@@ -11,15 +11,17 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.database.interfaces import IExecutionRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.utils.redis_patcher import ArqCompatibleFakeRedis
 
 logger = logging.getLogger(__name__)
 
 # Standard Progress States
-STATUS_STARTED = "started"
-STATUS_RUNNING = "running"
-STATUS_COMPLETED = "completed"
-STATUS_FAILED = "failed"
+STATUS_STARTED = ExecutionStatus.RUNNING
+STATUS_RUNNING = ExecutionStatus.RUNNING
+STATUS_COMPLETED = ExecutionStatus.PASSED
+STATUS_FAILED = ExecutionStatus.FAILED
 
 
 class ProgressState(BaseModel):
@@ -122,12 +124,12 @@ class DatabaseProgressTracker(ProgressTracker):
             AppException: If updating the execution in the repository fails.
         """
         try:
-            now_iso = datetime.now(timezone.utc).isoformat()
-            payload = {
-                "status": STATUS_STARTED,
-                "created_at": now_iso,
-                "updated_at": now_iso,
-            }
+            now_dt = datetime.now(timezone.utc)
+            payload = ExecutionUpdateDTO(
+                status=STATUS_STARTED,
+                created_at=now_dt,
+                updated_at=now_dt,
+            )
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to start progress tracking for {self.execution_id}"
@@ -152,13 +154,13 @@ class DatabaseProgressTracker(ProgressTracker):
             AppException: If updating the execution in the repository fails.
         """
         try:
-            payload = {
-                "status": STATUS_RUNNING,
-                "current_step": current_step,
-                "current_step_name": current_step,
-                "progress": progress,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }
+            payload = ExecutionUpdateDTO(
+                status=STATUS_RUNNING,
+                current_step=current_step,
+                current_step_name=current_step,
+                progress=progress,
+                updated_at=datetime.now(timezone.utc),
+            )
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to update progress for {self.execution_id}"
@@ -179,12 +181,12 @@ class DatabaseProgressTracker(ProgressTracker):
             AppException: If updating the execution in the repository fails.
         """
         try:
-            now_iso = datetime.now(timezone.utc).isoformat()
-            payload = {
-                "status": STATUS_COMPLETED,
-                "completed_at": now_iso,
-                "updated_at": now_iso,
-            }
+            now_dt = datetime.now(timezone.utc)
+            payload = ExecutionUpdateDTO(
+                status=STATUS_COMPLETED,
+                completed_at=now_dt,
+                updated_at=now_dt,
+            )
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to complete progress tracking for {self.execution_id}"
@@ -208,13 +210,13 @@ class DatabaseProgressTracker(ProgressTracker):
             AppException: If updating the execution in the repository fails.
         """
         try:
-            now_iso = datetime.now(timezone.utc).isoformat()
-            payload = {
-                "status": STATUS_FAILED,
-                "error": error,
-                "completed_at": now_iso,
-                "updated_at": now_iso,
-            }
+            now_dt = datetime.now(timezone.utc)
+            payload = ExecutionUpdateDTO(
+                status=STATUS_FAILED,
+                error=error,
+                completed_at=now_dt,
+                updated_at=now_dt,
+            )
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to report failure for {self.execution_id}"
