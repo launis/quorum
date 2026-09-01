@@ -204,6 +204,30 @@ void main() {
       expect(record.isResumable, true);
     });
 
+    test('test_flutter_execution_record_deserializes_with_execution_trace', () {
+      final json = {
+        'id': 'exe_1234567890abcdef',
+        'workflow_id': 'wor_1234567890abcdef',
+        'target_locale': 'fi',
+        'status': 'PASSED',
+        'execution_trace': <Map<String, dynamic>>[
+          {
+            'event_type': 'tombstone',
+            'step_id': 'stp_1',
+            'status': 'PASSED',
+            'timestamp': '2026-08-30T12:00:00Z',
+          }
+        ],
+        'metadata': {
+          'target_locale': 'fi',
+          'workflow_version': 1,
+        },
+      };
+
+      final record = ExecutionRecord.fromJson(json);
+      expect(record.id, 'exe_1234567890abcdef');
+    });
+
     test('throws when mandatory target_locale is missing', () {
       final json = {
         'id': 'exe_1234567890abcdef',

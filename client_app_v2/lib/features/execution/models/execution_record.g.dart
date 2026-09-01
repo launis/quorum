@@ -36,6 +36,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'frozen_context_storage_path',
         'context_variables',
         'context_variables_storage_path',
+        'execution_trace',
         'execution_trace_storage_path',
         'pdf_report_path',
         'source_identity_manifest',
@@ -120,6 +121,12 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'context_variables_storage_path',
         (v) => v as String?,
       ),
+      executionTrace: $checkedConvert(
+        'execution_trace',
+        (v) => (v as List<dynamic>?)
+            ?.map((e) => e as Map<String, dynamic>)
+            .toList(),
+      ),
       executionTraceStoragePath: $checkedConvert(
         'execution_trace_storage_path',
         (v) => v as String?,
@@ -174,6 +181,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
     'frozenContextStoragePath': 'frozen_context_storage_path',
     'contextVariables': 'context_variables',
     'contextVariablesStoragePath': 'context_variables_storage_path',
+    'executionTrace': 'execution_trace',
     'executionTraceStoragePath': 'execution_trace_storage_path',
     'pdfReportPath': 'pdf_report_path',
     'sourceIdentityManifest': 'source_identity_manifest',
@@ -212,6 +220,7 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'frozen_context_storage_path': instance.frozenContextStoragePath,
       'context_variables': instance.contextVariables,
       'context_variables_storage_path': instance.contextVariablesStoragePath,
+      'execution_trace': instance.executionTrace,
       'execution_trace_storage_path': instance.executionTraceStoragePath,
       'pdf_report_path': instance.pdfReportPath,
       'source_identity_manifest': instance.sourceIdentityManifest,

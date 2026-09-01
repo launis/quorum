@@ -46,6 +46,8 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'context_variables') Map<String, dynamic>? contextVariables,
     @JsonKey(name: 'context_variables_storage_path')
     String? contextVariablesStoragePath,
+    @JsonKey(name: 'execution_trace')
+    List<Map<String, dynamic>>? executionTrace,
     @JsonKey(name: 'execution_trace_storage_path')
     String? executionTraceStoragePath,
     @JsonKey(name: 'pdf_report_path') String? pdfReportPath,
