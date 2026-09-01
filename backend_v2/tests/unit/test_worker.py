@@ -262,6 +262,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
         "status": "PENDING",
         "target_locale": "fi",
         "step_states": {},
@@ -301,6 +302,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     mock_exec_record = ExecutionRecord(
         id="exe_1234567890123456",
         workflow_id="wf_1234567890123456",
+        output_profile_id="prof_1111222233334444",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),
@@ -445,6 +447,7 @@ async def test_generate_pdf_task_exception_handling() -> None:
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "en",
                 "metadata": {"target_locale": "en"},
@@ -494,6 +497,7 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached() -> None:
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
                 "metadata": {"target_locale": "fi"},
@@ -529,6 +533,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
                 "metadata": {"target_locale": "fi"},
@@ -599,6 +604,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
                 "metadata": {"target_locale": "fi"},
@@ -660,6 +666,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
                 "metadata": {"target_locale": "fi"},
@@ -839,6 +846,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
         "status": "PENDING",
         "target_locale": "fi",
         "step_states": {},
@@ -887,6 +895,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
                 "metadata": {"target_locale": "fi"},
@@ -1058,6 +1067,7 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "en",
                 "metadata": {"target_locale": "en"},
@@ -1091,6 +1101,7 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",
                 "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "en",
                 "execution_trace": [

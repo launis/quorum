@@ -586,6 +586,7 @@ class ExecutionService:
             target_locale=target_locale,
             status=ExecutionStatus.PENDING.value,
             active_profile_id=resolved_profile_id,
+            output_profile_id=resolved_profile_id,
             raw_inputs=payload.raw_inputs,
             organization_id=initiator.organization_id,
             created_by=initiator.id,

@@ -109,7 +109,7 @@ class ScorecardAtomDTO(V2CoreBase):
     visual_intent: Annotated[VisualIntent, Field(description="Visual theme intent (e.g. WARNING, NEUTRAL).")]
     human_override: Annotated[
         HumanOverrideDTO | None, Field(default=None, description="Optional human override details.")
-    ]
+    ] = None
 
     @model_validator(mode="before")
     @classmethod

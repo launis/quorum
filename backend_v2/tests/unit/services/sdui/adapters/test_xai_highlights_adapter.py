@@ -38,6 +38,7 @@ def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fix
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),
@@ -62,6 +63,7 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[
             TraceEvent(
                 event_type="output",
@@ -105,6 +107,7 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[
             TraceEvent(
                 event_type="output",
@@ -150,6 +153,7 @@ def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfi
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),
@@ -177,6 +181,7 @@ def test_build_graceful_degradation_disabled_extensions(valid_output_profile_fix
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),
@@ -206,6 +211,7 @@ def test_build_graceful_degradation_zero_max_items(valid_output_profile_fixture:
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),
@@ -235,6 +241,7 @@ def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: Out
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),
@@ -317,6 +324,7 @@ def test_build_malformed_highlight_item_skipped(
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),
@@ -366,6 +374,7 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),
@@ -404,6 +413,7 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),

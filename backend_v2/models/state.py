@@ -189,8 +189,16 @@ class StepOutputDTO(V2CoreBase):
 
 # Resolve deferred annotations on ExecutionCoreFields and ExecutionRecord (Pydantic V2 circular reference pattern).
 # execution_core.py uses TYPE_CHECKING for TraceEvent types → annotations are strings.
-from backend_v2.models.dtos.trace import DataStarvationEvent, ExecutionUpdateDTO
-from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace
+from backend_v2.models.domain.inputs import WorkflowInputsIngress
+from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
+from backend_v2.models.v2_core import (
+    ExecutionRecord,
+    ExecutionStepState,
+    FrozenContext,
+    MCPAuditTrace,
+    RenderedSynthesisCache,
+)
 from backend_v2.models.view.sdui import AnySduiBlock
 
 _state_localns = {
@@ -201,9 +209,14 @@ _state_localns = {
     "TombstoneEvent": TombstoneEvent,
     "DataStarvationEvent": DataStarvationEvent,
     "AnySduiBlock": AnySduiBlock,
+    "ExecutionStepState": ExecutionStepState,
+    "FrozenContext": FrozenContext,
+    "RenderedSynthesisCache": RenderedSynthesisCache,
+    "WorkflowInputsIngress": WorkflowInputsIngress,
 }
 ExecutionCoreFields.model_rebuild(_types_namespace=_state_localns)
 ExecutionRecord.model_rebuild(_types_namespace=_state_localns)
+ExecutionCreateDTO.model_rebuild(_types_namespace=_state_localns)
 ExecutionUpdateDTO.model_rebuild(_types_namespace=_state_localns)
 
 

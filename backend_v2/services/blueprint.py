@@ -498,11 +498,12 @@ class BlueprintTransformer:
                         try:
                             step_meta = StepTraceMetadataDTO.model_validate(dto.payload)
                             usage = step_meta.token_usage
-                            p_tokens += usage.prompt_tokens or 0
-                            c_tokens += usage.completion_tokens or 0
-                            r_tokens += usage.reasoning_tokens or 0
-                            t_tokens += usage.total_tokens or 0
-                            cost += usage.cost_usd or 0.0
+                            if usage is not None:
+                                p_tokens += usage.prompt_tokens or 0
+                                c_tokens += usage.completion_tokens or 0
+                                r_tokens += usage.reasoning_tokens or 0
+                                t_tokens += usage.total_tokens or 0
+                                cost += usage.cost_usd or 0.0
                         except ValidationError, ValueError:
                             pass
 

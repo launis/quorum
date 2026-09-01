@@ -912,3 +912,72 @@ def test_purged_boundary_exemption_files() -> None:
         "provider.py",
         "logging_config.py",
     }
+
+
+# ==============================================================================
+# Partition: QGR016 Lazy Fallback Prohibition
+# ==============================================================================
+
+
+def test_qgr016_literal_string_fallback_fatal_in_domain() -> None:
+    """QGR016: x = val or 'default' in domain code emits WARNING violation."""
+    code = "locale = requested_locale or 'fi'\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr016 = [v for v in violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 1
+    assert qgr016[0].severity == GuardrailSeverity.WARNING
+    assert "lazy literal fallback" in qgr016[0].message
+
+
+def test_qgr016_literal_collection_fallback_fatal_in_domain() -> None:
+    """QGR016: x = val or [] and x = val or {} in domain code emit WARNING violations."""
+    code = "items = user_items or []\nmeta = data or {}\n"
+    violations = _scan_snippet(code, filepath="backend_v2/hooks/scoring/matrix_hook.py")
+    qgr016 = [v for v in violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 2
+    assert all(v.severity == GuardrailSeverity.WARNING for v in qgr016)
+
+
+def test_qgr016_literal_none_and_number_fallback_fatal_in_domain() -> None:
+    """QGR016: x = val or None and x = val or 0 in domain code emit WARNING violations."""
+    code = "score = raw_score or 0\nfallback = user_val or None\n"
+    violations = _scan_snippet(code, filepath="backend_v2/models/domain/synthesis.py")
+    qgr016 = [v for v in violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 2
+    assert all(v.severity == GuardrailSeverity.WARNING for v in qgr016)
+
+
+def test_qgr016_multivariable_fallback_chain_fatal() -> None:
+    """QGR016: multi-variable fallback chains (>= 3 operands) emit FATAL violation in domain code."""
+    code = "profile_id = opt_profile or active_profile or default_profile\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/orchestration.py")
+    qgr016 = [v for v in violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 1
+    assert qgr016[0].severity == GuardrailSeverity.FATAL
+    assert "multi-fallback chain" in qgr016[0].message
+
+
+def test_qgr016_boolean_condition_allowed_false_positive_immunity() -> None:
+    """QGR016: Boolean branching conditions (e.g. if a or b:) emit 0 violations."""
+    code = "if is_admin or is_super_admin:\n    proceed()\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/auth.py")
+    qgr016 = [v for v in violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 0
+
+
+def test_qgr016_boundary_exempt_file_warning() -> None:
+    """QGR016: Boundary exemption files degrade literal fallback from FATAL to WARNING."""
+    code = "conn = raw_conn or 'localhost'\n"
+    violations = _scan_snippet(code, filepath="backend_v2/database/drivers/tinydb_driver.py")
+    qgr016 = [v for v in violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 1
+    assert qgr016[0].severity == GuardrailSeverity.WARNING
+
+
+def test_qgr016_comment_suppression_works() -> None:
+    """QGR016: Inline comment suppression # noqa: QGR016 suppresses the violation."""
+    code = "x = val or 'default'  # noqa: QGR016 [REASON: legacy compatibility boundary]\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr016 = [v for v in violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 1
+    assert qgr016[0].is_suppressed is True

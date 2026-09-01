@@ -50,6 +50,7 @@ async def test_get_execution_status(mock_current_user: Any, mock_execution_servi
     """Test retrieving execution status by ID."""
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef1234567890abcdef",
+        output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
         workflow_id="wf_1",
         target_locale="fi",
@@ -85,6 +86,7 @@ async def test_start_execution(
 
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef1234567890abcdef",
+        output_profile_id="prof_1",
         status=ExecutionStatus.PENDING,
         workflow_id="wf_1",
         target_locale="fi",
@@ -126,6 +128,7 @@ async def test_resume_execution(
     """Test resuming an execution."""
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef1234567890abcdef",
+        output_profile_id="prof_1",
         status=ExecutionStatus.PENDING,
         workflow_id="wf_1",
         target_locale="fi",

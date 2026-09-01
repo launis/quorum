@@ -39,6 +39,7 @@ def valid_execution_doc() -> dict:
     return {
         "id": "exe_1234567890abcdef",
         "workflow_id": "wf_1234567890abcdef",
+        "output_profile_id": "prof_1234567890abcdef",
         "target_locale": "fi",
         "status": "PASSED",
         "metadata": {
@@ -131,6 +132,7 @@ async def test_crud_and_query_operations(repo: ExecutionRepositoryImpl, mock_dri
     create_dto = ExecutionCreateDTO(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
+        output_profile_id="prof_1",
         target_locale="fi",
         active_profile_id="prof_1",
         organization_id="org_1",

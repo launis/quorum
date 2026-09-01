@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR015).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR016).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -174,6 +174,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         )
         self._is_boundary_exempt = Path(filepath).name in BOUNDARY_EXEMPTION_FILES
         self._pydantic_base_classes_in_file: set[str] = set()
+        self._bool_condition_nodes: set[ast.AST] = set()
 
     def _add_violation(
         self,
@@ -639,6 +640,32 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_If(self, node: ast.If) -> None:
+        for sub_node in ast.walk(node.test):
+            self._bool_condition_nodes.add(sub_node)
+        self.generic_visit(node)
+
+    def visit_While(self, node: ast.While) -> None:
+        for sub_node in ast.walk(node.test):
+            self._bool_condition_nodes.add(sub_node)
+        self.generic_visit(node)
+
+    def visit_IfExp(self, node: ast.IfExp) -> None:
+        for sub_node in ast.walk(node.test):
+            self._bool_condition_nodes.add(sub_node)
+        self.generic_visit(node)
+
+    def visit_Assert(self, node: ast.Assert) -> None:
+        for sub_node in ast.walk(node.test):
+            self._bool_condition_nodes.add(sub_node)
+        self.generic_visit(node)
+
+    def visit_Return(self, node: ast.Return) -> None:
+        if node.value is not None:
+            for sub_node in ast.walk(node.value):
+                self._bool_condition_nodes.add(sub_node)
+        self.generic_visit(node)
+
     def visit_Raise(self, node: ast.Raise) -> None:
         # QGR009: raise AppException(...) missing typed ErrorCodes enum argument
         if isinstance(node.exc, ast.Call):
@@ -789,6 +816,47 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "Use modern PEP 742 `TypeIs` from `typing` (or `typing_extensions`) instead of `TypeGuard` for narrowing.",
                 severity=GuardrailSeverity.WARNING,
             )
+        self.generic_visit(node)
+
+    def visit_BoolOp(self, node: ast.BoolOp) -> None:
+        # QGR016: Banned lazy fallback expressions (`or "default"`, `or []`, `or {}`, or multi-fallback chains)
+        if isinstance(node.op, ast.Or) and not self._is_test_file and self._is_domain_code:
+            # Check 1: Fallback to literal constant or empty collection (e.g. `x or "default"`, `x or []`, `x or {}`)
+            last_value = node.values[-1]
+            is_literal_fallback = False
+            match last_value:
+                case ast.Constant(value=val):
+                    # Flag constants that are not True/False boolean flags (strings, numbers, None, empty strings)
+                    if not isinstance(val, bool):
+                        is_literal_fallback = True
+                case ast.List() | ast.Dict() | ast.Set():
+                    is_literal_fallback = True
+                case _:
+                    is_literal_fallback = False
+
+            if is_literal_fallback:
+                qgr016_sev = GuardrailSeverity.WARNING
+                self._add_violation(
+                    node,
+                    "QGR016",
+                    f"Banned lazy literal fallback `{ast.unparse(node)}` in domain code.",
+                    "Enforce strict Pydantic V2 schema defaults or raise explicit AppException instead of inline `or` fallbacks.",
+                    severity=qgr016_sev,
+                )
+
+            # Check 2: Chained multi-variable fallbacks (>= 3 alternatives, e.g. `a or b or c`)
+            if len(node.values) >= 3 and not is_literal_fallback and node not in self._bool_condition_nodes:
+                qgr016_chain_sev = (
+                    GuardrailSeverity.FATAL if not self._is_boundary_exempt else GuardrailSeverity.WARNING
+                )
+                self._add_violation(
+                    node,
+                    "QGR016",
+                    f"Banned multi-fallback chain `{ast.unparse(node)}` detected in domain code.",
+                    "Consolidate input state into a Single Source of Truth (SSOT) or use an explicit resolver function with Fail-Fast logging.",
+                    severity=qgr016_chain_sev,
+                )
+
         self.generic_visit(node)
 
 

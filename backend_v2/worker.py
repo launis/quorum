@@ -205,7 +205,7 @@ async def execute_workflow_job(
             exec_record = ExecutionRecord.model_validate(execution_data, strict=False)
 
             # Dynamic Strictness Level resolution
-            profile_id = exec_record.output_profile_id or workflow_def.default_profile_id
+            profile_id = exec_record.output_profile_id
 
             p_dict = await repository.get_output_profile_by_id(profile_id) if profile_id else None
             active_profile_dto = OutputProfile.model_validate(p_dict, strict=False) if p_dict else None
@@ -272,18 +272,17 @@ async def execute_workflow_job(
                     model_strategy = step_meta.model_strategy
                     chunk_size = step_meta.chunk_size
 
-                    p_tokens = usage.prompt_tokens or 0
-                    c_tokens = usage.completion_tokens or 0
-                    t_tokens = usage.total_tokens or 0
-                    c_cost = usage.cost_usd or 0.0
-                    cached_t = usage.cached_tokens or 0
-                    reasoning_t = usage.reasoning_tokens or 0
-
-                    total_prompt_tokens += p_tokens
-                    total_completion_tokens += c_tokens
-                    total_cached_tokens += cached_t
-                    total_reasoning_tokens += reasoning_t
-                    total_cost_usd += c_cost
+                    if usage is not None:
+                        total_prompt_tokens += usage.prompt_tokens
+                        total_completion_tokens += usage.completion_tokens
+                        total_cached_tokens += usage.cached_tokens
+                        total_reasoning_tokens += usage.reasoning_tokens
+                        total_cost_usd += usage.cost_usd
+                        t_tokens = usage.total_tokens
+                        c_cost = usage.cost_usd
+                    else:
+                        t_tokens = 0
+                        c_cost = 0.0
 
                     curr_model_tokens = models_used[model_strategy] if model_strategy in models_used else 0
                     models_used[model_strategy] = curr_model_tokens + t_tokens
@@ -346,7 +345,7 @@ async def execute_workflow_job(
                 redis = ctx.get("redis")
                 if redis:
                     # Enqueue job to generate Synthesis cache and Static PDF
-                    profile_id = updated_exec_record.output_profile_id or workflow_def.default_profile_id
+                    profile_id = updated_exec_record.output_profile_id
 
                     v_step_id = f"sys_render_{profile_id}"
                     v_step = ExecutionStepState(

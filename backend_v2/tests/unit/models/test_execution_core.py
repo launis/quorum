@@ -117,6 +117,7 @@ class TestExecutionCoreFieldsValidation:
         payload = {
             "id": "exe_1234567890abcdef",
             "workflow_id": "wor_1234567890abcdef",
+            "output_profile_id": "prof_1234567890abcdef",
             "target_locale": "en",
             "status": "PASSED",
             "metadata": {"target_locale": "en"},
@@ -256,6 +257,7 @@ class TestExecutionMetadata:
         execution_record_payload = {
             "id": "exe_3626b3d8d8fe47cb9de6d6c74d90585f",
             "workflow_id": "wor_1234567890123456",
+            "output_profile_id": "prof_1234567890123456",
             "status": "PASSED",
             "target_locale": "fi",
             "metadata": worker_metadata_payload,

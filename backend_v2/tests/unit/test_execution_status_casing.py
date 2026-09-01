@@ -22,6 +22,7 @@ def test_execution_record_status_casing() -> None:
     record = ExecutionRecord(
         id="exe_1234567890123456",
         workflow_id="wor_1234567890123456",
+        output_profile_id="prof_1",
         status="RUNNING",
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),

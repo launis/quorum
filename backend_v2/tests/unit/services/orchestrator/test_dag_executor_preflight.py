@@ -317,6 +317,7 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
+        output_profile_id="prof_1234567890abcde",
         target_locale="en",
         metadata=ExecutionMetadata(target_locale="en", profile_id=None),
         raw_inputs=WorkflowInputs(
@@ -405,6 +406,7 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
+        output_profile_id="prof_1234567890abcde",
         target_locale="en",
         metadata=ExecutionMetadata(target_locale="en", profile_id=None),
         raw_inputs=WorkflowInputs(language="en", dynamic_inputs={"product_text": "Short text"}),
@@ -463,6 +465,7 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
+        output_profile_id="prof_1234567890abcde",
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi", profile_id=None),
         raw_inputs=WorkflowInputs(language="fi", dynamic_inputs={"reflection_text": reflection_text}),

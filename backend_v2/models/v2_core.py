@@ -1388,8 +1388,8 @@ class ExecutionRecord(ExecutionCoreFields):
     # Phase 1: execution_trace, execution_trace_storage_path, context_variables,
     # context_variables_storage_path are inherited from ExecutionCoreFields (SSOT).
     pdf_report_path: str | None = Field(default=None, description="Path to the generated PDF Execution Report.")
-    output_profile_id: str | None = Field(
-        default=None, description="Target profile ID for formatting instructions and synthesis."
+    output_profile_id: str = Field(
+        min_length=1, description="Target profile ID for formatting instructions and synthesis."
     )
     step_states: dict[str, ExecutionStepState] = Field(
         default_factory=dict, description="Real-time status tracking for DAG nodes"
@@ -1508,8 +1508,8 @@ class BaseTDAExtraction(BaseModel):
 
 import backend_v2.models.view.sdui as sdui_mod
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.dag_models import CausalEdge
-from backend_v2.models.dtos.trace import DataStarvationEvent
 from backend_v2.models.execution_core import ExecutionCoreFields
 from backend_v2.models.view.sdui import AnySduiBlock
 

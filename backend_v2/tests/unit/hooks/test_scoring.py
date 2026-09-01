@@ -2182,8 +2182,8 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
 
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
-    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    assert pb_id in delta
+    assert result.state_delta is not None
+    assert pb_id in result.state_delta.delta
 
 
 @pytest.mark.asyncio
@@ -3224,3 +3224,68 @@ async def test_enforce_passivity_penalty_hook_with_eval_map_and_bounds() -> None
     assert res.success is True
     assert res.state_delta is not None
     assert "pb_1234567890123456" in res.state_delta.delta
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_direct_output_profile_id_resolution() -> None:
+    """SSOT Invariant: matrix_scoring_hook directly accesses non-nullable output_profile_id."""
+    mock_workflow = MockRepository()
+    mock_workflow.get_prompt_block_by_id = AsyncMock(  # type: ignore[method-assign]
+        return_value=_build_valid_pb_dict("pb_1234567890123456", [_build_valid_scale(1.0), _build_valid_scale(5.0)])
+    )
+    mock_workflow.get_execution = AsyncMock(  # type: ignore[method-assign]
+        return_value={
+            "id": "exe_1234567890123456",
+            "workflow_id": "wf_123",
+            "organization_id": "org_123",
+            "created_by": "usr_123",
+            "active_profile_id": "prof_1111111111111111",
+            "output_profile_id": "prof_1111111111111111",
+            "status": "RUNNING",
+            "target_locale": "fi",
+            "metadata": {"target_locale": "fi", "profile_id": "prof_1111111111111111"},
+            "raw_inputs": {},
+            "execution_trace": [],
+            "step_states": {},
+            "frozen_context": {},
+        }
+    )
+    mock_workflow.get_output_profile_by_id = AsyncMock(  # type: ignore[method-assign]
+        return_value={
+            "id": "prof_1111111111111111",
+            "slug": "prof_1111111111111111",
+            "name": {"translations": {"en": "Prof", "fi": "Prof"}},
+            "workflow_id": "wf_123",
+            "strictness_level": 85,
+            "scoring_strategy": "AVERAGE",
+            "target_block_order": [],
+            "visible_block_extensions": [],
+        }
+    )
+
+    state = HookState(
+        execution_id="exe_1234567890123456",
+        workflow_id="wf_123",
+        step_id="st_1234567890123456",
+        task_blueprint="st_1234567890123456",
+        metadata=ExecutionMetadata(target_locale="fi", profile_id="prof_1111111111111111"),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "results": [],
+            }
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, mock_workflow),
+        workflow_repo=cast(Any, mock_workflow),
+        comp_repo=cast(Any, mock_workflow),
+        prompt_block_repo=cast(Any, mock_workflow),
+        output_profile_repo=cast(Any, mock_workflow),
+        identity_repo=cast(Any, mock_workflow),
+        audit_repo=cast(Any, mock_workflow),
+        system_repo=cast(Any, mock_workflow),
+    )
+
+    result = await matrix_scoring_hook(state, deps)
+    assert result.success is True

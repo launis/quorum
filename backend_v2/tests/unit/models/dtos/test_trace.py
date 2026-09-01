@@ -65,18 +65,31 @@ def test_execution_create_and_update_dto_negative_partitions() -> None:
     from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 
     # Positive test ExecutionCreateDTO
-    create_dto = ExecutionCreateDTO(workflow_id="wor_1234567890abcdef")
+    create_dto = ExecutionCreateDTO(
+        workflow_id="wor_1234567890abcdef",
+        output_profile_id="prof_1234567890abcdef",
+    )
     assert create_dto.workflow_id == "wor_1234567890abcdef"
+    assert create_dto.output_profile_id == "prof_1234567890abcdef"
     assert create_dto.target_locale == "fi"
     assert create_dto.status == "PENDING"
 
-    # Negative ExecutionCreateDTO: missing workflow_id
+    # Negative ExecutionCreateDTO: missing workflow_id or output_profile_id
     with pytest.raises(ValidationError):
         ExecutionCreateDTO.model_validate({})
 
+    with pytest.raises(ValidationError):
+        ExecutionCreateDTO.model_validate({"workflow_id": "wor_1234567890abcdef"})
+
     # Negative ExecutionCreateDTO: extra forbidden field
     with pytest.raises(ValidationError) as exc:
-        ExecutionCreateDTO.model_validate({"workflow_id": "wor_123", "unknown_field": "fail"})
+        ExecutionCreateDTO.model_validate(
+            {
+                "workflow_id": "wor_123",
+                "output_profile_id": "prof_123",
+                "unknown_field": "fail",
+            }
+        )
     assert "extra_forbidden" in str(exc.value) or "Extra inputs are not permitted" in str(exc.value)
 
     # Positive test ExecutionUpdateDTO

@@ -9,7 +9,7 @@
 
 <catastrophic_system_bans>
     <rule_block id="the_duct_tape_ban">
-        <mandate>NEVER catch-all with `except Exception: pass`, return empty dicts `{}`, use `.get("key", default)`, or use lazy fallback operators (`or "en"`, `or {}`, `or []`). ALL errors MUST be caught, logged, and re-raised via `AppException`. Rely strictly on Pydantic validation (schema-level defaults) and Fail-Fast on missing required values.</mandate>
+        <mandate>NEVER catch-all with `except Exception: pass`, return empty dicts `{}`, use `.get("key", default)`, use lazy fallback operators (`or "en"`, `or {}`, `or []`), or chain multi-variable fallbacks (`a or b or c`). ALL state resolution (e.g. output profiles, locales) MUST occur strictly at Ingress boundaries. Downstream hooks and services MUST access state via direct dot notation. ALL errors MUST be caught, logged, and re-raised via `AppException`. Rely strictly on Pydantic validation (schema-level defaults) and Fail-Fast on missing required values.</mandate>
     </rule_block>
     
     <rule_block id="partial_mocking_srp_ban">

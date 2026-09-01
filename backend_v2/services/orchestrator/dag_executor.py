@@ -474,7 +474,7 @@ class DAGExecutor:
                         updated_states[s_id] = s_state
                 exec_record = exec_record.model_copy(update={"step_states": updated_states})
 
-            v_step_id = f"sys_render_{exec_record.output_profile_id or workflow.default_profile_id}"
+            v_step_id = f"sys_render_{exec_record.output_profile_id}"
             if v_step_id not in exec_record.step_states:
                 new_states = dict(exec_record.step_states)
                 new_states[v_step_id] = ExecutionStepState(
@@ -490,6 +490,7 @@ class DAGExecutor:
                 source_identity_manifest={},
                 status=ExecutionStatus.RUNNING,
                 step_states=step_states,
+                output_profile_id=workflow.default_profile_id,
             )
             v_step_id = f"sys_render_{workflow.default_profile_id}"
             if v_step_id not in exec_record.step_states:

@@ -1,24 +1,24 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import ConfigDict, Field
 
-from backend_v2.models.domain.inputs import WorkflowInputsIngress
-from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.base import BaseDTO
+from backend_v2.models.dtos.base import BaseDTO, DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import LaxExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import (
-    ExecutionStepState,
-    FrozenContext,
-    RenderedSynthesisCache,
-)
 
 if TYPE_CHECKING:
+    from backend_v2.models.domain.inputs import WorkflowInputsIngress
+    from backend_v2.models.domain.usage import TokenUsage
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+    from backend_v2.models.v2_core import (
+        ExecutionStepState,
+        FrozenContext,
+        RenderedSynthesisCache,
+    )
 
 __all__ = [
     "DataStarvationEvent",
@@ -42,6 +42,7 @@ class ExecutionCreateDTO(BaseDTO):
     target_locale: Annotated[str, Field(default="fi", description="Target locale code")] = "fi"
     status: Annotated[str, Field(default="PENDING", description="Initial lifecycle status")] = "PENDING"
     active_profile_id: Annotated[str | None, Field(default=None, description="Active profile ID")] = None
+    output_profile_id: Annotated[str, Field(min_length=1, description="Target profile ID")]
     raw_inputs: Annotated[WorkflowInputsIngress | None, Field(default=None, description="Raw workflow inputs")] = None
     organization_id: Annotated[str | None, Field(default=None, description="Organization ID")] = None
     created_by: Annotated[str | None, Field(default=None, description="Creator user ID")] = None
@@ -92,20 +93,6 @@ class ExecutionUpdateDTO(BaseDTO):
     completed_at: Annotated[datetime | None, Field(default=None, description="Completion timestamp")] = None
 
 
-class DataStarvationEvent(BaseDTO):
-    """Strict domain event emitted when SynthesisEngine aborts due to atom starvation."""
-
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
-
-    event_type: Annotated[Literal["starvation"], Field(default="starvation", description="Event discriminator")] = (
-        "starvation"
-    )
-    total_atoms: Annotated[int, Field(ge=0, description="Total raw atoms extracted before synthesis")]
-    reason: Annotated[
-        str, Field(default="Data starvation: insufficient atoms", description="Reason for short-circuit")
-    ] = "Data starvation: insufficient atoms"
-
-
 class StepTraceMetadataDTO(BaseDTO):
     """Strictly typed trace metadata for DAG steps including telemetry."""
 
@@ -115,12 +102,12 @@ class StepTraceMetadataDTO(BaseDTO):
     model_strategy: Annotated[str, Field(default="unknown")] = "unknown"
     chunk_size: Annotated[int, Field(default=1)] = 1
     token_usage: Annotated[
-        TokenUsage,
+        TokenUsage | None,
         Field(
-            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            default=None,
             description="Token usage statistics.",
         ),
-    ]
+    ] = None
     execution_id: Annotated[str | None, Field(default=None)] = None
     workflow_id: Annotated[str | None, Field(default=None)] = None
     step_id: Annotated[str | None, Field(default=None)] = None
@@ -191,3 +178,9 @@ class TraceScoringPayloadDTO(BaseDTO):
         list[str] | None, Field(default=None, description="List of applied penalty identifier strings")
     ] = None
     aggregation_status: Annotated[str | None, Field(description="Status of aggregation")] = None
+
+
+from backend_v2.models.domain.usage import TokenUsage as _TokenUsage
+
+StepTraceMetadataDTO.model_rebuild(_types_namespace={"TokenUsage": _TokenUsage})
+TraceEventMetadataEnvelope.model_rebuild(_types_namespace={"StepTraceMetadataDTO": StepTraceMetadataDTO})

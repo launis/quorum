@@ -75,6 +75,7 @@ def test_execution_record_has_context_variables() -> None:
     data = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890",
+        "output_profile_id": "prof_1234567890123456",
         "status": "PENDING",
         "target_locale": "fi",
         "metadata": {"target_locale": "fi"},

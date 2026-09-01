@@ -90,6 +90,7 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wor_standard_audit",
+        output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(
             target_locale="fi",
@@ -119,6 +120,7 @@ def test_list_executions_returns_records(override_dependencies: Any, mock_execut
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wor_standard_audit",
+        output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi", profile_id="prf_001", matrix_sampling_strategy=10),
     )
@@ -137,6 +139,7 @@ def test_get_execution_status(override_dependencies: Any, mock_execution_service
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wor_standard_audit",
+        output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi", profile_id="prf_001", matrix_sampling_strategy=10),
     )
@@ -153,6 +156,7 @@ def test_resume_execution(override_dependencies: Any, mock_execution_service: An
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wor_standard_audit",
+        output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi", profile_id="prf_001", matrix_sampling_strategy=10),
     )
