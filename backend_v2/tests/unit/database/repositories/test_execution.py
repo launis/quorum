@@ -337,3 +337,19 @@ async def test_append_trace_event_errors(repo: ExecutionRepositoryImpl, mock_dri
     with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
         with pytest.raises(AppException):
             await repo.append_trace_event("exe_corrupt", event)
+
+
+@pytest.mark.asyncio
+async def test_get_all_executions_handles_offloaded_null_frozen_context(
+    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict
+) -> None:
+    """Regression: get_all_executions must successfully parse records with offloaded (null) frozen_context."""
+    offloaded_doc = dict(valid_execution_doc)
+    offloaded_doc["frozen_context"] = None
+    offloaded_doc["frozen_context_storage_path"] = "executions/exe_1234567890abcdef/frozen_context.json"
+    mock_driver.query.return_value = [offloaded_doc]
+
+    results = await repo.get_all_executions()
+    assert len(results) == 1
+    assert results[0].id == "exe_1234567890abcdef"
+    assert results[0].frozen_context is None

@@ -1379,7 +1379,9 @@ class ExecutionRecord(ExecutionCoreFields):
         default=None, description="The ID of the output profile selected for formatting and printing."
     )
     raw_inputs: WorkflowInputs = Field(default_factory=lambda: WorkflowInputs(), description="Raw user inputs by role")
-    frozen_context: FrozenContext = Field(default_factory=FrozenContext, description="Immutable snapshot of context")
+    frozen_context: FrozenContext | None = Field(
+        default_factory=FrozenContext, description="Immutable snapshot of context"
+    )
     frozen_context_storage_path: str | None = Field(
         default=None, description="Optional path to Blob Storage offloaded Frozen Context JSON"
     )

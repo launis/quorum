@@ -110,6 +110,24 @@ class TestExecutionCoreFieldsValidation:
         with pytest.raises(ValidationError):
             ExecutionRecord.model_validate(payload)
 
+    def test_execution_record_accepts_null_frozen_context_when_offloaded(self) -> None:
+        """Contract: Verify ExecutionRecord accepts null frozen_context when offloaded to storage."""
+        from backend_v2.models.v2_core import ExecutionRecord
+
+        payload = {
+            "id": "exe_1234567890abcdef",
+            "workflow_id": "wor_1234567890abcdef",
+            "target_locale": "en",
+            "status": "PASSED",
+            "metadata": {"target_locale": "en"},
+            "frozen_context": None,
+            "frozen_context_storage_path": "executions/exe_1234567890abcdef/frozen_context.json",
+        }
+        record = ExecutionRecord.model_validate(payload)
+        assert record.id == "exe_1234567890abcdef"
+        assert record.frozen_context is None
+        assert record.frozen_context_storage_path == "executions/exe_1234567890abcdef/frozen_context.json"
+
 
 class TestExecutionMetadata:
     """Verify the SSOT structural contract and defaults of ExecutionMetadata."""
@@ -244,4 +262,3 @@ class TestExecutionMetadata:
         }
         record = ExecutionRecord.model_validate(execution_record_payload, strict=False)
         assert record.id == "exe_3626b3d8d8fe47cb9de6d6c74d90585f"
-

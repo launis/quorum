@@ -44,6 +44,7 @@ from backend_v2.models.v2_core import (
     ExecutionStatus,
     ExecutionStepState,
     FrozenContext,
+    I18nText,
     MCPAuditTrace,
     Step,
     StepRule,
@@ -432,18 +433,46 @@ class DAGExecutor:
         if strictness_level is None:
             strictness_level = workflow.default_strictness_level
 
-        existing_record_dict = await self.exec_repo.get_execution(execution_id)
+        raw_rec = await self.exec_repo.get_execution(execution_id)
+        existing_record: ExecutionRecord | None = (
+            raw_rec
+            if isinstance(raw_rec, ExecutionRecord)
+            else (ExecutionRecord.model_validate(raw_rec, strict=False) if raw_rec is not None else None)
+        )
 
-        step_states = {
-            step.id: ExecutionStepState(id=step.id, label=step.id, status=ExecutionStatus.PENDING)
-            for step in workflow.steps
-        }
+        target_loc = (
+            existing_record.target_locale
+            if existing_record and existing_record.target_locale
+            else (raw_inputs.language if raw_inputs and raw_inputs.language else "en")
+        )
 
-        if existing_record_dict:
-            exec_record = ExecutionRecord.model_validate(existing_record_dict, strict=False)
-            exec_record = exec_record.model_copy(update={"status": ExecutionStatus.RUNNING})
+        step_states = {}
+        for step in workflow.steps:
+            step_def = step_definitions.get(step.task_blueprint) if step.task_blueprint else None
+            if step_def and isinstance(step_def.name, I18nText):
+                step_label = step_def.name.resolve(target_loc)
+            elif step_def and isinstance(step_def.name, str) and step_def.name.strip():
+                step_label = step_def.name
+            else:
+                step_label = step.id
+            step_states[step.id] = ExecutionStepState(
+                id=step.id,
+                label=step_label,
+                status=ExecutionStatus.PENDING,
+            )
+
+        if existing_record:
+            exec_record = existing_record.model_copy(update={"status": ExecutionStatus.RUNNING})
             if not exec_record.step_states:
                 exec_record = exec_record.model_copy(update={"step_states": step_states})
+            else:
+                updated_states = {}
+                for s_id, s_state in exec_record.step_states.items():
+                    if s_id in step_states and (s_state.label == s_id or not s_state.label):
+                        updated_states[s_id] = s_state.model_copy(update={"label": step_states[s_id].label})
+                    else:
+                        updated_states[s_id] = s_state
+                exec_record = exec_record.model_copy(update={"step_states": updated_states})
 
             v_step_id = f"sys_render_{exec_record.output_profile_id or workflow.default_profile_id}"
             if v_step_id not in exec_record.step_states:
@@ -804,8 +833,9 @@ class DAGExecutor:
                         updates["context_variables"] = new_cv
 
                     fc_updates: dict[str, Any] = {}
+                    base_fc = exec_record.frozen_context or FrozenContext()
                     if step_mcp_traces:
-                        current_traces: list[MCPAuditTrace] = list(exec_record.frozen_context.mcp_tool_audit)
+                        current_traces: list[MCPAuditTrace] = list(base_fc.mcp_tool_audit)
                         seen_ids: set[str] = {t.id for t in current_traces if t.id}
                         new_unique_traces: list[MCPAuditTrace] = []
                         for t in step_mcp_traces:
@@ -817,11 +847,11 @@ class DAGExecutor:
                             fc_updates["mcp_tool_audit"] = current_traces + new_unique_traces
 
                     if step_generated_schemas:
-                        merged_schemas = {**exec_record.frozen_context.generated_schemas, **step_generated_schemas}
+                        merged_schemas = {**base_fc.generated_schemas, **step_generated_schemas}
                         fc_updates["generated_schemas"] = merged_schemas
 
                     if fc_updates:
-                        new_fc = exec_record.frozen_context.model_copy(update=fc_updates)
+                        new_fc = base_fc.model_copy(update=fc_updates)
                         updates["frozen_context"] = new_fc
 
                     step_status = ExecutionStatus.FAILED if has_error_evt else ExecutionStatus.PASSED

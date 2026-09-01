@@ -754,7 +754,8 @@ class ExecutionService:
                     status_code=404,
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 ) from strg_err
-        frozen_json = execution.frozen_context.model_dump_json(indent=2)
+        fc = execution.frozen_context or FrozenContext()
+        frozen_json = fc.model_dump_json(indent=2)
         return frozen_json.encode("utf-8"), f"frozen_context_{execution_id}.json"
 
     async def get_execution_export_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
