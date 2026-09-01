@@ -1,4 +1,4 @@
-"""Epic 92: Unified Opaque ID Aliasing Engine.
+"""Unified Opaque ID Aliasing Engine.
 
 Handles token optimization and hallucination prevention by translating
 long system UUIDs (like tda_12345 or doc_abcde) into short semantic aliases
@@ -46,8 +46,8 @@ class AliasEngine:
     as a global singleton, or you will cause catastrophic memory leaks.
     """
 
-    # V2_2: Universaali regex, joka sallii aakkosnumeeriset tunnisteet.
-    # Varsinainen tiukka tarkistus tapahtuu dynaamisesti _build_dynamic_regex -funktiossa.
+    # Universal regex permitting alphanumeric identifiers and delimiters.
+    # Strict dynamic validation occurs inside the _build_dynamic_regex function.
     ALIAS_REGEX_PATTERN = r"^[a-zA-Z0-9_-]+$"
 
     @staticmethod
@@ -56,7 +56,7 @@ class AliasEngine:
         allowed_dynamic_keys: list[str] | None = None,
     ) -> Any:
         """Builds an Annotated Literal type for source documents."""
-        choices = set(source_document_ids or [])
+        choices = set(source_document_ids) if source_document_ids is not None else set()
         choices.update(DEFAULT_ALIAS_LITERALS)
         if allowed_dynamic_keys:
             choices.update(allowed_dynamic_keys)
@@ -71,7 +71,9 @@ class AliasEngine:
         allowed_dynamic_keys: list[str] | None = None,
     ) -> Any:
         """Builds an Annotated Literal type for extracted quotes."""
-        choices = set(source_document_ids or []) | set(allowed_atom_ids or [])
+        doc_choices = set(source_document_ids) if source_document_ids is not None else set()
+        atom_choices = set(allowed_atom_ids) if allowed_atom_ids is not None else set()
+        choices = doc_choices | atom_choices
         choices.update(DEFAULT_ALIAS_LITERALS)
         if allowed_dynamic_keys:
             choices.update(allowed_dynamic_keys)
@@ -86,7 +88,7 @@ class AliasEngine:
         allowed_dynamic_keys: list[str] | None = None,
     ) -> Any:
         """Builds an Annotated Literal type for DAG atom dependencies."""
-        choices = set(allowed_atom_ids or [])
+        choices = set(allowed_atom_ids) if allowed_atom_ids is not None else set()
         choices.update(DEFAULT_ALIAS_LITERALS)
         if allowed_dynamic_keys:
             choices.update(allowed_dynamic_keys)
@@ -111,8 +113,8 @@ class AliasEngine:
         self, alias_map: dict[str, str] | None = None, source_document_aliases: list[str] | None = None
     ) -> None:
         """Initialize with an optional pre-existing map for hydration."""
-        self.alias_map: dict[str, str] = alias_map or {}
-        self.source_document_aliases: list[str] = source_document_aliases or []
+        self.alias_map: dict[str, str] = alias_map if alias_map is not None else {}
+        self.source_document_aliases: list[str] = source_document_aliases if source_document_aliases is not None else []
         self._counters: dict[str, int] = defaultdict(int)
 
     def is_valid_source_id(
@@ -291,7 +293,7 @@ class AliasEngine:
             The text with all matching occurrences replaced.
         """
         if not text or not real_id:
-            return text or ""
+            return text
 
         target = template.format(id=real_id)
         replacement = template.format(id=alias)
