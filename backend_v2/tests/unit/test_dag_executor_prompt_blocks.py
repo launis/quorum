@@ -193,7 +193,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                 "workflow_id": "wf_5555555555555555",
                 "status": ExecutionStatus.PENDING,
                 "target_locale": "fi",
-                "active_profile_id": "prof_dddd1111dddd1111",
+                "output_profile_id": "prof_dddd1111dddd1111",
                 "raw_inputs": {"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}},
                 "metadata": {"target_locale": "fi", "profile_id": "prof_dddd1111dddd1111"},
             }

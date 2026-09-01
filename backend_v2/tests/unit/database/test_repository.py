@@ -140,7 +140,12 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_execution("1")
     await repo.get_execution_status("1")
     await repo.create_execution(
-        ExecutionCreateDTO(id="exe_0123456789abcdef", workflow_id="wor_0123456789abcdef", raw_inputs=None)
+        ExecutionCreateDTO(
+            id="exe_0123456789abcdef",
+            workflow_id="wor_0123456789abcdef",
+            output_profile_id="pro_0123456789abcdef",
+            raw_inputs=None,
+        )
     )
     await repo.update_execution("exe_0123456789abcdef", ExecutionUpdateDTO(status=ExecutionStatus.PASSED))
     await repo.delete_execution("1")

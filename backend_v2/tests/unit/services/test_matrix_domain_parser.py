@@ -702,6 +702,7 @@ def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache(
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
+        output_profile_id=profile.id,
         profile_syntheses={profile.id: starvation_cache},
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi"),

@@ -591,10 +591,9 @@ class Settings(BaseSettings):
                     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(sa_path)
                     logger.info("Settings: Auto-detected service-account.json at %s", str(sa_path))
 
-            has_vertex = bool(
-                os.getenv("VERTEX_PROJECT_ID")
-                or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-                or os.getenv("GOOGLE_CLOUD_PROJECT")
+            has_vertex = any(
+                bool(os.getenv(k))
+                for k in ("VERTEX_PROJECT_ID", "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CLOUD_PROJECT")
             )
 
             if not self.google_api_key and not has_vertex:

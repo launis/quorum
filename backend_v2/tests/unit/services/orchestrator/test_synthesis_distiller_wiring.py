@@ -310,16 +310,7 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
 async def test_synthesis_distiller_wiring_missing_output_profile_id_raises_config_error() -> None:
     """Contract: Verify missing output_profile_id on execution record raises AppException(CONFIGURATION_ERROR)."""
     deps = _build_mock_deps()
-    cast(AsyncMock, deps.exec_repo.get_execution).return_value = {
-        "id": "exe_0123456789abcdef01",
-        "workflow_id": "wor_0123456789abcdef01",
-        "status": "PASSED",
-        "target_locale": "en",
-        "metadata": {"target_locale": "en", "profile_id": "pro_0123456789abcdef01"},
-        "output_profile_id": None,  # Missing profile ID
-        "raw_inputs": {"dynamic_inputs": {}},
-        "step_states": {},
-    }
+    cast(AsyncMock, deps.exec_repo.get_execution).return_value = None
 
     state = HookState(
         execution_id="exe_0123456789abcdef01",

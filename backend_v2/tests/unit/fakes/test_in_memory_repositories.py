@@ -65,7 +65,9 @@ from backend_v2.tests.fakes.in_memory_repositories import (
 async def test_snapshot_reference_isolation() -> None:
     """Verify get() returns distinct memory objects (is not) with identical structural data (==)."""
     repo = InMemoryExecutionRepository()
-    dto = ExecutionCreateDTO(workflow_id="wf_test", organization_id="org_1", created_by="usr_1")
+    dto = ExecutionCreateDTO(
+        workflow_id="wf_test", output_profile_id="prof_1", organization_id="org_1", created_by="usr_1"
+    )
     exec_id = await repo.create_execution(dto)
 
     rec1 = await repo.get_execution(exec_id)
@@ -96,7 +98,9 @@ async def test_ingress_mutation_decoupling() -> None:
 async def test_explicit_update_requirement() -> None:
     """Verify modifying a returned entity without calling repo.update leaves stored snapshot intact."""
     repo = InMemoryExecutionRepository()
-    dto = ExecutionCreateDTO(workflow_id="wf_test", organization_id="org_1", created_by="usr_1")
+    dto = ExecutionCreateDTO(
+        workflow_id="wf_test", output_profile_id="prof_1", organization_id="org_1", created_by="usr_1"
+    )
     exec_id = await repo.create_execution(dto)
 
     rec = await repo.get_execution(exec_id)
@@ -120,7 +124,9 @@ async def test_explicit_update_requirement() -> None:
 async def test_deterministic_fault_injection_transient() -> None:
     """Verify single-shot transient fault raises on 1st call and succeeds on 2nd call."""
     repo = InMemoryExecutionRepository()
-    dto = ExecutionCreateDTO(workflow_id="wf_test", organization_id="org_1", created_by="usr_1")
+    dto = ExecutionCreateDTO(
+        workflow_id="wf_test", output_profile_id="prof_1", organization_id="org_1", created_by="usr_1"
+    )
     exec_id = await repo.create_execution(dto)
 
     repo.inject_fault("get_execution", TimeoutError("Transient DB Timeout"), trigger_count=1)
@@ -142,7 +148,9 @@ async def test_deterministic_fault_injection_permanent() -> None:
     repo = InMemoryExecutionRepository()
     repo.inject_fault("create_execution", ConnectionError("Database Down"), trigger_count=None)
 
-    dto = ExecutionCreateDTO(workflow_id="wf_test", organization_id="org_1", created_by="usr_1")
+    dto = ExecutionCreateDTO(
+        workflow_id="wf_test", output_profile_id="prof_1", organization_id="org_1", created_by="usr_1"
+    )
     with pytest.raises(ConnectionError):
         await repo.create_execution(dto)
 
@@ -189,7 +197,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     # 1. Execution
     exec_repo = InMemoryExecutionRepository()
     e_id = await exec_repo.create_execution(
-        ExecutionCreateDTO(workflow_id="wf_1", organization_id="org_1", created_by="u_1")
+        ExecutionCreateDTO(workflow_id="wf_1", output_profile_id="prof_1", organization_id="org_1", created_by="u_1")
     )
     assert await exec_repo.get_execution_status(e_id) is not None
     assert await exec_repo.update_execution(e_id, ExecutionUpdateDTO(status=ExecutionStatus.PASSED))
@@ -444,7 +452,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await unified.delete_workflow(u_wf_id)
 
     u_exec_id = await unified.create_execution(
-        ExecutionCreateDTO(workflow_id="wf_1", organization_id="o1", created_by="u1")
+        ExecutionCreateDTO(workflow_id="wf_1", output_profile_id="p1", organization_id="o1", created_by="u1")
     )
     assert await unified.get_execution(u_exec_id) is not None
     assert await unified.get_execution_status(u_exec_id) is not None

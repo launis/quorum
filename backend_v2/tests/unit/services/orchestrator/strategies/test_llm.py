@@ -665,6 +665,7 @@ async def test_execute_with_role_and_persona_and_protocol(
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id="prof_123",
         target_locale="fi",
         metadata=ExecutionMetadata(target_locale="fi", profile_id="prof_123"),
         source_identity_manifest={"inputs": "Input Document"},
@@ -871,6 +872,7 @@ async def test_execute_anomaly_retry_flow(
     mock_exec_record = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id="prof_123",
         target_locale="en",
         metadata=ExecutionMetadata(target_locale="en", profile_id="prof_123"),
         step_states={
@@ -1570,6 +1572,7 @@ async def test_execute_matrix_chunking_flow(
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id="prof_123",
         target_locale="en",
         metadata=ExecutionMetadata(target_locale="en", profile_id="prof_123"),
         source_identity_manifest={"doc_1": "Uploaded Document"},

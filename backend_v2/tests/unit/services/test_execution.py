@@ -939,4 +939,3 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert "not found in workflow" in exc_info.value.message
-

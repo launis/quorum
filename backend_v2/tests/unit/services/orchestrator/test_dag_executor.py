@@ -724,6 +724,7 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
     existing_record = ExecutionRecord(
         id="exe_1111222233334444",
         workflow_id=workflow.id,
+        output_profile_id="prof_dddd1111dddd1111",
         target_locale="en",
         metadata=ExecutionMetadata(target_locale="en", profile_id="prof_dddd1111dddd1111"),
         raw_inputs=WorkflowInputs(dynamic_inputs={}),

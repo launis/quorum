@@ -49,6 +49,7 @@ def mock_repo() -> AsyncMock:
     repo.get_execution.return_value = {
         "id": "exe_1111222233334444",
         "workflow_id": "wf_0000000000000000",
+        "output_profile_id": "prof_0000000000000000",
         "status": ExecutionStatus.PENDING,
         "target_locale": "en",
         "raw_inputs": {"dynamic_inputs": {"log": "test"}},

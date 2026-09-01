@@ -40,7 +40,7 @@ async def test_blueprint_authenticity_evaluation_success() -> None:
     mock_exec_repo.get_execution.return_value = ExecutionRecord(
         id="exec_1234567812345678",
         workflow_id="wf_1234567812345678",
-        active_profile_id="prf_1234567812345678",
+        output_profile_id="prf_1234567812345678",
         status=ExecutionStatus.PASSED,
         context_variables={"step_detector": json.dumps({"raw_score": 75.0})},
         execution_trace=[],

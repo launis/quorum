@@ -21,6 +21,7 @@ def test_flat_file_service_flatten_results() -> None:
     record = ExecutionRecord(
         id=execution_id,
         workflow_id="wf_test",
+        output_profile_id="prof_test",
         status=ExecutionStatus.PASSED,
         target_locale="en",
         metadata=ExecutionMetadata(target_locale="en"),
@@ -76,6 +77,7 @@ def test_flat_file_service_empty_results() -> None:
     record = ExecutionRecord(
         id=execution_id,
         workflow_id="wf_empty",
+        output_profile_id="prof_empty",
         status=ExecutionStatus.FAILED,
         target_locale="en",
         metadata=ExecutionMetadata(target_locale="en"),

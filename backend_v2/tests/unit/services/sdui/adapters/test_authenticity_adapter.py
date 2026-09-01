@@ -94,6 +94,7 @@ def test_build_missing_metrics_raises_app_exception() -> None:
     execution = ExecutionRecord(
         id="ex_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         execution_trace=[],
         context_variables={},
         target_locale="fi",
@@ -123,6 +124,7 @@ def test_build_success_with_metrics() -> None:
     execution = ExecutionRecord(
         id="ex_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         execution_trace=[],
         context_variables={},
         target_locale="fi",
@@ -166,6 +168,7 @@ def test_build_starved_returns_empty() -> None:
     execution = ExecutionRecord(
         id="ex_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         execution_trace=[],
         context_variables={},
         target_locale="fi",
@@ -198,6 +201,7 @@ def test_build_missing_authenticity_score_raises_app_exception() -> None:
     execution = ExecutionRecord(
         id="ex_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         execution_trace=[],
         context_variables={},
         target_locale="fi",
@@ -235,6 +239,7 @@ def test_build_fallback_explanation_and_medium_low_levels() -> None:
     execution = ExecutionRecord(
         id="ex_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         execution_trace=[],
         context_variables={},
         target_locale="fi",

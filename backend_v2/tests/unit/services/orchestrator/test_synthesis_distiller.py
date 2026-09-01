@@ -261,6 +261,7 @@ async def test_build_historical_context_all_branches() -> None:
     past_exec1 = ExecutionRecord(
         id="ex_1111111111111111",
         workflow_id="wf_1111111111111111",
+        output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
         completed_at=datetime.now(timezone.utc),
         target_locale="en",
@@ -274,6 +275,7 @@ async def test_build_historical_context_all_branches() -> None:
     past_exec2 = ExecutionRecord(
         id="ex_0000000000000000",  # should be ignored (matches state.execution_id)
         workflow_id="wf_1111111111111111",
+        output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
         target_locale="en",
         metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
@@ -281,6 +283,7 @@ async def test_build_historical_context_all_branches() -> None:
     past_exec3 = ExecutionRecord(
         id="ex_2222222222222222",  # should be ignored
         workflow_id="wf_1111111111111111",
+        output_profile_id="prof_1",
         status=ExecutionStatus.FAILED,
         target_locale="en",
         metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),

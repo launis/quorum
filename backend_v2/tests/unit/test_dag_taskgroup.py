@@ -31,6 +31,7 @@ def mock_repo() -> AsyncMock:
     repo.get_execution.return_value = {
         "id": "exe_1111222233334444",
         "workflow_id": "wf_tg_test",
+        "output_profile_id": "prof_dddd1111dddd1111",
         "status": ExecutionStatus.PENDING,
         "target_locale": "en",
         "raw_inputs": {"dynamic_inputs": {"log": "test"}},
@@ -336,6 +337,7 @@ async def test_dynamic_synthesis_model_strategy_routing(
     mock_repo.get_execution.return_value = {
         "id": "exe_0123456789abcdef01",
         "workflow_id": "wf_0123456789abcdef01",
+        "output_profile_id": "prof_1",
         "status": "PASSED",
         "target_locale": "en",
         "metadata": {"profile_id": "prof_1", "target_locale": "en"},

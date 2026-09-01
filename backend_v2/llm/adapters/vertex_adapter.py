@@ -105,12 +105,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
             return compiled_prompt.to_flat_messages(), {}
 
         settings = get_settings()
-        location = (
-            os.getenv("VERTEX_LOCATION")
-            or os.getenv("VERTEXAI_LOCATION")
-            or settings.vertex_location
-            or GCPVertexLocation.EUROPE_NORTH1.value
-        )
+        location = os.getenv("VERTEX_LOCATION") or os.getenv("VERTEXAI_LOCATION")
+        if not location:
+            location = settings.vertex_location or GCPVertexLocation.EUROPE_NORTH1.value
         static_hash = hashlib.sha256(
             json.dumps(
                 [m.model_dump(mode="json", exclude_none=True) for m in compiled_prompt.static_messages],
@@ -447,13 +444,11 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
         settings_location = settings.vertex_location if settings is not None else None
         env_location = os.getenv("HARDENING_VERTEX_LOCATION")
-        active_location = (
-            call_kwargs.get("vertex_location")
-            or config_location
-            or settings_location
-            or env_location
-            or GCPVertexLocation.EUROPE_NORTH1.value
-        )
+        active_location = call_kwargs.get("vertex_location") or config_location
+        if not active_location:
+            active_location = settings_location or env_location
+        if not active_location:
+            active_location = GCPVertexLocation.EUROPE_NORTH1.value
         os.environ["VERTEX_LOCATION"] = active_location
 
         os.environ["VERTEXAI_LOCATION"] = active_location

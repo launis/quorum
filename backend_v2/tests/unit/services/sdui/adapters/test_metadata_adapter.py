@@ -32,6 +32,7 @@ def test_metadata_adapter_builds_header_block_bilingual_en() -> None:
     execution = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         status=ExecutionStatus.PASSED,
         created_at=datetime(2026, 1, 1, 12, 0),
         execution_trace=[],
@@ -70,6 +71,7 @@ def test_metadata_adapter_builds_header_block_bilingual_fi() -> None:
     execution = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         status=ExecutionStatus.PASSED,
         created_at=datetime(2026, 1, 1, 12, 0),
         execution_trace=[],
@@ -117,6 +119,7 @@ def test_metadata_adapter_all_fields_with_local_time_and_costs() -> None:
     execution = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         status=ExecutionStatus.PASSED,
         created_at=datetime(2026, 1, 1, 10, 0),
         execution_trace=[],

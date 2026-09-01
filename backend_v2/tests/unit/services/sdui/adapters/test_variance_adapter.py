@@ -58,6 +58,7 @@ def test_build_missing_metrics_raises_app_exception() -> None:
     execution = ExecutionRecord(
         id="ex_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         execution_trace=[],
         context_variables={},
         target_locale="fi",
@@ -122,6 +123,7 @@ def test_build_success_with_llm_explanation() -> None:
     execution = ExecutionRecord(
         id="ex_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         execution_trace=[],
         context_variables={},
         target_locale="fi",
@@ -202,6 +204,7 @@ def test_build_misaligned_and_fallback_explanation() -> None:
     execution = ExecutionRecord(
         id="ex_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
+        output_profile_id=profile.id,
         execution_trace=[],
         context_variables={},
         target_locale="fi",
