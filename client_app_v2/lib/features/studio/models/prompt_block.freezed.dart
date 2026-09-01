@@ -2233,7 +2233,7 @@ PromptBlock _$PromptBlockFromJson(
 /// @nodoc
 mixin _$PromptBlock {
 
-@StrictOpaqueIdConverter() String get id; String get slug; String? get organizationId; I18nText get label; I18nText get description; String? get aiDescription; bool get isEvaluative; BlockDataType get type; bool get allowDecimals; List<String> get outputExtensions; TheoryGrounding? get theoryGrounding;@JsonKey(name: 'is_lightweight_protocol') bool get isLightweightProtocol;
+@StrictOpaqueIdConverter() String get id; String get slug; String? get organizationId; I18nText get label; I18nText get description; bool get isEvaluative; BlockDataType get type; bool get allowDecimals; List<String> get outputExtensions; TheoryGrounding? get theoryGrounding;@JsonKey(name: 'is_lightweight_protocol') bool get isLightweightProtocol;
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2248,7 +2248,7 @@ $PromptBlockCopyWith<PromptBlock> get copyWith => _$PromptBlockCopyWithImpl<Prom
 
 @override
 String toString() {
-  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol)';
+  return 'PromptBlock(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol)';
 }
 
 
@@ -2259,7 +2259,7 @@ abstract mixin class $PromptBlockCopyWith<$Res>  {
   factory $PromptBlockCopyWith(PromptBlock value, $Res Function(PromptBlock) _then) = _$PromptBlockCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol
 });
 
 
@@ -2276,15 +2276,14 @@ class _$PromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String?,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
+as I18nText,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
 as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self.outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
@@ -2420,16 +2419,16 @@ return taskDefinition(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax)?  matrix,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  systemRule,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  executionPersona,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  agentRole,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? protocolInstructions)?  protocol,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  runtimeVariables,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  taskDefinition,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax)?  matrix,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  systemRule,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  executionPersona,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  agentRole,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? protocolInstructions)?  protocol,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  runtimeVariables,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  taskDefinition,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case MatrixPromptBlock() when matrix != null:
 return matrix(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.allowContextualOverride,_that.isLightweightProtocol,_that.scales,_that.rows,_that.columns,_that.computedMin,_that.computedMax);case SystemRulePromptBlock() when systemRule != null:
-return systemRule(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case ExecutionPersonaPromptBlock() when executionPersona != null:
-return executionPersona(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case AgentRolePromptBlock() when agentRole != null:
-return agentRole(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case ProtocolPromptBlock() when protocol != null:
-return protocol(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.protocolInstructions);case RuntimeVariablesPromptBlock() when runtimeVariables != null:
-return runtimeVariables(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case TaskDefinitionPromptBlock() when taskDefinition != null:
-return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case _:
+return systemRule(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case ExecutionPersonaPromptBlock() when executionPersona != null:
+return executionPersona(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case AgentRolePromptBlock() when agentRole != null:
+return agentRole(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case ProtocolPromptBlock() when protocol != null:
+return protocol(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.protocolInstructions);case RuntimeVariablesPromptBlock() when runtimeVariables != null:
+return runtimeVariables(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case TaskDefinitionPromptBlock() when taskDefinition != null:
+return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case _:
   return orElse();
 
 }
@@ -2447,16 +2446,16 @@ return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax)  matrix,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)  systemRule,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)  executionPersona,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)  agentRole,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? protocolInstructions)  protocol,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)  runtimeVariables,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)  taskDefinition,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax)  matrix,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)  systemRule,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)  executionPersona,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)  agentRole,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? protocolInstructions)  protocol,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)  runtimeVariables,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)  taskDefinition,}) {final _that = this;
 switch (_that) {
 case MatrixPromptBlock():
 return matrix(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.allowContextualOverride,_that.isLightweightProtocol,_that.scales,_that.rows,_that.columns,_that.computedMin,_that.computedMax);case SystemRulePromptBlock():
-return systemRule(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case ExecutionPersonaPromptBlock():
-return executionPersona(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case AgentRolePromptBlock():
-return agentRole(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case ProtocolPromptBlock():
-return protocol(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.protocolInstructions);case RuntimeVariablesPromptBlock():
-return runtimeVariables(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case TaskDefinitionPromptBlock():
-return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);}
+return systemRule(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case ExecutionPersonaPromptBlock():
+return executionPersona(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case AgentRolePromptBlock():
+return agentRole(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case ProtocolPromptBlock():
+return protocol(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.protocolInstructions);case RuntimeVariablesPromptBlock():
+return runtimeVariables(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case TaskDefinitionPromptBlock():
+return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -2470,16 +2469,16 @@ return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax)?  matrix,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  systemRule,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  executionPersona,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  agentRole,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? protocolInstructions)?  protocol,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  runtimeVariables,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  taskDefinition,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax)?  matrix,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  systemRule,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  executionPersona,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  agentRole,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? protocolInstructions)?  protocol,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  runtimeVariables,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  taskDefinition,}) {final _that = this;
 switch (_that) {
 case MatrixPromptBlock() when matrix != null:
 return matrix(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.allowContextualOverride,_that.isLightweightProtocol,_that.scales,_that.rows,_that.columns,_that.computedMin,_that.computedMax);case SystemRulePromptBlock() when systemRule != null:
-return systemRule(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case ExecutionPersonaPromptBlock() when executionPersona != null:
-return executionPersona(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case AgentRolePromptBlock() when agentRole != null:
-return agentRole(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case ProtocolPromptBlock() when protocol != null:
-return protocol(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.protocolInstructions);case RuntimeVariablesPromptBlock() when runtimeVariables != null:
-return runtimeVariables(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case TaskDefinitionPromptBlock() when taskDefinition != null:
-return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case _:
+return systemRule(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case ExecutionPersonaPromptBlock() when executionPersona != null:
+return executionPersona(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case AgentRolePromptBlock() when agentRole != null:
+return agentRole(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.roleEnforcement,_that.toneDirectives);case ProtocolPromptBlock() when protocol != null:
+return protocol(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.protocolInstructions);case RuntimeVariablesPromptBlock() when runtimeVariables != null:
+return runtimeVariables(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case TaskDefinitionPromptBlock() when taskDefinition != null:
+return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.isLightweightProtocol,_that.instructionText);case _:
   return null;
 
 }
@@ -2499,7 +2498,7 @@ class MatrixPromptBlock extends PromptBlock {
 @override final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override final  String? aiDescription;
+ final  String? aiDescription;
 @override@JsonKey() final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
 @override@JsonKey() final  bool allowDecimals;
@@ -2649,7 +2648,7 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SystemRulePromptBlock extends PromptBlock {
-  const SystemRulePromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'system_rule',super._();
+  const SystemRulePromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'system_rule',super._();
   factory SystemRulePromptBlock.fromJson(Map<String, dynamic> json) => _$SystemRulePromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -2657,7 +2656,6 @@ class SystemRulePromptBlock extends PromptBlock {
 @override final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override final  String? aiDescription;
 @override@JsonKey() final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
 @override@JsonKey() final  bool allowDecimals;
@@ -2691,7 +2689,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'PromptBlock.systemRule(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, instructionText: $instructionText)';
+  return 'PromptBlock.systemRule(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, instructionText: $instructionText)';
 }
 
 
@@ -2702,7 +2700,7 @@ abstract mixin class $SystemRulePromptBlockCopyWith<$Res> implements $PromptBloc
   factory $SystemRulePromptBlockCopyWith(SystemRulePromptBlock value, $Res Function(SystemRulePromptBlock) _then) = _$SystemRulePromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? instructionText
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? instructionText
 });
 
 
@@ -2719,15 +2717,14 @@ class _$SystemRulePromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? instructionText = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? instructionText = freezed,}) {
   return _then(SystemRulePromptBlock(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String?,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
+as I18nText,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
 as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self._outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
@@ -2775,7 +2772,7 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class ExecutionPersonaPromptBlock extends PromptBlock {
-  const ExecutionPersonaPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.roleEnforcement, final  List<String> toneDirectives = const [], final  String? $type}): _outputExtensions = outputExtensions,_toneDirectives = toneDirectives,$type = $type ?? 'execution_persona',super._();
+  const ExecutionPersonaPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.roleEnforcement, final  List<String> toneDirectives = const [], final  String? $type}): _outputExtensions = outputExtensions,_toneDirectives = toneDirectives,$type = $type ?? 'execution_persona',super._();
   factory ExecutionPersonaPromptBlock.fromJson(Map<String, dynamic> json) => _$ExecutionPersonaPromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -2783,7 +2780,6 @@ class ExecutionPersonaPromptBlock extends PromptBlock {
 @override final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override final  String? aiDescription;
 @override@JsonKey() final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
 @override@JsonKey() final  bool allowDecimals;
@@ -2824,7 +2820,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'PromptBlock.executionPersona(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, roleEnforcement: $roleEnforcement, toneDirectives: $toneDirectives)';
+  return 'PromptBlock.executionPersona(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, roleEnforcement: $roleEnforcement, toneDirectives: $toneDirectives)';
 }
 
 
@@ -2835,7 +2831,7 @@ abstract mixin class $ExecutionPersonaPromptBlockCopyWith<$Res> implements $Prom
   factory $ExecutionPersonaPromptBlockCopyWith(ExecutionPersonaPromptBlock value, $Res Function(ExecutionPersonaPromptBlock) _then) = _$ExecutionPersonaPromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? roleEnforcement, List<String> toneDirectives
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? roleEnforcement, List<String> toneDirectives
 });
 
 
@@ -2852,15 +2848,14 @@ class _$ExecutionPersonaPromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? roleEnforcement = freezed,Object? toneDirectives = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? roleEnforcement = freezed,Object? toneDirectives = null,}) {
   return _then(ExecutionPersonaPromptBlock(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String?,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
+as I18nText,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
 as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self._outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
@@ -2909,7 +2904,7 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class AgentRolePromptBlock extends PromptBlock {
-  const AgentRolePromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.roleEnforcement, final  List<String> toneDirectives = const [], final  String? $type}): _outputExtensions = outputExtensions,_toneDirectives = toneDirectives,$type = $type ?? 'agent_role',super._();
+  const AgentRolePromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.roleEnforcement, final  List<String> toneDirectives = const [], final  String? $type}): _outputExtensions = outputExtensions,_toneDirectives = toneDirectives,$type = $type ?? 'agent_role',super._();
   factory AgentRolePromptBlock.fromJson(Map<String, dynamic> json) => _$AgentRolePromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -2917,7 +2912,6 @@ class AgentRolePromptBlock extends PromptBlock {
 @override final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override final  String? aiDescription;
 @override@JsonKey() final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
 @override@JsonKey() final  bool allowDecimals;
@@ -2958,7 +2952,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'PromptBlock.agentRole(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, roleEnforcement: $roleEnforcement, toneDirectives: $toneDirectives)';
+  return 'PromptBlock.agentRole(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, roleEnforcement: $roleEnforcement, toneDirectives: $toneDirectives)';
 }
 
 
@@ -2969,7 +2963,7 @@ abstract mixin class $AgentRolePromptBlockCopyWith<$Res> implements $PromptBlock
   factory $AgentRolePromptBlockCopyWith(AgentRolePromptBlock value, $Res Function(AgentRolePromptBlock) _then) = _$AgentRolePromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? roleEnforcement, List<String> toneDirectives
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? roleEnforcement, List<String> toneDirectives
 });
 
 
@@ -2986,15 +2980,14 @@ class _$AgentRolePromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? roleEnforcement = freezed,Object? toneDirectives = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? roleEnforcement = freezed,Object? toneDirectives = null,}) {
   return _then(AgentRolePromptBlock(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String?,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
+as I18nText,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
 as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self._outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
@@ -3043,7 +3036,7 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class ProtocolPromptBlock extends PromptBlock {
-  const ProtocolPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.protocolInstructions, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'protocol',super._();
+  const ProtocolPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.protocolInstructions, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'protocol',super._();
   factory ProtocolPromptBlock.fromJson(Map<String, dynamic> json) => _$ProtocolPromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -3051,7 +3044,6 @@ class ProtocolPromptBlock extends PromptBlock {
 @override final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override final  String? aiDescription;
 @override@JsonKey() final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
 @override@JsonKey() final  bool allowDecimals;
@@ -3085,7 +3077,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'PromptBlock.protocol(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, protocolInstructions: $protocolInstructions)';
+  return 'PromptBlock.protocol(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, protocolInstructions: $protocolInstructions)';
 }
 
 
@@ -3096,7 +3088,7 @@ abstract mixin class $ProtocolPromptBlockCopyWith<$Res> implements $PromptBlockC
   factory $ProtocolPromptBlockCopyWith(ProtocolPromptBlock value, $Res Function(ProtocolPromptBlock) _then) = _$ProtocolPromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? protocolInstructions
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? protocolInstructions
 });
 
 
@@ -3113,15 +3105,14 @@ class _$ProtocolPromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? protocolInstructions = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? protocolInstructions = freezed,}) {
   return _then(ProtocolPromptBlock(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String?,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
+as I18nText,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
 as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self._outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
@@ -3169,7 +3160,7 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class RuntimeVariablesPromptBlock extends PromptBlock {
-  const RuntimeVariablesPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'runtime_variables',super._();
+  const RuntimeVariablesPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'runtime_variables',super._();
   factory RuntimeVariablesPromptBlock.fromJson(Map<String, dynamic> json) => _$RuntimeVariablesPromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -3177,7 +3168,6 @@ class RuntimeVariablesPromptBlock extends PromptBlock {
 @override final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override final  String? aiDescription;
 @override@JsonKey() final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
 @override@JsonKey() final  bool allowDecimals;
@@ -3211,7 +3201,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'PromptBlock.runtimeVariables(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, instructionText: $instructionText)';
+  return 'PromptBlock.runtimeVariables(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, instructionText: $instructionText)';
 }
 
 
@@ -3222,7 +3212,7 @@ abstract mixin class $RuntimeVariablesPromptBlockCopyWith<$Res> implements $Prom
   factory $RuntimeVariablesPromptBlockCopyWith(RuntimeVariablesPromptBlock value, $Res Function(RuntimeVariablesPromptBlock) _then) = _$RuntimeVariablesPromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? instructionText
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? instructionText
 });
 
 
@@ -3239,15 +3229,14 @@ class _$RuntimeVariablesPromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? instructionText = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? instructionText = freezed,}) {
   return _then(RuntimeVariablesPromptBlock(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String?,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
+as I18nText,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
 as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self._outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable
@@ -3295,7 +3284,7 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class TaskDefinitionPromptBlock extends PromptBlock {
-  const TaskDefinitionPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'task_definition',super._();
+  const TaskDefinitionPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'task_definition',super._();
   factory TaskDefinitionPromptBlock.fromJson(Map<String, dynamic> json) => _$TaskDefinitionPromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -3303,7 +3292,6 @@ class TaskDefinitionPromptBlock extends PromptBlock {
 @override final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override final  String? aiDescription;
 @override@JsonKey() final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
 @override@JsonKey() final  bool allowDecimals;
@@ -3337,7 +3325,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'PromptBlock.taskDefinition(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, aiDescription: $aiDescription, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, instructionText: $instructionText)';
+  return 'PromptBlock.taskDefinition(id: $id, slug: $slug, organizationId: $organizationId, label: $label, description: $description, isEvaluative: $isEvaluative, type: $type, allowDecimals: $allowDecimals, outputExtensions: $outputExtensions, theoryGrounding: $theoryGrounding, isLightweightProtocol: $isLightweightProtocol, instructionText: $instructionText)';
 }
 
 
@@ -3348,7 +3336,7 @@ abstract mixin class $TaskDefinitionPromptBlockCopyWith<$Res> implements $Prompt
   factory $TaskDefinitionPromptBlockCopyWith(TaskDefinitionPromptBlock value, $Res Function(TaskDefinitionPromptBlock) _then) = _$TaskDefinitionPromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? instructionText
+@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? instructionText
 });
 
 
@@ -3365,15 +3353,14 @@ class _$TaskDefinitionPromptBlockCopyWithImpl<$Res>
 
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? aiDescription = freezed,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? instructionText = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? organizationId = freezed,Object? label = null,Object? description = null,Object? isEvaluative = null,Object? type = null,Object? allowDecimals = null,Object? outputExtensions = null,Object? theoryGrounding = freezed,Object? isLightweightProtocol = null,Object? instructionText = freezed,}) {
   return _then(TaskDefinitionPromptBlock(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as I18nText,aiDescription: freezed == aiDescription ? _self.aiDescription : aiDescription // ignore: cast_nullable_to_non_nullable
-as String?,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
+as I18nText,isEvaluative: null == isEvaluative ? _self.isEvaluative : isEvaluative // ignore: cast_nullable_to_non_nullable
 as bool,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as BlockDataType,allowDecimals: null == allowDecimals ? _self.allowDecimals : allowDecimals // ignore: cast_nullable_to_non_nullable
 as bool,outputExtensions: null == outputExtensions ? _self._outputExtensions : outputExtensions // ignore: cast_nullable_to_non_nullable

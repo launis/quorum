@@ -36,7 +36,7 @@ def mock_repo() -> Any:
                 "type": BlockDataType.STRING,
                 "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
                 "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-                "ai_description": "Strict extraction protocol.",
+                "instruction_text": "Strict extraction protocol.",
                 "allow_decimals": False,
                 "output_extensions": [],
             }

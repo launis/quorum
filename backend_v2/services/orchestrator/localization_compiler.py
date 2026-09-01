@@ -122,8 +122,6 @@ class LocalizationCompiler:
                         desc = text
                     case ProtocolPromptBlock(protocol_instructions=text) if text:
                         desc = text
-                    case _ if block.ai_description:
-                        desc = block.ai_description
 
                 if not desc:
                     block_id = block.id
@@ -215,12 +213,10 @@ class LocalizationCompiler:
                 match block:
                     case SystemRulePromptBlock(instruction_text=text) if text:
                         desc = text
-                    case _ if block.ai_description:
-                        desc = block.ai_description
 
                 if not desc:
                     block_id = block.id
-                    msg = f"PromptBlock '{block_id}' is missing mandatory 'instruction_text' or 'ai_description'."
+                    msg = f"PromptBlock '{block_id}' is missing mandatory 'instruction_text'."
                     logger.error(
                         "PromptBlock is missing mandatory instruction text.",
                         extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": block_id},

@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
@@ -155,7 +155,17 @@ class MatrixExplanationService:
             if lw_matrix.evaluated_atoms:
                 for tda_id, hit_status in lw_matrix.evaluated_atoms.items():
                     if hit_status == ExecutionStatus.PASSED:
-                        claim_name = tda_to_claim[tda_id] if tda_id in tda_to_claim else "Evidence"
+                        if tda_id not in tda_to_claim:
+                            logger.error(
+                                "TDA atom missing from claim map during matrix explanation.",
+                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "tda_id": tda_id},
+                            )
+                            raise AppException(
+                                message=f"TDA atom '{tda_id}' missing from claim mapping in matrix '{block_id}'.",
+                                status_code=400,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tda_id": tda_id},
+                            )
+                        claim_name = tda_to_claim[tda_id]
                         if tda_id in global_quotes_map:
                             for q in global_quotes_map[tda_id]:
                                 if q not in seen_matrix_quotes:

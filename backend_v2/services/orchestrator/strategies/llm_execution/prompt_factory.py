@@ -127,8 +127,6 @@ class PromptFactory:
                     persona = role_text.strip()
                 case SystemRulePromptBlock(instruction_text=text) if text:
                     persona = text.strip()
-                case _ if execution_persona_block.ai_description:
-                    persona = execution_persona_block.ai_description.strip()
         base_system_prompt += f"\n\n{persona}"
 
         # Layer 2: Role Directive & Protocols (Phase 8 pattern matching)
@@ -139,8 +137,6 @@ class PromptFactory:
                     role_text = text.strip()
                 case SystemRulePromptBlock(instruction_text=text) if text:
                     role_text = text.strip()
-                case _ if role_block.ai_description:
-                    role_text = role_block.ai_description.strip()
             if role_text:
                 base_system_prompt += f"\n\n<ROLE_DIRECTIVE>\n{role_text}\n</ROLE_DIRECTIVE>"
 
@@ -151,8 +147,6 @@ class PromptFactory:
                     proto_text = text.strip()
                 case SystemRulePromptBlock(instruction_text=text) if text:
                     proto_text = text.strip()
-                case _ if protocol_block.ai_description:
-                    proto_text = protocol_block.ai_description.strip()
             if proto_text:
                 base_system_prompt += f"\n\n<EXTRACTION_PROTOCOL>\n{proto_text}\n</EXTRACTION_PROTOCOL>"
 

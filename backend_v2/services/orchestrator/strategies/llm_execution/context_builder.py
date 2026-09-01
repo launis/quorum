@@ -9,7 +9,12 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.settings import get_settings
 from backend_v2.utils.dict_utils import resolve_dot_notation
@@ -146,9 +151,15 @@ class ContextBuilder:
         """
         rule_descriptions: list[str] = []
         for block in criteria_blocks:
-            desc = block.ai_description
-            if desc:
-                rule_descriptions.append(desc)
+            match block:
+                case MatrixPromptBlock(ai_description=desc) if desc:
+                    rule_descriptions.append(desc)
+                case SystemRulePromptBlock(instruction_text=text) if text:
+                    rule_descriptions.append(text)
+                case PersonaPromptBlock(role_enforcement=text) if text:
+                    rule_descriptions.append(text)
+                case ProtocolPromptBlock(protocol_instructions=text) if text:
+                    rule_descriptions.append(text)
             if isinstance(block, MatrixPromptBlock):
                 scales = block.scales or []
                 for scale in scales:

@@ -180,14 +180,14 @@ class StudioSimulationService:
 
         # Extract base instruction text polymorphically
         match data:
-            case MatrixPromptBlock():
-                rendered = data.ai_description or ""
-            case SystemRulePromptBlock():
-                rendered = data.instruction_text or data.ai_description or ""
-            case PersonaPromptBlock():
-                rendered = data.role_enforcement or data.ai_description or ""
-            case ProtocolPromptBlock():
-                rendered = data.protocol_instructions or data.ai_description or ""
+            case MatrixPromptBlock(ai_description=desc) if desc:
+                rendered = desc
+            case SystemRulePromptBlock(instruction_text=text) if text:
+                rendered = text
+            case PersonaPromptBlock(role_enforcement=text) if text:
+                rendered = text
+            case ProtocolPromptBlock(protocol_instructions=text) if text:
+                rendered = text
 
         # 1. Base rendering using template syntax if needed
         if rendered and mock_inputs:

@@ -203,7 +203,7 @@ class StudioPromptBlockService:
             "slug": new_id,
             "label": {"translations": {"en": "New Block", "fi": "Uusi lohko"}},
             "description": {"translations": {"en": "Draft block", "fi": "Luonnos"}},
-            "ai_description": "Initial AI logic draft.",
+            "instruction_text": "Initial AI logic draft.",
             "category_id": PromptBlockCategory.SYSTEM_RULE.value,
             "type": BlockDataType.INSTRUCTION.value,
             "output_extensions": [],

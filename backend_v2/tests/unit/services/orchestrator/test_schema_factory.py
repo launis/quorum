@@ -93,7 +93,7 @@ def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFac
             slug="test-slug-1",
             label=I18nText(translations={"en": "Test Label"}),
             description=I18nText(translations={"en": "Test Desc"}),
-            ai_description="Test AI instruction",
+            instruction_text="Test AI instruction",
             category_id=PromptBlockCategory.SYSTEM_RULE,
             type=BlockDataType.COMPLIANCE,
             output_extensions=[],

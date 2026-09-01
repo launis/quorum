@@ -331,7 +331,7 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
         "description": {
             "translations": {"en": "Instruction Description", "fi": "Instruction Description"},
         },
-        "ai_description": "Custom instruction details.",
+        "instruction_text": "Custom instruction details.",
     }
 
     DynamicSchema = compiler.build_dynamic_schema(

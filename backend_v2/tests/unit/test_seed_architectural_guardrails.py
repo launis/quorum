@@ -5,7 +5,13 @@ import re
 from pathlib import Path
 from typing import Any
 
-from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    PromptBlockAdapter,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.v2_core import OutputProfile, Workflow
 
 SEED_FILE = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
@@ -19,11 +25,22 @@ def test_prompt_blocks_do_not_contain_ui_logic() -> None:
     blocks = [PromptBlockAdapter.validate_python(b) for b in data.get("prompt_blocks", [])]
 
     for block in blocks:
-        if block.ai_description:
-            ai_desc = block.ai_description.upper()
+        desc_text = ""
+        match block:
+            case MatrixPromptBlock(ai_description=desc) if desc:
+                desc_text = desc
+            case SystemRulePromptBlock(instruction_text=text) if text:
+                desc_text = text
+            case PersonaPromptBlock(role_enforcement=text) if text:
+                desc_text = text
+            case ProtocolPromptBlock(protocol_instructions=text) if text:
+                desc_text = text
+
+        if desc_text:
+            ai_desc = desc_text.upper()
             if block.id != "blk_1a2b3c4d5e6f7a8b":
-                assert "0-100" not in ai_desc, f"Block {block.id} contains 0-100 UI scale logic in ai_description"
-            assert "PUNCHY SENTENCE" not in ai_desc, f"Block {block.id} contains UI formatting in ai_description"
+                assert "0-100" not in ai_desc, f"Block {block.id} contains 0-100 UI scale logic in prompt text"
+            assert "PUNCHY SENTENCE" not in ai_desc, f"Block {block.id} contains UI formatting in prompt text"
 
 
 def test_output_profiles_do_not_contain_execution_logic() -> None:

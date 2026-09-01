@@ -81,12 +81,18 @@ def _build_valid_pb_dict(
         "slug": "test_slug",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
         "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-        "ai_description": "Test AI Desc",
         "type": pb_type,
         "category_id": category_id,
     }
     if category_id == PromptBlockCategory.MATRIX.value:
+        pb["ai_description"] = "Test AI Desc"
         pb["allow_contextual_override"] = True
+    elif category_id in ("execution_persona", "agent_role"):
+        pb["role_enforcement"] = "Test Role Enforcement"
+    elif category_id == "protocol":
+        pb["protocol_instructions"] = "Test Protocol Instructions"
+    else:
+        pb["instruction_text"] = "Test Instruction Text"
     if scales:
         pb["scales"] = scales
     return pb

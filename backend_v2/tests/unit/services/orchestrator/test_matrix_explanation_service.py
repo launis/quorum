@@ -19,9 +19,20 @@ from backend_v2.services.orchestrator.matrix_explanation_service import MatrixEx
 def _create_matrix_block(
     block_id: str = "blk_1234567890abcdef12345678",
     scales: list[MatrixScale] | None = None,
+    tda_ids: list[str] | None = None,
 ) -> PromptBlock:
     """Helper to create a concrete, valid PromptBlock fixture without mocks."""
     if scales is None:
+        ids = tda_ids or ["tda_00000000000000000000000000000001", "tda_00000000000000000000000000000002"]
+        assertions = [
+            TDAAssertion(
+                tda_id=tid,
+                inverse_evidence=False,
+                aggregation_mode="ALL_MUST_COMPLY",
+                concept_description=f"Concept Description Valid for {tid}",
+            )
+            for tid in ids
+        ]
         scales = [
             MatrixScale(
                 score=1,
@@ -29,14 +40,7 @@ def _create_matrix_block(
                 claims=[
                     MatrixClaim(
                         label=I18nText(translations={"en": "Claim Label", "fi": "Väite"}),
-                        tda_assertions=[
-                            TDAAssertion(
-                                tda_id="tda_00000000000000000000000000000001",
-                                inverse_evidence=False,
-                                aggregation_mode="ALL_MUST_COMPLY",
-                                concept_description="Concept Description Valid",
-                            )
-                        ],
+                        tda_assertions=assertions,
                     )
                 ],
             )
@@ -66,7 +70,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
                 "normalized_score": 78.5,
                 "results": [
                     {
-                        "tda_id": "a1",
+                        "tda_id": "tda_00000000000000000000000000000001",
                         "status": "PASSED",
                         "evaluation_reasoning": "Reason",
                         "source_quote": "Quote A from source verbatim statement.",
@@ -74,7 +78,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
                         "short_circuit_reason_tda_ids": [],
                     },
                     {
-                        "tda_id": "a2",
+                        "tda_id": "tda_00000000000000000000000000000002",
                         "status": "PASSED",
                         "evaluation_reasoning": "Reason",
                         "source_quote": "Quote B from source verbatim statement.",
@@ -83,8 +87,8 @@ def test_assemble_matrices_to_explain_basic() -> None:
                     },
                 ],
                 "evaluated_atoms": {
-                    "a1": ExecutionStatus.PASSED,
-                    "a2": ExecutionStatus.PASSED,
+                    "tda_00000000000000000000000000000001": ExecutionStatus.PASSED,
+                    "tda_00000000000000000000000000000002": ExecutionStatus.PASSED,
                 },
             },
         ),
@@ -138,7 +142,7 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
                 "normalized_score": 78.5,
                 "results": [
                     {
-                        "tda_id": "a1",
+                        "tda_id": "tda_00000000000000000000000000000001",
                         "status": "PASSED",
                         "evaluation_reasoning": "Reason",
                         "source_quote": None,
@@ -146,7 +150,7 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
                         "short_circuit_reason_tda_ids": [],
                     }
                 ],
-                "evaluated_atoms": {"a1": ExecutionStatus.PASSED},
+                "evaluated_atoms": {"tda_00000000000000000000000000000001": ExecutionStatus.PASSED},
             },
         ),
     ]
@@ -173,7 +177,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
                 "normalized_score": 50.0,
                 "results": [
                     {
-                        "tda_id": "a1",
+                        "tda_id": "tda_00000000000000000000000000000001",
                         "status": "PASSED",
                         "evaluation_reasoning": "Reason",
                         "source_quote": "Quote 1 from the first step output.",
@@ -181,7 +185,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
                         "short_circuit_reason_tda_ids": [],
                     }
                 ],
-                "evaluated_atoms": {"a1": ExecutionStatus.PASSED},
+                "evaluated_atoms": {"tda_00000000000000000000000000000001": ExecutionStatus.PASSED},
             },
         ),
         StepOutputDTO(
@@ -192,7 +196,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
                 "normalized_score": 90.0,
                 "results": [
                     {
-                        "tda_id": "a1",
+                        "tda_id": "tda_00000000000000000000000000000001",
                         "status": "PASSED",
                         "evaluation_reasoning": "Reason",
                         "source_quote": "Quote 2 from the second step output.",
@@ -200,7 +204,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
                         "short_circuit_reason_tda_ids": [],
                     }
                 ],
-                "evaluated_atoms": {"a1": ExecutionStatus.PASSED},
+                "evaluated_atoms": {"tda_00000000000000000000000000000001": ExecutionStatus.PASSED},
             },
         ),
     ]
@@ -610,7 +614,7 @@ def test_assemble_matrices_to_explain_short_quote_filtering() -> None:
                 "normalized_score": 80.0,
                 "results": [
                     {
-                        "tda_id": "a1",
+                        "tda_id": "tda_00000000000000000000000000000001",
                         "status": "PASSED",
                         "evaluation_reasoning": "Reason",
                         "source_quote": "yes",  # 3 chars < 15
@@ -618,7 +622,7 @@ def test_assemble_matrices_to_explain_short_quote_filtering() -> None:
                         "short_circuit_reason_tda_ids": [],
                     },
                     {
-                        "tda_id": "a2",
+                        "tda_id": "tda_00000000000000000000000000000002",
                         "status": "PASSED",
                         "evaluation_reasoning": "Reason",
                         "source_quote": "This is a sufficiently long valid quote from document.",
@@ -627,8 +631,8 @@ def test_assemble_matrices_to_explain_short_quote_filtering() -> None:
                     },
                 ],
                 "evaluated_atoms": {
-                    "a1": ExecutionStatus.PASSED,
-                    "a2": ExecutionStatus.PASSED,
+                    "tda_00000000000000000000000000000001": ExecutionStatus.PASSED,
+                    "tda_00000000000000000000000000000002": ExecutionStatus.PASSED,
                 },
             },
         )

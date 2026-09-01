@@ -302,8 +302,8 @@ def test_prompt_factory_polymorphic_blocks_resolution(mock_compiler: MagicMock) 
     )
 
 
-def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMock) -> None:
-    """Test SystemRulePromptBlock and fallback ai_description pattern matching branches in PromptFactory."""
+def test_prompt_factory_system_rule_and_default_branches(mock_compiler: MagicMock) -> None:
+    """Test SystemRulePromptBlock and default fallback persona in PromptFactory."""
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
     from backend_v2.models.v2_core import I18nText
@@ -356,43 +356,12 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
         "<EXTRACTION_PROTOCOL>\nProtocol via instruction text.\n</EXTRACTION_PROTOCOL>" in payload1.base_system_prompt
     )
 
-    # 2. Fallback ai_description branches (where specific fields are None)
-    persona_fallback = SystemRulePromptBlock(
-        id="blk_7777777777777777",
-        slug="persona_fb",
-        label=I18nText(translations={"en": "Persona"}),
-        description=I18nText(translations={"en": "Desc"}),
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        type=BlockDataType.INSTRUCTION,
-        instruction_text=None,
-        ai_description="Persona fallback ai_description.",
-    )
-    role_fallback = SystemRulePromptBlock(
-        id="blk_8888888888888888",
-        slug="role_fb",
-        label=I18nText(translations={"en": "Role"}),
-        description=I18nText(translations={"en": "Desc"}),
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        type=BlockDataType.INSTRUCTION,
-        instruction_text=None,
-        ai_description="Role fallback ai_description.",
-    )
-    proto_fallback = SystemRulePromptBlock(
-        id="blk_9999999999999999",
-        slug="proto_fb",
-        label=I18nText(translations={"en": "Protocol"}),
-        description=I18nText(translations={"en": "Desc"}),
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        type=BlockDataType.INSTRUCTION,
-        instruction_text=None,
-        ai_description="Protocol fallback ai_description.",
-    )
-
+    # 2. None blocks use default evaluation assistant persona and omit role/protocol directives
     payload2 = PromptFactory.build(
         compiler=mock_compiler,
-        role_block=role_fallback,
-        protocol_block=proto_fallback,
-        execution_persona_block=persona_fallback,
+        role_block=None,
+        protocol_block=None,
+        execution_persona_block=None,
         criteria_blocks=[],
         target_locale="en",
         effective_mcp_tools=None,
@@ -401,9 +370,6 @@ def test_prompt_factory_system_rule_and_fallback_branches(mock_compiler: MagicMo
         expected_inputs=None,
         has_shuffled_atoms=False,
     )
-    assert "Persona fallback ai_description." in payload2.base_system_prompt
-    assert "<ROLE_DIRECTIVE>\nRole fallback ai_description.\n</ROLE_DIRECTIVE>" in payload2.base_system_prompt
-    assert (
-        "<EXTRACTION_PROTOCOL>\nProtocol fallback ai_description.\n</EXTRACTION_PROTOCOL>"
-        in payload2.base_system_prompt
-    )
+    assert "You are a highly accurate, structured evaluation assistant." in payload2.base_system_prompt
+    assert "<ROLE_DIRECTIVE>" not in payload2.base_system_prompt
+    assert "<EXTRACTION_PROTOCOL>" not in payload2.base_system_prompt

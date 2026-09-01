@@ -228,7 +228,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
             "type": "instruction",
             "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
             "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "ai_description": "Strict extraction protocol.",
+            "instruction_text": "Strict extraction protocol.",
         }
     ]
 
@@ -299,7 +299,7 @@ async def test_execute_success_path_structured_output(
             "type": "string",
             "label": {"translations": {"en": "Label", "fi": "Label"}},
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-            "ai_description": "Test Block AI Desc",
+            "instruction_text": "Test Block AI Desc",
         },
         {
             "id": "blk_573802341db9d68c",
@@ -308,7 +308,7 @@ async def test_execute_success_path_structured_output(
             "type": "instruction",
             "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
             "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "ai_description": "Strict extraction protocol.",
+            "instruction_text": "Strict extraction protocol.",
         },
     ]
     mock_repo.get_workflow.return_value = {
@@ -605,7 +605,7 @@ async def test_execute_with_role_and_persona_and_protocol(
             "type": "instruction",
             "label": {"translations": {"en": "Role"}},
             "description": {"translations": {"en": "Role"}},
-            "ai_description": "Act as an expert auditor.",
+            "role_enforcement": "Act as an expert auditor.",
         },
         {
             "id": "blk_2222222222222222",
@@ -614,7 +614,7 @@ async def test_execute_with_role_and_persona_and_protocol(
             "type": "instruction",
             "label": {"translations": {"en": "Persona"}},
             "description": {"translations": {"en": "Persona"}},
-            "ai_description": "Strict Persona.",
+            "role_enforcement": "Strict Persona.",
         },
         {
             "id": "blk_3333333333333333",
@@ -623,7 +623,7 @@ async def test_execute_with_role_and_persona_and_protocol(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
         {
             "id": "blk_4444444444444444",
@@ -632,7 +632,7 @@ async def test_execute_with_role_and_persona_and_protocol(
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate clarity.",
+            "instruction_text": "Evaluate clarity.",
         },
     ]
 
@@ -752,7 +752,7 @@ async def test_execute_synthesis_engine_path(
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate.",
+            "instruction_text": "Evaluate.",
         },
         {
             "id": "blk_3333333333333333",
@@ -761,7 +761,7 @@ async def test_execute_synthesis_engine_path(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 
@@ -853,7 +853,7 @@ async def test_execute_anomaly_retry_flow(
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate.",
+            "instruction_text": "Evaluate.",
         },
         {
             "id": "blk_3333333333333333",
@@ -862,7 +862,7 @@ async def test_execute_anomaly_retry_flow(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 
@@ -1013,7 +1013,7 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         }
     ]
 
@@ -1074,7 +1074,7 @@ async def test_execute_fails_fast_on_missing_output_profile(
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate clarity.",
+            "instruction_text": "Evaluate clarity.",
         },
         {
             "id": "blk_3333333333333333",
@@ -1083,7 +1083,7 @@ async def test_execute_fails_fast_on_missing_output_profile(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
     mock_repo.get_output_profile_by_id.return_value = None
@@ -1157,7 +1157,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate clarity.",
+            "instruction_text": "Evaluate clarity.",
         },
         {
             "id": "blk_3333333333333333",
@@ -1166,7 +1166,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 
@@ -1354,7 +1354,7 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate.",
+            "instruction_text": "Evaluate.",
         },
         {
             "id": "blk_3333333333333333",
@@ -1363,7 +1363,7 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 
@@ -1426,7 +1426,7 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate.",
+            "instruction_text": "Evaluate.",
         },
         {
             "id": "blk_3333333333333333",
@@ -1435,7 +1435,7 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 
@@ -1534,7 +1534,7 @@ async def test_execute_matrix_chunking_flow(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 
@@ -1651,7 +1651,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate.",
+            "instruction_text": "Evaluate.",
         },
         {
             "id": "blk_3333333333333333",
@@ -1660,7 +1660,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 
@@ -1814,7 +1814,7 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 
@@ -1886,7 +1886,7 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate.",
+            "instruction_text": "Evaluate.",
         },
         {
             "id": "blk_3333333333333333",
@@ -1895,7 +1895,7 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 
@@ -1977,7 +1977,7 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
             "type": "string",
             "label": {"translations": {"en": "Criteria"}},
             "description": {"translations": {"en": "Criteria"}},
-            "ai_description": "Evaluate.",
+            "instruction_text": "Evaluate.",
         },
         {
             "id": "blk_3333333333333333",
@@ -1986,7 +1986,7 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
             "type": "instruction",
             "label": {"translations": {"en": "Protocol"}},
             "description": {"translations": {"en": "Protocol"}},
-            "ai_description": "Zero trust protocol.",
+            "protocol_instructions": "Zero trust protocol.",
         },
     ]
 

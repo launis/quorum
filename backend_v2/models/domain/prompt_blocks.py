@@ -55,13 +55,6 @@ class PromptBlockBase(V2CoreBase):
         default_factory=list,
         description="List of requested XAI output extensions (e.g. 'justification', 'risk_flag').",
     )
-    ai_description: str | None = Field(
-        default=None,
-        description=(
-            "MANDATORY: English cognitive instructions for the LLM. "
-            "Completely isolates AI prompt from UI localizations."
-        ),
-    )
     theory_grounding: TheoryGrounding | None = Field(
         default=None,
         description="Fetches and injects source theory as <theory_context>.",
@@ -79,6 +72,13 @@ class MatrixPromptBlock(PromptBlockBase):
     allow_decimals: bool = False
     allow_contextual_override: bool = False
     is_lightweight_protocol: bool = False
+    ai_description: str | None = Field(
+        default=None,
+        description=(
+            "MANDATORY: English cognitive instructions for the LLM. "
+            "Completely isolates AI prompt from UI localizations."
+        ),
+    )
     scales: list[MatrixScale] = Field(..., min_length=1, description="BARS scale definitions with scores and claims.")
     rows: list[MatrixRow] | None = None
     columns: list[I18nText] | None = None
@@ -89,34 +89,23 @@ class MatrixPromptBlock(PromptBlockBase):
     @classmethod
     def _compute_extrema(cls, data: Any) -> Any:
         """Dynamically computes absolute minimum and maximum scores from scales if not provided."""
-        try:
-            d = dict(data)
-        except TypeError, ValueError:
+        if isinstance(data, cls):
             return data
 
-        scales = d.get("scales")
-        if isinstance(scales, list) and scales:
+        scales = data["scales"] if "scales" in data else None
+        if scales:
             scores: list[int] = []
             for s in scales:
-                match s:
-                    case MatrixScale(score=score):
-                        scores.append(score)
-                    case _:
-                        try:
-                            score_raw = s.get("score")
-                            if score_raw is not None:
-                                scores.append(int(score_raw))
-                        except AttributeError, TypeError, ValueError:
-                            try:
-                                scores.append(int(s.score))
-                            except AttributeError, TypeError, ValueError:
-                                pass
+                if isinstance(s, MatrixScale):
+                    scores.append(s.score)
+                elif "score" in s:
+                    scores.append(int(s["score"]))
             if scores:
-                if d.get("computed_min") is None:
-                    d["computed_min"] = min(scores)
-                if d.get("computed_max") is None:
-                    d["computed_max"] = max(scores)
-        return d
+                if "computed_min" not in data or data["computed_min"] is None:
+                    data["computed_min"] = min(scores)
+                if "computed_max" not in data or data["computed_max"] is None:
+                    data["computed_max"] = max(scores)
+        return data
 
 
 class SystemRulePromptBlock(PromptBlockBase):

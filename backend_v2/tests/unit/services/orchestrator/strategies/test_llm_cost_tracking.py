@@ -194,7 +194,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
             "type": "string",
             "label": {"translations": {"en": "Label", "fi": "Label"}},
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-            "ai_description": "Test Block AI Desc",
+            "instruction_text": "Test Block AI Desc",
         },
         {
             "id": "blk_573802341db9d68c",
@@ -203,7 +203,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
             "type": "instruction",
             "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
             "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "ai_description": "Strict extraction protocol.",
+            "instruction_text": "Strict extraction protocol.",
         },
     ]
 

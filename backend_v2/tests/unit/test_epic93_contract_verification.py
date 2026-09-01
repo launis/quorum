@@ -273,6 +273,8 @@ class TestPhase2PipelineUnification:
 
         block_id_1 = "blk_111111111111111111111111"
         block_id_2 = "blk_222222222222222222222222"
+        tda_1 = "tda_00000000000000000000000000000001"
+        tda_2 = "tda_00000000000000000000000000000002"
         dtos = [
             StepOutputDTO(
                 step_id="s1",
@@ -282,7 +284,7 @@ class TestPhase2PipelineUnification:
                     "normalized_score": 80.0,
                     "results": [
                         {
-                            "tda_id": "a1",
+                            "tda_id": tda_1,
                             "status": "PASSED",
                             "evaluation_reasoning": "Reason",
                             "source_quote": "Q1 verbatim quote longer than 15 chars",
@@ -290,7 +292,7 @@ class TestPhase2PipelineUnification:
                             "short_circuit_reason_tda_ids": [],
                         }
                     ],
-                    "evaluated_atoms": {"a1": ExecutionStatus.PASSED},
+                    "evaluated_atoms": {tda_1: ExecutionStatus.PASSED},
                 },
             ),
             StepOutputDTO(
@@ -301,7 +303,7 @@ class TestPhase2PipelineUnification:
                     "normalized_score": 60.0,
                     "results": [
                         {
-                            "tda_id": "a2",
+                            "tda_id": tda_2,
                             "status": "PASSED",
                             "evaluation_reasoning": "Reason",
                             "source_quote": None,
@@ -309,7 +311,7 @@ class TestPhase2PipelineUnification:
                             "short_circuit_reason_tda_ids": [],
                         }
                     ],
-                    "evaluated_atoms": {"a2": ExecutionStatus.PASSED},
+                    "evaluated_atoms": {tda_2: ExecutionStatus.PASSED},
                 },
             ),
         ]
@@ -322,7 +324,7 @@ class TestPhase2PipelineUnification:
             TDAAssertion,
         )
 
-        def _make_pb(block_id: str, label_en: str) -> PromptBlock:
+        def _make_pb(block_id: str, label_en: str, tda_id: str) -> PromptBlock:
             return MatrixPromptBlock(
                 id=block_id,
                 slug=f"slug_{block_id}",
@@ -340,7 +342,7 @@ class TestPhase2PipelineUnification:
                                 label=I18nText(translations={"en": "Claim"}),
                                 tda_assertions=[
                                     TDAAssertion(
-                                        tda_id="tda_00000000000000000000000000000001",
+                                        tda_id=tda_id,
                                         inverse_evidence=False,
                                         aggregation_mode="ALL_MUST_COMPLY",
                                         concept_description="Concept Description Valid",
@@ -353,8 +355,8 @@ class TestPhase2PipelineUnification:
             )
 
         blocks_by_id: dict[str, PromptBlock] = {
-            block_id_1: _make_pb(block_id_1, "Matrix M1"),
-            block_id_2: _make_pb(block_id_2, "Matrix M2"),
+            block_id_1: _make_pb(block_id_1, "Matrix M1", tda_1),
+            block_id_2: _make_pb(block_id_2, "Matrix M2", tda_2),
         }
         result = MatrixExplanationService.assemble_matrices_to_explain(
             dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"

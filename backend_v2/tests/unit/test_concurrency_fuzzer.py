@@ -64,10 +64,10 @@ def mock_repo() -> AsyncMock:
         PromptBlockAdapter.validate_python(
             {
                 "id": "blk_1234567890abcdef",
-                "slug": "task_bp",
+                "slug": "zero_trust_extraction_protocol",
                 "label": {"translations": {"fi": "Testi", "en": "Test"}},
                 "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
-                "ai_description": "Strict extraction protocol.",
+                "instruction_text": "Strict extraction protocol.",
                 "category_id": "system_rule",
                 "type": "string",
                 "allow_decimals": False,

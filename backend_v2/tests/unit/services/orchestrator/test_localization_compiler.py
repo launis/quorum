@@ -33,7 +33,7 @@ def test_compile_static_instructions_supported_locales() -> None:
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "type": "instruction",
             "label": {"translations": {"en": "Test", "fi": "Test"}},
-            "ai_description": "Target language is {TARGET_LANGUAGE}",
+            "instruction_text": "Target language is {TARGET_LANGUAGE}",
         }
     ]
     blocks = [PromptBlockAdapter.validate_python(c) for c in mock_criteria]
@@ -62,7 +62,7 @@ def test_compile_static_instructions_unsupported_locale_raises_app_exception() -
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "type": "instruction",
             "label": {"translations": {"en": "Test", "fi": "Test"}},
-            "ai_description": "Test static instruction",
+            "instruction_text": "Test static instruction",
         }
     ]
     blocks = [PromptBlockAdapter.validate_python(c) for c in mock_criteria]
@@ -86,7 +86,7 @@ def test_compile_dynamic_instructions_supported_locales() -> None:
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "type": "instruction",
             "label": {"translations": {"en": "Test", "fi": "Test"}},
-            "ai_description": "Today is {CURRENT_DATE} in {TARGET_LANGUAGE}",
+            "instruction_text": "Today is {CURRENT_DATE} in {TARGET_LANGUAGE}",
         }
     ]
     blocks = [PromptBlockAdapter.validate_python(c) for c in mock_criteria]
@@ -109,29 +109,29 @@ def test_resolve_i18n_invalid_inputs() -> None:
         compiler.resolve_i18n(12345, "en")
 
 
-def test_compile_static_instructions_missing_ai_description() -> None:
-    """Test ConfigurationError when block is missing mandatory ai_description."""
+def test_compile_static_instructions_missing_instruction_text() -> None:
+    """Test ConfigurationError when block is missing mandatory instruction_text."""
     compiler = LocalizationCompiler()
     mock_block = SystemRulePromptBlock.model_construct(
         id="blk_nodesc",
         slug="no_desc",
         category_id=PromptBlockCategory.SYSTEM_RULE,
         label={"translations": {"en": "Label"}},
-        ai_description=None,
+        instruction_text=None,
     )
     with pytest.raises(ConfigurationError):
         compiler.compile_static_instructions([mock_block], target_locale="en")
 
 
-def test_compile_dynamic_instructions_missing_ai_description() -> None:
-    """Test ConfigurationError when runtime_variables block is missing ai_description."""
+def test_compile_dynamic_instructions_missing_instruction_text() -> None:
+    """Test ConfigurationError when runtime_variables block is missing instruction_text."""
     compiler = LocalizationCompiler()
     mock_block = SystemRulePromptBlock.model_construct(
         id="blk_nodyn",
         slug="no_dyn",
         category_id=PromptBlockCategory.RUNTIME_VARIABLES,
         label={"translations": {"en": "Label"}},
-        ai_description=None,
+        instruction_text=None,
     )
     with pytest.raises(ConfigurationError):
         compiler.compile_dynamic_instructions([mock_block], target_locale="en")
@@ -150,7 +150,7 @@ def test_compile_dynamic_instructions_execution_time_types() -> None:
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "type": "instruction",
             "label": {"translations": {"en": "Test", "fi": "Test"}},
-            "ai_description": "Date: {CURRENT_DATE} Time: {DYNAMIC_TIME}",
+            "instruction_text": "Date: {CURRENT_DATE} Time: {DYNAMIC_TIME}",
         }
     ]
     blocks = [PromptBlockAdapter.validate_python(c) for c in mock_criteria]
@@ -222,7 +222,7 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
 
 
 def test_compile_static_instructions_missing_instruction_text_raises_configuration_error() -> None:
-    """Anti-happy path: PromptBlock with missing instruction_text and ai_description raises ConfigurationError."""
+    """Anti-happy path: PromptBlock with missing instruction_text raises ConfigurationError."""
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.enums import PromptBlockCategory
 
@@ -233,7 +233,6 @@ def test_compile_static_instructions_missing_instruction_text_raises_configurati
         category_id=PromptBlockCategory.SYSTEM_RULE,
         label={"translations": {"en": "Label"}},
         instruction_text=None,
-        ai_description=None,
     )
     with pytest.raises(ConfigurationError):
         compiler.compile_static_instructions([mock_block], target_locale="en")

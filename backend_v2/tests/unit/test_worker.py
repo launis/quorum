@@ -621,7 +621,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "type": "instruction",
                 "label": {"translations": {"en": "Synth"}},
                 "description": {"translations": {"en": "Desc"}},
-                "ai_description": "Synthesize data.",
+                "instruction_text": "Synthesize data.",
                 "category_id": "system_rule",
             }
             mock_repo.get_workflow_by_id.return_value = {
@@ -719,7 +719,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                     "type": "instruction",
                     "label": {"translations": {"en": "Label"}},
                     "description": {"translations": {"en": "Desc"}},
-                    "ai_description": f"Instruction for {pb_id}",
+                    "instruction_text": f"Instruction for {pb_id}",
                     "category_id": "system_rule",
                 }
 
@@ -731,7 +731,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                     "type": "instruction",
                     "label": {"translations": {"en": "Target Matrix"}},
                     "description": {"translations": {"en": "Desc"}},
-                    "ai_description": "Target Matrix evaluation",
+                    "instruction_text": "Target Matrix evaluation",
                     "category_id": "system_rule",
                 }
             ]
@@ -992,7 +992,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "type": "instruction",
                 "label": {"translations": {"en": "Synth"}},
                 "description": {"translations": {"en": "Desc"}},
-                "ai_description": "Synthesize data.",
+                "instruction_text": "Synthesize data.",
                 "category_id": "system_rule",
             }
 

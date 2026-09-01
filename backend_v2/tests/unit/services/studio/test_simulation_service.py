@@ -234,7 +234,6 @@ async def test_simulate_prompt_block_simple(simulation_service: StudioSimulation
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
         instruction_text="Analyze the document: {doc_title} and report.",
-        ai_description="Analyze the document: {doc_title} and report.",
     )
 
     res = await simulation_service.simulate_prompt_block(
@@ -250,7 +249,7 @@ async def test_simulate_prompt_block_simple(simulation_service: StudioSimulation
 async def test_simulate_prompt_block_none_ai_description(
     simulation_service: StudioSimulationService, test_token: TokenData
 ) -> None:
-    """Test prompt block simulation when ai_description and instruction_text are None."""
+    """Test prompt block simulation when instruction_text is None."""
     block = SystemRulePromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="test_none",
@@ -259,7 +258,6 @@ async def test_simulate_prompt_block_none_ai_description(
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
         instruction_text=None,
-        ai_description=None,
     )
 
     res = await simulation_service.simulate_prompt_block(test_token, block, mock_inputs={})
@@ -377,7 +375,6 @@ async def test_simulate_step_success(
         category_id=PromptBlockCategory.AGENT_ROLE,
         type=BlockDataType.STRING,
         role_enforcement="You are a senior analyst.",
-        ai_description="You are a senior analyst.",
     )
     mock_prompt_block_service.get_prompt_block.return_value = mock_block
 

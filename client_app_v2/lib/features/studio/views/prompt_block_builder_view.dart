@@ -427,7 +427,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.organizationId,
                                           label: payload.label,
                                           description: payload.description,
-                                          aiDescription: payload.aiDescription,
+                                          aiDescription:
+                                              payload is MatrixPromptBlock
+                                              ? payload.aiDescription
+                                              : null,
                                           isEvaluative: payload.isEvaluative,
                                           type: payload.type,
                                           allowDecimals: payload.allowDecimals,
@@ -447,7 +450,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.organizationId,
                                           label: payload.label,
                                           description: payload.description,
-                                          aiDescription: payload.aiDescription,
                                           isEvaluative: payload.isEvaluative,
                                           type: payload.type,
                                           allowDecimals: payload.allowDecimals,
@@ -457,6 +459,17 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.theoryGrounding,
                                           isLightweightProtocol:
                                               payload.isLightweightProtocol,
+                                          instructionText:
+                                              payload is SystemRulePromptBlock
+                                              ? payload.instructionText
+                                              : (payload
+                                                        is RuntimeVariablesPromptBlock
+                                                    ? payload.instructionText
+                                                    : (payload
+                                                              is TaskDefinitionPromptBlock
+                                                          ? payload
+                                                                .instructionText
+                                                          : null)),
                                         ),
                                       PromptBlockCategory.executionPersona =>
                                         PromptBlock.executionPersona(
@@ -466,7 +479,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.organizationId,
                                           label: payload.label,
                                           description: payload.description,
-                                          aiDescription: payload.aiDescription,
                                           isEvaluative: payload.isEvaluative,
                                           type: payload.type,
                                           allowDecimals: payload.allowDecimals,
@@ -476,6 +488,13 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.theoryGrounding,
                                           isLightweightProtocol:
                                               payload.isLightweightProtocol,
+                                          roleEnforcement:
+                                              payload
+                                                  is ExecutionPersonaPromptBlock
+                                              ? payload.roleEnforcement
+                                              : (payload is AgentRolePromptBlock
+                                                    ? payload.roleEnforcement
+                                                    : null),
                                         ),
                                       PromptBlockCategory.agentRole =>
                                         PromptBlock.agentRole(
@@ -485,7 +504,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.organizationId,
                                           label: payload.label,
                                           description: payload.description,
-                                          aiDescription: payload.aiDescription,
                                           isEvaluative: payload.isEvaluative,
                                           type: payload.type,
                                           allowDecimals: payload.allowDecimals,
@@ -495,6 +513,13 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.theoryGrounding,
                                           isLightweightProtocol:
                                               payload.isLightweightProtocol,
+                                          roleEnforcement:
+                                              payload is AgentRolePromptBlock
+                                              ? payload.roleEnforcement
+                                              : (payload
+                                                        is ExecutionPersonaPromptBlock
+                                                    ? payload.roleEnforcement
+                                                    : null),
                                         ),
                                       PromptBlockCategory.protocol =>
                                         PromptBlock.protocol(
@@ -504,7 +529,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.organizationId,
                                           label: payload.label,
                                           description: payload.description,
-                                          aiDescription: payload.aiDescription,
                                           isEvaluative: payload.isEvaluative,
                                           type: payload.type,
                                           allowDecimals: payload.allowDecimals,
@@ -514,6 +538,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.theoryGrounding,
                                           isLightweightProtocol:
                                               payload.isLightweightProtocol,
+                                          protocolInstructions:
+                                              payload is ProtocolPromptBlock
+                                              ? payload.protocolInstructions
+                                              : null,
                                         ),
                                       PromptBlockCategory.runtimeVariables =>
                                         PromptBlock.runtimeVariables(
@@ -523,7 +551,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.organizationId,
                                           label: payload.label,
                                           description: payload.description,
-                                          aiDescription: payload.aiDescription,
                                           isEvaluative: payload.isEvaluative,
                                           type: payload.type,
                                           allowDecimals: payload.allowDecimals,
@@ -533,6 +560,18 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.theoryGrounding,
                                           isLightweightProtocol:
                                               payload.isLightweightProtocol,
+                                          instructionText:
+                                              payload
+                                                  is RuntimeVariablesPromptBlock
+                                              ? payload.instructionText
+                                              : (payload
+                                                        is SystemRulePromptBlock
+                                                    ? payload.instructionText
+                                                    : (payload
+                                                              is TaskDefinitionPromptBlock
+                                                          ? payload
+                                                                .instructionText
+                                                          : null)),
                                         ),
                                       PromptBlockCategory.taskDefinition =>
                                         PromptBlock.taskDefinition(
@@ -542,7 +581,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.organizationId,
                                           label: payload.label,
                                           description: payload.description,
-                                          aiDescription: payload.aiDescription,
                                           isEvaluative: payload.isEvaluative,
                                           type: payload.type,
                                           allowDecimals: payload.allowDecimals,
@@ -552,6 +590,18 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                               payload.theoryGrounding,
                                           isLightweightProtocol:
                                               payload.isLightweightProtocol,
+                                          instructionText:
+                                              payload
+                                                  is TaskDefinitionPromptBlock
+                                              ? payload.instructionText
+                                              : (payload
+                                                        is SystemRulePromptBlock
+                                                    ? payload.instructionText
+                                                    : (payload
+                                                              is RuntimeVariablesPromptBlock
+                                                          ? payload
+                                                                .instructionText
+                                                          : null)),
                                         ),
                                     };
                                     ref

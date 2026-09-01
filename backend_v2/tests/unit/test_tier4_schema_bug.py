@@ -19,7 +19,7 @@ def test_reproduce_tier4_schema_bug() -> None:
             "type": "string",
             "category_id": PromptBlockCategory.SYSTEM_RULE,
             "label": {"translations": {"en": "Matrix"}},
-            "ai_description": "Do matrix things",
+            "instruction_text": "Do matrix things",
             "slug": "test_block",
             "description": {"translations": {"en": "desc"}},
         }

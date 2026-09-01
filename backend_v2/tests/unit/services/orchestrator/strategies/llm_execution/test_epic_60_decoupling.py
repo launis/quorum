@@ -52,7 +52,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
             "slug": "role_critic",
             "label": {"translations": {"en": "Role Critic", "fi": "Kriitikko"}},
             "description": {"translations": {"en": "Role Desc", "fi": "Kuvaus"}},
-            "ai_description": "ROLE: ANTAGONISTIC PROSECUTOR",
+            "role_enforcement": "ROLE: ANTAGONISTIC PROSECUTOR",
             "category_id": "agent_role",
             "type": "string",
         }
@@ -64,7 +64,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
             "slug": "extraction_protocol",
             "label": {"translations": {"en": "Extraction Protocol", "fi": "Protokolla"}},
             "description": {"translations": {"en": "Protocol Desc", "fi": "Kuvaus"}},
-            "ai_description": "EXTRACTION INSTRUCTION: Locate raw facts and return exact quotes.",
+            "instruction_text": "EXTRACTION INSTRUCTION: Locate raw facts and return exact quotes.",
             "category_id": "system_rule",
             "type": "instruction",
         }

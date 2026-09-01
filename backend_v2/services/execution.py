@@ -35,7 +35,13 @@ from backend_v2.exceptions import (
 )
 from backend_v2.hooks.scoring import recalculate
 from backend_v2.models.auth import SystemOrganizations, TokenData
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    PromptBlockAdapter,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import (
     EvidenceOverrideDTO,
@@ -891,7 +897,16 @@ class ExecutionService:
 
                 claim_rule = ""
                 if atom_id in blocks_by_id:
-                    claim_rule = blocks_by_id[atom_id].ai_description or ""
+                    matched_block = blocks_by_id[atom_id]
+                    match matched_block:
+                        case MatrixPromptBlock(ai_description=desc) if desc:
+                            claim_rule = desc
+                        case SystemRulePromptBlock(instruction_text=text) if text:
+                            claim_rule = text
+                        case PersonaPromptBlock(role_enforcement=text) if text:
+                            claim_rule = text
+                        case ProtocolPromptBlock(protocol_instructions=text) if text:
+                            claim_rule = text
 
                 internalization = internal_logic.step_1_identify_premise if internal_logic else ""
                 anti_patterns = internal_logic.step_3_evaluate_anti_patterns if internal_logic else ""
