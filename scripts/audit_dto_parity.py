@@ -124,8 +124,8 @@ def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
                 clean_param = entry.split("=")[0].strip()
                 # Remove annotations
                 clean_param = re.sub(r"@[A-Za-z0-9_]+(?:\([^)]*\))?", "", clean_param).strip()
-                # Remove 'required'
-                clean_param = re.sub(r"\brequired\b", "", clean_param).strip()
+                # Remove only leading 'required' modifier, preserving parameter identifier if named 'required'
+                clean_param = re.sub(r"^\s*required\s+", "", clean_param).strip()
                 # Field name is the last token
                 tokens = clean_param.split()
                 if tokens:
@@ -137,6 +137,11 @@ def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
             models[class_name] = fields
 
     return models
+
+
+EXPLICIT_MODEL_ALIASES: dict[str, str] = {
+    "mcpaudittrace": "mcpaudittracedto",
+}
 
 
 def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityReportDTO:
@@ -153,13 +158,23 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
             for m_name, m_fields in extract_freezed_fields(dart_file).items():
                 frontend_models[m_name] = m_fields
 
-    shared_names = set(backend_models.keys()) & set(frontend_models.keys())
+    frontend_by_lower: dict[str, str] = {name.lower(): name for name in frontend_models}
+
+    # Map backend models to corresponding frontend models using normalized and aliased names
+    matched_pairs: list[tuple[str, str]] = []
+    for b_name in sorted(backend_models.keys()):
+        b_lower = b_name.lower()
+        target_f_lower = EXPLICIT_MODEL_ALIASES[b_lower] if b_lower in EXPLICIT_MODEL_ALIASES else b_lower
+        if target_f_lower in frontend_by_lower:
+            f_name = frontend_by_lower[target_f_lower]
+            matched_pairs.append((b_name, f_name))
+
     mismatches: list[DtoFieldMismatchDTO] = []
     summary_messages: list[str] = []
 
-    for name in sorted(shared_names):
-        b_fields = backend_models[name]
-        f_fields = frontend_models[name]
+    for b_name, f_name in matched_pairs:
+        b_fields = backend_models[b_name]
+        f_fields = frontend_models[f_name]
         if b_fields != f_fields:
             missing_in_front = b_fields - f_fields
             missing_in_back = f_fields - b_fields
@@ -169,10 +184,10 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
                 for fld in sorted(missing_in_front):
                     mismatches.append(
                         DtoFieldMismatchDTO(
-                            model_name=name,
+                            model_name=b_name,
                             field_name=fld,
-                            mismatch_reason=f"Field '{fld}' present in Python Pydantic model '{name}' but missing in Dart Freezed model.",
-                            remediation=f"Add @JsonKey(name: '{fld}') or camelCase field '{snake_to_camel(fld)}' to Dart Freezed class '{name}'.",
+                            mismatch_reason=f"Field '{fld}' present in Python Pydantic model '{b_name}' but missing in Dart Freezed model '{f_name}'.",
+                            remediation=f"Add @JsonKey(name: '{fld}') or camelCase field '{snake_to_camel(fld)}' to Dart Freezed class '{f_name}'.",
                         )
                     )
             if missing_in_back:
@@ -180,18 +195,18 @@ def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityRepor
                 for fld in sorted(missing_in_back):
                     mismatches.append(
                         DtoFieldMismatchDTO(
-                            model_name=name,
+                            model_name=b_name,
                             field_name=fld,
-                            mismatch_reason=f"Field '{fld}' present in Dart Freezed model '{name}' but missing in Python Pydantic model.",
-                            remediation=f"Add field '{fld}: <Type>' to Python Pydantic class '{name}'.",
+                            mismatch_reason=f"Field '{fld}' present in Dart Freezed model '{f_name}' but missing in Python Pydantic model '{b_name}'.",
+                            remediation=f"Add field '{fld}: <Type>' to Python Pydantic class '{b_name}'.",
                         )
                     )
-            summary_messages.append(f"[{name}] " + "; ".join(diffs))
+            summary_messages.append(f"[{b_name} <-> {f_name}] " + "; ".join(diffs))
 
     is_success = len(mismatches) == 0
     return DtoParityReportDTO(
         is_success=is_success,
-        shared_models_count=len(shared_names),
+        shared_models_count=len(matched_pairs),
         mismatches=mismatches,
         summary_messages=summary_messages,
     )

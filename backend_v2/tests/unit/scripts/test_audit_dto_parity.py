@@ -102,6 +102,7 @@ def test_extract_freezed_fields_success(tmp_path: Path) -> None:
         "    @JsonKey(name: 'execution_id') required String executionId,\n"
         "    required int stepCount,\n"
         "    @Default(true) bool isActive,\n"
+        "    required bool required,\n"
         "  }) = _ExecutionRecordDTO;\n"
         "}\n\n"
         "@Freezed()\n"
@@ -115,7 +116,7 @@ def test_extract_freezed_fields_success(tmp_path: Path) -> None:
 
     models = extract_freezed_fields(dart_file)
     assert "ExecutionRecordDTO" in models
-    assert models["ExecutionRecordDTO"] == {"execution_id", "step_count", "is_active"}
+    assert models["ExecutionRecordDTO"] == {"execution_id", "step_count", "is_active", "required"}
 
     assert "SecondDTO" in models
     assert models["SecondDTO"] == {"user_id"}
@@ -141,20 +142,36 @@ def test_audit_parity_report_matching_and_mismatches(tmp_path: Path) -> None:
     frontend_dir = tmp_path / "frontend"
     frontend_dir.mkdir()
 
-    # Model 1: Fully matching
+    # Model 1: Fully matching with exact case
     (backend_dir / "user.py").write_text("class UserDTO:\n    user_id: str\n    email: str\n", encoding="utf-8")
     (frontend_dir / "user.dart").write_text(
         "@freezed\nabstract class UserDTO with _$UserDTO {\n  const factory UserDTO({\n    @JsonKey(name: 'user_id') required String userId,\n    required String email,\n  }) = _UserDTO;\n}\n",
         encoding="utf-8",
     )
 
+    # Model 2: Matching with case-insensitive DTO vs Dto
+    (backend_dir / "scorecard.py").write_text(
+        "class ScorecardAtomDTO:\n    atom_id: str\n    level: int\n", encoding="utf-8"
+    )
+    (frontend_dir / "scorecard.dart").write_text(
+        "@freezed\nabstract class ScorecardAtomDto with _$ScorecardAtomDto {\n  const factory ScorecardAtomDto({\n    @JsonKey(name: 'atom_id') required String atomId,\n    required int level,\n  }) = _ScorecardAtomDto;\n}\n",
+        encoding="utf-8",
+    )
+
+    # Model 3: Matching via explicit alias (MCPAuditTrace <-> McpAuditTraceDto)
+    (backend_dir / "mcp.py").write_text("class MCPAuditTrace:\n    query: str\n", encoding="utf-8")
+    (frontend_dir / "mcp.dart").write_text(
+        "@freezed\nabstract class McpAuditTraceDto with _$McpAuditTraceDto {\n  const factory McpAuditTraceDto({\n    required String query,\n  }) = _McpAuditTraceDto;\n}\n",
+        encoding="utf-8",
+    )
+
     report = audit_parity_report(backend_dir, frontend_dir)
     assert isinstance(report, DtoParityReportDTO)
     assert report.is_success is True
-    assert report.shared_models_count == 1
+    assert report.shared_models_count == 3
     assert report.mismatches == []
 
-    # Model 2: Missing field in Frontend
+    # Model 4: Missing field in Frontend
     (backend_dir / "profile.py").write_text("class ProfileDTO:\n    profile_id: str\n    bio: str\n", encoding="utf-8")
     (frontend_dir / "profile.dart").write_text(
         "@freezed\nabstract class ProfileDTO with _$ProfileDTO {\n  const factory ProfileDTO({\n    @JsonKey(name: 'profile_id') required String profileId,\n  }) = _ProfileDTO;\n}\n",
@@ -163,7 +180,7 @@ def test_audit_parity_report_matching_and_mismatches(tmp_path: Path) -> None:
 
     report2 = audit_parity_report(backend_dir, frontend_dir)
     assert report2.is_success is False
-    assert report2.shared_models_count == 2
+    assert report2.shared_models_count == 4
     assert len(report2.mismatches) == 1
     mismatch = report2.mismatches[0]
     assert isinstance(mismatch, DtoFieldMismatchDTO)
