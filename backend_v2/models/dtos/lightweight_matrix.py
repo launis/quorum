@@ -73,14 +73,14 @@ class LevelStatsDTO(V2CoreBase):
     Attributes:
         hits: Number of passing criteria at this level.
         total: Total number of criteria at this level.
-        dlqs: Number of items that hit the dead letter queue (defaults to None).
+        dlqs: Number of items that hit the dead letter queue (defaults to 0).
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
     hits: int | float
     total: int | float
-    dlqs: int | None = None
+    dlqs: int = 0
 
 
 class MergedFactsDTO(V2CoreBase):
