@@ -63,21 +63,15 @@ class SseClient {
             // V3: Refactor to Delta Signal exclusively. Only process lightweight changes.
             final Map<String, dynamic> payload = await safeIsolateRun(() {
               final raw = jsonDecode(dataStr) as Map<String, dynamic>;
-              return {
-                'id': raw['id'],
-                'workflow_id': raw['workflow_id'],
-                'status': raw['status'],
-                'trace_version': raw['trace_version'],
-                'step_states':
-                    raw['step_states'], // Lightweight Timeline status
-                'frozen_context':
-                    (raw['frozen_context'] is Map &&
-                        (raw['frozen_context'] as Map).containsKey(
-                          'version_id',
-                        ))
-                    ? {'version_id': raw['frozen_context']['version_id']}
-                    : null, // Only version_id for Drift Warning, strip heavy context
-              };
+              final result = Map<String, dynamic>.from(raw);
+              if (raw.containsKey('frozen_context')) {
+                final fc = raw['frozen_context'];
+                result['frozen_context'] =
+                    (fc is Map && fc.containsKey('version_id'))
+                    ? {'version_id': fc['version_id']}
+                    : null;
+              }
+              return result;
             });
             yield payload;
           } catch (e, st) {

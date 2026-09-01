@@ -222,6 +222,10 @@ class ExecutionController extends _$ExecutionController {
               if (!update.containsKey('workflow_id')) {
                 update['workflow_id'] = currentState.workflowId;
               }
+              if (!update.containsKey('target_locale') ||
+                  update['target_locale'] == null) {
+                update['target_locale'] = currentState.targetLocale;
+              }
             }
 
             ExecutionRecord newRecord;
