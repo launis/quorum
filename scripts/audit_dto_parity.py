@@ -60,35 +60,49 @@ def camel_to_snake(camel_str: str) -> str:
     return re.sub(r"(?<!^)(?=[A-Z])", "_", camel_str).lower()
 
 
-def extract_pydantic_fields(file_path: Path) -> dict[str, set[str]]:
-    """Extract Pydantic model class names and field names via zero-reflection Python AST."""
+def extract_pydantic_fields(file_path: Path) -> tuple[dict[str, set[str]], dict[str, list[str]]]:
+    """Extract Pydantic model class names, field names, and base class names via zero-reflection Python AST."""
     if not file_path.exists() or file_path.suffix != ".py":
-        return {}
+        return {}, {}
 
     try:
         source = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=file_path.as_posix())
     except SyntaxError, UnicodeDecodeError, OSError:
-        return {}
+        return {}, {}
 
     models: dict[str, set[str]] = {}
+    class_bases: dict[str, list[str]] = {}
+
     for node in ast.walk(tree):
         match node:
-            case ast.ClassDef(name=class_name, body=body):
+            case ast.ClassDef(name=class_name, body=body, bases=bases):
                 fields: set[str] = set()
+                base_names = [b.id for b in bases if isinstance(b, ast.Name)]
+                class_bases[class_name] = base_names
+
                 for stmt in body:
                     match stmt:
                         case ast.AnnAssign(target=ast.Name(id=field_name)):
                             if not field_name.startswith("_") and field_name != "model_config":
-                                fields.add(field_name)
+                                is_excluded = False
+                                for sub in ast.walk(stmt):
+                                    match sub:
+                                        case ast.keyword(arg="exclude", value=ast.Constant(value=True)):
+                                            is_excluded = True
+                                            break
+                                        case _:
+                                            pass
+                                if not is_excluded:
+                                    fields.add(field_name)
                         case _:
                             pass
-                if fields:
+                if fields or base_names:
                     models[class_name] = fields
             case _:
                 pass
 
-    return models
+    return models, class_bases
 
 
 def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
@@ -141,33 +155,71 @@ def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
 
 EXPLICIT_MODEL_ALIASES: dict[str, str] = {
     "mcpaudittrace": "mcpaudittracedto",
+    "workflowresponsedto": "workflow",
+    "useradminview": "user",
+}
+
+PREFERRED_BACKEND_ALIASES: dict[str, str] = {
+    "workflow": "workflowresponsedto",
+    "user": "useradminview",
 }
 
 
 def audit_parity_report(backend_dir: Path, frontend_dir: Path) -> DtoParityReportDTO:
     """Compare matching DTO models across backend and frontend directories, returning DtoParityReportDTO."""
     backend_models: dict[str, set[str]] = {}
+    backend_bases: dict[str, list[str]] = {}
     if backend_dir.exists():
         for py_file in backend_dir.rglob("*.py"):
-            for m_name, m_fields in extract_pydantic_fields(py_file).items():
-                backend_models[m_name] = m_fields
+            file_models, file_bases = extract_pydantic_fields(py_file)
+            for m_name, m_fields in file_models.items():
+                if m_name in backend_models:
+                    backend_models[m_name] = backend_models[m_name] | m_fields
+                else:
+                    backend_models[m_name] = m_fields
+            for m_name, bases in file_bases.items():
+                backend_bases[m_name] = bases
+
+    # Multi-pass cross-file inheritance resolution for backend models
+    for _ in range(5):
+        for cls_name, bases in backend_bases.items():
+            for base in bases:
+                if base in backend_models:
+                    if cls_name not in backend_models:
+                        backend_models[cls_name] = set()
+                    backend_models[cls_name] = backend_models[cls_name] | backend_models[base]
+
+    backend_models = {k: v for k, v in backend_models.items() if v}
 
     frontend_models: dict[str, set[str]] = {}
     if frontend_dir.exists():
         for dart_file in frontend_dir.rglob("*.dart"):
             for m_name, m_fields in extract_freezed_fields(dart_file).items():
-                frontend_models[m_name] = m_fields
+                if m_name in frontend_models:
+                    frontend_models[m_name] = frontend_models[m_name] | m_fields
+                else:
+                    frontend_models[m_name] = m_fields
 
+    backend_by_lower: dict[str, str] = {name.lower(): name for name in backend_models}
     frontend_by_lower: dict[str, str] = {name.lower(): name for name in frontend_models}
 
     # Map backend models to corresponding frontend models using normalized and aliased names
     matched_pairs: list[tuple[str, str]] = []
+    matched_frontend: set[str] = set()
+
     for b_name in sorted(backend_models.keys()):
         b_lower = b_name.lower()
+
+        # If a more specific response DTO exists for this model (e.g. WorkflowResponseDTO > Workflow), prioritize it
+        if b_lower in PREFERRED_BACKEND_ALIASES and PREFERRED_BACKEND_ALIASES[b_lower] in backend_by_lower:
+            continue
+
         target_f_lower = EXPLICIT_MODEL_ALIASES[b_lower] if b_lower in EXPLICIT_MODEL_ALIASES else b_lower
         if target_f_lower in frontend_by_lower:
             f_name = frontend_by_lower[target_f_lower]
-            matched_pairs.append((b_name, f_name))
+            if f_name not in matched_frontend:
+                matched_pairs.append((b_name, f_name))
+                matched_frontend.add(f_name)
 
     mismatches: list[DtoFieldMismatchDTO] = []
     summary_messages: list[str] = []

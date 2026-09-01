@@ -59,7 +59,7 @@ def test_extract_pydantic_fields_success(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    models = extract_pydantic_fields(py_file)
+    models, bases = extract_pydantic_fields(py_file)
     assert "ExecutionRecordDTO" in models
     assert models["ExecutionRecordDTO"] == {"execution_id", "step_count", "is_active"}
     assert "_internal_cache" not in models["ExecutionRecordDTO"]
@@ -67,6 +67,7 @@ def test_extract_pydantic_fields_success(tmp_path: Path) -> None:
 
     assert "SecondDTO" in models
     assert models["SecondDTO"] == {"user_id"}
+    assert bases["ExecutionRecordDTO"] == ["BaseModel"]
 
 
 def test_extract_pydantic_fields_fault_resilience(tmp_path: Path) -> None:
@@ -74,20 +75,20 @@ def test_extract_pydantic_fields_fault_resilience(tmp_path: Path) -> None:
     # Syntax error file
     bad_py = tmp_path / "broken.py"
     bad_py.write_text("class BrokenModel(:\n    field: int\n", encoding="utf-8")
-    assert extract_pydantic_fields(bad_py) == {}
+    assert extract_pydantic_fields(bad_py) == ({}, {})
 
     # Binary non-UTF8 file
     bad_bytes = tmp_path / "bad_bytes.py"
     bad_bytes.write_bytes(b"\xff\xfe\x00\x00class X: pass")
-    assert extract_pydantic_fields(bad_bytes) == {}
+    assert extract_pydantic_fields(bad_bytes) == ({}, {})
 
     # Non-existent file
-    assert extract_pydantic_fields(tmp_path / "missing.py") == {}
+    assert extract_pydantic_fields(tmp_path / "missing.py") == ({}, {})
 
     # Non-Python file
     txt_file = tmp_path / "notes.txt"
     txt_file.write_text("class Model:\n    x: int\n", encoding="utf-8")
-    assert extract_pydantic_fields(txt_file) == {}
+    assert extract_pydantic_fields(txt_file) == ({}, {})
 
 
 def test_extract_freezed_fields_success(tmp_path: Path) -> None:
