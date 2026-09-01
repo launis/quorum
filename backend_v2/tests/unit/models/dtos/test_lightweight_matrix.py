@@ -49,4 +49,3 @@ def test_lightweight_matrix_output_normalized_score_validation() -> None:
 
     with pytest.raises(ValidationError):
         LightweightMatrixOutput(normalized_score=-5.0)
-

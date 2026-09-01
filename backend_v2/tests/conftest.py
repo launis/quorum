@@ -199,4 +199,3 @@ def studio_prompt_block_service(
         prompt_block_repo=fake_prompt_block_repo,
         system_repo=fake_system_repo,
     )
-
