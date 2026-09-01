@@ -8,6 +8,17 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
+type DynamicScalar = str | int | float | bool | None
+type DynamicInputNode = DynamicScalar | list[DynamicScalar] | dict[str, DynamicScalar | list[DynamicScalar]]
+type DynamicInputValue = (
+    DynamicScalar
+    | list[DynamicScalar]
+    | list[DynamicInputNode]
+    | dict[str, DynamicScalar]
+    | dict[str, list[DynamicScalar]]
+    | dict[str, DynamicInputNode]
+)
+
 
 class PerformativePatternDTO(BaseModel):
     """Schema for a single detected performative pattern.
@@ -54,13 +65,13 @@ class LinguisticsPayloadDTO(BaseModel):
 
     language: Annotated[str | None, Field(description="Optional explicit language code")] = None
     dynamic_inputs: Annotated[
-        dict[str, str | int | float | bool | list[str]],
+        dict[str, DynamicInputValue],
         Field(default_factory=dict, description="Dictionary of texts to scan"),
     ]
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
-    def extract_language(self, global_vars: dict[str, str | int | float | bool | list[str]]) -> str:
+    def extract_language(self, global_vars: dict[str, DynamicInputValue]) -> str:
         """Determines language safely without dict.get() fallbacks.
 
         Args:
@@ -83,4 +94,22 @@ class LinguisticsPayloadDTO(BaseModel):
         Returns:
             The concatenated text.
         """
-        return " ".join(str(v) for v in self.dynamic_inputs.values() if v).lower()
+        results: list[str] = []
+
+        def _extract(val: DynamicInputValue | DynamicInputNode) -> None:
+            if isinstance(val, str):
+                if val.strip():
+                    results.append(val)
+            elif isinstance(val, (int, float)) and not isinstance(val, bool):
+                results.append(str(val))
+            elif isinstance(val, list):
+                for item in val:
+                    _extract(item)
+            elif val is not None and not isinstance(val, bool):
+                for sub_val in val.values():
+                    _extract(sub_val)
+
+        for v in self.dynamic_inputs.values():
+            _extract(v)
+
+        return " ".join(results).lower()

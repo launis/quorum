@@ -1222,3 +1222,69 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
             ],
             strict=True,
         )
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock_repo: Any, mock_compiler: Any) -> None:
+    """Regression Test: step_states in DAGExecutor must resolve human-readable localized step name instead of raw rule ID."""
+    step_rule = StepRule(
+        id="sr_f0a26d17cc9b48a7",
+        task_blueprint="bp_11112222333344445555666677778888",
+        input_mappings={},
+    )
+    workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        id="wf_5555555555555555",
+        slug="wf_test_slug",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
+        steps=[step_rule],
+    )
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "bp_11112222333344445555666677778888",
+        "type": "logic",
+        "model_strategy": "logic",
+        "slug": "exec_analysis",
+        "name": {"translations": {"en": "Executive Analysis", "fi": "Johtoryhmän analyysi"}},
+        "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
+        "hook": "mock_hook",
+    }
+    mock_repo.get_execution.return_value = None
+
+    prompt_block_repo = AsyncMock()
+    prompt_block_repo.get_prompt_blocks_by_ids.return_value = []
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=prompt_block_repo,
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_exec,
+    ):
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+        )
+        mock_node_exec.return_value = []
+        record = await executor.execute_workflow(
+            execution_id="exe_1231231231231231",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={}, language="fi"),
+        )
+
+    # Step label must be human-readable resolved Finnish name, NOT 'sr_f0a26d17cc9b48a7'
+    assert record.step_states["sr_f0a26d17cc9b48a7"].label == "Johtoryhmän analyysi"
