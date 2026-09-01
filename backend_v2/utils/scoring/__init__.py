@@ -5,14 +5,14 @@ import logging
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import ScoringStrategy
 from backend_v2.utils.scoring.average_engine import PureAverageScoringEngine, WeightedAverageScoringEngine
-from backend_v2.utils.scoring.base_engine import ScoringEngineBase
+from backend_v2.utils.scoring.base_engine import ScoringEngineProtocol
 from backend_v2.utils.scoring.pure_math_engine import PureMathScoringEngine
 from backend_v2.utils.scoring.waterfall_engine import WaterfallScoringEngine
 
-__all__ = ["get_scoring_engine"]
+__all__ = ["ScoringEngineProtocol", "get_scoring_engine"]
 
 
-def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineBase:
+def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineProtocol:
     """Strategy Pattern Factory. Returns the correct mathematical engine based on the execution strategy.
 
     Args:

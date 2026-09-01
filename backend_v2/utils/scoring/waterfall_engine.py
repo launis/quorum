@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, override
 
 from fastapi import status
 
@@ -7,12 +7,12 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, XAILogDto
 from backend_v2.models.enums import StrictnessAnchor, WaterfallThreshold
 from backend_v2.utils.math_utils import calculate_soft_waterfall_score, get_strictness_config
-from backend_v2.utils.scoring.base_engine import ScoringEngineBase
+from backend_v2.utils.scoring.base_engine import ScoringEngineProtocol
 
 logger = logging.getLogger(__name__)
 
 
-class WaterfallScoringEngine(ScoringEngineBase):
+class WaterfallScoringEngine(ScoringEngineProtocol):
     """Guttman scale (Waterfall Floor) implementation with Soft Scaling.
 
     Also known as: 'Koearvostelu'.
@@ -24,6 +24,7 @@ class WaterfallScoringEngine(ScoringEngineBase):
         None.
     """
 
+    @override
     def calculate(
         self,
         stats: dict[float, LevelStatsDTO],

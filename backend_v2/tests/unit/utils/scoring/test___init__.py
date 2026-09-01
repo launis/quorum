@@ -9,13 +9,12 @@ from backend_v2.models.enums import ScoringStrategy
 
 importlib.reload(backend_v2.utils.scoring)
 sys.modules["backend_v2.utils.scoring.__init__"] = backend_v2.utils.scoring
-from backend_v2.utils.scoring import get_scoring_engine
-from backend_v2.utils.scoring.base_engine import ScoringEngineBase
+from backend_v2.utils.scoring import ScoringEngineProtocol, get_scoring_engine
 
 
 def test_get_scoring_engine() -> None:
     engine = get_scoring_engine(ScoringStrategy.WATERFALL)
-    assert isinstance(engine, ScoringEngineBase)
+    assert isinstance(engine, ScoringEngineProtocol)
 
 
 def test_get_scoring_engine_invalid() -> None:

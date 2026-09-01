@@ -5,6 +5,7 @@ and weighted sigmoid average scoring engines.
 """
 
 import statistics
+from typing import override
 
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, XAILogDto
 from backend_v2.models.enums import StrictnessAnchor
@@ -12,16 +13,17 @@ from backend_v2.utils.math_utils import (
     calculate_linear_ratio_score,
     convert_strictness_to_forgiveness,
 )
-from backend_v2.utils.scoring.base_engine import ScoringEngineBase
+from backend_v2.utils.scoring.base_engine import ScoringEngineProtocol
 
 
-class PureAverageScoringEngine(ScoringEngineBase):
+class PureAverageScoringEngine(ScoringEngineProtocol):
     """Pure Average implementation (Linear, unweighted).
 
     Transforms the matrix statistics so that all scale levels have the same weight (1.0).
     Calculates the exact ratio of hits vs total criteria across the entire matrix.
     """
 
+    @override
     def calculate(
         self,
         stats: dict[float, LevelStatsDTO],
@@ -123,13 +125,14 @@ class PureAverageScoringEngine(ScoringEngineBase):
         return float(pure_score), xai_log, level_breakdown
 
 
-class WeightedAverageScoringEngine(ScoringEngineBase):
+class WeightedAverageScoringEngine(ScoringEngineProtocol):
     """Weighted Average implementation.
 
     Calculates the global weighted average of all matrix atoms,
     using the matrix scale levels natively as the mathematical weights.
     """
 
+    @override
     def calculate(
         self,
         stats: dict[float, LevelStatsDTO],

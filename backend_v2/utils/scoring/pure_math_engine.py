@@ -3,18 +3,21 @@
 Enables pure mathematically linear weighted average scoring without any strictness curves or outlier mitigation.
 """
 
+from typing import override
+
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, XAILogDto
 from backend_v2.models.enums import StrictnessAnchor
-from backend_v2.utils.scoring.base_engine import ScoringEngineBase
+from backend_v2.utils.scoring.base_engine import ScoringEngineProtocol
 
 
-class PureMathScoringEngine(ScoringEngineBase):
+class PureMathScoringEngine(ScoringEngineProtocol):
     """Pure Math Scoring implementation.
 
     Calculates the exact ratio of achieved weighted hits vs maximum possible weighted hits.
     Ignores strictness completely, returning a pure direct proportional score normalized to math bounds.
     """
 
+    @override
     def calculate(
         self,
         stats: dict[float, LevelStatsDTO],
