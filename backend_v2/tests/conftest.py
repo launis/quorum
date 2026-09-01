@@ -10,6 +10,15 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import pytest
 
+from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
+from backend_v2.services.studio.workflow_service import StudioWorkflowService
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryOutputProfileRepository,
+    InMemoryPromptBlockRepository,
+    InMemorySystemRepository,
+    InMemoryWorkflowRepository,
+)
+
 if TYPE_CHECKING:
     from backend_v2.models.domain.mcp import OpenAIToolCallDTO
     from backend_v2.models.llm import LLMMessageDTO
@@ -87,7 +96,7 @@ def setup_test_environment() -> None:
 
 @pytest.fixture(autouse=True)
 def block_live_network_calls(monkeypatch: pytest.MonkeyPatch) -> None:
-    """KRIITTINEN ILMARAKO: Estää verkkokutsut yksikkötesteissä, paitsi localhostiin E2E-testejä varten."""
+    """Blocks live network calls in unit tests, except localhost for E2E tests."""
     original_getaddrinfo = socket.getaddrinfo
 
     def guarded_getaddrinfo(*args: Any, **kwargs: Any) -> Any:
@@ -95,7 +104,7 @@ def block_live_network_calls(monkeypatch: pytest.MonkeyPatch) -> None:
         if host in ("127.0.0.1", "localhost", "::1"):
             return original_getaddrinfo(*args, **kwargs)
         raise RuntimeError(
-            f"🛑 FATAL TEST FAILURE: Yritit tehdä oikean verkkokutsun ({host}) testin aikana! Käytä mock_data.py."
+            f"🛑 FATAL TEST FAILURE: Attempted a live network call ({host}) during testing! Use mock_data.py."
         )
 
     monkeypatch.setattr(socket, "getaddrinfo", guarded_getaddrinfo)
@@ -111,7 +120,7 @@ def seed_data() -> dict[str, Any]:
 
 @pytest.fixture(autouse=True)
 def clear_litellm_provider_caches() -> Generator[None]:
-    """KRIITTINEN ILMARAKO: Ensures LiteLLMProvider caches and semaphores are wiped before and after each test to prevent cross-test asyncio loop deadlocks."""
+    """Ensures LiteLLMProvider caches and semaphores are wiped before and after each test to prevent cross-test asyncio loop deadlocks."""
     from backend_v2.llm.provider import LiteLLMProvider
 
     LiteLLMProvider._router_cache.clear()
@@ -140,3 +149,54 @@ def make_llm_message(
         tool_call_id=tool_call_id,
         name=name,
     )
+
+
+@pytest.fixture
+def fake_workflow_repo() -> InMemoryWorkflowRepository:
+    """Provides a fresh, isolated in-memory workflow repository fake."""
+    return InMemoryWorkflowRepository()
+
+
+@pytest.fixture
+def fake_prompt_block_repo() -> InMemoryPromptBlockRepository:
+    """Provides a fresh, isolated in-memory prompt block repository fake."""
+    return InMemoryPromptBlockRepository()
+
+
+@pytest.fixture
+def fake_output_profile_repo() -> InMemoryOutputProfileRepository:
+    """Provides a fresh, isolated in-memory output profile repository fake."""
+    return InMemoryOutputProfileRepository()
+
+
+@pytest.fixture
+def fake_system_repo() -> InMemorySystemRepository:
+    """Provides a fresh, isolated in-memory system repository fake."""
+    return InMemorySystemRepository()
+
+
+@pytest.fixture
+def studio_workflow_service(
+    fake_workflow_repo: InMemoryWorkflowRepository,
+    fake_output_profile_repo: InMemoryOutputProfileRepository,
+    fake_prompt_block_repo: InMemoryPromptBlockRepository,
+) -> StudioWorkflowService:
+    """Provides a StudioWorkflowService instance wired to typed in-memory repository fakes."""
+    return StudioWorkflowService(
+        workflow_repo=fake_workflow_repo,
+        output_profile_repo=fake_output_profile_repo,
+        prompt_block_repo=fake_prompt_block_repo,
+    )
+
+
+@pytest.fixture
+def studio_prompt_block_service(
+    fake_prompt_block_repo: InMemoryPromptBlockRepository,
+    fake_system_repo: InMemorySystemRepository,
+) -> StudioPromptBlockService:
+    """Provides a StudioPromptBlockService instance wired to typed in-memory repository fakes."""
+    return StudioPromptBlockService(
+        prompt_block_repo=fake_prompt_block_repo,
+        system_repo=fake_system_repo,
+    )
+
