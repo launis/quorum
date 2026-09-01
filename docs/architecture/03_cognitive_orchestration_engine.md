@@ -138,5 +138,71 @@ flowchart TB
 | 10 | `MCPToolLoop` | Tool calling, evidence injection, and claim self-correction | `system_config` (mcp_gateways) | `_SELF_CORRECTION_SYSTEM_INSTRUCTION` via `build_system_directive()` |
 | 11 | `StudioLexiconService` | Slop phrase discovery and multilingual literal translation | `system_config` (performative_lexicons) | `STUDIO_DISCOVER_SLOP_PHRASES`, `STUDIO_TRANSLATE_SLOP_PHRASES` via `build_system_directive()` |
 
+### 3.2. End-to-End Tripartite Execution Lifecycle
 
+The workflow execution pipeline is strictly partitioned into three decoupled phases communicating exclusively through event-driven immutable data envelopes:
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Client App (Flutter UI)
+    participant API as API Ingress Router
+    participant DB as Persistence Store (MongoDB)
+    participant Arq as Background Task Queue (Arq/Redis)
+    participant DAG as Orchestration DAG Engine
+    participant LLM as LLM Provider Gateway
+    participant Synth as Synthesis Engine (Phase 2)
+    participant SDUI as Presentation Blueprint Hub (Phase 3)
+
+    %% 1. Ingress & Non-Blocking Asynchronous Start
+    User->>API: POST /executions (WorkflowInputs + ProfileID)
+    API->>DB: Persist ExecutionRecord (status=RUNNING) & FrozenContext
+    API->>Arq: Enqueue execute_workflow_job
+    API-->>User: HTTP 202 Accepted (ExecutionRecord)
+
+    %% 2. Real-Time State Streaming & Heavy Execution
+    par SSE Status Streaming
+        User->>API: GET /executions/{id}/stream (SSE)
+        loop State Progression Broadcasts
+            API->>DB: Query TraceEvents & ExecutionStatus
+            API-->>User: data: ExecutionRecord / SSE Heartbeat Pulse
+        end
+    and Heavy DAG Execution (Phase 1)
+        Arq->>DAG: Dispatch execution task -> Execute Workflow DAG
+        DAG->>LLM: 1. Extract atoms and link causal DAG (TwoPassAtomizer)
+        LLM-->>DAG: Extracted atoms and causal dependency links
+        DAG->>LLM: 2. Sensor matrix evaluations (TDAEngine / Best-of-3)
+        LLM-->>DAG: Evaluation observations and scale scores (1-5)
+        DAG->>DAG: 3. Execute hooks, validation & MatrixReducer scoring math
+        DAG->>DB: Update ExecutionRecord (TraceEvents, step_states)
+        DAG->>Arq: Enqueue render_profile_job
+    end
+
+    %% 3. Qualitative Reporting & Text Synthesis (Phase 2)
+    Arq->>Synth: Dispatch synthesis task -> Generate Profile Synthesis
+    Synth->>LLM: Generate structured section syntheses & XAI highlights
+    LLM-->>Synth: Structured text responses (section_syntheses DTO)
+    Synth->>DB: Persist RenderedSynthesisCache (profile_syntheses)
+
+    %% 4. On-Demand Presentation & Rendering (Phase 3: SDUI Dumb Painter)
+    User->>API: GET /executions/{id}/sdui (or /report or /render?format=pdf)
+    API->>SDUI: Transform domain report data to visual blocks
+    SDUI->>SDUI: Map to flat polymorphic inner_sdui_blocks (AnySduiBlock)
+    SDUI-->>API: ReportView / ReportDataDTO / Static PDF
+    API-->>User: Rendered SDUI Component Tree / PDF Document
+```
+
+#### Lifecycle Phase Overview
+
+1. **Ingress & Asynchronous Non-Blocking Handshake:**
+   - The client issues `POST /executions` with the raw input payload and profile target.
+   - The API Ingress router initializes and persists the `ExecutionRecord` with `status=RUNNING`, enqueues `execute_workflow_job` to the background task queue, and returns an immediate `HTTP 202 Accepted` response to prevent thread blocking.
+2. **Real-Time SSE Telemetry & Heavy Execution (Phase 1):**
+   - The client establishes an independent Server-Sent Events stream (`GET /executions/{id}/stream`) to receive real-time state broadcasts.
+   - The background worker executes the Directed Acyclic Graph (`DAGExecutor`), orchestrating two-pass atom extraction, causal graph linking, TDA matrix evaluation via Best-of-3 consensus, and mathematical normalization (`MatrixReducer`).
+   - The final execution state is committed to the database, and the worker enqueues the subsequent synthesis stage (`render_profile_job`).
+3. **Structured Qualitative Synthesis (Phase 2):**
+   - The synthesis task distills and compresses the raw DAG evaluation state via `synthesis_distiller_hook`.
+   - The `SynthesisEngine` generates structured qualitative text (Executive Summary, Matrix Sections, Row Explanations, XAI Highlights) mapped to specific layout identifiers and stores the result in `RenderedSynthesisCache`.
+4. **On-Demand SDUI Presentation (Phase 3 - Dumb Painter):**
+   - When the client or downstream consumer requests the visual report (`GET /executions/{id}/sdui`, `GET /executions/{id}/report`, or PDF rendering), the presentation blueprint transformer acts as a pure "Dumb Painter", translating domain DTOs into a flat array of `inner_sdui_blocks: list[AnySduiBlock]` with zero runtime LLM calls or domain math.
