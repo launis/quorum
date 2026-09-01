@@ -2,10 +2,9 @@
 
 import json
 import logging
-from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Protocol, override, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -44,13 +43,13 @@ class ProgressState(BaseModel):
     error: Annotated[str | None, Field(default=None, description="Error message string if failed")] = None
 
 
-class ProgressTracker(ABC):
-    """Abstract Base Class for unified progress reporting across the application.
+@runtime_checkable
+class ProgressTrackerProtocol(Protocol):
+    """Protocol defining structural interface contract for unified progress reporting.
 
     Enforces standardized states (STARTED, RUNNING, COMPLETED, FAILED).
     """
 
-    @abstractmethod
     async def start(self) -> None:
         """Signals the process has started.
 
@@ -59,7 +58,6 @@ class ProgressTracker(ABC):
         """
         ...
 
-    @abstractmethod
     async def update(self, current_step: str, progress: int) -> None:
         """Updates progress with current step and progress percentage.
 
@@ -72,7 +70,6 @@ class ProgressTracker(ABC):
         """
         ...
 
-    @abstractmethod
     async def complete(self) -> None:
         """Signals successful completion.
 
@@ -81,7 +78,6 @@ class ProgressTracker(ABC):
         """
         ...
 
-    @abstractmethod
     async def fail(self, error: str) -> None:
         """Signals failure/halt.
 
@@ -94,7 +90,7 @@ class ProgressTracker(ABC):
         ...
 
 
-class DatabaseProgressTracker(ProgressTracker):
+class DatabaseProgressTracker(ProgressTrackerProtocol):
     """Tracks progress by updating the 'executions' table in the database.
 
     Used by WorkflowEngine to persist state across server restarts.
@@ -114,6 +110,7 @@ class DatabaseProgressTracker(ProgressTracker):
         self.repository = repository
         self.execution_id = execution_id
 
+    @override
     async def start(self) -> None:
         """Sets status to 'started'.
 
@@ -140,6 +137,7 @@ class DatabaseProgressTracker(ProgressTracker):
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
 
+    @override
     async def update(self, current_step: str, progress: int) -> None:
         """Updates 'current_step' and 'progress' fields in DB.
 
@@ -171,6 +169,7 @@ class DatabaseProgressTracker(ProgressTracker):
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
 
+    @override
     async def complete(self) -> None:
         """Sets status to 'completed'.
 
@@ -197,6 +196,7 @@ class DatabaseProgressTracker(ProgressTracker):
                 details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED, "original_error": str(e)},
             ) from e
 
+    @override
     async def fail(self, error: str) -> None:
         """Sets status to 'failed' and saves error message.
 
@@ -228,7 +228,7 @@ class DatabaseProgressTracker(ProgressTracker):
             ) from e
 
 
-class InMemoryProgressTracker(ProgressTracker):
+class InMemoryProgressTracker(ProgressTrackerProtocol):
     """Tracks progress in-memory via a callback function emitting ProgressState.
 
     Used by short-lived API tasks like File Ingestion.
@@ -275,6 +275,7 @@ class InMemoryProgressTracker(ProgressTracker):
         self.current_state = state
         self.callback(state)
 
+    @override
     async def start(self) -> None:
         """Signals start.
 
@@ -283,6 +284,7 @@ class InMemoryProgressTracker(ProgressTracker):
         """
         self._emit(status=STATUS_STARTED)
 
+    @override
     async def update(self, current_step: str, progress: int) -> None:
         """Signals update.
 
@@ -295,6 +297,7 @@ class InMemoryProgressTracker(ProgressTracker):
         """
         self._emit(status=STATUS_RUNNING, current_step=current_step, progress=progress)
 
+    @override
     async def complete(self) -> None:
         """Signals completion.
 
@@ -303,6 +306,7 @@ class InMemoryProgressTracker(ProgressTracker):
         """
         self._emit(status=STATUS_COMPLETED, progress=100)
 
+    @override
     async def fail(self, error: str) -> None:
         """Signals failure.
 
