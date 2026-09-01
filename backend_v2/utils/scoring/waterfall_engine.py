@@ -67,7 +67,7 @@ class WaterfallScoringEngine(ScoringEngineBase):
             for s_level in sorted_levels:
                 level_data = stats[s_level]
                 t_hits = level_data.hits
-                t_total = level_data.total - (level_data.dlqs or 0)
+                t_total = level_data.total - level_data.dlqs
 
                 hit_rate = (t_hits / t_total) if t_total > 0 else 0.0
                 pct = int(hit_rate * 100)
@@ -110,7 +110,7 @@ class WaterfallScoringEngine(ScoringEngineBase):
                     current_multiplier = next_multiplier
 
             level_breakdown: dict[str, dict[str, int]] = {
-                str(k): {"hits": int(v.hits), "total": int(v.total), "dlqs": int(v.dlqs or 0)} for k, v in stats.items()
+                str(k): {"hits": int(v.hits), "total": int(v.total), "dlqs": int(v.dlqs)} for k, v in stats.items()
             }
 
             engine_debug_trace: dict[str, Any] = {
@@ -130,7 +130,7 @@ class WaterfallScoringEngine(ScoringEngineBase):
 
             return floor_score, xai_log, level_breakdown
 
-        except Exception as e:
+        except (AppException, ArithmeticError, KeyError) as e:
             logger.error("Waterfall scoring calculation failed dramatically", exc_info=True)
             raise AppException(
                 message=f"Scoring calculation failed inside Waterfall Engine: {str(e)}",

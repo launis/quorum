@@ -266,7 +266,7 @@ def calculate_soft_waterfall_score(
     sorted_levels = sorted(level_stats.keys())
     for level in sorted_levels:
         stats = level_stats[level]
-        total = stats.total - (stats.dlqs or 0)
+        total = stats.total - stats.dlqs
         hits = stats.hits
 
         hit_rate = (hits / total) if total > 0 else 0.0
@@ -324,7 +324,7 @@ def calculate_linear_ratio_score(
     max_weights = 0.0
 
     for level, stats in level_stats.items():
-        total = stats.total - (stats.dlqs or 0)
+        total = stats.total - stats.dlqs
         hits = stats.hits
 
         # Painotettu matematiikka
