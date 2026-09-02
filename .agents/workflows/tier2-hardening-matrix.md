@@ -21,6 +21,11 @@ description: Tier 2 (Matrix & Atom Hardening) - Step-by-step auditing, balancing
       <catastrophic_reason>Agentic drift destroys human-authored synthesis quality when reducing complex cognitive dimensions into naive binary checks.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="streamlined_execution_mandate">
+      <mandatory_pattern>Do NOT generate an `implementation_plan.md` artifact or pause for approval during `/tier2-hardening-matrix`. Per user mandate, proceed directly with surgical structural updates to `seed_data.json`, verify against automated quality gates (`audit_database_atoms.py --strict`, `run_seed.py local --dry-run`), re-seed the local DB, and generate the Opponent Card report.</mandatory_pattern>
+      <catastrophic_reason>Pausing for interactive plans on each matrix stalls the high-throughput 13-matrix ontological hardening pipeline.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="context_amnesia_prevention">
       <mandatory_pattern>Whenever referencing a matrix block, wrap it in `@-reference` syntax with exact line bounds if viewed: `@[backend_v2/seed/seed_data.json#Lnn-mm]`.</mandatory_pattern>
       <catastrophic_reason>Dumping 10,000 lines of seed data without line bounds crashes context windows.</catastrophic_reason>

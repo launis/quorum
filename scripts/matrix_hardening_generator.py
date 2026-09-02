@@ -23,6 +23,11 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Any
 
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 
 __all__ = [
@@ -39,7 +44,7 @@ __all__ = [
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except AttributeError, io.UnsupportedOperation:
+    except (AttributeError, io.UnsupportedOperation):
         pass
 
 SEED_PATH = Path("backend_v2/seed/seed_data.json")

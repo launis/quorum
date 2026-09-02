@@ -15,6 +15,11 @@ import json
 import sys
 from pathlib import Path
 
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
@@ -36,7 +41,7 @@ __all__ = [
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except AttributeError, io.UnsupportedOperation:
+    except (AttributeError, io.UnsupportedOperation):
         pass
 
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
@@ -161,7 +166,7 @@ def build_or_load_state(reset: bool = False) -> HardeningStateDTO:
                 saved = json.load(f)
                 for item in saved["matrices"]:
                     existing_statuses[item["matrix_id"]] = item["status"]
-        except OSError, json.JSONDecodeError, KeyError:
+        except (OSError, json.JSONDecodeError, KeyError):
             pass
 
     matrices = load_seed_matrices()

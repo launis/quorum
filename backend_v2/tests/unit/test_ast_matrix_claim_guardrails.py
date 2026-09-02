@@ -149,7 +149,7 @@ def test_seed_claims_have_no_ai_description() -> None:
 
 
 def test_seed_claims_all_tda_assertions_have_valid_concept_description() -> None:
-    """Verify all 152 tda_assertions in seed_data.json have concept_description with len >= 10."""
+    """Verify all tda_assertions in seed_data.json have concept_description with len >= 10."""
     seed_path = Path("backend_v2/seed/seed_data.json")
     assert seed_path.exists(), "seed_data.json must exist"
     with open(seed_path, encoding="utf-8") as f:
@@ -168,7 +168,7 @@ def test_seed_claims_all_tda_assertions_have_valid_concept_description() -> None
                         if not isinstance(desc, str) or len(desc.strip()) < 10:
                             short_assertions.append((assertion.get("tda_id"), desc))
 
-    assert total_assertions == 152, f"Expected 152 assertions in seed, found {total_assertions}"
+    assert total_assertions >= 152, f"Expected at least 152 assertions in seed, found {total_assertions}"
     assert len(short_assertions) == 0, (
         f"Found {len(short_assertions)} assertions with concept_description < 10 chars: {short_assertions}"
     )

@@ -11,17 +11,19 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 import scripts.matrix_hardening_generator as gen_mod
 import scripts.matrix_hardening_loop as loop_mod
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from scripts.matrix_hardening_generator import (
-    AtomDensityStrategy,
     TARGET_ATOM_DENSITY,
+    AtomDensityStrategy,
     analyze_matrix_gaps,
     create_template_atom,
     generate_tda_id,
-    main as gen_main,
     print_matrix_plan,
+)
+from scripts.matrix_hardening_generator import (
+    main as gen_main,
 )
 from scripts.matrix_hardening_loop import (
     HardeningStateDTO,
@@ -31,9 +33,11 @@ from scripts.matrix_hardening_loop import (
     build_or_load_state,
     inspect_single_matrix,
     load_seed_matrices,
-    main as loop_main,
     mark_done,
     print_status_table,
+)
+from scripts.matrix_hardening_loop import (
+    main as loop_main,
 )
 
 
@@ -56,8 +60,8 @@ def test_create_template_atom_structure() -> None:
     assert atom["concept_description"] == "Test Concept"
     assert atom["inverse_evidence"] is False
     assert atom["aggregation_mode"] == "ALL_MUST_COMPLY"
-    assert "ACCEPTABLE: \"Good text\"" in atom["contrastive_example"]
-    assert "UNACCEPTABLE: \"Bad text\"" in atom["contrastive_example"]
+    assert 'ACCEPTABLE: "Good text"' in atom["contrastive_example"]
+    assert 'UNACCEPTABLE: "Bad text"' in atom["contrastive_example"]
 
     inv_atom = create_template_atom(
         concept="Inverse Concept",
@@ -127,8 +131,9 @@ def test_build_or_load_state_and_mark_done(tmp_path: Path, monkeypatch: pytest.M
     assert reloaded_state.completed_matrices >= 1
 
 
-def test_print_helpers_execute_without_error() -> None:
+def test_print_helpers_execute_without_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify that print helpers execute cleanly."""
+    monkeypatch.setattr(loop_mod, "STATE_PATH", tmp_path / "print_helpers_state.json")
     matrices = load_seed_matrices()
     state = build_or_load_state()
     print_status_table(state)
@@ -138,8 +143,9 @@ def test_print_helpers_execute_without_error() -> None:
     print_matrix_plan(first_id, target_count=5)
 
 
-def test_cli_entrypoints(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_entrypoints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify CLI main() functions for all argument branches."""
+    monkeypatch.setattr(loop_mod, "STATE_PATH", tmp_path / "cli_state.json")
     matrices = load_seed_matrices()
     first_id = matrices[0].id
 
