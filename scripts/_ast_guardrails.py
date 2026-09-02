@@ -653,6 +653,30 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
     def visit_IfExp(self, node: ast.IfExp) -> None:
         for sub_node in ast.walk(node.test):
             self._bool_condition_nodes.add(sub_node)
+
+        # QGR016: Ternary lazy literal fallback detection in domain code
+        if not self._is_test_file and self._is_domain_code:
+            is_body_constant = isinstance(node.body, ast.Constant)
+            is_orelse_fallback = False
+            match node.orelse:
+                case ast.Constant(value=val):
+                    if not isinstance(val, bool):
+                        is_orelse_fallback = True
+                case ast.List() | ast.Dict() | ast.Set():
+                    is_orelse_fallback = True
+                case _:
+                    is_orelse_fallback = False
+
+            if not is_body_constant and is_orelse_fallback:
+                qgr016_sev = GuardrailSeverity.WARNING
+                self._add_violation(
+                    node,
+                    "QGR016",
+                    f"Banned ternary lazy fallback `{ast.unparse(node)}` detected in domain code.",
+                    "Enforce strict Pydantic V2 schema defaults, typed DTO fields, or raise explicit AppException instead of ternary fallbacks.",
+                    severity=qgr016_sev,
+                )
+
         self.generic_visit(node)
 
     def visit_Assert(self, node: ast.Assert) -> None:

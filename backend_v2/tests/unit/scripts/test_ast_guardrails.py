@@ -981,3 +981,22 @@ def test_qgr016_comment_suppression_works() -> None:
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
     assert qgr016[0].is_suppressed is True
+
+
+def test_qgr016_ternary_literal_fallback_in_domain() -> None:
+    """QGR016: Ternary fallback (e.g. x if x is not None else 'default') emits WARNING violation in domain code."""
+    code = "loc = user_locale if user_locale else 'fi'\nitems = raw_items if raw_items is not None else []\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr016 = [v for v in violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 2
+    assert all(v.severity == GuardrailSeverity.WARNING for v in qgr016)
+    assert all("ternary lazy fallback" in v.message for v in qgr016)
+
+
+def test_qgr016_ternary_constant_branching_allowed() -> None:
+    """QGR016: Ternary conditional selection between two constants (e.g. 'PASSED' if is_ok else 'FAILED') is permitted."""
+    code = "status = 'PASSED' if is_ok else 'FAILED'\nflag = True if mode == 1 else False\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr016 = [v for v in violations if v.rule_code == "QGR016"]
+    assert len(qgr016) == 0
+

@@ -14,15 +14,16 @@ Architecture in Quorum is defined along two isolated axes:
 
 By separating the theoretical from the physical, the system can continuously refactor directories without invalidating the architectural theory, and vice-versa.
 
-## 2. The 6 Pillars of Capability-Driven Architecture
+## 2. The 7 Pillars of Capability-Driven Architecture
 
-The core architecture is strictly divided into 6 timeless pillars:
+The core architecture is strictly divided into 7 timeless pillars:
 1. **System Context & Invariants (`01_`)**
 2. **Data Seeding & Ontology (`02_`)**
 3. **Cognitive Orchestration Engine (`03_`)**
 4. **Server-Driven UI (SDUI) & Presentation (`04_`)**
 5. **Resilience & Observability (`05_`)**
 6. **Enriched Atom Graph Engine (`06_`)**
+7. **EU AI Act Compliance & Governance (`07_`)**
 
 ## 3. The Golden Rule: Timelessness
 
@@ -38,12 +39,12 @@ The documents must describe the system exactly as it exists *now*, in the presen
 
 > [!WARNING]
 > **Direct Edits Forbidden**
-> Human developers and AI agents (unless explicitly running a Tier 7 workflow) are FORBIDDEN from manually editing `01_` through `06_` in this directory. 
+> Human developers and AI agents (unless explicitly running a Tier 7 workflow) are FORBIDDEN from manually editing `01_` through `07_` in this directory. 
 
 ### The Continuous Integration Pipeline (Tier 7)
 1. **Create Knowledge Items (KIs):** When a new feature or architectural pattern is implemented, the developer or AI must create a localized Knowledge Item (KI) containing the specific physical details and code samples.
 2. **Execute Tier 7:** The user invokes the `/tier7-describe-architecture` workflow.
-3. **Synthesis:** The AI reads the new KIs and automatically synthesizes the theoretical concepts into the `01_` through `06_` pillar documents while strictly enforcing the Timelessness mandate.
+3. **Synthesis:** The AI reads the new KIs and automatically synthesizes the theoretical concepts into the `01_` through `07_` pillar documents while strictly enforcing the Timelessness mandate.
 4. **Physical Map Update:** If directories were changed, the AI updates `.agents/rules/04_directory_reference.md` directly.
 
 This creates a "Write-Once, Synthesize-Everywhere" paradigm that ensures the global architecture remains universally accurate without manual chore-work.
