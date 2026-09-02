@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import logging
 import sys
 from pathlib import Path
 
@@ -41,8 +42,10 @@ __all__ = [
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, io.UnsupportedOperation):
+    except AttributeError, io.UnsupportedOperation:
         pass
+
+logger = logging.getLogger(__name__)
 
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
 STATE_PATH = Path("tmp/matrix_hardening_state.json")
@@ -109,19 +112,15 @@ def load_seed_matrices() -> list[MatrixPromptBlock]:
 
 def audit_matrix(matrix: MatrixPromptBlock, status: str = "PENDING") -> MatrixAuditDTO:
     """Perform a deep audit on a strongly typed MatrixPromptBlock."""
-    name = matrix.label.translations.get("fi") or matrix.label.translations.get("en") or "Nimetön Matriisi"
-    desc = "Ei kuvausta"
-    if matrix.description is not None:
-        desc = matrix.description.translations.get("fi") or matrix.description.translations.get("en") or "Ei kuvausta"
+    name = matrix.label.resolve(target_locale="fi")
+    desc = matrix.description.resolve(target_locale="fi") if matrix.description is not None else "Ei kuvausta"
 
     levels: list[LevelAuditDTO] = []
     total_atoms = 0
 
     for s in matrix.scales:
         lvl_score = float(s.score)
-        lvl_name = f"Taso {lvl_score}"
-        if s.name is not None:
-            lvl_name = s.name.translations.get("fi") or s.name.translations.get("en") or f"Taso {lvl_score}"
+        lvl_name = s.name.resolve(target_locale="fi") if s.name is not None else f"Taso {lvl_score}"
         claims = s.claims
         lvl_pos = 0
         lvl_inv = 0
@@ -166,8 +165,8 @@ def build_or_load_state(reset: bool = False) -> HardeningStateDTO:
                 saved = json.load(f)
                 for item in saved["matrices"]:
                     existing_statuses[item["matrix_id"]] = item["status"]
-        except (OSError, json.JSONDecodeError, KeyError):
-            pass
+        except OSError, json.JSONDecodeError, KeyError:
+            logger.warning("Failed to parse existing state file %s; re-initializing state.", STATE_PATH)
 
     matrices = load_seed_matrices()
     audited_list: list[MatrixAuditDTO] = []
