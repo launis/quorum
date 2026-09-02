@@ -26,6 +26,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'workflow_id') required String workflowId,
     @JsonKey(name: 'target_locale') required String targetLocale,
     @JsonKey(fromJson: _statusFromJson) required String status,
+    @JsonKey(name: 'workflow_version') @Default(1) int workflowVersion,
     @JsonKey(name: 'active_profile_id') String? activeProfileId,
     @JsonKey(name: 'output_profile_id') String? outputProfileId,
     @JsonKey(name: 'raw_inputs') Map<String, dynamic>? rawInputs,
@@ -42,7 +43,8 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'cumulative_synthesis_tokens')
     int? cumulativeSynthesisTokens,
     @JsonKey(name: 'cumulative_synthesis_cost') double? cumulativeSynthesisCost,
-    @JsonKey(name: 'models_used') List<String>? modelsUsed,
+    @JsonKey(name: 'models_used') Map<String, dynamic>? modelsUsed,
+    @JsonKey(name: 'execution_summary') Map<String, dynamic>? executionSummary,
     @JsonKey(name: 'metadata') ExecutionMetadata? metadata,
     @JsonKey(name: 'error') String? error,
     @JsonKey(name: 'is_resumable') bool? isResumable,

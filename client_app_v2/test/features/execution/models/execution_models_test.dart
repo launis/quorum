@@ -148,7 +148,7 @@ void main() {
         'dag_cost_usd': 0.12,
         'cumulative_synthesis_tokens': 1200,
         'cumulative_synthesis_cost': 0.012,
-        'models_used': ['gemini-1.5-pro'],
+        'models_used': {'gemini-1.5-pro': 100},
         'metadata': {'workflow_version': 1},
         'error': null,
         'is_resumable': true,
@@ -184,7 +184,7 @@ void main() {
       expect(record.dagCostUsd, 0.12);
       expect(record.cumulativeSynthesisTokens, 1200);
       expect(record.cumulativeSynthesisCost, 0.012);
-      expect(record.modelsUsed, ['gemini-1.5-pro']);
+      expect(record.modelsUsed, {'gemini-1.5-pro': 100});
       expect(record.organizationId, 'org_1');
       expect(record.createdBy, 'usr_1');
       expect(record.completedAt, '2026-08-30T12:05:00Z');
@@ -239,5 +239,24 @@ void main() {
         throwsA(isA<CheckedFromJsonException>()),
       );
     });
+
+    test(
+      'test_flutter_execution_record_deserializes_sse_payload_with_workflow_version_and_execution_summary',
+      () {
+        final json = <String, dynamic>{
+          'id': 'exe_7fa9ecf00b604f1e840b0bd6a21ab6f9',
+          'workflow_id': 'wor_1234567890abcdef',
+          'workflow_version': 1,
+          'target_locale': 'fi',
+          'status': 'RUNNING',
+          'output_profile_id': 'prof_default',
+          'models_used': {'gemini-3.7-flash': 10711},
+          'execution_summary': {'total_steps': 5, 'completed_steps': 2},
+          'metadata': {'matrix_sampling_strategy': 2, 'workflow_version': 1},
+        };
+
+        expect(() => ExecutionRecord.fromJson(json), returnsNormally);
+      },
+    );
   });
 }

@@ -19,6 +19,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'workflow_id',
         'target_locale',
         'status',
+        'workflow_version',
         'active_profile_id',
         'output_profile_id',
         'raw_inputs',
@@ -34,6 +35,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'cumulative_synthesis_tokens',
         'cumulative_synthesis_cost',
         'models_used',
+        'execution_summary',
         'metadata',
         'error',
         'is_resumable',
@@ -64,6 +66,10 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       workflowId: $checkedConvert('workflow_id', (v) => v as String),
       targetLocale: $checkedConvert('target_locale', (v) => v as String),
       status: $checkedConvert('status', (v) => _statusFromJson(v as String)),
+      workflowVersion: $checkedConvert(
+        'workflow_version',
+        (v) => (v as num?)?.toInt() ?? 1,
+      ),
       activeProfileId: $checkedConvert(
         'active_profile_id',
         (v) => v as String?,
@@ -119,7 +125,11 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       ),
       modelsUsed: $checkedConvert(
         'models_used',
-        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+        (v) => v as Map<String, dynamic>?,
+      ),
+      executionSummary: $checkedConvert(
+        'execution_summary',
+        (v) => v as Map<String, dynamic>?,
       ),
       metadata: $checkedConvert(
         'metadata',
@@ -198,6 +208,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
   fieldKeyMap: const {
     'workflowId': 'workflow_id',
     'targetLocale': 'target_locale',
+    'workflowVersion': 'workflow_version',
     'activeProfileId': 'active_profile_id',
     'outputProfileId': 'output_profile_id',
     'rawInputs': 'raw_inputs',
@@ -213,6 +224,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
     'cumulativeSynthesisTokens': 'cumulative_synthesis_tokens',
     'cumulativeSynthesisCost': 'cumulative_synthesis_cost',
     'modelsUsed': 'models_used',
+    'executionSummary': 'execution_summary',
     'isResumable': 'is_resumable',
     'frozenContext': 'frozen_context',
     'frozenContextStoragePath': 'frozen_context_storage_path',
@@ -240,6 +252,7 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'workflow_id': instance.workflowId,
       'target_locale': instance.targetLocale,
       'status': instance.status,
+      'workflow_version': instance.workflowVersion,
       'active_profile_id': instance.activeProfileId,
       'output_profile_id': instance.outputProfileId,
       'raw_inputs': instance.rawInputs,
@@ -255,6 +268,7 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'cumulative_synthesis_tokens': instance.cumulativeSynthesisTokens,
       'cumulative_synthesis_cost': instance.cumulativeSynthesisCost,
       'models_used': instance.modelsUsed,
+      'execution_summary': instance.executionSummary,
       'metadata': instance.metadata?.toJson(),
       'error': instance.error,
       'is_resumable': instance.isResumable,
