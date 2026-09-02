@@ -3637,13 +3637,13 @@ class AppLocalizationsFi extends AppLocalizations {
       'Tämä mittari paljastaa, onko tekoälyn oma arvio suorituksestaan (kognitiivinen) ristiriidassa kylmien faktojen (mekaaninen skannaus) kanssa. Esimerkiksi: Jos tekoäly väittää kirjoittaneensa täydellistä asiatekstiä, mutta järjestelmä löytää tekstistä silti paljon tekoäly-jargonia, syntyy ristiriita.';
 
   @override
-  String get tdaAnchorTarget => 'Ankkurikohde';
+  String get tdaAnchorTarget => 'Kielellinen kiintopiste';
 
   @override
-  String get tdaBoundingBox => 'Hakuikkunan Laajuus';
+  String get tdaBoundingBox => 'Todisteiden hakuetäisyys';
 
   @override
-  String get tdaExtractionRule => 'Poiminnan Sääntö';
+  String get tdaExtractionRule => 'Ehdottomat loogiset säännöt';
 
   @override
   String get systemAuditTrailLabel => 'Järjestelmän Faktantarkistusloki';
@@ -4435,57 +4435,96 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
-  String get scaleEvaluationTrackLabel => 'Arviointiraita (Evaluation Track)';
+  String get scaleEvaluationTrackLabel => 'Arviointilogiikka';
 
   @override
-  String get scaleTrackSensor => 'EXTRACTIVE_SENSOR (Mekaaninen)';
+  String get scaleEvaluationTrackHelper =>
+      '\'Laadullinen päättely\' soveltuu ihmistekstin sävyjen ja laadun arviointiin. \'Tekninen faktapoiminta\' vaatii absoluuttisia, mekaanisia ja numeerisia todisteita.';
 
   @override
-  String get scaleTrackJudgement => 'COGNITIVE_JUDGEMENT (Holistinen)';
+  String get scaleTrackSensor => 'Tekninen faktapoiminta';
+
+  @override
+  String get scaleTrackJudgement => 'Laadullinen päättely';
 
   @override
   String get scaleConceptDescriptionLabel =>
-      'Käsitekuvaus (Yksikielinen englanti)';
+      'Arvioitava pääväite (Tekoälylle, EN)';
 
   @override
-  String get scaleAntiPatternsLabel => 'Antimallit (Yksi per rivi)';
+  String get scaleConceptDescriptionHelper =>
+      'Kuvaa selkeästi englanniksi se asiantila, laatu tai ilmiö, jonka olemassaolo tekstistä pyritään todentamaan. Tämän löytäminen on tekoälyn ensisijainen tehtävä.';
 
   @override
-  String get scaleAntiPatternsHelper => 'Poissulkuehdot / NEGATIIVISET RAJAT';
+  String get scaleAntiPatternsLabel => 'Hylkäysperusteet (Antimallit)';
+
+  @override
+  String get scaleAntiPatternsHelper =>
+      'Listaa asiat (1 per rivi), joiden esiintyminen tekstissä kumoaa ja hylkää tämän kriteerin välittömästi kokonaisuudessaan.';
 
   @override
   String get scaleContrastiveExampleLabel =>
-      'Kontrastoiva esimerkki (Oikein vs Väärin)';
+      'Kalibrointiesimerkit (Hyväksytty vs. Hylätty)';
 
   @override
   String get scaleContrastiveExampleHelper =>
-      'Kalibrointiesimerkit: HYVÄKSYTTÄVÄ: X vaikuttaa Y:hyn. HYLÄTTÄVÄ: X liittyy Y:hyn.';
+      'Opeta tekoälylle rajanveto antamalla konkreettinen esimerkki lauseesta, joka hyväksytään tälle tasolle, ja lauseesta, joka hylätään.';
 
   @override
-  String get scaleAcceptanceCriteriaLabel =>
-      'Hyväksymiskriteerit (Yksi per rivi)';
+  String get scaleAcceptanceCriteriaLabel => 'Tekoälyn päättelyketju';
+
+  @override
+  String get scaleAcceptanceCriteriaHelper =>
+      'Vaiheittaiset ohjeet tekoälylle siitä, missä loogisessa järjestyksessä asiat pitää tekstistä tarkistaa, ennen kuin kriteeri voidaan hyväksyä.';
 
   @override
   String get scaleSyntacticAnchorsLabel =>
-      'Syntaktiset ankkurit (Pilkulla erotettu lista)';
+      'Pakolliset tunnistussanat (Täsmähaku)';
 
   @override
   String get scaleSyntacticAnchorsHelper =>
-      'Vaadittu terminologia (esim. CSR, ESG)';
+      'Tarkat termit (esim. \'ROI\', \'hiilijalanjälki\'), joiden on löydyttävä tekstistä. Huom: Tämä on tekninen haku, joka ei ymmärrä synonyymejä.';
 
   @override
   String get scaleEnforcePreFlightTitle =>
-      'Pakota esitarkistuslista (Pre-Flight)';
+      '⚠️ Pikahylkäys tunnistussanojen puuttuessa';
 
   @override
   String get scaleEnforcePreFlightDesc =>
-      'Täytyy läpäistä eksplisiittiset kriteeritarkistukset ennen väitteen arviointia.';
+      'VAROITUS: Jos valittuna, väite hylätään sekunnin murto-osassa nollille ilman tekoälyanalyysia, mikäli yllä olevia tunnistussanoja ei löydy tekstistä.';
 
   @override
-  String get scaleAggregationModeLabel => 'Aggregaatiotila';
+  String get scaleAggregationModeLabel => 'Osumien laajuusvaatimus';
 
   @override
-  String get scaleInverseLabel => 'Käänteinen:';
+  String get scaleAggregationModeHelper =>
+      'Määrittää arvioinnin ankaruuden: \'Yksikin havainto riittää\' (Joustava) TAI \'Kaikkien yllä olevien ehtojen on täytyttävä samanaikaisesti\' (Tiukka).';
+
+  @override
+  String get scaleAggExists => 'Yksikin havainto riittää (Joustava)';
+
+  @override
+  String get scaleAggAllMustComply =>
+      'Kaikkien ehtojen on täytyttävä samanaikaisesti (Tiukka)';
+
+  @override
+  String get scaleInverseLabel => 'Käänteinen tulkinta (Virhetutka)';
+
+  @override
+  String get scaleInverseTooltip =>
+      'Käytä virheiden tai riskien etsintään. Jos valittuna, havainnon löytyminen ei anna pisteitä, vaan se hylkää kriteerin ja laskee arvosanaa.';
+
+  @override
+  String get tdaScopeSentence => 'Lause';
+
+  @override
+  String get tdaScopeParagraph => 'Kappale';
+
+  @override
+  String get tdaScopeAdjacentParagraphs => 'Vierekkäiset kappaleet';
+
+  @override
+  String get tdaScopeDocument => 'Koko dokumentti';
 
   @override
   String get scaleFactsToFindLabel =>
@@ -4535,11 +4574,15 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get tdaAnchorTargetHelper =>
-      'Tietty entiteetti, avainsana tai lause, johon kiinnitytään';
+      'Mihin tekstin rakenteeseen tai ilmiöön tekoälyn huomio tulisi ensisijaisesti kohdistaa (esim. \'etsi ehdottomuuksia ilmaisevia sanoja\' tai \'etsi numeerista dataa\').';
+
+  @override
+  String get tdaBoundingBoxHelper =>
+      'Kuinka läheltä väitettä tukevan perustelun on löydyttävä (Lause / Kappale / Koko dokumentti). Estää toisiinsa liittymättömien asioiden virheellisen yhdistämisen.';
 
   @override
   String get tdaExtractionRuleHelper =>
-      'Ehto, jonka on pädettävä rajausalueella';
+      'Tarkka looginen sääntö, jonka on pädettävä löydetyssä tekstissä. Jos sääntö ei toteudu, tekoäly hylkää väitteen automaattisesti.';
 
   @override
   String get instructionTextLabel => 'Järjestelmän ohjeteksti';

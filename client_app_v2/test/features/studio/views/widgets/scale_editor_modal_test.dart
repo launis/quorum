@@ -306,7 +306,7 @@ void main() {
         await tester.tap(dropdown);
         await tester.pumpAndSettle();
 
-        final sensorItem = find.text('EXTRACTIVE_SENSOR (Mechanical)').last;
+        final sensorItem = find.text('Technical Fact Extraction').last;
         await tester.tap(sensorItem);
         await tester.pumpAndSettle();
 
@@ -316,6 +316,204 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('Logical Expression'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'renders updated labels, helper texts, and tooltips across the modal',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final sampleScale = createSampleScale();
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) =>
+                          ScaleEditorModal(initialScale: sampleScale),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Modal'));
+        await tester.pumpAndSettle();
+
+        // Verify updated primary labels
+        expect(
+          find.text(
+            'Primary Evaluation Claim (For AI, EN)',
+            skipOffstage: false,
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Evaluation Logic', skipOffstage: false),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Evidence Search Scope', skipOffstage: false),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Hit Coverage Requirement', skipOffstage: false),
+          findsOneWidget,
+        );
+        expect(
+          find.text(
+            'Inverse Interpretation (Risk/Fault Radar)',
+            skipOffstage: false,
+          ),
+          findsWidgets,
+        );
+
+        // Verify inverse evidence tooltip exists
+        expect(
+          find.byTooltip(
+            'Use to detect faults or risks. If selected, finding the evidence does not grant points; instead, it rejects the criterion and lowers the score.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'ISTQB Negative: save action is blocked when conceptDescription is invalid (< 10 chars)',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final sampleScale = createSampleScale();
+        MatrixScale? savedResult;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () async {
+                    savedResult = await showDialog<MatrixScale>(
+                      context: context,
+                      builder: (ctx) =>
+                          ScaleEditorModal(initialScale: sampleScale),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Modal'));
+        await tester.pumpAndSettle();
+
+        final conceptField = find.widgetWithText(
+          TextFormField,
+          'Demonstrates deep systemic understanding',
+        );
+        expect(conceptField, findsOneWidget);
+
+        // Enter invalid short text
+        await tester.enterText(conceptField, 'Too short');
+        await tester.pumpAndSettle();
+
+        // Tap Save button
+        final saveBtn = find.widgetWithText(FilledButton, 'Save');
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        // Modal should NOT have popped
+        expect(find.byType(ScaleEditorModal), findsOneWidget);
+        expect(savedResult, isNull);
+
+        // Validation error should be rendered
+        expect(
+          find.text('Concept description must be at least 10 characters long.'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'ISTQB Equivalence: updates boundingBoxScope and aggregationMode dropdown selections',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final sampleScale = createSampleScale();
+        MatrixScale? savedResult;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () async {
+                    savedResult = await showDialog<MatrixScale>(
+                      context: context,
+                      builder: (ctx) =>
+                          ScaleEditorModal(initialScale: sampleScale),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Modal'));
+        await tester.pumpAndSettle();
+
+        // Change boundingBoxScope dropdown
+        final scopeDropdown = find
+            .byType(DropdownButtonFormField<String>)
+            .first;
+        await tester.ensureVisible(scopeDropdown);
+        await tester.tap(scopeDropdown);
+        await tester.pumpAndSettle();
+
+        final docItem = find.text('Entire Document').last;
+        await tester.tap(docItem);
+        await tester.pumpAndSettle();
+
+        // Change aggregationMode dropdown
+        final aggDropdown = find
+            .byType(DropdownButtonFormField<AggregationMode>)
+            .first;
+        await tester.ensureVisible(aggDropdown);
+        await tester.tap(aggDropdown);
+        await tester.pumpAndSettle();
+
+        final strictItem = find
+            .text('All conditions must be satisfied simultaneously (Strict)')
+            .last;
+        await tester.tap(strictItem);
+        await tester.pumpAndSettle();
+
+        // Save
+        final saveBtn = find.widgetWithText(FilledButton, 'Save');
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(savedResult, isNotNull);
+        final assertion = savedResult!.claims.first.tdaAssertions.first;
+        expect(assertion.boundingBoxScope, 'document');
+        expect(assertion.aggregationMode, AggregationMode.allMustComply);
       },
     );
   });

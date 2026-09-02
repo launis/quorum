@@ -3610,13 +3610,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'This metric reveals whether the AI\'s self-evaluation contradicts hard mechanical facts. For example, if the AI claims its output is perfectly authentic, but the mechanical scanner detects multiple AI filler words, a variance conflict is flagged.';
 
   @override
-  String get tdaAnchorTarget => 'Anchor Target';
+  String get tdaAnchorTarget => 'Linguistic Anchor';
 
   @override
-  String get tdaBoundingBox => 'Bounding Box Scope';
+  String get tdaBoundingBox => 'Evidence Search Scope';
 
   @override
-  String get tdaExtractionRule => 'Extraction Rule';
+  String get tdaExtractionRule => 'Strict Logical Rules';
 
   @override
   String get systemAuditTrailLabel => 'System Audit Trail';
@@ -4407,57 +4407,94 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get scaleEvaluationTrackLabel => 'Evaluation Track';
+  String get scaleEvaluationTrackLabel => 'Evaluation Logic';
 
   @override
-  String get scaleTrackSensor => 'EXTRACTIVE_SENSOR (Mechanical)';
+  String get scaleEvaluationTrackHelper =>
+      '\'Qualitative Reasoning\' is suited for evaluating tone and nuanced human writing. \'Technical Fact Extraction\' requires absolute, mechanical, and numerical evidence.';
 
   @override
-  String get scaleTrackJudgement => 'COGNITIVE_JUDGEMENT (Holistic)';
+  String get scaleTrackSensor => 'Technical Fact Extraction';
+
+  @override
+  String get scaleTrackJudgement => 'Qualitative Reasoning';
 
   @override
   String get scaleConceptDescriptionLabel =>
-      'Concept Description (Monolingual English)';
+      'Primary Evaluation Claim (For AI, EN)';
 
   @override
-  String get scaleAntiPatternsLabel => 'Anti-Patterns (One per line)';
+  String get scaleConceptDescriptionHelper =>
+      'Clearly describe in English the state of affairs, quality, or phenomenon to verify in the text. Finding this is the AI\'s primary task.';
+
+  @override
+  String get scaleAntiPatternsLabel => 'Rejection Criteria (Anti-Patterns)';
 
   @override
   String get scaleAntiPatternsHelper =>
-      'Exclusion conditions / NEGATIVE BOUNDARIES';
+      'List conditions (1 per line) whose presence in the text immediately overrides and rejects this criterion entirely.';
 
   @override
   String get scaleContrastiveExampleLabel =>
-      'Contrastive Example (Correct vs Incorrect)';
+      'Calibration Examples (Approved vs. Rejected)';
 
   @override
   String get scaleContrastiveExampleHelper =>
-      'Calibration examples: ACCEPTABLE: X affects Y. UNACCEPTABLE: X is associated with Y.';
+      'Teach the AI boundary demarcation by providing a concrete example of a sentence approved for this level and one that is rejected.';
 
   @override
-  String get scaleAcceptanceCriteriaLabel =>
-      'Acceptance Criteria (One per line)';
+  String get scaleAcceptanceCriteriaLabel => 'AI Reasoning Chain';
 
   @override
-  String get scaleSyntacticAnchorsLabel =>
-      'Syntactic Anchors (Comma-separated list)';
+  String get scaleAcceptanceCriteriaHelper =>
+      'Step-by-step instructions for the AI on the logical order to verify facts in the text before the criterion can be approved.';
+
+  @override
+  String get scaleSyntacticAnchorsLabel => 'Mandatory Exact Match Keywords';
 
   @override
   String get scaleSyntacticAnchorsHelper =>
-      'Required terminology (e.g. CSR, ESG)';
+      'Exact terms (for example: \'ROI\', \'carbon footprint\') that must appear in the text. Note: This is a mechanical search that does not understand synonyms.';
 
   @override
-  String get scaleEnforcePreFlightTitle => 'Enforce Pre-Flight Checklist';
+  String get scaleEnforcePreFlightTitle => '⚠️ Fast-Fail on Missing Keywords';
 
   @override
   String get scaleEnforcePreFlightDesc =>
-      'Must pass explicit criteria checks before assertion evaluation.';
+      'WARNING: If selected, the claim is rejected instantly to zero without AI analysis if the above exact match keywords are not found.';
 
   @override
-  String get scaleAggregationModeLabel => 'Aggregation Mode';
+  String get scaleAggregationModeLabel => 'Hit Coverage Requirement';
 
   @override
-  String get scaleInverseLabel => 'Inverse:';
+  String get scaleAggregationModeHelper =>
+      'Defines evaluation strictness: \'A single finding suffices\' (Flexible) OR \'All conditions above must be satisfied simultaneously\' (Strict).';
+
+  @override
+  String get scaleAggExists => 'A single finding suffices (Flexible)';
+
+  @override
+  String get scaleAggAllMustComply =>
+      'All conditions must be satisfied simultaneously (Strict)';
+
+  @override
+  String get scaleInverseLabel => 'Inverse Interpretation (Risk/Fault Radar)';
+
+  @override
+  String get scaleInverseTooltip =>
+      'Use to detect faults or risks. If selected, finding the evidence does not grant points; instead, it rejects the criterion and lowers the score.';
+
+  @override
+  String get tdaScopeSentence => 'Sentence';
+
+  @override
+  String get tdaScopeParagraph => 'Paragraph';
+
+  @override
+  String get tdaScopeAdjacentParagraphs => 'Adjacent Paragraphs';
+
+  @override
+  String get tdaScopeDocument => 'Entire Document';
 
   @override
   String get scaleFactsToFindLabel => 'Facts To Find (Comma-separated list)';
@@ -4507,11 +4544,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tdaAnchorTargetHelper =>
-      'Specific entity, keyword, or sentence to anchor on';
+      'Which structural element or phenomenon in the text should AI attention focus on (for example: \'search for absolute wording\' or \'search for numerical metrics\').';
+
+  @override
+  String get tdaBoundingBoxHelper =>
+      'How close to the claim the supporting justification must appear (Sentence / Paragraph / Entire document). Prevents incorrectly connecting unrelated concepts.';
 
   @override
   String get tdaExtractionRuleHelper =>
-      'Condition that must hold true within the bounding box';
+      'Exact logical rule that must hold true in the extracted text. If the rule fails, the AI automatically rejects the claim.';
 
   @override
   String get instructionTextLabel => 'System Instruction Text';

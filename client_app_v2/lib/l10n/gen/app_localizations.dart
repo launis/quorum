@@ -6603,19 +6603,19 @@ abstract class AppLocalizations {
   /// No description provided for @tdaAnchorTarget.
   ///
   /// In en, this message translates to:
-  /// **'Anchor Target'**
+  /// **'Linguistic Anchor'**
   String get tdaAnchorTarget;
 
   /// No description provided for @tdaBoundingBox.
   ///
   /// In en, this message translates to:
-  /// **'Bounding Box Scope'**
+  /// **'Evidence Search Scope'**
   String get tdaBoundingBox;
 
   /// No description provided for @tdaExtractionRule.
   ///
   /// In en, this message translates to:
-  /// **'Extraction Rule'**
+  /// **'Strict Logical Rules'**
   String get tdaExtractionRule;
 
   /// No description provided for @systemAuditTrailLabel.
@@ -7989,92 +7989,158 @@ abstract class AppLocalizations {
   /// No description provided for @scaleEvaluationTrackLabel.
   ///
   /// In en, this message translates to:
-  /// **'Evaluation Track'**
+  /// **'Evaluation Logic'**
   String get scaleEvaluationTrackLabel;
+
+  /// No description provided for @scaleEvaluationTrackHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'\'Qualitative Reasoning\' is suited for evaluating tone and nuanced human writing. \'Technical Fact Extraction\' requires absolute, mechanical, and numerical evidence.'**
+  String get scaleEvaluationTrackHelper;
 
   /// No description provided for @scaleTrackSensor.
   ///
   /// In en, this message translates to:
-  /// **'EXTRACTIVE_SENSOR (Mechanical)'**
+  /// **'Technical Fact Extraction'**
   String get scaleTrackSensor;
 
   /// No description provided for @scaleTrackJudgement.
   ///
   /// In en, this message translates to:
-  /// **'COGNITIVE_JUDGEMENT (Holistic)'**
+  /// **'Qualitative Reasoning'**
   String get scaleTrackJudgement;
 
   /// No description provided for @scaleConceptDescriptionLabel.
   ///
   /// In en, this message translates to:
-  /// **'Concept Description (Monolingual English)'**
+  /// **'Primary Evaluation Claim (For AI, EN)'**
   String get scaleConceptDescriptionLabel;
+
+  /// No description provided for @scaleConceptDescriptionHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Clearly describe in English the state of affairs, quality, or phenomenon to verify in the text. Finding this is the AI\'s primary task.'**
+  String get scaleConceptDescriptionHelper;
 
   /// No description provided for @scaleAntiPatternsLabel.
   ///
   /// In en, this message translates to:
-  /// **'Anti-Patterns (One per line)'**
+  /// **'Rejection Criteria (Anti-Patterns)'**
   String get scaleAntiPatternsLabel;
 
   /// No description provided for @scaleAntiPatternsHelper.
   ///
   /// In en, this message translates to:
-  /// **'Exclusion conditions / NEGATIVE BOUNDARIES'**
+  /// **'List conditions (1 per line) whose presence in the text immediately overrides and rejects this criterion entirely.'**
   String get scaleAntiPatternsHelper;
 
   /// No description provided for @scaleContrastiveExampleLabel.
   ///
   /// In en, this message translates to:
-  /// **'Contrastive Example (Correct vs Incorrect)'**
+  /// **'Calibration Examples (Approved vs. Rejected)'**
   String get scaleContrastiveExampleLabel;
 
   /// No description provided for @scaleContrastiveExampleHelper.
   ///
   /// In en, this message translates to:
-  /// **'Calibration examples: ACCEPTABLE: X affects Y. UNACCEPTABLE: X is associated with Y.'**
+  /// **'Teach the AI boundary demarcation by providing a concrete example of a sentence approved for this level and one that is rejected.'**
   String get scaleContrastiveExampleHelper;
 
   /// No description provided for @scaleAcceptanceCriteriaLabel.
   ///
   /// In en, this message translates to:
-  /// **'Acceptance Criteria (One per line)'**
+  /// **'AI Reasoning Chain'**
   String get scaleAcceptanceCriteriaLabel;
+
+  /// No description provided for @scaleAcceptanceCriteriaHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Step-by-step instructions for the AI on the logical order to verify facts in the text before the criterion can be approved.'**
+  String get scaleAcceptanceCriteriaHelper;
 
   /// No description provided for @scaleSyntacticAnchorsLabel.
   ///
   /// In en, this message translates to:
-  /// **'Syntactic Anchors (Comma-separated list)'**
+  /// **'Mandatory Exact Match Keywords'**
   String get scaleSyntacticAnchorsLabel;
 
   /// No description provided for @scaleSyntacticAnchorsHelper.
   ///
   /// In en, this message translates to:
-  /// **'Required terminology (e.g. CSR, ESG)'**
+  /// **'Exact terms (for example: \'ROI\', \'carbon footprint\') that must appear in the text. Note: This is a mechanical search that does not understand synonyms.'**
   String get scaleSyntacticAnchorsHelper;
 
   /// No description provided for @scaleEnforcePreFlightTitle.
   ///
   /// In en, this message translates to:
-  /// **'Enforce Pre-Flight Checklist'**
+  /// **'⚠️ Fast-Fail on Missing Keywords'**
   String get scaleEnforcePreFlightTitle;
 
   /// No description provided for @scaleEnforcePreFlightDesc.
   ///
   /// In en, this message translates to:
-  /// **'Must pass explicit criteria checks before assertion evaluation.'**
+  /// **'WARNING: If selected, the claim is rejected instantly to zero without AI analysis if the above exact match keywords are not found.'**
   String get scaleEnforcePreFlightDesc;
 
   /// No description provided for @scaleAggregationModeLabel.
   ///
   /// In en, this message translates to:
-  /// **'Aggregation Mode'**
+  /// **'Hit Coverage Requirement'**
   String get scaleAggregationModeLabel;
+
+  /// No description provided for @scaleAggregationModeHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Defines evaluation strictness: \'A single finding suffices\' (Flexible) OR \'All conditions above must be satisfied simultaneously\' (Strict).'**
+  String get scaleAggregationModeHelper;
+
+  /// No description provided for @scaleAggExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A single finding suffices (Flexible)'**
+  String get scaleAggExists;
+
+  /// No description provided for @scaleAggAllMustComply.
+  ///
+  /// In en, this message translates to:
+  /// **'All conditions must be satisfied simultaneously (Strict)'**
+  String get scaleAggAllMustComply;
 
   /// No description provided for @scaleInverseLabel.
   ///
   /// In en, this message translates to:
-  /// **'Inverse:'**
+  /// **'Inverse Interpretation (Risk/Fault Radar)'**
   String get scaleInverseLabel;
+
+  /// No description provided for @scaleInverseTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Use to detect faults or risks. If selected, finding the evidence does not grant points; instead, it rejects the criterion and lowers the score.'**
+  String get scaleInverseTooltip;
+
+  /// No description provided for @tdaScopeSentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Sentence'**
+  String get tdaScopeSentence;
+
+  /// No description provided for @tdaScopeParagraph.
+  ///
+  /// In en, this message translates to:
+  /// **'Paragraph'**
+  String get tdaScopeParagraph;
+
+  /// No description provided for @tdaScopeAdjacentParagraphs.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjacent Paragraphs'**
+  String get tdaScopeAdjacentParagraphs;
+
+  /// No description provided for @tdaScopeDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Entire Document'**
+  String get tdaScopeDocument;
 
   /// No description provided for @scaleFactsToFindLabel.
   ///
@@ -8157,13 +8223,19 @@ abstract class AppLocalizations {
   /// No description provided for @tdaAnchorTargetHelper.
   ///
   /// In en, this message translates to:
-  /// **'Specific entity, keyword, or sentence to anchor on'**
+  /// **'Which structural element or phenomenon in the text should AI attention focus on (for example: \'search for absolute wording\' or \'search for numerical metrics\').'**
   String get tdaAnchorTargetHelper;
+
+  /// No description provided for @tdaBoundingBoxHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'How close to the claim the supporting justification must appear (Sentence / Paragraph / Entire document). Prevents incorrectly connecting unrelated concepts.'**
+  String get tdaBoundingBoxHelper;
 
   /// No description provided for @tdaExtractionRuleHelper.
   ///
   /// In en, this message translates to:
-  /// **'Condition that must hold true within the bounding box'**
+  /// **'Exact logical rule that must hold true in the extracted text. If the rule fails, the AI automatically rejects the claim.'**
   String get tdaExtractionRuleHelper;
 
   /// No description provided for @instructionTextLabel.
