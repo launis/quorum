@@ -223,11 +223,11 @@ def test_matrix_synthesis_group_validation() -> None:
         id="grp_1111111111111111",
         title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
         target_blocks=["blk_1", "blk_2"],
-        synthesis_directive="Custom directive",
+        view_type="2d_compare",
     )
     assert group.id == "grp_1111111111111111"
     assert group.target_blocks == ["blk_1", "blk_2"]
-    assert group.synthesis_directive == "Custom directive"
+    assert group.view_type == "2d_compare"
 
     # Invalid id pattern: spaces
     with pytest.raises(ValidationError):

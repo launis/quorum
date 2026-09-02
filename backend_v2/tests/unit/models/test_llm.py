@@ -147,3 +147,19 @@ def test_adhoc_test_models() -> None:
     )
     assert resp.status == "success"
     assert resp.latency_ms == 120.5
+
+
+def test_provider_metadata_dto_no_shadowing_warning() -> None:
+    """Test ProviderMetadataDTO does not shadow Pydantic BaseDTO model_extra attribute."""
+    import warnings
+
+    with warnings.catch_warnings(record=True) as recorded_warnings:
+        warnings.simplefilter("always")
+        dto = ProviderMetadataDTO(finish_reason="stop", raw_extra={"test": 123})
+        assert dto.finish_reason == "stop"
+        assert dto.raw_extra == {"test": 123}
+
+    shadowing_warnings = [
+        w for w in recorded_warnings if issubclass(w.category, UserWarning) and "shadows an attribute" in str(w.message)
+    ]
+    assert len(shadowing_warnings) == 0, f"Found shadowing warnings: {[str(w.message) for w in shadowing_warnings]}"

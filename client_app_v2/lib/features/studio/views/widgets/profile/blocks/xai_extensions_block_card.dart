@@ -4,6 +4,7 @@ import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -179,6 +180,19 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+          AppSpacing.h16,
+          I18nTextField(
+            label: l10n.profileXaiSynthesisDirectiveLabel,
+            initialData: payload.xaiSynthesisDirective,
+            onChanged: (val) {
+              final isEmpty =
+                  val.translations.isEmpty ||
+                  val.translations.values.every((v) => v.trim().isEmpty);
+              updatePayload(
+                payload.copyWith(xaiSynthesisDirective: isEmpty ? null : val),
+              );
+            },
           ),
         ],
       ),

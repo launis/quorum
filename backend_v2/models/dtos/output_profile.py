@@ -20,7 +20,6 @@ from backend_v2.models.enums import (
     LaxTargetBlockType,
     LaxXaiExtensionType,
     SourcesDisplayMode,
-    SystemLocale,
     TargetBlockType,
 )
 from backend_v2.models.v2_core import (
@@ -79,6 +78,37 @@ class OutputProfileCreateDTO(V2CoreBase):
     tone_instruction: Annotated[
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
+    executive_summary_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for executive summary synthesis.")
+    ] = None
+    matrix_1d_synthesis_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for 1D metrics synthesis.")
+    ] = None
+    matrix_2d_synthesis_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for 2D comparison synthesis.")
+    ] = None
+    matrix_3d_synthesis_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for 3D radar synthesis.")
+    ] = None
+    matrix_text_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for text-only matrix synthesis."),
+    ] = None
+    row_explanation_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for matrix summary table row causal explanations."),
+    ] = None
+    xai_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for XAI highlights and extensions synthesis."),
+    ] = None
+    variance_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(
+            default=None,
+            description="Dedicated prompt directive for variance and cognitive authenticity evaluation synthesis.",
+        ),
+    ] = None
     language: Annotated[LaxSystemLocale | None, Field(default=None, description="Target output language.")] = None
 
     visible_metadata: Annotated[
@@ -256,6 +286,37 @@ class OutputProfileUpdateDTO(V2CoreBase):
     tone_instruction: Annotated[
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
+    executive_summary_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for executive summary synthesis.")
+    ] = None
+    matrix_1d_synthesis_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for 1D metrics synthesis.")
+    ] = None
+    matrix_2d_synthesis_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for 2D comparison synthesis.")
+    ] = None
+    matrix_3d_synthesis_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for 3D radar synthesis.")
+    ] = None
+    matrix_text_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for text-only matrix synthesis."),
+    ] = None
+    row_explanation_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for matrix summary table row causal explanations."),
+    ] = None
+    xai_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for XAI highlights and extensions synthesis."),
+    ] = None
+    variance_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(
+            default=None,
+            description="Dedicated prompt directive for variance and cognitive authenticity evaluation synthesis.",
+        ),
+    ] = None
     language: Annotated[LaxSystemLocale | None, Field(default=None, description="Target output language.")] = None
 
     organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
@@ -399,6 +460,29 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     custom_preface: I18nText | None = None
     user_role_label: I18nText | None = None
     tone_instruction: I18nText | None = None
+    executive_summary_directive: I18nText | None = None
+    matrix_1d_synthesis_directive: I18nText | None = None
+    matrix_2d_synthesis_directive: I18nText | None = None
+    matrix_3d_synthesis_directive: I18nText | None = None
+    matrix_text_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for text-only matrix synthesis."),
+    ] = None
+    row_explanation_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for matrix summary table row causal explanations."),
+    ] = None
+    xai_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for XAI highlights and extensions synthesis."),
+    ] = None
+    variance_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(
+            default=None,
+            description="Dedicated prompt directive for variance and cognitive authenticity evaluation synthesis.",
+        ),
+    ] = None
     language: LaxSystemLocale | None = None
     target_block_order: Annotated[
         list[LaxTargetBlockType],

@@ -8,6 +8,7 @@ import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Single item editor within MatrixGraphsBlockCard for configuring a MatrixSynthesisGroup.
+/// Clearly separates visual chart geometry/axes from LLM narrative synthesis directives.
 class MatrixGraphItemEditor extends StatelessWidget {
   final int index;
   final MatrixSynthesisGroup group;
@@ -86,138 +87,156 @@ class MatrixGraphItemEditor extends StatelessWidget {
               onUpdate(group.copyWith(title: val));
             },
           ),
-          const SizedBox(height: AppSpacing.s12),
-          Text(
-            'Näkymätyyppi (View Type)',
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+          AppSpacing.h16,
+
+          // SECTION 1: VISUAL CHART CONFIGURATION
+          Container(
+            padding: AppSpacing.p12,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppSpacing.s8),
+              border: Border.all(color: colorScheme.outlineVariant),
             ),
-          ),
-          const SizedBox(height: AppSpacing.s4),
-          SegmentedButton<PresetView>(
-            segments: const [
-              ButtonSegment(
-                value: PresetView.metrics1d,
-                label: Text('1D Mittari'),
-                icon: Icon(Icons.speed),
-              ),
-              ButtonSegment(
-                value: PresetView.compare2d,
-                label: Text('2D Vertailu'),
-                icon: Icon(Icons.scatter_plot),
-              ),
-              ButtonSegment(
-                value: PresetView.matrix3d,
-                label: Text('3D Tutka'),
-                icon: Icon(Icons.radar),
-              ),
-              ButtonSegment(
-                value: PresetView.textOnly,
-                label: Text('Teksti'),
-                icon: Icon(Icons.article_outlined),
-              ),
-            ],
-            selected: {currentViewType},
-            onSelectionChanged: (newSelection) {
-              final selectedType = newSelection.first;
-              final newLimit = switch (selectedType) {
-                PresetView.metrics1d => 1,
-                PresetView.compare2d => 2,
-                PresetView.matrix3d => 3,
-                PresetView.textOnly => 1,
-                _ => 1,
-              };
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.bar_chart_outlined,
+                      size: 18,
+                      color: colorScheme.primary,
+                    ),
+                    AppSpacing.w8,
+                    Text(
+                      l10n.groupVisualChartTitle,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                AppSpacing.h8,
+                Text(
+                  'Näkymätyyppi (View Type)',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s4),
+                SegmentedButton<PresetView>(
+                  segments: const [
+                    ButtonSegment(
+                      value: PresetView.metrics1d,
+                      label: Text('1D Mittari'),
+                      icon: Icon(Icons.speed),
+                    ),
+                    ButtonSegment(
+                      value: PresetView.compare2d,
+                      label: Text('2D Vertailu'),
+                      icon: Icon(Icons.scatter_plot),
+                    ),
+                    ButtonSegment(
+                      value: PresetView.matrix3d,
+                      label: Text('3D Tutka'),
+                      icon: Icon(Icons.radar),
+                    ),
+                    ButtonSegment(
+                      value: PresetView.textOnly,
+                      label: Text('Teksti'),
+                      icon: Icon(Icons.article_outlined),
+                    ),
+                  ],
+                  selected: {currentViewType},
+                  onSelectionChanged: (newSelection) {
+                    final selectedType = newSelection.first;
+                    final newLimit = switch (selectedType) {
+                      PresetView.metrics1d => 1,
+                      PresetView.compare2d => 2,
+                      PresetView.matrix3d => 3,
+                      PresetView.textOnly => 1,
+                      _ => 1,
+                    };
 
-              final trimmedTargets = targetBlocks.length > newLimit
-                  ? targetBlocks.sublist(0, newLimit)
-                  : targetBlocks;
+                    final trimmedTargets = targetBlocks.length > newLimit
+                        ? targetBlocks.sublist(0, newLimit)
+                        : targetBlocks;
 
-              onUpdate(
-                group.copyWith(
-                  viewType: selectedType,
-                  targetBlocks: trimmedTargets,
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: AppSpacing.s12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                l10n.selectBlockHint,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                '${targetBlocks.length} / $maxSlots valittu',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: targetBlocks.length == maxSlots
-                      ? colorScheme.primary
-                      : colorScheme.outline,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.s8),
-          if (matrixBlocks.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
-              child: Text(
-                'Ei matriiseja valittavissa työnkulussa.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.error,
-                ),
-              ),
-            )
-          else
-            Wrap(
-              spacing: AppSpacing.s8,
-              runSpacing: AppSpacing.s4,
-              children: matrixBlocks.map((block) {
-                final isSelected = targetBlocks.contains(block.id);
-                final canSelectMore = targetBlocks.length < maxSlots;
-                final label = block.label.translations['en'] ?? block.slug;
-
-                return FilterChip(
-                  label: Text('$label (${block.id})'),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    final newTargets = List<String>.from(targetBlocks);
-                    if (selected) {
-                      if (maxSlots == 1) {
-                        // Single selection replaces previous choice
-                        newTargets.clear();
-                        newTargets.add(block.id);
-                      } else if (canSelectMore) {
-                        newTargets.add(block.id);
-                      }
-                    } else {
-                      newTargets.remove(block.id);
-                    }
-                    onUpdate(group.copyWith(targetBlocks: newTargets));
+                    onUpdate(
+                      group.copyWith(
+                        viewType: selectedType,
+                        targetBlocks: trimmedTargets,
+                      ),
+                    );
                   },
-                );
-              }).toList(),
-            ),
-          const SizedBox(height: AppSpacing.s12),
-          TextFormField(
-            initialValue: group.synthesisDirective ?? '',
-            decoration: const InputDecoration(
-              labelText: 'Synteesiohje / Directive (Valinnainen)',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            maxLines: 2,
-            onChanged: (val) {
-              onUpdate(
-                group.copyWith(
-                  synthesisDirective: val.trim().isEmpty ? null : val.trim(),
                 ),
-              );
-            },
+                AppSpacing.h12,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.selectBlockHint,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${targetBlocks.length} / $maxSlots valittu',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: targetBlocks.length == maxSlots
+                            ? colorScheme.primary
+                            : colorScheme.outline,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.s8),
+                if (matrixBlocks.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.s8,
+                    ),
+                    child: Text(
+                      'Ei matriiseja valittavissa työnkulussa.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.error,
+                      ),
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: AppSpacing.s8,
+                    runSpacing: AppSpacing.s4,
+                    children: matrixBlocks.map((block) {
+                      final isSelected = targetBlocks.contains(block.id);
+                      final canSelectMore = targetBlocks.length < maxSlots;
+                      final label =
+                          block.label.translations['en'] ?? block.slug;
+
+                      return FilterChip(
+                        label: Text('$label (${block.id})'),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          final newTargets = List<String>.from(targetBlocks);
+                          if (selected) {
+                            if (maxSlots == 1) {
+                              newTargets.clear();
+                              newTargets.add(block.id);
+                            } else if (canSelectMore) {
+                              newTargets.add(block.id);
+                            }
+                          } else {
+                            newTargets.remove(block.id);
+                          }
+                          onUpdate(group.copyWith(targetBlocks: newTargets));
+                        },
+                      );
+                    }).toList(),
+                  ),
+              ],
+            ),
           ),
         ],
       ),

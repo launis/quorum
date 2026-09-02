@@ -10,7 +10,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 
 /// Tab 3: Detailed Section Configuration for complex SDUI blocks.
-/// Renders dedicated full editor cards only for active detailed block types.
+/// Provides a Master-Detail list navigation to inspect and configure individual report sections.
 class ProfileSectionConfigTab extends ConsumerWidget {
   final String id;
   const ProfileSectionConfigTab({super.key, required this.id});
@@ -29,6 +29,9 @@ class ProfileSectionConfigTab extends ConsumerWidget {
     final promptBlocksState = ref.watch(promptBlocksControllerProvider);
     final workflowsState = ref.watch(workflowsControllerProvider);
     final stepsState = ref.watch(stepsControllerProvider);
+    final selectedSection = ref.watch(
+      selectedOutputProfileConfigSectionProvider(id),
+    );
 
     void updatePayload(OutputProfile p) {
       ref.read(outputProfileFormProvider(id).notifier).updatePayload(p);
@@ -140,6 +143,55 @@ class ProfileSectionConfigTab extends ConsumerWidget {
       );
     }
 
+    // Detail View: If a section is selected, render its header with back button and its dedicated card
+    if (selectedSection != null &&
+        activeDetailedBlocks.contains(selectedSection)) {
+      return ListView(
+        padding: AppSpacing.p16,
+        children: [
+          Row(
+            children: [
+              OutlinedButton.icon(
+                onPressed: () {
+                  ref
+                      .read(
+                        selectedOutputProfileConfigSectionProvider(id).notifier,
+                      )
+                      .select(null);
+                },
+                icon: const Icon(Icons.arrow_back),
+                label: Text(l10n.allSectionsListLabel),
+              ),
+              AppSpacing.w16,
+              Expanded(
+                child: Text(
+                  BlockCardRegistry.getBlockTitle(selectedSection, l10n),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.h16,
+          BlockCardRegistry.getBlockCard(
+            key: ValueKey(selectedSection),
+            type: selectedSection,
+            context: context,
+            profileId: id,
+            payload: payload,
+            updatePayload: updatePayload,
+            allowedBlockIds: allowedBlockIds,
+            promptBlocksState: promptBlocksState,
+            dragHandle: null,
+          ),
+        ],
+      );
+    }
+
+    // Master View: Render the list of active configurable output sections
     return ListView(
       padding: AppSpacing.p16,
       children: [
@@ -159,16 +211,45 @@ class ProfileSectionConfigTab extends ConsumerWidget {
         ),
         AppSpacing.h16,
         ...activeDetailedBlocks.map((blockType) {
-          return BlockCardRegistry.getBlockCard(
-            key: ValueKey(blockType),
-            type: blockType,
-            context: context,
-            profileId: id,
-            payload: payload,
-            updatePayload: updatePayload,
-            allowedBlockIds: allowedBlockIds,
-            promptBlocksState: promptBlocksState,
-            dragHandle: null,
+          final title = BlockCardRegistry.getBlockTitle(blockType, l10n);
+          final subtitle = BlockCardRegistry.getBlockSubtitle(blockType, l10n);
+          final icon = BlockCardRegistry.getBlockIcon(blockType);
+
+          return Card(
+            elevation: 2,
+            margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ListTile(
+              contentPadding: AppSpacing.p16,
+              leading: CircleAvatar(
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                child: Icon(
+                  icon,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+              ),
+              title: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s4),
+                child: Text(subtitle),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                ref
+                    .read(
+                      selectedOutputProfileConfigSectionProvider(id).notifier,
+                    )
+                    .select(blockType);
+              },
+            ),
           );
         }),
       ],

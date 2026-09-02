@@ -153,6 +153,10 @@
     <rule_block id="design_token_absolute_rule">
         <mandate>NEVER hardcode magic numbers (`EdgeInsets.all(16)`) or colors (`Colors.blue`). Exclusively use global Design Tokens (`AppSpacing.p16`, `Theme.of(context).textTheme`). Hardcoded numeric doubles for heights, widths, or padding (`SizedBox(height: 15)`) are STRICTLY PROHIBITED.</mandate>
     </rule_block>
+
+    <rule_block id="studio_unified_visual_design_system">
+        <mandate>All Quorum Studio CRUD views and profile tabs (including OutputProfileCrudView tabs 1-4) MUST strictly adhere to the Studio Unified Visual & UX Design System: 1) Consistent Card containers (`elevation: 2`, `BorderRadius.circular(12)`, `margin: bottom 16`, `padding: 16`), 2) Interactive `FilterChip`/`ChoiceChip` widgets for multi-select groups instead of small checkboxes, 3) Pill-shaped status badges (`Container` with `colorScheme.primaryContainer` and rounded borders), 4) `fontSize: 20, bold` headers with `OutlinedButton.icon` action triggers and red `IconButton` delete triggers, 5) 100% Theme.of(context) color adherence.</mandate>
+    </rule_block>
 </architectural_invariants>
 
 <universal_quality_gate>

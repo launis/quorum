@@ -2010,6 +2010,18 @@
   "profileTabSectionConfig": "Section Config",
   "profileTabReportStructure": "Report Structure",
   "profileToneInstructionLabel": "Coaching tone instruction",
+  "profileAiSynthesisDirectivesTitle": "AI Synthesis Directives",
+  "profileExecutiveSummaryDirectiveLabel": "Executive summary synthesis directive",
+  "profileMatrix1dDirectiveLabel": "1D metrics synthesis directive",
+  "profileMatrix2dDirectiveLabel": "2D comparison synthesis directive",
+  "profileMatrix3dDirectiveLabel": "3D radar synthesis directive",
+  "profileMatrixTextDirectiveLabel": "Text-only matrix synthesis directive",
+  "profileRowExplanationDirectiveLabel": "Row explanation synthesis directive",
+  "profileXaiSynthesisDirectiveLabel": "XAI highlights synthesis directive",
+  "profileVarianceDirectiveLabel": "Variance validation synthesis directive",
+  "variancePerformativityDetectorStepLabel": "Performativity Detector Step",
+  "variancePerformativityDetectorStepHint": "Select workflow step providing detector scoring",
+  "variancePerformativityDetectorNone": "None (disabled)",
   "profileUserRoleLabelLabel": "Target audience role label",
   "profileSynthesisLengthLabel": "Synthesis target length (characters)",
   "profileMaxQuotesLabel": "Maximum quotes per matrix",
@@ -2017,6 +2029,7 @@
   "sectionConfigSubtitle": "Manage the internal display and settings of individual report sections.",
   "noDetailedSectionsActiveTitle": "No active section configurations",
   "noDetailedSectionsActiveSubtitle": "Enable matrix graphs, metadata, or XAI extension sections in the Report Structure tab to configure their detailed settings.",
+  "allSectionsListLabel": "All Sections",
   "blockMetadataTitle": "Report Metadata",
   "blockExecutiveSummaryTitle": "Executive Summary",
   "blockSynthesisTextTitle": "Synthesis & Narrative Text",
@@ -2332,6 +2345,9 @@
   "downloadFrozenContextTooltip": "Download Frozen Context",
   "downloadExcelBtn": "Download Excel",
   "aboutMetricTitle": "About Metric",
-  "workflowIdMissingError": "Workflow ID is missing"
+  "workflowIdMissingError": "Workflow ID is missing",
+  "groupVisualChartTitle": "Visual Chart Configuration",
+  "groupSynthesisDirectiveTitle": "AI Synthesis Directive",
+  "groupSynthesisDirectiveHelper": "REQUIRED ENGLISH. If left empty, synthesis will not be executed for this group."
 }
 

@@ -2,6 +2,33 @@
 
 Orchestrates sequential end-to-end execution runs with verified process isolation,
 Unicode noise perturbation, database polling, and automated differential report synthesis.
+
+Usage Examples:
+    # 1. Run with default test inputs fixture (minimal synthetic fixture):
+    uv run python scripts/run_e2e_variance_test.py
+
+    # 2. Run with a custom inputs directory containing real evaluation files (RECOMMENDED):
+    uv run python scripts/run_e2e_variance_test.py "path/to/my_inputs_dir"
+
+    # 3. Run with a custom JSON inputs file:
+    uv run python scripts/run_e2e_variance_test.py "path/to/custom_inputs.json"
+
+    # 4. Optional: Run in fast development mode using environment variable:
+    $env:DEV_EXECUTION_MODE="fast"; uv run python scripts/run_e2e_variance_test.py "path/to/my_inputs_dir"
+
+Input Format and Default Fixture Notice:
+    - Default fixture (`backend_v2/tests/test_data/exe_c0bc_inputs.json`):
+      Contains minimal mock text fields (`chat_log`, `product_text`, `reflection_text`, `document_date`).
+      This default is intended only as a lightweight synthetic fallback for smoke-testing.
+    - Custom Directory (RECOMMENDED):
+      It is strongly recommended to provide a directory containing realistic evaluation files
+      (e.g., PDF transcripts, raw JSONs, markdown or text documents).
+      When a directory is provided, the loader automatically extracts text from `.pdf`, `.json`,
+      `.txt`, and `.md` files, and automatically maps Finnish domain filenames:
+        * Files containing 'keskusteluhistoria' -> mapped to 'chat_log'
+        * Files containing 'lopputuote'          -> mapped to 'product_text'
+        * Files containing 'reflektio'           -> mapped to 'reflection_text'
+      PDF metadata timestamps are also extracted dynamically to establish `document_date`.
 """
 
 from __future__ import annotations

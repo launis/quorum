@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MatrixSynthesisGroup {
 
- String get id; I18nText get title;@JsonKey(name: 'target_blocks') List<String> get targetBlocks;@JsonKey(name: 'synthesis_directive') String? get synthesisDirective;@JsonKey(name: 'view_type') PresetView get viewType;
+ String get id; I18nText get title;@JsonKey(name: 'target_blocks') List<String> get targetBlocks;@JsonKey(name: 'view_type') PresetView get viewType;
 /// Create a copy of MatrixSynthesisGroup
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $MatrixSynthesisGroupCopyWith<MatrixSynthesisGroup> get copyWith => _$MatrixSynt
 
 @override
 String toString() {
-  return 'MatrixSynthesisGroup(id: $id, title: $title, targetBlocks: $targetBlocks, synthesisDirective: $synthesisDirective, viewType: $viewType)';
+  return 'MatrixSynthesisGroup(id: $id, title: $title, targetBlocks: $targetBlocks, viewType: $viewType)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $MatrixSynthesisGroupCopyWith<$Res>  {
   factory $MatrixSynthesisGroupCopyWith(MatrixSynthesisGroup value, $Res Function(MatrixSynthesisGroup) _then) = _$MatrixSynthesisGroupCopyWithImpl;
 @useResult
 $Res call({
- String id, I18nText title,@JsonKey(name: 'target_blocks') List<String> targetBlocks,@JsonKey(name: 'synthesis_directive') String? synthesisDirective,@JsonKey(name: 'view_type') PresetView viewType
+ String id, I18nText title,@JsonKey(name: 'target_blocks') List<String> targetBlocks,@JsonKey(name: 'view_type') PresetView viewType
 });
 
 
@@ -58,13 +58,12 @@ class _$MatrixSynthesisGroupCopyWithImpl<$Res>
 
 /// Create a copy of MatrixSynthesisGroup
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? targetBlocks = null,Object? synthesisDirective = freezed,Object? viewType = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? targetBlocks = null,Object? viewType = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText,targetBlocks: null == targetBlocks ? _self.targetBlocks : targetBlocks // ignore: cast_nullable_to_non_nullable
-as List<String>,synthesisDirective: freezed == synthesisDirective ? _self.synthesisDirective : synthesisDirective // ignore: cast_nullable_to_non_nullable
-as String?,viewType: null == viewType ? _self.viewType : viewType // ignore: cast_nullable_to_non_nullable
+as List<String>,viewType: null == viewType ? _self.viewType : viewType // ignore: cast_nullable_to_non_nullable
 as PresetView,
   ));
 }
@@ -159,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  I18nText title, @JsonKey(name: 'target_blocks')  List<String> targetBlocks, @JsonKey(name: 'synthesis_directive')  String? synthesisDirective, @JsonKey(name: 'view_type')  PresetView viewType)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  I18nText title, @JsonKey(name: 'target_blocks')  List<String> targetBlocks, @JsonKey(name: 'view_type')  PresetView viewType)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MatrixSynthesisGroup() when $default != null:
-return $default(_that.id,_that.title,_that.targetBlocks,_that.synthesisDirective,_that.viewType);case _:
+return $default(_that.id,_that.title,_that.targetBlocks,_that.viewType);case _:
   return orElse();
 
 }
@@ -180,10 +179,10 @@ return $default(_that.id,_that.title,_that.targetBlocks,_that.synthesisDirective
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  I18nText title, @JsonKey(name: 'target_blocks')  List<String> targetBlocks, @JsonKey(name: 'synthesis_directive')  String? synthesisDirective, @JsonKey(name: 'view_type')  PresetView viewType)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  I18nText title, @JsonKey(name: 'target_blocks')  List<String> targetBlocks, @JsonKey(name: 'view_type')  PresetView viewType)  $default,) {final _that = this;
 switch (_that) {
 case _MatrixSynthesisGroup():
-return $default(_that.id,_that.title,_that.targetBlocks,_that.synthesisDirective,_that.viewType);case _:
+return $default(_that.id,_that.title,_that.targetBlocks,_that.viewType);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +199,10 @@ return $default(_that.id,_that.title,_that.targetBlocks,_that.synthesisDirective
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  I18nText title, @JsonKey(name: 'target_blocks')  List<String> targetBlocks, @JsonKey(name: 'synthesis_directive')  String? synthesisDirective, @JsonKey(name: 'view_type')  PresetView viewType)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  I18nText title, @JsonKey(name: 'target_blocks')  List<String> targetBlocks, @JsonKey(name: 'view_type')  PresetView viewType)?  $default,) {final _that = this;
 switch (_that) {
 case _MatrixSynthesisGroup() when $default != null:
-return $default(_that.id,_that.title,_that.targetBlocks,_that.synthesisDirective,_that.viewType);case _:
+return $default(_that.id,_that.title,_that.targetBlocks,_that.viewType);case _:
   return null;
 
 }
@@ -215,7 +214,7 @@ return $default(_that.id,_that.title,_that.targetBlocks,_that.synthesisDirective
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _MatrixSynthesisGroup extends MatrixSynthesisGroup {
-  const _MatrixSynthesisGroup({required this.id, required this.title, @JsonKey(name: 'target_blocks') required final  List<String> targetBlocks, @JsonKey(name: 'synthesis_directive') this.synthesisDirective, @JsonKey(name: 'view_type') this.viewType = PresetView.metrics1d}): _targetBlocks = targetBlocks,super._();
+  const _MatrixSynthesisGroup({required this.id, required this.title, @JsonKey(name: 'target_blocks') required final  List<String> targetBlocks, @JsonKey(name: 'view_type') this.viewType = PresetView.metrics1d}): _targetBlocks = targetBlocks,super._();
   factory _MatrixSynthesisGroup.fromJson(Map<String, dynamic> json) => _$MatrixSynthesisGroupFromJson(json);
 
 @override final  String id;
@@ -227,7 +226,6 @@ class _MatrixSynthesisGroup extends MatrixSynthesisGroup {
   return EqualUnmodifiableListView(_targetBlocks);
 }
 
-@override@JsonKey(name: 'synthesis_directive') final  String? synthesisDirective;
 @override@JsonKey(name: 'view_type') final  PresetView viewType;
 
 /// Create a copy of MatrixSynthesisGroup
@@ -245,7 +243,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'MatrixSynthesisGroup(id: $id, title: $title, targetBlocks: $targetBlocks, synthesisDirective: $synthesisDirective, viewType: $viewType)';
+  return 'MatrixSynthesisGroup(id: $id, title: $title, targetBlocks: $targetBlocks, viewType: $viewType)';
 }
 
 
@@ -256,7 +254,7 @@ abstract mixin class _$MatrixSynthesisGroupCopyWith<$Res> implements $MatrixSynt
   factory _$MatrixSynthesisGroupCopyWith(_MatrixSynthesisGroup value, $Res Function(_MatrixSynthesisGroup) _then) = __$MatrixSynthesisGroupCopyWithImpl;
 @override @useResult
 $Res call({
- String id, I18nText title,@JsonKey(name: 'target_blocks') List<String> targetBlocks,@JsonKey(name: 'synthesis_directive') String? synthesisDirective,@JsonKey(name: 'view_type') PresetView viewType
+ String id, I18nText title,@JsonKey(name: 'target_blocks') List<String> targetBlocks,@JsonKey(name: 'view_type') PresetView viewType
 });
 
 
@@ -273,13 +271,12 @@ class __$MatrixSynthesisGroupCopyWithImpl<$Res>
 
 /// Create a copy of MatrixSynthesisGroup
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? targetBlocks = null,Object? synthesisDirective = freezed,Object? viewType = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? targetBlocks = null,Object? viewType = null,}) {
   return _then(_MatrixSynthesisGroup(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as I18nText,targetBlocks: null == targetBlocks ? _self._targetBlocks : targetBlocks // ignore: cast_nullable_to_non_nullable
-as List<String>,synthesisDirective: freezed == synthesisDirective ? _self.synthesisDirective : synthesisDirective // ignore: cast_nullable_to_non_nullable
-as String?,viewType: null == viewType ? _self.viewType : viewType // ignore: cast_nullable_to_non_nullable
+as List<String>,viewType: null == viewType ? _self.viewType : viewType // ignore: cast_nullable_to_non_nullable
 as PresetView,
   ));
 }
@@ -300,7 +297,7 @@ $I18nTextCopyWith<$Res> get title {
 /// @nodoc
 mixin _$OutputProfile {
 
-@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; String? get organizationId; I18nText get name; I18nText? get description;@JsonKey(name: 'user_role_label') I18nText? get userRoleLabel;@JsonKey(name: 'custom_preface') I18nText? get customPreface; List<String> get visibleMetadata;@JsonKey(name: 'matrix_visible_columns') List<String> get matrixVisibleColumns; List<XaiExtensionType> get visibleBlockExtensions; List<XaiExtensionType> get visibleWorkflowExtensions;@JsonKey(name: 'max_extension_items') int get maxExtensionItems;@JsonKey(name: 'display_scale') DisplayScale get displayScale;@JsonKey(name: 'custom_scale_min') double? get customScaleMin;@JsonKey(name: 'custom_scale_max') double? get customScaleMax;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'synthesis_length_constraint') int? get synthesisLengthConstraint;@JsonKey(name: 'max_quotes_per_matrix') int? get maxQuotesPerMatrix;@JsonKey(name: 'max_unmet_criteria') int? get maxUnmetCriteria;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction; SystemLocale? get language;@JsonKey(name: 'matrix_synthesis_groups') List<MatrixSynthesisGroup> get matrixSynthesisGroups;@JsonKey(name: 'content_blocks') List<SduiBlockDTO> get contentBlocks;@JsonKey(name: 'target_block_order') List<TargetBlockType> get targetBlockOrder;@JsonKey(name: 'show_sources_summary_box') bool get showSourcesSummaryBox;@JsonKey(name: 'sources_display_mode') SourcesDisplayMode get sourcesDisplayMode;@JsonKey(name: 'performativity_detector_step_id') String? get performativityDetectorStepId;
+@StrictOpaqueIdConverter() String get id; String get slug;@StrictOpaqueIdConverter() String get workflowId; String? get organizationId; I18nText get name; I18nText? get description;@JsonKey(name: 'user_role_label') I18nText? get userRoleLabel;@JsonKey(name: 'custom_preface') I18nText? get customPreface; List<String> get visibleMetadata;@JsonKey(name: 'matrix_visible_columns') List<String> get matrixVisibleColumns; List<XaiExtensionType> get visibleBlockExtensions; List<XaiExtensionType> get visibleWorkflowExtensions;@JsonKey(name: 'max_extension_items') int get maxExtensionItems;@JsonKey(name: 'display_scale') DisplayScale get displayScale;@JsonKey(name: 'custom_scale_min') double? get customScaleMin;@JsonKey(name: 'custom_scale_max') double? get customScaleMax;@JsonKey(name: 'strictness_level') int? get strictnessLevel;@JsonKey(name: 'scoring_strategy') ScoringStrategy? get scoringStrategy;@JsonKey(name: 'synthesis_length_constraint') int? get synthesisLengthConstraint;@JsonKey(name: 'max_quotes_per_matrix') int? get maxQuotesPerMatrix;@JsonKey(name: 'max_unmet_criteria') int? get maxUnmetCriteria;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction;@JsonKey(name: 'executive_summary_directive') I18nText? get executiveSummaryDirective;@JsonKey(name: 'matrix_1d_synthesis_directive') I18nText? get matrix1dSynthesisDirective;@JsonKey(name: 'matrix_2d_synthesis_directive') I18nText? get matrix2dSynthesisDirective;@JsonKey(name: 'matrix_3d_synthesis_directive') I18nText? get matrix3dSynthesisDirective;@JsonKey(name: 'matrix_text_synthesis_directive') I18nText? get matrixTextSynthesisDirective;@JsonKey(name: 'row_explanation_directive') I18nText? get rowExplanationDirective;@JsonKey(name: 'xai_synthesis_directive') I18nText? get xaiSynthesisDirective;@JsonKey(name: 'variance_synthesis_directive') I18nText? get varianceSynthesisDirective; SystemLocale? get language;@JsonKey(name: 'matrix_synthesis_groups') List<MatrixSynthesisGroup> get matrixSynthesisGroups;@JsonKey(name: 'content_blocks') List<SduiBlockDTO> get contentBlocks;@JsonKey(name: 'target_block_order') List<TargetBlockType> get targetBlockOrder;@JsonKey(name: 'show_sources_summary_box') bool get showSourcesSummaryBox;@JsonKey(name: 'sources_display_mode') SourcesDisplayMode get sourcesDisplayMode;@JsonKey(name: 'performativity_detector_step_id') String? get performativityDetectorStepId;
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -315,7 +312,7 @@ $OutputProfileCopyWith<OutputProfile> get copyWith => _$OutputProfileCopyWithImp
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, userRoleLabel: $userRoleLabel, customPreface: $customPreface, visibleMetadata: $visibleMetadata, matrixVisibleColumns: $matrixVisibleColumns, visibleBlockExtensions: $visibleBlockExtensions, visibleWorkflowExtensions: $visibleWorkflowExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, customScaleMin: $customScaleMin, customScaleMax: $customScaleMax, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, synthesisLengthConstraint: $synthesisLengthConstraint, maxQuotesPerMatrix: $maxQuotesPerMatrix, maxUnmetCriteria: $maxUnmetCriteria, toneInstruction: $toneInstruction, language: $language, matrixSynthesisGroups: $matrixSynthesisGroups, contentBlocks: $contentBlocks, targetBlockOrder: $targetBlockOrder, showSourcesSummaryBox: $showSourcesSummaryBox, sourcesDisplayMode: $sourcesDisplayMode, performativityDetectorStepId: $performativityDetectorStepId)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, userRoleLabel: $userRoleLabel, customPreface: $customPreface, visibleMetadata: $visibleMetadata, matrixVisibleColumns: $matrixVisibleColumns, visibleBlockExtensions: $visibleBlockExtensions, visibleWorkflowExtensions: $visibleWorkflowExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, customScaleMin: $customScaleMin, customScaleMax: $customScaleMax, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, synthesisLengthConstraint: $synthesisLengthConstraint, maxQuotesPerMatrix: $maxQuotesPerMatrix, maxUnmetCriteria: $maxUnmetCriteria, toneInstruction: $toneInstruction, executiveSummaryDirective: $executiveSummaryDirective, matrix1dSynthesisDirective: $matrix1dSynthesisDirective, matrix2dSynthesisDirective: $matrix2dSynthesisDirective, matrix3dSynthesisDirective: $matrix3dSynthesisDirective, matrixTextSynthesisDirective: $matrixTextSynthesisDirective, rowExplanationDirective: $rowExplanationDirective, xaiSynthesisDirective: $xaiSynthesisDirective, varianceSynthesisDirective: $varianceSynthesisDirective, language: $language, matrixSynthesisGroups: $matrixSynthesisGroups, contentBlocks: $contentBlocks, targetBlockOrder: $targetBlockOrder, showSourcesSummaryBox: $showSourcesSummaryBox, sourcesDisplayMode: $sourcesDisplayMode, performativityDetectorStepId: $performativityDetectorStepId)';
 }
 
 
@@ -326,11 +323,11 @@ abstract mixin class $OutputProfileCopyWith<$Res>  {
   factory $OutputProfileCopyWith(OutputProfile value, $Res Function(OutputProfile) _then) = _$OutputProfileCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'user_role_label') I18nText? userRoleLabel,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int maxExtensionItems,@JsonKey(name: 'display_scale') DisplayScale displayScale,@JsonKey(name: 'custom_scale_min') double? customScaleMin,@JsonKey(name: 'custom_scale_max') double? customScaleMax,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'synthesis_length_constraint') int? synthesisLengthConstraint,@JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,@JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, SystemLocale? language,@JsonKey(name: 'matrix_synthesis_groups') List<MatrixSynthesisGroup> matrixSynthesisGroups,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks,@JsonKey(name: 'target_block_order') List<TargetBlockType> targetBlockOrder,@JsonKey(name: 'show_sources_summary_box') bool showSourcesSummaryBox,@JsonKey(name: 'sources_display_mode') SourcesDisplayMode sourcesDisplayMode,@JsonKey(name: 'performativity_detector_step_id') String? performativityDetectorStepId
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'user_role_label') I18nText? userRoleLabel,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int maxExtensionItems,@JsonKey(name: 'display_scale') DisplayScale displayScale,@JsonKey(name: 'custom_scale_min') double? customScaleMin,@JsonKey(name: 'custom_scale_max') double? customScaleMax,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'synthesis_length_constraint') int? synthesisLengthConstraint,@JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,@JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction,@JsonKey(name: 'executive_summary_directive') I18nText? executiveSummaryDirective,@JsonKey(name: 'matrix_1d_synthesis_directive') I18nText? matrix1dSynthesisDirective,@JsonKey(name: 'matrix_2d_synthesis_directive') I18nText? matrix2dSynthesisDirective,@JsonKey(name: 'matrix_3d_synthesis_directive') I18nText? matrix3dSynthesisDirective,@JsonKey(name: 'matrix_text_synthesis_directive') I18nText? matrixTextSynthesisDirective,@JsonKey(name: 'row_explanation_directive') I18nText? rowExplanationDirective,@JsonKey(name: 'xai_synthesis_directive') I18nText? xaiSynthesisDirective,@JsonKey(name: 'variance_synthesis_directive') I18nText? varianceSynthesisDirective, SystemLocale? language,@JsonKey(name: 'matrix_synthesis_groups') List<MatrixSynthesisGroup> matrixSynthesisGroups,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks,@JsonKey(name: 'target_block_order') List<TargetBlockType> targetBlockOrder,@JsonKey(name: 'show_sources_summary_box') bool showSourcesSummaryBox,@JsonKey(name: 'sources_display_mode') SourcesDisplayMode sourcesDisplayMode,@JsonKey(name: 'performativity_detector_step_id') String? performativityDetectorStepId
 });
 
 
-$I18nTextCopyWith<$Res> get name;$I18nTextCopyWith<$Res>? get description;$I18nTextCopyWith<$Res>? get userRoleLabel;$I18nTextCopyWith<$Res>? get customPreface;$I18nTextCopyWith<$Res>? get toneInstruction;
+$I18nTextCopyWith<$Res> get name;$I18nTextCopyWith<$Res>? get description;$I18nTextCopyWith<$Res>? get userRoleLabel;$I18nTextCopyWith<$Res>? get customPreface;$I18nTextCopyWith<$Res>? get toneInstruction;$I18nTextCopyWith<$Res>? get executiveSummaryDirective;$I18nTextCopyWith<$Res>? get matrix1dSynthesisDirective;$I18nTextCopyWith<$Res>? get matrix2dSynthesisDirective;$I18nTextCopyWith<$Res>? get matrix3dSynthesisDirective;$I18nTextCopyWith<$Res>? get matrixTextSynthesisDirective;$I18nTextCopyWith<$Res>? get rowExplanationDirective;$I18nTextCopyWith<$Res>? get xaiSynthesisDirective;$I18nTextCopyWith<$Res>? get varianceSynthesisDirective;
 
 }
 /// @nodoc
@@ -343,7 +340,7 @@ class _$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? userRoleLabel = freezed,Object? customPreface = freezed,Object? visibleMetadata = null,Object? matrixVisibleColumns = null,Object? visibleBlockExtensions = null,Object? visibleWorkflowExtensions = null,Object? maxExtensionItems = null,Object? displayScale = null,Object? customScaleMin = freezed,Object? customScaleMax = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? synthesisLengthConstraint = freezed,Object? maxQuotesPerMatrix = freezed,Object? maxUnmetCriteria = freezed,Object? toneInstruction = freezed,Object? language = freezed,Object? matrixSynthesisGroups = null,Object? contentBlocks = null,Object? targetBlockOrder = null,Object? showSourcesSummaryBox = null,Object? sourcesDisplayMode = null,Object? performativityDetectorStepId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? userRoleLabel = freezed,Object? customPreface = freezed,Object? visibleMetadata = null,Object? matrixVisibleColumns = null,Object? visibleBlockExtensions = null,Object? visibleWorkflowExtensions = null,Object? maxExtensionItems = null,Object? displayScale = null,Object? customScaleMin = freezed,Object? customScaleMax = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? synthesisLengthConstraint = freezed,Object? maxQuotesPerMatrix = freezed,Object? maxUnmetCriteria = freezed,Object? toneInstruction = freezed,Object? executiveSummaryDirective = freezed,Object? matrix1dSynthesisDirective = freezed,Object? matrix2dSynthesisDirective = freezed,Object? matrix3dSynthesisDirective = freezed,Object? matrixTextSynthesisDirective = freezed,Object? rowExplanationDirective = freezed,Object? xaiSynthesisDirective = freezed,Object? varianceSynthesisDirective = freezed,Object? language = freezed,Object? matrixSynthesisGroups = null,Object? contentBlocks = null,Object? targetBlockOrder = null,Object? showSourcesSummaryBox = null,Object? sourcesDisplayMode = null,Object? performativityDetectorStepId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -367,6 +364,14 @@ as ScoringStrategy?,synthesisLengthConstraint: freezed == synthesisLengthConstra
 as int?,maxQuotesPerMatrix: freezed == maxQuotesPerMatrix ? _self.maxQuotesPerMatrix : maxQuotesPerMatrix // ignore: cast_nullable_to_non_nullable
 as int?,maxUnmetCriteria: freezed == maxUnmetCriteria ? _self.maxUnmetCriteria : maxUnmetCriteria // ignore: cast_nullable_to_non_nullable
 as int?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
+as I18nText?,executiveSummaryDirective: freezed == executiveSummaryDirective ? _self.executiveSummaryDirective : executiveSummaryDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,matrix1dSynthesisDirective: freezed == matrix1dSynthesisDirective ? _self.matrix1dSynthesisDirective : matrix1dSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,matrix2dSynthesisDirective: freezed == matrix2dSynthesisDirective ? _self.matrix2dSynthesisDirective : matrix2dSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,matrix3dSynthesisDirective: freezed == matrix3dSynthesisDirective ? _self.matrix3dSynthesisDirective : matrix3dSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,matrixTextSynthesisDirective: freezed == matrixTextSynthesisDirective ? _self.matrixTextSynthesisDirective : matrixTextSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,rowExplanationDirective: freezed == rowExplanationDirective ? _self.rowExplanationDirective : rowExplanationDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,xaiSynthesisDirective: freezed == xaiSynthesisDirective ? _self.xaiSynthesisDirective : xaiSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,varianceSynthesisDirective: freezed == varianceSynthesisDirective ? _self.varianceSynthesisDirective : varianceSynthesisDirective // ignore: cast_nullable_to_non_nullable
 as I18nText?,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as SystemLocale?,matrixSynthesisGroups: null == matrixSynthesisGroups ? _self.matrixSynthesisGroups : matrixSynthesisGroups // ignore: cast_nullable_to_non_nullable
 as List<MatrixSynthesisGroup>,contentBlocks: null == contentBlocks ? _self.contentBlocks : contentBlocks // ignore: cast_nullable_to_non_nullable
@@ -433,6 +438,102 @@ $I18nTextCopyWith<$Res>? get toneInstruction {
 
   return $I18nTextCopyWith<$Res>(_self.toneInstruction!, (value) {
     return _then(_self.copyWith(toneInstruction: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get executiveSummaryDirective {
+    if (_self.executiveSummaryDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.executiveSummaryDirective!, (value) {
+    return _then(_self.copyWith(executiveSummaryDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get matrix1dSynthesisDirective {
+    if (_self.matrix1dSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.matrix1dSynthesisDirective!, (value) {
+    return _then(_self.copyWith(matrix1dSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get matrix2dSynthesisDirective {
+    if (_self.matrix2dSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.matrix2dSynthesisDirective!, (value) {
+    return _then(_self.copyWith(matrix2dSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get matrix3dSynthesisDirective {
+    if (_self.matrix3dSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.matrix3dSynthesisDirective!, (value) {
+    return _then(_self.copyWith(matrix3dSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get matrixTextSynthesisDirective {
+    if (_self.matrixTextSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.matrixTextSynthesisDirective!, (value) {
+    return _then(_self.copyWith(matrixTextSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get rowExplanationDirective {
+    if (_self.rowExplanationDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.rowExplanationDirective!, (value) {
+    return _then(_self.copyWith(rowExplanationDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get xaiSynthesisDirective {
+    if (_self.xaiSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.xaiSynthesisDirective!, (value) {
+    return _then(_self.copyWith(xaiSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get varianceSynthesisDirective {
+    if (_self.varianceSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.varianceSynthesisDirective!, (value) {
+    return _then(_self.copyWith(varianceSynthesisDirective: value));
   });
 }
 }
@@ -516,10 +617,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int maxExtensionItems, @JsonKey(name: 'display_scale')  DisplayScale displayScale, @JsonKey(name: 'custom_scale_min')  double? customScaleMin, @JsonKey(name: 'custom_scale_max')  double? customScaleMax, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'synthesis_length_constraint')  int? synthesisLengthConstraint, @JsonKey(name: 'max_quotes_per_matrix')  int? maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria')  int? maxUnmetCriteria, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  SystemLocale? language, @JsonKey(name: 'matrix_synthesis_groups')  List<MatrixSynthesisGroup> matrixSynthesisGroups, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks, @JsonKey(name: 'target_block_order')  List<TargetBlockType> targetBlockOrder, @JsonKey(name: 'show_sources_summary_box')  bool showSourcesSummaryBox, @JsonKey(name: 'sources_display_mode')  SourcesDisplayMode sourcesDisplayMode, @JsonKey(name: 'performativity_detector_step_id')  String? performativityDetectorStepId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int maxExtensionItems, @JsonKey(name: 'display_scale')  DisplayScale displayScale, @JsonKey(name: 'custom_scale_min')  double? customScaleMin, @JsonKey(name: 'custom_scale_max')  double? customScaleMax, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'synthesis_length_constraint')  int? synthesisLengthConstraint, @JsonKey(name: 'max_quotes_per_matrix')  int? maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria')  int? maxUnmetCriteria, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction, @JsonKey(name: 'executive_summary_directive')  I18nText? executiveSummaryDirective, @JsonKey(name: 'matrix_1d_synthesis_directive')  I18nText? matrix1dSynthesisDirective, @JsonKey(name: 'matrix_2d_synthesis_directive')  I18nText? matrix2dSynthesisDirective, @JsonKey(name: 'matrix_3d_synthesis_directive')  I18nText? matrix3dSynthesisDirective, @JsonKey(name: 'matrix_text_synthesis_directive')  I18nText? matrixTextSynthesisDirective, @JsonKey(name: 'row_explanation_directive')  I18nText? rowExplanationDirective, @JsonKey(name: 'xai_synthesis_directive')  I18nText? xaiSynthesisDirective, @JsonKey(name: 'variance_synthesis_directive')  I18nText? varianceSynthesisDirective,  SystemLocale? language, @JsonKey(name: 'matrix_synthesis_groups')  List<MatrixSynthesisGroup> matrixSynthesisGroups, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks, @JsonKey(name: 'target_block_order')  List<TargetBlockType> targetBlockOrder, @JsonKey(name: 'show_sources_summary_box')  bool showSourcesSummaryBox, @JsonKey(name: 'sources_display_mode')  SourcesDisplayMode sourcesDisplayMode, @JsonKey(name: 'performativity_detector_step_id')  String? performativityDetectorStepId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.matrixVisibleColumns,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.customScaleMin,_that.customScaleMax,_that.strictnessLevel,_that.scoringStrategy,_that.synthesisLengthConstraint,_that.maxQuotesPerMatrix,_that.maxUnmetCriteria,_that.toneInstruction,_that.language,_that.matrixSynthesisGroups,_that.contentBlocks,_that.targetBlockOrder,_that.showSourcesSummaryBox,_that.sourcesDisplayMode,_that.performativityDetectorStepId);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.matrixVisibleColumns,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.customScaleMin,_that.customScaleMax,_that.strictnessLevel,_that.scoringStrategy,_that.synthesisLengthConstraint,_that.maxQuotesPerMatrix,_that.maxUnmetCriteria,_that.toneInstruction,_that.executiveSummaryDirective,_that.matrix1dSynthesisDirective,_that.matrix2dSynthesisDirective,_that.matrix3dSynthesisDirective,_that.matrixTextSynthesisDirective,_that.rowExplanationDirective,_that.xaiSynthesisDirective,_that.varianceSynthesisDirective,_that.language,_that.matrixSynthesisGroups,_that.contentBlocks,_that.targetBlockOrder,_that.showSourcesSummaryBox,_that.sourcesDisplayMode,_that.performativityDetectorStepId);case _:
   return orElse();
 
 }
@@ -537,10 +638,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int maxExtensionItems, @JsonKey(name: 'display_scale')  DisplayScale displayScale, @JsonKey(name: 'custom_scale_min')  double? customScaleMin, @JsonKey(name: 'custom_scale_max')  double? customScaleMax, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'synthesis_length_constraint')  int? synthesisLengthConstraint, @JsonKey(name: 'max_quotes_per_matrix')  int? maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria')  int? maxUnmetCriteria, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  SystemLocale? language, @JsonKey(name: 'matrix_synthesis_groups')  List<MatrixSynthesisGroup> matrixSynthesisGroups, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks, @JsonKey(name: 'target_block_order')  List<TargetBlockType> targetBlockOrder, @JsonKey(name: 'show_sources_summary_box')  bool showSourcesSummaryBox, @JsonKey(name: 'sources_display_mode')  SourcesDisplayMode sourcesDisplayMode, @JsonKey(name: 'performativity_detector_step_id')  String? performativityDetectorStepId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int maxExtensionItems, @JsonKey(name: 'display_scale')  DisplayScale displayScale, @JsonKey(name: 'custom_scale_min')  double? customScaleMin, @JsonKey(name: 'custom_scale_max')  double? customScaleMax, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'synthesis_length_constraint')  int? synthesisLengthConstraint, @JsonKey(name: 'max_quotes_per_matrix')  int? maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria')  int? maxUnmetCriteria, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction, @JsonKey(name: 'executive_summary_directive')  I18nText? executiveSummaryDirective, @JsonKey(name: 'matrix_1d_synthesis_directive')  I18nText? matrix1dSynthesisDirective, @JsonKey(name: 'matrix_2d_synthesis_directive')  I18nText? matrix2dSynthesisDirective, @JsonKey(name: 'matrix_3d_synthesis_directive')  I18nText? matrix3dSynthesisDirective, @JsonKey(name: 'matrix_text_synthesis_directive')  I18nText? matrixTextSynthesisDirective, @JsonKey(name: 'row_explanation_directive')  I18nText? rowExplanationDirective, @JsonKey(name: 'xai_synthesis_directive')  I18nText? xaiSynthesisDirective, @JsonKey(name: 'variance_synthesis_directive')  I18nText? varianceSynthesisDirective,  SystemLocale? language, @JsonKey(name: 'matrix_synthesis_groups')  List<MatrixSynthesisGroup> matrixSynthesisGroups, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks, @JsonKey(name: 'target_block_order')  List<TargetBlockType> targetBlockOrder, @JsonKey(name: 'show_sources_summary_box')  bool showSourcesSummaryBox, @JsonKey(name: 'sources_display_mode')  SourcesDisplayMode sourcesDisplayMode, @JsonKey(name: 'performativity_detector_step_id')  String? performativityDetectorStepId)  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile():
-return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.matrixVisibleColumns,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.customScaleMin,_that.customScaleMax,_that.strictnessLevel,_that.scoringStrategy,_that.synthesisLengthConstraint,_that.maxQuotesPerMatrix,_that.maxUnmetCriteria,_that.toneInstruction,_that.language,_that.matrixSynthesisGroups,_that.contentBlocks,_that.targetBlockOrder,_that.showSourcesSummaryBox,_that.sourcesDisplayMode,_that.performativityDetectorStepId);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.matrixVisibleColumns,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.customScaleMin,_that.customScaleMax,_that.strictnessLevel,_that.scoringStrategy,_that.synthesisLengthConstraint,_that.maxQuotesPerMatrix,_that.maxUnmetCriteria,_that.toneInstruction,_that.executiveSummaryDirective,_that.matrix1dSynthesisDirective,_that.matrix2dSynthesisDirective,_that.matrix3dSynthesisDirective,_that.matrixTextSynthesisDirective,_that.rowExplanationDirective,_that.xaiSynthesisDirective,_that.varianceSynthesisDirective,_that.language,_that.matrixSynthesisGroups,_that.contentBlocks,_that.targetBlockOrder,_that.showSourcesSummaryBox,_that.sourcesDisplayMode,_that.performativityDetectorStepId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -557,10 +658,10 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int maxExtensionItems, @JsonKey(name: 'display_scale')  DisplayScale displayScale, @JsonKey(name: 'custom_scale_min')  double? customScaleMin, @JsonKey(name: 'custom_scale_max')  double? customScaleMax, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'synthesis_length_constraint')  int? synthesisLengthConstraint, @JsonKey(name: 'max_quotes_per_matrix')  int? maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria')  int? maxUnmetCriteria, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction,  SystemLocale? language, @JsonKey(name: 'matrix_synthesis_groups')  List<MatrixSynthesisGroup> matrixSynthesisGroups, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks, @JsonKey(name: 'target_block_order')  List<TargetBlockType> targetBlockOrder, @JsonKey(name: 'show_sources_summary_box')  bool showSourcesSummaryBox, @JsonKey(name: 'sources_display_mode')  SourcesDisplayMode sourcesDisplayMode, @JsonKey(name: 'performativity_detector_step_id')  String? performativityDetectorStepId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @StrictOpaqueIdConverter()  String workflowId,  String? organizationId,  I18nText name,  I18nText? description, @JsonKey(name: 'user_role_label')  I18nText? userRoleLabel, @JsonKey(name: 'custom_preface')  I18nText? customPreface,  List<String> visibleMetadata, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns,  List<XaiExtensionType> visibleBlockExtensions,  List<XaiExtensionType> visibleWorkflowExtensions, @JsonKey(name: 'max_extension_items')  int maxExtensionItems, @JsonKey(name: 'display_scale')  DisplayScale displayScale, @JsonKey(name: 'custom_scale_min')  double? customScaleMin, @JsonKey(name: 'custom_scale_max')  double? customScaleMax, @JsonKey(name: 'strictness_level')  int? strictnessLevel, @JsonKey(name: 'scoring_strategy')  ScoringStrategy? scoringStrategy, @JsonKey(name: 'synthesis_length_constraint')  int? synthesisLengthConstraint, @JsonKey(name: 'max_quotes_per_matrix')  int? maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria')  int? maxUnmetCriteria, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction, @JsonKey(name: 'executive_summary_directive')  I18nText? executiveSummaryDirective, @JsonKey(name: 'matrix_1d_synthesis_directive')  I18nText? matrix1dSynthesisDirective, @JsonKey(name: 'matrix_2d_synthesis_directive')  I18nText? matrix2dSynthesisDirective, @JsonKey(name: 'matrix_3d_synthesis_directive')  I18nText? matrix3dSynthesisDirective, @JsonKey(name: 'matrix_text_synthesis_directive')  I18nText? matrixTextSynthesisDirective, @JsonKey(name: 'row_explanation_directive')  I18nText? rowExplanationDirective, @JsonKey(name: 'xai_synthesis_directive')  I18nText? xaiSynthesisDirective, @JsonKey(name: 'variance_synthesis_directive')  I18nText? varianceSynthesisDirective,  SystemLocale? language, @JsonKey(name: 'matrix_synthesis_groups')  List<MatrixSynthesisGroup> matrixSynthesisGroups, @JsonKey(name: 'content_blocks')  List<SduiBlockDTO> contentBlocks, @JsonKey(name: 'target_block_order')  List<TargetBlockType> targetBlockOrder, @JsonKey(name: 'show_sources_summary_box')  bool showSourcesSummaryBox, @JsonKey(name: 'sources_display_mode')  SourcesDisplayMode sourcesDisplayMode, @JsonKey(name: 'performativity_detector_step_id')  String? performativityDetectorStepId)?  $default,) {final _that = this;
 switch (_that) {
 case _OutputProfile() when $default != null:
-return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.matrixVisibleColumns,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.customScaleMin,_that.customScaleMax,_that.strictnessLevel,_that.scoringStrategy,_that.synthesisLengthConstraint,_that.maxQuotesPerMatrix,_that.maxUnmetCriteria,_that.toneInstruction,_that.language,_that.matrixSynthesisGroups,_that.contentBlocks,_that.targetBlockOrder,_that.showSourcesSummaryBox,_that.sourcesDisplayMode,_that.performativityDetectorStepId);case _:
+return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.name,_that.description,_that.userRoleLabel,_that.customPreface,_that.visibleMetadata,_that.matrixVisibleColumns,_that.visibleBlockExtensions,_that.visibleWorkflowExtensions,_that.maxExtensionItems,_that.displayScale,_that.customScaleMin,_that.customScaleMax,_that.strictnessLevel,_that.scoringStrategy,_that.synthesisLengthConstraint,_that.maxQuotesPerMatrix,_that.maxUnmetCriteria,_that.toneInstruction,_that.executiveSummaryDirective,_that.matrix1dSynthesisDirective,_that.matrix2dSynthesisDirective,_that.matrix3dSynthesisDirective,_that.matrixTextSynthesisDirective,_that.rowExplanationDirective,_that.xaiSynthesisDirective,_that.varianceSynthesisDirective,_that.language,_that.matrixSynthesisGroups,_that.contentBlocks,_that.targetBlockOrder,_that.showSourcesSummaryBox,_that.sourcesDisplayMode,_that.performativityDetectorStepId);case _:
   return null;
 
 }
@@ -572,7 +673,7 @@ return $default(_that.id,_that.slug,_that.workflowId,_that.organizationId,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _OutputProfile extends OutputProfile {
-  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, this.organizationId, required this.name, this.description, @JsonKey(name: 'user_role_label') this.userRoleLabel, @JsonKey(name: 'custom_preface') this.customPreface, final  List<String> visibleMetadata = const ['date', 'organization', 'user', 'scoring_engine', 'strictness'], @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const ['label', 'distribution', 'row_explanation', 'quotes', 'normalized_score', 'score'], final  List<XaiExtensionType> visibleBlockExtensions = const [], final  List<XaiExtensionType> visibleWorkflowExtensions = const [], @JsonKey(name: 'max_extension_items') this.maxExtensionItems = 3, @JsonKey(name: 'display_scale') this.displayScale = DisplayScale.original, @JsonKey(name: 'custom_scale_min') this.customScaleMin, @JsonKey(name: 'custom_scale_max') this.customScaleMax, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'synthesis_length_constraint') this.synthesisLengthConstraint, @JsonKey(name: 'max_quotes_per_matrix') this.maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria') this.maxUnmetCriteria, @JsonKey(name: 'tone_instruction') this.toneInstruction, this.language, @JsonKey(name: 'matrix_synthesis_groups') final  List<MatrixSynthesisGroup> matrixSynthesisGroups = const [], @JsonKey(name: 'content_blocks') final  List<SduiBlockDTO> contentBlocks = const [], @JsonKey(name: 'target_block_order') final  List<TargetBlockType> targetBlockOrder = const [TargetBlockType.metadataBlock, TargetBlockType.executiveSummaryBlock, TargetBlockType.synthesisTextBlock, TargetBlockType.matrixGraphsBlock, TargetBlockType.groupedExtensionsBlock, TargetBlockType.penaltiesBlock, TargetBlockType.matrixSummaryTableBlock, TargetBlockType.varianceValidationBlock, TargetBlockType.authenticityEvaluationBlock, TargetBlockType.printableSourcesBlock, TargetBlockType.globalScoreBlock, TargetBlockType.auditTrailBlock], @JsonKey(name: 'show_sources_summary_box') this.showSourcesSummaryBox = true, @JsonKey(name: 'sources_display_mode') this.sourcesDisplayMode = SourcesDisplayMode.verifiedEvidence, @JsonKey(name: 'performativity_detector_step_id') this.performativityDetectorStepId}): _visibleMetadata = visibleMetadata,_matrixVisibleColumns = matrixVisibleColumns,_visibleBlockExtensions = visibleBlockExtensions,_visibleWorkflowExtensions = visibleWorkflowExtensions,_matrixSynthesisGroups = matrixSynthesisGroups,_contentBlocks = contentBlocks,_targetBlockOrder = targetBlockOrder,super._();
+  const _OutputProfile({@StrictOpaqueIdConverter() required this.id, this.slug = '', @StrictOpaqueIdConverter() required this.workflowId, this.organizationId, required this.name, this.description, @JsonKey(name: 'user_role_label') this.userRoleLabel, @JsonKey(name: 'custom_preface') this.customPreface, final  List<String> visibleMetadata = const ['date', 'organization', 'user', 'scoring_engine', 'strictness'], @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const ['label', 'distribution', 'row_explanation', 'quotes', 'normalized_score', 'score'], final  List<XaiExtensionType> visibleBlockExtensions = const [], final  List<XaiExtensionType> visibleWorkflowExtensions = const [], @JsonKey(name: 'max_extension_items') this.maxExtensionItems = 3, @JsonKey(name: 'display_scale') this.displayScale = DisplayScale.original, @JsonKey(name: 'custom_scale_min') this.customScaleMin, @JsonKey(name: 'custom_scale_max') this.customScaleMax, @JsonKey(name: 'strictness_level') this.strictnessLevel, @JsonKey(name: 'scoring_strategy') this.scoringStrategy, @JsonKey(name: 'synthesis_length_constraint') this.synthesisLengthConstraint, @JsonKey(name: 'max_quotes_per_matrix') this.maxQuotesPerMatrix, @JsonKey(name: 'max_unmet_criteria') this.maxUnmetCriteria, @JsonKey(name: 'tone_instruction') this.toneInstruction, @JsonKey(name: 'executive_summary_directive') this.executiveSummaryDirective, @JsonKey(name: 'matrix_1d_synthesis_directive') this.matrix1dSynthesisDirective, @JsonKey(name: 'matrix_2d_synthesis_directive') this.matrix2dSynthesisDirective, @JsonKey(name: 'matrix_3d_synthesis_directive') this.matrix3dSynthesisDirective, @JsonKey(name: 'matrix_text_synthesis_directive') this.matrixTextSynthesisDirective, @JsonKey(name: 'row_explanation_directive') this.rowExplanationDirective, @JsonKey(name: 'xai_synthesis_directive') this.xaiSynthesisDirective, @JsonKey(name: 'variance_synthesis_directive') this.varianceSynthesisDirective, this.language, @JsonKey(name: 'matrix_synthesis_groups') final  List<MatrixSynthesisGroup> matrixSynthesisGroups = const [], @JsonKey(name: 'content_blocks') final  List<SduiBlockDTO> contentBlocks = const [], @JsonKey(name: 'target_block_order') final  List<TargetBlockType> targetBlockOrder = const [TargetBlockType.metadataBlock, TargetBlockType.executiveSummaryBlock, TargetBlockType.synthesisTextBlock, TargetBlockType.matrixGraphsBlock, TargetBlockType.groupedExtensionsBlock, TargetBlockType.penaltiesBlock, TargetBlockType.matrixSummaryTableBlock, TargetBlockType.varianceValidationBlock, TargetBlockType.authenticityEvaluationBlock, TargetBlockType.printableSourcesBlock, TargetBlockType.globalScoreBlock, TargetBlockType.auditTrailBlock], @JsonKey(name: 'show_sources_summary_box') this.showSourcesSummaryBox = true, @JsonKey(name: 'sources_display_mode') this.sourcesDisplayMode = SourcesDisplayMode.verifiedEvidence, @JsonKey(name: 'performativity_detector_step_id') this.performativityDetectorStepId}): _visibleMetadata = visibleMetadata,_matrixVisibleColumns = matrixVisibleColumns,_visibleBlockExtensions = visibleBlockExtensions,_visibleWorkflowExtensions = visibleWorkflowExtensions,_matrixSynthesisGroups = matrixSynthesisGroups,_contentBlocks = contentBlocks,_targetBlockOrder = targetBlockOrder,super._();
   factory _OutputProfile.fromJson(Map<String, dynamic> json) => _$OutputProfileFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -621,6 +722,14 @@ class _OutputProfile extends OutputProfile {
 @override@JsonKey(name: 'max_quotes_per_matrix') final  int? maxQuotesPerMatrix;
 @override@JsonKey(name: 'max_unmet_criteria') final  int? maxUnmetCriteria;
 @override@JsonKey(name: 'tone_instruction') final  I18nText? toneInstruction;
+@override@JsonKey(name: 'executive_summary_directive') final  I18nText? executiveSummaryDirective;
+@override@JsonKey(name: 'matrix_1d_synthesis_directive') final  I18nText? matrix1dSynthesisDirective;
+@override@JsonKey(name: 'matrix_2d_synthesis_directive') final  I18nText? matrix2dSynthesisDirective;
+@override@JsonKey(name: 'matrix_3d_synthesis_directive') final  I18nText? matrix3dSynthesisDirective;
+@override@JsonKey(name: 'matrix_text_synthesis_directive') final  I18nText? matrixTextSynthesisDirective;
+@override@JsonKey(name: 'row_explanation_directive') final  I18nText? rowExplanationDirective;
+@override@JsonKey(name: 'xai_synthesis_directive') final  I18nText? xaiSynthesisDirective;
+@override@JsonKey(name: 'variance_synthesis_directive') final  I18nText? varianceSynthesisDirective;
 @override final  SystemLocale? language;
  final  List<MatrixSynthesisGroup> _matrixSynthesisGroups;
 @override@JsonKey(name: 'matrix_synthesis_groups') List<MatrixSynthesisGroup> get matrixSynthesisGroups {
@@ -662,7 +771,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, userRoleLabel: $userRoleLabel, customPreface: $customPreface, visibleMetadata: $visibleMetadata, matrixVisibleColumns: $matrixVisibleColumns, visibleBlockExtensions: $visibleBlockExtensions, visibleWorkflowExtensions: $visibleWorkflowExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, customScaleMin: $customScaleMin, customScaleMax: $customScaleMax, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, synthesisLengthConstraint: $synthesisLengthConstraint, maxQuotesPerMatrix: $maxQuotesPerMatrix, maxUnmetCriteria: $maxUnmetCriteria, toneInstruction: $toneInstruction, language: $language, matrixSynthesisGroups: $matrixSynthesisGroups, contentBlocks: $contentBlocks, targetBlockOrder: $targetBlockOrder, showSourcesSummaryBox: $showSourcesSummaryBox, sourcesDisplayMode: $sourcesDisplayMode, performativityDetectorStepId: $performativityDetectorStepId)';
+  return 'OutputProfile(id: $id, slug: $slug, workflowId: $workflowId, organizationId: $organizationId, name: $name, description: $description, userRoleLabel: $userRoleLabel, customPreface: $customPreface, visibleMetadata: $visibleMetadata, matrixVisibleColumns: $matrixVisibleColumns, visibleBlockExtensions: $visibleBlockExtensions, visibleWorkflowExtensions: $visibleWorkflowExtensions, maxExtensionItems: $maxExtensionItems, displayScale: $displayScale, customScaleMin: $customScaleMin, customScaleMax: $customScaleMax, strictnessLevel: $strictnessLevel, scoringStrategy: $scoringStrategy, synthesisLengthConstraint: $synthesisLengthConstraint, maxQuotesPerMatrix: $maxQuotesPerMatrix, maxUnmetCriteria: $maxUnmetCriteria, toneInstruction: $toneInstruction, executiveSummaryDirective: $executiveSummaryDirective, matrix1dSynthesisDirective: $matrix1dSynthesisDirective, matrix2dSynthesisDirective: $matrix2dSynthesisDirective, matrix3dSynthesisDirective: $matrix3dSynthesisDirective, matrixTextSynthesisDirective: $matrixTextSynthesisDirective, rowExplanationDirective: $rowExplanationDirective, xaiSynthesisDirective: $xaiSynthesisDirective, varianceSynthesisDirective: $varianceSynthesisDirective, language: $language, matrixSynthesisGroups: $matrixSynthesisGroups, contentBlocks: $contentBlocks, targetBlockOrder: $targetBlockOrder, showSourcesSummaryBox: $showSourcesSummaryBox, sourcesDisplayMode: $sourcesDisplayMode, performativityDetectorStepId: $performativityDetectorStepId)';
 }
 
 
@@ -673,11 +782,11 @@ abstract mixin class _$OutputProfileCopyWith<$Res> implements $OutputProfileCopy
   factory _$OutputProfileCopyWith(_OutputProfile value, $Res Function(_OutputProfile) _then) = __$OutputProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'user_role_label') I18nText? userRoleLabel,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int maxExtensionItems,@JsonKey(name: 'display_scale') DisplayScale displayScale,@JsonKey(name: 'custom_scale_min') double? customScaleMin,@JsonKey(name: 'custom_scale_max') double? customScaleMax,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'synthesis_length_constraint') int? synthesisLengthConstraint,@JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,@JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction, SystemLocale? language,@JsonKey(name: 'matrix_synthesis_groups') List<MatrixSynthesisGroup> matrixSynthesisGroups,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks,@JsonKey(name: 'target_block_order') List<TargetBlockType> targetBlockOrder,@JsonKey(name: 'show_sources_summary_box') bool showSourcesSummaryBox,@JsonKey(name: 'sources_display_mode') SourcesDisplayMode sourcesDisplayMode,@JsonKey(name: 'performativity_detector_step_id') String? performativityDetectorStepId
+@StrictOpaqueIdConverter() String id, String slug,@StrictOpaqueIdConverter() String workflowId, String? organizationId, I18nText name, I18nText? description,@JsonKey(name: 'user_role_label') I18nText? userRoleLabel,@JsonKey(name: 'custom_preface') I18nText? customPreface, List<String> visibleMetadata,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns, List<XaiExtensionType> visibleBlockExtensions, List<XaiExtensionType> visibleWorkflowExtensions,@JsonKey(name: 'max_extension_items') int maxExtensionItems,@JsonKey(name: 'display_scale') DisplayScale displayScale,@JsonKey(name: 'custom_scale_min') double? customScaleMin,@JsonKey(name: 'custom_scale_max') double? customScaleMax,@JsonKey(name: 'strictness_level') int? strictnessLevel,@JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,@JsonKey(name: 'synthesis_length_constraint') int? synthesisLengthConstraint,@JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,@JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction,@JsonKey(name: 'executive_summary_directive') I18nText? executiveSummaryDirective,@JsonKey(name: 'matrix_1d_synthesis_directive') I18nText? matrix1dSynthesisDirective,@JsonKey(name: 'matrix_2d_synthesis_directive') I18nText? matrix2dSynthesisDirective,@JsonKey(name: 'matrix_3d_synthesis_directive') I18nText? matrix3dSynthesisDirective,@JsonKey(name: 'matrix_text_synthesis_directive') I18nText? matrixTextSynthesisDirective,@JsonKey(name: 'row_explanation_directive') I18nText? rowExplanationDirective,@JsonKey(name: 'xai_synthesis_directive') I18nText? xaiSynthesisDirective,@JsonKey(name: 'variance_synthesis_directive') I18nText? varianceSynthesisDirective, SystemLocale? language,@JsonKey(name: 'matrix_synthesis_groups') List<MatrixSynthesisGroup> matrixSynthesisGroups,@JsonKey(name: 'content_blocks') List<SduiBlockDTO> contentBlocks,@JsonKey(name: 'target_block_order') List<TargetBlockType> targetBlockOrder,@JsonKey(name: 'show_sources_summary_box') bool showSourcesSummaryBox,@JsonKey(name: 'sources_display_mode') SourcesDisplayMode sourcesDisplayMode,@JsonKey(name: 'performativity_detector_step_id') String? performativityDetectorStepId
 });
 
 
-@override $I18nTextCopyWith<$Res> get name;@override $I18nTextCopyWith<$Res>? get description;@override $I18nTextCopyWith<$Res>? get userRoleLabel;@override $I18nTextCopyWith<$Res>? get customPreface;@override $I18nTextCopyWith<$Res>? get toneInstruction;
+@override $I18nTextCopyWith<$Res> get name;@override $I18nTextCopyWith<$Res>? get description;@override $I18nTextCopyWith<$Res>? get userRoleLabel;@override $I18nTextCopyWith<$Res>? get customPreface;@override $I18nTextCopyWith<$Res>? get toneInstruction;@override $I18nTextCopyWith<$Res>? get executiveSummaryDirective;@override $I18nTextCopyWith<$Res>? get matrix1dSynthesisDirective;@override $I18nTextCopyWith<$Res>? get matrix2dSynthesisDirective;@override $I18nTextCopyWith<$Res>? get matrix3dSynthesisDirective;@override $I18nTextCopyWith<$Res>? get matrixTextSynthesisDirective;@override $I18nTextCopyWith<$Res>? get rowExplanationDirective;@override $I18nTextCopyWith<$Res>? get xaiSynthesisDirective;@override $I18nTextCopyWith<$Res>? get varianceSynthesisDirective;
 
 }
 /// @nodoc
@@ -690,7 +799,7 @@ class __$OutputProfileCopyWithImpl<$Res>
 
 /// Create a copy of OutputProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? userRoleLabel = freezed,Object? customPreface = freezed,Object? visibleMetadata = null,Object? matrixVisibleColumns = null,Object? visibleBlockExtensions = null,Object? visibleWorkflowExtensions = null,Object? maxExtensionItems = null,Object? displayScale = null,Object? customScaleMin = freezed,Object? customScaleMax = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? synthesisLengthConstraint = freezed,Object? maxQuotesPerMatrix = freezed,Object? maxUnmetCriteria = freezed,Object? toneInstruction = freezed,Object? language = freezed,Object? matrixSynthesisGroups = null,Object? contentBlocks = null,Object? targetBlockOrder = null,Object? showSourcesSummaryBox = null,Object? sourcesDisplayMode = null,Object? performativityDetectorStepId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? workflowId = null,Object? organizationId = freezed,Object? name = null,Object? description = freezed,Object? userRoleLabel = freezed,Object? customPreface = freezed,Object? visibleMetadata = null,Object? matrixVisibleColumns = null,Object? visibleBlockExtensions = null,Object? visibleWorkflowExtensions = null,Object? maxExtensionItems = null,Object? displayScale = null,Object? customScaleMin = freezed,Object? customScaleMax = freezed,Object? strictnessLevel = freezed,Object? scoringStrategy = freezed,Object? synthesisLengthConstraint = freezed,Object? maxQuotesPerMatrix = freezed,Object? maxUnmetCriteria = freezed,Object? toneInstruction = freezed,Object? executiveSummaryDirective = freezed,Object? matrix1dSynthesisDirective = freezed,Object? matrix2dSynthesisDirective = freezed,Object? matrix3dSynthesisDirective = freezed,Object? matrixTextSynthesisDirective = freezed,Object? rowExplanationDirective = freezed,Object? xaiSynthesisDirective = freezed,Object? varianceSynthesisDirective = freezed,Object? language = freezed,Object? matrixSynthesisGroups = null,Object? contentBlocks = null,Object? targetBlockOrder = null,Object? showSourcesSummaryBox = null,Object? sourcesDisplayMode = null,Object? performativityDetectorStepId = freezed,}) {
   return _then(_OutputProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -714,6 +823,14 @@ as ScoringStrategy?,synthesisLengthConstraint: freezed == synthesisLengthConstra
 as int?,maxQuotesPerMatrix: freezed == maxQuotesPerMatrix ? _self.maxQuotesPerMatrix : maxQuotesPerMatrix // ignore: cast_nullable_to_non_nullable
 as int?,maxUnmetCriteria: freezed == maxUnmetCriteria ? _self.maxUnmetCriteria : maxUnmetCriteria // ignore: cast_nullable_to_non_nullable
 as int?,toneInstruction: freezed == toneInstruction ? _self.toneInstruction : toneInstruction // ignore: cast_nullable_to_non_nullable
+as I18nText?,executiveSummaryDirective: freezed == executiveSummaryDirective ? _self.executiveSummaryDirective : executiveSummaryDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,matrix1dSynthesisDirective: freezed == matrix1dSynthesisDirective ? _self.matrix1dSynthesisDirective : matrix1dSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,matrix2dSynthesisDirective: freezed == matrix2dSynthesisDirective ? _self.matrix2dSynthesisDirective : matrix2dSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,matrix3dSynthesisDirective: freezed == matrix3dSynthesisDirective ? _self.matrix3dSynthesisDirective : matrix3dSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,matrixTextSynthesisDirective: freezed == matrixTextSynthesisDirective ? _self.matrixTextSynthesisDirective : matrixTextSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,rowExplanationDirective: freezed == rowExplanationDirective ? _self.rowExplanationDirective : rowExplanationDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,xaiSynthesisDirective: freezed == xaiSynthesisDirective ? _self.xaiSynthesisDirective : xaiSynthesisDirective // ignore: cast_nullable_to_non_nullable
+as I18nText?,varianceSynthesisDirective: freezed == varianceSynthesisDirective ? _self.varianceSynthesisDirective : varianceSynthesisDirective // ignore: cast_nullable_to_non_nullable
 as I18nText?,language: freezed == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as SystemLocale?,matrixSynthesisGroups: null == matrixSynthesisGroups ? _self._matrixSynthesisGroups : matrixSynthesisGroups // ignore: cast_nullable_to_non_nullable
 as List<MatrixSynthesisGroup>,contentBlocks: null == contentBlocks ? _self._contentBlocks : contentBlocks // ignore: cast_nullable_to_non_nullable
@@ -781,6 +898,102 @@ $I18nTextCopyWith<$Res>? get toneInstruction {
 
   return $I18nTextCopyWith<$Res>(_self.toneInstruction!, (value) {
     return _then(_self.copyWith(toneInstruction: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get executiveSummaryDirective {
+    if (_self.executiveSummaryDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.executiveSummaryDirective!, (value) {
+    return _then(_self.copyWith(executiveSummaryDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get matrix1dSynthesisDirective {
+    if (_self.matrix1dSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.matrix1dSynthesisDirective!, (value) {
+    return _then(_self.copyWith(matrix1dSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get matrix2dSynthesisDirective {
+    if (_self.matrix2dSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.matrix2dSynthesisDirective!, (value) {
+    return _then(_self.copyWith(matrix2dSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get matrix3dSynthesisDirective {
+    if (_self.matrix3dSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.matrix3dSynthesisDirective!, (value) {
+    return _then(_self.copyWith(matrix3dSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get matrixTextSynthesisDirective {
+    if (_self.matrixTextSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.matrixTextSynthesisDirective!, (value) {
+    return _then(_self.copyWith(matrixTextSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get rowExplanationDirective {
+    if (_self.rowExplanationDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.rowExplanationDirective!, (value) {
+    return _then(_self.copyWith(rowExplanationDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get xaiSynthesisDirective {
+    if (_self.xaiSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.xaiSynthesisDirective!, (value) {
+    return _then(_self.copyWith(xaiSynthesisDirective: value));
+  });
+}/// Create a copy of OutputProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$I18nTextCopyWith<$Res>? get varianceSynthesisDirective {
+    if (_self.varianceSynthesisDirective == null) {
+    return null;
+  }
+
+  return $I18nTextCopyWith<$Res>(_self.varianceSynthesisDirective!, (value) {
+    return _then(_self.copyWith(varianceSynthesisDirective: value));
   });
 }
 }

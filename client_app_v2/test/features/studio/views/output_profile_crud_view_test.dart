@@ -396,7 +396,11 @@ void main() {
       await tester.tap(find.text('Section Config'));
       await tester.pumpAndSettle();
 
-      // Expected on Tab 3: finds FilterChip for citation and justification in XaiExtensionsBlockCard
+      // Tap on AI Extensions card in Master list
+      await tester.tap(find.text('XAI Highlights & Extensions'));
+      await tester.pumpAndSettle();
+
+      // Expected on Tab 3 detail: finds FilterChip for citation and justification in XaiExtensionsBlockCard
       expect(
         find.widgetWithText(FilterChip, 'Source Citation'),
         findsOneWidget,
@@ -483,6 +487,10 @@ void main() {
       await tester.tap(find.text('Section Config'));
       await tester.pumpAndSettle();
 
+      // Tap on AI Extensions in Master list
+      await tester.tap(find.text('XAI Highlights & Extensions'));
+      await tester.pumpAndSettle();
+
       // Find TextFormField with initial value '3' in XaiExtensionsBlockCard
       final textFormFieldFinder = find.byWidgetPredicate(
         (widget) => widget is TextFormField && widget.initialValue == '3',
@@ -543,6 +551,10 @@ void main() {
         await tester.tap(find.text('Section Config'));
         await tester.pumpAndSettle();
 
+        // Tap on Report Metadata in Master list
+        await tester.tap(find.text('Report Metadata'));
+        await tester.pumpAndSettle();
+
         // Expected: MetadataBlockCard is rendered and displays metadata FilterChips
         expect(find.byType(MetadataBlockCard), findsOneWidget);
         expect(find.widgetWithText(FilterChip, 'date'), findsOneWidget);
@@ -590,6 +602,10 @@ void main() {
 
         // Switch to Tab 3 (Section Config)
         await tester.tap(find.text('Section Config'));
+        await tester.pumpAndSettle();
+
+        // Tap on AI Extensions in Master list
+        await tester.tap(find.text('XAI Highlights & Extensions'));
         await tester.pumpAndSettle();
 
         // Expected: XaiExtensionsBlockCard is rendered with filter chips

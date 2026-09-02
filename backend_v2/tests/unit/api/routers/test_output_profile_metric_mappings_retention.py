@@ -26,7 +26,7 @@ def test_output_profile_response_dto_serializes_matrix_synthesis_groups() -> Non
                 "id": "grp_1111111111111111",
                 "title": {"translations": {"fi": "Ryhmä 1", "en": "Group 1"}},
                 "target_blocks": ["blk_1", "blk_2"],
-                "synthesis_directive": "Directive",
+                "view_type": "1d_metrics",
             }
         ],
     }

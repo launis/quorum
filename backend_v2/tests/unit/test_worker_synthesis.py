@@ -9,17 +9,17 @@ import pytest
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
+    MatrixExplanationsResult,
     MatrixSectionSynthesesResult,
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.prompts import DEFAULT_SYNTHESIS_SYSTEM_PROMPT
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.models.view.sdui import ParagraphBlock
 from backend_v2.settings import get_settings
-from backend_v2.worker import generate_profile_synthesis_and_pdf_task
+from backend_v2.worker import VarianceExplanationResult, generate_profile_synthesis_and_pdf_task
 
 
 def _find_profile_syntheses(calls: list[Any], exec_id: str = "exec_1234567812345678") -> dict[str, Any] | None:
@@ -466,11 +466,44 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("synthesis_directive", "expected_snippet"),
+    ("view_type", "directive_field", "directive_value", "expected_snippet", "should_execute_group"),
     [
-        (None, "2D COMPARISON SYNTHESIS MANDATE:"),
-        ("CUSTOM 1D MANDATE:", "CUSTOM 1D MANDATE:"),
-        ("CUSTOM 3D MANDATE:", "CUSTOM 3D MANDATE:"),
+        ("2d_compare", "matrix_2d_synthesis_directive", None, None, False),
+        (
+            "2d_compare",
+            "matrix_2d_synthesis_directive",
+            {"translations": {"en": "CUSTOM 2D MANDATE:", "fi": "CUSTOM 2D MANDATE:"}},
+            "CUSTOM 2D MANDATE:",
+            True,
+        ),
+        (
+            "3d_matrix",
+            "matrix_3d_synthesis_directive",
+            {"translations": {"en": "CUSTOM 3D MANDATE:", "fi": "CUSTOM 3D MANDATE:"}},
+            "CUSTOM 3D MANDATE:",
+            True,
+        ),
+        (
+            "1d_metrics",
+            "matrix_1d_synthesis_directive",
+            {"translations": {"en": "CUSTOM 1D MANDATE:", "fi": "CUSTOM 1D MANDATE:"}},
+            "CUSTOM 1D MANDATE:",
+            True,
+        ),
+        (
+            "text_only",
+            "matrix_text_synthesis_directive",
+            {"translations": {"en": "CUSTOM TEXT MANDATE:", "fi": "CUSTOM TEXT MANDATE:"}},
+            "CUSTOM TEXT MANDATE:",
+            True,
+        ),
+        (
+            "2d_compare",
+            "matrix_1d_synthesis_directive",
+            {"translations": {"en": "1D ONLY", "fi": "1D ONLY"}},
+            None,
+            False,
+        ),
     ],
 )
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
@@ -480,17 +513,20 @@ async def test_worker_synthesis_matrix_layout_directives(
     mock_from_strategy: AsyncMock,
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
-    synthesis_directive: str | None,
-    expected_snippet: str,
+    view_type: str,
+    directive_field: str,
+    directive_value: dict[str, Any] | None,
+    expected_snippet: str | None,
+    should_execute_group: bool,
 ) -> None:
-    """Test that matrix synthesis groups deterministically receive their respective synthesis directives."""
+    """Test that matrix synthesis groups strictly execute based on profile-level directives matching view_type."""
     get_settings().use_mock_llm = True
 
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
     _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
-    mock_repo.get_output_profile_by_id.return_value = {
+    prof_dict: dict[str, Any] = {
         "id": "prof_1111111111111111",
         "slug": "prof_test",
         "name": {"translations": {"en": "Test Profile"}},
@@ -505,12 +541,15 @@ async def test_worker_synthesis_matrix_layout_directives(
                 "id": "grp_1234567890123456",
                 "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
                 "target_blocks": ["blk_1"],
-                "synthesis_directive": synthesis_directive,
-                "view_type": "2d_compare",
+                "view_type": view_type,
             }
         ],
         "target_block_order": ["matrix_graphs_block"],
     }
+    if directive_value is not None:
+        prof_dict[directive_field] = directive_value
+
+    mock_repo.get_output_profile_by_id.return_value = prof_dict
 
     mock_client = AsyncMock()
 
@@ -555,20 +594,16 @@ async def test_worker_synthesis_matrix_layout_directives(
         execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
     )
 
-    assert mock_client.run_structured_task.called
-    assert any(
-        isinstance(m, dict) and "content" in m and DEFAULT_SYNTHESIS_SYSTEM_PROMPT in m["content"]
-        for call in mock_client.run_structured_task.call_args_list
-        if "messages" in call.kwargs
-        for m in call.kwargs["messages"]
-        if isinstance(m, dict) and "role" in m and m["role"] == "system"
-    )
     all_user_content = ""
     for call in mock_client.run_structured_task.call_args_list:
         if "messages" in call.kwargs:
             messages = call.kwargs["messages"]
             all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
-    assert expected_snippet in all_user_content
+
+    if should_execute_group and expected_snippet:
+        assert expected_snippet in all_user_content
+    else:
+        assert "grp_1234567890123456" not in all_user_content
 
 
 @pytest.mark.asyncio
@@ -597,6 +632,9 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
         "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        "executive_summary_directive": {
+            "translations": {"en": "EXECUTIVE SUMMARY DIRECTIVE", "fi": "EXECUTIVE SUMMARY DIRECTIVE"}
+        },
         "matrix_synthesis_groups": [],
         "target_block_order": ["executive_summary_block"],
     }
@@ -664,6 +702,9 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
         "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        "executive_summary_directive": {
+            "translations": {"en": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:", "fi": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:"}
+        },
         "matrix_synthesis_groups": [],
         "target_block_order": ["executive_summary_block"],
     }
@@ -741,11 +782,15 @@ async def test_worker_synthesis_multi_section_aggregation(
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
         "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        "matrix_1d_synthesis_directive": {
+            "translations": {"en": "CUSTOM CAUSALITY DIRECTIVE", "fi": "CUSTOM CAUSALITY DIRECTIVE"}
+        },
         "matrix_synthesis_groups": [
             {
                 "id": "grp_c5804a9143c34cb1",
                 "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
                 "target_blocks": ["blk_1"],
+                "view_type": "1d_metrics",
             }
         ],
         "target_block_order": ["matrix_graphs_block"],
@@ -873,3 +918,109 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
     assert prof_synth is not None
     sec_synth = prof_synth["prof_1111111111111111"]["section_syntheses"]
     assert "grp_0000000000000000" not in sec_synth
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.worker.LLMClient.from_strategy")
+async def test_worker_synthesis_custom_directives_resolution(
+    mock_from_strategy: AsyncMock,
+    _mock_driver: AsyncMock,
+    mock_repo_class: AsyncMock,
+) -> None:
+    """Test that custom row, XAI, and variance directives configured in profile are dynamically compiled and injected into prompts."""
+    get_settings().use_mock_llm = True
+
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={
+            "performative_patterns": [{"pattern_id": "1", "detected_phrase": "test phrase", "category": "cat"}]
+        },
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": 3.0,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {},
+            },
+            "_step_metadata": {
+                "execution_id": "exec_1234567812345678",
+                "workflow_id": "wf_1234567812345678",
+                "step_id": "sr_det_step12345678",
+                "initiator_id": "system",
+                "timestamp_isot": "2026-08-06T00:00:00Z",
+                "unix_time": 1700000000,
+                "v2_engine": True,
+                "task_blueprint": "sp_det_step",
+            },
+        },
+    )
+
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "prof_custom_directives",
+        "name": {"translations": {"en": "Custom Directives Profile"}},
+        "workflow_id": "wf_1234567812345678",
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "synthesis_length_constraint": 1000,
+        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        "row_explanation_directive": {
+            "translations": {"en": "CUSTOM ROW EXPLANATION DIRECTIVE EN", "fi": "CUSTOM ROW EXPLANATION DIRECTIVE FI"}
+        },
+        "xai_synthesis_directive": {
+            "translations": {"en": "CUSTOM XAI SYNTHESIS DIRECTIVE EN", "fi": "CUSTOM XAI SYNTHESIS DIRECTIVE FI"}
+        },
+        "variance_synthesis_directive": {
+            "translations": {"en": "CUSTOM VARIANCE DIRECTIVE EN", "fi": "CUSTOM VARIANCE DIRECTIVE FI"}
+        },
+        "visible_workflow_extensions": ["variance_validation"],
+        "performativity_detector_step_id": "sp_det_step",
+        "matrix_visible_columns": ["label", "row_explanation"],
+        "matrix_synthesis_groups": [],
+        "target_block_order": ["variance_validation_block", "matrix_summary_table_block"],
+    }
+
+    mock_client = AsyncMock()
+
+    async def _mock_run_structured_task_custom(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        resp_model = kwargs.get("response_model")
+        usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
+        if resp_model is ExecutiveSummarySectionResult:
+            return (
+                ExecutiveSummarySectionResult(
+                    user_role="Executive",
+                    user_role_justification="Target executive persona",
+                    cited_sources=[],
+                    executive_summary=[],
+                ),
+                usage,
+            )
+        if resp_model is MatrixSectionSynthesesResult:
+            return (MatrixSectionSynthesesResult(sections=[]), usage)
+        if resp_model is XaiHighlightsResult:
+            return (XaiHighlightsResult(xai_highlights=[]), usage)
+        if resp_model is VarianceExplanationResult:
+            return (VarianceExplanationResult(row_explanation="Variance explanation result"), usage)
+        if resp_model is MatrixExplanationsResult:
+            return (MatrixExplanationsResult(explanations=[]), usage)
+        return (None, usage)
+
+    mock_client.run_structured_task.side_effect = _mock_run_structured_task_custom
+    mock_from_strategy.return_value = mock_client
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+    )
+
+    all_user_content = ""
+    for call in mock_client.run_structured_task.call_args_list:
+        if "messages" in call.kwargs:
+            messages = call.kwargs["messages"]
+            all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
+
+    assert "CUSTOM XAI SYNTHESIS DIRECTIVE FI" in all_user_content
+    assert "CUSTOM VARIANCE DIRECTIVE FI" in all_user_content

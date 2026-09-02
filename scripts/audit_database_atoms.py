@@ -744,6 +744,38 @@ def audit_output_profiles(
                 )
             )
 
+        # 1b. Check profile-level synthesis directives for raw XML
+        for dir_field in [
+            "executive_summary_directive",
+            "matrix_1d_synthesis_directive",
+            "matrix_2d_synthesis_directive",
+            "matrix_3d_synthesis_directive",
+            "matrix_text_synthesis_directive",
+            "row_explanation_directive",
+            "xai_synthesis_directive",
+            "variance_synthesis_directive",
+        ]:
+            if dir_field in profile and profile[dir_field]:
+                dir_val = profile[dir_field]
+                texts_to_check: list[tuple[str, str]] = []
+                if isinstance(dir_val, str):
+                    texts_to_check.append((dir_field, dir_val))
+                elif isinstance(dir_val, dict) and "translations" in dir_val and isinstance(dir_val["translations"], dict):
+                    for lang, txt in dir_val["translations"].items():
+                        if isinstance(txt, str):
+                            texts_to_check.append((f"{dir_field}.translations.{lang}", txt))
+                for f_path, txt in texts_to_check:
+                    if _contains_raw_xml(txt):
+                        issues.append(
+                            AuditIssue(
+                                collection="output_profiles",
+                                entity_id=profile_id,
+                                field_path=f_path,
+                                issue_type="RAW_XML",
+                                message=f"OutputProfile '{profile_id}' contains raw XML in '{f_path}'.",
+                            )
+                        )
+
         # 2. Check matrix synthesis groups
         matrix_groups = profile["matrix_synthesis_groups"] if "matrix_synthesis_groups" in profile else []
         if isinstance(matrix_groups, list):

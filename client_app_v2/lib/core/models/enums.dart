@@ -432,4 +432,3 @@ enum SystemLocale {
   @JsonValue('fi')
   fi,
 }
-

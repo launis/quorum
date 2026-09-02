@@ -10,6 +10,7 @@ import 'package:client_app/features/studio/views/widgets/profile/blocks/matrix_g
 import 'package:client_app/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/metadata_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart';
+import 'package:client_app/features/studio/views/widgets/profile/blocks/variance_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -278,6 +279,33 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(MatrixSummaryTableCard), findsOneWidget);
+    });
+  });
+
+  group('VarianceBlockCard Configuration', () {
+    test('asserts detailedBlockTypes contains varianceValidationBlock', () {
+      expect(
+        BlockCardRegistry.detailedBlockTypes,
+        contains(TargetBlockType.varianceValidationBlock),
+      );
+    });
+
+    testWidgets('renders variance block card cleanly', (tester) async {
+      final profile = createTestProfile(
+        targetBlockOrder: [TargetBlockType.varianceValidationBlock],
+      );
+      await tester.pumpWidget(
+        createTestWidget(
+          child: Builder(
+            builder: (context) {
+              return VarianceBlockCard(payload: profile, updatePayload: (_) {});
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(VarianceBlockCard), findsOneWidget);
     });
   });
 }

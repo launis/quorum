@@ -50,7 +50,7 @@ from backend_v2.models.dtos.trace import (
     StepTraceMetadataDTO,
     TraceEventMetadataEnvelope,
 )
-from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlockType
+from backend_v2.models.enums import ExecutionStatus, PresetView, StrictnessAnchor, TargetBlockType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
@@ -1032,35 +1032,43 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 # 1. Dedicated Executive Summary task
                 if active_profile_dto is None or active_profile_dto.requires_executive_synthesis:
-                    exec_directive = SynthesisPromptRegistry.get_section_directive(
-                        TargetBlockType.EXECUTIVE_SUMMARY_BLOCK
-                    )
-                    exec_dynamic_parts = list(base_dynamic_parts)
-                    exec_section_rule = (
-                        f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
-                        f"{exec_directive}\n"
-                        "</section_instruction>\n"
-                    )
-                    exec_dynamic_parts.append(exec_section_rule)
-                    exec_dynamic_context = "\n\n".join(exec_dynamic_parts)
-
-                    exec_messages: list[dict[str, Any]] = [
-                        {"role": "system", "content": sys_prompt},
-                        {
-                            "role": "user",
-                            "content": (
-                                f"<dynamic_context>\n{exec_dynamic_context}\n</dynamic_context>"
-                                f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
-                            ),
-                        },
-                    ]
-                    t_exec_summary = tg.create_task(
-                        client.run_structured_task(
-                            messages=exec_messages,
-                            response_model=ExecutiveSummarySectionResult,
-                            mock_identity="ExecutiveSummaryTask",
+                    exec_directive = None
+                    if active_profile_dto and active_profile_dto.executive_summary_directive:
+                        exec_directive = compiler.resolve_i18n(
+                            active_profile_dto.executive_summary_directive, accept_language
                         )
-                    )
+
+                    if exec_directive:
+                        exec_dynamic_parts = list(base_dynamic_parts)
+                        exec_section_rule = (
+                            f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
+                            f"{exec_directive}\n"
+                            "</section_instruction>\n"
+                        )
+                        exec_dynamic_parts.append(exec_section_rule)
+                        exec_dynamic_context = "\n\n".join(exec_dynamic_parts)
+
+                        exec_messages: list[dict[str, Any]] = [
+                            {"role": "system", "content": sys_prompt},
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"<dynamic_context>\n{exec_dynamic_context}\n</dynamic_context>"
+                                    f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
+                                ),
+                            },
+                        ]
+                        t_exec_summary = tg.create_task(
+                            client.run_structured_task(
+                                messages=exec_messages,
+                                response_model=ExecutiveSummarySectionResult,
+                                mock_identity="ExecutiveSummaryTask",
+                            )
+                        )
+                    else:
+                        logger.warning(
+                            "[generate_profile_synthesis_and_pdf_task] No executive_summary_directive configured in database OutputProfile. Skipping Executive Summary synthesis."
+                        )
 
                 # 2. Dedicated Matrix Synthesis Groups tasks
                 if active_profile_dto and active_profile_dto.requires_group_synthesis:
@@ -1071,17 +1079,37 @@ async def generate_profile_synthesis_and_pdf_task(
                         grp_id = grp.id
                         grp_title = grp.title.resolve(language) if grp.title else grp_id
 
+                        directive_i18n = None
+                        match grp.view_type:
+                            case PresetView.METRICS_1D | "1d_metrics":
+                                directive_i18n = active_profile_dto.matrix_1d_synthesis_directive
+                            case PresetView.COMPARE_2D | "2d_compare":
+                                directive_i18n = active_profile_dto.matrix_2d_synthesis_directive
+                            case PresetView.MATRIX_3D | "3d_matrix":
+                                directive_i18n = active_profile_dto.matrix_3d_synthesis_directive
+                            case PresetView.TEXT_ONLY | "text_only":
+                                directive_i18n = active_profile_dto.matrix_text_synthesis_directive
+
+                        directive_content = None
+                        if directive_i18n:
+                            directive_content = compiler.resolve_i18n(directive_i18n, accept_language)
+
+                        if not directive_content:
+                            logger.warning(
+                                "[generate_profile_synthesis_and_pdf_task] Matrix synthesis group '%s' ('%s') with view_type '%s' has no corresponding synthesis directive in OutputProfile '%s'. Skipping group synthesis.",
+                                grp_id,
+                                grp_title,
+                                grp.view_type,
+                                active_profile_dto.id,
+                            )
+                            continue
+
                         target_titles = []
                         if grp.target_blocks:
                             for tb in grp.target_blocks:
                                 if tb.lower() in title_map:
                                     target_titles.append(title_map[tb.lower()])
                         target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
-
-                        if grp.synthesis_directive:
-                            directive_content = grp.synthesis_directive
-                        else:
-                            directive_content = SynthesisPromptRegistry.get_section_directive(grp.view_type)
 
                         grp_dynamic_parts = list(base_dynamic_parts)
                         grp_section_rule = (
@@ -1129,8 +1157,16 @@ async def generate_profile_synthesis_and_pdf_task(
                         wf_exts.extend(active_profile_dto.visible_block_extensions)
                     wf_exts = list(dict.fromkeys(wf_exts))
                     req_exts = ", ".join([str(e) for e in wf_exts]) if wf_exts else "none"
+                    xai_directive_str = None
+                    if active_profile_dto.xai_synthesis_directive:
+                        xai_directive_str = compiler.resolve_i18n(
+                            active_profile_dto.xai_synthesis_directive, accept_language
+                        )
+                    if not xai_directive_str:
+                        xai_directive_str = XAI_EXPLANATIONS_DIRECTIVE
+
                     xai_cur = (
-                        f"{XAI_EXPLANATIONS_DIRECTIVE}\n\n"
+                        f"{xai_directive_str}\n\n"
                         f"{SYNTHESIS_XAI_CURATION.replace('<max_extension_items>', str(max_ext)).replace('<requested_extensions>', req_exts)}"
                     )
 
@@ -1163,9 +1199,15 @@ async def generate_profile_synthesis_and_pdf_task(
                 row_lang_ctx = build_linguistic_context(
                     source_language="Unknown", target_locale=accept_language, include_mandate=True
                 )
-                row_directive = SynthesisPromptRegistry.get_row_explanation_directive()
+                row_directive_str = None
+                if active_profile_dto and active_profile_dto.row_explanation_directive:
+                    row_directive_str = compiler.resolve_i18n(
+                        active_profile_dto.row_explanation_directive, accept_language
+                    )
+                if not row_directive_str:
+                    row_directive_str = SynthesisPromptRegistry.get_row_explanation_directive()
                 row_dynamic_ctx = (
-                    f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{row_lang_ctx}\n\n{row_directive}"
+                    f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{row_lang_ctx}\n\n{row_directive_str}"
                 )
 
                 row_messages: list[dict[str, Any]] = [
@@ -1226,8 +1268,11 @@ async def generate_profile_synthesis_and_pdf_task(
                                     patterns = ling_out.performative_patterns
                                     if isinstance(patterns, list):
                                         performative_phrases_count = len(patterns)
-                            except Exception:
-                                pass
+                            except (ValidationError, TypeError, ValueError) as e:
+                                logger.warning(
+                                    "Failed to parse linguistics from decision trace event",
+                                    extra={"error": str(e), "execution_id": execution.id},
+                                )
 
                         # Extract Performativity Detector output using the canonical step_id from profile
                         if event.event_type == "output" and perf_step_id and authenticity_score is None:
@@ -1235,7 +1280,11 @@ async def generate_profile_synthesis_and_pdf_task(
                             out_content: dict[str, Any] | None = None
                             try:
                                 out_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
-                            except Exception:
+                            except (ValidationError, TypeError, ValueError) as e:
+                                logger.warning(
+                                    "Failed to parse output content dictionary from trace event",
+                                    extra={"error": str(e), "execution_id": execution.id},
+                                )
                                 out_content = None
 
                             if event.step_name == perf_step_id:
@@ -1245,8 +1294,11 @@ async def generate_profile_synthesis_and_pdf_task(
                                     step_meta = StepTraceMetadataDTO.model_validate(out_content["_step_metadata"])
                                     if step_meta.task_blueprint == perf_step_id:
                                         is_match = True
-                                except ValidationError, ValueError:
-                                    pass
+                                except (ValidationError, TypeError, ValueError) as e:
+                                    logger.warning(
+                                        "Failed to parse step trace metadata from detector output",
+                                        extra={"error": str(e), "execution_id": execution.id},
+                                    )
 
                             if is_match and out_content:
                                 for key, val in out_content.items():
@@ -1278,7 +1330,15 @@ async def generate_profile_synthesis_and_pdf_task(
                     var_lang_ctx = build_linguistic_context(
                         source_language="Unknown", target_locale=accept_language, include_mandate=True
                     )
-                    var_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{var_lang_ctx}\n\n{VARIANCE_EXPLANATION_DIRECTIVE}"
+                    var_directive_str = None
+                    if active_profile_dto and active_profile_dto.variance_synthesis_directive:
+                        var_directive_str = compiler.resolve_i18n(
+                            active_profile_dto.variance_synthesis_directive, accept_language
+                        )
+                    if not var_directive_str:
+                        var_directive_str = VARIANCE_EXPLANATION_DIRECTIVE
+
+                    var_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{var_lang_ctx}\n\n{var_directive_str}"
 
                     var_messages: list[dict[str, Any]] = [
                         {"role": "system", "content": var_sys_prompt},

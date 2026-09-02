@@ -12,7 +12,7 @@ void main() {
           'translations': {'fi': 'Otsikko', 'en': 'Title'},
         },
         'target_blocks': ['blk_1', 'blk_2'],
-        'synthesis_directive': 'Focus on logic',
+        'view_type': '2d_compare',
       };
 
       final group = MatrixSynthesisGroup.fromJson(jsonPayload);
@@ -21,7 +21,7 @@ void main() {
       expect(group.id, 'grp_1111111111111111');
       expect(group.title.translations['en'], 'Title');
       expect(group.targetBlocks, ['blk_1', 'blk_2']);
-      expect(group.synthesisDirective, 'Focus on logic');
+      expect(group.viewType, PresetView.compare2d);
     });
 
     test('Should throw on unrecognized keys in MatrixSynthesisGroup', () {
@@ -39,6 +39,25 @@ void main() {
         throwsA(isA<CheckedFromJsonException>()),
       );
     });
+
+    test(
+      'Should throw when legacy synthesis_directive is in MatrixSynthesisGroup',
+      () {
+        final jsonPayload = {
+          'id': 'grp_1111111111111111',
+          'title': {
+            'translations': {'en': 'Title'},
+          },
+          'target_blocks': ['blk_1'],
+          'synthesis_directive': 'forbidden',
+        };
+
+        expect(
+          () => MatrixSynthesisGroup.fromJson(jsonPayload),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
   });
 
   group('OutputProfile JSON Parsing', () {
@@ -74,6 +93,18 @@ void main() {
         'max_unmet_criteria': 3,
         'tone_instruction': {
           'translations': {'en': 'Formal'},
+        },
+        'matrix_1d_synthesis_directive': {
+          'translations': {'en': '1D Directive'},
+        },
+        'matrix_2d_synthesis_directive': {
+          'translations': {'en': '2D Directive'},
+        },
+        'matrix_3d_synthesis_directive': {
+          'translations': {'en': '3D Directive'},
+        },
+        'matrix_text_synthesis_directive': {
+          'translations': {'en': 'Text Directive'},
         },
         'language': 'en',
         'matrix_synthesis_groups': [
@@ -113,6 +144,22 @@ void main() {
       expect(profile.synthesisLengthConstraint, 300);
       expect(profile.maxQuotesPerMatrix, 5);
       expect(profile.maxUnmetCriteria, 3);
+      expect(
+        profile.matrix1dSynthesisDirective?.translations['en'],
+        '1D Directive',
+      );
+      expect(
+        profile.matrix2dSynthesisDirective?.translations['en'],
+        '2D Directive',
+      );
+      expect(
+        profile.matrix3dSynthesisDirective?.translations['en'],
+        '3D Directive',
+      );
+      expect(
+        profile.matrixTextSynthesisDirective?.translations['en'],
+        'Text Directive',
+      );
       expect(profile.targetBlockOrder.length, 12);
       expect(profile.targetBlockOrder.first, TargetBlockType.metadataBlock);
       expect(profile.targetBlockOrder.last, TargetBlockType.auditTrailBlock);

@@ -7074,6 +7074,78 @@ abstract class AppLocalizations {
   /// **'Coaching tone instruction'**
   String get profileToneInstructionLabel;
 
+  /// No description provided for @profileAiSynthesisDirectivesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Synthesis Directives'**
+  String get profileAiSynthesisDirectivesTitle;
+
+  /// No description provided for @profileExecutiveSummaryDirectiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Executive summary synthesis directive'**
+  String get profileExecutiveSummaryDirectiveLabel;
+
+  /// No description provided for @profileMatrix1dDirectiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'1D metrics synthesis directive'**
+  String get profileMatrix1dDirectiveLabel;
+
+  /// No description provided for @profileMatrix2dDirectiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'2D comparison synthesis directive'**
+  String get profileMatrix2dDirectiveLabel;
+
+  /// No description provided for @profileMatrix3dDirectiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'3D radar synthesis directive'**
+  String get profileMatrix3dDirectiveLabel;
+
+  /// No description provided for @profileMatrixTextDirectiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Text-only matrix synthesis directive'**
+  String get profileMatrixTextDirectiveLabel;
+
+  /// No description provided for @profileRowExplanationDirectiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Row explanation synthesis directive'**
+  String get profileRowExplanationDirectiveLabel;
+
+  /// No description provided for @profileXaiSynthesisDirectiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'XAI highlights synthesis directive'**
+  String get profileXaiSynthesisDirectiveLabel;
+
+  /// No description provided for @profileVarianceDirectiveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Variance validation synthesis directive'**
+  String get profileVarianceDirectiveLabel;
+
+  /// No description provided for @variancePerformativityDetectorStepLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Performativity Detector Step'**
+  String get variancePerformativityDetectorStepLabel;
+
+  /// No description provided for @variancePerformativityDetectorStepHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select workflow step providing detector scoring'**
+  String get variancePerformativityDetectorStepHint;
+
+  /// No description provided for @variancePerformativityDetectorNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None (disabled)'**
+  String get variancePerformativityDetectorNone;
+
   /// No description provided for @profileUserRoleLabelLabel.
   ///
   /// In en, this message translates to:
@@ -7115,6 +7187,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enable matrix graphs, metadata, or XAI extension sections in the Report Structure tab to configure their detailed settings.'**
   String get noDetailedSectionsActiveSubtitle;
+
+  /// No description provided for @allSectionsListLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'All Sections'**
+  String get allSectionsListLabel;
 
   /// No description provided for @blockMetadataTitle.
   ///
@@ -8297,6 +8375,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Workflow ID is missing'**
   String get workflowIdMissingError;
+
+  /// No description provided for @groupVisualChartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Visual Chart Configuration'**
+  String get groupVisualChartTitle;
+
+  /// No description provided for @groupSynthesisDirectiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Synthesis Directive'**
+  String get groupSynthesisDirectiveTitle;
+
+  /// No description provided for @groupSynthesisDirectiveHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'REQUIRED ENGLISH. If left empty, synthesis will not be executed for this group.'**
+  String get groupSynthesisDirectiveHelper;
 }
 
 class _AppLocalizationsDelegate

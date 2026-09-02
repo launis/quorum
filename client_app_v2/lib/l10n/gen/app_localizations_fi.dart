@@ -3901,6 +3901,47 @@ class AppLocalizationsFi extends AppLocalizations {
   String get profileToneInstructionLabel => 'Valmentajan sävyohjeistus';
 
   @override
+  String get profileAiSynthesisDirectivesTitle =>
+      'Tekoälysynteesin ohjeistukset';
+
+  @override
+  String get profileExecutiveSummaryDirectiveLabel =>
+      'Johdon tiivistelmän synteesiohje';
+
+  @override
+  String get profileMatrix1dDirectiveLabel => '1D-mittarin synteesiohje';
+
+  @override
+  String get profileMatrix2dDirectiveLabel => '2D-vertailun synteesiohje';
+
+  @override
+  String get profileMatrix3dDirectiveLabel => '3D-tutkan synteesiohje';
+
+  @override
+  String get profileMatrixTextDirectiveLabel => 'Tekstisynteesin ohje';
+
+  @override
+  String get profileRowExplanationDirectiveLabel => 'Rivisynteesin ohjeistus';
+
+  @override
+  String get profileXaiSynthesisDirectiveLabel =>
+      'XAI-korostusten synteesiohje';
+
+  @override
+  String get profileVarianceDirectiveLabel => 'Varianssisynteesin ohjeistus';
+
+  @override
+  String get variancePerformativityDetectorStepLabel =>
+      'Performativiteetti-ilmaisimen työvaihe';
+
+  @override
+  String get variancePerformativityDetectorStepHint =>
+      'Valitse työvaihe, joka tuottaa ilmaisimen pisteytyksen';
+
+  @override
+  String get variancePerformativityDetectorNone => 'Ei mitään (pois käytöstä)';
+
+  @override
   String get profileUserRoleLabelLabel => 'Kohderyhmän rooliotsikko';
 
   @override
@@ -3922,6 +3963,9 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get noDetailedSectionsActiveSubtitle =>
       'Ota käyttöön matriisikaavio-, metatieto- tai XAI-laajennusosioita Raportin rakenne -välilehdeltä muokataksesi niiden yksityiskohtaisia asetuksia.';
+
+  @override
+  String get allSectionsListLabel => 'Kaikki osiot';
 
   @override
   String get blockMetadataTitle => 'Raportin metatiedot';
@@ -4618,4 +4662,16 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get workflowIdMissingError => 'Työnkulun ID puuttuu';
+
+  @override
+  String get groupVisualChartTitle =>
+      'Visualisoinnin asetukset (Visual Chart Setup)';
+
+  @override
+  String get groupSynthesisDirectiveTitle =>
+      'Tekoälyn synteesiohje (AI Synthesis Directive)';
+
+  @override
+  String get groupSynthesisDirectiveHelper =>
+      'PAKOLLINEN ENGLANTI. Jos ohje jätetään tyhjäksi, synteesiä ei ajeta tälle ryhmälle.';
 }

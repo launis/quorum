@@ -14,13 +14,7 @@ _MatrixSynthesisGroup _$MatrixSynthesisGroupFromJson(
   ($checkedConvert) {
     $checkKeys(
       json,
-      allowedKeys: const [
-        'id',
-        'title',
-        'target_blocks',
-        'synthesis_directive',
-        'view_type',
-      ],
+      allowedKeys: const ['id', 'title', 'target_blocks', 'view_type'],
     );
     final val = _MatrixSynthesisGroup(
       id: $checkedConvert('id', (v) => v as String),
@@ -32,10 +26,6 @@ _MatrixSynthesisGroup _$MatrixSynthesisGroupFromJson(
         'target_blocks',
         (v) => (v as List<dynamic>).map((e) => e as String).toList(),
       ),
-      synthesisDirective: $checkedConvert(
-        'synthesis_directive',
-        (v) => v as String?,
-      ),
       viewType: $checkedConvert(
         'view_type',
         (v) =>
@@ -44,11 +34,7 @@ _MatrixSynthesisGroup _$MatrixSynthesisGroupFromJson(
     );
     return val;
   },
-  fieldKeyMap: const {
-    'targetBlocks': 'target_blocks',
-    'synthesisDirective': 'synthesis_directive',
-    'viewType': 'view_type',
-  },
+  fieldKeyMap: const {'targetBlocks': 'target_blocks', 'viewType': 'view_type'},
 );
 
 Map<String, dynamic> _$MatrixSynthesisGroupToJson(
@@ -57,7 +43,6 @@ Map<String, dynamic> _$MatrixSynthesisGroupToJson(
   'id': instance.id,
   'title': instance.title.toJson(),
   'target_blocks': instance.targetBlocks,
-  'synthesis_directive': instance.synthesisDirective,
   'view_type': _$PresetViewEnumMap[instance.viewType]!,
 };
 
@@ -101,6 +86,14 @@ _OutputProfile _$OutputProfileFromJson(
         'max_quotes_per_matrix',
         'max_unmet_criteria',
         'tone_instruction',
+        'executive_summary_directive',
+        'matrix_1d_synthesis_directive',
+        'matrix_2d_synthesis_directive',
+        'matrix_3d_synthesis_directive',
+        'matrix_text_synthesis_directive',
+        'row_explanation_directive',
+        'xai_synthesis_directive',
+        'variance_synthesis_directive',
         'language',
         'matrix_synthesis_groups',
         'content_blocks',
@@ -220,6 +213,38 @@ _OutputProfile _$OutputProfileFromJson(
         'tone_instruction',
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
+      executiveSummaryDirective: $checkedConvert(
+        'executive_summary_directive',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      matrix1dSynthesisDirective: $checkedConvert(
+        'matrix_1d_synthesis_directive',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      matrix2dSynthesisDirective: $checkedConvert(
+        'matrix_2d_synthesis_directive',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      matrix3dSynthesisDirective: $checkedConvert(
+        'matrix_3d_synthesis_directive',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      matrixTextSynthesisDirective: $checkedConvert(
+        'matrix_text_synthesis_directive',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      rowExplanationDirective: $checkedConvert(
+        'row_explanation_directive',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      xaiSynthesisDirective: $checkedConvert(
+        'xai_synthesis_directive',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      varianceSynthesisDirective: $checkedConvert(
+        'variance_synthesis_directive',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
       language: $checkedConvert(
         'language',
         (v) => $enumDecodeNullable(_$SystemLocaleEnumMap, v),
@@ -300,6 +325,14 @@ _OutputProfile _$OutputProfileFromJson(
     'maxQuotesPerMatrix': 'max_quotes_per_matrix',
     'maxUnmetCriteria': 'max_unmet_criteria',
     'toneInstruction': 'tone_instruction',
+    'executiveSummaryDirective': 'executive_summary_directive',
+    'matrix1dSynthesisDirective': 'matrix_1d_synthesis_directive',
+    'matrix2dSynthesisDirective': 'matrix_2d_synthesis_directive',
+    'matrix3dSynthesisDirective': 'matrix_3d_synthesis_directive',
+    'matrixTextSynthesisDirective': 'matrix_text_synthesis_directive',
+    'rowExplanationDirective': 'row_explanation_directive',
+    'xaiSynthesisDirective': 'xai_synthesis_directive',
+    'varianceSynthesisDirective': 'variance_synthesis_directive',
     'matrixSynthesisGroups': 'matrix_synthesis_groups',
     'contentBlocks': 'content_blocks',
     'targetBlockOrder': 'target_block_order',
@@ -338,6 +371,18 @@ Map<String, dynamic> _$OutputProfileToJson(
   'max_quotes_per_matrix': instance.maxQuotesPerMatrix,
   'max_unmet_criteria': instance.maxUnmetCriteria,
   'tone_instruction': instance.toneInstruction?.toJson(),
+  'executive_summary_directive': instance.executiveSummaryDirective?.toJson(),
+  'matrix_1d_synthesis_directive': instance.matrix1dSynthesisDirective
+      ?.toJson(),
+  'matrix_2d_synthesis_directive': instance.matrix2dSynthesisDirective
+      ?.toJson(),
+  'matrix_3d_synthesis_directive': instance.matrix3dSynthesisDirective
+      ?.toJson(),
+  'matrix_text_synthesis_directive': instance.matrixTextSynthesisDirective
+      ?.toJson(),
+  'row_explanation_directive': instance.rowExplanationDirective?.toJson(),
+  'xai_synthesis_directive': instance.xaiSynthesisDirective?.toJson(),
+  'variance_synthesis_directive': instance.varianceSynthesisDirective?.toJson(),
   'language': _$SystemLocaleEnumMap[instance.language],
   'matrix_synthesis_groups': instance.matrixSynthesisGroups
       .map((e) => e.toJson())

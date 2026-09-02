@@ -56,15 +56,15 @@ class ProviderMetadataDTO(BaseDTO):
 
     Attributes:
         finish_reason: Provider termination reason.
-        model_extra: Provider-specific raw metadata.
+        raw_extra: Provider-specific raw metadata.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     finish_reason: Annotated[str | None, Field(default=None, description="Provider termination reason.")] = None
-    model_extra: Annotated[
-        dict[str, Any] | None, Field(default=None, description="Provider-specific raw metadata.")
-    ] = None
+    raw_extra: Annotated[dict[str, Any] | None, Field(default=None, description="Provider-specific raw metadata.")] = (
+        None
+    )
 
 
 class LLMResponse(BaseDTO):
@@ -310,7 +310,7 @@ class LLMProviderConfig(BaseDTO):
     additional_params: Annotated[
         ProviderExtraParamsDTO,
         Field(default_factory=ProviderExtraParamsDTO, description="Additional provider-specific parameters."),
-    ]
+    ] = Field(default_factory=ProviderExtraParamsDTO)
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

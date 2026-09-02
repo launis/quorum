@@ -314,10 +314,14 @@ def test_audit_output_profiles_directives() -> None:
             "system_prompt": "<synthesis_mandate>Be concise</synthesis_mandate>",
             "synthesis_block_id": "blk_unknown_synth",
         },
+        "matrix_1d_synthesis_directive": {
+            "translations": {
+                "en": "<directive>1D Directive</directive>",
+            }
+        },
         "matrix_synthesis_groups": [
             {
                 "id": "grp_001",
-                "synthesis_directive": "<directive>Group 1</directive>",
                 "target_blocks": ["blk_unknown_target"],
             }
         ],
@@ -325,7 +329,7 @@ def test_audit_output_profiles_directives() -> None:
     issues, _ = audit_output_profiles([profile], known_block_ids)
 
     assert any(i.issue_type == "BANNED_SYNTHESIS_OBJECT" and "synthesis" in i.field_path for i in issues)
-    assert any(i.issue_type == "RAW_XML" and "matrix_synthesis_groups" in i.field_path for i in issues)
+    assert any(i.issue_type == "RAW_XML" and "matrix_1d_synthesis_directive" in i.field_path for i in issues)
     assert any(i.issue_type == "ORPHAN_TARGET_BLOCK" for i in issues)
 
 

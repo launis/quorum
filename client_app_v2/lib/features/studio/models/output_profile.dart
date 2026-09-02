@@ -17,7 +17,6 @@ abstract class MatrixSynthesisGroup with _$MatrixSynthesisGroup {
     required String id,
     required I18nText title,
     @JsonKey(name: 'target_blocks') required List<String> targetBlocks,
-    @JsonKey(name: 'synthesis_directive') String? synthesisDirective,
     @Default(PresetView.metrics1d)
     @JsonKey(name: 'view_type')
     PresetView viewType,
@@ -68,6 +67,21 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,
     @JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
+    @JsonKey(name: 'executive_summary_directive')
+    I18nText? executiveSummaryDirective,
+    @JsonKey(name: 'matrix_1d_synthesis_directive')
+    I18nText? matrix1dSynthesisDirective,
+    @JsonKey(name: 'matrix_2d_synthesis_directive')
+    I18nText? matrix2dSynthesisDirective,
+    @JsonKey(name: 'matrix_3d_synthesis_directive')
+    I18nText? matrix3dSynthesisDirective,
+    @JsonKey(name: 'matrix_text_synthesis_directive')
+    I18nText? matrixTextSynthesisDirective,
+    @JsonKey(name: 'row_explanation_directive')
+    I18nText? rowExplanationDirective,
+    @JsonKey(name: 'xai_synthesis_directive') I18nText? xaiSynthesisDirective,
+    @JsonKey(name: 'variance_synthesis_directive')
+    I18nText? varianceSynthesisDirective,
     SystemLocale? language,
     @JsonKey(name: 'matrix_synthesis_groups')
     @Default([])

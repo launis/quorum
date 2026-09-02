@@ -3874,6 +3874,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileToneInstructionLabel => 'Coaching tone instruction';
 
   @override
+  String get profileAiSynthesisDirectivesTitle => 'AI Synthesis Directives';
+
+  @override
+  String get profileExecutiveSummaryDirectiveLabel =>
+      'Executive summary synthesis directive';
+
+  @override
+  String get profileMatrix1dDirectiveLabel => '1D metrics synthesis directive';
+
+  @override
+  String get profileMatrix2dDirectiveLabel =>
+      '2D comparison synthesis directive';
+
+  @override
+  String get profileMatrix3dDirectiveLabel => '3D radar synthesis directive';
+
+  @override
+  String get profileMatrixTextDirectiveLabel =>
+      'Text-only matrix synthesis directive';
+
+  @override
+  String get profileRowExplanationDirectiveLabel =>
+      'Row explanation synthesis directive';
+
+  @override
+  String get profileXaiSynthesisDirectiveLabel =>
+      'XAI highlights synthesis directive';
+
+  @override
+  String get profileVarianceDirectiveLabel =>
+      'Variance validation synthesis directive';
+
+  @override
+  String get variancePerformativityDetectorStepLabel =>
+      'Performativity Detector Step';
+
+  @override
+  String get variancePerformativityDetectorStepHint =>
+      'Select workflow step providing detector scoring';
+
+  @override
+  String get variancePerformativityDetectorNone => 'None (disabled)';
+
+  @override
   String get profileUserRoleLabelLabel => 'Target audience role label';
 
   @override
@@ -3897,6 +3941,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noDetailedSectionsActiveSubtitle =>
       'Enable matrix graphs, metadata, or XAI extension sections in the Report Structure tab to configure their detailed settings.';
+
+  @override
+  String get allSectionsListLabel => 'All Sections';
 
   @override
   String get blockMetadataTitle => 'Report Metadata';
@@ -4586,4 +4633,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workflowIdMissingError => 'Workflow ID is missing';
+
+  @override
+  String get groupVisualChartTitle => 'Visual Chart Configuration';
+
+  @override
+  String get groupSynthesisDirectiveTitle => 'AI Synthesis Directive';
+
+  @override
+  String get groupSynthesisDirectiveHelper =>
+      'REQUIRED ENGLISH. If left empty, synthesis will not be executed for this group.';
 }

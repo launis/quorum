@@ -37,6 +37,7 @@ from backend_v2.models.enums import (
     LaxSDUIComponentType,
     LaxSourcesDisplayMode,
     LaxStepType,
+    LaxSystemLocale,
     LaxTargetBlockType,
     LaxXaiExtensionType,
     PresetView,
@@ -907,7 +908,6 @@ class MatrixSynthesisGroup(V2CoreBase):
     )
     title: I18nText = Field(description="Localized title for the synthesis group")
     target_blocks: list[str] = Field(min_length=1, description="List of prompt block IDs targeted by this group")
-    synthesis_directive: str | None = Field(default=None, description="Optional custom synthesis directive")
     view_type: LaxPresetView = Field(
         default=PresetView.METRICS_1D,
         description="UI presentation preset view for this matrix group (e.g. 1d_metrics, 2d_compare, 3d_matrix, text_only).",
@@ -931,8 +931,41 @@ class OutputProfile(V2CoreBase):
     custom_preface: I18nText | None = Field(
         default=None, description="Rich text preface shown at the very beginning of the report."
     )
-    language: str | None = Field(default=None, description="Target output language.")
-    tone_instruction: I18nText | None = Field(default=None, description="Dynamic tone instruction for synthesis.")
+    language: LaxSystemLocale | None = Field(default=None, description="Target output language.")
+    tone_instruction: Annotated[
+        I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
+    ] = None
+    executive_summary_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for executive summary synthesis.")
+    ] = None
+    matrix_1d_synthesis_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for 1D metrics synthesis.")
+    ] = None
+    matrix_2d_synthesis_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for 2D comparison synthesis.")
+    ] = None
+    matrix_3d_synthesis_directive: Annotated[
+        I18nText | None, Field(default=None, description="Dedicated prompt directive for 3D radar synthesis.")
+    ] = None
+    matrix_text_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for text-only matrix synthesis."),
+    ] = None
+    row_explanation_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for matrix summary table row causal explanations."),
+    ] = None
+    xai_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(default=None, description="Dedicated prompt directive for XAI highlights and extensions synthesis."),
+    ] = None
+    variance_synthesis_directive: Annotated[
+        I18nText | None,
+        Field(
+            default=None,
+            description="Dedicated prompt directive for variance and cognitive authenticity evaluation synthesis.",
+        ),
+    ] = None
 
     visible_metadata: list[str] = Field(
         default_factory=lambda: ["date", "organization", "user", "scoring_engine", "strictness"],

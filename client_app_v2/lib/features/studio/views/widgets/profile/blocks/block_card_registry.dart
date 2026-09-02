@@ -4,10 +4,12 @@ import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart';
+import 'package:client_app/features/studio/views/widgets/profile/blocks/executive_summary_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/metadata_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart';
+import 'package:client_app/features/studio/views/widgets/profile/blocks/variance_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart';
 
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -27,10 +29,12 @@ class BlockCardRegistry {
 
   /// Detailed block types that require dedicated editor cards on Tab 3 (Section Config).
   static const Set<TargetBlockType> detailedBlockTypes = {
+    TargetBlockType.executiveSummaryBlock,
     TargetBlockType.matrixGraphsBlock,
     TargetBlockType.metadataBlock,
     TargetBlockType.matrixSummaryTableBlock,
     TargetBlockType.groupedExtensionsBlock,
+    TargetBlockType.varianceValidationBlock,
     TargetBlockType.printableSourcesBlock,
   };
 
@@ -114,16 +118,11 @@ class BlockCardRegistry {
         updatePayload: updatePayload,
         dragHandle: dragHandle,
       ),
-      TargetBlockType.executiveSummaryBlock => SimpleToggleBlockCard(
+      TargetBlockType.executiveSummaryBlock => ExecutiveSummaryBlockCard(
         key: key,
-        blockType: TargetBlockType.executiveSummaryBlock,
-        title: getBlockTitle(TargetBlockType.executiveSummaryBlock, l10n),
-        subtitle: getBlockSubtitle(TargetBlockType.executiveSummaryBlock, l10n),
-        icon: getBlockIcon(TargetBlockType.executiveSummaryBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
-        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
       TargetBlockType.synthesisTextBlock => SimpleToggleBlockCard(
         key: key,
@@ -167,19 +166,11 @@ class BlockCardRegistry {
         updatePayload: updatePayload,
         dragHandle: dragHandle,
       ),
-      TargetBlockType.varianceValidationBlock => SimpleToggleBlockCard(
+      TargetBlockType.varianceValidationBlock => VarianceBlockCard(
         key: key,
-        blockType: TargetBlockType.varianceValidationBlock,
-        title: getBlockTitle(TargetBlockType.varianceValidationBlock, l10n),
-        subtitle: getBlockSubtitle(
-          TargetBlockType.varianceValidationBlock,
-          l10n,
-        ),
-        icon: getBlockIcon(TargetBlockType.varianceValidationBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
-        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
       TargetBlockType.authenticityEvaluationBlock => SimpleToggleBlockCard(
         key: key,

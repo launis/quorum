@@ -238,3 +238,123 @@ abstract class _$OutputProfileForm extends $AsyncNotifier<OutputProfile> {
     element.handleCreate(ref, () => build(_$args));
   }
 }
+
+/// Selected section state provider for Tab 3 Master-Detail view in OutputProfileCrudView.
+
+@ProviderFor(SelectedOutputProfileConfigSection)
+final selectedOutputProfileConfigSectionProvider =
+    SelectedOutputProfileConfigSectionFamily._();
+
+/// Selected section state provider for Tab 3 Master-Detail view in OutputProfileCrudView.
+final class SelectedOutputProfileConfigSectionProvider
+    extends
+        $NotifierProvider<
+          SelectedOutputProfileConfigSection,
+          TargetBlockType?
+        > {
+  /// Selected section state provider for Tab 3 Master-Detail view in OutputProfileCrudView.
+  SelectedOutputProfileConfigSectionProvider._({
+    required SelectedOutputProfileConfigSectionFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'selectedOutputProfileConfigSectionProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$selectedOutputProfileConfigSectionHash();
+
+  @override
+  String toString() {
+    return r'selectedOutputProfileConfigSectionProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  SelectedOutputProfileConfigSection create() =>
+      SelectedOutputProfileConfigSection();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TargetBlockType? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TargetBlockType?>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SelectedOutputProfileConfigSectionProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$selectedOutputProfileConfigSectionHash() =>
+    r'93352ef6809763ee73d15e59d2726c95cb9c7f13';
+
+/// Selected section state provider for Tab 3 Master-Detail view in OutputProfileCrudView.
+
+final class SelectedOutputProfileConfigSectionFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          SelectedOutputProfileConfigSection,
+          TargetBlockType?,
+          TargetBlockType?,
+          TargetBlockType?,
+          String
+        > {
+  SelectedOutputProfileConfigSectionFamily._()
+    : super(
+        retry: null,
+        name: r'selectedOutputProfileConfigSectionProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Selected section state provider for Tab 3 Master-Detail view in OutputProfileCrudView.
+
+  SelectedOutputProfileConfigSectionProvider call(String profileId) =>
+      SelectedOutputProfileConfigSectionProvider._(
+        argument: profileId,
+        from: this,
+      );
+
+  @override
+  String toString() => r'selectedOutputProfileConfigSectionProvider';
+}
+
+/// Selected section state provider for Tab 3 Master-Detail view in OutputProfileCrudView.
+
+abstract class _$SelectedOutputProfileConfigSection
+    extends $Notifier<TargetBlockType?> {
+  late final _$args = ref.$arg as String;
+  String get profileId => _$args;
+
+  TargetBlockType? build(String profileId);
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<TargetBlockType?, TargetBlockType?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<TargetBlockType?, TargetBlockType?>,
+              TargetBlockType?,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, () => build(_$args));
+  }
+}

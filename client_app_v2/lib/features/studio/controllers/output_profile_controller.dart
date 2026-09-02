@@ -262,3 +262,15 @@ class OutputProfileForm extends _$OutputProfileForm {
     });
   }
 }
+
+/// Selected section state provider for Tab 3 Master-Detail view in OutputProfileCrudView.
+@riverpod
+class SelectedOutputProfileConfigSection
+    extends _$SelectedOutputProfileConfigSection {
+  @override
+  TargetBlockType? build(String profileId) => null;
+
+  void select(TargetBlockType? section) {
+    state = section;
+  }
+}

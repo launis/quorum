@@ -902,7 +902,7 @@ class LiteLLMProvider(LLMProvider):
 
             provider_meta_dto = ProviderMetadataDTO(
                 finish_reason=str(finish_reason) if finish_reason else None,
-                model_extra=provider_meta if provider_meta else None,
+                raw_extra=provider_meta if provider_meta else None,
             )
 
             typed_messages: list[LLMMessageDTO] = [
