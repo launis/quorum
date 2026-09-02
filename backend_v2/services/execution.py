@@ -807,7 +807,7 @@ class ExecutionService:
             )
 
         # 2. String Resolution via Flutter ARB
-        locale = execution.target_locale or execution.metadata.target_locale or "fi"
+        locale = execution.target_locale
         arb_path = Path(f"client_app_v2/lib/l10n/app_{locale}.arb")
         if not arb_path.exists():
             arb_path = Path("client_app_v2/lib/l10n/app_en.arb")
@@ -1229,7 +1229,7 @@ class ExecutionService:
 
         elif fmt == "html":
             if not accept_language:
-                accept_language = execution.target_locale or execution.metadata.target_locale
+                accept_language = execution.target_locale
                 if not accept_language:
                     msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution."
                     raise AppException(
@@ -1282,7 +1282,7 @@ class ExecutionService:
                     ) from strg_err
 
             if not accept_language:
-                accept_language = execution.target_locale or execution.metadata.target_locale
+                accept_language = execution.target_locale
                 if not accept_language:
                     msg = "Strict Fail-Fast Enforced: 'target_locale' missing from execution."
                     raise AppException(
@@ -1352,7 +1352,7 @@ class ExecutionService:
             msg = f"Execution is not in COMPLETED state. Current status: {execution.status.value}"
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        accept_language = execution.target_locale or execution.metadata.target_locale or "en"
+        accept_language = execution.target_locale
 
         transformer = BlueprintTransformer(
             self.exec_repo,

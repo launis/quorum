@@ -802,7 +802,9 @@ async def generate_profile_synthesis_and_pdf_task(
                     lw_matrix = LightweightMatrixOutput.model_validate(clean_data, strict=False)
                     if lw_matrix.level_breakdown:
                         stats = {
-                            float(k): LevelStatsDTO(hits=v["hits"], total=v["total"], dlqs=v.get("dlqs"))
+                            float(k): LevelStatsDTO(
+                                hits=v["hits"], total=v["total"], dlqs=v["dlqs"] if "dlqs" in v else 0
+                            )
                             for k, v in lw_matrix.level_breakdown.items()
                         }
                         b_meta = blocks_meta.get(pb_id)

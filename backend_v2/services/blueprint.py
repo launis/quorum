@@ -25,7 +25,6 @@ from backend_v2.models.enums import (
     TargetBlockType,
     VirtualSystemStepID,
 )
-from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector
 from backend_v2.models.v2_core import (
     AllowedMCPTool,
@@ -171,23 +170,12 @@ class BlueprintTransformer:
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
 
-        exec_metadata = (
-            execution.metadata
-            if isinstance(execution.metadata, ExecutionMetadata)
-            else (
-                ExecutionMetadata.model_validate(execution.metadata, strict=False)
-                if isinstance(execution.metadata, dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                else None
-            )
-        )
         locale = accept_language or execution.target_locale
-        if not locale and exec_metadata:
-            locale = exec_metadata.target_locale
 
         if not locale:
             msg = (
                 "Strict Fail-Fast Enforced: 'locale' is mandatory "
-                "(either via accept_language or execution metadata) and cannot be resolved."
+                "(either via accept_language or execution target_locale) and cannot be resolved."
             )
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
@@ -371,12 +359,14 @@ class BlueprintTransformer:
 
         total_exec_cost = 0.0
         total_exec_tokens = 0
-        if exec_metadata:
-            total_exec_cost = float(exec_metadata.dag_cost_usd or 0.0)
+        if execution.metadata:
+            total_exec_cost = (
+                float(execution.metadata.dag_cost_usd) if execution.metadata.dag_cost_usd is not None else 0.0
+            )
             total_exec_tokens = int(
-                (exec_metadata.prompt_tokens or 0)
-                + (exec_metadata.completion_tokens or 0)
-                + (exec_metadata.reasoning_tokens or 0)
+                (execution.metadata.prompt_tokens if execution.metadata.prompt_tokens is not None else 0)
+                + (execution.metadata.completion_tokens if execution.metadata.completion_tokens is not None else 0)
+                + (execution.metadata.reasoning_tokens if execution.metadata.reasoning_tokens is not None else 0)
             )
 
         combined_cost = total_exec_cost + execution.cumulative_synthesis_cost
