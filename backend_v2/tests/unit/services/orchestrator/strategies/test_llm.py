@@ -154,7 +154,9 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata.model_construct(target_locale="en", profile_id=None)  # MISSING profile_id
+    context.output_profile_id = None  # MISSING output_profile_id
+    context.target_locale = "en"
+    context.metadata = ExecutionMetadata()
 
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
@@ -188,7 +190,7 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
             )
 
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
-    assert "missing mandatory 'profile_id'" in exc_info.value.message
+    assert "missing mandatory 'output_profile_id'" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -206,7 +208,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
 
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
@@ -275,7 +277,7 @@ async def test_execute_success_path_structured_output(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
@@ -380,7 +382,7 @@ async def test_llm_strategy_missing_atoms_crash(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
@@ -489,7 +491,7 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
@@ -580,7 +582,7 @@ async def test_execute_with_role_and_persona_and_protocol(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="fi")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 1
@@ -667,7 +669,7 @@ async def test_execute_with_role_and_persona_and_protocol(
         workflow_id="wf_0123456789abcdef0123456789abcdef",
         output_profile_id="prof_123",
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi", profile_id="prof_123"),
+        metadata=ExecutionMetadata(),
         source_identity_manifest={"inputs": "Input Document"},
     )
 
@@ -729,7 +731,7 @@ async def test_execute_synthesis_engine_path(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_1": []}}}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "synthesis"
     context.expected_inputs = []
     context.strictness_level = 0
@@ -830,7 +832,7 @@ async def test_execute_anomaly_retry_flow(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
@@ -874,7 +876,7 @@ async def test_execute_anomaly_retry_flow(
         workflow_id="wf_0123456789abcdef0123456789abcdef",
         output_profile_id="prof_123",
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_123"),
+        metadata=ExecutionMetadata(),
         step_states={
             "step_retry": ExecutionStepState(id="step_retry", label="Retry Step", status=ExecutionStatus.RUNNING)
         },
@@ -944,7 +946,7 @@ async def test_execute_fails_fast_on_missing_role_block(llm_strategy: LLMNodeStr
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
 
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
@@ -994,7 +996,7 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
 
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
@@ -1057,7 +1059,9 @@ async def test_execute_fails_fast_on_missing_output_profile(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="nonexistent_profile", target_locale="en")
+    context.output_profile_id = "nonexistent_profile"
+    context.target_locale = "en"
+    context.metadata = ExecutionMetadata()
 
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
@@ -1139,7 +1143,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
 
     mock_repo.get_step_by_id.return_value = {
@@ -1215,7 +1219,7 @@ def test_configure_llm_context_hook_success() -> None:
         step_id="step1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(vars={"workflow_model_mapping": {"step1": "fast"}}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -1298,7 +1302,7 @@ def test_configure_llm_context_hook_error() -> None:
         step_id="step1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
 
     with patch("backend_v2.hooks.llm.get_settings") as mock_settings:
@@ -1337,7 +1341,9 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata.model_construct(profile_id="prof_123", target_locale="")  # No target_locale
+    context.output_profile_id = "prof_123"
+    context.target_locale = ""
+    context.metadata = ExecutionMetadata()
 
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
@@ -1407,7 +1413,7 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
 
@@ -1486,7 +1492,10 @@ async def test_execute_matrix_chunking_flow(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.target_locale = "en"
+    context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
+    context.organization_id = None
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 1
@@ -1574,7 +1583,7 @@ async def test_execute_matrix_chunking_flow(
         workflow_id="wf_0123456789abcdef0123456789abcdef",
         output_profile_id="prof_123",
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_123"),
+        metadata=ExecutionMetadata(),
         source_identity_manifest={"doc_1": "Uploaded Document"},
     )
 
@@ -1630,7 +1639,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
@@ -1721,7 +1730,7 @@ async def test_execute_fails_fast_on_corrupted_prompt_block_in_db(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.prompt_blocks = None
 
     mock_repo.get_step_by_id.return_value = {
@@ -1772,7 +1781,7 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
 
@@ -1865,7 +1874,7 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
@@ -1959,7 +1968,7 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = ""
     context.expected_inputs = []
 

@@ -28,7 +28,7 @@ async def test_detect_performative_patterns_skip_override() -> None:
         execution_id="e1",
         inputs=ExecutionInputsDTO(raw_inputs={"scan_for_performative_patterns": "false"}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock()
     result = await detect_performative_patterns(state, deps)
@@ -51,7 +51,7 @@ async def test_detect_performative_patterns_prioritizes_user_only() -> None:
             }
         ),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
 
     deps = MagicMock()
@@ -90,7 +90,7 @@ async def test_detect_performative_patterns_detects_exact_and_fuzzy() -> None:
             }
         ),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
 
     deps = MagicMock()
@@ -128,7 +128,7 @@ async def test_detect_performative_patterns_missing_user_only_graceful() -> None
             }
         ),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
 
     deps = MagicMock()
@@ -166,7 +166,7 @@ async def test_detect_performative_patterns_missing_lexicon_config() -> None:
             }
         ),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
 
     deps = MagicMock()
@@ -190,7 +190,7 @@ async def test_detect_performative_patterns_missing_language_words() -> None:
             }
         ),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
 
     deps = MagicMock()
@@ -226,7 +226,7 @@ async def test_detect_performative_patterns_db_exception() -> None:
             }
         ),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
 
     deps = MagicMock()

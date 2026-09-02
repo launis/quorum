@@ -81,7 +81,7 @@ async def test_run_pre_hooks_empty(dummy_strategy: DummyStrategy) -> None:
     hook_state = HookState(
         execution_id="e1",
         workflow_id="w1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(),
     )
@@ -103,7 +103,7 @@ async def test_run_pre_hooks_success(dummy_strategy: DummyStrategy, monkeypatch:
     mock_result = HookResult(
         success=True,
         state_delta=HookDeltaDTO(
-            metadata_updates={"profile_id": "prof_updated"},
+            metadata_updates={"matrix_sampling_strategy": 5},
             delta={
                 "global_context_vars": {"ext_var": "val1"},
                 "extra_input": "data1",
@@ -117,14 +117,13 @@ async def test_run_pre_hooks_success(dummy_strategy: DummyStrategy, monkeypatch:
     hook_state = HookState(
         execution_id="e1",
         workflow_id="w1",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_orig"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"g_init": "1"}),
         inputs=ExecutionInputsDTO(dynamic_inputs={"in": "1"}),
     )
 
     res_state, res_events = await dummy_strategy.run_pre_hooks(step_obj, step_rule, hook_state, MagicMock())
-    assert res_state.metadata.profile_id == "prof_updated"
-    assert res_state.metadata.target_locale == "en"
+    assert res_state.metadata.matrix_sampling_strategy == 5
     assert res_state.global_context_vars.vars == {"g_init": "1", "ext_var": "val1"}
     assert res_state.inputs.dynamic_inputs == {"in": "1", "extra_input": "data1"}
     assert len(res_events) == 1
@@ -149,7 +148,7 @@ async def test_run_pre_hooks_failure(dummy_strategy: DummyStrategy, monkeypatch:
     hook_state = HookState(
         execution_id="e1",
         workflow_id="w1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(),
     )
@@ -167,7 +166,7 @@ async def test_run_post_hooks_empty(dummy_strategy: DummyStrategy) -> None:
     hook_state = HookState(
         execution_id="e1",
         workflow_id="w1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(),
     )
@@ -189,7 +188,7 @@ async def test_run_post_hooks_success(dummy_strategy: DummyStrategy, monkeypatch
     mock_result = HookResult(
         success=True,
         state_delta=HookDeltaDTO(
-            metadata_updates={"profile_id": "prof_post_updated"},
+            metadata_updates={"matrix_sampling_strategy": 5},
             delta={
                 "global_context_vars": {"post_var": "val2"},
                 "post_input": "data2",
@@ -203,14 +202,13 @@ async def test_run_post_hooks_success(dummy_strategy: DummyStrategy, monkeypatch
     hook_state = HookState(
         execution_id="e1",
         workflow_id="w1",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_orig"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"g_init": "1"}),
         inputs=ExecutionInputsDTO(dynamic_inputs={"in": "1"}),
     )
 
     res_state, res_events = await dummy_strategy.run_post_hooks(step_obj, step_rule, hook_state, MagicMock())
-    assert res_state.metadata.profile_id == "prof_post_updated"
-    assert res_state.metadata.target_locale == "en"
+    assert res_state.metadata.matrix_sampling_strategy == 5
     assert res_state.global_context_vars.vars == {"g_init": "1", "post_var": "val2"}
     assert res_state.inputs.dynamic_inputs == {"in": "1", "post_input": "data2"}
     assert len(res_events) == 1
@@ -235,7 +233,7 @@ async def test_run_post_hooks_failure(dummy_strategy: DummyStrategy, monkeypatch
     hook_state = HookState(
         execution_id="e1",
         workflow_id="w1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(),
     )

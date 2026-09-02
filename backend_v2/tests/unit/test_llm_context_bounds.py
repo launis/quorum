@@ -53,7 +53,7 @@ def mock_repo() -> AsyncMock:
         "status": ExecutionStatus.PENDING,
         "target_locale": "en",
         "raw_inputs": {"dynamic_inputs": {"log": "test"}},
-        "metadata": {"profile_id": "prof_0000000000000000", "target_locale": "en"},
+        "metadata": {},
     }
     raw_prompt_block = {
         "id": "blk_1234567890abcdef",

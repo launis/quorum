@@ -62,7 +62,7 @@ def test_build_missing_metrics_raises_app_exception() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     context = AdapterContext(
         execution=execution,
@@ -127,7 +127,7 @@ def test_build_success_with_llm_explanation() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     cache = RenderedSynthesisCache(
         extension_metrics=ExtensionMetricsDTO(
@@ -208,7 +208,7 @@ def test_build_misaligned_and_fallback_explanation() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     cache = RenderedSynthesisCache(
         extension_metrics=ExtensionMetricsDTO(

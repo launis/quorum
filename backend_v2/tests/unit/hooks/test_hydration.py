@@ -19,7 +19,7 @@ def test_hydrate_global_inputs_no_source() -> None:
     state = HookState(
         execution_id="exe_123",
         workflow_id="wor_456",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"existing": "data"}),
         global_context_vars=GlobalContextVarsDTO(vars={"random_var": {"not_a": "source"}}),
     )
@@ -37,7 +37,7 @@ def test_hydrate_global_inputs_empty_updates() -> None:
     state = HookState(
         execution_id="exe_123",
         workflow_id="wor_456",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"existing": "data"}),
         global_context_vars=GlobalContextVarsDTO(vars={"valid_var": {"inputs": {}}}),
     )
@@ -55,7 +55,7 @@ def test_hydrate_global_inputs_success() -> None:
     state = HookState(
         execution_id="exe_123",
         workflow_id="wor_456",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"existing": "data"}),
         global_context_vars=GlobalContextVarsDTO(
             vars={"valid_var": {"inputs": {"new": "data", "existing": "overridden"}}}
@@ -75,7 +75,7 @@ def test_hydrate_global_inputs_ignores_non_dict() -> None:
     state = HookState(
         execution_id="exe_123",
         workflow_id="wor_456",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"existing": "data"}),
         global_context_vars=GlobalContextVarsDTO(vars={"string_var": "I am not a dict"}),
     )

@@ -44,7 +44,7 @@ def test_inject_step_metadata_success() -> None:
         workflow_id="wf_456",
         step_id="step_789",
         task_blueprint="bp_step",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(vars={"_sys_initiator_id": "user_admin"}),
     )
@@ -76,7 +76,7 @@ def test_inject_step_metadata_missing_execution_id_raises() -> None:
         execution_id="",
         workflow_id="wf_1",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
     )

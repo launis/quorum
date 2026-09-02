@@ -42,6 +42,7 @@ from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
     ExecutionStatus,
+    ExecutionStep,
     ExecutionStepState,
     FrozenContext,
     I18nText,
@@ -175,6 +176,9 @@ class NodeExecutor:
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         step_def: Step | None = None,
         global_context_vars: dict[str, Any] | None = None,
+        target_locale: str = "en",
+        output_profile_id: str | None = None,
+        organization_id: str | None = None,
     ) -> list[TraceEvent]:
         """Executes a pipeline node strategy with static parameters.
 
@@ -257,39 +261,16 @@ class NodeExecutor:
 
             if global_context_vars is not None:
                 resolved_global_vars = global_context_vars
-            elif isinstance(metadata, ExecutionMetadata):
-                resolved_global_vars = (
-                    metadata.global_context_vars
-                    if metadata.global_context_vars is not None
-                    else {"language": metadata.target_locale}
-                )
-            elif not isinstance(metadata, (str, int, float, bool, list)) and metadata is not None:
-                try:
-                    resolved_global_vars = (
-                        metadata["global_context_vars"]
-                        if "global_context_vars" in metadata and metadata["global_context_vars"] is not None
-                        else {"language": metadata["target_locale"] if "target_locale" in metadata else None}
-                    )
-                except KeyError, TypeError:
-                    resolved_global_vars = {}
+            elif isinstance(metadata, ExecutionMetadata) and metadata.global_context_vars is not None:
+                resolved_global_vars = metadata.global_context_vars
             else:
                 resolved_global_vars = {}
-
-            org_id = (
-                metadata.organization_id
-                if isinstance(metadata, ExecutionMetadata)
-                else (
-                    metadata["organization_id"]
-                    if not isinstance(metadata, (str, int, float, bool, list))
-                    and metadata is not None
-                    and "organization_id" in metadata
-                    else None
-                )
-            )
 
             context = StrategyContext(
                 execution_id=execution_id,
                 workflow_id=workflow_id,
+                target_locale=target_locale,
+                output_profile_id=output_profile_id,
                 metadata=metadata,
                 expected_inputs=expected_inputs,
                 model_strategy=step_def.model_strategy,
@@ -299,7 +280,7 @@ class NodeExecutor:
                 prompt_blocks=loaded_prompt_blocks,
             )
 
-            await strategy_impl.assert_quota(org_id=org_id)
+            await strategy_impl.assert_quota(org_id=organization_id)
 
             return await strategy_impl.execute(
                 step=step,
@@ -446,7 +427,8 @@ class DAGExecutor:
             else (raw_inputs.language if raw_inputs and raw_inputs.language else "en")
         )
 
-        step_states = {}
+        steps: list[ExecutionStep] = []
+        step_states: dict[str, ExecutionStep] = {}
         for step in workflow.steps:
             step_def = step_definitions.get(step.task_blueprint) if step.task_blueprint else None
             if step_def and isinstance(step_def.name, I18nText):
@@ -455,33 +437,41 @@ class DAGExecutor:
                 step_label = step_def.name
             else:
                 step_label = step.id
-            step_states[step.id] = ExecutionStepState(
+            st = ExecutionStep(
                 id=step.id,
                 label=step_label,
                 status=ExecutionStatus.PENDING,
             )
+            steps.append(st)
+            step_states[step.id] = st
 
         if existing_record:
             exec_record = existing_record.model_copy(update={"status": ExecutionStatus.RUNNING})
-            if not exec_record.step_states:
-                exec_record = exec_record.model_copy(update={"step_states": step_states})
+            if not exec_record.steps:
+                exec_record = exec_record.model_copy(update={"steps": steps, "step_states": step_states})
             else:
+                updated_steps = []
                 updated_states = {}
-                for s_id, s_state in exec_record.step_states.items():
-                    if s_id in step_states and (s_state.label == s_id or not s_state.label):
-                        updated_states[s_id] = s_state.model_copy(update={"label": step_states[s_id].label})
-                    else:
-                        updated_states[s_id] = s_state
-                exec_record = exec_record.model_copy(update={"step_states": updated_states})
+                for s in exec_record.steps:
+                    matching_label = step_states[s.id].label if s.id in step_states else s.label
+                    new_s = s.model_copy(update={"label": matching_label}) if (s.label == s.id or not s.label) else s
+                    updated_steps.append(new_s)
+                    updated_states[new_s.id] = new_s
+                exec_record = exec_record.model_copy(update={"steps": updated_steps, "step_states": updated_states})
 
             v_step_id = f"sys_render_{exec_record.output_profile_id}"
-            if v_step_id not in exec_record.step_states:
+            if not any(s.id == v_step_id for s in exec_record.steps):
+                v_step = ExecutionStep(id=v_step_id, label="system.virtual.rendering", status=ExecutionStatus.PENDING)
+                new_steps = list(exec_record.steps) + [v_step]
                 new_states = dict(exec_record.step_states)
-                new_states[v_step_id] = ExecutionStepState(
-                    id=v_step_id, label="system.virtual.rendering", status=ExecutionStatus.PENDING
-                )
-                exec_record = exec_record.model_copy(update={"step_states": new_states})
+                new_states[v_step_id] = v_step
+                exec_record = exec_record.model_copy(update={"steps": new_steps, "step_states": new_states})
         else:
+            v_step_id = f"sys_render_{workflow.default_profile_id}"
+            v_step = ExecutionStep(id=v_step_id, label="system.virtual.rendering", status=ExecutionStatus.PENDING)
+            all_steps = list(steps) + [v_step]
+            all_states = dict(step_states)
+            all_states[v_step_id] = v_step
             exec_record = create_execution_record(
                 execution_id=execution_id,
                 workflow_id=workflow.id,
@@ -489,22 +479,16 @@ class DAGExecutor:
                 frozen_context=FrozenContext(),
                 source_identity_manifest={},
                 status=ExecutionStatus.RUNNING,
-                step_states=step_states,
+                steps=all_steps,
+                step_states=all_states,
                 output_profile_id=workflow.default_profile_id,
             )
-            v_step_id = f"sys_render_{workflow.default_profile_id}"
-            if v_step_id not in exec_record.step_states:
-                new_states = dict(exec_record.step_states)
-                new_states[v_step_id] = ExecutionStepState(
-                    id=v_step_id, label="system.virtual.rendering", status=ExecutionStatus.PENDING
-                )
-                exec_record = exec_record.model_copy(update={"step_states": new_states})
 
         if exec_record.target_locale:
             set_language(exec_record.target_locale)
 
         global_vars: dict[str, Any] = {}
-        user_id = exec_record.metadata.user_id or exec_record.raw_inputs.user_id
+        user_id = exec_record.created_by or (exec_record.raw_inputs.user_id if exec_record.raw_inputs else None)
         if user_id:
             user_data = await self.identity_repo.get_user(user_id)
             if user_data:
@@ -550,7 +534,7 @@ class DAGExecutor:
                 global_hook_state = HookState(
                     execution_id=execution_id,
                     workflow_id=workflow.id,
-                    metadata=exec_record.metadata,
+                    metadata=exec_record.metadata or ExecutionMetadata(),
                     global_context_vars=GlobalContextVarsDTO(vars=global_vars),
                     inputs=ExecutionInputsDTO(
                         raw_inputs=inputs_dict, dynamic_inputs=exec_record.raw_inputs.dynamic_inputs
@@ -766,7 +750,10 @@ class DAGExecutor:
                                 step=step_obj,
                                 execution_id=execution_id,
                                 workflow_id=workflow.id,
-                                metadata=exec_record.metadata,
+                                metadata=exec_record.metadata or ExecutionMetadata(),
+                                target_locale=exec_record.target_locale,
+                                output_profile_id=exec_record.output_profile_id,
+                                organization_id=exec_record.organization_id,
                                 projector=projector,
                                 expected_inputs=workflow.expected_inputs,
                                 frozen_ctx=exec_record.frozen_context,

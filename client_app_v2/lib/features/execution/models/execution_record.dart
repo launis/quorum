@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:client_app/core/utils/safe_isolate.dart';
 import 'package:client_app/features/execution/models/execution_metadata.dart';
+import 'package:client_app/features/execution/models/execution_step.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -33,10 +34,15 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'duration_ms') int? durationMs,
     @JsonKey(name: 'cost_estimate') double? costEstimate,
+    @JsonKey(name: 'prompt_tokens') @Default(0) int promptTokens,
+    @JsonKey(name: 'completion_tokens') @Default(0) int completionTokens,
+    @JsonKey(name: 'cached_tokens') @Default(0) int cachedTokens,
+    @JsonKey(name: 'reasoning_tokens') @Default(0) int reasoningTokens,
+    @JsonKey(name: 'dag_cost_usd') @Default(0.0) double dagCostUsd,
     @JsonKey(name: 'cumulative_synthesis_tokens')
     int? cumulativeSynthesisTokens,
     @JsonKey(name: 'cumulative_synthesis_cost') double? cumulativeSynthesisCost,
-    @JsonKey(name: 'models_used') Map<String, int>? modelsUsed,
+    @JsonKey(name: 'models_used') List<String>? modelsUsed,
     @JsonKey(name: 'metadata') ExecutionMetadata? metadata,
     @JsonKey(name: 'error') String? error,
     @JsonKey(name: 'is_resumable') bool? isResumable,
@@ -53,6 +59,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'pdf_report_path') String? pdfReportPath,
     @JsonKey(name: 'source_identity_manifest')
     Map<String, String>? sourceIdentityManifest,
+    @JsonKey(name: 'steps') @Default([]) List<ExecutionStep> steps,
     @JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,
     @JsonKey(name: 'profile_syntheses') Map<String, dynamic>? profileSyntheses,
     @JsonKey(name: 'results') Map<String, dynamic>? results,

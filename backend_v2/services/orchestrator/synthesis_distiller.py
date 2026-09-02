@@ -214,9 +214,17 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    raw_locale = state.metadata.target_locale
+    raw_locale = (
+        state.inputs.target_locale
+        if state.inputs and state.inputs.target_locale
+        else (
+            state.global_context_vars.vars["language"]
+            if state.global_context_vars and "language" in state.global_context_vars.vars
+            else None
+        )
+    )
     if not raw_locale or not str(raw_locale).strip():
-        msg = "Strict Fail-Fast Enforced: 'target_locale' in execution metadata must be a non-empty string."
+        msg = "Strict Fail-Fast Enforced: 'target_locale' must be a non-empty string."
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
     target_locale = str(raw_locale).strip().lower()

@@ -63,8 +63,6 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
         i18n_inputs["language"] = state.global_context_vars.vars["language"]
     elif state.inputs and state.inputs.target_locale:
         i18n_inputs["language"] = state.inputs.target_locale
-    elif state.metadata and state.metadata.target_locale:
-        i18n_inputs["language"] = state.metadata.target_locale
 
     try:
         lang_payload = I18nStatePayload.model_validate(i18n_inputs)

@@ -81,6 +81,7 @@ def test_reduce_matrix() -> None:
     record = MagicMock()
     record.id = "exe_12345678901234567890123456789012"
     record.duration_ms = 100
+    record.steps = [step_state]
     record.step_states = {"step_1": step_state}
 
     reduced = MatrixReducer.reduce_matrix(record)

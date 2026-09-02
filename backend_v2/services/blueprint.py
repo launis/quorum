@@ -357,17 +357,8 @@ class BlueprintTransformer:
             execution = execution.model_copy(update={"step_states": new_step_states})
             await self.exec_repo.update_execution(execution.id, ExecutionUpdateDTO(step_states=new_step_states))
 
-        total_exec_cost = 0.0
-        total_exec_tokens = 0
-        if execution.metadata:
-            total_exec_cost = (
-                float(execution.metadata.dag_cost_usd) if execution.metadata.dag_cost_usd is not None else 0.0
-            )
-            total_exec_tokens = int(
-                (execution.metadata.prompt_tokens if execution.metadata.prompt_tokens is not None else 0)
-                + (execution.metadata.completion_tokens if execution.metadata.completion_tokens is not None else 0)
-                + (execution.metadata.reasoning_tokens if execution.metadata.reasoning_tokens is not None else 0)
-            )
+        total_exec_cost = float(execution.dag_cost_usd)
+        total_exec_tokens = int(execution.prompt_tokens + execution.completion_tokens + execution.reasoning_tokens)
 
         combined_cost = total_exec_cost + execution.cumulative_synthesis_cost
         combined_tokens = total_exec_tokens + execution.cumulative_synthesis_tokens

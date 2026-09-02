@@ -57,7 +57,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         output_profile_id="prof_1111111111111111",
         status=ExecutionStatus.PASSED,
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         execution_trace=[
             TraceEvent(
                 v=1,
@@ -198,7 +198,7 @@ def _setup_mock_repo_for_metrics(
         output_profile_id="prof_1111111111111111",
         status=ExecutionStatus.PASSED,
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         execution_trace=trace_events,
         context_variables={},
     )

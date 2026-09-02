@@ -26,6 +26,11 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'strictness_level',
         'duration_ms',
         'cost_estimate',
+        'prompt_tokens',
+        'completion_tokens',
+        'cached_tokens',
+        'reasoning_tokens',
+        'dag_cost_usd',
         'cumulative_synthesis_tokens',
         'cumulative_synthesis_cost',
         'models_used',
@@ -40,6 +45,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'execution_trace_storage_path',
         'pdf_report_path',
         'source_identity_manifest',
+        'steps',
         'step_states',
         'profile_syntheses',
         'results',
@@ -83,6 +89,26 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'cost_estimate',
         (v) => (v as num?)?.toDouble(),
       ),
+      promptTokens: $checkedConvert(
+        'prompt_tokens',
+        (v) => (v as num?)?.toInt() ?? 0,
+      ),
+      completionTokens: $checkedConvert(
+        'completion_tokens',
+        (v) => (v as num?)?.toInt() ?? 0,
+      ),
+      cachedTokens: $checkedConvert(
+        'cached_tokens',
+        (v) => (v as num?)?.toInt() ?? 0,
+      ),
+      reasoningTokens: $checkedConvert(
+        'reasoning_tokens',
+        (v) => (v as num?)?.toInt() ?? 0,
+      ),
+      dagCostUsd: $checkedConvert(
+        'dag_cost_usd',
+        (v) => (v as num?)?.toDouble() ?? 0.0,
+      ),
       cumulativeSynthesisTokens: $checkedConvert(
         'cumulative_synthesis_tokens',
         (v) => (v as num?)?.toInt(),
@@ -93,9 +119,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       ),
       modelsUsed: $checkedConvert(
         'models_used',
-        (v) => (v as Map<String, dynamic>?)?.map(
-          (k, e) => MapEntry(k, (e as num).toInt()),
-        ),
+        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
       ),
       metadata: $checkedConvert(
         'metadata',
@@ -138,6 +162,14 @@ _ExecutionRecord _$ExecutionRecordFromJson(
           (k, e) => MapEntry(k, e as String),
         ),
       ),
+      steps: $checkedConvert(
+        'steps',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => ExecutionStep.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
       stepStates: $checkedConvert(
         'step_states',
         (v) => v as Map<String, dynamic>?,
@@ -173,6 +205,11 @@ _ExecutionRecord _$ExecutionRecordFromJson(
     'strictnessLevel': 'strictness_level',
     'durationMs': 'duration_ms',
     'costEstimate': 'cost_estimate',
+    'promptTokens': 'prompt_tokens',
+    'completionTokens': 'completion_tokens',
+    'cachedTokens': 'cached_tokens',
+    'reasoningTokens': 'reasoning_tokens',
+    'dagCostUsd': 'dag_cost_usd',
     'cumulativeSynthesisTokens': 'cumulative_synthesis_tokens',
     'cumulativeSynthesisCost': 'cumulative_synthesis_cost',
     'modelsUsed': 'models_used',
@@ -210,6 +247,11 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'strictness_level': instance.strictnessLevel,
       'duration_ms': instance.durationMs,
       'cost_estimate': instance.costEstimate,
+      'prompt_tokens': instance.promptTokens,
+      'completion_tokens': instance.completionTokens,
+      'cached_tokens': instance.cachedTokens,
+      'reasoning_tokens': instance.reasoningTokens,
+      'dag_cost_usd': instance.dagCostUsd,
       'cumulative_synthesis_tokens': instance.cumulativeSynthesisTokens,
       'cumulative_synthesis_cost': instance.cumulativeSynthesisCost,
       'models_used': instance.modelsUsed,
@@ -224,6 +266,7 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'execution_trace_storage_path': instance.executionTraceStoragePath,
       'pdf_report_path': instance.pdfReportPath,
       'source_identity_manifest': instance.sourceIdentityManifest,
+      'steps': instance.steps.map((e) => e.toJson()).toList(),
       'step_states': instance.stepStates,
       'profile_syntheses': instance.profileSyntheses,
       'results': instance.results,

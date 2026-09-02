@@ -52,7 +52,9 @@ def engine_request(mock_compiler: MagicMock, base_shuffled_atoms: list[Flattened
         context=StrategyContext(
             execution_id="exe_abc12345",
             workflow_id="wor_xyz12345",
-            metadata=ExecutionMetadata(profile_id="prof_1", target_locale="fi"),
+            output_profile_id="prof_1",
+            target_locale="fi",
+            metadata=ExecutionMetadata(),
         ),
         global_source_text="Test source text",
         target_locale="fi",

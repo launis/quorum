@@ -36,7 +36,9 @@ def base_request() -> EngineExecutionRequest:
     context = StrategyContext(
         execution_id="exe_1111111111111111",
         workflow_id="wf_1111111111111111",
-        metadata=ExecutionMetadata(profile_id="prof_1111111111111111", target_locale="en"),
+        output_profile_id="prof_1111111111111111",
+        target_locale="en",
+        metadata=ExecutionMetadata(),
         expected_inputs=[],
         model_strategy="fast",
         strictness_level=0,

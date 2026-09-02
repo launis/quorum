@@ -86,7 +86,7 @@ def base_hook_state() -> HookState:
         task_blueprint="step_0123456789abcdef0123456789abcdef",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en", matrix_sampling_strategy=1),
+        metadata=ExecutionMetadata(matrix_sampling_strategy=1),
     )
 
 
@@ -107,7 +107,7 @@ def mock_step() -> Step:
 async def test_atom_flattening_missing_strategy_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
     """Test that invalid negative matrix_sampling_strategy triggers fail-fast."""
     state = base_hook_state.model_copy(
-        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=-5)}
+        update={"metadata": ExecutionMetadata.model_construct(matrix_sampling_strategy=-5)}
     )
 
     mock_workflow_repo = AsyncMock()
@@ -135,7 +135,7 @@ async def test_atom_flattening_missing_strategy_fails_fast(base_hook_state: Hook
 async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
     """Test that invalid matrix_sampling_strategy triggers fail-fast."""
     state = base_hook_state.model_copy(
-        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=-1)}
+        update={"metadata": ExecutionMetadata.model_construct(matrix_sampling_strategy=-1)}
     )
 
     mock_workflow_repo = AsyncMock()
@@ -179,9 +179,7 @@ async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, m
     )
 
     # Use STRATIFIED_3
-    state = base_hook_state.model_copy(
-        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=3)}
-    )
+    state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=3)})
 
     result = await process_matrix_flattening(state, deps)
 
@@ -220,9 +218,7 @@ async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookSta
     )
 
     # Use ALL
-    state = base_hook_state.model_copy(
-        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=0)}
-    )
+    state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=0)})
 
     result = await process_matrix_flattening(state, deps)
 
@@ -421,9 +417,7 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
         system_repo=AsyncMock(),
     )
 
-    state = base_hook_state.model_copy(
-        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=0)}
-    )
+    state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=0)})
     result = await process_matrix_flattening(state, deps)
 
     assert result.success is True
@@ -517,9 +511,7 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     )
 
     # Use sampling strategy 1 (select 1 atom initially)
-    state = base_hook_state.model_copy(
-        update={"metadata": ExecutionMetadata(target_locale="en", matrix_sampling_strategy=1)}
-    )
+    state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=1)})
     result = await process_matrix_flattening(state, deps)
 
     assert result.success is True

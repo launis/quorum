@@ -34,7 +34,7 @@ def test_verify_output_language_detects_english_leakage() -> None:
     state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -73,7 +73,7 @@ def test_verify_output_language_ignores_finnish_text() -> None:
     state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -104,7 +104,7 @@ def test_verify_output_language_allows_english_when_target_en() -> None:
     state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -121,7 +121,7 @@ def test_verify_structure_fails_fast_on_empty_raw_inputs() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -150,7 +150,7 @@ def test_verify_structure_success_with_valid_content() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -176,7 +176,7 @@ def test_verify_structure_fails_on_short_or_empty_field() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -204,7 +204,7 @@ def test_verify_structure_ignored_keys_and_no_content() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -235,7 +235,7 @@ def test_verify_structure_nested_inputs_unpacked() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -257,9 +257,9 @@ def test_verify_output_language_invalid_inputs_raises() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={"evaluation_notes": 12345}),
+        inputs=ExecutionInputsDTO(raw_inputs={"evaluation_notes": 12345}, target_locale="fi"),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -281,7 +281,7 @@ def test_verify_anomaly_empty_inputs_returns_success() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
     )
@@ -306,7 +306,7 @@ def test_verify_structure_invalid_payload_source_raises() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(),
     )
@@ -331,12 +331,13 @@ def test_verify_output_language_invalid_system_warnings_raises() -> None:
         raw_inputs={
             "evaluation_notes": "The user was very good and the system is fine.",
             "_system_warnings": "not_a_list",
-        }
+        },
+        target_locale="fi",
     )
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -369,7 +370,7 @@ def test_verify_anomaly_invalid_atom_type() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -424,7 +425,7 @@ def test_verify_output_language_missing_target_locale_raises() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale=""),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -457,7 +458,7 @@ def test_verify_anomaly_detects_guttman_inversion() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
@@ -494,7 +495,7 @@ def test_verify_anomaly_passes_when_no_inversion() -> None:
     state = HookState(
         execution_id="exec-1",
         workflow_id="wf-1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )

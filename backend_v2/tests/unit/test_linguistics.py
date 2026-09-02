@@ -57,7 +57,7 @@ async def test_detect_performative_patterns_success_en(mock_deps: HookDependenci
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
@@ -102,7 +102,7 @@ async def test_detect_performative_patterns_success_fi(mock_deps: HookDependenci
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "fi-FI"}),
         inputs=ExecutionInputsDTO(
             raw_inputs={"q1": "Tämä on täysin mullistava innovaatio.", "q2": "Syventyä asiaan tarkemmin."}
@@ -141,7 +141,7 @@ async def test_detect_performative_patterns_no_matches(mock_deps: HookDependenci
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
             raw_inputs={"q1": "Just some plain text that is completely fine.", "q2": "Nothing to see here."}
@@ -176,7 +176,7 @@ async def test_detect_performative_patterns_heterogeneous_metadata_payload(mock_
         execution_id="exe_f63119cec7e14224803b557b8e843650",
         workflow_id="wf_executive_review",
         step_id="sr_f0a26d17cc9b48a7",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
         inputs=ExecutionInputsDTO(
             raw_inputs={

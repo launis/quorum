@@ -23,12 +23,12 @@ def test_hook_state_instantiation() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="stp_1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"g": "v"}),
         inputs=ExecutionInputsDTO(raw_inputs={"in": "1"}),
     )
     assert state.execution_id == "exec_1"
-    assert state.metadata.target_locale == "en"
+    assert state.metadata.workflow_version == 1
     assert state.inputs.raw_inputs == {"in": "1"}
     assert state.global_context_vars.vars == {"g": "v"}
 
@@ -39,7 +39,7 @@ def test_hook_state_rejects_invalid_inputs() -> None:
         HookState(
             execution_id="exec_1",
             workflow_id="wf_1",
-            metadata=ExecutionMetadata(target_locale="en"),
+            metadata=ExecutionMetadata(),
             global_context_vars=GlobalContextVarsDTO(),
             inputs=12345,  # type: ignore[arg-type]
         )
@@ -51,7 +51,7 @@ def test_hook_state_strictness() -> None:
         HookState(
             execution_id="exec_1",
             workflow_id="wf_1",
-            metadata=ExecutionMetadata(target_locale="en"),
+            metadata=ExecutionMetadata(),
             global_context_vars=GlobalContextVarsDTO(),
             inputs=ExecutionInputsDTO(),
             extra="fail",  # type: ignore[call-arg]
@@ -94,7 +94,7 @@ async def test_hook_registry_register_and_execute_sync_and_async() -> None:
             execution_id="exec_1",
             workflow_id="wf_1",
             step_id="stp_1",
-            metadata=ExecutionMetadata(target_locale="en"),
+            metadata=ExecutionMetadata(),
             global_context_vars=GlobalContextVarsDTO(),
             inputs=ExecutionInputsDTO(raw_inputs={"param": 1}),
         )
@@ -144,7 +144,7 @@ async def test_hook_registry_fail_fast_conditions() -> None:
         state = HookState(
             execution_id="e",
             workflow_id="w",
-            metadata=ExecutionMetadata(target_locale="en"),
+            metadata=ExecutionMetadata(),
             global_context_vars=GlobalContextVarsDTO(),
             inputs=ExecutionInputsDTO(),
         )

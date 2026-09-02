@@ -88,7 +88,7 @@ async def test_preflight_inflated_by_chat_xml_and_ai_text() -> None:
         workflow_id="wf_1234567890abcdef",
         output_profile_id="prof_1234567890abcdef",
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi", profile_id=None),
+        metadata=ExecutionMetadata(),
         raw_inputs=WorkflowInputs(dynamic_inputs=dynamic_inputs),
     )
 

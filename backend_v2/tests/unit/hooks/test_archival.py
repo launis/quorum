@@ -32,7 +32,7 @@ async def test_retrieve_precedent_hook_missing_repo_raises() -> None:
         execution_id="exec_1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
     deps.exec_repo = None
@@ -49,7 +49,7 @@ async def test_retrieve_precedent_hook_missing_updated_at_integrity_error() -> N
         execution_id="exec_1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
@@ -59,7 +59,7 @@ async def test_retrieve_precedent_hook_missing_updated_at_integrity_error() -> N
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         created_at=now,
         raw_inputs={},
     )
@@ -83,7 +83,7 @@ async def test_retrieve_precedent_hook_success() -> None:
         execution_id="exec_1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
@@ -93,7 +93,7 @@ async def test_retrieve_precedent_hook_success() -> None:
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         created_at=now,
         updated_at=now,
         completed_at=now,
@@ -152,7 +152,7 @@ async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyP
         execution_id="exec_1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
@@ -162,7 +162,7 @@ async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyP
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         created_at=now,
         updated_at=now,
         completed_at=now,
@@ -207,7 +207,7 @@ async def test_retrieve_precedent_hook_invalid_judge_output_raises() -> None:
         execution_id="exec_1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
@@ -217,7 +217,7 @@ async def test_retrieve_precedent_hook_invalid_judge_output_raises() -> None:
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         created_at=now,
         updated_at=now,
         completed_at=now,
@@ -250,7 +250,7 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
         execution_id="exec_1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
@@ -260,7 +260,7 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         created_at=now,
         updated_at=now,
         completed_at=now,
@@ -294,7 +294,7 @@ async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.Monke
         execution_id="exec_1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
@@ -304,7 +304,7 @@ async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.Monke
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         created_at=now,
         updated_at=now,
         completed_at=now,

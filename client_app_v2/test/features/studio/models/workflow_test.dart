@@ -7,35 +7,32 @@ import 'package:client_app/features/studio/models/workflow.dart';
 void main() {
   // Phase 1, Step 4: Renamed from 'Epic 11 Phase B: NodeStrategy Strict Parsing'
   group('NodeStrategy Strict Parsing', () {
-    test(
-      'Successfully parses valid expectedInputs via Isolate',
-      () async {
-        final payload = {
-          'id': 'st_a1b2c3d4e5f60000',
-          'slug': 'test_slug',
-          'name': {
-            'translations': {'en': 'Test'},
-          },
-          'type': 'llm',
-          'model_strategy': 'fast',
-          'expected_inputs': ['doc_id', 'prompt_text'],
-        };
+    test('Successfully parses valid expectedInputs via Isolate', () async {
+      final payload = {
+        'id': 'st_a1b2c3d4e5f60000',
+        'slug': 'test_slug',
+        'name': {
+          'translations': {'en': 'Test'},
+        },
+        'type': 'llm',
+        'model_strategy': 'fast',
+        'expected_inputs': ['doc_id', 'prompt_text'],
+      };
 
-        final NodeStrategy parsed = await Isolate.run(() {
-          return NodeStrategy.fromJson(payload);
-        });
+      final NodeStrategy parsed = await Isolate.run(() {
+        return NodeStrategy.fromJson(payload);
+      });
 
-        expect(parsed, isA<NodeStrategyLlm>());
+      expect(parsed, isA<NodeStrategyLlm>());
 
-        // Dart 3 'switch' pattern matching to unpack sealed class securely
-        switch (parsed) {
-          case NodeStrategyLlm l:
-            expect(l.expectedInputs, equals(['doc_id', 'prompt_text']));
-          case NodeStrategyLogic _:
-            fail('Should be LLM');
-        }
-      },
-    );
+      // Dart 3 'switch' pattern matching to unpack sealed class securely
+      switch (parsed) {
+        case NodeStrategyLlm l:
+          expect(l.expectedInputs, equals(['doc_id', 'prompt_text']));
+        case NodeStrategyLogic _:
+          fail('Should be LLM');
+      }
+    });
 
     test(
       'Fails-Fast when expectedInputs is the wrong type (Map instead of List)',
@@ -246,25 +243,22 @@ void main() {
   });
 
   group('Workflow Schema Parity & Purged Fields Verification', () {
-    test(
-      'Workflow.toJson() must not contain purged legacy field ui_schema',
-      () {
-        const workflow = Workflow(
-          id: 'wf_0123456789abcdef',
-          slug: 'test_wf',
-          name: I18nText(translations: {'en': 'Test Workflow'}),
-          description: I18nText(translations: {'en': 'Test Description'}),
-        );
+    test('Workflow.toJson() must not contain purged legacy field ui_schema', () {
+      const workflow = Workflow(
+        id: 'wf_0123456789abcdef',
+        slug: 'test_wf',
+        name: I18nText(translations: {'en': 'Test Workflow'}),
+        description: I18nText(translations: {'en': 'Test Description'}),
+      );
 
-        final json = workflow.toJson();
-        expect(
-          json.containsKey('ui_schema'),
-          isFalse,
-          reason:
-              'ui_schema was purged in Epic 150 and causes 422 extra_forbidden on backend PUT',
-        );
-      },
-    );
+      final json = workflow.toJson();
+      expect(
+        json.containsKey('ui_schema'),
+        isFalse,
+        reason:
+            'ui_schema was purged in Epic 150 and causes 422 extra_forbidden on backend PUT',
+      );
+    });
 
     test(
       'NodeStrategy.toJson() must not contain purged legacy field output_schema',
@@ -287,4 +281,3 @@ void main() {
     );
   });
 }
-

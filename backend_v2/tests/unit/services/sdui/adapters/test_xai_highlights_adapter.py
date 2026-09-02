@@ -41,7 +41,7 @@ def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fix
         output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     context = AdapterContext(
         execution=execution,
@@ -76,7 +76,7 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
             )
         ],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
 
     context = AdapterContext(
@@ -120,7 +120,7 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
             )
         ],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     context = AdapterContext(
         execution=execution,
@@ -156,7 +156,7 @@ def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfi
         output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     context = AdapterContext(
         execution=execution,
@@ -184,7 +184,7 @@ def test_build_graceful_degradation_disabled_extensions(valid_output_profile_fix
         output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     disabled_profile = valid_output_profile_fixture.model_copy(update={"visible_block_extensions": []})
     context = AdapterContext(
@@ -214,7 +214,7 @@ def test_build_graceful_degradation_zero_max_items(valid_output_profile_fixture:
         output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     zero_max_profile = valid_output_profile_fixture.model_copy(update={"max_extension_items": 0})
     context = AdapterContext(
@@ -244,7 +244,7 @@ def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: Out
         output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     profile = valid_output_profile_fixture.model_copy(update={"max_extension_items": 2})
 
@@ -327,7 +327,7 @@ def test_build_malformed_highlight_item_skipped(
         output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     context = AdapterContext(
         execution=execution,
@@ -377,7 +377,7 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
         output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     monkeypatch.setattr(xai_highlights_adapter, "XAI_AESTHETICS_RULES", {})
 
@@ -416,7 +416,7 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
         output_profile_id="prf_0123456789abcdef",
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
 
     # Test each block-level extension type individually

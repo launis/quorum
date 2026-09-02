@@ -48,7 +48,7 @@ async def test_epic_93_e2e_golden_master() -> None:
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
         frozen_context=frozen,
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         execution_trace=[
             TraceEvent(
                 step_name="step_analyst",
@@ -82,7 +82,7 @@ async def test_epic_93_e2e_golden_master() -> None:
                 },
             ),
         ],
-        active_profile_id=profile_id,
+        output_profile_id=profile_id,
     )
 
     # Workflow Mock
@@ -284,11 +284,12 @@ async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
     mock_exec_repo.get_execution.return_value = ExecutionRecord(
         id=execution_id,
         workflow_id=wf_id,
+        output_profile_id="prf_11111111111111111111111111111111",
         status=ExecutionStatus.PASSED,
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
         frozen_context=FrozenContext(ui_hints_snapshot={}),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
     )
 
@@ -344,11 +345,12 @@ async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
     mock_exec_repo.get_execution.return_value = ExecutionRecord(
         id=execution_id,
         workflow_id=wf_id,
+        output_profile_id="prf_22222222222222222222222222222222",
         status=ExecutionStatus.PASSED,
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
         frozen_context=FrozenContext(ui_hints_snapshot={}),
         target_locale="",
-        metadata=ExecutionMetadata(target_locale=""),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
     )
 
@@ -404,11 +406,12 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
     mock_exec_repo.get_execution.return_value = ExecutionRecord(
         id=execution_id,
         workflow_id=wf_id,
+        output_profile_id=profile_id,
         status=ExecutionStatus.PASSED,
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "dummy"}),
         frozen_context=FrozenContext(ui_hints_snapshot={}),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         execution_trace=[
             TraceEvent(
                 step_name="step_analyst",
@@ -418,7 +421,6 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
                 },
             )
         ],
-        active_profile_id=profile_id,
     )
 
     mock_workflow = {

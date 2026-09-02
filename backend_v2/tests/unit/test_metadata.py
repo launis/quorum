@@ -42,7 +42,7 @@ def test_inject_step_metadata_missing_execution_id_fails() -> None:
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
     with pytest.raises(AppException) as exc_info:
@@ -58,7 +58,7 @@ def test_inject_step_metadata_missing_step_id_fails() -> None:
         step_id="",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
     with pytest.raises(AppException) as exc_info:
@@ -74,7 +74,7 @@ def test_inject_step_metadata_missing_workflow_id_fails() -> None:
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
     with pytest.raises(AppException) as exc_info:
@@ -90,7 +90,7 @@ def test_inject_step_metadata_missing_global_context_vars_fails() -> None:
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     object.__setattr__(state, "global_context_vars", None)
     deps = MagicMock(spec=HookDependencies)
@@ -108,7 +108,7 @@ def test_inject_step_metadata_custom_values() -> None:
         step_id="step_123",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(vars={"_sys_initiator_id": "usr_777"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -145,7 +145,7 @@ def test_inject_step_metadata_validation_failure() -> None:
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(vars={"_sys_initiator_id": 12345}),  # Int instead of str
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),

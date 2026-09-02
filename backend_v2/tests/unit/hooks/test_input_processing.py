@@ -82,7 +82,7 @@ async def test_process_inputs_missing_context() -> None:
         execution_id="",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock()
 
@@ -99,7 +99,7 @@ async def test_process_inputs_missing_language() -> None:
         execution_id="e1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(vars={"language": ""}),
-        metadata=ExecutionMetadata(target_locale=""),
+        metadata=ExecutionMetadata(),
     )
 
     mock_workflow_repo = MagicMock()
@@ -172,7 +172,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
         workflow_id="wf_123",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "QUESTIONNAIRE": {
@@ -227,7 +227,7 @@ async def test_process_inputs_workflow_not_found() -> None:
         workflow_id="not_found",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -252,7 +252,7 @@ async def test_process_inputs_missing_required_input(monkeypatch: pytest.MonkeyP
         workflow_id="wf_123",
         inputs=ExecutionInputsDTO(raw_inputs={"QUESTIONNAIRE": ""}),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -311,7 +311,7 @@ async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyP
         workflow_id="wf_chat",
         inputs=ExecutionInputsDTO(raw_inputs={"CHAT_LOG": '{"conversation": [{"role": "user", "content": "Hello"}]}'}),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -373,7 +373,7 @@ async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pyte
         workflow_id="wf_smooth",
         inputs=ExecutionInputsDTO(raw_inputs={"DOC": "Matti Meikäläinen at test"}),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -420,7 +420,7 @@ async def test_process_inputs_dynamic_inputs_resolution(monkeypatch: pytest.Monk
             dynamic_inputs={"document_text": "Dynamic input document text"},
         ),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -479,7 +479,7 @@ async def test_process_inputs_missing_english_ai_description(monkeypatch: pytest
         workflow_id="wf_nodesc",
         inputs=ExecutionInputsDTO(raw_inputs={"DOC": "Some text"}),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -511,7 +511,7 @@ async def test_process_inputs_with_gvars_resolution(monkeypatch: pytest.MonkeyPa
             }
         ),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "en", "document_text": "Gvars doc text"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),

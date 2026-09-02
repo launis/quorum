@@ -50,7 +50,7 @@ async def test_blueprint_authenticity_evaluation_success() -> None:
             )
         },
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
 
     mock_profile_repo = AsyncMock()

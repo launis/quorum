@@ -22,7 +22,7 @@ async def test_generate_bibliography_hook_success() -> None:
         step_id="step1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "This is a dummy text for testing citations."}),
         global_context_vars=GlobalContextVarsDTO(vars={"knowledge_base": {"concepts": []}}),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
 
     deps = HookDependencies(
@@ -82,7 +82,7 @@ async def test_generate_bibliography_hook_invalid_inputs_raises() -> None:
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     object.__setattr__(state, "inputs", mock_inputs)
     deps = MagicMock(spec=HookDependencies)
@@ -105,7 +105,7 @@ async def test_generate_bibliography_hook_none_gvars_raises() -> None:
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     object.__setattr__(state, "global_context_vars", None)
     deps = MagicMock(spec=HookDependencies)
@@ -128,7 +128,7 @@ async def test_generate_bibliography_hook_invalid_context_raises() -> None:
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
         global_context_vars=GlobalContextVarsDTO(vars={"knowledge_base": "not_a_dict"}),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
 
@@ -149,7 +149,7 @@ async def test_generate_bibliography_hook_empty_text_short_circuit() -> None:
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": ""}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
 
@@ -171,7 +171,7 @@ async def test_generate_bibliography_hook_with_step_coach_and_no_kb_in_gvars() -
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(vars={"step_coach": {"coach_note": "Great"}}),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
 
@@ -207,7 +207,7 @@ async def test_generate_bibliography_hook_unexpected_error_raises() -> None:
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "Valid text"}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
 

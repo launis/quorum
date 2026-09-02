@@ -27,7 +27,7 @@ def test_sanitize_text_hook_fails_fast_on_invalid_inputs(mock_repository: AsyncM
         execution_id="exe_123",
         workflow_id="wf_123",
         inputs=None,  # type: ignore[arg-type]
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
     )
     deps = HookDependencies(
@@ -54,7 +54,7 @@ def test_sanitize_text_hook_fails_fast_on_list_inputs(mock_repository: AsyncMock
         execution_id="exe_123",
         workflow_id="wf_123",
         inputs=["invalid", "list"],  # type: ignore[arg-type]
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
     )
     deps = HookDependencies(
@@ -86,7 +86,7 @@ def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, mock_reposi
         execution_id="exe_123",
         workflow_id="wf_123",
         inputs=ExecutionInputsDTO(raw_inputs={"test_field": "This is a safe string."}),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
     )
     deps = HookDependencies(
@@ -126,7 +126,7 @@ def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, m
                 "list_field": ["some", "data"],
             }
         ),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
     )
     deps = HookDependencies(
@@ -162,8 +162,8 @@ def test_sanitize_text_hook_resolves_language_from_execution_metadata(
     state = HookState(
         execution_id="exe_123",
         workflow_id="wf_123",
-        inputs=ExecutionInputsDTO(raw_inputs={"text": "Sensitiivinen teksti."}),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        inputs=ExecutionInputsDTO(raw_inputs={"text": "Sensitiivinen teksti."}, target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
@@ -235,8 +235,8 @@ def test_sanitize_text_hook_detects_threats(mock_get_pii_service: MagicMock) -> 
     state = HookState(
         execution_id="exe_123",
         workflow_id="wf_123",
-        inputs=ExecutionInputsDTO(raw_inputs={"name": "John Doe"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        inputs=ExecutionInputsDTO(raw_inputs={"name": "John Doe"}, target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
@@ -268,8 +268,8 @@ def test_sanitize_text_hook_mask_pii_failure(mock_get_pii_service: MagicMock) ->
     state = HookState(
         execution_id="exe_123",
         workflow_id="wf_123",
-        inputs=ExecutionInputsDTO(raw_inputs={"text": "Sensitive data"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        inputs=ExecutionInputsDTO(raw_inputs={"text": "Sensitive data"}, target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
@@ -300,8 +300,8 @@ def test_sanitize_text_hook_dto_creation_failure(mock_get_pii_service: MagicMock
     state = HookState(
         execution_id="exe_123",
         workflow_id="wf_123",
-        inputs=ExecutionInputsDTO(raw_inputs={"text": "safe"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        inputs=ExecutionInputsDTO(raw_inputs={"text": "safe"}, target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(

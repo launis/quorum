@@ -194,7 +194,9 @@ from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.v2_core import (
     ExecutionRecord,
+    ExecutionStep,
     ExecutionStepState,
+    ExecutionSummarySnapshot,
     FrozenContext,
     MCPAuditTrace,
     RenderedSynthesisCache,
@@ -209,7 +211,9 @@ _state_localns = {
     "TombstoneEvent": TombstoneEvent,
     "DataStarvationEvent": DataStarvationEvent,
     "AnySduiBlock": AnySduiBlock,
+    "ExecutionStep": ExecutionStep,
     "ExecutionStepState": ExecutionStepState,
+    "ExecutionSummarySnapshot": ExecutionSummarySnapshot,
     "FrozenContext": FrozenContext,
     "RenderedSynthesisCache": RenderedSynthesisCache,
     "WorkflowInputsIngress": WorkflowInputsIngress,

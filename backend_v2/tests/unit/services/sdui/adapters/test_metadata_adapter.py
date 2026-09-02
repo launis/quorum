@@ -38,7 +38,7 @@ def test_metadata_adapter_builds_header_block_bilingual_en() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     context = AdapterContext(
         execution=execution,
@@ -77,7 +77,7 @@ def test_metadata_adapter_builds_header_block_bilingual_fi() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     context = AdapterContext(
         execution=execution,
@@ -124,7 +124,7 @@ def test_metadata_adapter_all_fields_with_local_time_and_costs() -> None:
         created_at=datetime(2026, 1, 1, 10, 0),
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     context = AdapterContext(
         execution=execution,

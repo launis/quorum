@@ -113,7 +113,7 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
         context=StrategyContext(
             execution_id="exe_abc12345",
             workflow_id="wor_xyz12345",
-            metadata=ExecutionMetadata(target_locale="fi", profile_id="prof_123"),
+            metadata=ExecutionMetadata(),
         ),
         global_source_text="Test source text",
         target_locale="fi",
@@ -171,7 +171,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(profile_id="prof_123", target_locale="en")
+    context.metadata = ExecutionMetadata()
     context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0

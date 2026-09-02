@@ -51,6 +51,7 @@ from backend_v2.models.dtos.trace import (
     TraceEventMetadataEnvelope,
 )
 from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor, TargetBlockType
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
     DEFAULT_COACHING_TONE_MANDATE,
@@ -73,7 +74,8 @@ from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
     DataStarvationEvent,
     ExecutionRecord,
-    ExecutionStepState,
+    ExecutionStep,
+    ExecutionSummarySnapshot,
     ExtensionMetricsDTO,
     OutputProfile,
     RenderedSynthesisCache,
@@ -246,11 +248,11 @@ async def execute_workflow_job(
 
             # Final Status Update (Completed)
             if exec_id:
-                # Phase 2, Step 2.1: Parse execution_trace to extract final models_used and step_metrics
+                # Phase 2, Step 2.1: Parse execution_trace to extract final models_used, step_telemetry, and FinOps
                 models_used: dict[str, int] = (
                     updated_exec_record.models_used.copy() if updated_exec_record.models_used else {}
                 )
-                step_metrics: dict[str, Any] = {}
+                step_telemetry: dict[str, dict[str, Any]] = {}
                 total_cost_usd = 0.0
                 total_prompt_tokens = 0
                 total_completion_tokens = 0
@@ -280,63 +282,110 @@ async def execute_workflow_job(
                         total_cost_usd += usage.cost_usd
                         t_tokens = usage.total_tokens
                         c_cost = usage.cost_usd
+                        p_tokens = usage.prompt_tokens
+                        comp_tokens = usage.completion_tokens
+                        cac_tokens = usage.cached_tokens
+                        reas_tokens = usage.reasoning_tokens
                     else:
                         t_tokens = 0
                         c_cost = 0.0
+                        p_tokens = 0
+                        comp_tokens = 0
+                        cac_tokens = 0
+                        reas_tokens = 0
 
                     curr_model_tokens = models_used[model_strategy] if model_strategy in models_used else 0
                     models_used[model_strategy] = curr_model_tokens + t_tokens
 
                     step_id = event.step_name
-                    if step_id not in step_metrics:
-                        step_metrics[step_id] = {
-                            "model": model_strategy,
+                    if step_id not in step_telemetry:
+                        step_telemetry[step_id] = {
+                            "model_strategy": model_strategy,
+                            "physical_model": step_meta.physical_model,
+                            "system_fingerprint": step_meta.system_fingerprint,
+                            "prompt_tokens": 0,
+                            "completion_tokens": 0,
+                            "cached_tokens": 0,
+                            "reasoning_tokens": 0,
                             "cost_usd": 0.0,
-                            "total_tokens": 0,
                             "chunk_count": 0,
                         }
-                    step_metrics[step_id]["cost_usd"] += c_cost
-                    step_metrics[step_id]["total_tokens"] += t_tokens
-                    step_metrics[step_id]["chunk_count"] += chunk_size
+                    st_entry = step_telemetry[step_id]
+                    if step_meta.physical_model and not st_entry["physical_model"]:
+                        st_entry["physical_model"] = step_meta.physical_model
+                    if step_meta.system_fingerprint and not st_entry["system_fingerprint"]:
+                        st_entry["system_fingerprint"] = step_meta.system_fingerprint
+                    st_entry["prompt_tokens"] += p_tokens
+                    st_entry["completion_tokens"] += comp_tokens
+                    st_entry["cached_tokens"] += cac_tokens
+                    st_entry["reasoning_tokens"] += reas_tokens
+                    st_entry["cost_usd"] += c_cost
+                    st_entry["chunk_count"] += chunk_size
+
+                # Build updated ExecutionStep list
+                updated_steps: list[ExecutionStep] = []
+                existing_steps = (
+                    updated_exec_record.steps
+                    if updated_exec_record.steps
+                    else [
+                        ExecutionStep(
+                            id=k,
+                            label=v.label,
+                            status=v.status,
+                            last_error=v.last_error,
+                            message_code=v.message_code,
+                            scorecard_atoms=v.scorecard_atoms,
+                        )
+                        for k, v in updated_exec_record.step_states.items()
+                    ]
+                )
+                for st in existing_steps:
+                    tel = step_telemetry.get(st.id)
+                    if tel:
+                        updated_st = st.model_copy(
+                            update={
+                                "model_strategy": tel["model_strategy"],
+                                "physical_model": tel["physical_model"],
+                                "system_fingerprint": tel["system_fingerprint"],
+                                "prompt_tokens": tel["prompt_tokens"],
+                                "completion_tokens": tel["completion_tokens"],
+                                "cached_tokens": tel["cached_tokens"],
+                                "reasoning_tokens": tel["reasoning_tokens"],
+                                "cost_usd": tel["cost_usd"],
+                                "chunk_count": max(1, tel["chunk_count"]),
+                            }
+                        )
+                        updated_steps.append(updated_st)
+                    else:
+                        updated_steps.append(st)
 
                 actual_locale = updated_exec_record.target_locale
 
-                # Execution fingerprint snapshot
-                execution_summary = {
-                    "strictness_level": strictness_level,
-                    "target_locale": actual_locale,
-                    "is_ensemble_run": workflow_def.default_strictness_level >= 3,
-                    "system_concurrency_snapshot": {
+                # Execution summary snapshot
+                summary_snapshot = ExecutionSummarySnapshot(
+                    strictness_level=strictness_level,
+                    is_ensemble_run=(workflow_def.default_strictness_level >= 3),
+                    is_degraded=is_degraded,
+                    system_concurrency_snapshot={
                         "LLM_MAX_CHUNK_SIZE": get_settings().llm_max_chunk_size,
                         "SCHEMA_MAX_EVALUATIONS": get_settings().schema_max_evaluations,
                         "SCHEMA_MAX_CHUNK_RECORDS": get_settings().schema_max_chunk_records,
                         "MATRIX_SAMPLING_LIMIT": get_settings().matrix_sampling_limit,
                     },
-                    "models_used": models_used,
-                    "cost_estimate": total_cost_usd,
-                    "is_degraded": is_degraded,
-                    "aggregated_usage": {
-                        "prompt_tokens": total_prompt_tokens,
-                        "completion_tokens": total_completion_tokens,
-                        "cached_tokens": total_cached_tokens,
-                        "reasoning_tokens": total_reasoning_tokens,
-                    },
-                }
+                )
 
-                updated_metadata = updated_exec_record.metadata.model_copy(
+                updated_exec_record = updated_exec_record.model_copy(
                     update={
-                        "execution_summary": execution_summary,
-                        "step_metrics": step_metrics,
+                        "models_used": models_used,
+                        "cost_estimate": total_cost_usd,
                         "dag_cost_usd": total_cost_usd,
                         "prompt_tokens": total_prompt_tokens,
                         "completion_tokens": total_completion_tokens,
                         "cached_tokens": total_cached_tokens,
                         "reasoning_tokens": total_reasoning_tokens,
+                        "execution_summary": summary_snapshot,
+                        "steps": updated_steps,
                     }
-                )
-
-                updated_exec_record = updated_exec_record.model_copy(
-                    update={"models_used": models_used, "cost_estimate": total_cost_usd, "metadata": updated_metadata}
                 )
 
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
@@ -348,29 +397,37 @@ async def execute_workflow_job(
                     profile_id = updated_exec_record.output_profile_id
 
                     v_step_id = f"sys_render_{profile_id}"
-                    v_step = ExecutionStepState(
+                    v_step = ExecutionStep(
                         id=v_step_id, label="Generating Output Report", status=ExecutionStatus.RUNNING
                     )
 
+                    new_steps = [s for s in updated_exec_record.steps if s.id != v_step_id] + [v_step]
                     new_states = dict(updated_exec_record.step_states)
                     new_states[v_step_id] = v_step
-                    updated_exec_record = updated_exec_record.model_copy(update={"step_states": new_states})
+                    updated_exec_record = updated_exec_record.model_copy(
+                        update={"steps": new_steps, "step_states": new_states}
+                    )
 
                     await repository.update_execution(
                         exec_id,
                         ExecutionUpdateDTO(
                             status=ExecutionStatus.RUNNING,  # keep execution running until PDF is done
+                            steps=updated_exec_record.steps,
                             step_states=updated_exec_record.step_states,
                             duration_ms=duration_ms,
                             models_used=models_used,
                             metadata=updated_exec_record.metadata,
                             cost_estimate=total_cost_usd,
+                            dag_cost_usd=total_cost_usd,
+                            prompt_tokens=total_prompt_tokens,
+                            completion_tokens=total_completion_tokens,
+                            cached_tokens=total_cached_tokens,
+                            reasoning_tokens=total_reasoning_tokens,
+                            execution_summary=summary_snapshot,
                             execution_trace=updated_exec_record.execution_trace,
                         ),
                     )
 
-                if redis:
-                    # Enqueue the background synthesis and PDF generation
                     await redis.enqueue_job(
                         "render_profile_job", exec_id, accept_language=actual_locale, profile_id=profile_id
                     )
@@ -382,10 +439,18 @@ async def execute_workflow_job(
                         ExecutionUpdateDTO(
                             status=ExecutionStatus.PASSED,
                             completed_at=datetime.now(UTC),
+                            steps=updated_exec_record.steps,
+                            step_states=updated_exec_record.step_states,
                             duration_ms=duration_ms,
                             models_used=models_used,
                             metadata=updated_exec_record.metadata,
                             cost_estimate=total_cost_usd,
+                            dag_cost_usd=total_cost_usd,
+                            prompt_tokens=total_prompt_tokens,
+                            completion_tokens=total_completion_tokens,
+                            cached_tokens=total_cached_tokens,
+                            reasoning_tokens=total_reasoning_tokens,
+                            execution_summary=summary_snapshot,
                             execution_trace=updated_exec_record.execution_trace,
                         ),
                     )
@@ -541,20 +606,28 @@ async def generate_pdf_task(
 
         exec_record_local = await repo.get_execution(execution_id, hydrate=False)
         step_states = None
+        steps = None
         if exec_record_local:
             exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
             if v_step_id in exec_record_local.step_states:
                 old_state = exec_record_local.step_states[v_step_id]
                 new_states = dict(exec_record_local.step_states)
-                new_states[v_step_id] = old_state.model_copy(update={"status": ExecutionStatus.PASSED})
-                exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
+                new_step = old_state.model_copy(update={"status": ExecutionStatus.PASSED})
+                new_states[v_step_id] = new_step
+                new_steps = [
+                    s.model_copy(update={"status": ExecutionStatus.PASSED}) if s.id == v_step_id else s
+                    for s in exec_record_local.steps
+                ]
+                exec_record_local = exec_record_local.model_copy(update={"step_states": new_states, "steps": new_steps})
             step_states = exec_record_local.step_states
+            steps = exec_record_local.steps
 
         await repo.update_execution(
             execution_id,
             ExecutionUpdateDTO(
                 pdf_report_path=saved_path,
                 status=ExecutionStatus.PASSED,
+                steps=steps,
                 step_states=step_states,
             ),
         )
@@ -573,17 +646,26 @@ async def generate_pdf_task(
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
             fail_step_states = None
+            fail_steps = None
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
                 exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     new_states = dict(exec_record_local.step_states)
-                    new_states[v_step_id] = old_state.model_copy(
-                        update={"status": ExecutionStatus.FAILED, "last_error": str(e)}
+                    new_step = old_state.model_copy(update={"status": ExecutionStatus.FAILED, "last_error": str(e)})
+                    new_states[v_step_id] = new_step
+                    new_steps = [
+                        s.model_copy(update={"status": ExecutionStatus.FAILED, "last_error": str(e)})
+                        if s.id == v_step_id
+                        else s
+                        for s in exec_record_local.steps
+                    ]
+                    exec_record_local = exec_record_local.model_copy(
+                        update={"step_states": new_states, "steps": new_steps}
                     )
-                    exec_record_local = exec_record_local.model_copy(update={"step_states": new_states})
                 fail_step_states = exec_record_local.step_states
+                fail_steps = exec_record_local.steps
 
             await repo.update_execution(
                 execution_id,
@@ -591,6 +673,7 @@ async def generate_pdf_task(
                     status=ExecutionStatus.FAILED,
                     error=f"PDF Generation failed: {str(e)}",
                     completed_at=datetime.now(UTC),
+                    steps=fail_steps,
                     step_states=fail_step_states,
                 ),
             )
@@ -666,6 +749,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
         # V2 MANDATE: Strict Pydantic parsing at the boundary
         execution = ExecutionRecord.model_validate(execution_data, strict=False)
+        v_step_id = f"sys_render_{profile_id}"
 
         syntheses = execution.profile_syntheses if execution.profile_syntheses is not None else {}
         has_synthesis = profile_id in syntheses
@@ -676,18 +760,28 @@ async def generate_profile_synthesis_and_pdf_task(
             return
 
         async def _update_render_status(msg: str) -> None:
-            v_step_id = f"sys_render_{profile_id}"
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
                 exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
-                old_state = exec_record_local.step_states.get(v_step_id)
+                old_state = (
+                    exec_record_local.step_states[v_step_id] if v_step_id in exec_record_local.step_states else None
+                )
                 if old_state:
                     updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING})
                 else:
-                    updated_state = ExecutionStepState(id=v_step_id, label=msg, status=ExecutionStatus.RUNNING)
+                    updated_state = ExecutionStep(id=v_step_id, label=msg, status=ExecutionStatus.RUNNING)
                 new_states = dict(exec_record_local.step_states)
                 new_states[v_step_id] = updated_state
-                await repo.update_execution(execution_id, ExecutionUpdateDTO(step_states=new_states))
+                new_steps = [
+                    s.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING}) if s.id == v_step_id else s
+                    for s in exec_record_local.steps
+                ]
+                if not any(s.id == v_step_id for s in exec_record_local.steps):
+                    new_steps.append(updated_state)
+                await repo.update_execution(
+                    execution_id,
+                    ExecutionUpdateDTO(steps=new_steps, step_states=new_states),
+                )
 
         await _update_render_status("Lasketaan dynaamisia tuloksia...")
 
@@ -850,20 +944,15 @@ async def generate_profile_synthesis_and_pdf_task(
         await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
         is_synthesis_expected = active_profile_dto.is_synthesis_expected if active_profile_dto else True
 
-        # Inject dynamic locale and execution context into hook_metadata for synthesis_distiller
-        hook_metadata = execution.metadata.model_copy(
-            update={
-                "profile_id": profile_id,
-                "target_locale": accept_language,
-            }
-        )
+        # Inject dynamic locale and execution context into hook_state for synthesis_distiller
+        hook_metadata = execution.metadata or ExecutionMetadata()
 
         hook_state = HookState(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
             metadata=hook_metadata,
-            global_context_vars=GlobalContextVarsDTO(),
-            inputs=ExecutionInputsDTO(dynamic_inputs={"steps": final_inputs}),
+            global_context_vars=GlobalContextVarsDTO(vars={"language": accept_language, "profile_id": profile_id}),
+            inputs=ExecutionInputsDTO(target_locale=accept_language, dynamic_inputs={"steps": final_inputs}),
         )
         hook_deps = HookDependencies(
             exec_repo=repo,
@@ -1363,6 +1452,7 @@ async def generate_profile_synthesis_and_pdf_task(
             repo = UnifiedWorkflowRepository(driver)
             v_step_id = f"sys_render_{profile_id}"
             fail_step_states = None
+            fail_steps = None
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
                 exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
@@ -1373,15 +1463,25 @@ async def generate_profile_synthesis_and_pdf_task(
                     )
                     new_step_states = dict(exec_record_local.step_states)
                     new_step_states[v_step_id] = updated_state
-                    exec_record_local = exec_record_local.model_copy(update={"step_states": new_step_states})
+                    new_steps = [
+                        s.model_copy(update={"status": ExecutionStatus.FAILED, "last_error": str(e)})
+                        if s.id == v_step_id
+                        else s
+                        for s in exec_record_local.steps
+                    ]
+                    exec_record_local = exec_record_local.model_copy(
+                        update={"step_states": new_step_states, "steps": new_steps}
+                    )
                 fail_step_states = exec_record_local.step_states
+                fail_steps = exec_record_local.steps
 
             await repo.update_execution(
                 execution_id,
                 ExecutionUpdateDTO(
                     status=ExecutionStatus.FAILED,
-                    error=f"Text Synthesis failed: {str(e)}",
+                    error=f"Render Profile Job failed: {str(e)}",
                     completed_at=datetime.now(UTC),
+                    steps=fail_steps,
                     step_states=fail_step_states,
                 ),
             )

@@ -14,7 +14,7 @@ def test_execution_record_status_casing() -> None:
             workflow_id="wor_1234567890123456",
             status="running",
             target_locale="fi",
-            metadata=ExecutionMetadata(target_locale="fi"),
+            metadata=ExecutionMetadata(),
         )
     assert "Input should be" in str(exc.value)
 
@@ -25,6 +25,6 @@ def test_execution_record_status_casing() -> None:
         output_profile_id="prof_1",
         status="RUNNING",
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     assert record.status == "RUNNING"

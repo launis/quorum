@@ -48,7 +48,7 @@ def test_verify_structure_valid_inputs() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"reflection_text": "Tämä on riittävän pitkä vastaus analyysiin."}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -76,7 +76,7 @@ def test_verify_structure_empty_input_warning_raises() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"reflection_text": "   "}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -102,8 +102,11 @@ def test_verify_output_language_no_leakage() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
-        inputs=ExecutionInputsDTO(raw_inputs={"evaluation_notes": "Tämä arviointi on tehty suomeksi."}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"evaluation_notes": "Tämä arviointi on tehty suomeksi."},
+            target_locale="fi",
+        ),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
@@ -128,8 +131,11 @@ def test_verify_output_language_detects_english_leakage() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
-        inputs=ExecutionInputsDTO(raw_inputs={"evaluation_notes": "This is from the report with that finding."}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"evaluation_notes": "This is from the report with that finding."},
+            target_locale="fi",
+        ),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
@@ -161,7 +167,7 @@ def test_verify_anomaly_detected() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"matrix_results": atoms}),
         global_context_vars=GlobalContextVarsDTO(),
     )

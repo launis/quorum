@@ -30,7 +30,7 @@ async def test_render_execution_json_default_profile_resolves() -> None:
     mock_record.target_locale = "en"
     mock_record.status = ExecutionStatus.PASSED
     mock_record.organization_id = "org_1"
-    mock_record.metadata = ExecutionMetadata(target_locale="en")
+    mock_record.metadata = ExecutionMetadata()
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"
     # "prof_1" on oletusprofiili-ID, joten profiilisynteesi löytyy sille

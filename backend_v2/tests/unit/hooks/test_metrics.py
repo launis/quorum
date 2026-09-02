@@ -36,7 +36,7 @@ def test_text_metrics_uses_user_only_data(mock_settings: MagicMock) -> None:
             }
         ),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
 
     deps = MagicMock()
@@ -90,7 +90,7 @@ def test_calculate_control_ratio_hook() -> None:
         execution_id="test",
         inputs=ExecutionInputsDTO(raw_inputs={"input_text": "user: Hello\nai: Bye"}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock()
     res = calculate_control_ratio_hook(state, deps)
@@ -106,7 +106,7 @@ def test_calculate_control_ratio_hook_invalid_payload() -> None:
         execution_id="test",
         inputs=inputs,
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock()
     with pytest.raises(AppException) as exc:
@@ -120,7 +120,7 @@ def test_text_metrics_empty_input_raises() -> None:
         execution_id="test",
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "   "}),
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock()
     with pytest.raises(AppException) as exc:
@@ -136,7 +136,7 @@ def test_text_metrics_invalid_payload_raises() -> None:
         execution_id="test",
         inputs=inputs,
         global_context_vars=GlobalContextVarsDTO(),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     deps = MagicMock()
     with pytest.raises(AppException) as exc:

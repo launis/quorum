@@ -103,7 +103,7 @@ def test_engine_execution_request_semaphore_cm_and_fields() -> None:
     context = StrategyContext(
         execution_id="exe_1",
         workflow_id="wf_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         model_strategy="fast",
     )
     client = MagicMock(spec=LLMClient)

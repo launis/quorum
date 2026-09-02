@@ -237,7 +237,7 @@ async def test_build_historical_context_all_branches() -> None:
     state = HookState(
         execution_id="ex_0000000000000000",
         workflow_id="wf_1111111111111111",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"user_id": "u1", "organization_id": "org1"}),
         inputs=ExecutionInputsDTO(),
     )
@@ -250,7 +250,7 @@ async def test_build_historical_context_all_branches() -> None:
     empty_state = HookState(
         execution_id="ex_0000000000000000",
         workflow_id="wf_1111111111111111",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(),
     )
@@ -265,7 +265,7 @@ async def test_build_historical_context_all_branches() -> None:
         status=ExecutionStatus.PASSED,
         completed_at=datetime.now(timezone.utc),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
+        metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_1": RenderedSynthesisCache(
                 section_syntheses={"sec1": [ParagraphBlock(text="Past synthesis 1")]},
@@ -278,7 +278,7 @@ async def test_build_historical_context_all_branches() -> None:
         output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
+        metadata=ExecutionMetadata(),
     )
     past_exec3 = ExecutionRecord(
         id="ex_2222222222222222",  # should be ignored
@@ -286,7 +286,7 @@ async def test_build_historical_context_all_branches() -> None:
         output_profile_id="prof_1",
         status=ExecutionStatus.FAILED,
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1"),
+        metadata=ExecutionMetadata(),
     )
 
     cast_repo = deps.exec_repo

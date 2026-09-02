@@ -14,12 +14,18 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.core.hook_registry import ExecutionInputsDTO, HookDependencies, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookState,
+)
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.hooks.source_verification_hook import source_verification_hook
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.enums import TargetBlockType
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import MCPAuditTrace, OutputProfile
 from backend_v2.models.view.sdui import MarkdownBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -54,9 +60,9 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         step_id="sp_76eedbc020274f66",
-        metadata={"target_locale": "fi"},
-        global_context_vars={},
-        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}),
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}, target_locale="fi"),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -167,9 +173,9 @@ async def test_full_e2e_tavily_empty_claims_skips_search_and_hides_sdui_block() 
         execution_id="exe_2222333344445555",
         workflow_id="wor_2222333344445555",
         step_id="sp_76eedbc020274f66",
-        metadata={"target_locale": "fi"},
-        global_context_vars={},
-        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}),
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}, target_locale="fi"),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),

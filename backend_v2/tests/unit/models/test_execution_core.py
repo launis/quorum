@@ -105,7 +105,7 @@ class TestExecutionCoreFieldsValidation:
         payload = {
             "id": "exe_1234567890abcdef",
             "workflow_id": "wor_1234567890abcdef",
-            "metadata": {"target_locale": "en"},
+            "metadata": {},
         }
         with pytest.raises(ValidationError):
             ExecutionRecord.model_validate(payload)
@@ -120,7 +120,7 @@ class TestExecutionCoreFieldsValidation:
             "output_profile_id": "prof_1234567890abcdef",
             "target_locale": "en",
             "status": "PASSED",
-            "metadata": {"target_locale": "en"},
+            "metadata": {"workflow_version": 1},
             "frozen_context": None,
             "frozen_context_storage_path": "executions/exe_1234567890abcdef/frozen_context.json",
         }
@@ -144,123 +144,38 @@ class TestExecutionMetadata:
         assert config.get("extra") == "forbid"
 
     def test_defaults(self) -> None:
-        """Verify default values on ExecutionMetadata when target_locale is provided."""
-        meta = ExecutionMetadata(target_locale="en")
-        assert meta.target_locale == "en"
-        assert meta.profile_id is None
+        """Verify default values on ExecutionMetadata."""
+        meta = ExecutionMetadata()
         assert meta.matrix_sampling_strategy == 10
         assert meta.workflow_version == 1
-        assert meta.user_id is None
-        assert meta.organization_id is None
-
-    def test_fail_fast_on_missing_target_locale(self) -> None:
-        """Missing mandatory target_locale must fail fast."""
-        with pytest.raises(ValidationError):
-            ExecutionMetadata.model_validate({})
+        assert meta.global_context_vars is None
 
     def test_custom_values(self) -> None:
         """Verify custom values initialization."""
         meta = ExecutionMetadata(
-            target_locale="fi",
-            profile_id="prof-1",
             matrix_sampling_strategy=20,
             workflow_version=2,
-            user_id="usr-1",
-            organization_id="org-1",
+            global_context_vars={"language": "fi"},
         )
-        assert meta.target_locale == "fi"
-        assert meta.profile_id == "prof-1"
         assert meta.matrix_sampling_strategy == 20
         assert meta.workflow_version == 2
-        assert meta.user_id == "usr-1"
-        assert meta.organization_id == "org-1"
+        assert meta.global_context_vars == {"language": "fi"}
 
     def test_fail_fast_on_extra_fields(self) -> None:
         """Extra fields must crash immediately (extra=forbid)."""
         with pytest.raises(ValidationError):
             ExecutionMetadata.model_validate({"rogue_field": "crash"})
 
-    def test_execution_metadata_accepts_telemetry_and_context_fields(self) -> None:
-        """Verify ExecutionMetadata accepts proven runtime telemetry and context fields written by worker."""
-        payload = {
-            "target_locale": "fi",
-            "global_context_vars": {"language": "fi"},
-            "execution_summary": {"strictness_level": 85},
-            "step_metrics": {"sr_1_cost_usd": 0.05},
-            "dag_cost_usd": 0.414,
-            "prompt_tokens": 1000,
-            "completion_tokens": 200,
-            "cached_tokens": 300,
-            "reasoning_tokens": 50,
-        }
-        meta = ExecutionMetadata.model_validate(payload)
-        assert meta.global_context_vars == {"language": "fi"}
-        assert meta.execution_summary == {"strictness_level": 85}
-        assert meta.step_metrics == {"sr_1_cost_usd": 0.05}
-        assert meta.dag_cost_usd == 0.414
-        assert meta.prompt_tokens == 1000
-        assert meta.completion_tokens == 200
-        assert meta.cached_tokens == 300
-        assert meta.reasoning_tokens == 50
+    def test_deprecated_finops_and_duplication_fields_rejected(self) -> None:
+        """Verify ExecutionMetadata rejects deprecated fields (target_locale, prompt_tokens, dag_cost_usd)."""
+        with pytest.raises(ValidationError):
+            ExecutionMetadata.model_validate({"target_locale": "fi"})
 
-    def test_execution_metadata_worker_nested_summary_and_metrics_regression(self) -> None:
-        """Regression test for 500 error when hydrating ExecutionRecord from database.
+        with pytest.raises(ValidationError):
+            ExecutionMetadata.model_validate({"dag_cost_usd": 0.414})
 
-        Worker generates structured execution_summary (with system_concurrency_snapshot,
-        models_used, aggregated_usage) and step_metrics (with nested dicts per step).
-        ExecutionMetadata and ExecutionRecord must accept this exact structure.
-        """
-        from backend_v2.models.v2_core import ExecutionRecord
+        with pytest.raises(ValidationError):
+            ExecutionMetadata.model_validate({"prompt_tokens": 1000})
 
-        worker_metadata_payload = {
-            "target_locale": "fi",
-            "execution_summary": {
-                "strictness_level": 85,
-                "target_locale": "fi",
-                "is_ensemble_run": True,
-                "system_concurrency_snapshot": {
-                    "LLM_MAX_CHUNK_SIZE": 8,
-                    "SCHEMA_MAX_EVALUATIONS": 7,
-                    "SCHEMA_MAX_CHUNK_RECORDS": 10,
-                    "MATRIX_SAMPLING_LIMIT": 2,
-                },
-                "models_used": {"gemini-2.5-flash": 1500},
-                "cost_estimate": 0.005,
-                "is_degraded": False,
-                "aggregated_usage": {
-                    "prompt_tokens": 100,
-                    "completion_tokens": 50,
-                    "cached_tokens": 20,
-                    "reasoning_tokens": 10,
-                },
-            },
-            "step_metrics": {
-                "step_1": {
-                    "model": "synthesis",
-                    "cost_usd": 0.005,
-                    "total_tokens": 150,
-                    "chunk_count": 2,
-                }
-            },
-            "dag_cost_usd": 0.005,
-            "prompt_tokens": 100,
-            "completion_tokens": 50,
-            "cached_tokens": 20,
-            "reasoning_tokens": 10,
-        }
-
-        # Validate directly on ExecutionMetadata
-        meta = ExecutionMetadata.model_validate(worker_metadata_payload)
-        assert meta.execution_summary is not None
-
-        # Validate on full ExecutionRecord (simulating database hydration in get_all_executions)
-        execution_record_payload = {
-            "id": "exe_3626b3d8d8fe47cb9de6d6c74d90585f",
-            "workflow_id": "wor_1234567890123456",
-            "output_profile_id": "prof_1234567890123456",
-            "status": "PASSED",
-            "target_locale": "fi",
-            "metadata": worker_metadata_payload,
-        }
-        record = ExecutionRecord.model_validate(execution_record_payload, strict=False)
-        assert record.id == "exe_3626b3d8d8fe47cb9de6d6c74d90585f"
+        with pytest.raises(ValidationError):
+            ExecutionMetadata.model_validate({"step_metrics": {}})

@@ -70,11 +70,10 @@ class ExecutionStatusCard extends ConsumerWidget {
 
         // Extract Metrics
         final cost = record.costEstimate ?? 0.0;
-        final metadata = record.metadata;
-        final promptT = metadata?.promptTokens ?? 0;
-        final completionT = metadata?.completionTokens ?? 0;
-        final cachedT = metadata?.cachedTokens ?? 0;
-        final reasoningT = metadata?.reasoningTokens ?? 0;
+        final promptT = record.promptTokens;
+        final completionT = record.completionTokens;
+        final cachedT = record.cachedTokens;
+        final reasoningT = record.reasoningTokens;
         final totalT = promptT + completionT + reasoningT;
 
         return Column(

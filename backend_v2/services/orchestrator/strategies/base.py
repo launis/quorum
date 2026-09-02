@@ -53,6 +53,8 @@ class StrategyContext(BaseModel):
 
     execution_id: str
     workflow_id: str
+    target_locale: str = "en"
+    output_profile_id: str | None = None
     metadata: ExecutionMetadata
     expected_inputs: list[ExpectedInput] | None = None
     model_strategy: str | None = None

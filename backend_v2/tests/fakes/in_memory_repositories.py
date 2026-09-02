@@ -179,7 +179,7 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
         if "raw_inputs" not in data_dict or data_dict["raw_inputs"] is None:
             data_dict["raw_inputs"] = {}
         if "metadata" not in data_dict or data_dict["metadata"] is None:
-            data_dict["metadata"] = {"target_locale": execution_data.target_locale}
+            data_dict["metadata"] = {}
         record = ExecutionRecord.model_validate(data_dict)
         self._save_isolated(exec_id, record)
         return exec_id

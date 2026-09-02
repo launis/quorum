@@ -24,7 +24,7 @@ def test_flat_file_service_flatten_results() -> None:
         output_profile_id="prof_test",
         status=ExecutionStatus.PASSED,
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
     )
 
@@ -80,7 +80,7 @@ def test_flat_file_service_empty_results() -> None:
         output_profile_id="prof_empty",
         status=ExecutionStatus.FAILED,
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
     )
 

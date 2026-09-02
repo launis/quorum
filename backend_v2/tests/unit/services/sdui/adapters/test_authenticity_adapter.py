@@ -98,7 +98,7 @@ def test_build_missing_metrics_raises_app_exception() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     context = AdapterContext(
         execution=execution,
@@ -128,7 +128,7 @@ def test_build_success_with_metrics() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     cache = RenderedSynthesisCache(
         extension_metrics=ExtensionMetricsDTO(
@@ -172,7 +172,7 @@ def test_build_starved_returns_empty() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     cache = RenderedSynthesisCache(
         data_starvation=DataStarvationEvent(
@@ -205,7 +205,7 @@ def test_build_missing_authenticity_score_raises_app_exception() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     cache = RenderedSynthesisCache(
         extension_metrics=ExtensionMetricsDTO(
@@ -243,7 +243,7 @@ def test_build_fallback_explanation_and_medium_low_levels() -> None:
         execution_trace=[],
         context_variables={},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     # Medium level with no custom row_explanation
     cache_med = RenderedSynthesisCache(

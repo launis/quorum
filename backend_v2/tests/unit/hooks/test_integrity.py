@@ -56,7 +56,7 @@ def test_enforce_hypothesis_linking_hook_bypass() -> None:
         execution_id="exe1",
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"not_analyst": "data"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -82,7 +82,7 @@ def test_enforce_hypothesis_linking_hook_valid() -> None:
                 ],
             }
         ),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -108,7 +108,7 @@ def test_enforce_hypothesis_linking_hook_duplicate_id() -> None:
                 ],
             }
         ),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -125,7 +125,7 @@ async def test_verify_citation_integrity_hook_bypass() -> None:
         execution_id="exe1",
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"not_analyst": "data"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -199,7 +199,7 @@ async def test_verify_citation_integrity_hook_missing_source_texts_raises() -> N
         execution_id="exe1",
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"test": "data"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -233,7 +233,7 @@ async def test_verify_citation_integrity_hook_full_success_with_citations() -> N
                 ],
             }
         ),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -264,7 +264,7 @@ async def test_gather_source_texts_with_storage() -> None:
         output_profile_id="prof_1234567890abcdef",
         target_locale="en",
         status="RUNNING",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         raw_inputs=WorkflowInputs(dynamic_inputs={"dyn_b": "val2"}),
     )
     deps.exec_repo.get_execution.return_value = exec_record
@@ -305,7 +305,7 @@ def test_enforce_hypothesis_linking_empty_hypotheses() -> None:
                 "hypotheses": [],
             }
         ),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)

@@ -51,7 +51,7 @@ async def test_generate_bibliography_hook_success() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"text_payload": "Analysis content"}),
         global_context_vars=GlobalContextVarsDTO(vars={"knowledge_base": {"k1": "v1"}}),
     )
@@ -80,7 +80,7 @@ async def test_generate_bibliography_hook_missing_context_vars_raises() -> None:
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"text_payload": "Analysis"}),
         global_context_vars=GlobalContextVarsDTO(),
     )

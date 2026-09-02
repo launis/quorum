@@ -45,7 +45,7 @@ def test_dlq_guard_success_no_dlqs(dummy_deps: HookDependencies) -> None:
                 ]
             }
         ),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
@@ -71,7 +71,7 @@ def test_dlq_guard_success_under_threshold(dummy_deps: HookDependencies) -> None
                 + [{"atom_id": f"atom_{i}", "status": "PASS"} for i in range(2, 11)]
             }
         ),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
@@ -98,7 +98,7 @@ def test_dlq_guard_fails_over_threshold(dummy_deps: HookDependencies) -> None:
                 + [{"atom_id": f"atom_{i}", "status": "PASS"} for i in range(3, 11)]
             }
         ),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
@@ -115,7 +115,7 @@ def test_dlq_guard_missing_inputs_bypasses(dummy_deps: HookDependencies) -> None
         execution_id="exec_123",
         workflow_id="wor_123",
         inputs=ExecutionInputsDTO(),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     object.__setattr__(state, "inputs", None)
@@ -128,7 +128,7 @@ def test_dlq_guard_missing_evaluations_bypasses(dummy_deps: HookDependencies) ->
         execution_id="exec_123",
         workflow_id="wor_123",
         inputs=ExecutionInputsDTO(raw_inputs={"other_key": "val"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     result = dlq_strict_mode_guard_hook(state, dummy_deps)
@@ -140,7 +140,7 @@ def test_dlq_guard_evaluations_not_list_raises(dummy_deps: HookDependencies) -> 
         execution_id="exec_123",
         workflow_id="wor_123",
         inputs=ExecutionInputsDTO(raw_inputs={"evaluations": "not_a_list"}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     with pytest.raises(AppException) as exc:
@@ -154,7 +154,7 @@ def test_dlq_guard_evaluations_atom_malformed_raises(dummy_deps: HookDependencie
         execution_id="exec_123",
         workflow_id="wor_123",
         inputs=ExecutionInputsDTO(raw_inputs={"evaluations": [{"atom_id": 12345, "extra": "invalid"}]}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     with pytest.raises(AppException) as exc:

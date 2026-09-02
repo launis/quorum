@@ -78,7 +78,7 @@ def test_execution_record_has_context_variables() -> None:
         "output_profile_id": "prof_1234567890123456",
         "status": "PENDING",
         "target_locale": "fi",
-        "metadata": {"target_locale": "fi"},
+        "metadata": {},
         "raw_inputs": {},
         "context_variables": {"report_context": {"output_extensions": []}},
     }

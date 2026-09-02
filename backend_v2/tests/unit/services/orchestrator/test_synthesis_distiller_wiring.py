@@ -64,7 +64,7 @@ def _build_mock_deps() -> HookDependencies:
         "workflow_id": "wor_0123456789abcdef01",
         "status": "PASSED",
         "target_locale": "en",
-        "metadata": {"target_locale": "en", "profile_id": "pro_0123456789abcdef01"},
+        "metadata": {},
         "output_profile_id": "pro_0123456789abcdef01",
         "raw_inputs": {"dynamic_inputs": {}},
         "step_states": {},
@@ -133,8 +133,11 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step1, step2, step3]}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            dynamic_inputs={"steps": [step1, step2, step3]},
+            target_locale="en",
+        ),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
     )
 
@@ -181,7 +184,7 @@ async def test_synthesis_distiller_wiring_invalid_inputs_type_raises_invalid_sch
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -202,8 +205,8 @@ async def test_synthesis_distiller_wiring_missing_steps_key_raises_validation_fa
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"other_key": "data"}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"other_key": "data"}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
@@ -216,17 +219,16 @@ async def test_synthesis_distiller_wiring_missing_steps_key_raises_validation_fa
 
 @pytest.mark.asyncio
 async def test_synthesis_distiller_wiring_missing_target_locale_raises_app_exception() -> None:
-    """Contract: Verify missing 'target_locale' in metadata raises AppException(VALIDATION_FAILED)."""
+    """Contract: Verify missing 'target_locale' in inputs raises AppException(VALIDATION_FAILED)."""
     deps = _build_mock_deps()
 
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    object.__setattr__(state.metadata, "target_locale", "")
 
     with pytest.raises(AppException) as exc_info:
         await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -237,17 +239,16 @@ async def test_synthesis_distiller_wiring_missing_target_locale_raises_app_excep
 
 @pytest.mark.asyncio
 async def test_synthesis_distiller_wiring_whitespace_target_locale_raises_app_exception() -> None:
-    """Contract: Verify whitespace-only 'target_locale' in metadata raises AppException(VALIDATION_FAILED)."""
+    """Contract: Verify whitespace-only 'target_locale' in inputs raises AppException(VALIDATION_FAILED)."""
     deps = _build_mock_deps()
 
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale="   "),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    object.__setattr__(state.metadata, "target_locale", "   ")
 
     with pytest.raises(AppException) as exc_info:
         await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -258,17 +259,16 @@ async def test_synthesis_distiller_wiring_whitespace_target_locale_raises_app_ex
 
 @pytest.mark.asyncio
 async def test_synthesis_distiller_wiring_empty_target_locale_raises_app_exception() -> None:
-    """Contract: Verify empty string 'target_locale' in metadata raises AppException(VALIDATION_FAILED)."""
+    """Contract: Verify empty string 'target_locale' in inputs raises AppException(VALIDATION_FAILED)."""
     deps = _build_mock_deps()
 
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale=""),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    object.__setattr__(state.metadata, "target_locale", "")
 
     with pytest.raises(AppException) as exc_info:
         await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -294,8 +294,8 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [raw_step_dict]}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [raw_step_dict]}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
     )
 
@@ -315,8 +315,8 @@ async def test_synthesis_distiller_wiring_missing_output_profile_id_raises_confi
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
@@ -336,8 +336,8 @@ async def test_synthesis_distiller_wiring_workflow_not_found_raises_resource_not
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_missing_0123456789",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
@@ -357,8 +357,8 @@ async def test_synthesis_distiller_wiring_output_profile_not_found_raises_resour
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
@@ -384,8 +384,8 @@ async def test_synthesis_distiller_wiring_state_delta_purges_legacy_language_key
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="fi", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="fi"),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
     )
 
@@ -415,8 +415,8 @@ async def test_synthesis_distiller_wiring_string_payload_distills_successfully()
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
     )
 
@@ -461,8 +461,11 @@ async def test_synthesis_distiller_wiring_filters_empty_and_metadata_blocks() ->
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_valid, step_empty_dict, step_meta, step_none]}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            dynamic_inputs={"steps": [step_valid, step_empty_dict, step_meta, step_none]},
+            target_locale="en",
+        ),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
     )
 
@@ -548,8 +551,11 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_excluded, step_included]}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            dynamic_inputs={"steps": [step_excluded, step_included]},
+            target_locale="en",
+        ),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
     )
 
@@ -595,8 +601,8 @@ async def test_synthesis_distiller_wiring_forwards_output_profile_limits() -> No
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="pro_0123456789abcdef01"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
     )
 

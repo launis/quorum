@@ -55,6 +55,7 @@ from backend_v2.models.v2_core import (
     ExecutionCreate,
     ExecutionRecord,
     ExecutionStatus,
+    ExecutionStep,
     ExecutionStepState,
     FrozenContext,
     HumanOverrideDTO,
@@ -125,7 +126,7 @@ def create_execution_record(
         resolved_metadata = (
             metadata
             if metadata is not None
-            else (extra_persistence_fields.pop("metadata", None) or ExecutionMetadata(target_locale=target_locale))
+            else (extra_persistence_fields.pop("metadata", None) or ExecutionMetadata())
         )
         if isinstance(resolved_metadata, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
             resolved_metadata = ExecutionMetadata.model_validate(resolved_metadata)
@@ -442,6 +443,7 @@ class ExecutionService:
 
         # V2 MANDATE: Dynamically generate SDUI hints synchronously before execution
         ui_hints: dict[str, DataDictionaryField] = {}
+        steps: list[ExecutionStep] = []
         step_states: dict[str, ExecutionStepState] = {}
         for step_rule in workflow.steps:
             # We fetch the step definition to find its core mapped matrices/blocks
@@ -463,9 +465,9 @@ class ExecutionService:
 
             # Populate initial pending step state for timeline
             step_label = step_obj.name.resolve(target_locale)
-            step_states[step_rule.id] = ExecutionStepState(
-                id=step_rule.id, label=step_label, status=ExecutionStatus.PENDING
-            )
+            st = ExecutionStep(id=step_rule.id, label=step_label, status=ExecutionStatus.PENDING)
+            steps.append(st)
+            step_states[step_rule.id] = st
 
             prompt_blocks_refs = []
             if step_obj.role_block_id:
@@ -567,14 +569,11 @@ class ExecutionService:
             source_identity_manifest=source_identity_manifest,
             output_profile_id=resolved_profile_id,
             target_locale=target_locale,
+            steps=steps,
             step_states=step_states,
             metadata=ExecutionMetadata(
-                target_locale=target_locale,
-                profile_id=resolved_profile_id,
                 matrix_sampling_strategy=payload.matrix_sampling_strategy,
                 workflow_version=workflow.version,
-                user_id=initiator.id,
-                organization_id=initiator.organization_id,
             ),
             created_by=initiator.id,
             organization_id=initiator.organization_id,
@@ -1412,16 +1411,19 @@ class ExecutionService:
 
         # 2. Inject Virtual Step
         v_step_id = f"sys_render_{profile_id}"
-        v_step = ExecutionStepState(id=v_step_id, label=v_step_id, status=ExecutionStatus.RUNNING)
+        v_step = ExecutionStep(id=v_step_id, label=v_step_id, status=ExecutionStatus.RUNNING)
 
         exec_record_local = await self.exec_repo.get_execution(execution_id, hydrate=False)
         if exec_record_local:
-            exec_record_local.step_states[v_step_id] = v_step
+            new_states = dict(exec_record_local.step_states)
+            new_states[v_step_id] = v_step
+            new_steps = [s for s in exec_record_local.steps if s.id != v_step_id] + [v_step]
             await self.exec_repo.update_execution(
                 execution_id,
                 ExecutionUpdateDTO(
                     status=ExecutionStatus.RUNNING,
-                    step_states=exec_record_local.step_states,
+                    steps=new_steps,
+                    step_states=new_states,
                 ),
             )
 

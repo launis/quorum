@@ -57,7 +57,7 @@ def mock_repo() -> AsyncMock:
         "status": ExecutionStatus.PENDING,
         "target_locale": "en",
         "raw_inputs": {"dynamic_inputs": {"log": "test"}},
-        "metadata": {"profile_id": "prof_0000000000000000", "target_locale": "en"},
+        "metadata": {},
     }
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 

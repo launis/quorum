@@ -101,7 +101,7 @@ class MatrixReducer:
         reduced_atoms: list[ReducedAtomDTO] = []
         total_atoms = 0
 
-        for step_state in record.step_states.values():
+        for step_state in record.steps:
             for atom_id, atom in step_state.scorecard_atoms.items():
                 total_atoms += 1
                 if not atom.status:

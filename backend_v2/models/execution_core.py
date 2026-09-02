@@ -24,61 +24,17 @@ class ExecutionMetadata(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    target_locale: Annotated[
-        str,
-        Field(description="Target locale for outputs, e.g. 'fi', 'en'."),
-    ]
-    profile_id: Annotated[
-        str | None,
-        Field(default=None, description="Active or default profile ID for the execution."),
-    ] = None
     matrix_sampling_strategy: Annotated[
         int,
-        Field(default=10, description="Sampling strategy limit for Matrix Flattening."),
+        Field(default=10, ge=0, description="Sampling strategy limit for Matrix Flattening."),
     ] = 10
     workflow_version: Annotated[
         int,
-        Field(default=1, description="Version number of the executing workflow."),
+        Field(default=1, ge=1, description="Version number of the executing workflow."),
     ] = 1
-    user_id: Annotated[
-        str | None,
-        Field(default=None, description="Executing user ID."),
-    ] = None
-    organization_id: Annotated[
-        str | None,
-        Field(default=None, description="Organization ID owning the execution."),
-    ] = None
     global_context_vars: Annotated[
         dict[str, Any] | None,
         Field(default=None, description="Global context variables for hooks."),
-    ] = None
-    execution_summary: Annotated[
-        dict[str, Any] | None,
-        Field(default=None, description="Summary fingerprint of execution."),
-    ] = None
-    step_metrics: Annotated[
-        dict[str, Any] | None,
-        Field(default=None, description="Per-step performance and cost metrics."),
-    ] = None
-    dag_cost_usd: Annotated[
-        float | None,
-        Field(default=None, description="Total financial DAG execution cost in USD."),
-    ] = None
-    prompt_tokens: Annotated[
-        int | None,
-        Field(default=None, description="Total prompt tokens consumed."),
-    ] = None
-    completion_tokens: Annotated[
-        int | None,
-        Field(default=None, description="Total completion tokens generated."),
-    ] = None
-    cached_tokens: Annotated[
-        int | None,
-        Field(default=None, description="Total tokens read from context cache."),
-    ] = None
-    reasoning_tokens: Annotated[
-        int | None,
-        Field(default=None, description="Total thinking/reasoning tokens."),
     ] = None
 
 

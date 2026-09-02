@@ -296,10 +296,8 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
     gvars = state.global_context_vars.vars
     language_raw = gvars.get("language")
-    if not language_raw and state.inputs.target_locale:
+    if not language_raw and state.inputs and state.inputs.target_locale:
         language_raw = state.inputs.target_locale
-    if not language_raw and state.metadata and state.metadata.target_locale:
-        language_raw = state.metadata.target_locale
 
     if not language_raw:
         logger.error("Missing language in global context.")

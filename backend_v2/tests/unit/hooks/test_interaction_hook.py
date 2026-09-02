@@ -45,7 +45,7 @@ async def test_analyze_interaction_role_empty_chat_log(mock_repository: AsyncMoc
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "   "}),
     )
@@ -69,7 +69,7 @@ async def test_analyze_interaction_role_missing_system_repo(mock_repository: Asy
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "User: hello"}),
     )
@@ -96,7 +96,7 @@ async def test_analyze_interaction_role_invalid_inputs(mock_repository: AsyncMoc
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"wrong_key": "data"}),
     )
@@ -132,7 +132,7 @@ async def test_analyze_interaction_role_prompt_injection(
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log": malicious_payload}),
     )
@@ -200,7 +200,7 @@ async def test_analyze_interaction_role_garbage_data(
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log": garbage_payload}),
     )
@@ -254,7 +254,7 @@ async def test_analyze_interaction_role_cognitive_conflict(
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log": chat_log}),
     )
@@ -313,7 +313,7 @@ async def test_analyze_interaction_role_llm_failure(
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "hello"}),
     )

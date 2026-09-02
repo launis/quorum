@@ -391,7 +391,7 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
         status=ExecutionStatus.PASSED,
         execution_trace=[],
         output_profile_id="prf_dddd1111dddd1111",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         target_locale="fi",
     )
     transformer = BlueprintTransformer(
@@ -717,7 +717,7 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
         execution_trace=[],
         output_profile_id="prf_dddd1111dddd1111",
         frozen_context=frozen,
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         target_locale="fi",
     )
     transformer = BlueprintTransformer(
@@ -760,7 +760,7 @@ async def test_mcp_audit_fails_fast_on_incomplete_data() -> None:
             status=ExecutionStatus.PASSED,
             output_profile_id="prf_dddd1111dddd1111",
             frozen_context={"mcp_tool_audit": [invalid_mcp_audit]},  # type: ignore
-            metadata=ExecutionMetadata(target_locale="en"),
+            metadata=ExecutionMetadata(),
             target_locale="fi",
         )
 
@@ -805,7 +805,7 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
             )
         ],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     mock_repo_sdui.get_execution.return_value = mock_execution
 
@@ -859,7 +859,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
             )
         },
         context_variables={},
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         target_locale="fi",
     )
 
@@ -1027,7 +1027,7 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                 extension_metrics=None  # Missing metrics to trigger the crash
             )
         },
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         target_locale="fi",
     )
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
@@ -1145,7 +1145,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             )
         },
         context_variables={},  # Empty to force fallback lookup
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         target_locale="fi",
     )
 
@@ -1356,7 +1356,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
             )
         ],
         output_profile_id="prf_dddd1111dddd1111",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 cited_sources=[],
@@ -1451,7 +1451,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
             )
         ],
         output_profile_id="prf_dddd1111dddd1111",
-        metadata=ExecutionMetadata(target_locale="unknown_lang"),  # Unknown language
+        metadata=ExecutionMetadata(),  # Unknown language
         profile_syntheses={
             "prf_dddd1111dddd1111": RenderedSynthesisCache(
                 cited_sources=[],
@@ -1527,7 +1527,7 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
             )
         ],
         output_profile_id="prf_dddd1111dddd1111",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         target_locale="fi",
     )
 
@@ -1580,7 +1580,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
             )
         ],
         context_variables={},
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         target_locale="fi",
     )
 
@@ -1663,7 +1663,7 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
                 },
             )
         ],
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         target_locale="fi",
     )
 
@@ -2132,7 +2132,7 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
                 },
             )
         ],
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         target_locale="fi",
     )
 
@@ -2260,7 +2260,7 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         output_profile_id=custom_profile.id,
         created_at=datetime.now(timezone.utc),
         created_by="usr_0123456789abcdef",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
         profile_syntheses={
             custom_profile.id: RenderedSynthesisCache(
@@ -2336,7 +2336,7 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
         output_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
         created_by="usr_admin",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
         profile_syntheses={},
         target_locale="fi",
@@ -2405,7 +2405,7 @@ async def test_blueprint_transformer_fail_fast_branches(
         workflow_id="wf_nonexistent",
         output_profile_id="prf_dddd1111dddd1111",
         created_at=datetime.now(timezone.utc),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
         target_locale="fi",
     )
@@ -2431,7 +2431,7 @@ async def test_blueprint_transformer_fail_fast_branches(
         output_profile_id="prf_dddd1111dddd1111",
         created_at=datetime.now(timezone.utc),
         target_locale="",
-        metadata=ExecutionMetadata(target_locale=""),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
     )
     mock_repo_transformer.get_execution.return_value = mock_exec_no_locale
@@ -2481,7 +2481,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         output_profile_id=profile.id,
         organization_id="org_err",
         created_at=datetime.now(timezone.utc),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
         target_locale="fi",
     )
@@ -2503,7 +2503,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         output_profile_id=profile.id,
         created_by="usr_err",
         created_at=datetime.now(timezone.utc),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
         target_locale="fi",
     )
@@ -2525,7 +2525,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         workflow_id="wf_1234abcd1234abcd",
         output_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
         target_locale="fi",
     )
@@ -2566,7 +2566,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         workflow_id="wf_1234abcd1234abcd",
         output_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         execution_trace=[
             TraceEvent(
                 step_name="step_system_scoring",
@@ -2593,7 +2593,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         workflow_id="wf_1234abcd1234abcd",
         output_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         execution_trace=[],
         profile_syntheses={profile.id: mock_cache},
         target_locale="fi",
@@ -2744,7 +2744,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         workflow_id="wf_1234abcd1234abcd",
         output_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         frozen_context=FrozenContext(mcp_tool_audit=[audit_trace]),
         step_states={"step_1": step_state},
         execution_trace=[
@@ -2823,7 +2823,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
         workflow_id="wf_1234abcd1234abcd",
         output_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         frozen_context=FrozenContext(
             mcp_tool_audit=[
                 audit_trace,
@@ -2954,7 +2954,7 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         workflow_id="wf_1234abcd1234abcd1234abcd1234abcd",
         output_profile_id=profile.id,
         created_at=datetime.now(timezone.utc),
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         profile_syntheses={
             profile.id: RenderedSynthesisCache(
                 data_starvation=DataStarvationEvent(total_atoms=0, reason="Data starvation"),
@@ -3032,7 +3032,7 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
         status=ExecutionStatus.PASSED,
         execution_trace=[],
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
 
     mock_repo_transformer.get_all_output_profiles.return_value = [profile]
@@ -3175,13 +3175,7 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
         workflow_id=wf.id,
         output_profile_id=profile.id,
         status=ExecutionStatus.PASSED,
-        metadata=ExecutionMetadata(
-            target_locale="fi",
-            dag_cost_usd=0.05,
-            prompt_tokens=100,
-            completion_tokens=50,
-            reasoning_tokens=20,
-        ),
+        metadata=ExecutionMetadata(),
         step_states={"sr_0000000000000001": step_state},
         execution_trace=[
             TraceEvent(

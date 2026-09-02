@@ -9,7 +9,9 @@ from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.llm import TokenUsage
 from backend_v2.models.v2_core import (
     AllowedMCPTool,
-    ExecutionStepState,
+    ExecutionRecord,
+    ExecutionStep,
+    ExecutionSummarySnapshot,
     ExpectedInput,
     I18nText,
     MatrixClaim,
@@ -282,12 +284,121 @@ def test_matrix_models_validation() -> None:
     assert scale.score == 1
 
 
-def test_execution_step_state_model() -> None:
-    """Test ExecutionStepState."""
-    state = ExecutionStepState(
+def test_execution_step_model() -> None:
+    """Test ExecutionStep with physical model provenance and FinOps metrics."""
+    step = ExecutionStep(
         id="stp_11111111111111111111111111111111",
         label="Step 1",
-        status=ExecutionStatus.PENDING,
+        status=ExecutionStatus.PASSED,
+        model_strategy="fast",
+        physical_model="vertex_ai/gemini-2.5-flash",
+        system_fingerprint="fp_test_123",
+        prompt_tokens=150,
+        completion_tokens=50,
+        cached_tokens=20,
+        reasoning_tokens=10,
+        cost_usd=0.0015,
+        duration_ms=450,
+        chunk_count=2,
     )
-    assert state.id == "stp_11111111111111111111111111111111"
-    assert state.status == ExecutionStatus.PENDING
+    assert step.id == "stp_11111111111111111111111111111111"
+    assert step.status == ExecutionStatus.PASSED
+    assert step.model_strategy == "fast"
+    assert step.physical_model == "vertex_ai/gemini-2.5-flash"
+    assert step.system_fingerprint == "fp_test_123"
+    assert step.prompt_tokens == 150
+    assert step.cost_usd == 0.0015
+
+
+def test_execution_step_negative_tokens_fail_fast() -> None:
+    """Verify negative token counts fail validation immediately."""
+    with pytest.raises(ValidationError):
+        ExecutionStep(
+            id="stp_11111111111111111111111111111111",
+            label="Step 1",
+            prompt_tokens=-10,
+        )
+
+
+def test_execution_step_negative_cost_fails_fast() -> None:
+    """Verify negative cost fails validation immediately."""
+    with pytest.raises(ValidationError):
+        ExecutionStep(
+            id="stp_11111111111111111111111111111111",
+            label="Step 1",
+            cost_usd=-0.5,
+        )
+
+
+def test_execution_step_all_zeros_boundary() -> None:
+    """Verify all-zero metrics validate at the minimum boundary."""
+    step = ExecutionStep(
+        id="stp_11111111111111111111111111111111",
+        label="Step Non LLM",
+        status=ExecutionStatus.PASSED,
+        prompt_tokens=0,
+        completion_tokens=0,
+        cached_tokens=0,
+        reasoning_tokens=0,
+        cost_usd=0.0,
+        duration_ms=0,
+    )
+    assert step.prompt_tokens == 0
+    assert step.cost_usd == 0.0
+    assert step.physical_model is None
+
+
+def test_execution_summary_snapshot_model() -> None:
+    """Test ExecutionSummarySnapshot model creation and defaults."""
+    snapshot = ExecutionSummarySnapshot(
+        strictness_level=90,
+        is_ensemble_run=True,
+        is_degraded=False,
+        system_concurrency_snapshot={"active_workers": 2},
+    )
+    assert snapshot.strictness_level == 90
+    assert snapshot.is_ensemble_run is True
+    assert snapshot.system_concurrency_snapshot["active_workers"] == 2
+
+
+def test_execution_record_flat_finops_and_steps() -> None:
+    """Test ExecutionRecord with flat FinOps metrics and steps collection."""
+    step = ExecutionStep(
+        id="stp_11111111111111111111111111111111",
+        label="Ingest",
+        status=ExecutionStatus.PASSED,
+        prompt_tokens=100,
+        completion_tokens=40,
+        cost_usd=0.001,
+    )
+    record = ExecutionRecord(
+        id="exe_1111111111111111",
+        workflow_id="wor_1111111111111111",
+        workflow_version=2,
+        output_profile_id="prof_default",
+        target_locale="fi",
+        steps=[step],
+        prompt_tokens=100,
+        completion_tokens=40,
+        dag_cost_usd=0.001,
+        models_used={"fast": 140},
+    )
+    assert record.id == "exe_1111111111111111"
+    assert record.workflow_version == 2
+    assert len(record.steps) == 1
+    assert record.steps[0].id == "stp_11111111111111111111111111111111"
+    assert record.prompt_tokens == 100
+    assert record.dag_cost_usd == 0.001
+    assert record.target_locale == "fi"
+
+
+def test_execution_record_extra_forbidden() -> None:
+    """Verify ExecutionRecord rejects unknown extra fields."""
+    with pytest.raises(ValidationError):
+        ExecutionRecord(
+            id="exe_1111111111111111",
+            workflow_id="wor_1111111111111111",
+            output_profile_id="prof_default",
+            target_locale="fi",
+            unknown_legacy_field="illegal",  # type: ignore[call-arg]
+        )

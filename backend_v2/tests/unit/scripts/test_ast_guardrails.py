@@ -999,4 +999,3 @@ def test_qgr016_ternary_constant_branching_allowed() -> None:
     violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 0
-

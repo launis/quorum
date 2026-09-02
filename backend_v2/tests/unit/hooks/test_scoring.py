@@ -124,7 +124,7 @@ def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL") 
         "output_profile_id": "prof_1111111111111111",
         "status": "PENDING",
         "target_locale": "fi",
-        "metadata": {"target_locale": "fi"},
+        "metadata": {},
         "raw_inputs": {},
         "execution_trace": [],
         "step_states": {},
@@ -197,7 +197,7 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "pb_1234567890123456": {
@@ -286,7 +286,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "tb_1234567890123456": {
@@ -338,7 +338,7 @@ async def test_normalize_matrix_scores_missing_workflow_repo_raises() -> None:
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -369,7 +369,7 @@ async def test_normalize_matrix_scores_step_not_found_raises() -> None:
         workflow_id="test_wf",
         step_id="st_missing",
         task_blueprint="st_missing",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -401,7 +401,7 @@ async def test_normalize_matrix_scores_missing_prompt_block_raises() -> None:
         workflow_id="test_wf",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "pb_1234567890123456": {
@@ -445,7 +445,7 @@ async def test_normalize_matrix_scores_invalid_input_payload_raises() -> None:
         workflow_id="test_wf",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "pb_1234567890123456": "not_a_valid_matrix_dict",
@@ -479,7 +479,7 @@ async def test_normalize_matrix_scores_empty_blueprint_raises() -> None:
         workflow_id="test_wf",
         step_id="",
         task_blueprint="",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -511,7 +511,7 @@ async def test_normalize_matrix_scores_no_matrix_updates_returns_empty_delta() -
         workflow_id="test_wf",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"other_block": 123}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -553,7 +553,7 @@ async def test_normalize_matrix_scores_non_matrix_prompt_block_skipped() -> None
         workflow_id="test_wf",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "pb_1234567890123456": {"some": "data"},
@@ -588,7 +588,7 @@ async def test_normalize_matrix_scores_step_validation_error_raises() -> None:
         workflow_id="test_wf",
         step_id="st_invalid",
         task_blueprint="st_invalid",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -952,7 +952,7 @@ async def test_matrix_scoring_hook_step_validation_failure_raises() -> None:
         workflow_id="wf1",
         step_id="st_invalid",
         task_blueprint="st_invalid",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -984,7 +984,7 @@ async def test_matrix_scoring_hook_prompt_block_validation_failure_raises() -> N
         workflow_id="wf1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1014,7 +1014,7 @@ async def test_matrix_scoring_hook_missing_execution_id_raises() -> None:
         workflow_id="wf1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1043,7 +1043,7 @@ async def test_matrix_scoring_hook_missing_workflow_repo_raises() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1072,7 +1072,7 @@ async def test_matrix_scoring_hook_empty_blueprint_raises() -> None:
         workflow_id="wf1",
         step_id="",
         task_blueprint="",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1103,7 +1103,7 @@ async def test_matrix_scoring_hook_step_not_found_raises() -> None:
         workflow_id="wf1",
         step_id="st_missing",
         task_blueprint="st_missing",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1144,7 +1144,7 @@ async def test_matrix_scoring_hook_no_matrix_blocks_skips() -> None:
         workflow_id="wf1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1181,7 +1181,7 @@ async def test_matrix_scoring_hook_missing_workflow_raises() -> None:
         workflow_id="wf1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1230,7 +1230,7 @@ async def test_matrix_scoring_hook_missing_profile_config_raises() -> None:
         workflow_id="wf1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1266,7 +1266,7 @@ async def test_matrix_scoring_hook_missing_execution_raises() -> None:
         workflow_id="wf1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1296,7 +1296,7 @@ async def test_matrix_scoring_hook_missing_results_array_raises() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"missing_results": []}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1327,7 +1327,7 @@ async def test_matrix_scoring_hook_invalid_extracted_facts_raises() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "results": [],
@@ -1363,7 +1363,7 @@ async def test_matrix_scoring_hook_evaluations_not_list_raises() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "results": "not_a_list",
@@ -1400,7 +1400,7 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "results": [
@@ -1454,7 +1454,7 @@ async def test_matrix_scoring_hook_pass_all() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1502,7 +1502,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1549,7 +1549,7 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1698,7 +1698,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1743,7 +1743,7 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1796,7 +1796,7 @@ async def test_matrix_scoring_hook_contextual_override() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1841,7 +1841,7 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -1870,7 +1870,7 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
         execution_id="exe_1111111111111111",
         workflow_id="wf_1",
         task_blueprint="sp_1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(
             vars={
                 "matrix_blocks": [("blk_1111111111111111", MatrixPromptBlock(**pb))],
@@ -1908,7 +1908,7 @@ async def test_matrix_scoring_hook_cognitive_dlq_status() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "results": [
@@ -1986,7 +1986,7 @@ async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
         workflow_id="wf_123",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "results": [
@@ -2029,7 +2029,7 @@ async def test_matrix_scoring_hook_matrix_id_filtering() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "results": [
@@ -2152,7 +2152,7 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
         workflow_id="wf_123",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "results": [
@@ -2208,7 +2208,7 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2279,7 +2279,7 @@ async def test_scoring_matrix_namespace_isolation() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": [ev_dict], "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2346,7 +2346,7 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": [ev_dict], "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2413,7 +2413,7 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": [ev_dict], "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2501,7 +2501,7 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2556,7 +2556,7 @@ def test_apply_scoring_logic_hook_success() -> None:
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "inputs": {"_evaluative_matrices": eval_matrices}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2596,7 +2596,7 @@ def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"steps": [step_output.model_dump(mode="json")]}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2683,7 +2683,7 @@ def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties(monkeypa
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs=inputs),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2715,7 +2715,7 @@ def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "matrix_1": {"justification": "[INDETERMINATE] Missing source data"},
@@ -2752,7 +2752,7 @@ def test_apply_scoring_logic_hook_missing_evaluative_matrices_raises() -> None:
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"steps": []}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2800,7 +2800,7 @@ def test_apply_scoring_logic_hook_missing_steps_in_snapshot_raises() -> None:
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"missing_steps": []}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -2829,7 +2829,7 @@ def test_apply_scoring_logic_hook_invalid_step_payload_raises() -> None:
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "steps": [
@@ -2894,7 +2894,7 @@ def test_apply_scoring_logic_hook_with_sanitization_and_panel_dto() -> None:
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "steps": [
@@ -2964,7 +2964,7 @@ async def test_enforce_passivity_penalty_hook_penalty_triggered() -> None:
         workflow_id="wf_1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -3004,7 +3004,7 @@ async def test_enforce_passivity_penalty_hook_no_penalty_when_above_min() -> Non
         workflow_id="wf_1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -3033,7 +3033,7 @@ async def test_enforce_passivity_penalty_hook_legacy_score_card_raises() -> None
         workflow_id="wf_1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"score_card": {"dimension_1": 1.0}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -3063,7 +3063,7 @@ async def test_enforce_passivity_penalty_hook_missing_workflow_repo_raises() -> 
         workflow_id="wf_1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -3094,7 +3094,7 @@ async def test_enforce_passivity_penalty_hook_step_not_found_raises() -> None:
         workflow_id="wf_1",
         step_id="st_nonexistent",
         task_blueprint="st_nonexistent",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -3128,7 +3128,7 @@ async def test_enforce_passivity_penalty_hook_matrix_has_no_scales_raises() -> N
         workflow_id="wf_1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -3158,7 +3158,7 @@ async def test_enforce_passivity_penalty_hook_invalid_matrix_format_raises() -> 
         workflow_id="wf_1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "pb_1234567890123456": {"raw_score": "not_a_number", "normalized_score": 10.0, "justification": "J"}
@@ -3200,7 +3200,7 @@ async def test_enforce_passivity_penalty_hook_with_eval_map_and_bounds() -> None
         workflow_id="wf_1",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "pb_1234567890123456": matrix_raw,
@@ -3243,7 +3243,7 @@ async def test_matrix_scoring_hook_direct_output_profile_id_resolution() -> None
             "output_profile_id": "prof_1111111111111111",
             "status": "RUNNING",
             "target_locale": "fi",
-            "metadata": {"target_locale": "fi", "profile_id": "prof_1111111111111111"},
+            "metadata": {},
             "raw_inputs": {},
             "execution_trace": [],
             "step_states": {},
@@ -3268,7 +3268,7 @@ async def test_matrix_scoring_hook_direct_output_profile_id_resolution() -> None
         workflow_id="wf_123",
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
-        metadata=ExecutionMetadata(target_locale="fi", profile_id="prof_1111111111111111"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "results": [],

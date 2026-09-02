@@ -118,7 +118,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
         workflow_id="wf_123",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "QUESTIONNAIRE": {
@@ -187,7 +187,7 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
         workflow_id="wf_123",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={"QUESTIONNAIRE": {"not_a_questionnaire": "This should fail because no Q/A pairs exist."}}
         ),
@@ -248,7 +248,7 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
         workflow_id="wf_features",
         step_id="test_step",
         task_blueprint="test_blueprint",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"DOCUMENT_TEXT": "Raw <br> text with PII like Matti Meikäläinen."}),
         global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
     )

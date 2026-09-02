@@ -158,7 +158,15 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
-    target_locale = state.metadata.target_locale
+    target_locale = (
+        state.inputs.target_locale
+        if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.target_locale
+        else (
+            state.global_context_vars.vars["language"]
+            if state.global_context_vars and "language" in state.global_context_vars.vars
+            else "en"
+        )
+    )
     if target_locale:
         set_language(target_locale)
 

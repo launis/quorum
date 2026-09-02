@@ -236,9 +236,9 @@ class LLMNodeStrategy(NodeStrategy):
                     ) from e
             block_map = {b.id: b for b in all_prompt_blocks if b.id}
 
-        target_profile = context.metadata.profile_id
+        target_profile = context.output_profile_id
         if not target_profile:
-            msg = f"Execution metadata missing mandatory 'profile_id' for workflow {context.workflow_id}."
+            msg = f"ExecutionContext missing mandatory 'output_profile_id' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         role_block = None
@@ -292,9 +292,9 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-        target_locale = context.metadata.target_locale
+        target_locale = context.target_locale
         if not target_locale:
-            msg = f"Execution metadata missing mandatory 'target_locale' for workflow {context.workflow_id}."
+            msg = f"ExecutionContext missing mandatory 'target_locale' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         effective_mcp_tools = step_obj.allowed_mcp_tools
 
@@ -625,7 +625,7 @@ class LLMNodeStrategy(NodeStrategy):
             dynamic_schema = None
 
             if is_synthesis_step:
-                target_locale = context.metadata.target_locale
+                target_locale = context.target_locale
 
                 gvars = (
                     hook_state.global_context_vars.vars
@@ -708,7 +708,7 @@ class LLMNodeStrategy(NodeStrategy):
                     matrix_context=matrix_context,
                 )
             elif matrix_block is None:
-                target_locale = context.metadata.target_locale
+                target_locale = context.target_locale
                 gvars = (
                     hook_state.global_context_vars.vars
                     if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO)
@@ -923,6 +923,8 @@ class LLMNodeStrategy(NodeStrategy):
         meta = final_dict.setdefault("_step_metadata", {})
         meta["task_blueprint"] = blueprint_id
         meta["model_strategy"] = strategy_name
+        if bound_client and bound_client.model_name:
+            meta["physical_model"] = bound_client.model_name
         if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:
             if "token_usage" not in meta:
                 meta["token_usage"] = usage_agg.model_dump()

@@ -83,7 +83,7 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     context.execution_id = "exe_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
-    context.metadata = ExecutionMetadata(target_locale="en")
+    context.metadata = ExecutionMetadata()
 
     v2_step_mock = MagicMock()
     v2_step_mock.hook = "some_hook"

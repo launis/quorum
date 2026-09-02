@@ -27,7 +27,7 @@ def test_configure_llm_context_hook_no_step_id() -> None:
         execution_id="exe1",
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -50,7 +50,7 @@ def test_configure_llm_context_hook_no_default_strategy(mock_get_settings: Magic
         workflow_id="wf1",
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -91,7 +91,7 @@ async def test_configure_llm_context_hook_valid(mock_get_settings: MagicMock) ->
         workflow_id="wf1",
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -140,7 +140,7 @@ async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settin
         workflow_id="wf1",
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(vars={"workflow_model_mapping": {"step_1": "custom"}}),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -162,7 +162,7 @@ def test_configure_llm_context_hook_missing_registry(mock_get_settings: MagicMoc
         workflow_id="wf1",
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -189,7 +189,7 @@ def test_configure_llm_context_hook_strategy_not_found(mock_get_settings: MagicM
         workflow_id="wf1",
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)

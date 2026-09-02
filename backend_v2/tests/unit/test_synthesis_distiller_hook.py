@@ -56,7 +56,7 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         "workflow_id": "wf_0123456789abcdef01",
         "status": "PASSED",
         "target_locale": "en",
-        "metadata": {"target_locale": "en"},
+        "metadata": {},
         "output_profile_id": "prof_1111111111111111",
         "raw_inputs": {"dynamic_inputs": {}},
         "step_states": {},
@@ -89,8 +89,8 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wf_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="en", organization_id="org1"),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output.model_dump()]}),
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output.model_dump()]}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org1"}),
     )
 
@@ -155,7 +155,7 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wf_0123456789abcdef01",
-        metadata=ExecutionMetadata(target_locale="", organization_id="org1"),
+        metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output.model_dump()]}),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org1"}),
     )

@@ -37,7 +37,7 @@ def test_text_metrics_hook_valid_payload(mock_deps: HookDependencies) -> None:
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
@@ -71,7 +71,7 @@ def test_text_metrics_hook_empty_text_fails(mock_deps: HookDependencies) -> None
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"empty_key": "", "none_key": None}),
     )
@@ -89,7 +89,7 @@ def test_control_ratio_hook_valid(mock_deps: HookDependencies) -> None:
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"chat": "User: Hello\nAI: Hi there!"}),
     )
@@ -120,7 +120,7 @@ def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: 
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"valid": "but mocked to fail"}),
     )
@@ -151,7 +151,7 @@ def test_text_metrics_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: H
         execution_id="exe_123",
         workflow_id="wf_123",
         step_id="step_1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"valid": "but mocked to fail"}),
     )

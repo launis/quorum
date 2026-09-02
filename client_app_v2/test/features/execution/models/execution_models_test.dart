@@ -1,50 +1,31 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:json_annotation/json_annotation.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_inputs.dart';
 import 'package:client_app/features/execution/models/execution_metadata.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 void main() {
   group('ExecutionMetadata Freezed Parity', () {
-    test('instantiates from valid json with mandatory target_locale', () {
+    test('instantiates from valid json with configuration fields', () {
       final json = {
-        'target_locale': 'fi',
         'matrix_sampling_strategy': 15,
         'workflow_version': 2,
-        'user_id': 'usr_1',
-        'organization_id': 'org_1',
         'global_context_vars': {'lang': 'fi'},
-        'execution_summary': {'score': 90},
-        'step_metrics': {'s1': 0.05},
-        'dag_cost_usd': 0.12,
-        'prompt_tokens': 500,
-        'completion_tokens': 100,
-        'cached_tokens': 200,
-        'reasoning_tokens': 50,
       };
 
       final meta = ExecutionMetadata.fromJson(json);
-      expect(meta.targetLocale, 'fi');
       expect(meta.matrixSamplingStrategy, 15);
       expect(meta.workflowVersion, 2);
-      expect(meta.userId, 'usr_1');
-      expect(meta.organizationId, 'org_1');
-      expect(meta.dagCostUsd, 0.12);
-      expect(meta.promptTokens, 500);
-      expect(meta.completionTokens, 100);
-      expect(meta.cachedTokens, 200);
-      expect(meta.reasoningTokens, 50);
+      expect(meta.globalContextVars, {'lang': 'fi'});
     });
 
     test('defaults are populated when optional fields are omitted', () {
-      final json = {'target_locale': 'en'};
+      final json = <String, dynamic>{};
       final meta = ExecutionMetadata.fromJson(json);
-      expect(meta.targetLocale, 'en');
-      expect(meta.matrixSamplingStrategy, 10);
+      expect(meta.matrixSamplingStrategy, isNull);
       expect(meta.workflowVersion, 1);
-      expect(meta.profileId, isNull);
-      expect(meta.userId, isNull);
+      expect(meta.globalContextVars, isNull);
     });
   });
 
@@ -132,7 +113,7 @@ void main() {
           'target_locale': 'fi',
           'status': 'PENDING',
           'strictness_level': 80,
-          'metadata': {'target_locale': 'fi', 'workflow_version': 1},
+          'metadata': {'workflow_version': 1},
         };
 
         final record = ExecutionRecord.fromJson(json);
@@ -141,7 +122,7 @@ void main() {
         expect(record.targetLocale, 'fi');
         expect(record.status, 'PENDING');
         expect(record.strictnessLevel, 80);
-        expect(record.metadata?.targetLocale, 'fi');
+        expect(record.metadata?.workflowVersion, 1);
       },
     );
 
@@ -160,15 +141,15 @@ void main() {
         'strictness_level': 90,
         'duration_ms': 4500,
         'cost_estimate': 0.045,
+        'prompt_tokens': 500,
+        'completion_tokens': 100,
+        'cached_tokens': 200,
+        'reasoning_tokens': 50,
+        'dag_cost_usd': 0.12,
         'cumulative_synthesis_tokens': 1200,
         'cumulative_synthesis_cost': 0.012,
-        'models_used': {'gemini-1.5-pro': 2},
-        'metadata': {
-          'target_locale': 'fi',
-          'workflow_version': 1,
-          'user_id': 'usr_1',
-          'organization_id': 'org_1',
-        },
+        'models_used': ['gemini-1.5-pro'],
+        'metadata': {'workflow_version': 1},
         'error': null,
         'is_resumable': true,
         'frozen_context': <String, dynamic>{'input': 'content'},
@@ -178,6 +159,7 @@ void main() {
         'execution_trace_storage_path': 'gs://bucket/trace.json',
         'pdf_report_path': '/reports/rep_1.pdf',
         'source_identity_manifest': <String, String>{'src_0': 'Doc A'},
+        'steps': <Map<String, dynamic>>[],
         'step_states': <String, dynamic>{},
         'profile_syntheses': <String, dynamic>{},
         'results': <String, dynamic>{},
@@ -195,9 +177,14 @@ void main() {
       expect(record.workflowId, 'wor_1234567890abcdef');
       expect(record.activeProfileId, 'pro_1234567890abcdef');
       expect(record.durationMs, 4500);
+      expect(record.promptTokens, 500);
+      expect(record.completionTokens, 100);
+      expect(record.cachedTokens, 200);
+      expect(record.reasoningTokens, 50);
+      expect(record.dagCostUsd, 0.12);
       expect(record.cumulativeSynthesisTokens, 1200);
       expect(record.cumulativeSynthesisCost, 0.012);
-      expect(record.modelsUsed, {'gemini-1.5-pro': 2});
+      expect(record.modelsUsed, ['gemini-1.5-pro']);
       expect(record.organizationId, 'org_1');
       expect(record.createdBy, 'usr_1');
       expect(record.completedAt, '2026-08-30T12:05:00Z');
@@ -216,12 +203,9 @@ void main() {
             'step_id': 'stp_1',
             'status': 'PASSED',
             'timestamp': '2026-08-30T12:00:00Z',
-          }
+          },
         ],
-        'metadata': {
-          'target_locale': 'fi',
-          'workflow_version': 1,
-        },
+        'metadata': {'workflow_version': 1},
       };
 
       final record = ExecutionRecord.fromJson(json);

@@ -8,6 +8,7 @@ from fastapi import status
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -183,6 +184,18 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
     )
 
 
+def _resolve_target_locale(state: HookState, payload: ValidationHookPayloadDTO) -> str | None:
+    if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.target_locale:
+        return state.inputs.target_locale
+    if "target_locale" in payload.root and payload.root["target_locale"]:
+        return str(payload.root["target_locale"])
+    if "language" in payload.root and payload.root["language"]:
+        return str(payload.root["language"])
+    if state.global_context_vars and "language" in state.global_context_vars.vars:
+        return str(state.global_context_vars.vars["language"])
+    return None
+
+
 @hook_registry.register(name="verify_output_language")
 def verify_output_language(state: HookState | None, deps: HookDependencies) -> HookResult:
     """HOOK: verify_output_language.
@@ -208,15 +221,16 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
     try:
         inputs_source = state.inputs.raw_inputs if state.inputs.raw_inputs else state.inputs.model_dump()
         payload = ValidationHookPayloadDTO.model_validate(inputs_source)
-        if not state.metadata or not state.metadata.target_locale:
-            msg = "Execution state is missing mandatory 'target_locale' metadata."
+        target_locale = _resolve_target_locale(state, payload)
+        if not target_locale:
+            msg = "Execution state is missing mandatory 'target_locale'."
             logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
                 message=msg,
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
-        target_locale = state.metadata.target_locale.lower()
+        target_locale = target_locale.lower()
     except ValidationError as e:
         msg = "Execution state inputs failed validation."
         logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)

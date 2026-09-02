@@ -54,7 +54,7 @@ async def test_get_execution_status(mock_current_user: Any, mock_execution_servi
         status=ExecutionStatus.PASSED,
         workflow_id="wf_1",
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     mock_execution_service.get_execution.return_value = mock_record
 
@@ -90,7 +90,7 @@ async def test_start_execution(
         status=ExecutionStatus.PENDING,
         workflow_id="wf_1",
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     mock_execution_service.start_execution.return_value = mock_record
 
@@ -132,7 +132,7 @@ async def test_resume_execution(
         status=ExecutionStatus.PENDING,
         workflow_id="wf_1",
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
     mock_execution_service.resume_execution.return_value = mock_record
 

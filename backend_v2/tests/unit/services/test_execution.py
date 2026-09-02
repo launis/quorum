@@ -323,7 +323,7 @@ async def test_start_execution_success() -> None:
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=valid_profile.id,
-        matrix_sampling_strategy=0,
+        matrix_sampling_strategy=10,
     )
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
@@ -412,7 +412,7 @@ async def test_render_execution_json() -> None:
     mock_record.target_locale = "en"
     mock_record.status = ExecutionStatus.PASSED
     mock_record.organization_id = "org_1"
-    mock_record.metadata = ExecutionMetadata(target_locale="en")
+    mock_record.metadata = ExecutionMetadata()
     mock_record.created_by = "u2"
     mock_record.workflow_id = "wf_1"
     mock_record.profile_syntheses = {"prof_1": Mock()}
@@ -487,6 +487,7 @@ async def test_enqueue_pdf_generation_success() -> None:
     mock_record.id = "exe_1"
     mock_record.workflow_id = "wf_1"
     mock_record.status = ExecutionStatus.PASSED
+    mock_record.steps = []
     mock_record.step_states = {}
     mock_record.execution_trace = []
     mock_record.organization_id = "org_1"
@@ -662,7 +663,7 @@ async def test_get_execution_export_bytes_success() -> None:
     }
     mock_record.organization_id = "org_1"
     mock_record.target_locale = "en"
-    mock_record.metadata = ExecutionMetadata(target_locale="en")
+    mock_record.metadata = ExecutionMetadata()
     mock_record.model_copy.return_value = mock_record
 
     repo_mock.get_execution.return_value = mock_record
@@ -759,7 +760,7 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
     }
     mock_record.organization_id = "org_1"
     mock_record.target_locale = "en"
-    mock_record.metadata = ExecutionMetadata(target_locale="en")
+    mock_record.metadata = ExecutionMetadata()
     mock_record.model_copy.return_value = mock_record
 
     repo_mock.get_execution.return_value = mock_record
@@ -835,7 +836,7 @@ def test_execution_create_dto_preserves_output_profile_id() -> None:
         target_locale="fi",
         active_profile_id="prof_1234567890abcdef",
         output_profile_id="prof_1234567890abcdef",
-        metadata=ExecutionMetadata(target_locale="fi", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
     )
     raw_dict = dto.model_dump(mode="json", exclude_unset=True)
     record = ExecutionRecord.model_validate(raw_dict, strict=False)

@@ -33,9 +33,7 @@ async def test_execute_no_blueprint(logic_strategy: LogicNodeStrategy) -> None:
     # while passing strict string type requirements in Pydantic models.
     step = StepRule.model_construct(id="step_1", task_blueprint="")
     projector = StateProjector()
-    context = StrategyContext.model_construct(
-        execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata(target_locale="en")
-    )
+    context = StrategyContext.model_construct(execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata())
     semaphore = asyncio.Semaphore(1)
 
     with pytest.raises(AppException) as exc:
@@ -49,9 +47,7 @@ async def test_execute_no_blueprint(logic_strategy: LogicNodeStrategy) -> None:
 async def test_execute_blueprint_not_found(logic_strategy: LogicNodeStrategy) -> None:
     step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
     projector = StateProjector()
-    context = StrategyContext.model_construct(
-        execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata(target_locale="en")
-    )
+    context = StrategyContext.model_construct(execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata())
     semaphore = asyncio.Semaphore(1)
 
     from typing import cast
@@ -76,7 +72,7 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
     context = StrategyContext(
         execution_id="e1",
         workflow_id="w1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
         global_context_vars={"language": "fi"},
     )
     semaphore = asyncio.Semaphore(1)
@@ -121,7 +117,7 @@ async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy:
     context = StrategyContext(
         execution_id="e1",
         workflow_id="w1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     semaphore = asyncio.Semaphore(1)
     running_event = asyncio.Event()
@@ -165,7 +161,7 @@ async def test_execute_hook_failure_raises_app_exception(logic_strategy: LogicNo
     context = StrategyContext(
         execution_id="e1",
         workflow_id="w1",
-        metadata=ExecutionMetadata(target_locale="en"),
+        metadata=ExecutionMetadata(),
     )
     semaphore = asyncio.Semaphore(1)
 

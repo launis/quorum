@@ -10,11 +10,17 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from backend_v2.core.hook_registry import ExecutionInputsDTO, HookDependencies, HookState
+from backend_v2.core.hook_registry import (
+    ExecutionInputsDTO,
+    GlobalContextVarsDTO,
+    HookDependencies,
+    HookState,
+)
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ConfigurationError
 from backend_v2.models.domain.mcp import TavilySearchResult
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.mcp_tool_loop import DISPATCHER
 from backend_v2.services.mcp.tavily_search_client import tavily_search
@@ -102,9 +108,9 @@ async def test_live_source_verification_hook_pipeline() -> None:
         execution_id="exe_live_test_0001",
         workflow_id="wor_live_test_0001",
         step_id="sp_76eedbc020274f66",
-        metadata={"target_locale": "fi"},
-        global_context_vars={},
-        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}),
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}, target_locale="fi"),
     )
     deps = HookDependencies(
         exec_repo=AsyncMock(),

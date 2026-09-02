@@ -705,7 +705,7 @@ def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache(
         output_profile_id=profile.id,
         profile_syntheses={profile.id: starvation_cache},
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
     )
 
     _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(

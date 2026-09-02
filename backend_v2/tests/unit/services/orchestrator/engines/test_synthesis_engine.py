@@ -64,7 +64,9 @@ def base_request() -> EngineExecutionRequest:
     context = StrategyContext(
         execution_id="exec_1",
         workflow_id="wf_1",
-        metadata=ExecutionMetadata(profile_id="prof_1", target_locale="en"),
+        output_profile_id="prof_1",
+        target_locale="en",
+        metadata=ExecutionMetadata(),
         context_variables={
             "__GLOBAL_ATOM_BLACKBOARD__": {
                 "atoms_by_input": {"doc_0": {"atoms": [make_atom(f"atm_{i}") for i in range(1, 10)]}},

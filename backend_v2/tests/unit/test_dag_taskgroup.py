@@ -35,7 +35,7 @@ def mock_repo() -> AsyncMock:
         "status": ExecutionStatus.PENDING,
         "target_locale": "en",
         "raw_inputs": {"dynamic_inputs": {"log": "test"}},
-        "metadata": {"profile_id": "prof_dddd1111dddd1111", "target_locale": "en"},
+        "metadata": {},
     }
     return repo
 
@@ -340,7 +340,7 @@ async def test_dynamic_synthesis_model_strategy_routing(
         "output_profile_id": "prof_1",
         "status": "PASSED",
         "target_locale": "en",
-        "metadata": {"profile_id": "prof_1", "target_locale": "en"},
+        "metadata": {},
         "raw_inputs": {"dynamic_inputs": {}},
     }
 

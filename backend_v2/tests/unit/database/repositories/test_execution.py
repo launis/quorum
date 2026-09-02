@@ -42,11 +42,7 @@ def valid_execution_doc() -> dict:
         "output_profile_id": "prof_1234567890abcdef",
         "target_locale": "fi",
         "status": "PASSED",
-        "metadata": {
-            "target_locale": "fi",
-            "organization_id": "org_1234567890abcdef",
-            "user_id": "usr_1234567890abcdef",
-        },
+        "metadata": {},
     }
 
 

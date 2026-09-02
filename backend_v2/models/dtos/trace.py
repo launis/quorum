@@ -15,7 +15,9 @@ if TYPE_CHECKING:
     from backend_v2.models.domain.usage import TokenUsage
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
     from backend_v2.models.v2_core import (
+        ExecutionStep,
         ExecutionStepState,
+        ExecutionSummarySnapshot,
         FrozenContext,
         RenderedSynthesisCache,
     )
@@ -59,8 +61,9 @@ class ExecutionUpdateDTO(BaseDTO):
     current_step_name: Annotated[str | None, Field(default=None, description="Current step name")] = None
     progress: Annotated[int | None, Field(default=None, ge=0, le=100, description="Completion percentage 0-100")] = None
     error: Annotated[str | None, Field(default=None, description="Failure error message")] = None
+    steps: Annotated[list[ExecutionStep] | None, Field(default=None, description="DAG steps list (SSOT)")] = None
     step_states: Annotated[
-        dict[str, ExecutionStepState] | None, Field(default=None, description="DAG step states mapping (SSOT)")
+        dict[str, ExecutionStepState] | None, Field(default=None, description="DAG step states mapping")
     ] = None
     execution_trace: Annotated[
         list[ErrorTraceEvent | TombstoneEvent | TraceEvent] | None,
@@ -79,8 +82,15 @@ class ExecutionUpdateDTO(BaseDTO):
         Field(default=None, description="Dynamic blackboard dictionary"),
     ] = None
     is_resumable: Annotated[bool | None, Field(default=None, description="Resumable execution flag")] = None
+    prompt_tokens: Annotated[int | None, Field(default=None, ge=0, description="Total prompt tokens")] = None
+    completion_tokens: Annotated[int | None, Field(default=None, ge=0, description="Total completion tokens")] = None
+    cached_tokens: Annotated[int | None, Field(default=None, ge=0, description="Total cached tokens")] = None
+    reasoning_tokens: Annotated[int | None, Field(default=None, ge=0, description="Total reasoning tokens")] = None
     cumulative_synthesis_tokens: Annotated[
         int | None, Field(default=None, ge=0, description="Cumulative synthesis tokens")
+    ] = None
+    dag_cost_usd: Annotated[
+        float | None, Field(default=None, ge=0.0, description="Total DAG execution cost in USD")
     ] = None
     cumulative_synthesis_cost: Annotated[
         float | None, Field(default=None, ge=0.0, description="Cumulative synthesis cost in USD")
@@ -88,6 +98,10 @@ class ExecutionUpdateDTO(BaseDTO):
     duration_ms: Annotated[int | None, Field(default=None, ge=0, description="Duration in milliseconds")] = None
     cost_estimate: Annotated[float | None, Field(default=None, ge=0.0, description="Estimated cost in USD")] = None
     models_used: Annotated[dict[str, int] | None, Field(default=None, description="Models token usage summary")] = None
+    execution_summary: Annotated[
+        ExecutionSummarySnapshot | None,
+        Field(default=None, description="Typed non-FinOps execution telemetry snapshot"),
+    ] = None
     created_at: Annotated[datetime | None, Field(default=None, description="Creation timestamp")] = None
     updated_at: Annotated[datetime | None, Field(default=None, description="Update timestamp")] = None
     completed_at: Annotated[datetime | None, Field(default=None, description="Completion timestamp")] = None
@@ -100,6 +114,10 @@ class StepTraceMetadataDTO(BaseDTO):
 
     task_blueprint: Annotated[str | None, Field(default=None)] = None
     model_strategy: Annotated[str, Field(default="unknown")] = "unknown"
+    physical_model: Annotated[str | None, Field(default=None, description="Exact physical provider model string")] = (
+        None
+    )
+    system_fingerprint: Annotated[str | None, Field(default=None, description="Provider system fingerprint")] = None
     chunk_size: Annotated[int, Field(default=1)] = 1
     token_usage: Annotated[
         TokenUsage | None,

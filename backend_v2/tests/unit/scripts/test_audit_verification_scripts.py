@@ -582,7 +582,7 @@ def test_extract_pydantic_fields_direct(tmp_path: Path) -> None:
         "    score: float = 1.0\n",
         encoding="utf-8",
     )
-    models = extract_pydantic_fields(py_file)
+    models, _ = extract_pydantic_fields(py_file)
     assert "TestDTO" in models
     assert models["TestDTO"] == {"tda_id", "status", "score"}
 
@@ -659,13 +659,13 @@ def test_audit_dto_parity_edge_cases(tmp_path: Path) -> None:
     """Test non-utf8 and syntax error handling in audit_dto_parity extractors."""
     bad_py = tmp_path / "bad.py"
     bad_py.write_text("def broken(:", encoding="utf-8")
-    assert extract_pydantic_fields(bad_py) == {}
+    assert extract_pydantic_fields(bad_py) == ({}, {})
 
     bad_py_bytes = tmp_path / "bad_bytes.py"
     bad_py_bytes.write_bytes(b"\xff\xfe\x00\x00")
-    assert extract_pydantic_fields(bad_py_bytes) == {}
+    assert extract_pydantic_fields(bad_py_bytes) == ({}, {})
 
-    assert extract_pydantic_fields(tmp_path / "non_existent.py") == {}
+    assert extract_pydantic_fields(tmp_path / "non_existent.py") == ({}, {})
 
     bad_dart = tmp_path / "bad.dart"
     bad_dart.write_bytes(b"\xff\xfe\x00\x00")

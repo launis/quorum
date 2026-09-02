@@ -74,7 +74,7 @@ async def test_rag_preflight_missing_task_blueprint_crashes(preflight_service: R
         output_profile_id="prof_1234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "A" * 100}),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -109,7 +109,7 @@ async def test_rag_preflight_missing_model_strategy_crashes(preflight_service: R
         output_profile_id="prof_1234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "A" * 100}),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -139,7 +139,7 @@ async def test_rag_preflight_input_below_character_threshold_skips(
         output_profile_id="prof_1234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"short_doc": "Only 20 chars here.", "non_str": 123}),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
     )
 
     emit_mock = AsyncMock()
@@ -175,7 +175,7 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
         output_profile_id="prof_1234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": text_content, "skipped_key": None}),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
     )
 
     emit_mock = AsyncMock()
@@ -245,7 +245,7 @@ async def test_rag_preflight_atom_ceiling_exceeded_crashes(
         output_profile_id="prof_1234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": text_content}),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
     )
 
     atom = DraftExtractedAtom(
@@ -315,7 +315,7 @@ async def test_rag_preflight_excludes_metadata_keys_from_count_and_atomization(
             }
         ),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
     )
 
     emit_mock = AsyncMock()
@@ -357,7 +357,7 @@ async def test_rag_preflight_chat_log_with_large_ai_text_sparse_user_text_skips(
             }
         ),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
     )
 
     emit_mock = AsyncMock()
@@ -402,7 +402,7 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
             }
         ),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
     )
 
     emit_mock = AsyncMock()
@@ -492,7 +492,7 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
             }
         ),
         target_locale="en",
-        metadata=ExecutionMetadata(target_locale="en", profile_id="prof_1234567890abcdef"),
+        metadata=ExecutionMetadata(),
         execution_trace=[trace_event],
     )
 

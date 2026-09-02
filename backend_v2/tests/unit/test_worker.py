@@ -266,7 +266,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         "status": "PENDING",
         "target_locale": "fi",
         "step_states": {},
-        "metadata": {"target_locale": "fi"},
+        "metadata": {},
     }
 
     mock_trace = [
@@ -305,7 +305,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         output_profile_id="prof_1111222233334444",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         step_states={},
         execution_trace=mock_trace,
     )
@@ -404,7 +404,7 @@ async def test_generate_pdf_task_success_path() -> None:
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
-                "metadata": {"target_locale": "fi"},
+                "metadata": {},
                 "step_states": {
                     "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
                 },
@@ -450,7 +450,7 @@ async def test_generate_pdf_task_exception_handling() -> None:
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "en",
-                "metadata": {"target_locale": "en"},
+                "metadata": {},
                 "step_states": {
                     "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
                 },
@@ -500,7 +500,7 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached() -> None:
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
-                "metadata": {"target_locale": "fi"},
+                "metadata": {},
                 "step_states": {},
                 "profile_syntheses": {
                     "prof_1111222233334444": {
@@ -536,7 +536,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
-                "metadata": {"target_locale": "fi"},
+                "metadata": {},
                 "step_states": {},
                 "profile_syntheses": {},
             }
@@ -607,7 +607,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
-                "metadata": {"target_locale": "fi"},
+                "metadata": {},
                 "step_states": {},
                 "profile_syntheses": {},
             }
@@ -669,7 +669,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
-                "metadata": {"target_locale": "fi"},
+                "metadata": {},
                 "step_states": {},
                 "profile_syntheses": {},
                 "context_variables": {
@@ -850,7 +850,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         "status": "PENDING",
         "target_locale": "fi",
         "step_states": {},
-        "metadata": {"target_locale": "fi"},
+        "metadata": {},
     }
 
     mock_exec_record = ExecutionRecord(
@@ -858,7 +858,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         workflow_id="wf_1234567890123456",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
-        metadata=ExecutionMetadata(target_locale="fi"),
+        metadata=ExecutionMetadata(),
         step_states={},
         output_profile_id="prof_1111222233334444",
     )
@@ -898,7 +898,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "fi",
-                "metadata": {"target_locale": "fi"},
+                "metadata": {},
                 "step_states": {},
                 "profile_syntheses": {},
                 "context_variables": {},
@@ -1070,7 +1070,7 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
                 "output_profile_id": "prof_1111222233334444",
                 "status": "RUNNING",
                 "target_locale": "en",
-                "metadata": {"target_locale": "en"},
+                "metadata": {},
                 "step_states": {
                     "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
                 },
@@ -1114,7 +1114,7 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
                 "step_states": {
                     "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
                 },
-                "metadata": {"target_locale": "en"},
+                "metadata": {},
             }
 
             mock_redis = AsyncMock()
