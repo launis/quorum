@@ -43,6 +43,7 @@ class ContaminationFindingDTO(BaseModel):
     """Immutable record of detected empirical contamination."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
     tda_id: Annotated[str, Field(description="Target TDA ID.")]
     field: Annotated[str, Field(description="Contaminated field name.")]
     snippet: Annotated[str, Field(description="Snippet containing empirical artifact.")]
@@ -53,13 +54,25 @@ class CoherenceIssueDTO(BaseModel):
     """Immutable record of an atom steering control incoherence."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
     tda_id: Annotated[str, Field(description="Target TDA ID.")]
     issue: Annotated[str, Field(description="Incoherence classification code.")]
     description: Annotated[str, Field(description="Detailed explanation of the issue.")]
 
 
 def load_matrix_by_id(matrix_id: str, seed_path: Path = Path("backend_v2/seed/seed_data.json")) -> MatrixPromptBlock:
-    """Loads and validates a MatrixPromptBlock from seed_data.json."""
+    """Loads and validates a MatrixPromptBlock from seed_data.json.
+
+    Args:
+        matrix_id: Opaque Stripe ID of target matrix block.
+        seed_path: Filesystem path to seed data JSON.
+
+    Returns:
+        Validated MatrixPromptBlock domain model.
+
+    Raises:
+        ValueError: If matrix ID is absent or category is not matrix.
+    """
     data = json.loads(seed_path.read_text(encoding="utf-8"))
     blocks: list[dict[str, Any]] = data["prompt_blocks"] if "prompt_blocks" in data else []
     for b in blocks:
@@ -69,7 +82,14 @@ def load_matrix_by_id(matrix_id: str, seed_path: Path = Path("backend_v2/seed/se
 
 
 def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[ContaminationFindingDTO]:
-    """Detects empirical run artifacts and Finnish case data in contrastive examples."""
+    """Detects empirical run artifacts and Finnish case data in contrastive examples.
+
+    Args:
+        matrix: MatrixPromptBlock instance to inspect.
+
+    Returns:
+        List of contamination findings with atom IDs and field snippets.
+    """
     findings: list[ContaminationFindingDTO] = []
     for s in matrix.scales:
         for c in s.claims:
@@ -89,7 +109,14 @@ def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[Contaminat
 
 
 def audit_atom_coherence(matrix: MatrixPromptBlock) -> list[CoherenceIssueDTO]:
-    """Audits cross-field coherence and steering control integrity across matrix atoms."""
+    """Audits cross-field coherence and steering control integrity across matrix atoms.
+
+    Args:
+        matrix: MatrixPromptBlock instance to audit.
+
+    Returns:
+        List of detected steering control incoherencies and cliff risks.
+    """
     issues: list[CoherenceIssueDTO] = []
 
     def add_issue(tid: str, issue: str, desc: str) -> None:
@@ -118,7 +145,16 @@ def audit_atom_coherence(matrix: MatrixPromptBlock) -> list[CoherenceIssueDTO]:
 def export_matrix_slice(
     matrix_id: str, output_path: Path | None = None, seed_path: Path = Path("backend_v2/seed/seed_data.json")
 ) -> Path:
-    """Exports an isolated, validated single-matrix slice JSON."""
+    """Exports an isolated, validated single-matrix slice JSON.
+
+    Args:
+        matrix_id: Opaque Stripe ID of target matrix block.
+        output_path: Optional destination Path; defaults to tmp/slices/<matrix_id>.json.
+        seed_path: Filesystem path to source seed data JSON.
+
+    Returns:
+        Path object pointing to written slice file.
+    """
     mat = load_matrix_by_id(matrix_id, seed_path)
     dest = output_path or Path(f"tmp/slices/{matrix_id}.json")
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -127,7 +163,15 @@ def export_matrix_slice(
 
 
 def generate_theory_opponent_card(matrix_id: str, seed_path: Path = Path("backend_v2/seed/seed_data.json")) -> str:
-    """Generates a structured Theory Opponent Card prompt for adversarial review."""
+    """Generates a structured Theory Opponent Card prompt for adversarial review.
+
+    Args:
+        matrix_id: Opaque Stripe ID of target matrix block.
+        seed_path: Filesystem path to seed data JSON.
+
+    Returns:
+        Formatted adversarial prompt string wrapped in XML directives.
+    """
     mat = load_matrix_by_id(matrix_id, seed_path)
     tg = mat.theory_grounding
     theory = f"Citation: {tg.citation_reference}\nURL: {tg.source_url}" if tg else "[THEORY GROUNDING ABSENT]"
@@ -176,7 +220,17 @@ def generate_theory_opponent_card(matrix_id: str, seed_path: Path = Path("backen
 def apply_matrix_slice(
     slice_path: Path, seed_path: Path = Path("backend_v2/seed/seed_data.json"), dry_run: bool = False
 ) -> None:
-    """Atomically patches a validated matrix slice into seed_data.json with pre-flight audit and rollback."""
+    """Atomically patches a validated matrix slice into seed_data.json with pre-flight audit and rollback.
+
+    Args:
+        slice_path: Filesystem path to the validated matrix slice JSON.
+        seed_path: Filesystem path to master seed_data.json.
+        dry_run: If True, executes in-memory validation without disk persistence.
+
+    Raises:
+        ValueError: If slice category is invalid or contains fatal incoherencies.
+        RuntimeError: If pre-flight seed database audit fails.
+    """
     slice_mat = MatrixPromptBlock.model_validate_json(slice_path.read_text(encoding="utf-8"))
     if slice_mat.category_id != PromptBlockCategory.MATRIX:
         raise ValueError(f"Slice '{slice_path}' category is not matrix")
@@ -214,7 +268,13 @@ def append_matrix_theory_explanation(
     compendium_path: Path = Path("docs/architecture/08_matrix_explanations.md"),
     seed_path: Path = Path("backend_v2/seed/seed_data.json"),
 ) -> None:
-    """Appends or updates a 2-paragraph English theory explanation for a hardened matrix in the compendium."""
+    """Appends or updates a 2-paragraph English theory explanation for a hardened matrix in the compendium.
+
+    Args:
+        matrix_id: Opaque Stripe ID of target matrix block.
+        compendium_path: Filesystem path to architectural compendium Markdown.
+        seed_path: Filesystem path to seed data JSON.
+    """
     mat = load_matrix_by_id(matrix_id, seed_path)
     title = f"### {mat.label.resolve('en')}"
     tg = mat.theory_grounding
