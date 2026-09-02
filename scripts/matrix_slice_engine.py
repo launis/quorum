@@ -20,6 +20,16 @@ from scripts.sanitize_seed_vault import atomic_save_seed_data, create_vault_back
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "append_matrix_theory_explanation",
+    "apply_matrix_slice",
+    "audit_atom_coherence",
+    "detect_empirical_contamination",
+    "export_matrix_slice",
+    "generate_theory_opponent_card",
+    "load_matrix_by_id",
+]
+
 FINNISH_PATTERN = re.compile(r"\b(etätyö|kokeilu|organisaatio|muutos|tiimi|johtam|työntekij|viestint)\b|[äöåÄÖÅ]", re.I)
 EMPIRICAL_METRIC_PATTERN = re.compile(r"\b\d+%\b|\b(N=\d+|p<0\.\d+|kysely|haastattelu|tilasto)\b", re.I)
 COMPARATIVE_RE = re.compile(r"\b(compar|relat|synthe|integrat|weigh|contrast|trade-?off)\b", re.I)
@@ -38,6 +48,10 @@ def load_matrix_by_id(matrix_id: str, seed_path: Path = Path("backend_v2/seed/se
 def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[dict[str, str]]:
     """Detects empirical run artifacts and Finnish case data in contrastive examples."""
     findings: list[dict[str, str]] = []
+
+    def add_finding(tid: str, field: str, val: str) -> None:
+        findings.append({"tda_id": tid, "field": field, "snippet": val[:80], "reason": "Empirical text"})
+
     for s in matrix.scales:
         for c in s.claims:
             for tda in c.tda_assertions:
@@ -47,14 +61,7 @@ def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[dict[str, 
                     ("concept_description", tda.concept_description),
                 ]:
                     if FINNISH_PATTERN.search(val) or EMPIRICAL_METRIC_PATTERN.search(val):
-                        findings.append(
-                            {
-                                "tda_id": tda.tda_id,
-                                "field": f_name,
-                                "snippet": val[:80],
-                                "reason": "Empirical Finnish or case study metrics detected",
-                            }
-                        )
+                        add_finding(tda.tda_id, f_name, val)
     return findings
 
 
@@ -77,10 +84,8 @@ def audit_atom_coherence(matrix: MatrixPromptBlock) -> list[dict[str, str]]:
                 if tda.bounding_box_scope == "sentence" and COMPARATIVE_RE.search(rule_text):
                     add_issue(tid, "SCOPE_RULE_MISMATCH", "Relational rule requires paragraph scope")
                 if tda.contrastive_example is not None:
-                    missing = (
-                        "ACCEPTABLE:" not in tda.contrastive_example or "UNACCEPTABLE:" not in tda.contrastive_example
-                    )
-                    if missing or FINNISH_PATTERN.search(tda.contrastive_example):
+                    ex = tda.contrastive_example
+                    if "ACCEPTABLE:" not in ex or "UNACCEPTABLE:" not in ex or FINNISH_PATTERN.search(ex):
                         add_issue(tid, "EXEMPLAR_DEFECT", "contrastive_example must contain ACCEPTABLE/UNACCEPTABLE")
                 if not tda.acceptance_criteria and tda.extraction_rule and len(tda.extraction_rule) > 80:
                     add_issue(tid, "CRITERIA_RULE_DISCORDANCE", "Formal extraction rule lacks acceptance_criteria")
@@ -174,14 +179,11 @@ def apply_matrix_slice(
 
     data: dict[str, Any] = json.loads(seed_path.read_text(encoding="utf-8"))
     blocks: list[dict[str, Any]] = data["prompt_blocks"] if "prompt_blocks" in data else []
-    target_idx = next(
-        (
-            i
-            for i, b in enumerate(blocks)
-            if b.get("id") == slice_mat.id and b.get("category_id") == PromptBlockCategory.MATRIX.value
-        ),
-        None,
-    )
+    target_idx: int | None = None
+    for i, b in enumerate(blocks):
+        if b.get("id") == slice_mat.id and b.get("category_id") == PromptBlockCategory.MATRIX.value:
+            target_idx = i
+            break
     if target_idx is None:
         raise ValueError(f"Matrix '{slice_mat.id}' not found in {seed_path}")
 
@@ -240,5 +242,5 @@ def append_matrix_theory_explanation(
     if title in content:
         pattern = re.compile(rf"{re.escape(title)}\n\n.*?(?=\n### |\Z)", re.DOTALL)
         compendium_path.write_text(pattern.sub(section_text, content), encoding="utf-8")
-    else:
-        compendium_path.write_text(content.rstrip() + "\n\n" + section_text, encoding="utf-8")
+        return
+    compendium_path.write_text(content.rstrip() + "\n\n" + section_text, encoding="utf-8")
