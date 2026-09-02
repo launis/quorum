@@ -1,11 +1,36 @@
-"""Full Database Prompt Verification Engine.
+"""Full Database Prompt & Matrix Atom Verification Engine.
 
-Performs static heuristic, structural, semantic, and referential integrity audit
-across all prompt-feeding database collections in seed_data.json:
-1. prompt_blocks (Matrix TDA assertions, personas, protocols, rules)
-2. steps (LLM blueprints, strategies, input contracts, criteria references)
-3. workflows (DAG nodes, input mappings routing, system prompts)
-4. output_profiles (Synthesis configurations, directives, target block groups)
+Tämä skripti on Quorum-järjestelmän keskeinen Single Source of Truth (SSOT) -laadunvarmistustyökalu
+tietokannan (`backend_v2/seed/seed_data.json`) prompt- ja matriisikokoelmille.
+
+KÄYTTÖOHJEET JA TYÖNKULKU:
+==========================
+1. Yleinen laaduntarkastus (Kaikki kokoelmat):
+   `uv run python scripts/audit_database_atoms.py --strict`
+   - Tarkistaa, että kaikki prompt_blocks (matriisit), steps, workflows ja output_profiles
+     ovat 100 % Pydantic V2 -yhteensopivia ilman skeemavirheitä tai tyhjiä kriteereitä.
+
+2. Matriisien ja atomien kovennussilmukka (Matrix & Atom Hardening):
+   `uv run python scripts/matrix_hardening_loop.py --status`
+   - Tarkistaa atomitiheyden per taso (varoittaa, jos solussa on < 3 atomia -> Cliff-riski).
+   - Tarkasta yksittäinen matriisi:
+     `uv run python scripts/matrix_hardening_loop.py --inspect <matrix_id>`
+   - Merkitse matriisi valmiiksi auditoiduksi:
+     `uv run python scripts/matrix_hardening_loop.py --done <matrix_id>`
+
+3. Automaattinen aukkojen kartoitus ja generointi:
+   `uv run python scripts/matrix_hardening_generator.py --all-gaps`
+   `uv run python scripts/matrix_hardening_generator.py --plan <matrix_id>`
+
+4. Paikallisen tietokannan uudelleensiemennys validoinnin jälkeen:
+   `uv run python backend_v2/seed/run_seed.py local`
+
+AUDITOITAVAT KOKOELMAT:
+-----------------------
+1. prompt_blocks (Matriisien TDA-väitteet, persoonat, arviointisäännöt)
+2. steps (LLM-suoritusvaiheet, strategiat, syötesopimukset)
+3. workflows (DAG-orientoituneet työnkulut, reititykset)
+4. output_profiles (Synteesiprofiilit, SDUI-lohkojen ryhmittelyt)
 
 Strictly adheres to Zero-Reflection Mandate (no getattr/hasattr) and Pydantic V2.
 """
