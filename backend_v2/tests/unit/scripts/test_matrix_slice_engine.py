@@ -180,7 +180,7 @@ def test_detect_empirical_contamination_flags_run_artifacts() -> None:
     mat = load_matrix_by_id("blk_f921c7c0989b47e8")
     findings = detect_empirical_contamination(mat)
     assert len(findings) > 0
-    assert any("Empirical" in f["reason"] for f in findings)
+    assert any("Empirical" in f.reason for f in findings)
 
     # Verify that the calibrated Toulmin matrix has 0 contamination
     calibrated_mat = load_matrix_by_id("blk_440a5fef9331451b")
@@ -216,7 +216,7 @@ def test_audit_atom_coherence_flags_inversion_paradox() -> None:
     bad_mat = mat.model_copy(update={"scales": [bad_scale] + list(mat.scales[1:])})
 
     issues = audit_atom_coherence(bad_mat)
-    issue_types = {i["issue"] for i in issues}
+    issue_types = {i.issue for i in issues}
     assert "INVERSION_PARADOX" in issue_types
 
 

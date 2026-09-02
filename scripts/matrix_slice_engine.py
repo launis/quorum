@@ -11,7 +11,9 @@ import logging
 import re
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.enums import PromptBlockCategory
@@ -21,6 +23,8 @@ from scripts.sanitize_seed_vault import atomic_save_seed_data, create_vault_back
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "CoherenceIssueDTO",
+    "ContaminationFindingDTO",
     "append_matrix_theory_explanation",
     "apply_matrix_slice",
     "audit_atom_coherence",
@@ -35,6 +39,25 @@ EMPIRICAL_METRIC_PATTERN = re.compile(r"\b\d+%\b|\b(N=\d+|p<0\.\d+|kysely|haasta
 COMPARATIVE_RE = re.compile(r"\b(compar|relat|synthe|integrat|weigh|contrast|trade-?off)\b", re.I)
 
 
+class ContaminationFindingDTO(BaseModel):
+    """Immutable record of detected empirical contamination."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    tda_id: Annotated[str, Field(description="Target TDA ID.")]
+    field: Annotated[str, Field(description="Contaminated field name.")]
+    snippet: Annotated[str, Field(description="Snippet containing empirical artifact.")]
+    reason: Annotated[str, Field(description="Reason for detection.")]
+
+
+class CoherenceIssueDTO(BaseModel):
+    """Immutable record of an atom steering control incoherence."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    tda_id: Annotated[str, Field(description="Target TDA ID.")]
+    issue: Annotated[str, Field(description="Incoherence classification code.")]
+    description: Annotated[str, Field(description="Detailed explanation of the issue.")]
+
+
 def load_matrix_by_id(matrix_id: str, seed_path: Path = Path("backend_v2/seed/seed_data.json")) -> MatrixPromptBlock:
     """Loads and validates a MatrixPromptBlock from seed_data.json."""
     data = json.loads(seed_path.read_text(encoding="utf-8"))
@@ -45,13 +68,9 @@ def load_matrix_by_id(matrix_id: str, seed_path: Path = Path("backend_v2/seed/se
     raise ValueError(f"Matrix with ID '{matrix_id}' not found in {seed_path} or is not category 'matrix'")
 
 
-def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[dict[str, str]]:
+def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[ContaminationFindingDTO]:
     """Detects empirical run artifacts and Finnish case data in contrastive examples."""
-    findings: list[dict[str, str]] = []
-
-    def add_finding(tid: str, field: str, val: str) -> None:
-        findings.append({"tda_id": tid, "field": field, "snippet": val[:80], "reason": "Empirical text"})
-
+    findings: list[ContaminationFindingDTO] = []
     for s in matrix.scales:
         for c in s.claims:
             for tda in c.tda_assertions:
@@ -61,16 +80,20 @@ def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[dict[str, 
                     ("concept_description", tda.concept_description),
                 ]:
                     if FINNISH_PATTERN.search(val) or EMPIRICAL_METRIC_PATTERN.search(val):
-                        add_finding(tda.tda_id, f_name, val)
+                        findings.append(
+                            ContaminationFindingDTO(
+                                tda_id=tda.tda_id, field=f_name, snippet=val[:80], reason="Empirical text detected"
+                            )
+                        )
     return findings
 
 
-def audit_atom_coherence(matrix: MatrixPromptBlock) -> list[dict[str, str]]:
+def audit_atom_coherence(matrix: MatrixPromptBlock) -> list[CoherenceIssueDTO]:
     """Audits cross-field coherence and steering control integrity across matrix atoms."""
-    issues: list[dict[str, str]] = []
+    issues: list[CoherenceIssueDTO] = []
 
-    def add_issue(tda_id: str, issue: str, desc: str) -> None:
-        issues.append({"tda_id": tda_id, "issue": issue, "description": desc})
+    def add_issue(tid: str, issue: str, desc: str) -> None:
+        issues.append(CoherenceIssueDTO(tda_id=tid, issue=issue, description=desc))
 
     for s in matrix.scales:
         for c in s.claims:
@@ -83,10 +106,10 @@ def audit_atom_coherence(matrix: MatrixPromptBlock) -> list[dict[str, str]]:
                 rule_text = f"{tda.extraction_rule or ''} {tda.concept_description}"
                 if tda.bounding_box_scope == "sentence" and COMPARATIVE_RE.search(rule_text):
                     add_issue(tid, "SCOPE_RULE_MISMATCH", "Relational rule requires paragraph scope")
-                if tda.contrastive_example is not None:
-                    ex = tda.contrastive_example
-                    if "ACCEPTABLE:" not in ex or "UNACCEPTABLE:" not in ex or FINNISH_PATTERN.search(ex):
-                        add_issue(tid, "EXEMPLAR_DEFECT", "contrastive_example must contain ACCEPTABLE/UNACCEPTABLE")
+                if (ex := tda.contrastive_example) and (
+                    "ACCEPTABLE:" not in ex or "UNACCEPTABLE:" not in ex or FINNISH_PATTERN.search(ex)
+                ):
+                    add_issue(tid, "EXEMPLAR_DEFECT", "contrastive_example must contain ACCEPTABLE/UNACCEPTABLE")
                 if not tda.acceptance_criteria and tda.extraction_rule and len(tda.extraction_rule) > 80:
                     add_issue(tid, "CRITERIA_RULE_DISCORDANCE", "Formal extraction rule lacks acceptance_criteria")
     return issues
@@ -97,7 +120,7 @@ def export_matrix_slice(
 ) -> Path:
     """Exports an isolated, validated single-matrix slice JSON."""
     mat = load_matrix_by_id(matrix_id, seed_path)
-    dest = output_path or Path("tmp/slices") / f"{matrix_id}.json"
+    dest = output_path or Path(f"tmp/slices/{matrix_id}.json")
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(mat.model_dump_json(indent=2) + "\n", encoding="utf-8")
     return dest
@@ -106,19 +129,16 @@ def export_matrix_slice(
 def generate_theory_opponent_card(matrix_id: str, seed_path: Path = Path("backend_v2/seed/seed_data.json")) -> str:
     """Generates a structured Theory Opponent Card prompt for adversarial review."""
     mat = load_matrix_by_id(matrix_id, seed_path)
-    theory = (
-        f"Citation: {mat.theory_grounding.citation_reference}\nURL: {mat.theory_grounding.source_url}"
-        if mat.theory_grounding
-        else "[THEORY GROUNDING ABSENT - REQUIRED TO IDENTIFY ACADEMIC CANON]"
-    )
+    tg = mat.theory_grounding
+    theory = f"Citation: {tg.citation_reference}\nURL: {tg.source_url}" if tg else "[THEORY GROUNDING ABSENT]"
     contam, coherence = detect_empirical_contamination(mat), audit_atom_coherence(mat)
     lines = [
         "<evaluator_mandate>\n"
         "You are an Adversarial Theory Opponent and Senior Epistemologist. Calibrate this matrix.\n"
         "</evaluator_mandate>",
         f"<theory_context>\nMatrix: {mat.label.resolve('en')}\n{theory}\n</theory_context>",
-        f"<matrix_metadata>\nID: {mat.id}\n"
-        f"allow_contextual_override={mat.allow_contextual_override}\n</matrix_metadata>",
+        f"<matrix_metadata>\nID: {mat.id}\nallow_contextual_override={mat.allow_contextual_override}\n"
+        "</matrix_metadata>",
         "<bars_scale_specifications>",
     ]
     for s in mat.scales:
@@ -131,34 +151,24 @@ def generate_theory_opponent_card(matrix_id: str, seed_path: Path = Path("backen
                     f"Aggregation={tda.aggregation_mode} Inverse={tda.inverse_evidence} Scope={tda.bounding_box_scope}"
                 )
     lines.append("</bars_scale_specifications>")
-    audit_items = contam + coherence
-    formatted_items = []
-    for i in audit_items:
-        k = i["field"] if "field" in i else i["issue"]
-        v = i["snippet"] if "snippet" in i else i["description"]
-        formatted_items.append(f"- {i['tda_id']} ({k}): {v}")
-    audit_body = "\n".join(formatted_items) if formatted_items else "No defects detected."
+    audit_items = [f"- {f.tda_id} ({f.field}): {f.snippet}" for f in contam] + [
+        f"- {c.tda_id} ({c.issue}): {c.description}" for c in coherence
+    ]
+    audit_body = "\n".join(audit_items) if audit_items else "No defects detected."
     lines.append(
         f"<theory_calibration_audit>\n{audit_body}\n"
         "Mandate: Purge empirical run text and resolve all incoherencies into pure domain-agnostic English "
         "theoretical exemplars.\n</theory_calibration_audit>"
     )
     lines.append(
-        "<control_theory_grounding>\n"
-        "Epistemic Ontology:\n- concept_description: Theoretical construct\n- anchor_target: Saliency token\n"
-        "- bounding_box_scope: Text window (sentence vs paragraph)\n"
+        "<control_theory_grounding>\nEpistemic Ontology:\n- concept_description: Theoretical construct\n"
+        "- anchor_target: Saliency token\n- bounding_box_scope: Text window (sentence vs paragraph)\n"
         "- extraction_rule: Necessary-and-sufficient truth condition\n"
         "- acceptance_criteria: Deductive verification sequence\n- contrastive_example: Discriminative boundary\n\n"
         "Semantics of aggregation_mode:\n"
         "- ALL_MUST_COMPLY: Universal structural invariant across every analyzed chunk. "
-        "NEVER pair with inverse_evidence.\n"
-        "- EXISTS: Demonstrated competence or Error Radar anomaly.\n"
-        "Requirement: Ground every steering control in cited theoretical literature.\n</control_theory_grounding>"
-    )
-    lines.append(
-        "<theory_transformation_protocol>\n"
-        "Transform all 6 fields to satisfy the Six-Point Isomorphic Chain derived directly from the citation.\n"
-        "</theory_transformation_protocol>"
+        "NEVER pair with inverse_evidence.\n- EXISTS: Demonstrated competence or Error Radar anomaly.\n"
+        "- AT_LEAST_N / RATIO: Calibrated quorum thresholds.\n</control_theory_grounding>"
     )
     return "\n\n".join(lines)
 
@@ -172,18 +182,17 @@ def apply_matrix_slice(
         raise ValueError(f"Slice '{slice_path}' category is not matrix")
 
     fatal_coherence = [
-        i for i in audit_atom_coherence(slice_mat) if i["issue"] in ("INVERSION_PARADOX", "PREFLIGHT_CHOKEPOINT")
+        i for i in audit_atom_coherence(slice_mat) if i.issue in ("INVERSION_PARADOX", "PREFLIGHT_CHOKEPOINT")
     ]
     if fatal_coherence:
         raise ValueError(f"Slice '{slice_mat.id}' contains fatal field incoherence: {fatal_coherence}")
 
     data: dict[str, Any] = json.loads(seed_path.read_text(encoding="utf-8"))
     blocks: list[dict[str, Any]] = data["prompt_blocks"] if "prompt_blocks" in data else []
-    target_idx: int | None = None
-    for i, b in enumerate(blocks):
-        if b.get("id") == slice_mat.id and b.get("category_id") == PromptBlockCategory.MATRIX.value:
-            target_idx = i
-            break
+    cat = PromptBlockCategory.MATRIX.value
+    target_idx = next(
+        (i for i, b in enumerate(blocks) if b.get("id") == slice_mat.id and b.get("category_id") == cat), None
+    )
     if target_idx is None:
         raise ValueError(f"Matrix '{slice_mat.id}' not found in {seed_path}")
 
@@ -191,14 +200,10 @@ def apply_matrix_slice(
         backup_file = create_vault_backup(seed_path)
         blocks[target_idx] = slice_mat.model_dump(mode="json", exclude_none=True)
         atomic_save_seed_data(data, seed_path)
-        report = run_full_database_audit(seed_path)
-        if not report.all_passed:
+        if not run_full_database_audit(seed_path).all_passed:
             shutil.copyfile(backup_file, seed_path)
-            raise RuntimeError(
-                f"Pre-flight audit failed for slice '{slice_mat.id}'; restored backup from {backup_file}"
-            )
-        state_file = Path("tmp/matrix_hardening_state.json")
-        if state_file.exists():
+            raise RuntimeError(f"Pre-flight audit failed for slice '{slice_mat.id}'; restored {backup_file}")
+        if Path("tmp/matrix_hardening_state.json").exists():
             from scripts.matrix_hardening_loop import mark_done
 
             mark_done(slice_mat.id)
@@ -212,28 +217,27 @@ def append_matrix_theory_explanation(
     """Appends or updates a 2-paragraph English theory explanation for a hardened matrix in the compendium."""
     mat = load_matrix_by_id(matrix_id, seed_path)
     title = f"### {mat.label.resolve('en')}"
-    theory_name = mat.theory_grounding.citation_reference if mat.theory_grounding else "formal domain heuristics"
+    tg = mat.theory_grounding
+    th_ref = tg.citation_reference if tg else "formal domain heuristics"
+    lbl, ovr = mat.label.resolve("en"), mat.allow_contextual_override
     p1 = (
-        f"The {mat.label.resolve('en')} evaluation matrix is mathematically grounded in {theory_name}. "
-        "It provides a structured Behaviorally Anchored Rating Scale (BARS) spanning Levels 1 to 5, "
-        "transitioning from ungrounded claims and subjective rhetoric to rigorous, evidence-backed propositions. "
-        "By eliminating cognitive biases and rhetorical ornamentation, it enforces objective, verifiable standards "
-        "across analytical reasoning tasks."
+        f"The {lbl} evaluation matrix is mathematically grounded in {th_ref}. It provides a structured "
+        "Behaviorally Anchored Rating Scale (BARS) spanning Levels 1 to 5, transitioning from ungrounded "
+        "claims and subjective rhetoric to rigorous, evidence-backed propositions. By eliminating cognitive "
+        "biases and rhetorical ornamentation, it enforces objective, verifiable standards across analytical tasks."
     )
     p2 = (
         "Operationally, the matrix controls evaluation precision through targeted parameters including "
-        f"contextual override permissions (allow_contextual_override={mat.allow_contextual_override}) "
-        "and calibrated evidence search distance across bounding boxes. Steering mechanisms enforce strict "
-        "distinction between universal structural invariants requiring all chunks to comply simultaneously "
-        "and specialized error radars operating under existential detection to prevent evaluation distortion."
+        f"contextual override permissions (allow_contextual_override={ovr}) and calibrated evidence search "
+        "distance across bounding boxes. Steering mechanisms enforce strict distinction between universal "
+        "structural invariants requiring chunk compliance and specialized existential error radars."
     )
     section_text = f"{title}\n\n{p1}\n\n{p2}\n"
     compendium_path.parent.mkdir(parents=True, exist_ok=True)
     if not compendium_path.exists():
         header = (
             "# Matrix Theory Explanations Compendium\n\n"
-            "Architectural reference documenting theoretical grounding and steering controls "
-            "for all Quorum matrices.\n\n"
+            "Architectural reference documenting theoretical grounding and steering controls for all matrices.\n\n"
         )
         compendium_path.write_text(header + section_text, encoding="utf-8")
         return

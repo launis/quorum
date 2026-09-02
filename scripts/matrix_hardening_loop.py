@@ -15,13 +15,14 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Annotated
 
 # Ensure workspace root is in sys.path for direct script execution
 _workspace_root = str(Path(__file__).resolve().parent.parent)
 if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from scripts.matrix_slice_engine import (
@@ -70,12 +71,12 @@ class LevelAuditDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    score: float = Field(description="Numerical scale level.")
-    name: str = Field(description="Localized Finnish level name.")
-    total_atoms: int = Field(description="Total TDA assertions on this level.")
-    positive_atoms: int = Field(description="Atoms with inverse_evidence=False.")
-    inverse_atoms: int = Field(description="Atoms with inverse_evidence=True.")
-    is_fragile: bool = Field(description="True if total_atoms < 3 (cliff risk).")
+    score: Annotated[float, Field(description="Numerical scale level.")]
+    name: Annotated[str, Field(description="Localized Finnish level name.")]
+    total_atoms: Annotated[int, Field(description="Total TDA assertions on this level.")]
+    positive_atoms: Annotated[int, Field(description="Atoms with inverse_evidence=False.")]
+    inverse_atoms: Annotated[int, Field(description="Atoms with inverse_evidence=True.")]
+    is_fragile: Annotated[bool, Field(description="True if total_atoms < 3 (cliff risk).")]
 
 
 class MatrixAuditDTO(BaseModel):
@@ -83,24 +84,24 @@ class MatrixAuditDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    matrix_id: str = Field(description="Opaque Stripe ID (blk_...).")
-    name: str = Field(description="Matrix name in Finnish.")
-    description: str = Field(description="Matrix description.")
-    total_levels: int = Field(description="Total scale levels.")
-    total_atoms: int = Field(description="Total TDA assertions across all levels.")
-    status: str = Field(default="PENDING", description="PENDING, IN_PROGRESS, or DONE.")
-    levels: list[LevelAuditDTO] = Field(description="Detailed level breakdowns.")
+    matrix_id: Annotated[str, Field(description="Opaque Stripe ID (blk_...).")]
+    name: Annotated[str, Field(description="Matrix name in Finnish.")]
+    description: Annotated[str, Field(description="Matrix description.")]
+    total_levels: Annotated[int, Field(description="Total scale levels.")]
+    total_atoms: Annotated[int, Field(description="Total TDA assertions across all levels.")]
+    status: Annotated[str, Field(default="PENDING", description="PENDING, IN_PROGRESS, or DONE.")]
+    levels: Annotated[list[LevelAuditDTO], Field(description="Detailed level breakdowns.")]
 
 
 class HardeningStateDTO(BaseModel):
     """Global state of the Matrix Hardening loop."""
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    total_matrices: int = Field(description="Total active matrices.")
-    completed_matrices: int = Field(description="Count of audited and hardened matrices.")
-    fragile_matrices_count: int = Field(description="Matrices with fragile levels (<3 atoms).")
-    matrices: list[MatrixAuditDTO] = Field(description="List of matrix audit summaries.")
+    total_matrices: Annotated[int, Field(description="Total active matrices.")]
+    completed_matrices: Annotated[int, Field(description="Count of audited and hardened matrices.")]
+    fragile_matrices_count: Annotated[int, Field(description="Matrices with fragile levels (<3 atoms).")]
+    matrices: Annotated[list[MatrixAuditDTO], Field(description="List of matrix audit summaries.")]
 
 
 def load_seed_matrices() -> list[MatrixPromptBlock]:
@@ -175,11 +176,10 @@ def build_or_load_state(reset: bool = False) -> HardeningStateDTO:
     existing_statuses: dict[str, str] = {}
     if STATE_PATH.exists() and not reset:
         try:
-            saved = json.loads(STATE_PATH.read_text(encoding="utf-8"))
-            if "matrices" in saved:
-                for item in saved["matrices"]:
-                    existing_statuses[item["matrix_id"]] = item["status"]
-        except OSError, json.JSONDecodeError, KeyError:
+            saved = HardeningStateDTO.model_validate_json(STATE_PATH.read_text(encoding="utf-8"))
+            for item in saved.matrices:
+                existing_statuses[item.matrix_id] = item.status
+        except OSError, ValidationError:
             logger.warning("Failed to parse existing state file %s; re-initializing state.", STATE_PATH)
 
     matrices = load_seed_matrices()
