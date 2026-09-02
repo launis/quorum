@@ -123,6 +123,38 @@ void main() {
         XaiExtensionType.coaching,
       ]);
       expect(profile.visibleWorkflowExtensions, [XaiExtensionType.riskFlag]);
+      expect(profile.language, SystemLocale.en);
+    });
+
+    test('test_output_profile_language_enum_parsing', () {
+      final basePayload = {
+        'id': 'op_1234567890abcdef',
+        'workflow_id': 'wf_9d68c573802341db',
+        'name': {
+          'translations': {'en': 'Test Profile'},
+        },
+      };
+
+      // Language null
+      final profileNull = OutputProfile.fromJson(basePayload);
+      expect(profileNull.language, isNull);
+
+      // Language fi
+      final profileFi = OutputProfile.fromJson({
+        ...basePayload,
+        'language': 'fi',
+      });
+      expect(profileFi.language, SystemLocale.fi);
+      expect(profileFi.toJson()['language'], 'fi');
+
+      // Invalid language throws
+      expect(
+        () => OutputProfile.fromJson({
+          ...basePayload,
+          'language': 'invalid_locale',
+        }),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
     });
 
     test('test_output_profile_unknown_display_scale_throws', () {

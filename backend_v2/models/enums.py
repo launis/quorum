@@ -60,6 +60,7 @@ __all__ = [
     "LaxSimulationType",
     "LaxSourcesDisplayMode",
     "LaxStrategicDepth",
+    "LaxSystemLocale",
     "LaxTargetBlockType",
     "LaxUiVariant",
     "LaxVerificationResult",
@@ -786,6 +787,7 @@ LaxTargetBlockType = Annotated[TargetBlockType, Field(strict=False)]
 LaxSourcesDisplayMode = Annotated[SourcesDisplayMode, Field(strict=False)]
 LaxDisplayScale = Annotated[DisplayScale, Field(strict=False)]
 LaxSDUIComponentType = Annotated[SDUIComponentType, Field(strict=False)]
+LaxSystemLocale = Annotated[SystemLocale, Field(strict=False)]
 
 
 class SpecialAliasChoices(StrEnum):

@@ -4,6 +4,7 @@ import 'package:client_app/features/studio/controllers/output_profile_controller
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -149,6 +150,42 @@ class ProfileGeneralTab extends ConsumerWidget {
                       payload.copyWith(customPreface: isEmpty ? null : val),
                     );
                   },
+                ),
+                AppSpacing.h16,
+                InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: l10n.profileLanguageLabel,
+                    isDense: true,
+                    border: const OutlineInputBorder(),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<SystemLocale?>(
+                      value: payload.language,
+                      isDense: true,
+                      isExpanded: true,
+                      items: [
+                        DropdownMenuItem<SystemLocale?>(
+                          value: null,
+                          child: Text(
+                            l10n.profileLanguageDefault,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        ...SystemLocale.values.map((locale) {
+                          return DropdownMenuItem<SystemLocale?>(
+                            value: locale,
+                            child: Text(switch (locale) {
+                              SystemLocale.fi => l10n.profileLanguageFi,
+                              SystemLocale.en => l10n.profileLanguageEn,
+                            }, overflow: TextOverflow.ellipsis),
+                          );
+                        }),
+                      ],
+                      onChanged: (val) {
+                        updatePayload(payload.copyWith(language: val));
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),

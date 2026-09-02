@@ -2781,6 +2781,18 @@ class AppLocalizationsFi extends AppLocalizations {
   String get profileDescriptionLabel => 'Profiilin kuvaus (valinnainen)';
 
   @override
+  String get profileLanguageLabel => 'Kohdekieli';
+
+  @override
+  String get profileLanguageDefault => 'Automaattinen ajosta (Oletus)';
+
+  @override
+  String get profileLanguageFi => 'Suomi (fi)';
+
+  @override
+  String get profileLanguageEn => 'Englanti (en)';
+
+  @override
   String get workflowSelectWarning =>
       '⚠️ Valitse työnkulku yläpuolelta ennen raporttipohjien muokkausta.';
 

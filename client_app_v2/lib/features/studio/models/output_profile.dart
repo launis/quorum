@@ -68,7 +68,7 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,
     @JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,
     @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
-    String? language,
+    SystemLocale? language,
     @JsonKey(name: 'matrix_synthesis_groups')
     @Default([])
     List<MatrixSynthesisGroup> matrixSynthesisGroups,

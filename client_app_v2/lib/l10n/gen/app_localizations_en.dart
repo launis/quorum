@@ -2764,6 +2764,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileDescriptionLabel => 'Profile Description (Optional)';
 
   @override
+  String get profileLanguageLabel => 'Target Language';
+
+  @override
+  String get profileLanguageDefault => 'Automatic from execution (Default)';
+
+  @override
+  String get profileLanguageFi => 'Finnish (fi)';
+
+  @override
+  String get profileLanguageEn => 'English (en)';
+
+  @override
   String get workflowSelectWarning =>
       '⚠️ Please select a Workflow ID Binding above to configure report layouts.';
 

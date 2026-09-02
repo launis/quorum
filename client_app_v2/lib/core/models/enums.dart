@@ -423,3 +423,13 @@ enum TargetBlockType {
   @JsonValue('authenticity_evaluation_block')
   authenticityEvaluationBlock,
 }
+
+/// Supported system locales.
+@JsonEnum()
+enum SystemLocale {
+  @JsonValue('en')
+  en,
+  @JsonValue('fi')
+  fi,
+}
+

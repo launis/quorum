@@ -16,9 +16,11 @@ from backend_v2.models.enums import (
     LaxDisplayScale,
     LaxScoringStrategy,
     LaxSourcesDisplayMode,
+    LaxSystemLocale,
     LaxTargetBlockType,
     LaxXaiExtensionType,
     SourcesDisplayMode,
+    SystemLocale,
     TargetBlockType,
 )
 from backend_v2.models.v2_core import (
@@ -77,7 +79,7 @@ class OutputProfileCreateDTO(V2CoreBase):
     tone_instruction: Annotated[
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
-    language: Annotated[str | None, Field(default=None, description="Target output language.")]
+    language: Annotated[LaxSystemLocale | None, Field(default=None, description="Target output language.")] = None
 
     visible_metadata: Annotated[
         list[str],
@@ -254,7 +256,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
     tone_instruction: Annotated[
         I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ]
-    language: Annotated[str | None, Field(default=None, description="Target output language.")]
+    language: Annotated[LaxSystemLocale | None, Field(default=None, description="Target output language.")] = None
 
     organization_id: Annotated[str | None, Field(default=None, description="Tenant organization scope.")]
     visible_metadata: Annotated[
@@ -397,7 +399,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     custom_preface: I18nText | None = None
     user_role_label: I18nText | None = None
     tone_instruction: I18nText | None = None
-    language: str | None = None
+    language: LaxSystemLocale | None = None
     target_block_order: Annotated[
         list[LaxTargetBlockType],
         Field(

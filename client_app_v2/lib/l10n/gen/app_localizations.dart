@@ -5090,6 +5090,30 @@ abstract class AppLocalizations {
   /// **'Profile Description (Optional)'**
   String get profileDescriptionLabel;
 
+  /// No description provided for @profileLanguageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Language'**
+  String get profileLanguageLabel;
+
+  /// No description provided for @profileLanguageDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic from execution (Default)'**
+  String get profileLanguageDefault;
+
+  /// No description provided for @profileLanguageFi.
+  ///
+  /// In en, this message translates to:
+  /// **'Finnish (fi)'**
+  String get profileLanguageFi;
+
+  /// No description provided for @profileLanguageEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English (en)'**
+  String get profileLanguageEn;
+
   /// No description provided for @workflowSelectWarning.
   ///
   /// In en, this message translates to:

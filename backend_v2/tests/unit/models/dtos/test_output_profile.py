@@ -456,3 +456,45 @@ def test_output_profile_sources_display_mode_invalid_string_negative() -> None:
 
     with pytest.raises(ValidationError, match="Input should be"):
         OutputProfileUpdateDTO.model_validate({"sources_display_mode": "invalid_mode"})
+
+
+def test_output_profile_language_enum_validation() -> None:
+    """Positive and negative tests for profile language validation."""
+    from backend_v2.models.enums import SystemLocale
+
+    # Positive: valid locale strings and enums
+    dto_en = OutputProfileCreateDTO.model_validate({**_VALID_CREATE_PAYLOAD, "language": "en"})
+    assert dto_en.language == SystemLocale.EN
+
+    dto_fi = OutputProfileCreateDTO.model_validate({**_VALID_CREATE_PAYLOAD, "language": "fi"})
+    assert dto_fi.language == SystemLocale.FI
+
+    dto_none = OutputProfileCreateDTO.model_validate({**_VALID_CREATE_PAYLOAD, "language": None})
+    assert dto_none.language is None
+
+    # UpdateDTO
+    update_en = OutputProfileUpdateDTO.model_validate({"language": "en"})
+    assert update_en.language == SystemLocale.EN
+
+    update_none = OutputProfileUpdateDTO.model_validate({"language": None})
+    assert update_none.language is None
+
+    # ResponseDTO
+    resp_en = OutputProfileResponseDTO.model_validate(
+        {
+            "id": "op_1234567890abcdef",
+            "slug": "default",
+            "workflow_id": "wf_123",
+            "name": {"translations": {"en": "Test"}},
+            "language": "en",
+        }
+    )
+    assert resp_en.language == SystemLocale.EN
+
+    # Negative: invalid language string
+    with pytest.raises(ValidationError, match="Input should be"):
+        OutputProfileCreateDTO.model_validate({**_VALID_CREATE_PAYLOAD, "language": "sv"})
+
+    with pytest.raises(ValidationError, match="Input should be"):
+        OutputProfileUpdateDTO.model_validate({"language": "invalid_lang"})
+

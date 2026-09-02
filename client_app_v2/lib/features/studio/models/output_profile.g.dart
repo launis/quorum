@@ -220,7 +220,10 @@ _OutputProfile _$OutputProfileFromJson(
         'tone_instruction',
         (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
       ),
-      language: $checkedConvert('language', (v) => v as String?),
+      language: $checkedConvert(
+        'language',
+        (v) => $enumDecodeNullable(_$SystemLocaleEnumMap, v),
+      ),
       matrixSynthesisGroups: $checkedConvert(
         'matrix_synthesis_groups',
         (v) =>
@@ -335,7 +338,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'max_quotes_per_matrix': instance.maxQuotesPerMatrix,
   'max_unmet_criteria': instance.maxUnmetCriteria,
   'tone_instruction': instance.toneInstruction?.toJson(),
-  'language': instance.language,
+  'language': _$SystemLocaleEnumMap[instance.language],
   'matrix_synthesis_groups': instance.matrixSynthesisGroups
       .map((e) => e.toJson())
       .toList(),
@@ -378,6 +381,8 @@ const _$ScoringStrategyEnumMap = {
   ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
   ScoringStrategy.pureMath: 'PURE_MATH',
 };
+
+const _$SystemLocaleEnumMap = {SystemLocale.en: 'en', SystemLocale.fi: 'fi'};
 
 const _$TargetBlockTypeEnumMap = {
   TargetBlockType.globalScoreBlock: 'global_score_block',
