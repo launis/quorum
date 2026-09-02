@@ -93,9 +93,6 @@ class BaseBlockCard extends StatelessWidget {
                 if (dragHandle != null) ...[
                   const SizedBox(width: AppSpacing.s8),
                   dragHandle!,
-                ] else ...[
-                  const SizedBox(width: AppSpacing.s8),
-                  const Icon(Icons.drag_handle),
                 ],
               ],
             ),

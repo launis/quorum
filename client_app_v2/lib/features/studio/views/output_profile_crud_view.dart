@@ -6,7 +6,8 @@ import 'package:client_app/features/studio/controllers/output_profile_controller
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_general_tab.dart';
 import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart';
-import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart';
+import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart';
+import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -14,7 +15,7 @@ import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 
 /// Admin Studio View for managing Output Profiles.
-/// Uses the 2026 Gold Standard 3-Tab Architecture (Dumb UI Shell).
+/// Uses the 2026 Gold Standard 4-Tab Architecture (Dumb UI Shell).
 class OutputProfileCrudView extends HookConsumerWidget {
   final String id;
   const OutputProfileCrudView({super.key, required this.id});
@@ -40,16 +41,29 @@ class OutputProfileCrudView extends HookConsumerWidget {
         ),
       ),
       AsyncData(value: final payload) => DefaultTabController(
-        length: 3,
+        length: 4,
         child: AppExceptionBoundary(
           child: Scaffold(
             appBar: AppBar(
               title: Text(l10n.editOutputProfileTitle),
               bottom: TabBar(
                 tabs: [
-                  Tab(text: l10n.profileTabGeneral),
-                  Tab(text: l10n.profileTabScoring),
-                  Tab(text: l10n.profileTabReportStructure),
+                  Tab(
+                    icon: const Icon(Icons.settings_outlined),
+                    text: l10n.profileTabToneAndGeneral,
+                  ),
+                  Tab(
+                    icon: const Icon(Icons.balance_outlined),
+                    text: l10n.profileTabScoring,
+                  ),
+                  Tab(
+                    icon: const Icon(Icons.tune_outlined),
+                    text: l10n.profileTabSectionConfig,
+                  ),
+                  Tab(
+                    icon: const Icon(Icons.view_list_outlined),
+                    text: l10n.profileTabReportStructure,
+                  ),
                 ],
               ),
               actions: [
@@ -89,7 +103,8 @@ class OutputProfileCrudView extends HookConsumerWidget {
                 children: [
                   ProfileGeneralTab(id: id),
                   ProfileScoringTab(id: id),
-                  ProfileLayoutsTab(id: id),
+                  ProfileSectionConfigTab(id: id),
+                  ProfileStructureTab(id: id),
                 ],
               ),
             ),

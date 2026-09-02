@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
@@ -9,7 +10,7 @@ import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 
-/// Tab 1: Profile identity, URL slug, workflow binding, and rich text preface.
+/// Tab 1: Profile identity, URL slug, workflow binding, language, and coaching tone/style.
 class ProfileGeneralTab extends ConsumerWidget {
   final String id;
   const ProfileGeneralTab({super.key, required this.id});
@@ -34,12 +35,26 @@ class ProfileGeneralTab extends ConsumerWidget {
     return ListView(
       padding: AppSpacing.p16,
       children: [
+        // Card 1: Profile Identity
         Card(
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: AppSpacing.p16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  l10n.profileTabGeneral,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                AppSpacing.h16,
                 TextFormField(
                   initialValue: payload.id,
                   decoration: InputDecoration(
@@ -138,18 +153,29 @@ class ProfileGeneralTab extends ConsumerWidget {
                     );
                   },
                 ),
-                AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.customPrefaceLabel,
-                  initialData: payload.customPreface,
-                  onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
-                    updatePayload(
-                      payload.copyWith(customPreface: isEmpty ? null : val),
-                    );
-                  },
+              ],
+            ),
+          ),
+        ),
+
+        // Card 2: Tone & Style (EPIC 148 Pure Natural Language)
+        Card(
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: AppSpacing.p16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.profileTabToneAndGeneral,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 AppSpacing.h16,
                 InputDecorator(
@@ -186,6 +212,100 @@ class ProfileGeneralTab extends ConsumerWidget {
                       },
                     ),
                   ),
+                ),
+                AppSpacing.h16,
+                I18nTextField(
+                  label: l10n.profileToneInstructionLabel,
+                  initialData: payload.toneInstruction,
+                  onChanged: (val) {
+                    final isEmpty =
+                        val.translations.isEmpty ||
+                        val.translations.values.every((v) => v.trim().isEmpty);
+                    updatePayload(
+                      payload.copyWith(toneInstruction: isEmpty ? null : val),
+                    );
+                  },
+                ),
+                AppSpacing.h16,
+                I18nTextField(
+                  label: l10n.profileUserRoleLabelLabel,
+                  initialData: payload.userRoleLabel,
+                  onChanged: (val) {
+                    final isEmpty =
+                        val.translations.isEmpty ||
+                        val.translations.values.every((v) => v.trim().isEmpty);
+                    updatePayload(
+                      payload.copyWith(userRoleLabel: isEmpty ? null : val),
+                    );
+                  },
+                ),
+                AppSpacing.h16,
+                I18nTextField(
+                  label: l10n.customPrefaceLabel,
+                  initialData: payload.customPreface,
+                  onChanged: (val) {
+                    final isEmpty =
+                        val.translations.isEmpty ||
+                        val.translations.values.every((v) => v.trim().isEmpty);
+                    updatePayload(
+                      payload.copyWith(customPreface: isEmpty ? null : val),
+                    );
+                  },
+                ),
+                AppSpacing.h16,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue:
+                            payload.synthesisLengthConstraint?.toString() ?? '',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: InputDecoration(
+                          labelText: l10n.profileSynthesisLengthLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        onChanged: (val) {
+                          final trimmed = val.trim();
+                          updatePayload(
+                            payload.copyWith(
+                              synthesisLengthConstraint: trimmed.isNotEmpty
+                                  ? int.tryParse(trimmed)
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    AppSpacing.w16,
+                    Expanded(
+                      child: TextFormField(
+                        initialValue:
+                            payload.maxQuotesPerMatrix?.toString() ?? '',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: InputDecoration(
+                          labelText: l10n.profileMaxQuotesLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        onChanged: (val) {
+                          final trimmed = val.trim();
+                          updatePayload(
+                            payload.copyWith(
+                              maxQuotesPerMatrix: trimmed.isNotEmpty
+                                  ? int.tryParse(trimmed)
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

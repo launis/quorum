@@ -3886,10 +3886,42 @@ class AppLocalizationsFi extends AppLocalizations {
   String get profileTabGeneral => 'Yleiset';
 
   @override
+  String get profileTabToneAndGeneral => 'Yleiset & Sävy';
+
+  @override
   String get profileTabScoring => 'Pisteytys';
 
   @override
+  String get profileTabSectionConfig => 'Tulostusmäärittelyt';
+
+  @override
   String get profileTabReportStructure => 'Raportin rakenne';
+
+  @override
+  String get profileToneInstructionLabel => 'Valmentajan sävyohjeistus';
+
+  @override
+  String get profileUserRoleLabelLabel => 'Kohderyhmän rooliotsikko';
+
+  @override
+  String get profileSynthesisLengthLabel => 'Synteesin tavoitepituus (merkkiä)';
+
+  @override
+  String get profileMaxQuotesLabel => 'Maksimi lainauksia per matriisi';
+
+  @override
+  String get sectionConfigHeaderTitle => 'Osiokohtaiset tulostusmäärittelyt';
+
+  @override
+  String get sectionConfigSubtitle =>
+      'Hallitse yksittäisten raporttiosioiden sisäistä näkymää ja asetuksia.';
+
+  @override
+  String get noDetailedSectionsActiveTitle => 'Ei aktiivisia osiomäärittelyjä';
+
+  @override
+  String get noDetailedSectionsActiveSubtitle =>
+      'Ota käyttöön matriisikaavio-, metatieto- tai XAI-laajennusosioita Raportin rakenne -välilehdeltä muokataksesi niiden yksityiskohtaisia asetuksia.';
 
   @override
   String get blockMetadataTitle => 'Raportin metatiedot';

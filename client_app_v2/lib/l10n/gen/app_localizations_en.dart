@@ -3859,10 +3859,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileTabGeneral => 'General';
 
   @override
+  String get profileTabToneAndGeneral => 'General & Tone';
+
+  @override
   String get profileTabScoring => 'Scoring';
 
   @override
+  String get profileTabSectionConfig => 'Section Config';
+
+  @override
   String get profileTabReportStructure => 'Report Structure';
+
+  @override
+  String get profileToneInstructionLabel => 'Coaching tone instruction';
+
+  @override
+  String get profileUserRoleLabelLabel => 'Target audience role label';
+
+  @override
+  String get profileSynthesisLengthLabel =>
+      'Synthesis target length (characters)';
+
+  @override
+  String get profileMaxQuotesLabel => 'Maximum quotes per matrix';
+
+  @override
+  String get sectionConfigHeaderTitle => 'Section-level output configuration';
+
+  @override
+  String get sectionConfigSubtitle =>
+      'Manage the internal display and settings of individual report sections.';
+
+  @override
+  String get noDetailedSectionsActiveTitle =>
+      'No active section configurations';
+
+  @override
+  String get noDetailedSectionsActiveSubtitle =>
+      'Enable matrix graphs, metadata, or XAI extension sections in the Report Structure tab to configure their detailed settings.';
 
   @override
   String get blockMetadataTitle => 'Report Metadata';

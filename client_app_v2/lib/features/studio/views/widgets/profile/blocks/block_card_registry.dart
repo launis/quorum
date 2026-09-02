@@ -25,6 +25,15 @@ class BlockCardRegistry {
     ],
   };
 
+  /// Detailed block types that require dedicated editor cards on Tab 3 (Section Config).
+  static const Set<TargetBlockType> detailedBlockTypes = {
+    TargetBlockType.matrixGraphsBlock,
+    TargetBlockType.metadataBlock,
+    TargetBlockType.matrixSummaryTableBlock,
+    TargetBlockType.groupedExtensionsBlock,
+    TargetBlockType.printableSourcesBlock,
+  };
+
   static String getBlockTitle(TargetBlockType type, AppLocalizations l10n) {
     return switch (type) {
       TargetBlockType.metadataBlock => l10n.blockMetadataTitle,
@@ -65,6 +74,26 @@ class BlockCardRegistry {
     };
   }
 
+  static IconData getBlockIcon(TargetBlockType type) {
+    return switch (type) {
+      TargetBlockType.metadataBlock => Icons.info_outline,
+      TargetBlockType.executiveSummaryBlock => Icons.summarize_outlined,
+      TargetBlockType.synthesisTextBlock => Icons.auto_stories_outlined,
+      TargetBlockType.matrixGraphsBlock => Icons.bar_chart_outlined,
+      TargetBlockType.groupedExtensionsBlock => Icons.extension_outlined,
+      TargetBlockType.penaltiesBlock => Icons.gavel_outlined,
+      TargetBlockType.matrixSummaryTableBlock => Icons.table_chart_outlined,
+      TargetBlockType.varianceValidationBlock => Icons.rule_outlined,
+      TargetBlockType.authenticityEvaluationBlock =>
+        Icons.verified_user_outlined,
+      TargetBlockType.printableSourcesBlock => Icons.menu_book_outlined,
+      TargetBlockType.globalScoreBlock => Icons.speed_outlined,
+      TargetBlockType.auditTrailBlock => Icons.history_outlined,
+      TargetBlockType.jargonRatioBlock => Icons.spellcheck_outlined,
+    };
+  }
+
+  /// Returns dedicated full editor cards (used in Tab 3: Section Config).
   static Widget getBlockCard({
     Key? key,
     required TargetBlockType type,
@@ -90,13 +119,23 @@ class BlockCardRegistry {
         blockType: TargetBlockType.executiveSummaryBlock,
         title: getBlockTitle(TargetBlockType.executiveSummaryBlock, l10n),
         subtitle: getBlockSubtitle(TargetBlockType.executiveSummaryBlock, l10n),
-        icon: Icons.summarize_outlined,
+        icon: getBlockIcon(TargetBlockType.executiveSummaryBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
         syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
-      TargetBlockType.synthesisTextBlock => SizedBox.shrink(key: key),
+      TargetBlockType.synthesisTextBlock => SimpleToggleBlockCard(
+        key: key,
+        blockType: TargetBlockType.synthesisTextBlock,
+        title: getBlockTitle(TargetBlockType.synthesisTextBlock, l10n),
+        subtitle: getBlockSubtitle(TargetBlockType.synthesisTextBlock, l10n),
+        icon: getBlockIcon(TargetBlockType.synthesisTextBlock),
+        payload: payload,
+        updatePayload: updatePayload,
+        dragHandle: dragHandle,
+        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
+      ),
       TargetBlockType.matrixGraphsBlock => MatrixGraphsBlockCard(
         key: key,
         payload: payload,
@@ -116,7 +155,7 @@ class BlockCardRegistry {
         blockType: TargetBlockType.penaltiesBlock,
         title: getBlockTitle(TargetBlockType.penaltiesBlock, l10n),
         subtitle: getBlockSubtitle(TargetBlockType.penaltiesBlock, l10n),
-        icon: Icons.gavel_outlined,
+        icon: getBlockIcon(TargetBlockType.penaltiesBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
@@ -136,7 +175,7 @@ class BlockCardRegistry {
           TargetBlockType.varianceValidationBlock,
           l10n,
         ),
-        icon: Icons.rule_outlined,
+        icon: getBlockIcon(TargetBlockType.varianceValidationBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
@@ -150,7 +189,7 @@ class BlockCardRegistry {
           TargetBlockType.authenticityEvaluationBlock,
           l10n,
         ),
-        icon: Icons.verified_user_outlined,
+        icon: getBlockIcon(TargetBlockType.authenticityEvaluationBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
@@ -167,7 +206,7 @@ class BlockCardRegistry {
         blockType: TargetBlockType.globalScoreBlock,
         title: getBlockTitle(TargetBlockType.globalScoreBlock, l10n),
         subtitle: getBlockSubtitle(TargetBlockType.globalScoreBlock, l10n),
-        icon: Icons.speed_outlined,
+        icon: getBlockIcon(TargetBlockType.globalScoreBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
@@ -178,7 +217,7 @@ class BlockCardRegistry {
         blockType: TargetBlockType.auditTrailBlock,
         title: getBlockTitle(TargetBlockType.auditTrailBlock, l10n),
         subtitle: getBlockSubtitle(TargetBlockType.auditTrailBlock, l10n),
-        icon: Icons.history_outlined,
+        icon: getBlockIcon(TargetBlockType.auditTrailBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
@@ -189,13 +228,36 @@ class BlockCardRegistry {
         blockType: TargetBlockType.jargonRatioBlock,
         title: getBlockTitle(TargetBlockType.jargonRatioBlock, l10n),
         subtitle: getBlockSubtitle(TargetBlockType.jargonRatioBlock, l10n),
-        icon: Icons.spellcheck_outlined,
+        icon: getBlockIcon(TargetBlockType.jargonRatioBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,
         syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
       ),
     };
+  }
+
+  /// Returns uniform SimpleToggleBlockCard widgets for Tab 4 (Report Structure).
+  static Widget getSimpleToggleCard({
+    Key? key,
+    required TargetBlockType type,
+    required BuildContext context,
+    required OutputProfile payload,
+    required void Function(OutputProfile) updatePayload,
+    Widget? dragHandle,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    return SimpleToggleBlockCard(
+      key: key,
+      blockType: type,
+      title: getBlockTitle(type, l10n),
+      subtitle: getBlockSubtitle(type, l10n),
+      icon: getBlockIcon(type),
+      payload: payload,
+      updatePayload: updatePayload,
+      dragHandle: dragHandle,
+      syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
+    );
   }
 
   /// Exposes the registered target block types for test verification.

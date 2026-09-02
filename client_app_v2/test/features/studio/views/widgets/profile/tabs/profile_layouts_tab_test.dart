@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart';
+import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
@@ -17,7 +17,7 @@ class MockNullOutputProfileForm extends OutputProfileForm {
   @override
   FutureOr<OutputProfile> build(String id) {
     throw StateError(
-      'Profile payload must not be null when rendering ProfileLayoutsTab',
+      'Profile payload must not be null when rendering ProfileStructureTab',
     );
   }
 }
@@ -57,8 +57,8 @@ class MockStepsController extends StepsController {
 }
 
 void main() {
-  group('ProfileLayoutsTab Tests', () {
-    testWidgets('test_layouts_tab_throws_state_error_when_payload_is_null', (
+  group('ProfileStructureTab Tests', () {
+    testWidgets('test_structure_tab_throws_state_error_when_payload_is_null', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -71,7 +71,7 @@ void main() {
           child: const MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(body: ProfileLayoutsTab(id: 'test_id')),
+            home: Scaffold(body: ProfileStructureTab(id: 'test_id')),
           ),
         ),
       );
@@ -130,7 +130,7 @@ void main() {
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
               locale: Locale('en'),
-              home: Scaffold(body: ProfileLayoutsTab(id: 'prf_test')),
+              home: Scaffold(body: ProfileStructureTab(id: 'prf_test')),
             ),
           ),
         );

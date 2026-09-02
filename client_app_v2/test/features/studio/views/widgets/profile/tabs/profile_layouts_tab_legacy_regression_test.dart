@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_layouts_tab.dart';
+import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
@@ -17,7 +17,7 @@ class MockNullOutputProfileForm extends OutputProfileForm {
   @override
   FutureOr<OutputProfile> build(String id) {
     throw StateError(
-      'Profile payload must not be null when rendering ProfileLayoutsTab',
+      'Profile payload must not be null when rendering ProfileStructureTab',
     );
   }
 }
@@ -57,9 +57,9 @@ class MockStepsController extends StepsController {
 }
 
 void main() {
-  group('ProfileLayoutsTab Legacy SynthesisTextBlock Regression Tests', () {
+  group('ProfileStructureTab Legacy SynthesisTextBlock Regression Tests', () {
     testWidgets(
-      'test_layouts_tab_renders_legacy_profile_with_synthesis_text_block_without_assertion_error',
+      'test_structure_tab_renders_legacy_profile_with_synthesis_text_block_without_assertion_error',
       (WidgetTester tester) async {
         tester.view.physicalSize = const Size(1920, 1080);
         tester.view.devicePixelRatio = 1.0;
@@ -122,7 +122,7 @@ void main() {
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
               locale: Locale('en'),
-              home: Scaffold(body: ProfileLayoutsTab(id: 'prf_legacy')),
+              home: Scaffold(body: ProfileStructureTab(id: 'prf_legacy')),
             ),
           ),
         );

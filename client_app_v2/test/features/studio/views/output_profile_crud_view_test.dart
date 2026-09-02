@@ -392,8 +392,8 @@ void main() {
       // Expected on Tab 1: finds DropdownButtonFormField with "Test Flow (wf_test)"
       expect(find.text('Test Flow (wf_test)'), findsOneWidget);
 
-      // Switch to Tab 3 (Report Structure)
-      await tester.tap(find.text('Report Structure'));
+      // Switch to Tab 3 (Section Config)
+      await tester.tap(find.text('Section Config'));
       await tester.pumpAndSettle();
 
       // Expected on Tab 3: finds FilterChip for citation and justification in XaiExtensionsBlockCard
@@ -439,11 +439,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Switch to Tab 3 (Report Structure)
-      await tester.tap(find.text('Report Structure'));
+      // Switch to Tab 3 (Section Config)
+      await tester.tap(find.text('Section Config'));
       await tester.pumpAndSettle();
 
-      // Expected: finds workflowSelectWarning text inside Layout pane
+      // Expected: finds workflowSelectWarning text inside Section Config pane
       expect(
         find.textContaining('Please select a Workflow ID Binding above'),
         findsOneWidget,
@@ -479,8 +479,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Switch to Tab 3 (Report Structure)
-      await tester.tap(find.text('Report Structure'));
+      // Switch to Tab 3 (Section Config)
+      await tester.tap(find.text('Section Config'));
       await tester.pumpAndSettle();
 
       // Find TextFormField with initial value '3' in XaiExtensionsBlockCard
@@ -502,7 +502,7 @@ void main() {
     });
 
     testWidgets(
-      'test_crud_view_navigates_to_layout_tab_and_displays_metadata_card',
+      'test_crud_view_navigates_to_section_config_and_displays_metadata_card',
       (WidgetTester tester) async {
         final testWorkflow = Workflow(
           id: 'wf_test',
@@ -539,8 +539,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Switch to Tab 3 (Report Structure)
-        await tester.tap(find.text('Report Structure'));
+        // Switch to Tab 3 (Section Config)
+        await tester.tap(find.text('Section Config'));
         await tester.pumpAndSettle();
 
         // Expected: MetadataBlockCard is rendered and displays metadata FilterChips
@@ -551,7 +551,7 @@ void main() {
     );
 
     testWidgets(
-      'test_crud_view_navigates_to_layout_tab_and_displays_xai_card',
+      'test_crud_view_navigates_to_section_config_and_displays_xai_card',
       (WidgetTester tester) async {
         final testWorkflow = Workflow(
           id: 'wf_test',
@@ -588,8 +588,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Switch to Tab 3 (Report Structure)
-        await tester.tap(find.text('Report Structure'));
+        // Switch to Tab 3 (Section Config)
+        await tester.tap(find.text('Section Config'));
         await tester.pumpAndSettle();
 
         // Expected: XaiExtensionsBlockCard is rendered with filter chips

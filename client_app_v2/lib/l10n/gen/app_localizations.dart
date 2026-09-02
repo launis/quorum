@@ -7044,17 +7044,77 @@ abstract class AppLocalizations {
   /// **'General'**
   String get profileTabGeneral;
 
+  /// No description provided for @profileTabToneAndGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General & Tone'**
+  String get profileTabToneAndGeneral;
+
   /// No description provided for @profileTabScoring.
   ///
   /// In en, this message translates to:
   /// **'Scoring'**
   String get profileTabScoring;
 
+  /// No description provided for @profileTabSectionConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Section Config'**
+  String get profileTabSectionConfig;
+
   /// No description provided for @profileTabReportStructure.
   ///
   /// In en, this message translates to:
   /// **'Report Structure'**
   String get profileTabReportStructure;
+
+  /// No description provided for @profileToneInstructionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching tone instruction'**
+  String get profileToneInstructionLabel;
+
+  /// No description provided for @profileUserRoleLabelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Target audience role label'**
+  String get profileUserRoleLabelLabel;
+
+  /// No description provided for @profileSynthesisLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Synthesis target length (characters)'**
+  String get profileSynthesisLengthLabel;
+
+  /// No description provided for @profileMaxQuotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum quotes per matrix'**
+  String get profileMaxQuotesLabel;
+
+  /// No description provided for @sectionConfigHeaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Section-level output configuration'**
+  String get sectionConfigHeaderTitle;
+
+  /// No description provided for @sectionConfigSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage the internal display and settings of individual report sections.'**
+  String get sectionConfigSubtitle;
+
+  /// No description provided for @noDetailedSectionsActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No active section configurations'**
+  String get noDetailedSectionsActiveTitle;
+
+  /// No description provided for @noDetailedSectionsActiveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable matrix graphs, metadata, or XAI extension sections in the Report Structure tab to configure their detailed settings.'**
+  String get noDetailedSectionsActiveSubtitle;
 
   /// No description provided for @blockMetadataTitle.
   ///
