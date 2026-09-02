@@ -516,5 +516,69 @@ void main() {
         expect(assertion.aggregationMode, AggregationMode.allMustComply);
       },
     );
+
+    testWidgets(
+      'TC-UI-01: locks aggregationMode to exists and disables allMustComply when inverseEvidence is toggled',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final sampleScale = createSampleScale();
+        final modifiedScale = sampleScale.copyWith(
+          claims: [
+            sampleScale.claims.first.copyWith(
+              tdaAssertions: [
+                sampleScale.claims.first.tdaAssertions.first.copyWith(
+                  aggregationMode: AggregationMode.allMustComply,
+                  inverseEvidence: false,
+                ),
+              ],
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) =>
+                          ScaleEditorModal(initialScale: modifiedScale),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Modal'));
+        await tester.pumpAndSettle();
+
+        final switches = find.byType(Switch);
+        await tester.ensureVisible(switches.last);
+        await tester.tap(switches.last);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text("Virhetutka vaatii 'Yksikin havainto riittää' -tilan"),
+          findsOneWidget,
+        );
+
+        final aggDropdown = find
+            .byType(DropdownButtonFormField<AggregationMode>)
+            .first;
+        await tester.ensureVisible(aggDropdown);
+        await tester.tap(aggDropdown);
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Estetty virhetutkassa'), findsWidgets);
+      },
+    );
   });
 }

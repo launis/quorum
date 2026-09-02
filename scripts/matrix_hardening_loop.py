@@ -24,13 +24,27 @@ if _workspace_root not in sys.path:
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+from scripts.matrix_slice_engine import (
+    append_matrix_theory_explanation,
+    apply_matrix_slice,
+    audit_atom_coherence,
+    detect_empirical_contamination,
+    export_matrix_slice,
+    generate_theory_opponent_card,
+)
 
 __all__ = [
     "HardeningStateDTO",
     "LevelAuditDTO",
     "MatrixAuditDTO",
+    "append_matrix_theory_explanation",
+    "apply_matrix_slice",
+    "audit_atom_coherence",
     "audit_matrix",
     "build_or_load_state",
+    "detect_empirical_contamination",
+    "export_matrix_slice",
+    "generate_theory_opponent_card",
     "inspect_single_matrix",
     "load_seed_matrices",
     "main",
@@ -161,20 +175,18 @@ def build_or_load_state(reset: bool = False) -> HardeningStateDTO:
     existing_statuses: dict[str, str] = {}
     if STATE_PATH.exists() and not reset:
         try:
-            with open(STATE_PATH, encoding="utf-8") as f:
-                saved = json.load(f)
+            saved = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+            if "matrices" in saved:
                 for item in saved["matrices"]:
                     existing_statuses[item["matrix_id"]] = item["status"]
         except OSError, json.JSONDecodeError, KeyError:
             logger.warning("Failed to parse existing state file %s; re-initializing state.", STATE_PATH)
 
     matrices = load_seed_matrices()
-    audited_list: list[MatrixAuditDTO] = []
-
-    for mat in matrices:
-        status = existing_statuses[mat.id] if mat.id in existing_statuses else "PENDING"
-        audited_list.append(audit_matrix(mat, status=status))
-
+    audited_list = [
+        audit_matrix(mat, status=existing_statuses[mat.id] if mat.id in existing_statuses else "PENDING")
+        for mat in matrices
+    ]
     completed = sum(1 for m in audited_list if m.status == "DONE")
     fragile = sum(1 for m in audited_list if any(lvl.is_fragile for lvl in m.levels))
 
@@ -184,11 +196,8 @@ def build_or_load_state(reset: bool = False) -> HardeningStateDTO:
         fragile_matrices_count=fragile,
         matrices=audited_list,
     )
-
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        f.write(state.model_dump_json(indent=2))
-
+    STATE_PATH.write_text(state.model_dump_json(indent=2), encoding="utf-8")
     return state
 
 
@@ -204,8 +213,8 @@ def print_status_table(state: HardeningStateDTO) -> None:
         fragile_str = "YES (<3)" if any(lvl.is_fragile for lvl in m.levels) else "OK (>=3)"
         status_color = "[DONE]" if m.status == "DONE" else "[TODO]"
         row = (
-            f"{i:2} | {m.matrix_id:22} | {m.name[:35]:35} | "
-            f"{m.total_levels:6} | {m.total_atoms:5} | {fragile_str:8} | {status_color:8}"
+            f"{i:2} | {m.matrix_id:22} | {m.name[:35]:35} | {m.total_levels:6} | "
+            f"{m.total_atoms:5} | {fragile_str:8} | {status_color:8}"
         )
         print(row)
 
@@ -225,26 +234,18 @@ def inspect_single_matrix(matrix_id: str) -> None:
     dto = audit_matrix(target)
     print("=" * 90)
     print(f"INSPECTING MATRIX: {dto.matrix_id} - {dto.name}")
-    print(f"Description: {dto.description}")
-    print(f"Total Levels: {dto.total_levels} | Total Atoms: {dto.total_atoms}")
+    print(f"Description: {dto.description}\nTotal Levels: {dto.total_levels} | Total Atoms: {dto.total_atoms}")
     print("=" * 90)
 
     for lvl in dto.levels:
         flag = " [CRITICAL CLIFF RISK: < 3 ATOMS]" if lvl.is_fragile else ""
-        header = (
-            f"\n--- Level {lvl.score}: {lvl.name} "
-            f"({lvl.total_atoms} atomia: {lvl.positive_atoms} pos, {lvl.inverse_atoms} inv){flag} ---"
-        )
-        print(header)
+        lvl_info = f"{lvl.total_atoms} atoms: {lvl.positive_atoms} pos, {lvl.inverse_atoms} inv"
+        print(f"\n--- Level {lvl.score}: {lvl.name} ({lvl_info}){flag} ---")
         scale_obj = next(s for s in target.scales if float(s.score) == lvl.score)
         for c in scale_obj.claims:
             for tda in c.tda_assertions:
-                t_id = tda.tda_id
-                inv = tda.inverse_evidence
-                mode = tda.aggregation_mode
-                rule_text = tda.extraction_rule or ""
-                print(f"  • Atom [{t_id}] (inverse={inv}, mode={mode}):")
-                print(f"    Rule: {rule_text[:100]}...")
+                print(f"  • Atom [{tda.tda_id}] (inverse={tda.inverse_evidence}, mode={tda.aggregation_mode}):")
+                print(f"    Rule: {(tda.extraction_rule or '')[:100]}...")
 
 
 def mark_done(matrix_id: str) -> None:
@@ -254,17 +255,7 @@ def mark_done(matrix_id: str) -> None:
     updated_matrices = []
     for m in state.matrices:
         if m.matrix_id == matrix_id:
-            updated_matrices.append(
-                MatrixAuditDTO(
-                    matrix_id=m.matrix_id,
-                    name=m.name,
-                    description=m.description,
-                    total_levels=m.total_levels,
-                    total_atoms=m.total_atoms,
-                    status="DONE",
-                    levels=m.levels,
-                )
-            )
+            updated_matrices.append(m.model_copy(update={"status": "DONE"}))
             found = True
         else:
             updated_matrices.append(m)
@@ -280,9 +271,7 @@ def mark_done(matrix_id: str) -> None:
         fragile_matrices_count=state.fragile_matrices_count,
         matrices=updated_matrices,
     )
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        f.write(new_state.model_dump_json(indent=2))
-
+    STATE_PATH.write_text(new_state.model_dump_json(indent=2), encoding="utf-8")
     print(f"SUCCESS: Marked matrix '{matrix_id}' as DONE ({completed}/{new_state.total_matrices} completed).")
 
 
@@ -293,10 +282,43 @@ def main() -> None:
     parser.add_argument("--inspect", type=str, help="Inspect a specific matrix ID (e.g. blk_440a5fef9331451b)")
     parser.add_argument("--done", type=str, help="Mark a specific matrix ID as DONE")
     parser.add_argument("--reset", action="store_true", help="Reset state tracking JSON")
+    parser.add_argument("--slice", type=str, metavar="MATRIX_ID", help="Export single matrix slice JSON")
+    parser.add_argument("--theory-card", type=str, metavar="MATRIX_ID", help="Generate Theory Opponent Card prompt")
+    parser.add_argument("--patch", type=str, metavar="SLICE_FILE", help="Atomically patch matrix slice into seed vault")
+    parser.add_argument(
+        "--explain", type=str, metavar="MATRIX_ID", help="Append English theory explanation to compendium"
+    )
+    parser.add_argument(
+        "--audit-contamination",
+        type=str,
+        nargs="?",
+        const="ALL",
+        metavar="MATRIX_ID",
+        help="Audit empirical contamination",
+    )
 
     args = parser.parse_args()
 
-    if args.inspect:
+    if args.slice:
+        out = export_matrix_slice(args.slice)
+        print(f"SUCCESS: Exported matrix slice to {out}")
+    elif args.theory_card:
+        print(generate_theory_opponent_card(args.theory_card))
+    elif args.patch:
+        apply_matrix_slice(Path(args.patch))
+        print(f"SUCCESS: Atomically applied slice {args.patch} to seed vault.")
+    elif args.explain:
+        append_matrix_theory_explanation(args.explain)
+        print(f"SUCCESS: Appended theory explanation for {args.explain} to docs/architecture/08_matrix_explanations.md")
+    elif args.audit_contamination:
+        mats = load_seed_matrices()
+        if args.audit_contamination != "ALL":
+            mats = [m for m in mats if m.id == args.audit_contamination]
+        for m in mats:
+            findings = detect_empirical_contamination(m)
+            if findings or args.audit_contamination != "ALL":
+                print(f"[{m.id}] {m.label.resolve('en')}: {len(findings)} contaminated atom(s)")
+    elif args.inspect:
         inspect_single_matrix(args.inspect)
     elif args.done:
         mark_done(args.done)

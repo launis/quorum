@@ -249,6 +249,11 @@ class TDAAssertion(V2CoreBase):
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
 
+        if self.enforce_pre_flight and len(self.syntactic_anchors) == 0:
+            msg = "enforce_pre_flight=True requires at least one syntactic anchor."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise ValueError(msg)
+
         # Enforce strict dual-track TDA validations
         if self.evaluation_track == "EXTRACTIVE_SENSOR":
             if not self.facts_to_find:

@@ -338,7 +338,6 @@
         "confidence",
         "source_id"
       ],
-      "ai_description": "OBJECTIVE:\nEvaluate the argument's robustness using Stephen Toulmin's Model of Argumentation.",
       "theory_grounding": {
         "source_url": "https://doi.org/10.1017/CBO9780511802034",
         "citation_reference": "Toulmin, S. E. (1958). The Uses of Argument. Cambridge University Press."
@@ -349,6 +348,7 @@
       "allow_decimals": true,
       "allow_contextual_override": true,
       "is_lightweight_protocol": false,
+      "ai_description": "OBJECTIVE:\nEvaluate the argument's robustness using Stephen Toulmin's Model of Argumentation.",
       "scales": [
         {
           "score": 1,
@@ -375,21 +375,21 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text contains an assertive claim that is presented entirely without supporting Data or evidence.",
+                  "concept_description": "The text asserts an empirical claim entirely devoid of supporting data, observable evidence, or ground truth.",
                   "anchor_target": "Find dogmatic absolute markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "No empirical data or external reference exists in the same paragraph.",
+                  "extraction_rule": "The claim is asserted dogmatically without empirical evidence or external references in the surrounding context.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify specific dogmatic absolute markers such as 'is the best', 'must be done', or 'is the only way'.",
+                      "instruction": "Identify an assertive proposition declaring factual certainty.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Scan the entire paragraph containing the identified marker.",
+                      "instruction": "Examine the enclosing paragraph for quantitative data, citations, or physical evidence.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Ensure that no empirical data or external reference is present within the same paragraph.",
+                      "instruction": "Confirm that zero supporting data points or verifiable citations are provided.",
                       "requires_contextual_override": false
                     }
                   ],
@@ -403,7 +403,7 @@
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Tämä tuote on markkinoiden paras ja ainoa järkevä valinta ilman perusteluja.\" (Dogmatic assertion without any supporting data or citation).\nUNACCEPTABLE: \"Pilottikokeessa 82 % käyttäjistä valitsi vaihtoehdon A, mikä tukee tuotteen toimivuutta.\" (Empirical evidence provided).",
+                  "contrastive_example": "ACCEPTABLE: \"Our algorithmic framework is objectively superior to all existing alternatives and represents the only viable solution.\"\nUNACCEPTABLE: \"Benchmark testing across 50 iterations demonstrated a 14% latency reduction compared to baseline.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -425,18 +425,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The argument exhibits a logical leap where Data is presented, but there is zero logical connection (Warrant) to the Claim.",
+                  "concept_description": "The argument exhibits an arbitrary logical leap where data is stated, but no connective warrant explains how data entails the claim.",
                   "anchor_target": "Find abrupt transition markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "It connects two facts but lacks any explanatory mechanism. Do not accept explicit causal mechanisms.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "Data and claim are both present, but no inferential principle or causal mechanism links them together.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate an argument containing both an empirical data point and a conclusive claim.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify the absence of any logical bridge or warrant connecting the premise to the conclusion.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "a mechanism is described",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Yrityksen liikevaihto kasvoi 15 %, joten henkilöstön etätyökäytäntö on lopetettava välittömästi.\" (Presents data and claim with zero explanatory warrant connecting them).\nUNACCEPTABLE: \"Etätyö heikensi tiimien välistä tiedonkulkua 40 % mittausten mukaan, minkä vuoksi läsnäolopäivien lisääminen parantaa koordinaatiota.\" (Explicit explanatory bridge/warrant).",
+                  "contrastive_example": "ACCEPTABLE: \"The server response time was 120 milliseconds; therefore, customer satisfaction increased.\"\nUNACCEPTABLE: \"The server response time was 120 milliseconds, reducing checkout page load latency below the bounce threshold.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -458,18 +467,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "EXTRACT a probabilistic or subjective statement presented as an absolute 100% fact without any Qualifiers.",
+                  "concept_description": "The argument commits a petitio principii fallacy where the claim is treated as its own evidence or rephrased tautologically.",
                   "anchor_target": "Find 100% certainty markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The sentence makes a future prediction or subjective assessment using these markers without epistemological humility. Mathematical or physical constants are excluded.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The conclusion merely restates the premise in alternative terminology without presenting independent data.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Analyze the semantic content of the claim against its supporting premise.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the premise is semantically identical to the conclusion, establishing a circular dependency.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "it states a mathematical/historical fact",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Tämä järjestelmäpäivitys tulee poikkeuksetta ratkaisemaan kaikki tuotantoympäristön ongelmat sataprosenttisesti.\" (Absolute 100% certainty on probabilistic future outcome without qualifiers).\nUNACCEPTABLE: \"Arvioimme päivityksen todennäköisesti vähentävän häiriöitä merkittävästi normaaleissa käyttöolosuhteissa.\" (Calibrated epistemic qualifier).",
+                  "contrastive_example": "ACCEPTABLE: \"This strategic initiative is essential because implementing it is of critical necessity.\"\nUNACCEPTABLE: \"This strategic initiative is essential because it addresses the identified regulatory compliance gap.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -491,18 +509,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text contains at least one explicit declarative proposition or stance that acts as a claim.",
+                  "concept_description": "The argument presents a factual claim supported by data, but the connecting warrant is vague, colloquial, or implicit.",
                   "anchor_target": "Find declarative propositions.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The text puts forward at least one identifiable declarative stance or conclusion, even if unsupported. Questions and purely administrative text must be rejected.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "Data is documented, but the deductive or inductive rule justifying the claim relies on an unstated inferential leap.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify data and conclusion pairs connected by conversational connectors like 'obviously' or 'clearly'.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that no explicit warrant articulates the operational mechanism.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "purely question or interrogative sentence without taking a stance",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Pilvisiirtymä nopeuttaa kehityssykliä.\" (Declarative proposition stated).\nUNACCEPTABLE: \"Mitä mieltä olet pilvisiirtymästä?\" (Question without stance).",
+                  "contrastive_example": "ACCEPTABLE: \"System cache hits reached 95%, so the architectural throughput is obviously resolved.\"\nUNACCEPTABLE: \"System cache hits reached 95%, which reduces downstream database query serialization according to queue theory.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -524,18 +551,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The claim is justified purely by restating the conclusion in alternate phrasing without independent evidence.",
+                  "concept_description": "The text presents an absolute claim using dogmatic universal quantifiers while ignoring necessary modal qualifiers.",
                   "anchor_target": "Find tautological justification loops.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The claim is used as its own justification, restating the conclusion in different words without introducing independent grounds. Do not flag arguments where distinct external data is provided.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The argument uses categorical quantifiers like 'always', 'in every case', or 'universally' without probabilistic qualifiers.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Detect absolute quantifiers including 'always', 'never', 'universally', or 'invariably'.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the absence of epistemic qualifiers such as 'typically', 'in most conditions', or 'under high loads'.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "independent external evidence or data is provided",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Tämä strategia on ylivoimainen, koska mikään muu lähestymistapa ei toimi yhtä hyvin kuin tämä.\" (Tautological circle: assertion justifies itself).\nUNACCEPTABLE: \"Tämä strategia alentaa palvelinkustannuksia 30 % mitattuna Q2-pilottidatassa.\" (Independent empirical ground).",
+                  "contrastive_example": "ACCEPTABLE: \"Distributed microservices always outperform monolithic architectures in every conceivable deployment environment.\"\nUNACCEPTABLE: \"Distributed microservices typically offer improved horizontal scaling under high concurrent request volumes.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -569,18 +605,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The argument exhibits the baseline presence of a Claim and some supporting Data.",
+                  "concept_description": "The text presents an inductive generalization derived from a single anecdotal observation rather than systematic data.",
                   "anchor_target": "Find basic causal connectors.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "A claim is explicitly linked to any data point. Chronological sequences without data are rejected.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "A broad systemic conclusion is inferred exclusively from an isolated singular event or personal anecdote.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify assertions generalizing from a sample size of one or subjective anecdote.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that no aggregate data, controlled measurements, or systematic samples are cited.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "no data point is provided",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Uudistimme verkkosivut toukokuussa, ja yhteydenottojen määrä nousi 12 prosenttia.\" (Basic claim accompanied by an explicit data point).\nUNACCEPTABLE: \"Verkkosivujen uudistus oli loistava menestys ja kaikki pitävät siitä.\" (Mere subjective praise without any data point).",
+                  "contrastive_example": "ACCEPTABLE: \"We observed one cluster timeout during deployment, which demonstrates that the entire orchestration engine is unstable.\"\nUNACCEPTABLE: \"Analysis of 1,000 synthetic test runs revealed a timeout incidence rate of 0.1% under peak stress.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -602,18 +647,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text contains an instance where the provided Data is logically disconnected or objectively too weak to support the Claim.",
+                  "concept_description": "The argument links data to claim but fails to examine hidden boundary conditions or operational edge cases.",
                   "anchor_target": "Find anecdotal markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "An anecdote is used to justify a systemic rule or broad policy. Do not flag rigorous case studies.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The inference holds only under nominal conditions, but the argument ignores predictable environmental edge cases.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate an argument claiming broad validity from localized or optimal testing conditions.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that edge cases, degradation thresholds, or operational boundary risks are neglected.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "it's just a personal story without broad policy claims",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Yksi työntekijämme koki työuupumusta Slack-viestien vuoksi, joten koko organisaatiossa on kiellettävä pikaviestinten käyttö.\" (Isolated anecdote used to justify systemic organizational policy).\nUNACCEPTABLE: \"Vuosittaisessa työhyvinvointikyselyssä 64 % vastanneista ilmoitti jatkuvien keskeytysten aiheuttavan kognitiivista kuormitusta.\" (Systematic survey data).",
+                  "contrastive_example": "ACCEPTABLE: \"The authentication workflow completed in 10ms during local execution, proving ready for global production.\"\nUNACCEPTABLE: \"The authentication workflow completed in 10ms locally, though cold-start latency under geo-distributed load requires evaluation.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -635,18 +689,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The argument exhibits a one-sided argument that completely ignores obvious counter-arguments or limitations.",
+                  "concept_description": "The argument exhibits a non-sequitur where the cited premise is factually true but logically irrelevant to the target claim.",
                   "anchor_target": "Find thought-terminating clichés.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Complexity or opposing views are dismissed without data. Data-driven rebuttals must not be flagged.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The premise contains verified facts that bear no causal or structural bearing on the conclusion.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify a premise and conclusion pair where the premise is factually valid.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that no deductive or inductive chain connects the premise domain to the conclusion domain.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "data is provided",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Tämä ratkaisu on täysin virheetön, emmekä näe mitään syytä kuunnella kriitikoiden valituksia.\" (Counter-views brushed aside rhetorically without addressing substance).\nUNACCEPTABLE: \"Vaikka ratkaisun lisenssikustannus on korkeampi, se maksaa itsensä takaisin 8 kuukaudessa säästettyinä työtunteina.\" (Addresses counter-argument with quantitative rebuttal).",
+                  "contrastive_example": "ACCEPTABLE: \"The engineering team expanded by 40% last quarter; therefore, the network protocol latency must decrease.\"\nUNACCEPTABLE: \"The engineering team refactored the network protocol pipeline, reducing packet serialization overhead.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -668,18 +731,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The claim is explicitly connected to an observational premise using a causal or explanatory connective marker.",
+                  "concept_description": "The text commits an argumentum ad temperantiam fallacy by declaring middle ground optimal without empirical justification.",
                   "anchor_target": "Find causal connectives.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "A claim is explicitly linked to an observational premise using a causal connector ('koska', 'siksi että', 'johtuen siitä että'). Mere chronological sequences are rejected.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The author asserts that a moderate compromise between two opposing approaches is automatically correct.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify claims asserting that moderation or middle compromise is inherently optimal.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the middle stance is justified purely by being intermediate rather than on empirical merits.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "mere temporal sequence without causal connector",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Tiimin tuottavuus kasvoi, koska automaatiotestaus poisti manuaaliset pullonkaulat.\" (Explicit connective linking claim to reason).\nUNACCEPTABLE: \"Tiimin tuottavuus kasvoi ja otimme käyttöön automaatiotestauksen.\" (Mere chronological or conjunctive sequence without causal link).",
+                  "contrastive_example": "ACCEPTABLE: \"Position A advocates strict immutability while Position B prefers full mutability, so hybrid partial mutability must be ideal.\"\nUNACCEPTABLE: \"Comparative stress profiling indicates that immutable message passing satisfies the throughput constraint.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -701,18 +773,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The claim relies exclusively on unverified general consensus or vague authority figures without naming verifiable sources.",
+                  "concept_description": "The claim relies on unverified consensus or unnamed authority without citing verifiable academic or technical sources.",
                   "anchor_target": "Find vague authority appeals.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The claim relies exclusively on unverified general consensus or vague authority figures ('kaikki tietävät', 'asiantuntijoiden mukaan') without naming or citing verifiable credentials. Do not flag specific, verifiable citations.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The argument appeals to vague authorities such as 'industry experts agree' or 'everyone knows' without specific citations.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate appeals to anonymous consensus, common knowledge, or unnamed authorities.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that no concrete authors, publications, or verifiable references are provided.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "verifiable named study or author is cited",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Tämä malli on paras, koska alan johtavat asiantuntijat ovat aina suositelleet sitä.\" (Vague authority appeal without verifiable reference).\nUNACCEPTABLE: \"Tämä malli perustuu Nielsen Norman Groupin (2023) käytettävyystutkimuksen tuloksiin.\" (Verifiable citation and methodology).",
+                  "contrastive_example": "ACCEPTABLE: \"Industry experts widely agree that relational schemas are obsolete in modern cloud architectures.\"\nUNACCEPTABLE: \"Stonebraker (2010) demonstrated specific OLTP trade-offs between shared-nothing and columnar architectures.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -746,18 +827,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "FIND an argument where the Claim and Data are present, and the Warrant exists but remains implicit.",
+                  "concept_description": "The argument articulates both Claim and Data, with an underlying Warrant that is structurally present though intuitive.",
                   "anchor_target": "Find weak associative language.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "It connects Data to a Claim without defining the exact causal mechanism. Precise causal mechanisms must be excluded.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The inferential bridge between Data and Claim is discernible, though formal mechanistic derivation remains implicit.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that both empirical data and the corresponding conclusion are explicitly present.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the connective warrant is structurally sound, even if expressed informally.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "it uses precise causal mechanism ('which directly causes')",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Yrityksellä on vahva kassa, joten laajantuminen Aasian markkinoille kannattaa toteuttaa tänä vuonna.\" (Warrant exists implicitly that cash enables expansion, but causal mechanism is unstated).\nUNACCEPTABLE: \"Yrityksen 5M€ kassa mahdollistaa paikallisen myyntitiimin rekrytoinnin ja 18 kk puskurin ennen kassavirtapositiivisuutta, mikä tekee laajentumisesta kannattavan.\" (Explicitly articulated mechanism).",
+                  "contrastive_example": "ACCEPTABLE: \"Memory usage increased linearly with active thread count, showing that concurrent worker allocations cause exhaustion.\"\nUNACCEPTABLE: \"Thread count increased; memory is exhausted without tracking worker stack allocations.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -779,11 +869,20 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text contains an instance where the author mentions a counter-argument but dismisses it superficially without dismantling it.",
+                  "concept_description": "The argument mentions a legitimate counter-argument or rebuttal condition but dismisses it superficially without counter-evidence.",
                   "anchor_target": "Find rhetorical bypasses.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "A counter-argument is mentioned but dismissed without presenting counter-data. Rebuttals that provide counter-data must not be flagged.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "A competing viewpoint is acknowledged but rejected through rhetorical assertion rather than empirical counter-data.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate an acknowledgement of an opposing rebuttal or negative constraint.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the dismissal relies on dismissive language rather than substantive evidence.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "counter-data is presented",
@@ -794,7 +893,7 @@
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Jotkut pitävät projektin aikataulua kireänä, mutta hyvällä tiimihengellä se kyllä saadaan maaliin.\" (Acknowledges counter-argument but dismisses it with superficial cheerleading without counter-data).\nUNACCEPTABLE: \"Aikatauluriskiä pidetään korkeana, mutta olemme pilkkoneet toimituksen kolmeen sprinttiin ja allokoineet 20 % varakapasiteettia viivästysten varalle.\" (Substantive operational counter-measure).",
+                  "contrastive_example": "ACCEPTABLE: \"While critics note higher upfront licensing costs, this concern is negligible given the overall momentum.\"\nUNACCEPTABLE: \"While upfront licensing costs are higher, amortized total cost of ownership decreases by 22% over 3 years.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -816,18 +915,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The argument exhibits a structural weakness where the Warrant is stated but lacks deeper Backing.",
+                  "concept_description": "The argument articulates an explicit Warrant, but the foundational Backing (underlying theoretical principle) is unstated.",
                   "anchor_target": "Find generic consensus markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "Consensus is the ONLY backing for a logical rule. Verifiable empirical sources must not be flagged.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The inferential rule is articulated, but its theoretical grounding, empirical validation, or academic backing is omitted.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify an explicit warrant linking data to claim.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that no foundational theory, benchmark law, or academic source is cited as backing.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "an empirical source is cited",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Tämä johtamismalli toimii, koska kaikki modernit yritykset tekevät nykyään samoin.\" (Consensus/bandwagon is the sole backing for the warrant).\nUNACCEPTABLE: \"Malli pohjautuu Hackmanin & Oldhamin työn piirteiden teoriaan ja sen mukaiseen sisäisen motivaation mittaukseen.\" (Anchored to established theoretical framework).",
+                  "contrastive_example": "ACCEPTABLE: \"We should partition the database because sharding increases aggregate read throughput across nodes.\"\nUNACCEPTABLE: \"We partition the database following Amdahl's law and linear horizontal scalability models.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -849,18 +957,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The argument articulates the specific operational context or situational domain where the reasoning is intended to apply.",
+                  "concept_description": "The argument articulates the specific operational context, target environment, or situational domain where reasoning applies.",
                   "anchor_target": "Find context scoping markers.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The argument articulates the specific operational context or scenario where the reasoning is intended to apply. Do not accept sweeping unconditional statements.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The author defines explicit boundary constraints outlining where the reasoning is intended to hold valid.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify clear statements restricting the operational environment or domain of the claim.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the scope excludes unsupported universal generalizations.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "sweeping unconditional generalization claiming universal validity",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Tämä mikropalveluarkkitehtuuri toimii tehokkaasti silloin, kun transaktiovolyymi ylittää 10 000 pyyntöä sekunnissa.\" (Explicit operational context and threshold).\nUNACCEPTABLE: \"Mikropalveluarkkitehtuuri toimii aina ja kaikkialla erinomaisesti.\" (Unconditional sweeping generalization).",
+                  "contrastive_example": "ACCEPTABLE: \"This concurrency tuning model applies specifically to I/O-bound microservices operating within low-latency Kubernetes clusters.\"\nUNACCEPTABLE: \"This concurrency tuning model applies unconditionally to all software systems.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -882,18 +999,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "An opposing viewpoint is formulated in an absurd, weakened, or extreme form to make refutation trivial.",
+                  "concept_description": "The author formulates a counter-argument in an exaggerated or trivialized caricature to make refutation effortless.",
                   "anchor_target": "Find caricatured counter-arguments.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "An opposing viewpoint is mentioned but formulated in an absurd, weakened, or extreme form to make refutation trivial. Do not flag balanced engagements with legitimate counter-positions.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The opposing position is distorted into an irrational extreme rather than addressing the strongest version of the objection.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate descriptions of competing perspectives or dissenting technical positions.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the description exaggerates or caricatures the opposing stance.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "fair, nuanced representation of counter-argument",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Vastustajat varmaan haluavat meidän palaavan kynään ja paperiin, mikä tekisi toiminnasta mahdotonta.\" (Caricatured straw man).\nUNACCEPTABLE: \"Kriitikot huomauttavat, että migraation alkuvaiheen koulutuskustannukset voivat viivästyttää ROI:n saavuttamista.\" (Legitimate, nuanced counter-argument).",
+                  "contrastive_example": "ACCEPTABLE: \"Advocates of type systems apparently believe that compilers eliminate every human error in software engineering.\"\nUNACCEPTABLE: \"Advocates of static type checking emphasize compile-time guarantees against category-specific runtime errors.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -927,18 +1053,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text contains a robust, explicitly stated Warrant that clearly bridges the Data to the Claim.",
+                  "concept_description": "The text contains an explicitly articulated, robust Warrant that establishes the causal or logical necessity between Data and Claim.",
                   "anchor_target": "Find or equivalent explicit rules.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The bridging rule between Data and Claim is explicitly stated. Do not evaluate the quality of the bridging rule.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The bridging principle connecting premise to conclusion is formally stated using deductive, inductive, or causal logic.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify the data premise and conclusive claim within the argument.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that an explicit warrant explains the functional mechanism translating data into conclusion.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "it just says 'because' without stating the general rule",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Koska asiakashankintakustannuksen (CAC) on oltava alle kolmasosa asiakkaan elinkaariarvosta (LTV) terveen kannattavuuden takaamiseksi, nykyinen 1:4 -suhteemme oikeuttaa markkinointibudjetin tuplaamisen.\" (Explicit warrant/rule stated connecting data to claim).\nUNACCEPTABLE: \"Markkinointibudjettia kannattaa kasvattaa, koska meillä menee hyvin.\" (Missing explicit operational rule).",
+                  "contrastive_example": "ACCEPTABLE: \"Database connection timeouts reached 4%; because socket pool limits cap concurrent connections at 100, pending requests are dropped.\"\nUNACCEPTABLE: \"Connection timeouts reached 4%, and requests failed simultaneously.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -960,18 +1095,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "FIND epistemological humility where the author explicitly uses Qualifiers to limit the scope of their Claim.",
+                  "concept_description": "The author employs explicit modal Qualifiers and confidence bounds to establish the epistemic certainty of the Claim.",
                   "anchor_target": "Find conditional qualifiers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Boundaries or probabilities are explicitly defined for the claim. Vague filler words without epistemological stance are rejected.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The claim incorporates calibrated modal quantifiers indicating confidence, likelihood, or boundary applicability.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify calibrated modal qualifiers such as 'probable', 'under specified conditions', or 'with high likelihood'.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the scope of certainty reflects the strength of underlying data.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "vague filler words ('maybe', 'perhaps') are used to avoid taking a stance",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Tämä ennuste toteutuu arviolta 85 % todennäköisyydellä olettaen, että raaka-aineiden hinnat eivät nouse yli 10 % seuraavan kvartaalin aikana.\" (Explicit probability boundaries and conditions defined).\nUNACCEPTABLE: \"Tämä tulos tullaan ehdottomasti saavuttamaan ilman pienintäkään epäilystä.\" (No qualifiers or uncertainty acknowledged).",
+                  "contrastive_example": "ACCEPTABLE: \"Under sustained concurrent loads exceeding 10,000 req/sec, throughput is probable to degrade by approximately 15%.\"\nUNACCEPTABLE: \"Throughput will inevitably crash when load increases.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -993,18 +1137,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "EXTRACT an instance where the author actively engages with a Rebuttal and systematically addresses it.",
+                  "concept_description": "The text demonstrates constructive engagement with Rebuttal conditions by systematically evaluating and refuting counter-claims with data.",
                   "anchor_target": "Find contrast markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "A specific counter-argument is addressed using empirical counter-data. Rhetorical dismissals without data are rejected.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "A substantial counter-argument is evaluated and answered with empirical counter-data or architectural trade-off analysis.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate a specific technical objection or dissenting claim addressed by the author.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the resolution provides concrete mitigation mechanisms or empirical trade-off calculations.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "it's dismissed rhetorically",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Vaikka kriitikot huomauttavat arkkitehtuurin aiheuttavan 15 ms lisälatenssin, mittauksemme osoittavat sen vähentävän tietokantakuormaa 60 %, mikä tekee kompromissista kokonaisuutena kannattavan.\" (Addresses specific counter-argument using concrete empirical trade-off data).\nUNACCEPTABLE: \"Vastustajien argumentit latenssista ovat perusteettomia eivätkä ansaitse huomiota.\" (Dismissive without counter-evidence).",
+                  "contrastive_example": "ACCEPTABLE: \"While asynchronous queues introduce eventual consistency latency, idempotency keys eliminate duplicate mutations.\"\nUNACCEPTABLE: \"Some argue queues are complex, but modern tooling makes this irrelevant.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -1026,18 +1179,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The warrant bridges data to claim, but relies on an implicit, unvalidated universal premise treated as unquestionable dogma.",
+                  "concept_description": "The warrant bridges data to claim but relies on an implicit, unvalidated universal premise treated as unquestionable dogma.",
                   "anchor_target": "Find unexamined universal assumptions.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The warrant bridges data to claim, but relies on an implicit, unvalidated universal premise treated as unquestionable dogma. Do not flag warrants where assumptions are scoped.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The inferential rule relies on an unstated, high-risk operational assumption that is treated as universal truth.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Examine the warrant connecting data to claim for hidden foundational assumptions.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the assumption is treated as indisputable rather than validated.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "underlying assumptions are explicitly stated and conditioned",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Koska asiakastyytyväisyys paranee aina visuaalisen ilmeen uudistuessa, tämä redesign kasvattaa myyntiä.\" (Unexamined assumption that UI updates always improve loyalty).\nUNACCEPTABLE: \"Mikäli visuaalinen ilme selkeyttää ostopolkua 10 %, oletamme myynnin kasvavan aiemman kokeiludatan mukaisesti.\" (Explicitly conditioned assumption).",
+                  "contrastive_example": "ACCEPTABLE: \"Replication lag will remain zero because network bandwidth between regions is presumed to be infinite and lossless.\"\nUNACCEPTABLE: \"Replication lag is bounded by dedicated cross-region fiber connections with monitored 15ms latency guarantees.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -1059,18 +1221,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The argument defines positive boundary conditions but fails to evaluate failure modes when operating outside those limits.",
+                  "concept_description": "The argument defines positive operational conditions but fails to evaluate failure modes when operating outside those boundaries.",
                   "anchor_target": "Find truncated boundary claims.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The argument defines positive boundary conditions but fails to evaluate or state failure modes when operating outside those limits. Do not flag arguments that explicitly identify boundary failure thresholds.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The argument outlines successful operation within standard parameters but omits graceful degradation or failure handling.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify stated operational parameters and environmental boundaries.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify whether behavioral modes and failure states outside these bounds are addressed.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "boundary limits and failure modes are explicitly analyzed",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Malli skaalautuu 500 käyttäjään, joten ratkaisu on valmis tuotantoon.\" (Ignores boundary behavior above 500 users).\nUNACCEPTABLE: \"Malli skaalautuu 500 käyttäjään; yli 500 käyttäjän kuormalla tietokantayhteydet vaativat sharding-päivityksen kaatumisen estämiseksi.\" (Explicit failure mode identified).",
+                  "contrastive_example": "ACCEPTABLE: \"The caching layer operates efficiently up to 80% memory saturation, without defining eviction behavior beyond that threshold.\"\nUNACCEPTABLE: \"The caching layer operates efficiently up to 80% memory saturation, beyond which LRU eviction sheds non-critical keys.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -1104,11 +1275,20 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The text contains an argument where the Warrant is fortified by explicit Backing from external expert sources.",
+                  "concept_description": "The Warrant is fortified by explicit Backing derived from peer-reviewed literature, formal methodology, or industry standards.",
                   "anchor_target": "Find formal citations.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The logical rule is explicitly backed by a verifiable external methodology, empirical study, or industry standard. Reject vague appeals to authority or unverified general research.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The inferential warrant is anchored in verifiable academic citations, peer-reviewed studies, or formal mathematical theorems.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify external citations, academic papers, or formal technical standards in the text.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the cited backing directly fortifies the logical warrant used in the argument.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "it's a vague reference ('research shows')",
@@ -1119,7 +1299,7 @@
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Warranttimme ankkuroituu ISO 27001 -standardin vaatimukseen A.9.2 sekä OWASP Top 10 (2021) -viitekehyksen suosituksiin monivaiheisesta todennuksesta.\" (Explicit verifiable external backing and standards).\nUNACCEPTABLE: \"Menetelmä on hyvä, koska tutkimukset osoittavat tietoturvan olevan tärkeää.\" (Vague non-verifiable appeal).",
+                  "contrastive_example": "ACCEPTABLE: \"Partitioning strategy conforms to the Raft consensus specification (Ongaro & Ousterhout, 2014), ensuring linearizable reads.\"\nUNACCEPTABLE: \"We chose this consensus model because many developers recommend it online.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -1141,18 +1321,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "FIND evidence of 'System 2' deliberation where the author acts as their own prosecutor.",
+                  "concept_description": "The author documents deliberate self-falsification, systematically testing their own claim against disconfirming evidence.",
                   "anchor_target": "Find dialectical reasoning markers.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The author explicitly attempts to falsify their own Claim with a test/data before accepting it. Simple pros/cons lists are rejected.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The argument exhibits adversarial self-testing by formulating disconfirming hypotheses and evaluating them before accepting the claim.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate explicit attempts to falsify or disprove the proposed hypothesis.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that disconfirming tests or counter-hypotheses were evaluated prior to drawing final conclusions.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "it is just a pros/cons list",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Testasimme ensin nollahypoteesia, jonka mukaan käyttäjäaktiivisuuden nousu johtuisi pelkästä kausivaihtelusta, mutta erillinen A/B-kontrolliryhmä kumosi tämän selityksen p < 0.01 -merkitsevyydellä.\" (Explicit attempt to falsify own hypothesis via adversarial testing).\nUNACCEPTABLE: \"Tarkastelimme hyviä ja huonoja puolia, ja hyvät puolet voittivat.\" (Simple superficial pros/cons list).",
+                  "contrastive_example": "ACCEPTABLE: \"We first tested the null hypothesis that caching had no effect on tail latency; the null was rejected only above 500 concurrent users.\"\nUNACCEPTABLE: \"We expected caching to speed up the system and confirmed that it worked.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -1174,18 +1363,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "EXTRACT a masterfully constructed Claim-Data-Warrant triad that leaves zero room for logical fallacy.",
+                  "concept_description": "The argument represents a complete Toulmin hexad (Claim, Data, Warrant, Backing, Qualifier, Rebuttal) with airtight validity.",
                   "anchor_target": "Find precise causal language.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "A Claim is supported by empirical Data AND the exact mechanism is defined. Implicit connections are rejected.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "All six Toulmin components are explicitly articulated, mutually consistent, and mathematically and logically complete.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify the simultaneous presence of Claim, Data, Warrant, Backing, Qualifier, and Rebuttal.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that all components form a cohesive, mutually reinforcing logical structure.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "any of the three (Claim, Data, Warrant) is missing from the explicit text",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Väite: Vasteaika puolittuu. Data: Indeksointi vähensi levylukuja 12 000:sta 400:aan per kysely. Oikeutus: B-Tree-indeksi poistaa kokotaulukatselun, jolloin I/O-odotusaika putoaa 96 %.\" (Watertight Claim-Data-Warrant triad with precise mechanistic causality).\nUNACCEPTABLE: \"Indeksointi nopeuttaa sovellusta, koska se tekee siitä tehokkaamman.\" (Tautological circular assertion lacking specific mechanism).",
+                  "contrastive_example": "ACCEPTABLE: \"Under steady state, query response stays under 20ms given B-tree indexing (Comer, 1979), unless concurrent writes exceed 5,000 IOPS.\"\nUNACCEPTABLE: \"Query responses are fast because the database is properly tuned.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -1207,18 +1405,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The backing cites an isolated external source while ignoring well-established contradictory benchmark studies or known vulnerabilities.",
+                  "concept_description": "The backing cites an isolated favorable source while ignoring prominent contradictory benchmark studies or known vulnerabilities.",
                   "anchor_target": "Find cherry-picked backing.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The backing cites an isolated external source while ignoring well-established contradictory benchmark studies or known vulnerabilities. Do not flag balanced literature reviews.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "The argument cherry-picks positive external citations while systematically neglecting widely known disconfirming evidence.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify external citations supporting the primary claim.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify whether known contradictory literature or benchmark counter-evidence is acknowledged.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "balanced review contrasting positive and negative findings",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Lähteen X mukaan kirjasto on täydellisen turvallinen (vaikka virallinen CVE raportoi kriittisen haavoittuvuuden)\" (Cherry-picked source ignoring conflicting consensus).\nUNACCEPTABLE: \"Vaikka tutkimus X osoitti hyödyt, tutkimus Y löysi suorituskykyongelmia, jotka ratkaisemme tavalla Z\" (Balanced synthesis of conflicting findings).",
+                  "contrastive_example": "ACCEPTABLE: \"Citing Vendor X whitepaper claiming 99.999% availability while omitting independent audits documenting recurring regional outages.\"\nUNACCEPTABLE: \"Citing Vendor X claims alongside independent telemetry data noting geographic variability in latency.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []
@@ -1240,18 +1447,27 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The argument models a multi-factorial phenomenon with deterministic cause-and-effect certainty without accounting for confounding variables.",
+                  "concept_description": "The argument commits a linearity fallacy, modeling multi-factorial non-linear phenomena as simplistic deterministic causes.",
                   "anchor_target": "Find deterministic overfitting in complex domains.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The argument models a multi-factorial or non-linear phenomenon with strict, deterministic cause-and-effect certainty without accounting for confounding variables. Do not flag models that incorporate confounding variables.",
-                  "acceptance_criteria": [],
+                  "extraction_rule": "A complex multi-variable system is analyzed through naive univariate causality without controlling for confounding factors.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate arguments asserting linear cause-and-effect relationships in multi-tiered systems.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify whether confounding variables, feedback loops, and non-linear saturation points are accounted for.",
+                      "requires_contextual_override": false
+                    }
+                  ],
                   "anti_patterns": [
                     {
                       "pattern": "confounding variables and non-linear dynamics are acknowledged",
                       "allows_contextual_excuse": false
                     }
                   ],
-                  "contrastive_example": "ACCEPTABLE: \"Koulutusuudistus nosti tuottavuutta 25 % ilman muiden tekijöiden vaikutusta.\" (Attributing 100% causality in complex organizational context ignoring confounders).\nUNACCEPTABLE: \"Uudistus korreloi tuottavuuskasvun kanssa, mutta markkinan yleinen kasvu toimi osittaisena selittäjänä.\" (Controls for confounding variables).",
+                  "contrastive_example": "ACCEPTABLE: \"Doubling server RAM directly yields a 100% throughput increase across all system tiers without diminishing returns.\"\nUNACCEPTABLE: \"Increasing server RAM addresses heap pressure, though network I/O becomes the primary constraint past 64GB.\"",
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
                   "depends_on": []

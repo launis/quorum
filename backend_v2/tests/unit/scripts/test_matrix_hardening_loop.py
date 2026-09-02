@@ -169,6 +169,28 @@ def test_cli_entrypoints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(sys, "argv", ["matrix_hardening_loop.py", "--reset"])
     loop_main()
 
+    # Slice and calibration CLI flags
+    monkeypatch.setattr(sys, "argv", ["matrix_hardening_loop.py", "--slice", first_id])
+    loop_main()
+
+    monkeypatch.setattr(sys, "argv", ["matrix_hardening_loop.py", "--theory-card", first_id])
+    loop_main()
+
+    comp_path = tmp_path / "comp.md"
+    monkeypatch.setattr("scripts.matrix_hardening_loop.append_matrix_theory_explanation", lambda mid: None)
+    monkeypatch.setattr(sys, "argv", ["matrix_hardening_loop.py", "--explain", first_id])
+    loop_main()
+
+    monkeypatch.setattr(sys, "argv", ["matrix_hardening_loop.py", "--audit-contamination", "ALL"])
+    loop_main()
+
+    monkeypatch.setattr(sys, "argv", ["matrix_hardening_loop.py", "--audit-contamination", first_id])
+    loop_main()
+
+    monkeypatch.setattr("scripts.matrix_hardening_loop.apply_matrix_slice", lambda p: None)
+    monkeypatch.setattr(sys, "argv", ["matrix_hardening_loop.py", "--patch", "dummy.json"])
+    loop_main()
+
 
 def test_missing_seed_file_fails_fast(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Negative Test: Verify missing seed file triggers clean system exit."""

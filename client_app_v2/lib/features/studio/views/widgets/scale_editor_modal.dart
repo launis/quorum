@@ -27,6 +27,27 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
+    for (final claim in _editableScale.claims) {
+      for (final tda in claim.tdaAssertions) {
+        if (tda.inverseEvidence &&
+            tda.aggregationMode == AggregationMode.allMustComply) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Virhetutka vaatii 'Yksikin havainto riittää' -tilan."),
+            ),
+          );
+          return;
+        }
+        if (tda.enforcePreFlight && tda.syntacticAnchors.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Pikahylkäys vaatii vähintään yhden tunnistussanan."),
+            ),
+          );
+          return;
+        }
+      }
+    }
     Navigator.of(context).pop(_editableScale);
   }
 
@@ -539,6 +560,13 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         });
                                       },
                                     ),
+                                    if (RegExp(r'[äöåÄÖÅ]').hasMatch(tda.extractionRule ?? '')) ...[
+                                      AppSpacing.h4,
+                                      const Text(
+                                        'Huom: Kehotteiden ja esimerkkien tulee olla englanniksi (System Language).',
+                                        style: TextStyle(color: Colors.amber, fontSize: 11),
+                                      ),
+                                    ],
                                     AppSpacing.h8,
                                     TextFormField(
                                       initialValue: tda.antiPatterns
@@ -628,6 +656,13 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         });
                                       },
                                     ),
+                                    if (RegExp(r'[äöåÄÖÅ]').hasMatch(tda.contrastiveExample ?? '')) ...[
+                                      AppSpacing.h4,
+                                      const Text(
+                                        'Huom: Kehotteiden ja esimerkkien tulee olla englanniksi (System Language).',
+                                        style: TextStyle(color: Colors.amber, fontSize: 11),
+                                      ),
+                                    ],
                                     AppSpacing.h8,
                                     TextFormField(
                                       initialValue: tda.acceptanceCriteria
@@ -779,6 +814,16 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         ),
                                       ],
                                     ),
+                                    if (tda.enforcePreFlight && tda.syntacticAnchors.isEmpty) ...[
+                                      AppSpacing.h4,
+                                      Text(
+                                        'Pikahylkäys vaatii vähintään yhden tunnistussanan',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.error,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
                                     AppSpacing.h8,
                                     DropdownButtonFormField<AggregationMode>(
                                       isExpanded: true,
@@ -796,14 +841,17 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                             ),
                                       ),
                                       items: AggregationMode.values.map((mode) {
+                                        final isDisabled = tda.inverseEvidence && mode == AggregationMode.allMustComply;
                                         return DropdownMenuItem<
                                           AggregationMode
                                         >(
                                           value: mode,
+                                          enabled: !isDisabled,
                                           child: Text(
                                             mode == AggregationMode.exists
                                                 ? l10n.scaleAggExists
-                                                : l10n.scaleAggAllMustComply,
+                                                : '${l10n.scaleAggAllMustComply}${isDisabled ? ' (Estetty virhetutkassa)' : ''}',
+                                            style: isDisabled ? TextStyle(color: Theme.of(context).disabledColor) : null,
                                           ),
                                         );
                                       }).toList(),
@@ -830,6 +878,16 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         }
                                       },
                                     ),
+                                    if (tda.inverseEvidence) ...[
+                                      AppSpacing.h4,
+                                      Text(
+                                        "Virhetutka vaatii 'Yksikin havainto riittää' -tilan",
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
                                     AppSpacing.h8,
                                     Row(
                                       children: [
@@ -890,6 +948,9 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                                   );
                                               newTdas[tdaIdx] = tda.copyWith(
                                                 inverseEvidence: newVal,
+                                                aggregationMode: newVal
+                                                    ? AggregationMode.exists
+                                                    : tda.aggregationMode,
                                               );
                                               final newClaims =
                                                   List<MatrixClaim>.from(
