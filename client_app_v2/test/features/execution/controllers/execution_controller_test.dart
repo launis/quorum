@@ -83,7 +83,6 @@ class MockSseClient implements SseClient {
       'workflow_id': 'test_wf',
       'target_locale': 'fi',
       'status': 'passed',
-      'trace_version': '1.0',
     };
   }
 }

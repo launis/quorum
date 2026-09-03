@@ -112,7 +112,6 @@ void main() {
           'workflow_id': 'wor_1234567890abcdef',
           'target_locale': 'fi',
           'status': 'PENDING',
-          'strictness_level': 80,
           'metadata': {'workflow_version': 1},
         };
 
@@ -121,7 +120,6 @@ void main() {
         expect(record.workflowId, 'wor_1234567890abcdef');
         expect(record.targetLocale, 'fi');
         expect(record.status, 'PENDING');
-        expect(record.strictnessLevel, 80);
         expect(record.metadata?.workflowVersion, 1);
       },
     );
@@ -137,8 +135,6 @@ void main() {
         'raw_inputs': {
           'dynamic_inputs': {'doc': 'test'},
         },
-        'trace_version': '2.0',
-        'strictness_level': 90,
         'duration_ms': 4500,
         'cost_estimate': 0.045,
         'prompt_tokens': 500,
@@ -162,7 +158,6 @@ void main() {
         'steps': <Map<String, dynamic>>[],
         'step_states': <String, dynamic>{},
         'profile_syntheses': <String, dynamic>{},
-        'results': <String, dynamic>{},
         'progress': 100,
         'status_message': 'Completed',
         'created_at': '2026-08-30T12:00:00Z',
@@ -185,6 +180,8 @@ void main() {
       expect(record.cumulativeSynthesisTokens, 1200);
       expect(record.cumulativeSynthesisCost, 0.012);
       expect(record.modelsUsed, {'gemini-1.5-pro': 100});
+      expect(record.progress, 100);
+      expect(record.statusMessage, 'Completed');
       expect(record.organizationId, 'org_1');
       expect(record.createdBy, 'usr_1');
       expect(record.completedAt, '2026-08-30T12:05:00Z');

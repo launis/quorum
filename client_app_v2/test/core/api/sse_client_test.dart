@@ -32,7 +32,6 @@ void main() {
           'workflow_id': 'wf_9d68c573802341db',
           'target_locale': 'fi',
           'status': 'RUNNING',
-          'trace_version': '1.0',
           'duration_ms': 1200,
           'cost_estimate': 0.045,
           'step_states': {

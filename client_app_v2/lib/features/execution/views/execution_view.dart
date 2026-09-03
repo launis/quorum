@@ -12,7 +12,6 @@ import 'package:client_app/features/execution/views/widgets/report_renderer_v2_w
 
 import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
-import 'dart:convert';
 
 /// **Live Execution SDUI Screen**
 ///
@@ -109,8 +108,6 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
     final stepStatesList = stepStatesMap.values
         .map((e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{})
         .toList();
-
-    final results = record.results ?? <String, dynamic>{};
 
     return CustomScrollView(
       slivers: [
@@ -293,11 +290,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                 horizontal: AppSpacing.s16,
                 vertical: AppSpacing.s8,
               ),
-              child: ExecutionTimeline(
-                steps: stepStatesList,
-                results: results,
-                compact: false,
-              ),
+              child: ExecutionTimeline(steps: stepStatesList, compact: false),
             ),
           ),
 
@@ -309,43 +302,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
               executionId: widget.executionId,
             ),
           ),
-        ] else if ((status == 'passed' || status == 'completed') &&
-            results.isNotEmpty)
-          // ALWAYS show Raw Data JSON on completion if Heavy Fetch failed
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: AppSpacing.p16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.rawOutputFallbackTitle,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  AppSpacing.h16,
-                  Container(
-                    padding: AppSpacing.p16,
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(AppSpacing.s8),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                    ),
-                    child: SelectableText(
-                      const JsonEncoder.withIndent('  ').convert(results),
-                      style: const TextStyle(fontFamily: 'monospace'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        ],
       ],
     );
   }

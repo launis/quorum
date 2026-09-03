@@ -253,14 +253,6 @@ class ExecutionController extends _$ExecutionController {
                 );
               }
 
-              // Detect Trace Version change
-              final oldVersion = currentState.traceVersion;
-              final newVersion = newRecord.traceVersion;
-
-              if (newVersion != null && newVersion != oldVersion) {
-                needsHeavyFetch = true;
-              }
-
               // Detect completion
               final oldStatus = currentState.status.toLowerCase();
               final newStatus = newRecord.status.toLowerCase();
@@ -271,8 +263,7 @@ class ExecutionController extends _$ExecutionController {
             } else {
               // Bootstrapping initial stream state
               final newStatus = newRecord.status.toLowerCase();
-              if (newRecord.traceVersion != null ||
-                  newStatus == ExecutionStatus.passed.name.toLowerCase()) {
+              if (newStatus == ExecutionStatus.passed.name.toLowerCase()) {
                 needsHeavyFetch = true;
               }
             }

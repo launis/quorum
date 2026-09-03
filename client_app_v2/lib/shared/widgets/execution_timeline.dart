@@ -3,20 +3,18 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class ExecutionTimeline extends StatelessWidget {
   final List<Map<String, dynamic>> steps;
-  final Map<String, dynamic>? results;
   final bool compact;
 
   const ExecutionTimeline({
     super.key,
     required this.steps,
-    this.results,
     this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     if (steps.isEmpty) {
-      return const SizedBox.shrink();
+      return const SizedBox(width: 0, height: 0);
     }
 
     return Card(
@@ -50,18 +48,11 @@ class ExecutionTimeline extends StatelessWidget {
             labelColor = Theme.of(context).colorScheme.error;
           }
 
-          final stepId =
-              step['step_id']?.toString() ?? step['id']?.toString() ?? '';
-          final stepResult = results != null && results!.containsKey(stepId)
-              ? (results![stepId] as Map<String, dynamic>?) ?? {}
-              : {};
-
-          final warningsList = stepResult['_system_warnings'] as List<dynamic>?;
-          final hasWarnings = warningsList != null && warningsList.isNotEmpty;
-
           final lastError = step['last_error']?.toString();
           final messageCode = step['message_code']?.toString();
           final progress = step['progress'] as num?;
+          final hasWarnings =
+              step['has_warning'] == true || step['has_warnings'] == true;
 
           Widget? subtitleWidget;
           if (isFailed && lastError != null && lastError.isNotEmpty) {

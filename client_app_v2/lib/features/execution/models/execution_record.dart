@@ -11,7 +11,6 @@ part 'execution_record.freezed.dart';
 part 'execution_record.g.dart';
 
 String _statusFromJson(String status) => status.toUpperCase();
-String? _traceVersionFromJson(dynamic value) => value?.toString();
 
 /// Represents the status and metadata of an execution.
 /// Follows The De-Generator Mandate: Replaces the old dynamic 'results' map
@@ -30,9 +29,6 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'active_profile_id') String? activeProfileId,
     @JsonKey(name: 'output_profile_id') String? outputProfileId,
     @JsonKey(name: 'raw_inputs') Map<String, dynamic>? rawInputs,
-    @JsonKey(name: 'trace_version', fromJson: _traceVersionFromJson)
-    String? traceVersion,
-    @JsonKey(name: 'strictness_level') int? strictnessLevel,
     @JsonKey(name: 'duration_ms') int? durationMs,
     @JsonKey(name: 'cost_estimate') double? costEstimate,
     @JsonKey(name: 'prompt_tokens') @Default(0) int promptTokens,
@@ -64,7 +60,6 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'steps') @Default([]) List<ExecutionStep> steps,
     @JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,
     @JsonKey(name: 'profile_syntheses') Map<String, dynamic>? profileSyntheses,
-    @JsonKey(name: 'results') Map<String, dynamic>? results,
     @JsonKey(name: 'progress') int? progress,
     @JsonKey(name: 'status_message') String? statusMessage,
     @JsonKey(name: 'created_at') String? createdAt,
@@ -75,7 +70,8 @@ abstract class ExecutionRecord with _$ExecutionRecord {
 
     /// The strictly typed DTO containing the presentation flat data.
     /// Replaces the legacy `results` Map.
-    @JsonKey(name: 'report_data') ReportDataDto? reportData,
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    ReportDataDto? reportData,
   }) = _ExecutionRecord;
 
   /// Instantiates a strictly typed [ExecutionRecord] from raw JSON.

@@ -23,8 +23,6 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'active_profile_id',
         'output_profile_id',
         'raw_inputs',
-        'trace_version',
-        'strictness_level',
         'duration_ms',
         'cost_estimate',
         'prompt_tokens',
@@ -50,7 +48,6 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'steps',
         'step_states',
         'profile_syntheses',
-        'results',
         'progress',
         'status_message',
         'created_at',
@@ -58,7 +55,6 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'completed_at',
         'created_by',
         'organization_id',
-        'report_data',
       ],
     );
     final val = _ExecutionRecord(
@@ -81,14 +77,6 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       rawInputs: $checkedConvert(
         'raw_inputs',
         (v) => v as Map<String, dynamic>?,
-      ),
-      traceVersion: $checkedConvert(
-        'trace_version',
-        (v) => _traceVersionFromJson(v),
-      ),
-      strictnessLevel: $checkedConvert(
-        'strictness_level',
-        (v) => (v as num?)?.toInt(),
       ),
       durationMs: $checkedConvert('duration_ms', (v) => (v as num?)?.toInt()),
       costEstimate: $checkedConvert(
@@ -188,7 +176,6 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'profile_syntheses',
         (v) => v as Map<String, dynamic>?,
       ),
-      results: $checkedConvert('results', (v) => v as Map<String, dynamic>?),
       progress: $checkedConvert('progress', (v) => (v as num?)?.toInt()),
       statusMessage: $checkedConvert('status_message', (v) => v as String?),
       createdAt: $checkedConvert('created_at', (v) => v as String?),
@@ -196,12 +183,6 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       completedAt: $checkedConvert('completed_at', (v) => v as String?),
       createdBy: $checkedConvert('created_by', (v) => v as String?),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
-      reportData: $checkedConvert(
-        'report_data',
-        (v) => v == null
-            ? null
-            : ReportDataDto.fromJson(v as Map<String, dynamic>),
-      ),
     );
     return val;
   },
@@ -212,8 +193,6 @@ _ExecutionRecord _$ExecutionRecordFromJson(
     'activeProfileId': 'active_profile_id',
     'outputProfileId': 'output_profile_id',
     'rawInputs': 'raw_inputs',
-    'traceVersion': 'trace_version',
-    'strictnessLevel': 'strictness_level',
     'durationMs': 'duration_ms',
     'costEstimate': 'cost_estimate',
     'promptTokens': 'prompt_tokens',
@@ -242,7 +221,6 @@ _ExecutionRecord _$ExecutionRecordFromJson(
     'completedAt': 'completed_at',
     'createdBy': 'created_by',
     'organizationId': 'organization_id',
-    'reportData': 'report_data',
   },
 );
 
@@ -256,8 +234,6 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'active_profile_id': instance.activeProfileId,
       'output_profile_id': instance.outputProfileId,
       'raw_inputs': instance.rawInputs,
-      'trace_version': instance.traceVersion,
-      'strictness_level': instance.strictnessLevel,
       'duration_ms': instance.durationMs,
       'cost_estimate': instance.costEstimate,
       'prompt_tokens': instance.promptTokens,
@@ -283,7 +259,6 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'steps': instance.steps.map((e) => e.toJson()).toList(),
       'step_states': instance.stepStates,
       'profile_syntheses': instance.profileSyntheses,
-      'results': instance.results,
       'progress': instance.progress,
       'status_message': instance.statusMessage,
       'created_at': instance.createdAt,
@@ -291,5 +266,4 @@ Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
       'completed_at': instance.completedAt,
       'created_by': instance.createdBy,
       'organization_id': instance.organizationId,
-      'report_data': instance.reportData?.toJson(),
     };
