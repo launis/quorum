@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -176,15 +175,41 @@ def test_append_matrix_theory_explanation_compendium(tmp_path: Path) -> None:
 
 
 def test_detect_empirical_contamination_flags_run_artifacts() -> None:
-    """TC-SLICE-10: Detect empirical run contamination in uncalibrated matrix."""
-    mat = load_matrix_by_id("blk_f921c7c0989b47e8")
-    findings = detect_empirical_contamination(mat)
+    """TC-SLICE-10: Detect empirical run contamination in mutated matrix and verify all 13 calibrated matrices."""
+    base_mat = load_matrix_by_id("blk_440a5fef9331451b")
+    # Mutate an assertion to introduce Finnish empirical run contamination
+    bad_tda = (
+        base_mat.scales[0]
+        .claims[0]
+        .tda_assertions[0]
+        .model_copy(update={"extraction_rule": "Tämä on suomenkielinen empiirinen testi teksti."})
+    )
+    bad_claim = base_mat.scales[0].claims[0].model_copy(update={"tda_assertions": [bad_tda]})
+    bad_scale = base_mat.scales[0].model_copy(update={"claims": [bad_claim]})
+    mutated_mat = base_mat.model_copy(update={"scales": [bad_scale] + list(base_mat.scales[1:])})
+
+    findings = detect_empirical_contamination(mutated_mat)
     assert len(findings) > 0
     assert any("Empirical" in f.reason for f in findings)
 
-    # Verify that the calibrated Toulmin matrix has 0 contamination
-    calibrated_mat = load_matrix_by_id("blk_440a5fef9331451b")
-    assert len(detect_empirical_contamination(calibrated_mat)) == 0
+    # Verify that all 13 calibrated matrices in the database have 0 contamination
+    for cid in (
+        "blk_440a5fef9331451b",
+        "blk_f921c7c0989b47e8",
+        "blk_109dab5b6b3f403a",
+        "blk_53f32679aa514fcb",
+        "blk_fb15f8dcf23f4865",
+        "blk_c5804a9143c34cb1",
+        "blk_b476f89fb732448c",
+        "blk_ff72c2d79edb4ebf",
+        "blk_80732a33fe1947ee",
+        "blk_6b8c766185294f7e",
+        "blk_c3bc5f3eb8e74110",
+        "blk_f6e286f050c94d60",
+        "blk_22e3598e06414409",
+    ):
+        calibrated_mat = load_matrix_by_id(cid)
+        assert len(detect_empirical_contamination(calibrated_mat)) == 0
 
 
 def test_generate_theory_opponent_card_includes_contamination_audit() -> None:
@@ -208,8 +233,11 @@ def test_audit_atom_coherence_flags_inversion_paradox() -> None:
     """TC-SLICE-13: Audits atom coherence and flags INVERSION_PARADOX."""
     mat = load_matrix_by_id("blk_440a5fef9331451b")
     # Mutate one assertion to create an inversion paradox
-    bad_tda = mat.scales[0].claims[0].tda_assertions[0].model_copy(
-        update={"inverse_evidence": True, "aggregation_mode": "ALL_MUST_COMPLY"}
+    bad_tda = (
+        mat.scales[0]
+        .claims[0]
+        .tda_assertions[0]
+        .model_copy(update={"inverse_evidence": True, "aggregation_mode": "ALL_MUST_COMPLY"})
     )
     bad_claim = mat.scales[0].claims[0].model_copy(update={"tda_assertions": [bad_tda]})
     bad_scale = mat.scales[0].model_copy(update={"claims": [bad_claim]})
@@ -228,6 +256,7 @@ def test_tda_assertion_cross_field_validation_rejects_conflicting_flags() -> Non
             concept_description="Critical mandate test concept description",
             inverse_evidence=True,
             aggregation_mode="ALL_MUST_COMPLY",
+            depends_on=(),
         )
 
     # enforce_pre_flight=True with empty syntactic_anchors must fail
@@ -238,6 +267,7 @@ def test_tda_assertion_cross_field_validation_rejects_conflicting_flags() -> Non
             aggregation_mode="EXISTS",
             enforce_pre_flight=True,
             syntactic_anchors=[],
+            depends_on=(),
         )
 
 

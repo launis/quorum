@@ -785,7 +785,11 @@ def audit_output_profiles(
                 texts_to_check: list[tuple[str, str]] = []
                 if isinstance(dir_val, str):
                     texts_to_check.append((dir_field, dir_val))
-                elif isinstance(dir_val, dict) and "translations" in dir_val and isinstance(dir_val["translations"], dict):
+                elif (
+                    isinstance(dir_val, dict)
+                    and "translations" in dir_val
+                    and isinstance(dir_val["translations"], dict)
+                ):
                     for lang, txt in dir_val["translations"].items():
                         if isinstance(txt, str):
                             texts_to_check.append((f"{dir_field}.translations.{lang}", txt))

@@ -76,10 +76,10 @@ def test_create_template_atom_structure() -> None:
 
 def test_atom_density_strategy_enum() -> None:
     """Verify AtomDensityStrategy SSOT enum values."""
-    assert AtomDensityStrategy.RAPID == 3
-    assert AtomDensityStrategy.COMPACT == 4
-    assert AtomDensityStrategy.BALANCED == 5
-    assert AtomDensityStrategy.DEEP == 6
+    assert AtomDensityStrategy.RAPID.value == 3
+    assert AtomDensityStrategy.COMPACT.value == 4
+    assert AtomDensityStrategy.BALANCED.value == 5
+    assert AtomDensityStrategy.DEEP.value == 6
     assert isinstance(TARGET_ATOM_DENSITY, AtomDensityStrategy)
 
 
@@ -176,7 +176,6 @@ def test_cli_entrypoints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(sys, "argv", ["matrix_hardening_loop.py", "--theory-card", first_id])
     loop_main()
 
-    comp_path = tmp_path / "comp.md"
     monkeypatch.setattr("scripts.matrix_hardening_loop.append_matrix_theory_explanation", lambda mid: None)
     monkeypatch.setattr(sys, "argv", ["matrix_hardening_loop.py", "--explain", first_id])
     loop_main()

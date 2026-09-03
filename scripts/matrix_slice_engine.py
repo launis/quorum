@@ -280,11 +280,14 @@ def append_matrix_theory_explanation(
     tg = mat.theory_grounding
     th_ref = tg.citation_reference if tg else "formal domain heuristics"
     lbl, ovr = mat.label.resolve("en"), mat.allow_contextual_override
+    min_lvl = int(min(s.score for s in mat.scales))
+    max_lvl = int(max(s.score for s in mat.scales))
     p1 = (
         f"The {lbl} evaluation matrix is mathematically grounded in {th_ref}. It provides a structured "
-        "Behaviorally Anchored Rating Scale (BARS) spanning Levels 1 to 5, transitioning from ungrounded "
-        "claims and subjective rhetoric to rigorous, evidence-backed propositions. By eliminating cognitive "
-        "biases and rhetorical ornamentation, it enforces objective, verifiable standards across analytical tasks."
+        f"Behaviorally Anchored Rating Scale (BARS) spanning Levels {min_lvl} to {max_lvl}, transitioning "
+        "from ungrounded claims and subjective rhetoric to rigorous, evidence-backed propositions. "
+        "By eliminating cognitive biases and rhetorical ornamentation, it enforces objective, "
+        "verifiable standards across analytical tasks."
     )
     p2 = (
         "Operationally, the matrix controls evaluation precision through targeted parameters including "
