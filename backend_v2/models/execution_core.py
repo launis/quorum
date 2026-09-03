@@ -51,6 +51,8 @@ class ExecutionCoreFields(V2CoreBase):
         execution_trace_storage_path: Cloud Storage offload path for large traces.
         context_variables: Dynamic blackboard for cross-step data sharing.
         context_variables_storage_path: Cloud Storage offload path for large context.
+        progress: Overall execution progress percentage (0-100).
+        status_message: Human-readable progress or status description.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -78,4 +80,12 @@ class ExecutionCoreFields(V2CoreBase):
     context_variables_storage_path: Annotated[
         str | None,
         Field(default=None, description="Path to offloaded context variables JSON in Cloud Storage."),
+    ]
+    progress: Annotated[
+        int | None,
+        Field(default=None, ge=0, le=100, description="Overall execution progress percentage."),
+    ]
+    status_message: Annotated[
+        str | None,
+        Field(default=None, description="Human-readable progress or status description."),
     ]

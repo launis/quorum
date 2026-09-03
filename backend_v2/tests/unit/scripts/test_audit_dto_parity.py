@@ -26,6 +26,7 @@ from scripts.audit_dto_parity import (
     extract_freezed_fields,
     extract_pydantic_fields,
     snake_to_camel,
+    split_dart_params,
 )
 from scripts.audit_dto_parity import (
     main as audit_dto_parity_main,
@@ -123,6 +124,65 @@ def test_extract_freezed_fields_success(tmp_path: Path) -> None:
     assert models["SecondDTO"] == {"user_id"}
 
 
+def test_split_dart_params_nested_structures() -> None:
+    """Test split_dart_params correctly splits on top-level commas respecting nested brackets and strings."""
+    block = r"""
+        required String id,
+        @JsonKey(name: 'report_data', includeFromJson: false, includeToJson: false) ReportDataDto? reportData,
+        Map<String, List<int>> matrixMap,
+        @Default({'key': 'val,with,comma', 'escaped': 'val\'quote'}) Map<String, String> complexDefault,
+        @Default("double,\"quoted\",comma") String strVal,
+        @Default("escaped\\\"double") String strValEscaped,
+        int count
+    """
+    params = split_dart_params(block)
+    assert len(params) == 7
+    assert params[0] == "required String id"
+    assert "@JsonKey(name: 'report_data', includeFromJson: false, includeToJson: false) ReportDataDto? reportData" in params[1]
+    assert params[2] == "Map<String, List<int>> matrixMap"
+    assert "@Default({'key': 'val,with,comma', 'escaped': 'val\\'quote'}) Map<String, String> complexDefault" in params[3]
+    assert params[4] == '@Default("double,\\"quoted\\",comma") String strVal'
+    assert params[5] == '@Default("escaped\\\\\\"double") String strValEscaped'
+    assert params[6] == "int count"
+
+
+def test_extract_freezed_fields_json_key_exclusions(tmp_path: Path) -> None:
+    """Test extract_freezed_fields skips fields with includeFromJson/includeToJson false or ignore true."""
+    dart_file = tmp_path / "exclusion_models.dart"
+    dart_file.write_text(
+        "import 'package:freezed_annotation/freezed_annotation.dart';\n\n"
+        "part 'exclusion_models.freezed.dart';\n\n"
+        "@freezed\n"
+        "abstract class ExclusionDTO with _$ExclusionDTO {\n"
+        "  const factory ExclusionDTO({\n"
+        "    required String validField,\n"
+        "    @JsonKey(name: 'custom_valid') required String customValid,\n"
+        "    @JsonKey(includeFromJson: false, includeToJson: false) ReportDataDto? reportData,\n"
+        "    @JsonKey(name: 'internal_secret', includeToJson: false) String? internalSecret,\n"
+        "    @JsonKey(ignore: true) int? ephemeralCounter,\n"
+        "  }) = _ExclusionDTO;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    models = extract_freezed_fields(dart_file)
+    assert "ExclusionDTO" in models
+    fields = models["ExclusionDTO"]
+
+    # Positive inclusion assertions
+    assert "valid_field" in fields
+    assert "custom_valid" in fields
+
+    # Negative exclusion assertions (Anti-Happy Path Mandate)
+    assert "report_data" not in fields
+    assert "reportData" not in fields
+    assert "internal_secret" not in fields
+    assert "internalSecret" not in fields
+    assert "ephemeral_counter" not in fields
+    assert "ephemeralCounter" not in fields
+    assert fields == {"valid_field", "custom_valid"}
+
+
 def test_extract_freezed_fields_fault_resilience(tmp_path: Path) -> None:
     """Test extract_freezed_fields fault domain resilience on binary and missing files."""
     bad_bytes = tmp_path / "bad.dart"
@@ -193,6 +253,49 @@ def test_audit_parity_report_matching_and_mismatches(tmp_path: Path) -> None:
     is_success, msgs = audit_parity(backend_dir, frontend_dir)
     assert is_success is False
     assert len(msgs) == 1
+
+
+def test_audit_parity_report_inheritance_and_aliases(tmp_path: Path) -> None:
+    """Test multi-pass class inheritance, preferred aliases, and model merging in parity audit."""
+    backend_dir = tmp_path / "backend"
+    backend_dir.mkdir()
+    frontend_dir = tmp_path / "frontend"
+    frontend_dir.mkdir()
+
+    # Base class and inherited class where child inherits fields
+    (backend_dir / "base.py").write_text("class BaseDTO:\n    common_id: str\n", encoding="utf-8")
+    (backend_dir / "child.py").write_text(
+        "class ChildDTO(BaseDTO):\n    extra_val: int\n\nclass EmptyChild(BaseDTO):\n    pass\n",
+        encoding="utf-8",
+    )
+
+    # Preferred alias: Workflow vs WorkflowResponseDTO
+    (backend_dir / "workflow.py").write_text("class Workflow:\n    old_name: str\n", encoding="utf-8")
+    (backend_dir / "workflow_resp.py").write_text("class WorkflowResponseDTO:\n    id: str\n", encoding="utf-8")
+
+    # Frontend matching:
+    (frontend_dir / "child.dart").write_text(
+        "@freezed\nabstract class ChildDTO with _$ChildDTO {\n  const factory ChildDTO({\n    required String commonId,\n    required int extraVal,\n  }) = _ChildDTO;\n}\n",
+        encoding="utf-8",
+    )
+    (frontend_dir / "empty_child.dart").write_text(
+        "@freezed\nabstract class EmptyChild with _$EmptyChild {\n  const factory EmptyChild({\n    required String commonId,\n  }) = _EmptyChild;\n}\n",
+        encoding="utf-8",
+    )
+    (frontend_dir / "workflow.dart").write_text(
+        "@freezed\nabstract class Workflow with _$Workflow {\n  const factory Workflow({\n    required String id,\n  }) = _Workflow;\n}\n",
+        encoding="utf-8",
+    )
+    # Duplicate model definition across files to test merge branch
+    (frontend_dir / "workflow_part2.dart").write_text(
+        "@freezed\nabstract class Workflow with _$Workflow {\n  const factory Workflow({\n    required String id,\n  }) = _Workflow;\n}\n",
+        encoding="utf-8",
+    )
+
+    report = audit_parity_report(backend_dir, frontend_dir)
+    assert report.is_success is True
+    assert report.shared_models_count >= 3
+    assert report.mismatches == []
 
 
 def test_audit_dto_parity_main_cli_execution(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

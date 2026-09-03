@@ -105,8 +105,79 @@ def extract_pydantic_fields(file_path: Path) -> tuple[dict[str, set[str]], dict[
     return models, class_bases
 
 
+def split_dart_params(params_block: str) -> list[str]:
+    """Split Dart parameter definitions by comma while respecting nested brackets and quotes.
+
+    Args:
+        params_block: The raw parameter block string from a Freezed factory constructor.
+
+    Returns:
+        List of trimmed individual parameter definition strings.
+    """
+    params: list[str] = []
+    current: list[str] = []
+    depth = 0
+    in_single_quote = False
+    in_double_quote = False
+    escape = False
+
+    for char in params_block:
+        if escape:
+            current.append(char)
+            escape = False
+            continue
+
+        if char == "\\":
+            current.append(char)
+            escape = True
+            continue
+
+        if char == "'" and not in_double_quote:
+            in_single_quote = not in_single_quote
+            current.append(char)
+            continue
+
+        if char == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+            current.append(char)
+            continue
+
+        if in_single_quote or in_double_quote:
+            current.append(char)
+            continue
+
+        if char in "({[<":
+            depth += 1
+            current.append(char)
+        elif char in ")}]>":
+            if depth > 0:
+                depth -= 1
+            current.append(char)
+        elif char == "," and depth == 0:
+            param = "".join(current).strip()
+            if param:
+                params.append(param)
+            current = []
+        else:
+            current.append(char)
+
+    if current:
+        param = "".join(current).strip()
+        if param:
+            params.append(param)
+
+    return params
+
+
 def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
-    """Extract Freezed model class names and serialized field names from a Dart file."""
+    """Extract Freezed model class names and serialized field names from a Dart file.
+
+    Args:
+        file_path: Path to the Dart source file.
+
+    Returns:
+        Dictionary mapping class names to sets of serialized field names.
+    """
     if not file_path.exists() or file_path.suffix != ".dart":
         return {}
 
@@ -126,11 +197,17 @@ def extract_freezed_fields(file_path: Path) -> dict[str, set[str]]:
         params_block = class_match.group(2)
         fields: set[str] = set()
 
-        # Split parameter definitions by comma
-        param_entries = [p.strip() for p in params_block.split(",") if p.strip()]
+        # Split parameter definitions by comma respecting nested parenthesis/brackets
+        param_entries = split_dart_params(params_block)
         for entry in param_entries:
+            # Check for @JsonKey exclusion flags (mirroring Python Field(exclude=True))
+            if re.search(r"@JsonKey\s*\([^)]*?\b(?:includeFromJson|includeToJson)\s*:\s*false", entry) or re.search(
+                r"@JsonKey\s*\([^)]*?\bignore\s*:\s*true", entry
+            ):
+                continue
+
             # Check for @JsonKey(name: '...')
-            json_key_match = re.search(r"@JsonKey\s*\(\s*name\s*:\s*['\"]([^'\"]+)['\"]", entry)
+            json_key_match = re.search(r"@JsonKey\s*\([^)]*?\bname\s*:\s*['\"]([^'\"]+)['\"]", entry)
             if json_key_match:
                 fields.add(json_key_match.group(1))
             else:

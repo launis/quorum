@@ -35,6 +35,8 @@ class TestExecutionCoreFieldsStructure:
             "execution_trace_storage_path",
             "context_variables",
             "context_variables_storage_path",
+            "progress",
+            "status_message",
         }
         actual = set(ExecutionCoreFields.model_fields.keys())
         assert actual == expected, f"Expected {expected}, got {actual}"
@@ -72,6 +74,38 @@ class TestExecutionCoreFieldsDefaults:
         """Context variables storage path must default to None."""
         instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
         assert instance.context_variables_storage_path is None
+
+    def test_default_progress_is_none(self) -> None:
+        """Progress must default to None."""
+        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
+        assert instance.progress is None
+
+    def test_default_status_message_is_none(self) -> None:
+        """Status message must default to None."""
+        instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
+        assert instance.status_message is None
+
+    def test_progress_bounds_validation(self) -> None:
+        """Progress must enforce 0 <= progress <= 100 per ISTQB boundaries."""
+        valid_0 = ExecutionCoreFields.model_validate({"target_locale": "en", "progress": 0})
+        assert valid_0.progress == 0
+
+        valid_100 = ExecutionCoreFields.model_validate({"target_locale": "en", "progress": 100})
+        assert valid_100.progress == 100
+
+        with pytest.raises(ValidationError):
+            ExecutionCoreFields.model_validate({"target_locale": "en", "progress": -1})
+
+        with pytest.raises(ValidationError):
+            ExecutionCoreFields.model_validate({"target_locale": "en", "progress": 101})
+
+    def test_status_message_validation(self) -> None:
+        """Status message must accept strings and reject non-string types."""
+        valid = ExecutionCoreFields.model_validate({"target_locale": "en", "status_message": "Executing Step 1"})
+        assert valid.status_message == "Executing Step 1"
+
+        with pytest.raises(ValidationError):
+            ExecutionCoreFields.model_validate({"target_locale": "en", "status_message": 12345})
 
 
 class TestExecutionCoreFieldsValidation:
