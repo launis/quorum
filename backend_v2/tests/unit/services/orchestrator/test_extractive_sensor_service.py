@@ -6,7 +6,11 @@ from pydantic import BaseModel
 from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import (
+    AtomEvaluationResultDTO,
+    ExtractedAtom,
+    LinkedAtomGraph,
+)
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TDAAssertion
@@ -202,38 +206,38 @@ async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
     assert undecided[0].atom.tda_id == "tda_11111111111111111111111111111111"
 
     assert "tda_22222222222222222222222222222222" in decided
-    assert decided["tda_22222222222222222222222222222222"][0] == ExecutionStatus.FAILED
+    assert decided["tda_22222222222222222222222222222222"].status == ExecutionStatus.FAILED
 
 
 def test_extractive_sensor_service_resolve_majority_vote() -> None:
 
     # Success case (2 PASS)
-    results: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None] = [
-        {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "r1", {})},
-        {"tda_11111111111111111111111111111111": (ExecutionStatus.FAILED, "r2", {})},
-        {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "r3", {})},
+    results: list[dict[str, AtomEvaluationResultDTO] | None] = [
+        {"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")},
+        {"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2")},
+        {"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r3")},
     ]
     resolved = ExtractiveSensorService.resolve_majority_vote(["tda_11111111111111111111111111111111"], results)
-    assert resolved["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
+    assert resolved["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
 
     # Insufficient valid results
     with pytest.raises(AgentExecutionError):
         ExtractiveSensorService.resolve_majority_vote(
             ["tda_11111111111111111111111111111111"],
-            [{"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "r1", {})}],
+            [{"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")}],
         )
 
     # Split vote without consensus (if min_consensus was 2, but we only have 3 different? Actually booleans only have 2 states)
     # But if an atom was missing from responses
-    results_split: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None] = [
-        {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "r1", {})},
-        {"tda_22222222222222222222222222222222": (ExecutionStatus.FAILED, "r2", {})},
-        {"tda_33333333333333333333333333333333": (ExecutionStatus.PASSED, "r3", {})},
+    results_split: list[dict[str, AtomEvaluationResultDTO] | None] = [
+        {"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")},
+        {"tda_22222222222222222222222222222222": AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2")},
+        {"tda_33333333333333333333333333333333": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r3")},
     ]
     resolved_split = ExtractiveSensorService.resolve_majority_vote(
         ["tda_11111111111111111111111111111111"], results_split
     )
-    assert resolved_split["tda_11111111111111111111111111111111"][0] == ExecutionStatus.SYSTEM_ERROR
+    assert resolved_split["tda_11111111111111111111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
 
 
 @pytest.mark.asyncio
@@ -259,6 +263,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
         alias: str
         reasoning: str
         is_true: bool
+        source_quote: str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -284,9 +289,9 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
         results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch([node], executor, client, "context")
 
         assert "tda_11111111111111111111111111111111" in results
-        assert results["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
-        assert results["tda_11111111111111111111111111111111"][2]["coaching"] == "tip"
-        assert results["tda_11111111111111111111111111111111"][2]["contextual_override"] == "True"
+        assert results["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
+        assert results["tda_11111111111111111111111111111111"].extensions["coaching"] == "tip"
+        assert results["tda_11111111111111111111111111111111"].extensions["contextual_override"] == "True"
         assert usage.total_tokens == 180
 
 
@@ -338,6 +343,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
         alias: str
         reasoning: str
         is_true: bool
+        source_quote: str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -368,7 +374,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
         )
 
         assert "tda_11111111111111111111111111111111" in results
-        assert results["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
+        assert results["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
         assert usage.total_tokens == 180
 
 
@@ -394,6 +400,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         alias: str
         reasoning: str
         is_true: bool
+        source_quote: str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -432,8 +439,8 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         )
 
         assert tda_id in results
-        assert results[tda_id][0] == ExecutionStatus.PASSED
-        assert results[tda_id][1] == "No penalty found"
+        assert results[tda_id].status == ExecutionStatus.PASSED
+        assert results[tda_id].reasoning == "No penalty found"
         assert usage.total_tokens == 180
 
 
@@ -459,6 +466,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         alias: str
         reasoning: str
         is_true: bool
+        source_quote: str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -497,6 +505,6 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         )
 
         assert tda_id in results
-        assert results[tda_id][0] == ExecutionStatus.FAILED
-        assert results[tda_id][1] == "Penalty detected in text"
+        assert results[tda_id].status == ExecutionStatus.FAILED
+        assert results[tda_id].reasoning == "Penalty detected in text"
         assert usage.total_tokens == 180

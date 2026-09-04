@@ -4,14 +4,19 @@ import asyncio
 import logging
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from rapidfuzz import fuzz
 
 from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import AtomExecutionState, ExtractedAtom, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import (
+    AtomEvaluationResultDTO,
+    AtomExecutionState,
+    ExtractedAtom,
+    LinkedAtomGraph,
+)
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
@@ -31,6 +36,7 @@ class PreFlightResult(BaseModel):
     decided: bool
     result: ExecutionStatus | None = None
     exact_quotes: list[LLMExtractedQuote] | None = None
+    source_quote: str | None = None
 
 
 class BooleanEvaluationResult(BaseModel):
@@ -40,6 +46,17 @@ class BooleanEvaluationResult(BaseModel):
     alias: Annotated[str, Field(description="The alias assigned to the claim (e.g., 'a0', 'a1').")]
     reasoning: Annotated[str, Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")]
     is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
+    source_quote: Annotated[
+        str | None,
+        Field(
+            default=None,
+            max_length=500,
+            description=(
+                "Exact verbatim sentence or clause extracted directly from the context text in its original language, "
+                "substantiating or violating this claim, or null if absent."
+            ),
+        ),
+    ] = None
     contextual_override: Annotated[bool | None, Field(default=None, description="True if bypass was used.")] = None
     coaching: Annotated[str | None, Field(description="Provide a coaching tip if the claim failed.", default=None)] = (
         None
@@ -50,6 +67,16 @@ class BooleanEvaluationResult(BaseModel):
     remediation_steps: Annotated[
         list[str] | None, Field(description="Step-by-step remediation if the claim failed.", default=None)
     ] = None
+
+    @field_validator("source_quote", mode="before")
+    @classmethod
+    def truncate_source_quote_at_sentence(cls, v: str | None) -> str | None:
+        """Truncate oversized quote at the nearest sentence boundary under 500 chars."""
+        if v is not None and len(v) > 500:
+            truncated = v[:500]
+            last_dot = truncated.rfind(".")
+            return (truncated[: last_dot + 1]) if last_dot > 100 else truncated
+        return v
 
 
 class BatchEvaluationResponse(BaseModel):
@@ -186,7 +213,7 @@ class ExtractiveSensorService:
         source_text: str,
         locale: str | None = None,
         allow_contextual_override: bool = False,
-    ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], list[LinkedAtomGraph]]:
+    ) -> tuple[dict[str, AtomEvaluationResultDTO], list[LinkedAtomGraph]]:
         """Synchronous batch fuzzy matching to determine pre-flight status.
 
         Args:
@@ -198,7 +225,7 @@ class ExtractiveSensorService:
         Returns:
             Tuple containing decided results and undecided nodes.
         """
-        decided_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+        decided_results: dict[str, AtomEvaluationResultDTO] = {}
         undecided_nodes: list[LinkedAtomGraph] = []
 
         for node in nodes:
@@ -207,16 +234,18 @@ class ExtractiveSensorService:
             )
             if pre_result.decided:
                 if pre_result.result == ExecutionStatus.PASSED:
-                    decided_results[node.atom.tda_id] = (
-                        ExecutionStatus.PASSED,
-                        "PRE_FLIGHT_DETERMINISTIC_PASS",
-                        {},
+                    decided_results[node.atom.tda_id] = AtomEvaluationResultDTO(
+                        status=ExecutionStatus.PASSED,
+                        reasoning="PRE_FLIGHT_DETERMINISTIC_PASS",
+                        source_quote=pre_result.source_quote,
+                        extensions={},
                     )
                 else:
-                    decided_results[node.atom.tda_id] = (
-                        ExecutionStatus.FAILED,
-                        "PRE_FLIGHT_DETERMINISTIC_REJECT",
-                        {},
+                    decided_results[node.atom.tda_id] = AtomEvaluationResultDTO(
+                        status=ExecutionStatus.FAILED,
+                        reasoning="PRE_FLIGHT_DETERMINISTIC_REJECT",
+                        source_quote=None,
+                        extensions={},
                     )
             else:
                 undecided_nodes.append(node)
@@ -229,7 +258,7 @@ class ExtractiveSensorService:
         source_text: str,
         locale: str | None = None,
         allow_contextual_override: bool = False,
-    ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], list[LinkedAtomGraph]]:
+    ) -> tuple[dict[str, AtomEvaluationResultDTO], list[LinkedAtomGraph]]:
         """Asynchronous wrapper that offloads CPU-bound batch fuzzy matching to a thread.
 
         Args:
@@ -247,8 +276,8 @@ class ExtractiveSensorService:
 
     @staticmethod
     def resolve_majority_vote(
-        expected_tda_ids: list[str], results: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None]
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+        expected_tda_ids: list[str], results: list[dict[str, AtomEvaluationResultDTO] | None]
+    ) -> dict[str, AtomEvaluationResultDTO]:
         """Resolves Best-of-Three ensemble voting.
 
         Args:
@@ -273,19 +302,21 @@ class ExtractiveSensorService:
                 status_code=503,
             )
 
-        final_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+        final_results: dict[str, AtomEvaluationResultDTO] = {}
 
         for tda_id in expected_tda_ids:
             tally: dict[ExecutionStatus, int] = {}
-            first_seen: dict[ExecutionStatus, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+            first_seen: dict[ExecutionStatus, AtomEvaluationResultDTO] = {}
 
             for res in valid_results:
                 if tda_id in res:
-                    vote_tuple = res[tda_id]
-                    status = vote_tuple[0]
-                    tally[status] = (tally[status] + 1) if status in tally else 1
+                    vote = res[tda_id]
+                    status = vote.status
+                    if status not in tally:
+                        tally[status] = 0
+                    tally[status] += 1
                     if status not in first_seen:
-                        first_seen[status] = vote_tuple
+                        first_seen[status] = vote
 
             elected = False
             for status, count in tally.items():
@@ -296,7 +327,12 @@ class ExtractiveSensorService:
 
             if not elected:
                 # Semantic split or hallucinated drop
-                final_results[tda_id] = (ExecutionStatus.SYSTEM_ERROR, "INSUFFICIENT_CONSENSUS", {})
+                final_results[tda_id] = AtomEvaluationResultDTO(
+                    status=ExecutionStatus.SYSTEM_ERROR,
+                    reasoning="INSUFFICIENT_CONSENSUS",
+                    source_quote=None,
+                    extensions={},
+                )
 
         return final_results
 
@@ -308,7 +344,7 @@ class ExtractiveSensorService:
         context_text: str,
         matrix_context: MatrixEvaluationContext | None = None,
         current_states: dict[str, AtomExecutionState] | None = None,
-    ) -> tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]], TokenUsage]:
+    ) -> tuple[dict[str, AtomEvaluationResultDTO], TokenUsage]:
         """Evaluates a batch of atom claims against the source text using an LLM.
 
         Args:
@@ -321,7 +357,7 @@ class ExtractiveSensorService:
 
         Returns:
             A tuple of:
-            - A dictionary mapping tda_id to a tuple of ExecutionStatus, reasoning, and extensions.
+            - A dictionary mapping tda_id to its AtomEvaluationResultDTO.
             - Aggregated TokenUsage across all ensemble calls.
 
         Raises:
@@ -359,9 +395,7 @@ class ExtractiveSensorService:
 
         semaphore = asyncio.Semaphore(parallelism)
 
-        async def _single_ensemble_call() -> tuple[
-            dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None, TokenUsage
-        ]:
+        async def _single_ensemble_call() -> tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]:
             async with semaphore:
                 try:
                     result, usage = await executor.execute_structured_task(
@@ -370,7 +404,7 @@ class ExtractiveSensorService:
                         response_model=BatchEvaluationResponse,
                     )
 
-                    call_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+                    call_results: dict[str, AtomEvaluationResultDTO] = {}
                     returned_aliases: set[str] = set()
 
                     for eval_result in result.results:
@@ -405,7 +439,12 @@ class ExtractiveSensorService:
                         else:
                             status = ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
 
-                        call_results[call_tda_id] = (status, eval_result.reasoning, extensions)
+                        call_results[call_tda_id] = AtomEvaluationResultDTO(
+                            status=status,
+                            reasoning=eval_result.reasoning,
+                            source_quote=eval_result.source_quote,
+                            extensions=extensions,
+                        )
 
                     return call_results, usage
                 except Exception as e:
@@ -414,7 +453,7 @@ class ExtractiveSensorService:
                         return None, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
                     raise
 
-        task_outputs: list[tuple[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None, TokenUsage]] = []
+        task_outputs: list[tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]] = []
         try:
             async with asyncio.TaskGroup() as tg:
                 tasks = [tg.create_task(_single_ensemble_call()) for _ in range(parallelism)]
@@ -423,7 +462,7 @@ class ExtractiveSensorService:
         except ExceptionGroup as eg:
             raise eg.exceptions[0] from eg
 
-        results: list[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] | None] = []
+        results: list[dict[str, AtomEvaluationResultDTO] | None] = []
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         for res, usage in task_outputs:
             results.append(res)

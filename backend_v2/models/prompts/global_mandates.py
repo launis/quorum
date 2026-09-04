@@ -25,7 +25,7 @@ LANGUAGE_MANDATE = (
     "exclusively in the language specified in <required_output_language>.\n"
     "- CRITICAL EXCEPTION 1: Internal reasoning fields (e.g., `reasoning_trace`) MUST remain in "
     "English for maximum analytical depth.\n"
-    "- CRITICAL EXCEPTION 2: The JSON field `exact_quotes` MUST ALWAYS remain in the raw, "
+    "- CRITICAL EXCEPTION 2: The JSON fields `exact_quotes` and `source_quote` MUST ALWAYS remain in the raw, "
     "original language of the source text. NEVER translate, paraphrase, or modify the language "
     "of the extracted quotes.\n"
     "- CRITICAL EXCEPTION 3: System identifiers (e.g., `atom_id`, ENUM strings, category keys) "

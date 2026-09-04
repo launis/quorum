@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import AtomEvaluationResultDTO, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
@@ -75,12 +75,19 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
         ),
     ):
         mock_sensor.return_value = (
-            {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})},
+            {
+                "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED,
+                    reasoning="OK",
+                    source_quote="test text",
+                    extensions={},
+                )
+            },
             TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
         )
         status_dict = await captured_callback([mock_node], {})
 
-        assert status_dict["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
+        assert status_dict["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
         mock_sensor.assert_called_once_with(
             nodes=[mock_node],
             executor=mock_llm_executor,
@@ -153,13 +160,20 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
             ),
         ):
             mock_pre_eval.return_value = (
-                {"tda_11111111111111111111111111111111": (ExecutionStatus.PASSED, "OK", {})},
+                {
+                    "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                        status=ExecutionStatus.PASSED,
+                        reasoning="OK",
+                        source_quote="test text",
+                        extensions={},
+                    )
+                },
                 [],
             )
             result, usage = await executor.execute_graph(
                 nodes=[mock_node], source_text="test text", progress_callback=mock_progress
             )
-            assert result["tda_11111111111111111111111111111111"][0] == ExecutionStatus.PASSED
+            assert result["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
             assert usage.total_tokens == 0
             assert progress_calls == [(1, 1)]
 
@@ -214,8 +228,8 @@ async def test_execute_graph_callback_persistent_error(
             result, usage = await executor.execute_graph(
                 nodes=[mock_node], source_text="test text", progress_callback=mock_progress
             )
-            assert result["tda_11111111111111111111111111111111"][0] == ExecutionStatus.SYSTEM_ERROR
-            assert "Some persistent validation error" in result["tda_11111111111111111111111111111111"][1]
+            assert result["tda_11111111111111111111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+            assert "Some persistent validation error" in (result["tda_11111111111111111111111111111111"].reasoning or "")
             assert usage.total_tokens == 0
             assert progress_calls == [(1, 1)]
 

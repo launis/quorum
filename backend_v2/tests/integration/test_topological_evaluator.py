@@ -4,7 +4,13 @@ import asyncio
 
 import pytest
 
-from backend_v2.models.dtos.dag_models import AtomExecutionState, CausalEdge, ExtractedAtom, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import (
+    AtomEvaluationResultDTO,
+    AtomExecutionState,
+    CausalEdge,
+    ExtractedAtom,
+    LinkedAtomGraph,
+)
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
 
@@ -46,9 +52,17 @@ async def test_topological_evaluator_successful_run(evaluator: TopologicalEvalua
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    ) -> dict[str, AtomEvaluationResultDTO]:
         await asyncio.sleep(0.01)
-        return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
+        return {
+            node.atom.tda_id: AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED,
+                reasoning="OK",
+                source_quote="Test quote",
+                extensions={},
+            )
+            for node in batch_nodes
+        }
 
     results = await evaluator.evaluate_graph(nodes, mock_callback)
 
@@ -78,13 +92,23 @@ async def test_topological_evaluator_short_circuit(evaluator: TopologicalEvaluat
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    ) -> dict[str, AtomEvaluationResultDTO]:
         results = {}
         for node in batch_nodes:
             if node.atom.tda_id == "tda_11111111111111111111111111111111":
-                results[node.atom.tda_id] = (ExecutionStatus.FAILED, "FAILED", {})
+                results[node.atom.tda_id] = AtomEvaluationResultDTO(
+                    status=ExecutionStatus.FAILED,
+                    reasoning="FAILED",
+                    source_quote=None,
+                    extensions={},
+                )
             else:
-                results[node.atom.tda_id] = (ExecutionStatus.PASSED, "PASSED", {})
+                results[node.atom.tda_id] = AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED,
+                    reasoning="PASSED",
+                    source_quote="Test quote",
+                    extensions={},
+                )
         return results
 
     results = await evaluator.evaluate_graph(nodes, mock_callback)
@@ -118,13 +142,23 @@ async def test_topological_evaluator_blocked_cascade(evaluator: TopologicalEvalu
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    ) -> dict[str, AtomEvaluationResultDTO]:
         results = {}
         for node in batch_nodes:
             if node.atom.tda_id == "tda_11111111111111111111111111111111":
-                results[node.atom.tda_id] = (ExecutionStatus.SYSTEM_ERROR, "SYSTEM_ERROR", {})
+                results[node.atom.tda_id] = AtomEvaluationResultDTO(
+                    status=ExecutionStatus.SYSTEM_ERROR,
+                    reasoning="SYSTEM_ERROR",
+                    source_quote=None,
+                    extensions={},
+                )
             else:
-                results[node.atom.tda_id] = (ExecutionStatus.PASSED, "PASSED", {})
+                results[node.atom.tda_id] = AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED,
+                    reasoning="PASSED",
+                    source_quote="Test quote",
+                    extensions={},
+                )
         return results
 
     results = await evaluator.evaluate_graph(nodes, mock_callback)
@@ -164,9 +198,17 @@ async def test_topological_evaluator_cycle_breaker(evaluator: TopologicalEvaluat
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    ) -> dict[str, AtomEvaluationResultDTO]:
         # Should not be called due to cycle isolation
-        return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
+        return {
+            node.atom.tda_id: AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED,
+                reasoning="OK",
+                source_quote="Test quote",
+                extensions={},
+            )
+            for node in batch_nodes
+        }
 
     results = await evaluator.evaluate_graph(nodes, mock_callback)
 

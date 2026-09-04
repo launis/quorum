@@ -119,13 +119,34 @@ class ResultProjector:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
+            # Resolve quote and contextual_override according to status and cognitive strictness
+            quote_val = None
+            if state is not None and state.source_quote and state.source_quote.strip():
+                quote_val = state.source_quote.strip()
+            elif node.atom.source_quote and node.atom.source_quote.strip():
+                quote_val = node.atom.source_quote.strip()
+
+            if status == ExecutionStatus.FAILED:
+                source_quote_for_dto = None
+                contextual_override = False
+            elif status == ExecutionStatus.PASSED:
+                if quote_val:
+                    source_quote_for_dto = quote_val
+                    contextual_override = False
+                else:
+                    source_quote_for_dto = None
+                    contextual_override = True
+            else:
+                source_quote_for_dto = quote_val
+                contextual_override = node.atom.is_logical_deduction
+
             res = AtomResultDTO(
                 tda_id=tda_id,
                 matrix_id=matrix_id,
                 status=status,
                 extracted_data=None,
-                source_quote=node.atom.source_quote,
-                contextual_override=node.atom.is_logical_deduction,
+                source_quote=source_quote_for_dto,
+                contextual_override=contextual_override,
                 evaluation_reasoning=reasoning,
                 extensions=extensions,
                 error_details=error_details,
@@ -137,7 +158,7 @@ class ResultProjector:
             hydrated_references[tda_id] = HydratedAtomDTO(
                 sdui_component=sdui_component,
                 resolved_claim=node.atom.resolved_claim,
-                source_quote=node.atom.source_quote,
+                source_quote=source_quote_for_dto,
             )
 
         return results, hydrated_references

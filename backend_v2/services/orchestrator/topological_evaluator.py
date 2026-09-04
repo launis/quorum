@@ -11,7 +11,12 @@ from collections.abc import Awaitable, Callable
 import networkx as nx
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.dtos.dag_models import AtomExecutionState, CausalEdge, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import (
+    AtomEvaluationResultDTO,
+    AtomExecutionState,
+    CausalEdge,
+    LinkedAtomGraph,
+)
 from backend_v2.models.enums import ExecutionStatus
 
 
@@ -27,7 +32,7 @@ class TopologicalEvaluator:
         nodes: list[LinkedAtomGraph],
         batch_evaluation_callback: Callable[
             [list[LinkedAtomGraph], dict[str, AtomExecutionState]],
-            Awaitable[dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]],
+            Awaitable[dict[str, AtomEvaluationResultDTO]],
         ],
     ) -> dict[str, AtomExecutionState]:
         """Evaluates a graph of atoms deterministically using Kahn's Algorithm.
@@ -107,12 +112,12 @@ class TopologicalEvaluator:
                     for node in pending_nodes:
                         if node.atom.tda_id in results:
                             res = results[node.atom.tda_id]
-                            status, reasoning, extensions = res
                             states[node.atom.tda_id] = states[node.atom.tda_id].model_copy(
                                 update={
-                                    "status": status,
-                                    "evaluation_reasoning": reasoning,
-                                    "extensions": extensions,
+                                    "status": res.status,
+                                    "evaluation_reasoning": res.reasoning,
+                                    "source_quote": res.source_quote,
+                                    "extensions": res.extensions,
                                 }
                             )
                         else:

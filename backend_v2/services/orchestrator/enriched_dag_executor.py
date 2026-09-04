@@ -13,7 +13,11 @@ from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import (
+    AtomEvaluationResultDTO,
+    AtomExecutionState,
+    LinkedAtomGraph,
+)
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -77,7 +81,7 @@ class EnrichedDagExecutor:
         async def process_chunk(
             chunk: list[LinkedAtomGraph],
             current_states: dict[str, AtomExecutionState],
-        ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+        ) -> dict[str, AtomEvaluationResultDTO]:
             nonlocal completed_atoms, accumulated_usage
             try:
                 allow_override = matrix_context.allow_contextual_override if matrix_context else False
@@ -122,7 +126,12 @@ class EnrichedDagExecutor:
                 # Mark all requested atoms in the batch as SYSTEM_ERROR.
                 logger.error("Persistent error in chunk evaluation: %s", str(e))
                 res = {
-                    node.atom.tda_id: (ExecutionStatus.SYSTEM_ERROR, f"EVALUATION_CRASH: {str(e)}", {})
+                    node.atom.tda_id: AtomEvaluationResultDTO(
+                        status=ExecutionStatus.SYSTEM_ERROR,
+                        reasoning=f"EVALUATION_CRASH: {str(e)}",
+                        source_quote=None,
+                        extensions={},
+                    )
                     for node in chunk
                 }
                 if progress_callback:
@@ -134,7 +143,7 @@ class EnrichedDagExecutor:
         async def batch_evaluation_callback(
             wave_nodes: list[LinkedAtomGraph],
             current_states: dict[str, AtomExecutionState],
-        ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+        ) -> dict[str, AtomEvaluationResultDTO]:
             """Callback injected into TopologicalEvaluator for wave-based evaluation.
 
             Slices the topological wave into batches of sensor_batch_size to
@@ -145,13 +154,13 @@ class EnrichedDagExecutor:
                 current_states: Mapping of tda_id to its current AtomExecutionState.
 
             Returns:
-                A dictionary mapping tda_id to its evaluated ExecutionStatus, reasoning, and extensions.
+                A dictionary mapping tda_id to its evaluated AtomEvaluationResultDTO.
             """
             settings = get_settings()
             batch_size = settings.sensor_batch_size
             chunks = [wave_nodes[i : i + batch_size] for i in range(0, len(wave_nodes), batch_size)]
 
-            merged_results: dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]] = {}
+            merged_results: dict[str, AtomEvaluationResultDTO] = {}
 
             compiled_prompt = MatrixSensorPromptBuilder.build_caching_prefix(source_text, matrix_context)
 

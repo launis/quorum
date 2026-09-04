@@ -3,6 +3,7 @@
 import pytest
 
 from backend_v2.models.dtos.dag_models import (
+    AtomEvaluationResultDTO,
     AtomExecutionState,
     CausalEdge,
     ExtractedAtom,
@@ -47,8 +48,16 @@ async def test_successful_evaluation() -> None:
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
-        return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
+    ) -> dict[str, AtomEvaluationResultDTO]:
+        return {
+            node.atom.tda_id: AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED,
+                reasoning="OK",
+                source_quote="quote",
+                extensions={},
+            )
+            for node in batch_nodes
+        }
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
 
@@ -78,8 +87,16 @@ async def test_phantom_edge_isolation() -> None:
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
-        return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
+    ) -> dict[str, AtomEvaluationResultDTO]:
+        return {
+            node.atom.tda_id: AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED,
+                reasoning="OK",
+                source_quote="quote",
+                extensions={},
+            )
+            for node in batch_nodes
+        }
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
 
@@ -121,8 +138,16 @@ async def test_cyclic_dependency_detected() -> None:
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
-        return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
+    ) -> dict[str, AtomEvaluationResultDTO]:
+        return {
+            node.atom.tda_id: AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED,
+                reasoning="OK",
+                source_quote="quote",
+                extensions={},
+            )
+            for node in batch_nodes
+        }
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
 
@@ -168,8 +193,16 @@ async def test_blocked_cascade() -> None:
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
-        return {node.atom.tda_id: (ExecutionStatus.PASSED, "OK", {}) for node in batch_nodes}
+    ) -> dict[str, AtomEvaluationResultDTO]:
+        return {
+            node.atom.tda_id: AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED,
+                reasoning="OK",
+                source_quote="quote",
+                extensions={},
+            )
+            for node in batch_nodes
+        }
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
 
@@ -211,14 +244,24 @@ async def test_na_short_circuit_cascade() -> None:
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
-    ) -> dict[str, tuple[ExecutionStatus, str | None, dict[str, str]]]:
+    ) -> dict[str, AtomEvaluationResultDTO]:
         results = {}
         for node in batch_nodes:
             # Parent fails, so child should short-circuit to N_A
             if node.atom.tda_id == "tda_1111111111111111":
-                results[node.atom.tda_id] = (ExecutionStatus.FAILED, "failed", {})
+                results[node.atom.tda_id] = AtomEvaluationResultDTO(
+                    status=ExecutionStatus.FAILED,
+                    reasoning="failed",
+                    source_quote=None,
+                    extensions={},
+                )
             else:
-                results[node.atom.tda_id] = (ExecutionStatus.PASSED, "passed", {})
+                results[node.atom.tda_id] = AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED,
+                    reasoning="passed",
+                    source_quote="quote",
+                    extensions={},
+                )
         return results
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)

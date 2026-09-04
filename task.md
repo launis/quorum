@@ -27,16 +27,16 @@ Implementation Plan: `docs/implementationplans/IMPLEMENTATION_PLAN_Scoring_Doubl
   - [x] Step 3.8: Replace legacy first-item break loop in `matrix_domain_parser.py` with three-tier deterministic resolution
   - [x] Step 3.9: Run backend audit loop and flutter domain parity test
 
-- [ ] **Phase 4: Sensor Quote Extraction Pipeline, AtomEvaluationResultDTO & Language-Agnostic Caching Prefix**
-  - [ ] Step 4.1: Define `AtomEvaluationResultDTO` in `backend_v2/models/dtos/dag_models.py` and add `source_quote` to `AtomExecutionState`
-  - [ ] Step 4.2: Update `BooleanEvaluationResult` in `extractive_sensor_service.py` with `source_quote` and sentence-boundary truncation validator
-  - [ ] Step 4.3: Add `<evidence_extraction_mandate>` in `backend_v2/models/prompts/matrix_evaluation.py`
-  - [ ] Step 4.4: Update `LANGUAGE_MANDATE` Exception 2 in `backend_v2/models/prompts/global_mandates.py`
-  - [ ] Step 4.5: Ensure language-agnostic 100% static prefix in `matrix_sensor_prompt_builder.py`
-  - [ ] Step 4.6: Update `extractive_sensor_service.py` to emit `dict[str, AtomEvaluationResultDTO]`
-  - [ ] Step 4.7: Update `enriched_dag_executor.py` and `topological_evaluator.py` to transit `AtomEvaluationResultDTO`
-  - [ ] Step 4.8: Update `result_projector.py` to project `source_quote` and enforce `contextual_override = False` when quote present
-  - [ ] Step 4.9: Run quality gates on affected orchestrator files
+- [x] **Phase 4: Sensor Quote Extraction Pipeline, AtomEvaluationResultDTO & Language-Agnostic Caching Prefix**
+  - [x] Step 4.1: Define `AtomEvaluationResultDTO` in `backend_v2/models/dtos/dag_models.py` and add `source_quote` to `AtomExecutionState`
+  - [x] Step 4.2: Update `BooleanEvaluationResult` in `extractive_sensor_service.py` with `source_quote` and sentence-boundary truncation validator
+  - [x] Step 4.3: Add `<evidence_extraction_mandate>` in `backend_v2/models/prompts/matrix_evaluation.py`
+  - [x] Step 4.4: Update `LANGUAGE_MANDATE` Exception 2 in `backend_v2/models/prompts/global_mandates.py`
+  - [x] Step 4.5: Ensure language-agnostic 100% static prefix in `matrix_sensor_prompt_builder.py`
+  - [x] Step 4.6: Update `extractive_sensor_service.py` to emit `dict[str, AtomEvaluationResultDTO]`
+  - [x] Step 4.7: Update `enriched_dag_executor.py` and `topological_evaluator.py` to transit `AtomEvaluationResultDTO`
+  - [x] Step 4.8: Update `result_projector.py` to project `source_quote` and enforce `contextual_override = False` when quote present
+  - [x] Step 4.9: Run quality gates on affected orchestrator files
 
 - [ ] **Phase 5: ISTQB Unit & Integration Test Expansion**
   - [ ] Step 5.1: Expand scoring hook tests in `backend_v2/tests/unit/hooks/test_scoring.py`
