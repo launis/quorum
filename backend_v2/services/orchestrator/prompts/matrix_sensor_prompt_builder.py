@@ -14,6 +14,7 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
+from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
 from backend_v2.models.prompts.matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,7 @@ class MatrixSensorPromptBuilder:
         context_text: str,
         nodes: list[LinkedAtomGraph],
         tda_id_to_alias: dict[str, str],
+        target_locale: str,
         matrix_context: MatrixEvaluationContext | None = None,
         atom_status_map: dict[str, ExecutionStatus] | None = None,
     ) -> CompiledPrompt:
@@ -89,6 +91,7 @@ class MatrixSensorPromptBuilder:
             context_text: The massive source document text.
             nodes: The batch of LinkedAtomGraph nodes.
             tda_id_to_alias: Mapping of TDA ID to alias.
+            target_locale: ISO language code for user-facing output (e.g. 'fi', 'en', 'sv').
             matrix_context: Optional matrix evaluation context for global rules.
             atom_status_map: Optional status map for dependencies.
 
@@ -96,9 +99,24 @@ class MatrixSensorPromptBuilder:
             A strictly cached CompiledPrompt.
 
         Raises:
-            AppException: Triggered with VALIDATION_FAILED if nodes are empty, aliases are missing,
-                or an assertion question is empty.
+            AppException: Triggered with VALIDATION_FAILED if target_locale is empty,
+                nodes are empty, aliases are missing, or an assertion question is empty.
         """
+        if not target_locale or not target_locale.strip():
+            msg = "target_locale must be a non-empty string."
+            logger.error(
+                "[MatrixSensorPromptBuilder] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         prefix_prompt = MatrixSensorPromptBuilder.build_caching_prefix(context_text, matrix_context)
         system_content = prefix_prompt.static_messages[0].content
         context_content = prefix_prompt.static_messages[1].content
@@ -193,9 +211,11 @@ class MatrixSensorPromptBuilder:
             claims_xml.append(f'<claim alias="{alias}">\n{content.strip()}\n</claim>')
 
         claims_str = "\n".join(claims_xml)
-        user_content = TemplateProcessor.safe_interpolate(
+        exec_params = TemplateProcessor.safe_interpolate(
             "<execution_parameters>\n{c}\n</execution_parameters>", c=claims_str
         )
+        linguistic_context = build_linguistic_context(target_locale=target_locale.strip(), include_mandate=False)
+        user_content = f"{linguistic_context}\n\n{exec_params}"
 
         # 3. Assemble CompiledPrompt properly (Context text in static user message!)
         context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_text)

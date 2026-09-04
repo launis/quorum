@@ -8,7 +8,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
@@ -72,7 +72,21 @@ class EnrichedDagExecutor:
             A tuple of:
             - A dictionary mapping tda_id to its final AtomExecutionState.
             - Aggregated TokenUsage across all evaluated chunks.
+
+        Raises:
+            AppException: If locale is missing, empty, or whitespace.
         """
+        if not locale or not locale.strip():
+            logger.error(
+                "EnrichedDagExecutor.execute_graph rejected empty or whitespace locale",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            raise AppException(
+                message="Target locale is required for DAG execution.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         total_atoms = len(nodes)
         completed_atoms = 0
         progress_lock = asyncio.Lock()
@@ -103,6 +117,7 @@ class EnrichedDagExecutor:
                         executor=self._llm_executor,
                         client=self._llm_client,
                         context_text=source_text,
+                        target_locale=locale,
                         matrix_context=matrix_context,
                         current_states=current_states,
                     )

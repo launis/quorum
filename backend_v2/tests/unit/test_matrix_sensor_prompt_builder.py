@@ -90,12 +90,18 @@ def test_build_compiled_prompt_cdata_encapsulation() -> None:
     node = LinkedAtomGraphFactory.build(atom=atom)
 
     prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
-        context_text="Source text", nodes=[node], tda_id_to_alias={atom_id: alias}, matrix_context=matrix_ctx
+        context_text="Source text",
+        nodes=[node],
+        tda_id_to_alias={atom_id: alias},
+        target_locale="fi",
+        matrix_context=matrix_ctx,
     )
 
     assert len(prompt.dynamic_messages) == 1
     dyn_content = prompt.dynamic_messages[0].content
 
+    assert "<linguistic_context>" in dyn_content
+    assert "<required_output_language>fi</required_output_language>" in dyn_content
     assert f'alias="{alias}"' in dyn_content
     assert "Is this a test? <bad>tag</bad>" in dyn_content
     assert "Extract something" in dyn_content
@@ -107,7 +113,7 @@ def test_build_compiled_prompt_negative_empty_nodes() -> None:
     """PROMISE: Prove empty node lists crash the prompt builder (anti-happy-path)."""
     with pytest.raises(AppException) as exc_info:
         MatrixSensorPromptBuilder.build_compiled_prompt(
-            context_text="Source text", nodes=[], tda_id_to_alias={}, matrix_context=None
+            context_text="Source text", nodes=[], tda_id_to_alias={}, target_locale="fi", matrix_context=None
         )
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
@@ -125,6 +131,7 @@ def test_build_compiled_prompt_negative_missing_aliases() -> None:
             context_text="Context",
             nodes=[node],
             tda_id_to_alias={},  # Empty alias mapping
+            target_locale="fi",
             matrix_context=None,
         )
 
@@ -160,6 +167,7 @@ def test_build_compiled_prompt_dependency_injection() -> None:
         context_text="Context",
         nodes=[child_node],
         tda_id_to_alias=tda_id_to_alias,
+        target_locale="fi",
         matrix_context=None,
         atom_status_map=atom_status_map,
     )
@@ -175,3 +183,25 @@ def test_build_compiled_prompt_dependency_injection() -> None:
     assert ExecutionStatus.FAILED.value in dyn_content
     assert "<reasoning>" in dyn_content
     assert "Because A causes B." in dyn_content
+
+
+@pytest.mark.parametrize("invalid_locale", ["", "   ", None])
+def test_build_compiled_prompt_negative_invalid_locale(invalid_locale: str | None) -> None:
+    """PROMISE: Prove that missing or blank target_locale triggers Fail-Fast validation."""
+    atom_id = "tda_0987654321fedcba"
+    atom = ExtractedAtomFactory.build(
+        tda_id=atom_id, resolved_claim="Claim", is_logical_deduction=True, source_quote=None
+    )
+    node = LinkedAtomGraphFactory.build(atom=atom)
+
+    with pytest.raises(AppException) as exc_info:
+        MatrixSensorPromptBuilder.build_compiled_prompt(
+            context_text="Context",
+            nodes=[node],
+            tda_id_to_alias={atom_id: "a0"},
+            target_locale=invalid_locale,  # type: ignore[arg-type]
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "target_locale must be a non-empty string" in exc_info.value.message

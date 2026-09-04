@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import AtomEvaluationResultDTO, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus
@@ -40,7 +41,7 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
         return dummy_result
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph):
-        result, usage = await executor.execute_graph(nodes=[], source_text="test text")
+        result, usage = await executor.execute_graph(nodes=[], source_text="test text", locale="fi")
         assert result == dummy_result
         assert usage.total_tokens == 0
 
@@ -93,6 +94,7 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
             executor=mock_llm_executor,
             client=mock_llm_client,
             context_text="test text",
+            target_locale="fi",
             matrix_context=None,
             current_states={},
         )
@@ -129,7 +131,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
     )
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph):
-        await executor.execute_graph(nodes=[mock_node], source_text="test text")
+        await executor.execute_graph(nodes=[mock_node], source_text="test text", locale="fi")
 
     assert captured_callback is not None
 
@@ -171,7 +173,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
                 [],
             )
             result, usage = await executor.execute_graph(
-                nodes=[mock_node], source_text="test text", progress_callback=mock_progress
+                nodes=[mock_node], source_text="test text", locale="fi", progress_callback=mock_progress
             )
             assert result["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
             assert usage.total_tokens == 0
@@ -226,7 +228,7 @@ async def test_execute_graph_callback_persistent_error(
         ):
             mock_pre_eval.side_effect = ValueError("Some persistent validation error")
             result, usage = await executor.execute_graph(
-                nodes=[mock_node], source_text="test text", progress_callback=mock_progress
+                nodes=[mock_node], source_text="test text", locale="fi", progress_callback=mock_progress
             )
             assert result["tda_11111111111111111111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
             assert "Some persistent validation error" in (
@@ -283,7 +285,24 @@ async def test_execute_graph_callback_transient_error(mock_llm_executor: AsyncMo
             mock_teardown.side_effect = ValueError("Teardown error")  # Also cover the finally block exception handling
 
             with pytest.raises(ExceptionGroup) as exc_info:
-                await executor.execute_graph(nodes=[mock_node], source_text="test text")
+                await executor.execute_graph(nodes=[mock_node], source_text="test text", locale="fi")
 
             assert len(exc_info.value.exceptions) == 1
             assert str(exc_info.value.exceptions[0]) == "Transient network error"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_locale", ["", "   ", None])
+async def test_execute_graph_invalid_locale_fails_fast(
+    mock_llm_executor: AsyncMock, mock_llm_client: AsyncMock, invalid_locale: str | None
+) -> None:
+    """Verifies that execute_graph raises AppException with VALIDATION_FAILED when locale is empty, whitespace, or None."""
+    executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
+
+    with pytest.raises(AppException) as exc_info:
+        await executor.execute_graph(nodes=[], source_text="test text", locale=invalid_locale)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+    assert "Target locale is required for DAG execution" in exc_info.value.message
+

@@ -7,7 +7,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from rapidfuzz import fuzz
 
-from backend_v2.exceptions import AgentExecutionError
+from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.domain.usage import TokenUsage
@@ -20,6 +20,7 @@ from backend_v2.models.dtos.dag_models import (
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.prompts.field_prompts import DESC_SEMANTIC_REASONING
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
@@ -44,7 +45,7 @@ class BooleanEvaluationResult(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
     alias: Annotated[str, Field(description="The alias assigned to the claim (e.g., 'a0', 'a1').")]
-    reasoning: Annotated[str, Field(description="Chain-of-thought: Evaluate if the text confirms the claim.")]
+    reasoning: Annotated[str, Field(description=DESC_SEMANTIC_REASONING)]
     is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
     source_quote: Annotated[
         str | None,
@@ -369,6 +370,7 @@ class ExtractiveSensorService:
         executor: LLMTaskExecutor,
         client: LLMClient,
         context_text: str,
+        target_locale: str,
         matrix_context: MatrixEvaluationContext | None = None,
         current_states: dict[str, AtomExecutionState] | None = None,
     ) -> tuple[dict[str, AtomEvaluationResultDTO], TokenUsage]:
@@ -379,6 +381,7 @@ class ExtractiveSensorService:
             executor: The LLMTaskExecutor to run the query.
             client: The LLMClient instance.
             context_text: The source document text.
+            target_locale: Target locale/language code for scorecard reasoning (e.g. 'fi').
             matrix_context: Optional evaluation context for matrix-level overrides.
             current_states: Optional dictionary of current atom execution states.
 
@@ -388,9 +391,21 @@ class ExtractiveSensorService:
             - Aggregated TokenUsage across all ensemble calls.
 
         Raises:
+            AppException: If target_locale is missing, empty, or whitespace.
             AgentExecutionError: If insufficient valid Bo3 results or LLM failure.
         """
         logger = logging.getLogger(__name__)
+        if not target_locale or not target_locale.strip():
+            logger.error(
+                "ExtractiveSensorService.evaluate_atom_boolean_batch rejected empty or whitespace target_locale",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            raise AppException(
+                message="target_locale must be a non-empty string.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         settings = get_settings()
         parallelism = settings.ensemble_parallelism
 
@@ -418,6 +433,7 @@ class ExtractiveSensorService:
             tda_id_to_alias=tda_id_to_alias,
             matrix_context=matrix_context,
             atom_status_map=atom_status_map,
+            target_locale=target_locale,
         )
 
         is_inverse_map: dict[str, bool] = {}

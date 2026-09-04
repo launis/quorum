@@ -3,9 +3,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pydantic import BaseModel
 
-from backend_v2.exceptions import AgentExecutionError
+from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.prompts.field_prompts import DESC_SEMANTIC_REASONING
 from backend_v2.models.dtos.dag_models import (
     AtomEvaluationResultDTO,
     ExtractedAtom,
@@ -381,7 +382,9 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
             return_value="tda_11111111111111111111111111111111",
         ),
     ):
-        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch([node], executor, client, "context")
+        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+            [node], executor, client, "context", target_locale="fi"
+        )
 
         assert "tda_11111111111111111111111111111111" in results
         assert results["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
@@ -465,7 +468,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
         ),
     ):
         results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
-            [node], executor, client, "context", matrix_context=matrix_context
+            [node], executor, client, "context", target_locale="fi", matrix_context=matrix_context
         )
 
         assert "tda_11111111111111111111111111111111" in results
@@ -530,7 +533,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         ),
     ):
         results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
-            [node], executor, client, "context", matrix_context=matrix_context
+            [node], executor, client, "context", target_locale="fi", matrix_context=matrix_context
         )
 
         assert tda_id in results
@@ -596,7 +599,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         ),
     ):
         results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
-            [node], executor, client, "context", matrix_context=matrix_context
+            [node], executor, client, "context", target_locale="fi", matrix_context=matrix_context
         )
 
         assert tda_id in results
@@ -702,8 +705,49 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
             return_value=tda_id,
         ),
     ):
-        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch([node], executor, client, "Teksti")
+        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+            [node], executor, client, "Teksti", target_locale="fi"
+        )
 
         assert tda_id in results
         assert results[tda_id].status == ExecutionStatus.PASSED
         assert results[tda_id].source_quote == original_quote
+
+
+def test_boolean_evaluation_result_schema_description() -> None:
+    """Verifies that BooleanEvaluationResult.reasoning description matches DESC_SEMANTIC_REASONING."""
+    reasoning_field = BooleanEvaluationResult.model_fields["reasoning"]
+    assert reasoning_field.description == DESC_SEMANTIC_REASONING
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_locale", ["", "   ", None])
+async def test_evaluate_atom_boolean_batch_invalid_locale_fails_fast(invalid_locale: str | None) -> None:
+    """Verifies that evaluate_atom_boolean_batch raises AppException with VALIDATION_FAILED when locale is empty, whitespace or None."""
+    node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_11111111111111111111111111111111",
+            reasoning="reason",
+            resolved_claim="claim",
+            source_quote="quote",
+            source_id="src",
+            source_sequence_index=0,
+        ),
+        depends_on=[],
+    )
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+
+    with pytest.raises(AppException) as exc_info:
+        await ExtractiveSensorService.evaluate_atom_boolean_batch(
+            nodes=[node],
+            executor=executor,
+            client=client,
+            context_text="Test context",
+            target_locale=invalid_locale,  # type: ignore[arg-type]
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+    assert "target_locale must be a non-empty string" in exc_info.value.message
+

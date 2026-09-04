@@ -153,7 +153,9 @@ def test_build_compiled_prompt_with_assertions() -> None:
     tda_id_to_alias = {"tda_11111111": "a0"}
     context_text = "Doc with blue text."
 
-    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(context_text, [node1], tda_id_to_alias, matrix_context)
+    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+        context_text, [node1], tda_id_to_alias, target_locale="fi", matrix_context=matrix_context
+    )
 
     # Static prefix validation
     assert len(prompt.static_messages) == 2
@@ -163,6 +165,10 @@ def test_build_compiled_prompt_with_assertions() -> None:
     assert len(prompt.dynamic_messages) == 1
     assert prompt.dynamic_messages[0].role == "user"
     content = prompt.dynamic_messages[0].content
+
+    # Linguistic context injection validation
+    assert "<linguistic_context>" in content
+    assert "<required_output_language>fi</required_output_language>" in content
 
     # Should contain XML formatted elements mapped to alias a0
     assert "a0" in content
@@ -187,7 +193,9 @@ def test_build_compiled_prompt_fallback_claim() -> None:
         ),
     )
 
-    prompt = MatrixSensorPromptBuilder.build_compiled_prompt("Context", [node], {"tda_22222222": "a1"}, None)
+    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+        "Context", [node], {"tda_22222222": "a1"}, target_locale="fi", matrix_context=None
+    )
 
     assert len(prompt.dynamic_messages) == 1
     content = prompt.dynamic_messages[0].content
@@ -209,7 +217,9 @@ def test_build_caching_prefix_contains_evaluation_directives() -> None:
 def test_build_compiled_prompt_empty_nodes_raises_app_exception() -> None:
     """Anti-happy path: Ensure building prompt with empty nodes raises AppException."""
     with pytest.raises(AppException) as exc_info:
-        MatrixSensorPromptBuilder.build_compiled_prompt("Context", [], {}, None)
+        MatrixSensorPromptBuilder.build_compiled_prompt(
+            "Context", [], {}, target_locale="fi", matrix_context=None
+        )
     assert exc_info.value.status_code == 400
     assert "Cannot build prompt with empty nodes" in exc_info.value.message
 
@@ -227,7 +237,9 @@ def test_build_compiled_prompt_missing_alias_raises_app_exception() -> None:
         ),
     )
     with pytest.raises(AppException) as exc_info:
-        MatrixSensorPromptBuilder.build_compiled_prompt("Context", [node], {}, None)
+        MatrixSensorPromptBuilder.build_compiled_prompt(
+            "Context", [node], {}, target_locale="fi", matrix_context=None
+        )
     assert exc_info.value.status_code == 400
     assert "Missing alias for tda_id" in exc_info.value.message
 
@@ -256,7 +268,9 @@ def test_build_compiled_prompt_with_inverse_assertion() -> None:
         ),
     )
 
-    prompt = MatrixSensorPromptBuilder.build_compiled_prompt("Context", [node], {"tda_33333333": "a3"}, matrix_context)
+    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+        "Context", [node], {"tda_33333333": "a3"}, target_locale="fi", matrix_context=matrix_context
+    )
     content = prompt.dynamic_messages[0].content
     assert "<is_inverse>" in content
     assert "True" in content
@@ -300,6 +314,7 @@ def test_build_compiled_prompt_with_dependencies_and_status_map() -> None:
         context_text="Context text",
         nodes=[node],
         tda_id_to_alias=tda_id_to_alias,
+        target_locale="fi",
         matrix_context=None,
         atom_status_map=atom_status_map,
     )
@@ -343,8 +358,35 @@ def test_build_compiled_prompt_empty_assertion_question_raises_app_exception() -
             context_text="Some context",
             nodes=[node],
             tda_id_to_alias={tda_id: "a0"},
+            target_locale="fi",
             matrix_context=matrix_context,
         )
 
     assert exc_info.value.status_code == 400
     assert "empty question" in exc_info.value.message
+
+
+@pytest.mark.parametrize("invalid_locale", ["", "   ", None])
+def test_build_compiled_prompt_invalid_locale_raises_app_exception(invalid_locale: str | None) -> None:
+    """Anti-happy path: missing, empty, or whitespace target_locale raises AppException(VALIDATION_FAILED)."""
+    node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_11111111",
+            resolved_claim="Claim",
+            reasoning="R",
+            source_quote="Q",
+            source_id="chk_1",
+            source_sequence_index=1,
+        ),
+    )
+    with pytest.raises(AppException) as exc_info:
+        MatrixSensorPromptBuilder.build_compiled_prompt(
+            context_text="Some context",
+            nodes=[node],
+            tda_id_to_alias={"tda_11111111": "a0"},
+            target_locale=invalid_locale,  # type: ignore[arg-type]
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "target_locale must be a non-empty string" in exc_info.value.message
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
