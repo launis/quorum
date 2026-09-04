@@ -23,6 +23,11 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.v2_core import MatrixScale, OutputProfile, Step, StepRule, Workflow
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryOutputProfileRepository,
+    InMemoryPromptBlockRepository,
+    InMemoryWorkflowRepository,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -592,9 +597,7 @@ async def test_get_workflow_available_extensions_handles_exception(
     mock_workflow_repo.get_workflow_by_id.return_value = wf
     mock_output_profile_repo.get_all_output_profiles.return_value = []
     mock_workflow_repo.get_all_steps.return_value = [step]
-    mock_prompt_block_repo.get_prompt_block_by_id.side_effect = AppException(
-        message="Block corrupted", status_code=500
-    )
+    mock_prompt_block_repo.get_prompt_block_by_id.side_effect = AppException(message="Block corrupted", status_code=500)
 
     exts = await workflow_service.get_workflow_available_extensions(admin_token, wf.id)
     assert exts == []
@@ -626,3 +629,122 @@ async def test_stitch_profiles_corrupted_profile_raises_app_exception(
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
 
+
+async def test_in_memory_save_workflow_roundtrip(admin_token: TokenData) -> None:
+    """Tests saving a workflow using stateful in-memory repository roundtrip."""
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+    )
+
+    initial_wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
+    await wf_repo.save_workflow(initial_wf)
+
+    updated_wf = initial_wf.model_copy(
+        update={
+            "name": I18nText(translations={"en": "Updated Workflow", "fi": "Päivitetty työnkulku"}),
+            "description": I18nText(translations={"en": "Updated desc", "fi": "Päivitetty kuvaus"}),
+        }
+    )
+
+    saved_dto = await service.save_workflow(admin_token, initial_wf.id, updated_wf)
+    assert saved_dto.id == initial_wf.id
+    assert isinstance(saved_dto.name, I18nText)
+    assert saved_dto.name.translations["en"] == "Updated Workflow"
+
+    fetched = await wf_repo.get_workflow_by_id(initial_wf.id)
+    assert fetched is not None
+    assert fetched.id == initial_wf.id
+    assert isinstance(fetched.name, I18nText)
+    assert fetched.name.translations["en"] == "Updated Workflow"
+
+
+async def test_in_memory_save_step_roundtrip(admin_token: TokenData) -> None:
+    """Tests saving a step using stateful in-memory repository roundtrip."""
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+    )
+
+    initial_step = _valid_step("sp_aabbccddeeff0011", org_id="org_123")
+    await wf_repo.save_step(initial_step)
+
+    updated_step = initial_step.model_copy(
+        update={
+            "model_strategy": "pro_fast_2026",
+            "name": I18nText(translations={"en": "Updated Step", "fi": "Päivitetty askel"}),
+        }
+    )
+
+    saved = await service.save_step(admin_token, initial_step.id, updated_step)
+    assert saved.id == initial_step.id
+    assert saved.model_strategy == "pro_fast_2026"
+
+    fetched = await wf_repo.get_step_by_id(initial_step.id)
+    assert fetched is not None
+    assert fetched.id == initial_step.id
+    assert fetched.model_strategy == "pro_fast_2026"
+
+
+async def test_save_workflow_unauthorized_token_raises_permission_denied(
+    workflow_service: StudioWorkflowService,
+) -> None:
+    """Tests that a non-admin token from another org cannot save a workflow."""
+    unauthorized_token = TokenData(
+        id="usr_other111111111",
+        organization_id="org_other",
+        email="other@example.com",
+        role=UserRole.MEMBER,
+    )
+    wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
+    with pytest.raises(PermissionDeniedError):
+        await workflow_service.save_workflow(unauthorized_token, wf.id, wf)
+
+
+async def test_save_step_unauthorized_token_raises_permission_denied(
+    workflow_service: StudioWorkflowService,
+) -> None:
+    """Tests that a non-admin token from another org cannot save a step."""
+    unauthorized_token = TokenData(
+        id="usr_other111111111",
+        organization_id="org_other",
+        email="other@example.com",
+        role=UserRole.MEMBER,
+    )
+    step = _valid_step("sp_aabbccddeeff0011", org_id="org_123")
+    with pytest.raises(PermissionDeniedError):
+        await workflow_service.save_step(unauthorized_token, step.id, step)
+
+
+async def test_save_workflow_malformed_dag_raises_validation_failed(
+    workflow_service: StudioWorkflowService, admin_token: TokenData
+) -> None:
+    """Tests that saving a workflow with a cyclic DAG dependency raises 422 AppException."""
+    step1 = StepRule(
+        id="rul_1111222233334444",
+        task_blueprint="sp_0123456789abcdef",
+        depends_on=["rul_5555666677778888"],
+        input_mappings={},
+    )
+    step2 = StepRule(
+        id="rul_5555666677778888",
+        task_blueprint="sp_0123456789abcdef",
+        depends_on=["rul_1111222233334444"],
+        input_mappings={},
+    )
+    cyclic_wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123").model_copy(
+        update={"steps": [step1, step2]}
+    )
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.save_workflow(admin_token, cyclic_wf.id, cyclic_wf)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.details["error_code"] == ErrorCodes.WORKFLOW_COMPILATION_ERROR.value
