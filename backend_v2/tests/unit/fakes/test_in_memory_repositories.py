@@ -32,10 +32,12 @@ from backend_v2.models.enums import ExecutionStatus, StepType
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     I18nText,
+    LexiconConfigPayload,
     Role,
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
+    SystemConfigPerformativeLexicons,
 )
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryAgentRepository,
@@ -219,6 +221,14 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await wf_repo.count_workflows() == 1
     await wf_repo.update_workflow(wf_id, WorkflowUpdateDTO(name="WF1 Updated"))
     await wf_repo.update_workflow_definition(wf_id, WorkflowUpdateDTO(name="WF1 Updated Def"))
+    wf_model = await wf_repo.get_workflow(wf_id)
+    assert wf_model is not None
+    updated_wf = wf_model.model_copy(update={"name": I18nText(translations={"en": "Saved WF", "fi": "Saved WF"})})
+    assert await wf_repo.save_workflow(updated_wf) == wf_id
+    re_fetched_wf = await wf_repo.get_workflow(wf_id)
+    assert re_fetched_wf is not None
+    assert re_fetched_wf.name == I18nText(translations={"en": "Saved WF", "fi": "Saved WF"})
+
     s_id = await wf_repo.create_step(
         StepCreateDTO(slug="s1", name=I18nText(translations={"en": "S1", "fi": "S1"}), type=StepType.LOGIC, hook="h1")
     )
@@ -226,6 +236,17 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await wf_repo.get_step_by_id(s_id) is not None
     assert len(await wf_repo.get_all_steps()) == 1
     await wf_repo.update_step(s_id, StepUpdateDTO(name=I18nText(translations={"en": "S1 Updated", "fi": "S1 Updated"})))
+
+    step_model = await wf_repo.get_step(s_id)
+    assert step_model is not None
+    updated_step = step_model.model_copy(
+        update={"name": I18nText(translations={"en": "Saved Step", "fi": "Saved Step"})}
+    )
+    assert await wf_repo.save_step(updated_step) == s_id
+    re_fetched_step = await wf_repo.get_step(s_id)
+    assert re_fetched_step is not None
+    assert re_fetched_step.name == I18nText(translations={"en": "Saved Step", "fi": "Saved Step"})
+
     assert await wf_repo.delete_step(s_id)
     assert await wf_repo.delete_workflow(wf_id)
 
@@ -368,6 +389,18 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await sys_repo.get_system_settings() is None
     await sys_repo.update_system_settings(SystemConfigUpdateDTO(system_settings=settings_dto))
     assert await sys_repo.get_system_settings() is not None
+    lex_model = SystemConfigPerformativeLexicons(
+        id="sys_e0b2a3c4d5e6f7a8",
+        lexicon_configs={
+            "en": LexiconConfigPayload(
+                language_code="en",
+                language_name="English",
+                words=["buzzword_1"],
+            )
+        },
+    )
+    assert await sys_repo.update_performative_lexicons(lex_model)
+    assert await sys_repo.get_system_config("sys_e0b2a3c4d5e6f7a8") is not None
 
     # 11. Audit
     aud_repo = InMemoryAuditRepository()
@@ -439,6 +472,13 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     await unified.update_workflow(u_wf_id, WorkflowUpdateDTO(name="Updated WF"))
     await unified.update_workflow_definition(u_wf_id, WorkflowUpdateDTO(name="Updated Def"))
 
+    u_wf = await unified.get_workflow(u_wf_id)
+    assert u_wf is not None
+    u_wf_up = u_wf.model_copy(
+        update={"name": I18nText(translations={"en": "Unified Saved WF", "fi": "Unified Saved WF"})}
+    )
+    assert await unified.save_workflow(u_wf_up) == u_wf_id
+
     u_step_id = await unified.create_step(
         StepCreateDTO(
             slug="u-s1", name=I18nText(translations={"en": "US1", "fi": "US1"}), type=StepType.LOGIC, hook="h"
@@ -448,6 +488,14 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await unified.get_step_by_id(u_step_id) is not None
     assert len(await unified.get_all_steps()) == 1
     await unified.update_step(u_step_id, StepUpdateDTO(name=I18nText(translations={"en": "US1 Up", "fi": "US1 Up"})))
+
+    u_step_model = await unified.get_step(u_step_id)
+    assert u_step_model is not None
+    u_step_saved = u_step_model.model_copy(
+        update={"name": I18nText(translations={"en": "Unified Saved Step", "fi": "Unified Saved Step"})}
+    )
+    assert await unified.save_step(u_step_saved) == u_step_id
+
     assert await unified.delete_step(u_step_id)
     assert await unified.delete_workflow(u_wf_id)
 
@@ -591,6 +639,18 @@ async def test_all_15_fake_repositories_and_facade() -> None:
         )
     )
     assert await unified.get_system_config(cfg_u) is not None
+    u_lex = SystemConfigPerformativeLexicons(
+        id="sys_e0b2a3c4d5e6f7a8",
+        lexicon_configs={
+            "en": LexiconConfigPayload(
+                language_code="en",
+                language_name="English",
+                words=["buzzword_u"],
+            )
+        },
+    )
+    assert await unified.update_performative_lexicons(u_lex)
+    assert await unified.get_system_config("sys_e0b2a3c4d5e6f7a8") is not None
 
     await unified.log_audit_event(AuditLogCreateDTO(actor_id="act_u", action="act"))
     assert len(await unified.get_audit_logs()) == 1

@@ -78,6 +78,7 @@ from backend_v2.models.v2_core import (
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
+    SystemConfigPerformativeLexicons,
     Workflow,
 )
 
@@ -273,7 +274,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
 
     async def create_workflow(self, workflow_data: WorkflowCreateDTO) -> str:
         self._check_fault("create_workflow")
-        wf_id = getattr(workflow_data, "id", None) or f"wf_{uuid.uuid4().hex[:16]}"
+        wf_id = f"wf_{uuid.uuid4().hex[:16]}"
         data_dict = workflow_data.model_dump(mode="python")
         data_dict["id"] = wf_id
         if "default_profile_id" not in data_dict or data_dict["default_profile_id"] is None:
@@ -333,7 +334,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
 
     async def create_step(self, step_data: StepCreateDTO) -> str:
         self._check_fault("create_step")
-        s_id = getattr(step_data, "id", None) or f"step_{uuid.uuid4().hex[:16]}"
+        s_id = f"stp_{uuid.uuid4().hex[:16]}"
         data_dict = step_data.model_dump(mode="python")
         data_dict["id"] = s_id
         model = Step.model_validate(data_dict)
@@ -361,6 +362,16 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
             del self._steps[step_id]
             return True
         return False
+
+    async def save_workflow(self, workflow: Workflow) -> str:
+        self._check_fault("save_workflow")
+        self._save_isolated(workflow.id, workflow)
+        return workflow.id
+
+    async def save_step(self, step: Step) -> str:
+        self._check_fault("save_step")
+        self._steps[step.id] = Step.model_validate(step.model_dump(mode="python"), strict=False)
+        return step.id
 
 
 # ==============================================================================
@@ -878,6 +889,11 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         self._save_isolated(c_id, config_data.content)
         return c_id
 
+    async def update_performative_lexicons(self, lexicons_data: SystemConfigPerformativeLexicons) -> bool:
+        self._check_fault("update_performative_lexicons")
+        self._save_isolated(lexicons_data.id, lexicons_data)
+        return True
+
 
 # ==============================================================================
 # 11. Audit Repository Fake
@@ -1227,6 +1243,12 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     async def delete_step(self, step_id: str, force_delete: bool = False) -> bool:
         return await self._workflows.delete_step(step_id, force_delete)
 
+    async def save_workflow(self, workflow: Workflow) -> str:
+        return await self._workflows.save_workflow(workflow)
+
+    async def save_step(self, step: Step) -> str:
+        return await self._workflows.save_step(step)
+
     # 2. Execution
     async def create_execution(self, execution_data: ExecutionCreateDTO) -> str:
         return await self._executions.create_execution(execution_data)
@@ -1464,6 +1486,9 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     async def create_system_config(self, config_data: SystemConfigCreateDTO) -> str:
         return await self._system.create_system_config(config_data)
+
+    async def update_performative_lexicons(self, lexicons_data: SystemConfigPerformativeLexicons) -> bool:
+        return await self._system.update_performative_lexicons(lexicons_data)
 
     # 11. Audit
     async def log_audit_event(self, event_data: AuditLogCreateDTO) -> None:
