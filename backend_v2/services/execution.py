@@ -270,15 +270,21 @@ class ExecutionService:
             Server-Sent Events as formatted string blobs.
 
         Raises:
-            ResourceNotFoundError: If the execution is missing.
+            ResourceNotFoundError: If the execution is missing on connection authorization.
+            PermissionDeniedError: If the initiator lacks permission to access the execution.
         """
         # 1. Authorize connection first
         await self.get_execution(initiator=initiator, execution_id=execution_id)
 
-        try:
-            while True:
+        settings = get_settings()
+        retry_count = 0
+        max_retries = 3
+
+        while True:
+            try:
                 # Poll database (Fallback from Redis Pub/Sub for simpler local portability)
                 record = await self.get_execution(initiator=initiator, execution_id=execution_id)
+                retry_count = 0
 
                 # V2 Protocol Requirement: JSON Payload inside 'data: '
                 yield f"data: {record.model_dump_json()}\n\n"
@@ -286,11 +292,32 @@ class ExecutionService:
                 if record.status in [ExecutionStatus.PASSED, ExecutionStatus.FAILED]:
                     break
 
-                settings = get_settings()
                 await asyncio.sleep(settings.llm_retry_delay)
-        except (AppException, OSError, RuntimeError, ValueError) as e:
-            logger.error("SSE Error for execution %s: %s", execution_id, str(e), exc_info=True)
-            yield f'data: {{"error": "SSE Stream Interrupted: {str(e)}"}}\n\n'
+            except ResourceNotFoundError as e:
+                retry_count += 1
+                if retry_count <= max_retries:
+                    logger.warning(
+                        "Transient ResourceNotFoundError polling execution %s (attempt %d/%d): %s",
+                        execution_id,
+                        retry_count,
+                        max_retries,
+                        str(e),
+                    )
+                    await asyncio.sleep(settings.llm_retry_delay)
+                    continue
+
+                logger.error(
+                    "Exceeded retry count for execution %s after transient ResourceNotFoundError: %s",
+                    execution_id,
+                    str(e),
+                    exc_info=True,
+                )
+                yield f'event: error\ndata: {{"error": "Execution interrupted: {str(e)}", "error_code": "SSE_STREAM_INTERRUPTED"}}\n\n'
+                break
+            except (AppException, OSError, RuntimeError, ValueError) as e:
+                logger.error("SSE Error for execution %s: %s", execution_id, str(e), exc_info=True)
+                yield f'event: error\ndata: {{"error": "Execution interrupted: {str(e)}", "error_code": "SSE_STREAM_INTERRUPTED"}}\n\n'
+                break
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
         """Securely delete an execution.

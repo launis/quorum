@@ -56,6 +56,15 @@ abstract class AppException with _$AppException implements Exception {
     extensions: const {'error_code': 'UNKNOWN_ERROR'},
   );
 
+  factory AppException.server(String message, {int statusCode = 500}) =>
+      AppException(
+        type: 'https://api.quorum.fi/errors/server-error',
+        title: 'Server Error',
+        status: statusCode,
+        detail: message,
+        extensions: const {'error_code': 'SERVER_ERROR'},
+      );
+
   factory AppException.unauthorized() => const AppException(
     type: 'https://api.quorum.fi/errors/authentication-failed',
     title: 'Unauthorized',

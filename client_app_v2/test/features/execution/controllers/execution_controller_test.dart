@@ -87,6 +87,21 @@ class MockSseClient implements SseClient {
   }
 }
 
+class MockErrorSseClient implements SseClient {
+  @override
+  Stream<Map<String, dynamic>> subscribeToExecution(String executionId) async* {
+    yield {
+      'id': executionId,
+      'workflow_id': 'test_wf',
+      'target_locale': 'fi',
+      'status': 'running',
+    };
+    yield {
+      'error': "SSE Stream Interrupted: execution with ID '$executionId' not found",
+    };
+  }
+}
+
 class MockLoggerService implements LoggerService {
   @override
   Future<void> init() async {}
@@ -155,4 +170,34 @@ void main() {
       sub.close();
     },
   );
+
+  test(
+    'ExecutionController handles SSE error update gracefully without crashing with CheckedFromJsonException',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          executionClientProvider.overrideWithValue(MockExecutionClient()),
+          sseClientProvider.overrideWithValue(MockErrorSseClient()),
+          loggerServiceProvider.overrideWithValue(MockLoggerService()),
+        ],
+      );
+
+      final sub = container.listen(executionControllerProvider, (_, __) {});
+      final controller = container.read(executionControllerProvider.notifier);
+
+      await controller.startExecution('test_wf', {});
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final state = container.read(executionControllerProvider);
+      expect(state.hasError, true);
+      expect(
+        state.error.toString().contains('CheckedFromJsonException'),
+        isFalse,
+        reason: 'SSE error update must not crash through CheckedFromJsonException',
+      );
+
+      sub.close();
+    },
+  );
 }
+

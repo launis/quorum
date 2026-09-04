@@ -218,6 +218,32 @@ class ExecutionController extends _$ExecutionController {
             final currentState = state.value;
             bool needsHeavyFetch = false;
 
+            // Phase 2 Step 2.1 & 2.2: SSE Error Defense
+            if (update.containsKey('error') ||
+                update.containsKey('error_code')) {
+              final errorMessage =
+                  update['error']?.toString() ??
+                  update['message']?.toString() ??
+                  'SSE Stream error';
+              final errorCode =
+                  update['error_code']?.toString() ?? 'SSE_STREAM_INTERRUPTED';
+              final explicitError = AppException.server(
+                errorMessage,
+                statusCode: 500,
+              ).copyWith(extensions: {'error_code': errorCode});
+
+              ref
+                  .read(loggerServiceProvider)
+                  .error(
+                    'ExecutionController',
+                    'SSE_STREAM_ERROR: Received error payload from stream',
+                    explicitError,
+                    StackTrace.current,
+                  );
+              state = AsyncValue.error(explicitError, StackTrace.current);
+              return;
+            }
+
             if (currentState != null) {
               if (!update.containsKey('workflow_id')) {
                 update['workflow_id'] = currentState.workflowId;
@@ -240,7 +266,15 @@ class ExecutionController extends _$ExecutionController {
                     e,
                     stack,
                   );
-              state = AsyncValue.error(e, stack);
+              final explicitError =
+                  AppException.network(
+                    'Failed to parse server execution state.',
+                  ).copyWith(
+                    extensions: const {
+                      'error_code': 'SSE_DESERIALIZATION_FAILED',
+                    },
+                  );
+              state = AsyncValue.error(explicitError, stack);
               return;
             }
 

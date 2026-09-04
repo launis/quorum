@@ -940,3 +940,70 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert "not found in workflow" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_stream_status_handles_error_without_yielding_malformed_execution_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify stream_status does not yield malformed JSON masquerading as ExecutionRecord upon error."""
+    from backend_v2.exceptions import ResourceNotFoundError
+
+    monkeypatch.setattr("backend_v2.services.execution.asyncio.sleep", AsyncMock())
+
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+
+    initiator = TokenData(id="u1", role=UserRole.ROOT, organization_id="org_1")
+    mock_record = Mock(spec=ExecutionRecord)
+    mock_record.id = "exe_0b51fa35ea584ca7a42cd30b444d1241"
+    mock_record.workflow_id = "wf_1"
+    mock_record.status = ExecutionStatus.RUNNING
+    mock_record.organization_id = "org_1"
+    mock_record.created_by = "u1"
+    mock_record.target_locale = "fi"
+    mock_record.model_copy.return_value = mock_record
+    mock_record.model_dump_json.return_value = (
+        '{"id":"exe_0b51fa35ea584ca7a42cd30b444d1241","workflow_id":"wf_1","status":"RUNNING","target_locale":"fi","output_profile_id":"prof_default"}'
+    )
+
+    call_count = 0
+
+    async def mock_get_exec(initiator: Any, execution_id: str) -> Any:
+        nonlocal call_count
+        call_count += 1
+        if call_count <= 2:
+            return mock_record
+        raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
+
+    service.get_execution = mock_get_exec  # type: ignore[method-assign]
+
+    events: list[str] = []
+    async for event in service.stream_status(initiator=initiator, execution_id="exe_0b51fa35ea584ca7a42cd30b444d1241"):
+        events.append(event)
+
+    # Any data event yielded must be parseable as a valid ExecutionRecord without schema error
+    has_data = False
+    has_error = False
+    for event in events:
+        if event.startswith("data: "):
+            has_data = True
+            json_str = event[len("data: ") :].strip()
+            ExecutionRecord.model_validate_json(json_str)
+        elif event.startswith("event: error"):
+            has_error = True
+            assert "SSE_STREAM_INTERRUPTED" in event
+
+    assert has_data is True
+    assert has_error is True
+
