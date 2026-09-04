@@ -888,3 +888,85 @@ def test_parse_matrices_axis_collision_coverage() -> None:
     assert len(all_parsed) == 2
     row2 = all_parsed["step2_blk_1234567890abcdef1234567890abcdef"]
     assert "sr_abcdef1234567890" in row2.name
+
+
+def test_parse_matrices_prompt_block_explicit_target_input_key() -> None:
+    """Verifies that MatrixPromptBlock.target_input_key resolves with SSOT precedence."""
+    from backend_v2.models.v2_core import StepRule
+
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+    pb_with_target = pb.model_copy(update={"target_input_key": "product_text"})
+
+    step_rule = StepRule(
+        id="sr_1234567890abcdef",
+        task_blueprint="step_1234567890abcdef",
+        input_mappings={
+            "context_a": "$inputs.product_text",
+            "context_b": "$inputs.chat_log",
+        },
+    )
+
+    payload = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb_with_target},
+        workflow_steps={"step1": step_rule},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row.context_target == "product_text"
+    assert row.context_target_label is not None
+    assert row.context_target_label.resolve("en") == "Deliverable"
+    assert row.context_target_label.resolve("fi") == "Lopputuote"
+
+
+def test_parse_matrices_multi_input_step_fallback_to_all() -> None:
+    """Verifies that a multi-input step without explicit target_input_key defaults to 'all'."""
+    from backend_v2.models.v2_core import StepRule
+
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    step_rule = StepRule(
+        id="sr_1234567890abcdef",
+        task_blueprint="step_1234567890abcdef",
+        input_mappings={
+            "context_a": "$inputs.product_text",
+            "context_b": "$inputs.chat_log",
+        },
+    )
+
+    payload = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={"step1": step_rule},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row.context_target == "all"
+    assert row.context_target_label is not None
+    assert row.context_target_label.resolve("en") == "All Inputs"
+    assert row.context_target_label.resolve("fi") == "Kaikki syötteet"
+

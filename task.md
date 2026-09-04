@@ -38,12 +38,12 @@ Implementation Plan: `docs/implementationplans/IMPLEMENTATION_PLAN_Scoring_Doubl
   - [x] Step 4.8: Update `result_projector.py` to project `source_quote` and enforce `contextual_override = False` when quote present
   - [x] Step 4.9: Run quality gates on affected orchestrator files
 
-- [ ] **Phase 5: ISTQB Unit & Integration Test Expansion**
-  - [ ] Step 5.1: Expand scoring hook tests in `backend_v2/tests/unit/hooks/test_scoring.py`
-  - [ ] Step 5.2: Expand parser tests in `backend_v2/tests/unit/services/test_matrix_domain_parser.py`
-  - [ ] Step 5.3: Add sensor quote extraction and consensus tests in `test_extractive_sensor_service.py`
-  - [ ] Step 5.4: Add `AtomEvaluationResultDTO` and max_length tests in `test_dag_models.py`
-  - [ ] Step 5.5: Update mock fixtures across `test_enriched_dag_executor.py`, `test_topological_evaluator.py`, and integration tests
+- [x] **Phase 5: ISTQB Unit & Integration Test Expansion**
+  - [x] Step 5.1: Expand scoring hook tests in `backend_v2/tests/unit/hooks/test_scoring.py`
+  - [x] Step 5.2: Expand parser tests in `backend_v2/tests/unit/services/test_matrix_domain_parser.py`
+  - [x] Step 5.3: Add sensor quote extraction and consensus tests in `test_extractive_sensor_service.py`
+  - [x] Step 5.4: Add `AtomEvaluationResultDTO` and max_length tests in `test_dag_models.py`
+  - [x] Step 5.5: Update mock fixtures across `test_enriched_dag_executor.py`, `test_topological_evaluator.py`, and integration tests
 
 - [ ] **Phase 6: Global Audit, Clean Slate Trace Replay & SDUI Parity Validation**
   - [ ] Step 6.1: Run full backend audit loop across scoring hooks, parser, and sensor orchestrator

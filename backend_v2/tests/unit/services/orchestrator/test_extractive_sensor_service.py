@@ -16,6 +16,7 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import (
+    BooleanEvaluationResult,
     ExtractiveSensorService,
 )
 
@@ -508,3 +509,108 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         assert results[tda_id].status == ExecutionStatus.FAILED
         assert results[tda_id].reasoning == "Penalty detected in text"
         assert usage.total_tokens == 180
+
+
+def test_boolean_evaluation_result_sentence_boundary_truncation() -> None:
+    """Verifies that BooleanEvaluationResult truncates oversized quotes (>500 chars) at sentence boundary."""
+    long_quote = "Ensimmäinen lause tekstissä. " * 20  # ~580 chars
+    res = BooleanEvaluationResult(
+        alias="a0",
+        reasoning="Test reasoning",
+        is_true=True,
+        source_quote=long_quote,
+    )
+    assert res.source_quote is not None
+    assert len(res.source_quote) <= 500
+    assert res.source_quote.endswith(".")
+
+
+def test_extractive_sensor_service_majority_vote_preserves_quote() -> None:
+    """Verifies that resolve_majority_vote preserves winning vote's source_quote."""
+    tda_id = "tda_11111111111111111111111111111111"
+    results: list[dict[str, AtomEvaluationResultDTO] | None] = [
+        {
+            tda_id: AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED,
+                reasoning="Vahvistettu",
+                source_quote="Tämä on suora lainaus lähteestä.",
+            )
+        },
+        {
+            tda_id: AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED,
+                reasoning="Sama havainto",
+                source_quote="Tämä on toinen suora lainaus.",
+            )
+        },
+        {
+            tda_id: AtomEvaluationResultDTO(
+                status=ExecutionStatus.FAILED,
+                reasoning="Eri mieltä",
+                source_quote=None,
+            )
+        },
+    ]
+    resolved = ExtractiveSensorService.resolve_majority_vote([tda_id], results)
+    assert resolved[tda_id].status == ExecutionStatus.PASSED
+    assert resolved[tda_id].source_quote == "Tämä on suora lainaus lähteestä."
+
+
+@pytest.mark.asyncio
+async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() -> None:
+    """Verifies that evaluate_atom_boolean_batch extracts and transits source_quote in original language."""
+    tda_id = "tda_11111111111111111111111111111111"
+    atom = ExtractedAtom(
+        tda_id=tda_id,
+        reasoning="reason",
+        resolved_claim="claim",
+        source_quote="Initial static claim",
+        source_id="src",
+        source_sequence_index=0,
+    )
+    node = LinkedAtomGraph(atom=atom, depends_on=[])
+
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+
+    class MockResult(BaseModel):
+        alias: str
+        reasoning: str
+        is_true: bool
+        source_quote: str | None = None
+        contextual_override: bool | None = None
+        coaching: str | None = None
+        falsification: str | None = None
+        remediation_steps: list[str] | None = None
+
+    class MockResponse(BaseModel):
+        results: list[MockResult]
+
+    original_quote = "Tämä on alkuperäiskielinen todisteaineisto."
+    executor.execute_structured_task.return_value = (
+        MockResponse(
+            results=[
+                MockResult(
+                    alias="a1",
+                    reasoning="Löydetty suora sitaatti",
+                    is_true=True,
+                    source_quote=original_quote,
+                )
+            ]
+        ),
+        TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.register", return_value="a1"),
+        patch(
+            "backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.resolve_alias",
+            return_value=tda_id,
+        ),
+    ):
+        results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch([node], executor, client, "Teksti")
+
+        assert tda_id in results
+        assert results[tda_id].status == ExecutionStatus.PASSED
+        assert results[tda_id].source_quote == original_quote
+

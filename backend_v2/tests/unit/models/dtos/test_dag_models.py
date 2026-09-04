@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.dtos.dag_models import (
+    AtomEvaluationResultDTO,
     AtomExecutionState,
     CausalEdge,
     ExtractedAtom,
@@ -133,3 +134,74 @@ def test_global_ontology_map_valid():
     assert len(gmap.entities) == 1
     assert gmap.entities[0].name == "Entity1"
     assert gmap.macro_rules == ["Rule 1"]
+
+
+def test_atom_execution_state_source_quote_valid() -> None:
+    """Test AtomExecutionState with valid source_quote."""
+    state = AtomExecutionState(
+        tda_id="tda_1234567890abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quote="Valid verbatim quote.",
+    )
+    assert state.source_quote == "Valid verbatim quote."
+
+
+def test_atom_execution_state_source_quote_max_length_exceeded() -> None:
+    """Test AtomExecutionState enforces max_length=500 on source_quote."""
+    oversized_quote = "A" * 501
+    with pytest.raises(ValidationError):
+        AtomExecutionState(
+            tda_id="tda_1234567890abcdef",
+            status=ExecutionStatus.PASSED,
+            source_quote=oversized_quote,
+        )
+
+
+def test_atom_evaluation_result_dto_valid() -> None:
+    """Test AtomEvaluationResultDTO with valid fields."""
+    dto = AtomEvaluationResultDTO(
+        status=ExecutionStatus.PASSED,
+        reasoning="Valid justification",
+        source_quote="Exact quote",
+        extensions={"coaching": "Tip"},
+    )
+    assert dto.status == ExecutionStatus.PASSED
+    assert dto.reasoning == "Valid justification"
+    assert dto.source_quote == "Exact quote"
+    assert dto.extensions == {"coaching": "Tip"}
+
+
+def test_atom_evaluation_result_dto_frozen_immutability() -> None:
+    """Test AtomEvaluationResultDTO is immutable (frozen=True)."""
+    dto = AtomEvaluationResultDTO(
+        status=ExecutionStatus.PASSED,
+        reasoning="Reasoning",
+    )
+    with pytest.raises(ValidationError):
+        dto.status = ExecutionStatus.FAILED  # type: ignore[misc]
+
+
+def test_atom_evaluation_result_dto_forbids_extra_fields() -> None:
+    """Test AtomEvaluationResultDTO forbids extra fields."""
+    with pytest.raises(ValidationError):
+        AtomEvaluationResultDTO(
+            status=ExecutionStatus.PASSED,
+            extra_field="disallowed",  # type: ignore[call-arg]
+        )
+
+
+def test_atom_evaluation_result_dto_missing_status_fails() -> None:
+    """Test AtomEvaluationResultDTO fails if mandatory status is omitted."""
+    with pytest.raises(ValidationError):
+        AtomEvaluationResultDTO()  # type: ignore[call-arg]
+
+
+def test_atom_evaluation_result_dto_source_quote_max_length() -> None:
+    """Test AtomEvaluationResultDTO enforces max_length=500 on source_quote."""
+    oversized_quote = "Q" * 501
+    with pytest.raises(ValidationError):
+        AtomEvaluationResultDTO(
+            status=ExecutionStatus.PASSED,
+            source_quote=oversized_quote,
+        )
+

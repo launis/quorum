@@ -117,9 +117,9 @@ class AtomEvaluationResultDTO(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
     status: Annotated[ExecutionStatus, Field(description="Evaluated cognitive or execution status.")]
-    reasoning: Annotated[
-        str | None, Field(default=None, description="Cognitive chain-of-thought justification.")
-    ] = None
+    reasoning: Annotated[str | None, Field(default=None, description="Cognitive chain-of-thought justification.")] = (
+        None
+    )
     source_quote: Annotated[
         str | None,
         Field(
