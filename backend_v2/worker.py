@@ -268,7 +268,8 @@ async def execute_workflow_job(
                         if step_meta is None:
                             continue
                         usage = step_meta.token_usage
-                    except ValidationError, ValueError:
+                    except (ValidationError, ValueError) as err:
+                        logger.debug("Skipping non-metadata trace event during telemetry aggregation: %s", err)
                         continue
 
                     model_strategy = step_meta.model_strategy
@@ -374,10 +375,11 @@ async def execute_workflow_job(
                     },
                 )
 
+                combined_cost_estimate = total_cost_usd + updated_exec_record.cumulative_synthesis_cost
                 updated_exec_record = updated_exec_record.model_copy(
                     update={
                         "models_used": models_used,
-                        "cost_estimate": total_cost_usd,
+                        "cost_estimate": combined_cost_estimate,
                         "dag_cost_usd": total_cost_usd,
                         "prompt_tokens": total_prompt_tokens,
                         "completion_tokens": total_completion_tokens,
@@ -417,7 +419,7 @@ async def execute_workflow_job(
                             duration_ms=duration_ms,
                             models_used=models_used,
                             metadata=updated_exec_record.metadata,
-                            cost_estimate=total_cost_usd,
+                            cost_estimate=combined_cost_estimate,
                             dag_cost_usd=total_cost_usd,
                             prompt_tokens=total_prompt_tokens,
                             completion_tokens=total_completion_tokens,
@@ -444,7 +446,7 @@ async def execute_workflow_job(
                             duration_ms=duration_ms,
                             models_used=models_used,
                             metadata=updated_exec_record.metadata,
-                            cost_estimate=total_cost_usd,
+                            cost_estimate=combined_cost_estimate,
                             dag_cost_usd=total_cost_usd,
                             prompt_tokens=total_prompt_tokens,
                             completion_tokens=total_completion_tokens,
@@ -1457,10 +1459,11 @@ async def generate_profile_synthesis_and_pdf_task(
         pid: str = profile_id if profile_id is not None else "default"
         current_syntheses[pid] = cache
 
-        prev_tokens = execution.cumulative_synthesis_tokens or 0
-        prev_cost = execution.cumulative_synthesis_cost or 0.0
+        prev_tokens = execution.cumulative_synthesis_tokens
+        prev_cost = execution.cumulative_synthesis_cost
         new_cum_tokens = prev_tokens + synth_tokens
         new_cum_cost = prev_cost + synth_cost
+        total_cost = execution.dag_cost_usd + new_cum_cost
 
         await repo.update_execution(
             execution_id,
@@ -1468,6 +1471,7 @@ async def generate_profile_synthesis_and_pdf_task(
                 profile_syntheses=current_syntheses,
                 cumulative_synthesis_tokens=new_cum_tokens,
                 cumulative_synthesis_cost=new_cum_cost,
+                cost_estimate=total_cost,
             ),
         )
 
