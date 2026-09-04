@@ -76,7 +76,7 @@ async def test_save_performative_lexicons_config(
     mock_system_repo.get_system_config.return_value = config
     saved = await lexicon_service.save_performative_lexicons_config(admin_token, config)
     assert saved.lexicon_configs["en"].words == ["pivot"]
-    mock_system_repo.create_system_config.assert_called_once()
+    mock_system_repo.update_performative_lexicons.assert_called_once_with(config)
 
 
 @pytest.mark.asyncio

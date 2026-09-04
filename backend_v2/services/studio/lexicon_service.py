@@ -10,7 +10,6 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.llm.directives import STUDIO_DISCOVER_SLOP_PHRASES, STUDIO_TRANSLATE_SLOP_PHRASES
 from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.auth import SystemOrganizations, TokenData
-from backend_v2.models.dtos.system import SystemConfigCreateDTO
 from backend_v2.models.enums import SystemConfigID
 from backend_v2.models.v2_core import (
     LexiconSuggestionListDTO,
@@ -68,12 +67,7 @@ class StudioLexiconService:
             The updated performative lexicons configuration.
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
-        create_dto = SystemConfigCreateDTO(
-            type="performative_lexicons",
-            content=data,
-            slug=SystemConfigID.PERFORMATIVE_LEXICONS.value,
-        )
-        await self.system_repo.create_system_config(create_dto)
+        await self.system_repo.update_performative_lexicons(data)
         return await self.get_performative_lexicons_config()
 
     async def discover_new_performative_phrases(self, lang_code: str) -> LexiconSuggestionListDTO:
@@ -128,7 +122,10 @@ class StudioLexiconService:
             return LexiconSuggestionListDTO(suggested_phrases=[])
 
         target_lexicon = config.lexicon_configs.get(target_lang)
-        existing_words = target_lexicon.words if target_lexicon else []
+        if target_lexicon is not None:
+            existing_words = target_lexicon.words
+        else:
+            existing_words = []
 
         client = await LLMClient.from_strategy("fast", repository=self.system_repo, pipeline_name="studio_generation")
         compiler = PromptCompiler()
