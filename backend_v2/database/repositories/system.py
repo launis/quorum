@@ -14,7 +14,12 @@ from backend_v2.models.dtos.system import (
     SystemConfigUpdateDTO,
     SystemSettingsDTO,
 )
-from backend_v2.models.v2_core import SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.enums import SystemConfigID
+from backend_v2.models.v2_core import (
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+    SystemConfigPerformativeLexicons,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +54,7 @@ class SystemRepositoryImpl(BaseRepository):
         """
         res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")], limit=1)
         payload = registry_data.model_dump(mode="json", exclude_unset=True)
-        doc_id = res_list[0]["id"] if res_list else (payload["id"] if "id" in payload else "model_registry")
+        doc_id = res_list[0]["id"] if res_list else (registry_data.id or SystemConfigID.MODEL_REGISTRY.value)
         payload["id"] = doc_id
         payload["type"] = "model_registry"
         await self.driver.upsert("system_config", payload, doc_id)
@@ -92,7 +97,7 @@ class SystemRepositoryImpl(BaseRepository):
         """
         res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
         payload = gateways_data.model_dump(mode="json", exclude_unset=True)
-        doc_id = res_list[0]["id"] if res_list else (payload["id"] if "id" in payload else "cfg_mcpGateways01")
+        doc_id = res_list[0]["id"] if res_list else (gateways_data.id or SystemConfigID.MCP_GATEWAYS.value)
         payload["id"] = doc_id
         payload["type"] = "mcp_gateways"
         await self.driver.upsert("system_config", payload, doc_id)
@@ -158,3 +163,19 @@ class SystemRepositoryImpl(BaseRepository):
         doc_id = payload["id"] if "id" in payload else f"cfg_{config_data.type}"
         payload["id"] = doc_id
         return await self.driver.upsert("system_config", payload, doc_id)
+
+    async def update_performative_lexicons(self, lexicons_data: SystemConfigPerformativeLexicons) -> bool:
+        """Updates the performative lexicons configuration in-place.
+
+        Args:
+            lexicons_data: SystemConfigPerformativeLexicons containing updated lexicon dictionaries.
+
+        Returns:
+            True if updated successfully.
+        """
+        payload = lexicons_data.model_dump(mode="json")
+        doc_id = lexicons_data.id or SystemConfigID.PERFORMATIVE_LEXICONS.value
+        payload["id"] = doc_id
+        payload["type"] = "performative_lexicons"
+        await self.driver.upsert("system_config", payload, doc_id)
+        return True

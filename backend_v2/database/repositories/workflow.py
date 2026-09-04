@@ -120,6 +120,18 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             return None
         return Workflow.model_validate(data, strict=False)
 
+    async def save_workflow(self, workflow: Workflow) -> str:
+        """Saves a workflow entity directly in-place using atomic upsert.
+
+        Args:
+            workflow: Validated Workflow domain model.
+
+        Returns:
+            The persisted workflow ID.
+        """
+        payload = workflow.model_dump(mode="json")
+        return await self.driver.upsert("workflows", payload, workflow.id)
+
     async def create_workflow(self, workflow_data: WorkflowCreateDTO) -> str:
         """Creates a new workflow.
 
@@ -130,22 +142,21 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             The created workflow ID.
         """
         data = workflow_data.model_dump(mode="json", exclude_unset=True)
-        doc_id = data.get("id") or str(uuid.uuid4())
+        doc_id: str = str(data["id"]) if "id" in data and data["id"] else f"wf_{uuid.uuid4().hex[:16]}"
         data["id"] = doc_id
         data.setdefault("version", 1)
         data.setdefault("status", "draft")
-        data.setdefault("is_latest", True)
         return await self.driver.upsert("workflows", data, doc_id)
 
     async def update_workflow(self, workflow_id: str, updates: WorkflowUpdateDTO) -> str:
-        """Updates a workflow, creating a new versioned entry.
+        """Updates a workflow in-place.
 
         Args:
             workflow_id: Unique identifier for the workflow to update.
             updates: DTO of fields to update.
 
         Returns:
-            The new versioned workflow ID.
+            The updated workflow ID.
 
         Raises:
             WorkflowNotFoundError: If the existing workflow cannot be found.
@@ -154,21 +165,9 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         if not old_doc:
             raise WorkflowNotFoundError(workflow_id)
 
-        await self.driver.update("workflows", workflow_id, {"is_latest": False})
-
-        base_id, new_id, ver = self._increment_version(workflow_id)
-
         update_dict = updates.model_dump(mode="json", exclude_unset=True)
-
-        new_doc = dict(old_doc)
-        new_doc.update(update_dict)
-        new_doc["id"] = new_id
-        new_doc["is_latest"] = True
-        new_doc["version"] = ver
-        new_doc["slug"] = base_id
-
-        await self.driver.upsert("workflows", new_doc, new_id)
-        return new_id
+        await self.driver.update("workflows", workflow_id, update_dict)
+        return workflow_id
 
     async def update_workflow_definition(self, workflow_id: str, definition_data: WorkflowUpdateDTO) -> str:
         """Updates workflow definition.
@@ -261,6 +260,18 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         """
         return await self.get_step_by_id(step_id)
 
+    async def save_step(self, step: Step) -> str:
+        """Saves a step entity directly in-place using atomic upsert.
+
+        Args:
+            step: Validated Step domain model.
+
+        Returns:
+            The persisted step ID.
+        """
+        payload = step.model_dump(mode="json")
+        return await self.driver.upsert("steps", payload, step.id)
+
     async def create_step(self, step_data: StepCreateDTO) -> str:
         """Creates a new step.
 
@@ -271,7 +282,7 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             The created step ID.
         """
         data = step_data.model_dump(mode="json", exclude_unset=True)
-        doc_id = data.get("id") or str(uuid.uuid4())
+        doc_id: str = str(data["id"]) if "id" in data and data["id"] else f"stp_{uuid.uuid4().hex[:16]}"
         data["id"] = doc_id
         return await self.driver.upsert("steps", data, doc_id)
 

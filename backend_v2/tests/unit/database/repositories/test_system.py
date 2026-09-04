@@ -9,7 +9,13 @@ import pytest
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ResourceNotFoundError
 from backend_v2.models.dtos.system import SystemConfigCreateDTO, SystemConfigUpdateDTO, SystemSettingsDTO
-from backend_v2.models.v2_core import ModelProfile, SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.v2_core import (
+    LexiconConfigPayload,
+    ModelProfile,
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+    SystemConfigPerformativeLexicons,
+)
 
 
 @pytest.fixture
@@ -252,3 +258,30 @@ async def test_create_system_config(sample_model_registry: SystemConfigModelRegi
 
     assert res == "cfg_1234567890abcdef"
     mock_driver.upsert.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_update_performative_lexicons() -> None:
+    """Positive: updates performative lexicons configuration in-place."""
+    mock_driver = AsyncMock()
+    mock_driver.upsert.return_value = "sys_e0b2a3c4d5e6f7a8"
+
+    repo = SystemRepositoryImpl(driver=mock_driver)
+    lex_data = SystemConfigPerformativeLexicons(
+        id="sys_e0b2a3c4d5e6f7a8",
+        slug="performative_lexicons",
+        type="performative_lexicons",
+        lexicon_configs={
+            "en": LexiconConfigPayload(
+                language_code="en",
+                language_name="English",
+                words=["test_word"],
+            )
+        },
+    )
+    res = await repo.update_performative_lexicons(lex_data)
+
+    assert res is True
+    mock_driver.upsert.assert_called_once_with(
+        "system_config", lex_data.model_dump(mode="json"), "sys_e0b2a3c4d5e6f7a8"
+    )

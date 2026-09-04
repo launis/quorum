@@ -121,17 +121,36 @@ async def test_workflow_lifecycle_and_versioning(
     assert await repo.create_workflow(wf_dto) == "wf_1234567890abcdef"
 
     mock_driver.get.return_value = valid_workflow_doc
-    repo._increment_version = MagicMock(return_value=("wf_exec", "wf_1234567890abcdef_v2", 2))  # type: ignore[method-assign]
     new_id = await repo.update_workflow(
         "wf_1234567890abcdef", WorkflowUpdateDTO(name=I18nText(translations={"en": "Updated"}))
     )
-    assert new_id == "wf_1234567890abcdef_v2"
+    assert new_id == "wf_1234567890abcdef"
 
     def_id = await repo.update_workflow_definition("wf_1234567890abcdef", WorkflowUpdateDTO(slug="new_slug"))
-    assert def_id == "wf_1234567890abcdef_v2"
+    assert def_id == "wf_1234567890abcdef"
 
     assert await repo.count_workflows() == 1
     assert await repo.delete_workflow("wf_1234567890abcdef") is True
+
+
+@pytest.mark.asyncio
+async def test_save_workflow_and_save_step(
+    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict, valid_step_doc: dict
+) -> None:
+    """Positive: tests in-place atomic upsert for Workflow and Step domain models."""
+    from backend_v2.models.v2_core import Step, Workflow
+
+    wf_model = Workflow.model_validate(valid_workflow_doc, strict=False)
+    mock_driver.upsert.return_value = wf_model.id
+    saved_wf_id = await repo.save_workflow(wf_model)
+    assert saved_wf_id == wf_model.id
+    mock_driver.upsert.assert_called_with("workflows", wf_model.model_dump(mode="json"), wf_model.id)
+
+    step_model = Step.model_validate(valid_step_doc, strict=False)
+    mock_driver.upsert.return_value = step_model.id
+    saved_step_id = await repo.save_step(step_model)
+    assert saved_step_id == step_model.id
+    mock_driver.upsert.assert_called_with("steps", step_model.model_dump(mode="json"), step_model.id)
 
 
 @pytest.mark.asyncio
