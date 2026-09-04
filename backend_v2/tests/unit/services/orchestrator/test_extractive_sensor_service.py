@@ -271,6 +271,70 @@ def test_extractive_sensor_service_resolve_majority_vote() -> None:
     assert resolved_split["tda_11111111111111111111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
 
 
+def test_extractive_sensor_service_resolve_majority_vote_tie_breaker() -> None:
+    """Verifies Null Hypothesis tie-breaker logic across 6 ISTQB equivalence partitions."""
+    tda_id = "tda_11111111111111111111111111111111"
+
+    # 1. Partition A (Positive Claim Split: 1 PASSED, 1 FAILED, is_inverse=False -> FAILED)
+    results_split: list[dict[str, AtomEvaluationResultDTO] | None] = [
+        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1", source_quote="quote 1")},
+        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quote=None)},
+        None,  # 3rd call failed transiently
+    ]
+    res_pos = ExtractiveSensorService.resolve_majority_vote(
+        [tda_id], results_split, is_inverse_map={tda_id: False}
+    )
+    assert res_pos[tda_id].status == ExecutionStatus.FAILED
+    assert res_pos[tda_id].source_quote is None
+    assert "EPISTEMIC_TIE_BREAKER" in (res_pos[tda_id].reasoning or "")
+
+    # 2. Partition B (Inverse Claim Split: 1 PASSED, 1 FAILED, is_inverse=True -> PASSED)
+    res_inv = ExtractiveSensorService.resolve_majority_vote(
+        [tda_id], results_split, is_inverse_map={tda_id: True}
+    )
+    assert res_inv[tda_id].status == ExecutionStatus.PASSED
+    assert res_inv[tda_id].source_quote is None
+    assert "EPISTEMIC_TIE_BREAKER" in (res_inv[tda_id].reasoning or "")
+
+    # 3. Partition C (Missing Polarity Map: 1 PASSED, 1 FAILED, is_inverse_map=None -> SYSTEM_ERROR)
+    res_no_map = ExtractiveSensorService.resolve_majority_vote(
+        [tda_id], results_split, is_inverse_map=None
+    )
+    assert res_no_map[tda_id].status == ExecutionStatus.SYSTEM_ERROR
+    assert res_no_map[tda_id].reasoning == "INSUFFICIENT_CONSENSUS"
+
+    # 4. Partition D (Unregistered TDA Fallback: 1 PASSED, 1 FAILED, tda_id missing from map -> SYSTEM_ERROR)
+    res_unreg = ExtractiveSensorService.resolve_majority_vote(
+        [tda_id], results_split, is_inverse_map={"tda_other": False}
+    )
+    assert res_unreg[tda_id].status == ExecutionStatus.SYSTEM_ERROR
+    assert res_unreg[tda_id].reasoning == "INSUFFICIENT_CONSENSUS"
+
+    # 5. Partition E (Unanimous Consensus: 2 PASSED, 1 FAILED -> PASSED regardless of is_inverse)
+    results_consensus: list[dict[str, AtomEvaluationResultDTO] | None] = [
+        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1", source_quote="valid quote")},
+        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quote=None)},
+        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r3", source_quote="valid quote")},
+    ]
+    res_consensus = ExtractiveSensorService.resolve_majority_vote(
+        [tda_id], results_consensus, is_inverse_map={tda_id: False}
+    )
+    assert res_consensus[tda_id].status == ExecutionStatus.PASSED
+    assert res_consensus[tda_id].source_quote == "valid quote"
+
+    # 6. Partition F (Zero Votes Cast: atom missing from all responses -> SYSTEM_ERROR)
+    results_empty: list[dict[str, AtomEvaluationResultDTO] | None] = [
+        {"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")},
+        {"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r2")},
+    ]
+    res_zero = ExtractiveSensorService.resolve_majority_vote(
+        [tda_id], results_empty, is_inverse_map={tda_id: True}
+    )
+    assert res_zero[tda_id].status == ExecutionStatus.SYSTEM_ERROR
+    assert "UNRETURNED_BY_MODEL" in (res_zero[tda_id].reasoning or "")
+
+
+
 @pytest.mark.asyncio
 async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
 

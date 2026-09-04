@@ -40,6 +40,9 @@ def test_matrix_sensor_system_prompt_directives() -> None:
     assert "null hypothesis: default to is_true = false for inverse/negative claims" in prompt
     assert "specifically: `a0`, `a1`, `a2`" in prompt
     assert "is_true" in prompt
+    assert "BANNED SPECULATIVE OVERRIDES:" in prompt
+    assert "QUALIFYING CRITERIA:" in prompt
+    assert "NULL HYPOTHESIS BURDEN:" in prompt
 
 
 def test_matrix_sensor_system_prompt_negative_partitions() -> None:
@@ -71,6 +74,9 @@ def test_contextual_override_directive() -> None:
     assert "<contextual_override_directive>" in CONTEXTUAL_OVERRIDE_DIRECTIVE
     assert "</contextual_override_directive>" in CONTEXTUAL_OVERRIDE_DIRECTIVE
     assert "CONTEXTUAL OVERRIDE EXPLANATION MANDATE:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
+    assert "BANNED SPECULATIVE OVERRIDES:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
+    assert "QUALIFYING CRITERIA:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
+    assert "NULL HYPOTHESIS BURDEN:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
     assert "maximum 25 words per claim" in CONTEXTUAL_OVERRIDE_DIRECTIVE
 
     banned_ambiguities = ["e.g.", "etc.", "such as", "like "]

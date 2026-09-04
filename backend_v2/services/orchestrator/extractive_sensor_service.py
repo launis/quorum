@@ -277,13 +277,16 @@ class ExtractiveSensorService:
 
     @staticmethod
     def resolve_majority_vote(
-        expected_tda_ids: list[str], results: list[dict[str, AtomEvaluationResultDTO] | None]
+        expected_tda_ids: list[str],
+        results: list[dict[str, AtomEvaluationResultDTO] | None],
+        is_inverse_map: dict[str, bool] | None = None,
     ) -> dict[str, AtomEvaluationResultDTO]:
         """Resolves Best-of-Three ensemble voting.
 
         Args:
             expected_tda_ids: The full list of expected atom IDs for this batch.
             results: The list of response dictionaries from the ensemble calls. None if a call failed transiently.
+            is_inverse_map: Optional mapping of atom ID to boolean inverse polarity.
 
         Returns:
             The consolidated dictionary mapping TDA IDs to their majority status.
@@ -327,13 +330,36 @@ class ExtractiveSensorService:
                     break
 
             if not elected:
-                # Semantic split or hallucinated drop
-                final_results[tda_id] = AtomEvaluationResultDTO(
-                    status=ExecutionStatus.SYSTEM_ERROR,
-                    reasoning="INSUFFICIENT_CONSENSUS",
-                    source_quote=None,
-                    extensions={},
-                )
+                if not tally:
+                    final_results[tda_id] = AtomEvaluationResultDTO(
+                        status=ExecutionStatus.SYSTEM_ERROR,
+                        reasoning="UNRETURNED_BY_MODEL: No valid votes cast for atom",
+                        source_quote=None,
+                        extensions={},
+                    )
+                elif is_inverse_map is not None and tda_id in is_inverse_map:
+                    is_inv = is_inverse_map[tda_id]
+                    if is_inv:
+                        final_results[tda_id] = AtomEvaluationResultDTO(
+                            status=ExecutionStatus.PASSED,
+                            reasoning="EPISTEMIC_TIE_BREAKER: Inconclusive split resolved via Null Hypothesis (presumption of innocence / uncommitted error)",
+                            source_quote=None,
+                            extensions={},
+                        )
+                    else:
+                        final_results[tda_id] = AtomEvaluationResultDTO(
+                            status=ExecutionStatus.FAILED,
+                            reasoning="EPISTEMIC_TIE_BREAKER: Inconclusive split resolved via Null Hypothesis (absence of conclusive substantiation)",
+                            source_quote=None,
+                            extensions={},
+                        )
+                else:
+                    final_results[tda_id] = AtomEvaluationResultDTO(
+                        status=ExecutionStatus.SYSTEM_ERROR,
+                        reasoning="INSUFFICIENT_CONSENSUS",
+                        source_quote=None,
+                        extensions={},
+                    )
 
         return final_results
 
@@ -394,6 +420,19 @@ class ExtractiveSensorService:
             atom_status_map=atom_status_map,
         )
 
+        is_inverse_map: dict[str, bool] = {}
+        if matrix_context and matrix_context.matrix_assertions:
+            assertion_map = {a.atom_id: a.is_inverse for a in matrix_context.matrix_assertions}
+            for node in nodes:
+                tda_id = node.atom.tda_id
+                if tda_id in assertion_map:
+                    is_inverse_map[tda_id] = assertion_map[tda_id]
+                else:
+                    is_inverse_map[tda_id] = False
+        else:
+            for node in nodes:
+                is_inverse_map[node.atom.tda_id] = False
+
         semaphore = asyncio.Semaphore(parallelism)
 
         async def _single_ensemble_call() -> tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]:
@@ -428,12 +467,10 @@ class ExtractiveSensorService:
                                 f"- {step}" for step in eval_result.remediation_steps
                             )
 
-                        is_inverse = False
-                        if matrix_context and matrix_context.matrix_assertions:
-                            for a in matrix_context.matrix_assertions:
-                                if a.atom_id == call_tda_id:
-                                    is_inverse = a.is_inverse
-                                    break
+                        if call_tda_id in is_inverse_map:
+                            is_inverse = is_inverse_map[call_tda_id]
+                        else:
+                            is_inverse = False
 
                         if is_inverse:
                             status = ExecutionStatus.FAILED if eval_result.is_true else ExecutionStatus.PASSED
@@ -470,5 +507,7 @@ class ExtractiveSensorService:
             total_usage = total_usage + usage
 
         expected_tda_ids = [node.atom.tda_id for node in nodes]
-        majority_results = ExtractiveSensorService.resolve_majority_vote(expected_tda_ids, results)
+        majority_results = ExtractiveSensorService.resolve_majority_vote(
+            expected_tda_ids, results, is_inverse_map=is_inverse_map
+        )
         return majority_results, total_usage
