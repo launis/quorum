@@ -69,12 +69,15 @@ class ExecutionStatusCard extends ConsumerWidget {
         final executionId = record.id;
 
         // Extract Metrics
-        final cost = record.costEstimate ?? 0.0;
+        final cost = (record.costEstimate != null && record.costEstimate! > 0)
+            ? record.costEstimate!
+            : (record.dagCostUsd + (record.cumulativeSynthesisCost ?? 0.0));
         final promptT = record.promptTokens;
         final completionT = record.completionTokens;
         final cachedT = record.cachedTokens;
         final reasoningT = record.reasoningTokens;
-        final totalT = promptT + completionT + reasoningT;
+        final synthT = record.cumulativeSynthesisTokens ?? 0;
+        final totalT = promptT + completionT + reasoningT + synthT;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

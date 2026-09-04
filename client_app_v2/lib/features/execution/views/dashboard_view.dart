@@ -113,12 +113,20 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                     }
 
                     // Metrics
-                    final costEstimate = exec.costEstimate ?? 0.0;
+                    final costEstimate =
+                        (exec.costEstimate != null && exec.costEstimate! > 0)
+                        ? exec.costEstimate!
+                        : (exec.dagCostUsd +
+                              (exec.cumulativeSynthesisCost ?? 0.0));
                     final promptTokens = exec.promptTokens;
                     final completionTokens = exec.completionTokens;
                     final reasoningTokens = exec.reasoningTokens;
+                    final synthTokens = exec.cumulativeSynthesisTokens ?? 0;
                     final totalTokens =
-                        promptTokens + completionTokens + reasoningTokens;
+                        promptTokens +
+                        completionTokens +
+                        reasoningTokens +
+                        synthTokens;
 
                     String metricsStr = '';
                     if (totalTokens > 0 ||
