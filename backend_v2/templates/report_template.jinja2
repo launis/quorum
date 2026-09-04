@@ -439,7 +439,7 @@
                                     {% set evaluated_atoms = axis.evaluated_atoms or [] %}
                                     {% set ns = namespace(has_any_quote=false) %}
                                     {% for atom in evaluated_atoms %}
-                                        {% if atom.exact_quotes %}
+                                        {% if atom.exact_quotes or (axis.allow_contextual_override and atom.contextual_override and (atom.status and (atom.status|string|lower).endswith('passed'))) %}
                                             {% set ns.has_any_quote = true %}
                                         {% endif %}
                                     {% endfor %}
@@ -448,7 +448,7 @@
                                         {% for lvl, atoms in grouped_atoms.items() | sort(reverse=True, attribute='0') %}
                                             {% set ns_lvl = namespace(has_lvl_quote=false) %}
                                             {% for atom in atoms %}
-                                                {% if atom.exact_quotes %}
+                                                {% if atom.exact_quotes or (axis.allow_contextual_override and atom.contextual_override and (atom.status and (atom.status|string|lower).endswith('passed'))) %}
                                                     {% set ns_lvl.has_lvl_quote = true %}
                                                 {% endif %}
                                             {% endfor %}
@@ -459,6 +459,9 @@
                                                     {% set status_str = (atom.status|string|lower) if atom.status else '' %}
                                                     {% if status_str not in ['skipped', 'none', 'dlq'] and 'chunk processing failed' not in (atom.semantic_reasoning or '')|lower %}
                                                         {% if atom.exact_quotes %}
+                                                            {% if atom.claim_label and atom.claim_label.strip() %}
+                                                                <div style="font-weight: bold; font-size: 10px; margin-bottom: 2px;">{{ atom.claim_label.strip() }}:</div>
+                                                            {% endif %}
                                                             {% for quote in atom.exact_quotes %}
                                                                 <div style="margin-bottom: 6px; color: #555;">
                                                                     {% if quote.verified_source_ids %}
@@ -467,6 +470,9 @@
                                                                     "{{ quote.quote }}"
                                                                 </div>
                                                             {% endfor %}
+                                                        {% elif axis.allow_contextual_override and atom.contextual_override and (atom.status and (atom.status|string|lower).endswith('passed')) %}
+                                                            {% set explanation = atom.semantic_reasoning.strip() if (atom.semantic_reasoning and atom.semantic_reasoning.strip()) else (atom.claim_label.strip() if (atom.claim_label and atom.claim_label.strip()) else '-') %}
+                                                            <div style="margin-bottom: 6px; color: #555; font-size: 10px;"><span style="font-weight: bold;">** {{ (atom.claim_label.strip() ~ ': ') if (atom.claim_label and atom.claim_label.strip()) else '' }}</span><span style="font-style: italic;">{{ explanation }}</span></div>
                                                         {% endif %}
                                                     {% endif %}
                                                 {% endfor %}
