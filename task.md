@@ -45,8 +45,8 @@ Implementation Plan: `docs/implementationplans/IMPLEMENTATION_PLAN_Scoring_Doubl
   - [x] Step 5.4: Add `AtomEvaluationResultDTO` and max_length tests in `test_dag_models.py`
   - [x] Step 5.5: Update mock fixtures across `test_enriched_dag_executor.py`, `test_topological_evaluator.py`, and integration tests
 
-- [ ] **Phase 6: Global Audit, Clean Slate Trace Replay & SDUI Parity Validation**
-  - [ ] Step 6.1: Run full backend audit loop across scoring hooks, parser, and sensor orchestrator
-  - [ ] Step 6.2: Run SDUI semantic parity test (`backend_v2/tests/integration/test_sdui_semantic_parity.py`)
-  - [ ] Step 6.3: Run Flutter audit loop on domain parity and SDUI matrix table widget
-  - [ ] Step 6.4: Execute offline trace replay verification against `exe_88267cb7b3cf4718ae76b7dbce04a92e`
+- [x] **Phase 6: Global Audit, Clean Slate Trace Replay & SDUI Parity Validation**
+  - [x] Step 6.1: Run full backend audit loop across scoring hooks, parser, and sensor orchestrator
+  - [x] Step 6.2: Run SDUI semantic parity test (`backend_v2/tests/integration/test_sdui_semantic_parity.py`)
+  - [x] Step 6.3: Run Flutter audit loop on domain parity and SDUI matrix table widget
+  - [x] Step 6.4: Execute offline trace replay verification against `exe_88267cb7b3cf4718ae76b7dbce04a92e`
