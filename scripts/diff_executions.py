@@ -633,10 +633,47 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
             exec_summary = meta.get("execution_summary", {})
             agg_usage = exec_summary.get("aggregated_usage", {})
 
-            prompt_tok = agg_usage.get("prompt_tokens") or meta.get("prompt_tokens", 0)
-            comp_tok = agg_usage.get("completion_tokens") or meta.get("completion_tokens", 0)
-            cached_tok = agg_usage.get("cached_tokens") or meta.get("cached_tokens", 0)
-            total_tokens = prompt_tok + comp_tok
+            # Top-level DB record properties take SSOT precedence
+            prompt_tok = int(
+                run_record.get("prompt_tokens") or agg_usage.get("prompt_tokens") or meta.get("prompt_tokens") or 0
+            )
+            comp_tok = int(
+                run_record.get("completion_tokens")
+                or agg_usage.get("completion_tokens")
+                or meta.get("completion_tokens")
+                or 0
+            )
+            cached_tok = int(
+                run_record.get("cached_tokens") or agg_usage.get("cached_tokens") or meta.get("cached_tokens") or 0
+            )
+            reas_tok = int(run_record.get("reasoning_tokens") or 0)
+            dag_cost = float(run_record.get("dag_cost_usd") or meta.get("dag_cost_usd") or 0.0)
+            synth_tok = int(run_record.get("cumulative_synthesis_tokens") or 0)
+            synth_cost = float(run_record.get("cumulative_synthesis_cost") or 0.0)
+
+            # Fail-safe: If DB tokens and DAG cost are zero, extract directly from execution_trace.json on disk
+            if prompt_tok == 0 and comp_tok == 0 and dag_cost == 0.0 and exe_path.exists():
+                try:
+                    with exe_path.open("r", encoding="utf-8") as tf:
+                        trace_data = json.load(tf)
+                    for ev in trace_data:
+                        if isinstance(ev, dict) and isinstance(ev.get("content"), dict):
+                            meta_step = ev["content"].get("_step_metadata")
+                            if isinstance(meta_step, dict):
+                                u = meta_step.get("token_usage")
+                                if isinstance(u, dict):
+                                    prompt_tok += int(u.get("prompt_tokens") or 0)
+                                    comp_tok += int(u.get("completion_tokens") or 0)
+                                    cached_tok += int(u.get("cached_tokens") or 0)
+                                    reas_tok += int(u.get("reasoning_tokens") or 0)
+                                    dag_cost += float(u.get("cost_usd") or 0.0)
+                except Exception:
+                    pass
+
+            combined_cost = dag_cost + synth_cost
+            if combined_cost == 0.0 and run_record.get("cost_estimate"):
+                combined_cost = float(run_record.get("cost_estimate") or 0.0)
+            combined_tokens = prompt_tok + comp_tok + reas_tok + synth_tok
 
             run_dir = exe_path.parent
             telem_file = run_dir / "llm_telemetry.jsonl"
@@ -647,14 +684,24 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
                     with telem_file.open("r", encoding="utf-8") as tf:
                         calls = [json.loads(line) for line in tf if line.strip()]
                         total_calls = len(calls)
-                        if total_tokens == 0:
-                            total_tokens = sum(c.get("tokens", 0) for c in calls)
+                        if combined_tokens == 0:
+                            combined_tokens = sum(c.get("tokens", 0) for c in calls)
                         cache_hit_count = sum(1 for c in calls if c.get("cache_hit"))
                 except Exception:
                     pass
 
-            cost = run_record.get("cost_estimate") or exec_summary.get("cost_estimate") or meta.get("dag_cost_usd", 0.0)
             duration_ms = run_record.get("duration_ms", 0)
+            if not duration_ms and telem_file.exists():
+                try:
+                    with telem_file.open("r", encoding="utf-8") as tf:
+                        calls = [json.loads(line) for line in tf if line.strip()]
+                        if len(calls) >= 2:
+                            t0 = datetime.datetime.fromisoformat(calls[0]["timestamp"])
+                            t1 = datetime.datetime.fromisoformat(calls[-1]["timestamp"])
+                            duration_ms = int((t1 - t0).total_seconds() * 1000)
+                except Exception:
+                    pass
+
             duration_str = (
                 f"{duration_ms / 1000 / 60:.1f} minuuttia ({duration_ms / 1000:.1f} s)"
                 if duration_ms
@@ -684,10 +731,12 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
             f.write(f"  - **Kesto:** `{duration_str}`\n")
             f.write(f"  - **API-kutsut:** `{total_calls}` kpl (Välimuistiosumat: `{cache_hit_count}/{total_calls}`)\n")
             f.write(
-                f"  - **Tokenit:** `{total_tokens:,}` (Syöte: `{prompt_tok:,}`, "
-                f"Tuotos: `{comp_tok:,}`, Välimuisti: `{cached_tok:,}`)\n"
+                f"  - **Tokenit:** `{combined_tokens:,}` (Syöte: `{prompt_tok:,}`, "
+                f"Tuotos: `{comp_tok:,}`, Välimuisti: `{cached_tok:,}`, Synteesi: `{synth_tok:,}`)\n"
             )
-            f.write(f"  - **Kustannusarvio:** `${cost:.4f}`\n")
+            f.write(
+                f"  - **Kustannusarvio:** `${combined_cost:.4f}` (DAG: `${dag_cost:.4f}`, Synteesi: `${synth_cost:.4f}`)\n"
+            )
             f.write(f"  - **Tekniset virheet (Crash):** `{error_count}` kpl\n")
             f.write(f"  - **DLQ-pudotetut atomit:** `{dlq_count}` kpl\n")
 
