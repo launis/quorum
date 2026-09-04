@@ -206,7 +206,11 @@ class SduiMatrixTableWidget extends StatelessWidget {
                 case 'quotes':
                   final quoteAtoms = axis.evaluatedAtoms;
                   final hasAnyQuotes = quoteAtoms.any(
-                    (a) => a.exactQuotes.isNotEmpty,
+                    (a) =>
+                        a.exactQuotes.isNotEmpty ||
+                        (axis.allowContextualOverride &&
+                            a.contextualOverride &&
+                            a.status == ExecutionStatus.passed),
                   );
                   if (hasAnyQuotes) {
                     final grouped = axis.atomsByLevel;
@@ -219,7 +223,11 @@ class SduiMatrixTableWidget extends StatelessWidget {
                           .where((lvl) {
                             final lvlAtoms = grouped[lvl] ?? [];
                             return lvlAtoms.any(
-                              (a) => a.exactQuotes.isNotEmpty,
+                              (a) =>
+                                  a.exactQuotes.isNotEmpty ||
+                                  (axis.allowContextualOverride &&
+                                      a.contextualOverride &&
+                                      a.status == ExecutionStatus.passed),
                             );
                           })
                           .map((lvl) {
@@ -240,37 +248,110 @@ class SduiMatrixTableWidget extends StatelessWidget {
                                 AppSpacing.h4,
                                 ...lvlAtoms
                                     .where(
-                                      (atom) => atom.exactQuotes.isNotEmpty,
+                                      (atom) =>
+                                          atom.exactQuotes.isNotEmpty ||
+                                          (axis.allowContextualOverride &&
+                                              atom.contextualOverride &&
+                                              atom.status ==
+                                                  ExecutionStatus.passed),
                                     )
                                     .map((atom) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: AppSpacing.s4,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: atom.exactQuotes.map((q) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                left: AppSpacing.s4,
-                                                top: AppSpacing.s2,
-                                              ),
-                                              child: Text(
-                                                '"${q.quote}"',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontStyle: FontStyle.italic,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
+                                      if (atom.exactQuotes.isNotEmpty) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: AppSpacing.s4,
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (atom.claimLabel
+                                                  .trim()
+                                                  .isNotEmpty)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        left: AppSpacing.s4,
+                                                        bottom: AppSpacing.s2,
+                                                      ),
+                                                  child: Text(
+                                                    '${atom.claimLabel.trim()}:',
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 10,
+                                                    ),
+                                                  ),
                                                 ),
+                                              ...atom.exactQuotes.map((q) {
+                                                return Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        left: AppSpacing.s4,
+                                                        top: AppSpacing.s2,
+                                                      ),
+                                                  child: Text(
+                                                    '"${q.quote}"',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontStyle:
+                                                          FontStyle.italic,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                                );
+                                              }),
+                                            ],
+                                          ),
+                                        );
+                                      } else {
+                                        final explanation =
+                                            atom.semanticReasoning
+                                                .trim()
+                                                .isNotEmpty
+                                            ? atom.semanticReasoning.trim()
+                                            : (atom.claimLabel.trim().isNotEmpty
+                                                  ? atom.claimLabel.trim()
+                                                  : '-');
+                                        final labelPrefix =
+                                            atom.claimLabel.trim().isNotEmpty
+                                            ? '${atom.claimLabel.trim()}: '
+                                            : '';
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: AppSpacing.s4,
+                                            bottom: AppSpacing.s4,
+                                            top: AppSpacing.s2,
+                                          ),
+                                          child: Text.rich(
+                                            TextSpan(
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
                                               ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      );
+                                              children: [
+                                                TextSpan(
+                                                  text: '** $labelPrefix',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                TextSpan(
+                                                  text: explanation,
+                                                  style: const TextStyle(
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }
                                     }),
                                 AppSpacing.h4,
                               ],
