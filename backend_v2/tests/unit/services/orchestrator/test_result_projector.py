@@ -167,4 +167,3 @@ def test_result_projector_missing_reasoning_fails_fast():
         ResultProjector.project([node], {"tda_f0000001": state})
 
     assert exc_info.value.status_code == 400
-

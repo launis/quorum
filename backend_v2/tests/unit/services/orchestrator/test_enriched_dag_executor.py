@@ -229,7 +229,9 @@ async def test_execute_graph_callback_persistent_error(
                 nodes=[mock_node], source_text="test text", progress_callback=mock_progress
             )
             assert result["tda_11111111111111111111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
-            assert "Some persistent validation error" in (result["tda_11111111111111111111111111111111"].reasoning or "")
+            assert "Some persistent validation error" in (
+                result["tda_11111111111111111111111111111111"].reasoning or ""
+            )
             assert usage.total_tokens == 0
             assert progress_calls == [(1, 1)]
 

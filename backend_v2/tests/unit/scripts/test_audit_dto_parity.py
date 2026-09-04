@@ -138,9 +138,14 @@ def test_split_dart_params_nested_structures() -> None:
     params = split_dart_params(block)
     assert len(params) == 7
     assert params[0] == "required String id"
-    assert "@JsonKey(name: 'report_data', includeFromJson: false, includeToJson: false) ReportDataDto? reportData" in params[1]
+    assert (
+        "@JsonKey(name: 'report_data', includeFromJson: false, includeToJson: false) ReportDataDto? reportData"
+        in params[1]
+    )
     assert params[2] == "Map<String, List<int>> matrixMap"
-    assert "@Default({'key': 'val,with,comma', 'escaped': 'val\\'quote'}) Map<String, String> complexDefault" in params[3]
+    assert (
+        "@Default({'key': 'val,with,comma', 'escaped': 'val\\'quote'}) Map<String, String> complexDefault" in params[3]
+    )
     assert params[4] == '@Default("double,\\"quoted\\",comma") String strVal'
     assert params[5] == '@Default("escaped\\\\\\"double") String strValEscaped'
     assert params[6] == "int count"

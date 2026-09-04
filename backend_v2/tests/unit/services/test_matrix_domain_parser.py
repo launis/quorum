@@ -969,4 +969,3 @@ def test_parse_matrices_multi_input_step_fallback_to_all() -> None:
     assert row.context_target_label is not None
     assert row.context_target_label.resolve("en") == "All Inputs"
     assert row.context_target_label.resolve("fi") == "Kaikki syötteet"
-

@@ -204,4 +204,3 @@ def test_atom_evaluation_result_dto_source_quote_max_length() -> None:
             status=ExecutionStatus.PASSED,
             source_quote=oversized_quote,
         )
-

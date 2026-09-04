@@ -214,9 +214,21 @@ def test_extractive_sensor_service_resolve_majority_vote() -> None:
 
     # Success case (2 PASS)
     results: list[dict[str, AtomEvaluationResultDTO] | None] = [
-        {"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")},
-        {"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2")},
-        {"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r3")},
+        {
+            "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED, reasoning="r1"
+            )
+        },
+        {
+            "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                status=ExecutionStatus.FAILED, reasoning="r2"
+            )
+        },
+        {
+            "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED, reasoning="r3"
+            )
+        },
     ]
     resolved = ExtractiveSensorService.resolve_majority_vote(["tda_11111111111111111111111111111111"], results)
     assert resolved["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
@@ -225,15 +237,33 @@ def test_extractive_sensor_service_resolve_majority_vote() -> None:
     with pytest.raises(AgentExecutionError):
         ExtractiveSensorService.resolve_majority_vote(
             ["tda_11111111111111111111111111111111"],
-            [{"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")}],
+            [
+                {
+                    "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                        status=ExecutionStatus.PASSED, reasoning="r1"
+                    )
+                }
+            ],
         )
 
     # Split vote without consensus (if min_consensus was 2, but we only have 3 different? Actually booleans only have 2 states)
     # But if an atom was missing from responses
     results_split: list[dict[str, AtomEvaluationResultDTO] | None] = [
-        {"tda_11111111111111111111111111111111": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")},
-        {"tda_22222222222222222222222222222222": AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2")},
-        {"tda_33333333333333333333333333333333": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r3")},
+        {
+            "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED, reasoning="r1"
+            )
+        },
+        {
+            "tda_22222222222222222222222222222222": AtomEvaluationResultDTO(
+                status=ExecutionStatus.FAILED, reasoning="r2"
+            )
+        },
+        {
+            "tda_33333333333333333333333333333333": AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED, reasoning="r3"
+            )
+        },
     ]
     resolved_split = ExtractiveSensorService.resolve_majority_vote(
         ["tda_11111111111111111111111111111111"], results_split
@@ -613,4 +643,3 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
         assert tda_id in results
         assert results[tda_id].status == ExecutionStatus.PASSED
         assert results[tda_id].source_quote == original_quote
-
