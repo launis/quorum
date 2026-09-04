@@ -30,9 +30,9 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\8cef95ff-266
   - [x] Deserialize tokens via `TypeAdapter(list[SduiSemanticTokenDTO])`.
   - [x] Implement `verify_token_parity` (plain text, bold with negative lookaround / headers / table delimiter anchoring, italic with negative lookaround, headers in `#` lines).
   - [x] Implement 4 ISTQB negative boundary partitions with collision-free candidate filtering.
-- [ ] **Step 4: GOLDEN MASTER DOM & WIDGET STYLISTIC ASSERTION HARDENING**
-  - [ ] In `backend_v2/tests/unit/test_sdui_template_parity.py`, add BeautifulSoup DOM tag/style assertions across SDUI blocks.
-  - [ ] In `client_app_v2/test/features/execution/views/widgets/sdui_golden_master_parity_test.dart`, expand widget `TextStyle` assertions.
+- [x] **Step 4: GOLDEN MASTER DOM & WIDGET STYLISTIC ASSERTION HARDENING**
+  - [x] In `backend_v2/tests/unit/test_sdui_template_parity.py`, add BeautifulSoup DOM tag/style assertions across SDUI blocks.
+  - [x] In `client_app_v2/test/features/execution/views/widgets/sdui_golden_master_parity_test.dart`, expand widget `TextStyle` assertions.
 - [ ] **Step 5: PARITY TEST VERIFICATION & QUALITY GATES EXECUTION**
   - [ ] Run `uv run pytest backend_v2/tests/unit/test_sdui_template_parity.py`.
   - [ ] Run `flutter test test/features/execution/views/widgets/sdui_golden_master_parity_test.dart`.

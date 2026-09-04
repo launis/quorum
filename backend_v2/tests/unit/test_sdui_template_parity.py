@@ -17,9 +17,10 @@ from typing import get_args
 import jinja2
 import pytest
 from bs4 import BeautifulSoup
+from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.v2_core import ReportDataDTO
+from backend_v2.models.v2_core import MCPAuditTrace, ReportDataDTO
 from backend_v2.models.view.sdui import (
     AccordionBlock,
     AlertBlock,
@@ -48,7 +49,7 @@ TEMPLATES_DIR = BACKEND_ROOT / "templates"
 CLIENT_DIR = REPO_ROOT / "client_app_v2"
 FIXTURES_DIR = BACKEND_ROOT / "tests" / "fixtures"
 
-PYDANTIC_BLOCK_MODELS: dict[str, type] = {
+PYDANTIC_BLOCK_MODELS: dict[str, type[BaseModel]] = {
     "hero_insight": HeroInsightBlock,
     "paragraph": ParagraphBlock,
     "bullet_list": BulletListBlock,
@@ -239,7 +240,7 @@ def test_jinja_raises_app_exception_on_unrecognized_block_type() -> None:
     class FakeReportDTO:
         inner_sdui_blocks = [FakeUnsupportedBlock()]
         profile_name = None
-        mcp_tool_audit = []
+        mcp_tool_audit: list[MCPAuditTrace] = []
 
     with pytest.raises(AppException) as exc_info:
         # Run template rendering directly or via generate_execution_html
@@ -265,7 +266,7 @@ def test_jinja_raises_app_exception_on_unrecognized_block_type() -> None:
     class FakeValidReportDTO:
         inner_sdui_blocks = [FakeValidBlock()]
         profile_name = None
-        mcp_tool_audit = []
+        mcp_tool_audit: list[MCPAuditTrace] = []
 
     rendered = template.render(
         execution_id="exec_test",
@@ -293,7 +294,7 @@ def test_pdf_generator_strict_undefined_missing_l10n_key_raises() -> None:
     class FakeReportDTO:
         inner_sdui_blocks = [FakeBlock()]
         profile_name = None
-        mcp_tool_audit = []
+        mcp_tool_audit: list[MCPAuditTrace] = []
 
     # Omit 'warning_label' from l10n dictionary
     incomplete_l10n = {
@@ -353,12 +354,14 @@ async def test_jinja_sdui_golden_master_rendering() -> None:
         # 1. metadata
         header_card = soup.find("div", class_="header-card")
         assert header_card is not None, f"[{locale}] Missing metadata header-card"
-        assert "Executive Assessment Profile" in header_card.get_text()
+        meta_h1 = header_card.find("h1")
+        assert meta_h1 is not None, f"[{locale}] Missing metadata h1 header tag"
+        assert "Executive Assessment Profile" in meta_h1.get_text()
         assert "Pillar 4 SDUI" in header_card.get_text()
 
         # 2. hero_insight
-        hero = soup.find("h3", style=lambda s: s and "#1E88E5" in s)
-        assert hero is not None, f"[{locale}] Missing hero_insight h3"
+        hero = soup.find("h3", style=lambda s: s and "#1E88E5" in s and "font-size: 18px" in s)
+        assert hero is not None, f"[{locale}] Missing hero_insight h3 with style #1E88E5 and font-size: 18px"
         assert "Strong strategic synthesis" in hero.get_text()
 
         # 3. paragraph
@@ -377,13 +380,20 @@ async def test_jinja_sdui_golden_master_rendering() -> None:
 
         # 6. quote_card
         quotes = soup.find_all("div", style=lambda s: s and "font-style: italic" in s)
-        assert any("fail loudly" in q.get_text() for q in quotes), f"[{locale}] Missing quote_card"
+        assert any("fail loudly" in q.get_text() for q in quotes), (
+            f"[{locale}] Missing quote_card container with font-style: italic"
+        )
 
         # 7. warning_card
         warnings = soup.find_all("div", style=lambda s: s and "#FFEBEE" in s)
+        assert len(warnings) >= 1, f"[{locale}] Missing warning_card container with background #FFEBEE"
         expected_warning_label = "Warning:" if locale == "en" else "Varoitus:"
         assert any(expected_warning_label in w.get_text() for w in warnings), f"[{locale}] Missing warning_card label"
         assert any("legacy refactoring" in w.get_text() for w in warnings), f"[{locale}] Missing warning_card quote"
+        warning_strongs = [w.find("strong", style=lambda s: s and "#D32F2F" in s) for w in warnings]
+        assert any(s is not None for s in warning_strongs), (
+            f"[{locale}] Missing warning_card strong label with style color: #D32F2F"
+        )
 
         # 8. n_a_card
         na_cards = soup.find_all("div", style=lambda s: s and "#F5F5F5" in s)
@@ -404,8 +414,10 @@ async def test_jinja_sdui_golden_master_rendering() -> None:
 
         # 11. score_card
         score_card = soup.find("div", style=lambda s: s and "#e6e0f8" in s)
-        assert score_card is not None, f"[{locale}] Missing score_card"
-        assert "88.50/100" in score_card.get_text()
+        assert score_card is not None, f"[{locale}] Missing score_card container with #e6e0f8"
+        score_span = score_card.find("span", style=lambda s: s and "font-weight: 800" in s)
+        assert score_span is not None, f"[{locale}] Missing score_card span with font-weight: 800"
+        assert "88.50/100" in score_span.get_text().strip().replace(" ", "")
 
         # 12. grid
         grid_tds = soup.find_all("td", style=lambda s: s and "border: 1px solid #E0E0E0" in s)

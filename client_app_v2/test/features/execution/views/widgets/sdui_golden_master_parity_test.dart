@@ -107,6 +107,13 @@ void main() {
 
           // 1. SduiMetadataBlock
           expect(find.text('Executive Assessment Profile'), findsWidgets);
+          expect(
+            tester
+                .widget<Text>(find.text('Executive Assessment Profile').first)
+                .style
+                ?.fontWeight,
+            equals(FontWeight.bold),
+          );
           expect(find.text('Pillar 4 SDUI'), findsOneWidget);
           expect(find.textContaining('Dr. Evelyn Vance'), findsOneWidget);
           expect(
@@ -144,6 +151,13 @@ void main() {
           // 6. SduiQuoteCardBlock
           expect(find.byIcon(Icons.format_quote), findsOneWidget);
           expect(find.textContaining('fail loudly'), findsOneWidget);
+          expect(
+            tester
+                .widget<Text>(find.textContaining('fail loudly'))
+                .style
+                ?.fontStyle,
+            equals(FontStyle.italic),
+          );
           expect(find.text('doc_transcription'), findsOneWidget);
           expect(find.text('src_0'), findsOneWidget);
 
@@ -182,6 +196,10 @@ void main() {
 
           // 11. SduiScoreCardBlock
           expect(find.text('88.50/100'), findsOneWidget);
+          expect(
+            tester.widget<Text>(find.text('88.50/100')).style?.fontWeight,
+            equals(FontWeight.bold),
+          );
 
           // 12. SduiGridBlock
           expect(find.textContaining('Grid Cell A'), findsOneWidget);
