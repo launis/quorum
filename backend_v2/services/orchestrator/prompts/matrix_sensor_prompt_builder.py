@@ -9,7 +9,7 @@ import logging
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.dag_models import LinkedAtomGraph
-from backend_v2.models.dtos.engine import MatrixEvaluationContext
+from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
@@ -105,7 +105,7 @@ class MatrixSensorPromptBuilder:
 
         # 2. Compile Dynamic User Messages using CDATA encapsulation (No Raw XML f-strings)
         claims_xml: list[str] = []
-        matrix_assertions_map = {}
+        matrix_assertions_map: dict[str, FlattenedAtom] = {}
         if matrix_context and matrix_context.matrix_assertions:
             matrix_assertions_map = {assertion.atom_id: assertion for assertion in matrix_context.matrix_assertions}
 
