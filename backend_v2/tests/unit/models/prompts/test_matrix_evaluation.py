@@ -2,7 +2,10 @@
 
 import re
 
-from backend_v2.models.prompts.matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
+from backend_v2.models.prompts.matrix_evaluation import (
+    CONTEXTUAL_OVERRIDE_DIRECTIVE,
+    MATRIX_SENSOR_SYSTEM_PROMPT,
+)
 
 
 def test_matrix_sensor_system_prompt_structure() -> None:
@@ -17,6 +20,7 @@ def test_matrix_sensor_system_prompt_structure() -> None:
         "reasoning_constraints",
         "anti_repetition_mandate",
         "evidence_extraction_mandate",
+        "contextual_override_directive",
         "output_mandate",
     ]
     for tag in tags:
@@ -60,3 +64,21 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
     open_tags = re.findall(r"<([a-z_]+)>", prompt)
     close_tags = re.findall(r"</([a-z_]+)>", prompt)
     assert open_tags == close_tags, "Mismatch between opened and closed XML tags in system prompt."
+
+
+def test_contextual_override_directive() -> None:
+    """Test that CONTEXTUAL_OVERRIDE_DIRECTIVE contains required mandates and no ambiguities."""
+    assert "<contextual_override_directive>" in CONTEXTUAL_OVERRIDE_DIRECTIVE
+    assert "</contextual_override_directive>" in CONTEXTUAL_OVERRIDE_DIRECTIVE
+    assert "CONTEXTUAL OVERRIDE EXPLANATION MANDATE:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
+    assert "maximum 25 words per claim" in CONTEXTUAL_OVERRIDE_DIRECTIVE
+
+    banned_ambiguities = ["e.g.", "etc.", "such as", "like "]
+    for phrase in banned_ambiguities:
+        assert phrase not in CONTEXTUAL_OVERRIDE_DIRECTIVE, (
+            f"Found banned ambiguous phrase '{phrase}' in CONTEXTUAL_OVERRIDE_DIRECTIVE."
+        )
+
+    open_tags = re.findall(r"<([a-z_]+)>", CONTEXTUAL_OVERRIDE_DIRECTIVE)
+    close_tags = re.findall(r"</([a-z_]+)>", CONTEXTUAL_OVERRIDE_DIRECTIVE)
+    assert open_tags == close_tags == ["contextual_override_directive"]

@@ -1,6 +1,22 @@
 """Prompt definitions for Matrix Evaluation (Phase 5 Sensor Re-Architecture)."""
 
-MATRIX_SENSOR_SYSTEM_PROMPT = (
+__all__ = [
+    "CONTEXTUAL_OVERRIDE_DIRECTIVE",
+    "MATRIX_SENSOR_SYSTEM_PROMPT",
+]
+
+CONTEXTUAL_OVERRIDE_DIRECTIVE: str = (
+    "<contextual_override_directive>\n"
+    "CONTEXTUAL OVERRIDE EXPLANATION MANDATE:\n"
+    "- When a criterion is satisfied contextually without a verbatim quote (specifically via contextual override or inverse error avoidance):\n"
+    "- Formulate a concise causal explanation describing what reasoning pattern or action the author took instead of committing the error.\n"
+    "- Ground the explanation in the holistic reasoning or concrete action observed in the text.\n"
+    "- Strict brevity constraint: maximum 25 words per claim.\n"
+    "- Return plain text only; do not include markdown or system IDs.\n"
+    "</contextual_override_directive>"
+)
+
+MATRIX_SENSOR_SYSTEM_PROMPT: str = (
     "<evaluation_directives>\n"
     "- CRITICAL EVALUATION DIRECTIVE: Evaluate if the claims in the dynamic parameters are true based strictly on the provided context.\n"
     "- Match each evaluation strictly to its claim's alias (specifically: `a0`, `a1`, `a2`).\n"
@@ -26,6 +42,8 @@ MATRIX_SENSOR_SYSTEM_PROMPT = (
     "- ABSENCE NULL HYPOTHESIS: If a claim cannot be substantiated or if the context does not contain the subject, you MUST set `source_quote` to null.\n"
     "- CHIMERA BAN: Quotes must exist character-for-character within the source context. Do not invent, splice, or alter quotes.\n"
     "</evidence_extraction_mandate>\n"
+    + CONTEXTUAL_OVERRIDE_DIRECTIVE
+    + "\n"
     "<output_mandate>\n"
     "- Complete all required schema fields (`alias`, `reasoning`, `is_true`, `source_quote`) for every single requested claim.\n"
     "</output_mandate>"
