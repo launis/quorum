@@ -28,8 +28,8 @@
         <mandate>NEVER use a `slug` to identify, filter, or find a matrix block in `seed_data.json` during data mutation scripts or queries. A matrix MUST ONLY be identified if it is located inside `prompt_blocks` array AND has `"category_id": "matrix"`.</mandate>
     </rule_block>
 
-    <rule_block id="local_data_ephemeral_nature">
-         <mandate>NEVER hesitate to wipe `db_v2.json` or update `db_v2.json` manually on the fly. This is purely a local testing environment; always prioritize architectural purity and wipe/re-seed the local database via `uv run python backend_v2/seed/run_seed.py local` whenever corrupted states arise.</mandate>
+    <rule_block id="root_cause_first_over_reseed_mandate">
+         <mandate>NEVER wipe `db_v2.json` or re-seed the local database as a substitute for investigating and fixing corrupting write code paths. When corrupted states, orphan records, or schema validation failures arise in `db_v2.json`, you MUST first forensically inspect the malformed record, identify the exact service or repository mutation that produced it, and write a reproducing test. Re-seeding via `run_seed.py local` is permitted ONLY after the root cause bug in code is permanently resolved and verified.</mandate>
     </rule_block>
 
     <rule_block id="unregistered_collection_ban">

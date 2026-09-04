@@ -109,6 +109,9 @@ trigger: always_on
     <rule_block id="native_mcp_tooling">
         <mandate>ALWAYS prioritize native MCP tools (`view_file` to read, `grep_search` to find, `multi_replace_file_content` to edit, fallback to `write_to_file` if needed). NEVER use terminal text manipulation tools (`cat`, `grep`, `sed`) or instruct the user to run scripts manually.</mandate>
     </rule_block>
+    <rule_block id="deceptive_persistence_mocking_ban">
+        <mandate>NEVER mock repository persistence, save, or update methods with static return values or unverified `AsyncMock()` instances that fail to assert real state mutation. Persistence unit and integration tests MUST verify stateful roundtrip behavior: modifications saved to the repository layer MUST be physically verified via subsequent get/fetch operations returning the updated domain model. Zero tolerance for deceptive green tests that bypass persistence verification.</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
@@ -177,5 +180,8 @@ trigger: always_on
     </rule_block>
     <rule_block id="heterogeneous_payload_testing_mandate">
         <mandate>When testing components processing heterogeneous DAG state (`SynthesisPayloadCompressor`, `synthesis_distiller_hook`, `StepOutputDTO` consumers), tests MUST explicitly cover the 4 ISTQB Equivalence Partitions: 1) Structured JSON/Dict (`dict[str, Any]`), 2) List collections (`list[Any]`), 3) Pure String/Markdown (`str`), 4) Scalars/Primitives (`int`, `float`, `bool`) and falsy inputs (`None`, `""`, `{}`). For E2E integration bugs, write a failing test with the exact runtime payload before modifying domain logic. NEVER test heterogeneous state consumers with dicts only.</mandate>
+    </rule_block>
+    <rule_block id="preflight_schema_assertion_mandate">
+        <mandate>Persistence unit and integration tests MUST assert that all stored and reconstituted documents pass root Pydantic V2 model validation without empty strings, missing foreign keys, or un-prefixed IDs. All entity IDs MUST strictly conform to `OPAQUE_STRIPE_ID_REGEX` and `EntityPrefix`. Tests asserting mock persistence MUST validate that the underlying payload matches the strict domain schema with `extra="forbid"` before accepting repository writes.</mandate>
     </rule_block>
 </universal_quality_gate>

@@ -90,6 +90,27 @@
         <mandate>NEVER use auto-incrementing integers (`id=1`), raw UUIDs leaking database context, or semantic strings like `slug` as primary keys, database references, or API route identifiers. ALWAYS enforce the "Opaque Stripe ID" pattern (e.g., `wor_a1b2c3d4`, `usr_x9y8z7`) for all database identifiers, cross-model relations, and navigation endpoints.</mandate>
     </rule_block>
 
+    <rule_block id="opaque_stripe_id_ssot_constant_mandate">
+        <mandate>NEVER duplicate raw regex string literals like `r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"` or hardcode string prefixes (`"wf"`, `"stp"`, `"prf"`, `"blk"`, `"sys"`, `"exe"`, `"usr"`, `"org"`) across models, routers, or services. ALL Opaque Stripe ID validation MUST import and bind `OPAQUE_STRIPE_ID_REGEX` from `backend_v2.models.core_base`. ALL ID generation MUST use `generate_opaque_id(EntityPrefix.<TYPE>)` using `EntityPrefix` from `backend_v2.models.enums`.</mandate>
+    </rule_block>
+
+    <rule_block id="in_place_upsert_standard_mandate">
+        <mandate>All entity mutations in Service and Repository layers MUST execute strictly in-place under their authoritative primary ID. Enforce the 4-Phase In-Place Upsert Protocol:
+        1) **Existence Verification**: Fetch existing entity by ID; raise `ResourceNotFoundError` immediately if missing.
+        2) **Payload Validation**: Validate incoming payload strictly against dedicated DTO with `extra="forbid"`.
+        3) **In-Place Mutation**: Execute selective field merge or typed `.model_copy(update={...})` preserving relational integrity, foreign keys, and unmapped fields.
+        4) **Pre-Flight Atomic Persistence**: Validate completed model against root domain schema before executing atomic write. NEVER generate new entity IDs during update/save operations or orphan existing records.</mandate>
+    </rule_block>
+
+    <rule_block id="crud_and_clone_lifecycle_standard_mandate">
+        <mandate>All Studio entity services (`Workflow`, `Step`, `OutputProfile`, `PromptBlock`, `SystemConfig`) MUST implement a standardized 5-operation lifecycle with 100% architectural parity:
+        1) `create_draft`: Pure typed Pydantic instantiation using `generate_opaque_id(EntityPrefix.<TYPE>)`, typed `I18nText`, and immediate delegation to `save`.
+        2) `get` / `list`: Existence verification, strict tenant/organization isolation, returning strongly typed Domain Models / DTOs.
+        3) `save`: In-place mutation under the authoritative ID, domain invariant enforcement, atomic persistence, and roundtrip re-fetch.
+        4) `delete`: Existence verification, `is_system_core` protection check, and repository deletion.
+        5) `clone`: Pure immutable `.model_copy(update={...})` using `generate_opaque_id(EntityPrefix.<TYPE>)`, `original.name.with_copy_suffix()`, tenant attribution, and delegation to `save`. ZERO `model_dump()` dictionary conversions.</mandate>
+    </rule_block>
+
     <rule_block id="alias_engine_llm_isolation_mandate">
         <mandate>NEVER pass raw database UUIDs or Opaque Stripe IDs (`tda_...`) directly into LLM prompts/schemas or expect them back. ALWAYS use `AliasEngine` to generate short, semantic aliases (`a0`, `doc1`, `cond0`) before sending data to LLM, and use `AliasEngine.hydrate_dict_list()` to map them back to original Opaque UUIDs.</mandate>
     </rule_block>
