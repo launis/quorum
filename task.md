@@ -1,39 +1,40 @@
-# Task Tracking: ExecutionController SSE Stream Error Misclassification Fix
+# Task Tracking: Expanding SDUI Parity Testing to Structured Presentation & Stylistic Formatting
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
   <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
-  <knowledge_item>@[ki_execution_record_ssot.md]</knowledge_item>
-  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <knowledge_item>@[ki_dumb_painter_sdui.md]</knowledge_item>
+  <knowledge_item>@[ki_e2e_sdui_parity_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
 </required_context_rules>
 
-Bug Fix Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\1bb3b854-7e4b-48c5-9c98-df23bfb2161b\bug_fix_plan.md]
+Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\8cef95ff-2665-4be3-a6a9-a03e585831be\implementation_plan.md]
 
-## Regression Tests Status (Green Phase Confirmed)
-- [x] Test 1: `ExecutionController handles SSE update containing error: null without misclassifying as stream error` (PASSED)
-- [x] Test 2: `ExecutionController handles failed ExecutionRecord containing domain error without misclassifying as stream error` (PASSED)
-
-## Implementation Tasks
-- [x] **Step 1: PRE_IMPLEMENTATION_CLEANUP_AND_FIX_SSE_ERROR_DEFENSE**
-  - [x] Cancel existing `_sseSubscription?.cancel()` at the start of `_connectToStream` in `@[client_app_v2/lib/features/execution/controllers/execution_controller.dart]`.
-  - [x] Replace `containsKey('error')` check with explicit discriminators: `hasExplicitErrorCode` (`update['error_code'] != null && update['error_code'].toString().trim().isNotEmpty`) and `isSseErrorPayload` (`update['error'] != null && update['error'].toString().trim().isNotEmpty && !update.containsKey('id')`).
-- [x] **Step 2: VERIFY_REGRESSION_TESTS_GREEN**
-  - [x] Run `flutter test test/features/execution/controllers/execution_controller_test.dart` and verify all 4 tests pass (0 failures).
-- [x] **Step 3: FRONTEND_QUALITY_GATE**
-  - [x] Run `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/controllers/execution_controller.dart` (Exit code 0, 0 issues).
-  - [x] Run `flutter test test/features/execution/` (All 71 feature tests pass).
-
-# Session Handover Context
-- **Achieved**:
-  1. Fixed the critical bug in `ExecutionController._connectToStream` (`client_app_v2/lib/features/execution/controllers/execution_controller.dart`) where `update.containsKey('error')` evaluated to `true` for standard `ExecutionRecord` payloads containing `"error": null`.
-  2. Implemented strict discriminator logic:
-     - `hasExplicitErrorCode`: Checks that `error_code` exists and is non-empty.
-     - `isSseErrorPayload`: Checks that `error` exists, is non-empty, AND that `id` is not present (distinguishing transport-level SSE error envelopes from domain-level `ExecutionRecord`s with domain errors).
-  3. Added subscription hygiene with `_sseSubscription?.cancel()` at the beginning of `_connectToStream` to prevent stream listener leaks across reconnects.
-  4. Both regression tests and the full execution test suite (71 tests) pass 100% green.
-  5. Dart formatting and static analysis clean with 0 warnings/errors.
-- **Learned**:
-  1. In Dart, `Map.containsKey('field')` returns `true` even when `map['field'] == null`. For nullable Pydantic domain models serialized with `None -> null`, key presence checks cause catastrophic misclassification. Discriminators must verify non-null and non-empty values.
-  2. Domain models containing `error: str | None` (like `ExecutionRecord`) must be distinguished from transport error envelopes by the presence of primary keys (`id`).
-- **Remaining**:
-  - Atomic git commit of the verified changes.
+## Execution Tasks
+- [x] **Step 1: PRE-IMPLEMENTATION TECHNICAL DEBT CLEANUP & PARITY HARNESS PREPARATION**
+  - [x] Replace sparse model imports in `backend_v2/tests/integration/test_sdui_semantic_parity.py#L21` with full concrete imports of all 17 SDUI block classes.
+  - [x] Update `MatrixScorecardRowDTOFactory` in `test_sdui_semantic_parity.py#L59-L82` to set default `true_atoms: int | None = None` and `total_atoms: int | None = None`.
+  - [x] Replace naked dicts/lists in `ReportDataDTOFactory` and `ScorecardAtomDTOFactory` with strictly typed defaults.
+  - [x] Replace legacy `os`, `os.path`, `tempfile.mkstemp`, `os.close`, `os.remove` with `pathlib.Path` and `Path.unlink(missing_ok=True)`.
+  - [x] Eradicate `hasattr` and `getattr` duck-typing violations in layout loop with strictly typed `match layout:` pattern matching.
+  - [x] Clean up `client_app_v2/test/features/execution/sdui_semantic_parity_test.dart` (remove naked `print`, replace `throw Exception()` with `throw StateError()`, wrap test in `try...finally` for `semanticsHandle.dispose()`).
+- [ ] **Step 2: FLUTTER SEMANTIC TOKEN EXTRACTOR ENHANCEMENT**
+  - [ ] Implement granular typographical token extractor covering `RichText`, `Text`, and `SelectableText`.
+  - [ ] Traverse `InlineSpan` hierarchy, cascading `TextStyle` to resolve effective `FontWeight` (`FontWeight.bold`, `w700`, `w800`, `w900`), `FontStyle.italic`, and `is_header` (`fontSize >= 20.0`).
+  - [ ] Split multi-line spans by `\n`, filter accessibility states and noise tokens (<2 chars).
+  - [ ] Emit structured JSON array `[{"text": String, "is_bold": bool, "is_italic": bool, "is_header": bool}]` to `DUMP_PATH`.
+- [ ] **Step 3: PYTHON E2E PARITY ORCHESTRATOR MARKDOWN TOKEN VERIFIER**
+  - [ ] Define strictly typed Pydantic V2 `SduiSemanticTokenDTO` with `ConfigDict(strict=True, extra="forbid", frozen=True)`.
+  - [ ] Deserialize tokens via `TypeAdapter(list[SduiSemanticTokenDTO])`.
+  - [ ] Implement `verify_token_parity` (plain text, bold with negative lookaround / headers / table delimiter anchoring, italic with negative lookaround, headers in `#` lines).
+  - [ ] Implement 4 ISTQB negative boundary partitions with collision-free candidate filtering.
+- [ ] **Step 4: GOLDEN MASTER DOM & WIDGET STYLISTIC ASSERTION HARDENING**
+  - [ ] In `backend_v2/tests/unit/test_sdui_template_parity.py`, add BeautifulSoup DOM tag/style assertions across SDUI blocks.
+  - [ ] In `client_app_v2/test/features/execution/views/widgets/sdui_golden_master_parity_test.dart`, expand widget `TextStyle` assertions.
+- [ ] **Step 5: PARITY TEST VERIFICATION & QUALITY GATES EXECUTION**
+  - [ ] Run `uv run pytest backend_v2/tests/unit/test_sdui_template_parity.py`.
+  - [ ] Run `flutter test test/features/execution/views/widgets/sdui_golden_master_parity_test.dart`.
+  - [ ] Run `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`.
+  - [ ] Run backend and flutter audit loops.

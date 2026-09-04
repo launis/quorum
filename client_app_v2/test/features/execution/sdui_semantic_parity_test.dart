@@ -16,13 +16,12 @@ void main() {
     const dumpPath = String.fromEnvironment('DUMP_PATH');
 
     if (goldenPath.isEmpty || dumpPath.isEmpty) {
-      print('Skipping SDUI parity test: GOLDEN_PATH or DUMP_PATH missing.');
       return;
     }
 
     final goldenFile = File(goldenPath);
     if (!goldenFile.existsSync()) {
-      throw Exception('Golden file not found at $goldenPath');
+      throw StateError('Golden file not found at $goldenPath');
     }
 
     final jsonStr = goldenFile.readAsStringSync();
@@ -37,35 +36,35 @@ void main() {
     addTearDown(() => tester.view.resetPhysicalSize());
     addTearDown(() => tester.view.resetDevicePixelRatio());
 
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: const Locale('en'), // We enforce English for the parity test
-        home: Scaffold(
-          body: ReportRendererV2Widget(
-            payload: payload,
-            executionId: 'parity_test_exec',
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'), // We enforce English for the parity test
+          home: Scaffold(
+            body: ReportRendererV2Widget(
+              payload: payload,
+              executionId: 'parity_test_exec',
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    final semanticNode = tester.getSemantics(
-      find.byType(ReportRendererV2Widget),
-    );
+      final semanticNode = tester.getSemantics(
+        find.byType(ReportRendererV2Widget),
+      );
 
-    final textSequence = <String>[];
-    _extractSemantics(semanticNode, textSequence);
+      final textSequence = <String>[];
+      _extractSemantics(semanticNode, textSequence);
 
-    final dumpFile = File(dumpPath);
-    dumpFile.writeAsStringSync(jsonEncode(textSequence));
-    print(
-      'Successfully extracted ${textSequence.length} semantic tokens to $dumpPath',
-    );
-    semanticsHandle.dispose();
+      final dumpFile = File(dumpPath);
+      dumpFile.writeAsStringSync(jsonEncode(textSequence));
+    } finally {
+      semanticsHandle.dispose();
+    }
   });
 }
 

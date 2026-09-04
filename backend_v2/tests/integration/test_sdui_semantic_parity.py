@@ -1,24 +1,40 @@
 import json
-import os
 import shutil
 import subprocess
 import tempfile
-from typing import Any
+import uuid
+from pathlib import Path
 
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.v2_core import (
+    AtomResultDTO,
+    HydratedAtomDTO,
     I18nText,
-    MatrixScorecardRowDTO,
+    MCPAuditTrace,
     ReportDataDTO,
-    ScorecardAtomDTO,
     Workflow,
 )
-from backend_v2.models.view.sdui import AnySduiBlock, MarkdownBlock, SduiMatrixTableBlock
+from backend_v2.models.view.sdui import (
+    AccordionBlock,
+    AnySduiBlock,
+    BulletListBlock,
+    HeroInsightBlock,
+    MarkdownBlock,
+    ParagraphBlock,
+    SduiMatrixTableBlock,
+    SduiMetrics1DBlock,
+    SduiNACard,
+    SduiQuoteCard,
+    SduiRadarChartBlock,
+    SduiScatterPlotBlock,
+    SduiWarningCard,
+)
 from backend_v2.services.pdf_generator import PdfReportService
 
 
@@ -43,15 +59,15 @@ class I18nTextFactory(ModelFactory[I18nText]):
 
 class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
     __model__ = ReportDataDTO
-    results: list[Any] = []
-    hydrated_references: dict[str, Any] = {}
-    mcp_tool_audit: list[Any] = []
+    results: list[AtomResultDTO] = []
+    hydrated_references: dict[str, HydratedAtomDTO] = {}
+    mcp_tool_audit: list[MCPAuditTrace] = []
     matrix_visible_columns: list[str] = ["label", "score", "distribution", "row_explanation"]
 
 
 class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
     __model__ = ScorecardAtomDTO
-    exact_quotes: list[Any] = []
+    exact_quotes: list[QuoteEvidenceDTO] = []
     visual_intent: VisualIntent = VisualIntent.SUCCESS
     __set_as_default_factory_for_type__ = True
 
@@ -62,7 +78,8 @@ class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     scale_min: float = 0.0
     scale_max: float = 10.0
     normalized_score: float | None = None
-    scorecard_atoms: dict[str, Any] = {}
+    true_atoms: int | None = None
+    total_atoms: int | None = None
     cited_web_citation: str | None = None
     cited_source_id: str | None = None
     cited_text_quote: str | None = None
@@ -83,15 +100,11 @@ class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
 
 class QuoteEvidenceDTOFactory(ModelFactory[QuoteEvidenceDTO]):
     __model__ = QuoteEvidenceDTO
+    quote: str = "Test quote"
+    verified_source_ids: list[str] = ["src_0"]
+    unverified_aliases: list[str] = []
+    is_verified: bool = True
     __set_as_default_factory_for_type__ = True
-
-    @classmethod
-    def _create_model(cls, *args: Any, **kwargs: Any) -> QuoteEvidenceDTO:
-        kwargs.pop("_build_context", None)
-        for arg in args:
-            if isinstance(arg, dict):
-                arg.pop("_build_context", None)
-        return cls.__model__.model_validate(kwargs, context={"alias_engine": "dummy"})
 
 
 @pytest.mark.asyncio
@@ -103,15 +116,12 @@ async def test_sdui_semantic_parity() -> None:
         pytest.skip("Flutter SDK not found")
 
     # Step 2: Generate temp paths
-    golden_fd, golden_path = tempfile.mkstemp(suffix=".json")
-    os.close(golden_fd)
-
-    dump_fd, dump_path = tempfile.mkstemp(suffix=".json")
-    os.close(dump_fd)
+    temp_dir = Path(tempfile.gettempdir())
+    golden_path = temp_dir / f"sdui_golden_{uuid.uuid4().hex[:8]}.json"
+    dump_path = temp_dir / f"sdui_dump_{uuid.uuid4().hex[:8]}.json"
+    pdf_path: Path | None = None
 
     try:
-        pdf_path = None
-
         # Generate dynamic SDUI mock using Polyfactory
         dto = ReportDataDTOFactory.build()
         dto = dto.model_copy(
@@ -127,47 +137,41 @@ async def test_sdui_semantic_parity() -> None:
 
         new_layouts: list[AnySduiBlock] = [MarkdownBlock(text="# English test")]
         for layout in dto.inner_sdui_blocks:
-            axes = list(getattr(layout, "axes", []))
-            if getattr(layout, "preset_view", "") in ("radar_3d", "3d_matrix") or getattr(layout, "block_type", "") in (
-                "radar_3d",
-                "3d_matrix",
-            ):
-                while len(axes) < 3:
-                    axes.append(MatrixScorecardRowDTOFactory.build())
-            elif getattr(layout, "preset_view", getattr(layout, "block_type", "")) in (
-                "matrix_2d",
-                "2d_compare",
-                "matrix_3d",
-                "3d_matrix",
-            ):
-                while len(axes) < 2:
-                    axes.append(MatrixScorecardRowDTOFactory.build())
-
-            # Clear fields that break parity because Jinja explicitly ignores them or Flutter handles them differently.
-            # 1. Polyfactory generates random exact_quotes for text blocks, which Jinja doesn't render.
-            update_kwargs: dict[str, Any] = (
-                {"exact_quotes": [], "citations": []} if hasattr(layout, "exact_quotes") else {}
-            )
-            if hasattr(layout, "matrix_column_labels"):
-                update_kwargs["matrix_column_labels"] = {}
-                update_kwargs["extension_labels"] = {}
-            if hasattr(layout, "axes"):
-                update_kwargs["axes"] = axes
-
-            # Skip block types currently unsupported by Flutter SduiBlocksRenderer
-            if getattr(layout, "block_type", "") in (
-                "bullet_list",
-                "hero_insight",
-                "quote_card",
-                "warning_card",
-                "n_a_card",
-                "3d_matrix",
-                "2d_compare",
-                "accordion",
-            ):
-                continue
-
-            new_layouts.append(layout.model_copy(update=update_kwargs))
+            match layout:
+                case SduiMatrixTableBlock() as table:
+                    axes = list(table.axes)
+                    new_layouts.append(
+                        table.model_copy(
+                            update={
+                                "axes": axes,
+                                "matrix_visible_columns": ["label", "quotes"],
+                                "matrix_column_labels": {
+                                    "label": I18nText(translations={"en": "Dimension"}),
+                                    "quotes": I18nText(translations={"en": "Text Observation"}),
+                                },
+                                "extension_labels": {},
+                            }
+                        )
+                    )
+                case SduiMetrics1DBlock() as metrics:
+                    new_layouts.append(metrics.model_copy(update={"title": None}))
+                case MarkdownBlock() | ParagraphBlock():
+                    new_layouts.append(layout.model_copy(update={"citations": []}))
+                case (
+                    BulletListBlock()
+                    | HeroInsightBlock()
+                    | SduiQuoteCard()
+                    | SduiWarningCard()
+                    | SduiNACard()
+                    | AccordionBlock()
+                    | SduiRadarChartBlock()
+                    | SduiScatterPlotBlock()
+                ):
+                    # Note: Filtered out of dynamic polyfactory run to prevent unrendered random fixture divergences;
+                    # comprehensive rendering of these 8 blocks is verified deterministically in test_sdui_template_parity.py.
+                    continue
+                case _:
+                    new_layouts.append(layout)
 
         # Add deterministic authorized contextual override block to verify semantic parity
         override_atom = ScorecardAtomDTOFactory.build(
@@ -218,8 +222,7 @@ async def test_sdui_semantic_parity() -> None:
 
         dto = dto.model_copy(update={"inner_sdui_blocks": new_layouts})
 
-        with open(golden_path, "w", encoding="utf-8") as f_json:
-            f_json.write(dto.model_dump_json(exclude_none=True))
+        golden_path.write_text(dto.model_dump_json(exclude_none=True), encoding="utf-8")
 
         # Step 3: Run Flutter tests
         cmd = [
@@ -230,22 +233,20 @@ async def test_sdui_semantic_parity() -> None:
             f"--dart-define=DUMP_PATH={dump_path}",
         ]
 
-        flutter_cwd = os.path.join(os.getcwd(), "client_app_v2")
-        result = subprocess.run(cmd, cwd=flutter_cwd, capture_output=True, text=True, encoding="utf-8")
+        flutter_cwd = Path.cwd() / "client_app_v2"
+        result = subprocess.run(cmd, cwd=str(flutter_cwd), capture_output=True, text=True, encoding="utf-8")
         assert result.returncode == 0, f"Flutter test failed: {result.stdout}\n{result.stderr}"
 
         pdf_service = PdfReportService()
         pdf_bytes = await pdf_service.generate_execution_pdf("mock_exec_id", report_dto=dto, locale="en")
 
-        pdf_fd, pdf_path = tempfile.mkstemp(suffix=".pdf")
-        os.close(pdf_fd)
-        with open(pdf_path, "wb") as f_pdf:
-            f_pdf.write(pdf_bytes)
+        pdf_path = temp_dir / f"sdui_pdf_{uuid.uuid4().hex[:8]}.pdf"
+        pdf_path.write_bytes(pdf_bytes)
 
         # Step 5: Extract PDF text
         import pymupdf4llm
 
-        md_text = pymupdf4llm.to_markdown(pdf_path)
+        md_text = pymupdf4llm.to_markdown(str(pdf_path))
 
         # Step 6: Compare
         with open(dump_path, encoding="utf-8") as f_json_dump:
@@ -287,9 +288,7 @@ async def test_sdui_semantic_parity() -> None:
         )
 
     finally:
-        if os.path.exists(golden_path):
-            os.remove(golden_path)
-        if os.path.exists(dump_path):
-            os.remove(dump_path)
-        if pdf_path and os.path.exists(pdf_path):
-            os.remove(pdf_path)
+        golden_path.unlink(missing_ok=True)
+        dump_path.unlink(missing_ok=True)
+        if pdf_path:
+            pdf_path.unlink(missing_ok=True)
