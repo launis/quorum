@@ -5,7 +5,10 @@ The Enriched Atom Graph Engine transforms flat text extraction into a causal, co
 ## Core Architectural Components
 
 ### 1. Extractive Sensor Service
-The sensor service handles extracting raw boolean values using the `BooleanEvaluationResult` DTO, relying on LLM structured execution. It uses `execute_structured_task` to execute robust boolean validation on evaluation paths.
+The sensor service handles extracting raw boolean values using the `BooleanEvaluationResult` DTO, relying on LLM structured execution (`execute_structured_task`) to execute robust validation on evaluation paths. To achieve high self-consistency and zero-crash fault tolerance in high-entropy prompt blocks, it leverages a single-pass parallel **Best-of-Three Flash ensemble** wrapped in `asyncio.TaskGroup`:
+- **Consensus Resolution (`resolve_majority_vote`):** Requires at least 2 valid results (out of 3 parallel calls) and adopts a consensus status whenever a 2/3 majority is reached.
+- **Null Hypothesis Epistemic Tie-Breaker:** For inconclusive split votes (e.g., 1 PASS, 1 FAIL, 1 ERROR), the tie is resolved using an $O(1)$ pre-computed polarity mapping (`is_inverse_map`). Inverse assertions (`is_inverse=True`, evaluating absence of error) resolve to `PASSED` under the presumption of innocence, while standard positive assertions (`is_inverse=False`, requiring concrete proof) resolve to `FAILED` under the Null Hypothesis.
+- **Forensic Guarantee:** Preserves valid evidence quotes on winning consensus while strictly forbidding quote hallucination on tie-broken or failed atoms.
 
 ### 2. Topological Evaluator
 The absolute SSOT for Directed Acyclic Graph (DAG) state evaluation. It uses a non-blocking `asyncio.TaskGroup` to execute the node graph simultaneously:
