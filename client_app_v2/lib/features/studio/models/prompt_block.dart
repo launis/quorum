@@ -245,6 +245,7 @@ sealed class PromptBlock with _$PromptBlock {
     List<I18nText>? columns,
     @JsonKey(name: 'computed_min') int? computedMin,
     @JsonKey(name: 'computed_max') int? computedMax,
+    @JsonKey(name: 'target_input_key') String? targetInputKey,
   }) = MatrixPromptBlock;
 
   @FreezedUnionValue('system_rule')

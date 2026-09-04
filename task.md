@@ -16,16 +16,16 @@ Implementation Plan: `docs/implementationplans/IMPLEMENTATION_PLAN_Scoring_Doubl
   - [x] Step 2.1: Surgically update `matrix_hook.py` (lines 351–377) to eliminate `is_satisfied = not tda.inverse_evidence`
   - [x] Step 2.2: Verify with unit test `uv run pytest backend_v2/tests/unit/hooks/test_scoring.py -k "test_matrix_scoring_hook"`
 
-- [ ] **Phase 3: Context Target Input Resolution, Flutter Model Parity & Clean-Slate Local Seeding**
-  - [ ] Step 3.1: Verify `MatrixPromptBlock.target_input_key` in `backend_v2/models/domain/prompt_blocks.py`
-  - [ ] Step 3.2: Add `@JsonKey(name: 'target_input_key') String? targetInputKey` to `PromptBlock.matrix` in `client_app_v2/lib/features/studio/models/prompt_block.dart`
-  - [ ] Step 3.3: Run Flutter build runner to regenerate Freezed and JsonSerializable code
-  - [ ] Step 3.4: Preserve `targetInputKey` in `client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart`
-  - [ ] Step 3.5: Populate `target_input_key` across all 13 matrix prompt blocks in `backend_v2/seed/seed_data.json`
-  - [ ] Step 3.6: Add `matrix_target_all` and `matrix_target_chat_log` translations in `fi.json` and `en.json`
-  - [ ] Step 3.7: Execute clean-slate local seeding (`uv run python backend_v2/seed/run_seed.py local`)
-  - [ ] Step 3.8: Replace legacy first-item break loop in `matrix_domain_parser.py` with three-tier deterministic resolution
-  - [ ] Step 3.9: Run backend audit loop and flutter domain parity test
+- [x] **Phase 3: Context Target Input Resolution, Flutter Model Parity & Clean-Slate Local Seeding**
+  - [x] Step 3.1: Verify `MatrixPromptBlock.target_input_key` in `backend_v2/models/domain/prompt_blocks.py`
+  - [x] Step 3.2: Add `@JsonKey(name: 'target_input_key') String? targetInputKey` to `PromptBlock.matrix` in `client_app_v2/lib/features/studio/models/prompt_block.dart`
+  - [x] Step 3.3: Run Flutter build runner to regenerate Freezed and JsonSerializable code
+  - [x] Step 3.4: Preserve `targetInputKey` in `client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart`
+  - [x] Step 3.5: Populate `target_input_key` across all 13 matrix prompt blocks in `backend_v2/seed/seed_data.json`
+  - [x] Step 3.6: Add `matrix_target_all` and `matrix_target_chat_log` translations in `fi.json` and `en.json`
+  - [x] Step 3.7: Execute clean-slate local seeding (`uv run python backend_v2/seed/run_seed.py local`)
+  - [x] Step 3.8: Replace legacy first-item break loop in `matrix_domain_parser.py` with three-tier deterministic resolution
+  - [x] Step 3.9: Run backend audit loop and flutter domain parity test
 
 - [ ] **Phase 4: Sensor Quote Extraction Pipeline, AtomEvaluationResultDTO & Language-Agnostic Caching Prefix**
   - [ ] Step 4.1: Define `AtomEvaluationResultDTO` in `backend_v2/models/dtos/dag_models.py` and add `source_quote` to `AtomExecutionState`

@@ -348,6 +348,7 @@
       "allow_decimals": true,
       "allow_contextual_override": true,
       "is_lightweight_protocol": false,
+      "target_input_key": "product_text",
       "ai_description": "OBJECTIVE:\nEvaluate the argument's robustness using Stephen Toulmin's Model of Argumentation.",
       "scales": [
         {
@@ -1526,6 +1527,7 @@
       "allow_decimals": true,
       "allow_contextual_override": true,
       "is_lightweight_protocol": false,
+      "target_input_key": "product_text",
       "ai_description": "OBJECTIVE:\nEvaluate the cognitive depth and intellectual complexity using the Revised Bloom's Taxonomy (Anderson & Krathwohl, 2001).",
       "scales": [
         {
@@ -3030,6 +3032,7 @@
       "allow_decimals": true,
       "allow_contextual_override": true,
       "is_lightweight_protocol": false,
+      "target_input_key": "all",
       "ai_description": "OBJECTIVE:\nEvaluate the cognitive mode of operation using Kahneman's Dual Process Theory.",
       "scales": [
         {
@@ -3808,6 +3811,7 @@
       "allow_decimals": true,
       "allow_contextual_override": true,
       "is_lightweight_protocol": false,
+      "target_input_key": "chat_log",
       "ai_description": "OBJECTIVE:\nEvaluate the user's interaction dynamic (Driver vs. Passenger) and susceptibility to Goodhart's Law and Performativity.",
       "scales": [
         {
@@ -5207,6 +5211,7 @@
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": true,
+      "target_input_key": "all",
       "ai_description": "OBJECTIVE:\nEvaluate strict adherence to operational guidelines, verifiable provenance, and structural integrity based on established archival frameworks.",
       "scales": [
         {
@@ -6469,6 +6474,7 @@
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": true,
+      "target_input_key": "product_text",
       "ai_description": "OBJECTIVE:\nEvaluate the structural integrity of causal claims, distinguishing between Pearl's three rungs of causation: Association (Rung 1), Intervention (Rung 2), and Counterfactuals (Rung 3).",
       "scales": [
         {
@@ -7629,6 +7635,7 @@
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": false,
+      "target_input_key": "all",
       "ai_description": "OBJECTIVE:\nEvaluate the author's epistemological rigor and their active attempts to falsify their own hypothesis, preventing confirmation bias.",
       "scales": [
         {
@@ -8577,6 +8584,7 @@
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": false,
+      "target_input_key": "chat_log",
       "ai_description": "OBJECTIVE:\nEvaluate the user's executive control and process ownership over the AI, distinguishing between a passive 'passenger' and a proactive 'Supreme Adjudicator' (Process Owner).",
       "scales": [
         {
@@ -9794,6 +9802,7 @@
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": true,
+      "target_input_key": "all",
       "ai_description": "OBJECTIVE:\nEvaluate the Explainable Artificial Intelligence (XAI) transparency, traceability, and logical coherence of the final synthesized recommendation.",
       "scales": [
         {
@@ -11144,6 +11153,7 @@
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": false,
+      "target_input_key": "all",
       "ai_description": "ROLE: GUARDIAN / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)\nTASK:\nScrutinize all inputs and outputs for ethical tensions, security vulnerabilities (specifically OWASP LLM Top 10), and systemic biases.\nMANDATE:\nAssume the interaction is vulnerable to injection, overreliance, or data leakage, and that assumptions are presented as facts. Do NOT give the benefit of the doubt. You must actively search for flaws. A perfect score demands explicit documentation of security reasoning (Cognitive Friction) and strict anchoring to established frameworks.",
       "scales": [
         {
@@ -12405,6 +12415,7 @@
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": true,
+      "target_input_key": "all",
       "ai_description": "ROLE: CAUSAL AUDITOR / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)\nTASK:\nScrutinize the user's claimed causal influence over the AI's output using Judea Pearl's framework of causal inference. Act as a Bounty Hunter to expose post-hoc rationalizations.\nMANDATE:\nAssume any claimed causal link is a post-hoc fallacy, that the user is intellectually lazy, and that any success was stochastic. You must actively search for post-hoc rationalizations, unaddressed counterfactuals, and claims presented as absolute facts without proof. Do NOT give the benefit of the doubt. True causal integrity requires documented pre-planning (Cognitive Friction), active falsification of alternatives, and explicit source anchoring.\n Strictly adhere to 'user:' and 'ai:' prefixes where applicable. Differentiate between user intent and AI stochastic generation. \n Do not evaluate subjective terms like 'justified', 'good', or 'logical'. Use structural thresholds (e.g., number of steps, presence of counterfactual markers).",
       "scales": [
         {
@@ -13764,6 +13775,7 @@
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": false,
+      "target_input_key": "all",
       "ai_description": "ROLE: XAI AUDITOR / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)\nTASK:\nEvaluate the system's capacity to generate a fully intelligible and transparent report for the end-user using Lipton's framework of model interpretability.\nMANDATE:\nAssume the explanation is a post-hoc rationalization or a black box. Do NOT give the benefit of the doubt. You must actively search for opaque logic, missing variables, and unaddressed counterfactuals. True transparency requires explicit tracing from inputs to conclusions (Decomposability), documented System 2 friction, and dialectical synthesis.\n Strictly adhere to 'user:' and 'ai:' prefixes where applicable. Differentiate between user input and AI generative reasoning. \n Do not evaluate subjective terms like 'clear', 'understandable', or 'good'. Use structural thresholds (e.g., presence of specific variable names, numerical weights, multi-step sequences).",
       "scales": [
         {
@@ -15472,6 +15484,7 @@
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": true,
+      "target_input_key": "all",
       "ai_description": "ROLE: EPISTEMIC AUDITOR (ZERO-TRUST)\nTASK:\nEvaluate the text for epistemic humility vs. System 1 WYSIATI (What You See Is All There Is) overconfidence.\nMANDATE:\nExecute strict lexical scanning. Do not evaluate subjective 'arrogance'. Count data points, locate specific hedging markers, and map exact quotes.",
       "scales": [
         {

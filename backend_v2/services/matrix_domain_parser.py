@@ -24,6 +24,7 @@ from backend_v2.models.v2_core import (
     StepRule,
 )
 from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.services.localization import LocalizationService
 from backend_v2.utils.math_utils import scale_to_custom_range
 
 __all__ = ["MatrixDomainParser"]
@@ -488,31 +489,56 @@ class MatrixDomainParser:
             # Implementation Plan Phase 3, Step 1: Set inner_sdui_blocks=[]
             inner_sdui_blocks: list[AnySduiBlock] = []
 
-            # Resolve context_target and context_target_label from StepRule input_mappings
-            context_target = None
-            context_target_label = None
-            step_rule = None
+            # Three-Tier Deterministic Context Target Resolution
+            context_target: str | None = None
+            context_target_label: I18nText | None = None
+            step_rule: StepRule | None = None
             if step_id in workflow_steps:
                 step_rule = workflow_steps[step_id]
+
             input_mappings = None
             if isinstance(step_rule, StepRule):
                 input_mappings = step_rule.input_mappings
-            if input_mappings and isinstance(input_mappings, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                # Find input mapping pointing to $inputs
-                for mapped_val in input_mappings.values():
-                    if isinstance(mapped_val, str) and mapped_val.startswith("$inputs."):
-                        context_target = mapped_val.split("$inputs.", 1)[1].strip()
-                        break
-                    elif isinstance(mapped_val, str) and not mapped_val.startswith("$"):
-                        context_target = mapped_val.strip()
-                        break
 
-            if context_target:
+            step_input_keys: list[str] = []
+            if input_mappings and isinstance(input_mappings, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+                for mapped_val in input_mappings.values():
+                    if isinstance(mapped_val, str):
+                        if mapped_val.startswith("$inputs."):
+                            k = mapped_val.split("$inputs.", 1)[1].strip()
+                            if k and k not in step_input_keys:
+                                step_input_keys.append(k)
+                        elif not mapped_val.startswith("$"):
+                            k = mapped_val.strip()
+                            if k and k not in step_input_keys:
+                                step_input_keys.append(k)
+
+            # Tier 1: Single-Input Step
+            if len(step_input_keys) == 1:
+                context_target = step_input_keys[0]
+            # Tier 2: Multi-Input Step with Explicit Matrix SSOT
+            elif len(step_input_keys) > 1:
+                target_key = pb_meta.target_input_key
+                if target_key in ("chat_log", "product_text"):
+                    context_target = target_key
+                else:
+                    context_target = "all"
+            elif pb_meta.target_input_key is not None:
+                context_target = pb_meta.target_input_key
+
+            # Tier 3: Label Resolution
+            if context_target is not None:
                 input_def = None
                 if expected_inputs_map and context_target in expected_inputs_map:
                     input_def = expected_inputs_map[context_target]
+
                 if input_def and input_def.label:
                     context_target_label = input_def.label
+                elif context_target in ("all", "chat_log", "product_text"):
+                    l10n_key = f"matrix_target_{context_target}"
+                    fi_label = LocalizationService.translate(l10n_key, "fi")
+                    en_label = LocalizationService.translate(l10n_key, "en")
+                    context_target_label = I18nText(translations={"fi": fi_label, "en": en_label})
                 else:
                     context_target_label = I18nText(translations={"fi": context_target, "en": context_target})
 

@@ -441,6 +441,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                           isLightweightProtocol:
                                               payload.isLightweightProtocol,
                                           scales: const [],
+                                          targetInputKey:
+                                              payload is MatrixPromptBlock
+                                              ? payload.targetInputKey
+                                              : null,
                                         ),
                                       PromptBlockCategory.systemRule =>
                                         PromptBlock.systemRule(

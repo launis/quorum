@@ -408,6 +408,7 @@ MatrixPromptBlock _$MatrixPromptBlockFromJson(
         'columns',
         'computed_min',
         'computed_max',
+        'target_input_key',
         'category_id',
       ],
     );
@@ -477,6 +478,7 @@ MatrixPromptBlock _$MatrixPromptBlockFromJson(
       ),
       computedMin: $checkedConvert('computed_min', (v) => (v as num?)?.toInt()),
       computedMax: $checkedConvert('computed_max', (v) => (v as num?)?.toInt()),
+      targetInputKey: $checkedConvert('target_input_key', (v) => v as String?),
       $type: $checkedConvert('category_id', (v) => v as String?),
     );
     return val;
@@ -492,6 +494,7 @@ MatrixPromptBlock _$MatrixPromptBlockFromJson(
     'isLightweightProtocol': 'is_lightweight_protocol',
     'computedMin': 'computed_min',
     'computedMax': 'computed_max',
+    'targetInputKey': 'target_input_key',
     r'$type': 'category_id',
   },
 );
@@ -516,6 +519,7 @@ Map<String, dynamic> _$MatrixPromptBlockToJson(MatrixPromptBlock instance) =>
       'columns': instance.columns?.map((e) => e.toJson()).toList(),
       'computed_min': instance.computedMin,
       'computed_max': instance.computedMax,
+      'target_input_key': instance.targetInputKey,
       'category_id': instance.$type,
     };
 
