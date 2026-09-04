@@ -10,7 +10,7 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.enums import VisualIntent
+from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixScorecardRowDTO,
@@ -18,6 +18,7 @@ from backend_v2.models.v2_core import (
     ScorecardAtomDTO,
     Workflow,
 )
+from backend_v2.models.view.sdui import AnySduiBlock, MarkdownBlock, SduiMatrixTableBlock
 from backend_v2.services.pdf_generator import PdfReportService
 
 
@@ -75,6 +76,8 @@ class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     semantic_reasoning: str | None = None
     score_display_label: str | None = "5.0 / 10.0"
     risk_flag: bool | None = None
+    context_target: str | None = None
+    context_target_label: I18nText | None = None
     __set_as_default_factory_for_type__ = True
 
 
@@ -122,9 +125,7 @@ async def test_sdui_semantic_parity() -> None:
             }
         )  # Clear random dicts and explicitly mock profile_name to prevent Jinja crashes and ensure parity
 
-        from backend_v2.models.view.sdui import MarkdownBlock
-
-        new_layouts = [MarkdownBlock(text="# English test")]
+        new_layouts: list[AnySduiBlock] = [MarkdownBlock(text="# English test")]
         for layout in dto.inner_sdui_blocks:
             axes = list(getattr(layout, "axes", []))
             if getattr(layout, "preset_view", "") in ("radar_3d", "3d_matrix") or getattr(layout, "block_type", "") in (
@@ -144,7 +145,9 @@ async def test_sdui_semantic_parity() -> None:
 
             # Clear fields that break parity because Jinja explicitly ignores them or Flutter handles them differently.
             # 1. Polyfactory generates random exact_quotes for text blocks, which Jinja doesn't render.
-            update_kwargs = {"exact_quotes": [], "citations": []} if hasattr(layout, "exact_quotes") else {}
+            update_kwargs: dict[str, Any] = (
+                {"exact_quotes": [], "citations": []} if hasattr(layout, "exact_quotes") else {}
+            )
             if hasattr(layout, "matrix_column_labels"):
                 update_kwargs["matrix_column_labels"] = {}
                 update_kwargs["extension_labels"] = {}
@@ -160,10 +163,58 @@ async def test_sdui_semantic_parity() -> None:
                 "n_a_card",
                 "3d_matrix",
                 "2d_compare",
+                "accordion",
             ):
                 continue
 
             new_layouts.append(layout.model_copy(update=update_kwargs))
+
+        # Add deterministic authorized contextual override block to verify semantic parity
+        override_atom = ScorecardAtomDTOFactory.build(
+            atom_id="atm_parity_override",
+            level=1,
+            level_name="Foundation Level",
+            claim_label="Parity Override Claim",
+            exact_quotes=[],
+            internal_logic_en=ReasoningStepDTO(
+                step_1_identify_premise="Premise",
+                step_2_scan_source="Source",
+                step_3_evaluate_anti_patterns="AntiPatterns",
+                step_4_final_conclusion="Conclusion",
+            ),
+            status=ExecutionStatus.PASSED,
+            semantic_reasoning="Parity cognitive override observation text",
+            contextual_override=True,
+            chart_display_label="Parity Override",
+            visual_intent=VisualIntent.WARNING,
+        )
+        override_axis = MatrixScorecardRowDTOFactory.build(
+            block_id="axis_parity_override",
+            name="Parity Strategic Leadership",
+            label_i18n=I18nText(translations={"en": "Parity Strategic Leadership"}),
+            row_explanation="Parity leadership explanation.",
+            score=8.5,
+            scale_min=0.0,
+            scale_max=10.0,
+            score_display_label="8.5 / 10.0",
+            is_evaluative=True,
+            allow_contextual_override=True,
+            level_names={"1": "Foundation Level"},
+            level_breakdown={"1": "1/1"},
+            evaluated_atoms=[override_atom],
+            context_target=None,
+            context_target_label=None,
+        )
+        parity_matrix_block = SduiMatrixTableBlock(
+            title=I18nText(translations={"en": "Parity Matrix Table"}),
+            matrix_visible_columns=["label", "quotes"],
+            matrix_column_labels={
+                "label": I18nText(translations={"en": "Dimension"}),
+                "quotes": I18nText(translations={"en": "Text Observation"}),
+            },
+            axes=[override_axis],
+        )
+        new_layouts.append(parity_matrix_block)
 
         dto = dto.model_copy(update={"inner_sdui_blocks": new_layouts})
 
@@ -204,7 +255,10 @@ async def test_sdui_semantic_parity() -> None:
         # This proves the Dumb Painter architecture is in perfect sync with Jinja PDF.
         def clean_md(text: str) -> str:
             return (
-                text.replace("**", "")
+                text.replace("<br>", " ")
+                .replace("<br/>", " ")
+                .replace("<br />", " ")
+                .replace("**", "")
                 .replace("*", "")
                 .replace("_", "")
                 .replace("### ", "")
@@ -222,6 +276,15 @@ async def test_sdui_semantic_parity() -> None:
                 assert token in cleaned_md, (
                     f"Flutter semantic token '{token}' missing from PDF output! PDF Context: {cleaned_md}"
                 )
+
+        # Verify authorized contextual override semantic parity between Flutter and PDF
+        expected_override_token = "Parity Override Claim: Parity cognitive override observation text"
+        assert expected_override_token in cleaned_md, (
+            f"Contextual override text '{expected_override_token}' missing from PDF output! PDF Context: {cleaned_md}"
+        )
+        assert any(expected_override_token in clean_md(str(f_str)) for f_str in flutter_text_sequence), (
+            f"Contextual override text '{expected_override_token}' missing from Flutter extracted tokens!"
+        )
 
     finally:
         if os.path.exists(golden_path):

@@ -118,6 +118,7 @@ void main() {
       expect(find.text('85.0 %'), findsOneWidget);
       expect(find.text('8.5 / 10'), findsOneWidget);
       expect(find.text('- Atom 1 Label'), findsOneWidget);
+      expect(find.text('Basic Claim:'), findsOneWidget);
       expect(find.text('"Verbatim evidence quote from doc"'), findsOneWidget);
       expect(find.text('Popper (1959)'), findsOneWidget);
     },
@@ -252,6 +253,252 @@ void main() {
       // Badge in label cell and text in dedicated column
       expect(find.text('financials_q3.pdf'), findsNWidgets(2));
       expect(find.text('Focus on downside protection.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'SduiMatrixTableWidget renders cognitive override with bold prefix and italic explanation when authorized',
+    (WidgetTester tester) async {
+      const atomOverride = ScorecardAtomDto(
+        atomId: 'atm_override_1',
+        level: 2,
+        levelName: 'Advanced Level',
+        claimLabel: 'Override Criterion',
+        extractedFacts: {},
+        exactQuotes: [],
+        internalLogicEn: ReasoningStepDto(
+          step1IdentifyPremise: '',
+          step2ScanSource: '',
+          step3EvaluateAntiPatterns: '',
+          step4FinalConclusion: '',
+        ),
+        status: ExecutionStatus.passed,
+        semanticReasoning: 'Cognitive override explanation text',
+        contextualOverride: true,
+        chartDisplayLabel: 'Atom Override Label',
+        visualIntent: VisualIntent.warning,
+      );
+
+      final block = SduiMatrixTableBlock(
+        title: const I18nText(
+          translations: {'en': 'Override Test Table', 'fi': 'Testitaulukko'},
+        ),
+        matrixVisibleColumns: const ['label', 'quotes'],
+        matrixColumnLabels: const {
+          'label': I18nText(translations: {'en': 'Dimension'}),
+          'quotes': I18nText(translations: {'en': 'Text Observation'}),
+        },
+        axes: [
+          const MatrixScorecardRowDto(
+            blockId: 'axis_override',
+            name: 'Strategic Agility',
+            labelI18n: I18nText(translations: {'en': 'Strategic Agility'}),
+            rowExplanation: 'Strategy override.',
+            isEvaluative: true,
+            allowContextualOverride: true,
+            levelNames: {'2': 'Advanced Level'},
+            levelBreakdown: {'2': '1/1'},
+            evaluatedAtoms: [atomOverride],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(1200, 800)),
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: SduiMatrixTableWidget(block: block),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Strategic Agility * **'), findsOneWidget);
+      expect(find.text('2 - Advanced Level'), findsOneWidget);
+      expect(
+        find.text('** Override Criterion: Cognitive override explanation text'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'SduiMatrixTableWidget suppresses cognitive override and renders dash when allowContextualOverride is false',
+    (WidgetTester tester) async {
+      const atomUnauthorized = ScorecardAtomDto(
+        atomId: 'atm_unauth_1',
+        level: 1,
+        levelName: 'Basic Level',
+        claimLabel: 'Unauthorized Override',
+        extractedFacts: {},
+        exactQuotes: [],
+        internalLogicEn: ReasoningStepDto(
+          step1IdentifyPremise: '',
+          step2ScanSource: '',
+          step3EvaluateAntiPatterns: '',
+          step4FinalConclusion: '',
+        ),
+        status: ExecutionStatus.passed,
+        semanticReasoning: 'Unauthorized cognitive explanation',
+        contextualOverride: true,
+        chartDisplayLabel: 'Atom Unauth Label',
+        visualIntent: VisualIntent.neutral,
+      );
+
+      final block = SduiMatrixTableBlock(
+        title: const I18nText(
+          translations: {
+            'en': 'Unauthorized Test Table',
+            'fi': 'Testitaulukko',
+          },
+        ),
+        matrixVisibleColumns: const ['label', 'quotes'],
+        matrixColumnLabels: const {
+          'label': I18nText(translations: {'en': 'Dimension'}),
+          'quotes': I18nText(translations: {'en': 'Text Observation'}),
+        },
+        axes: [
+          const MatrixScorecardRowDto(
+            blockId: 'axis_unauth',
+            name: 'Strict Compliance',
+            labelI18n: I18nText(translations: {'en': 'Strict Compliance'}),
+            rowExplanation: 'Strict compliance required.',
+            isEvaluative: true,
+            allowContextualOverride: false,
+            levelNames: {'1': 'Basic Level'},
+            levelBreakdown: {'1': '1/1'},
+            evaluatedAtoms: [atomUnauthorized],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(1200, 800)),
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: SduiMatrixTableWidget(block: block),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Strict Compliance *'), findsOneWidget);
+      expect(find.text('Unauthorized cognitive explanation'), findsNothing);
+      expect(find.text('-'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'SduiMatrixTableWidget renders both criterion quote and contextual override in composite level',
+    (WidgetTester tester) async {
+      const atomQuote = ScorecardAtomDto(
+        atomId: 'atm_quote_1',
+        level: 1,
+        levelName: 'Foundation Level',
+        claimLabel: 'Document Evidence Claim',
+        extractedFacts: {},
+        exactQuotes: [
+          QuoteEvidenceDto(quote: 'Direct evidence found in document.'),
+        ],
+        internalLogicEn: ReasoningStepDto(
+          step1IdentifyPremise: '',
+          step2ScanSource: '',
+          step3EvaluateAntiPatterns: '',
+          step4FinalConclusion: '',
+        ),
+        status: ExecutionStatus.passed,
+        semanticReasoning: 'Exact quote confirmed',
+        contextualOverride: false,
+        chartDisplayLabel: 'Atom Quote',
+        visualIntent: VisualIntent.success,
+      );
+
+      const atomOverride = ScorecardAtomDto(
+        atomId: 'atm_override_2',
+        level: 1,
+        levelName: 'Foundation Level',
+        claimLabel: 'Synthetic Override Claim',
+        extractedFacts: {},
+        exactQuotes: [],
+        internalLogicEn: ReasoningStepDto(
+          step1IdentifyPremise: '',
+          step2ScanSource: '',
+          step3EvaluateAntiPatterns: '',
+          step4FinalConclusion: '',
+        ),
+        status: ExecutionStatus.passed,
+        semanticReasoning: 'Synthetic override reasoning',
+        contextualOverride: true,
+        chartDisplayLabel: 'Atom Override',
+        visualIntent: VisualIntent.warning,
+      );
+
+      final block = SduiMatrixTableBlock(
+        title: const I18nText(
+          translations: {'en': 'Composite Table', 'fi': 'Yhdistelmätaulukko'},
+        ),
+        matrixVisibleColumns: const ['label', 'quotes'],
+        matrixColumnLabels: const {
+          'label': I18nText(translations: {'en': 'Dimension'}),
+          'quotes': I18nText(translations: {'en': 'Text Observation'}),
+        },
+        axes: [
+          const MatrixScorecardRowDto(
+            blockId: 'axis_composite',
+            name: 'Operational Excellence',
+            labelI18n: I18nText(translations: {'en': 'Operational Excellence'}),
+            rowExplanation: 'Operational excellence composite.',
+            isEvaluative: true,
+            allowContextualOverride: true,
+            levelNames: {'1': 'Foundation Level'},
+            levelBreakdown: {'1': '2/2'},
+            evaluatedAtoms: [atomQuote, atomOverride],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(1200, 800)),
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: SduiMatrixTableWidget(block: block),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Operational Excellence * **'), findsOneWidget);
+      expect(find.text('1 - Foundation Level'), findsOneWidget);
+      expect(find.text('Document Evidence Claim:'), findsOneWidget);
+      expect(find.text('"Direct evidence found in document."'), findsOneWidget);
+      expect(
+        find.text('** Synthetic Override Claim: Synthetic override reasoning'),
+        findsOneWidget,
+      );
     },
   );
 }

@@ -472,7 +472,7 @@
                                                             {% endfor %}
                                                         {% elif axis.allow_contextual_override and atom.contextual_override and (atom.status and (atom.status|string|lower).endswith('passed')) %}
                                                             {% set explanation = atom.semantic_reasoning.strip() if (atom.semantic_reasoning and atom.semantic_reasoning.strip()) else (atom.claim_label.strip() if (atom.claim_label and atom.claim_label.strip()) else '-') %}
-                                                            <div style="margin-bottom: 6px; color: #555; font-size: 10px;"><span style="font-weight: bold;">** {{ (atom.claim_label.strip() ~ ': ') if (atom.claim_label and atom.claim_label.strip()) else '' }}</span><span style="font-style: italic;">{{ explanation }}</span></div>
+                                                            <div style="margin-bottom: 6px; color: #555; font-size: 10px;"><span style="font-weight: bold;">**{{ (' ' ~ atom.claim_label.strip() ~ ':') if (atom.claim_label and atom.claim_label.strip()) else '' }}</span> <span style="font-style: italic;">{{ explanation }}</span></div>
                                                         {% endif %}
                                                     {% endif %}
                                                 {% endfor %}
