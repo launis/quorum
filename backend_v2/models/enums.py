@@ -20,6 +20,7 @@ __all__ = [
     "ComponentType",
     "DisplayScale",
     "EnsembleJitter",
+    "EntityPrefix",
     "EthicalSeverity",
     "EvaluationCategory",
     "EvaluationMandate",
@@ -157,6 +158,20 @@ class SourceSufficiencyThreshold(int, Enum):
     """
 
     MIN_CHARS = 200
+
+
+class EntityPrefix(StrEnum):
+    """Canonical Opaque Stripe ID prefix taxonomy."""
+
+    WORKFLOW = "wf"
+    STEP = "stp"
+    STEP_REFERENCE = "sr"
+    OUTPUT_PROFILE = "prf"
+    PROMPT_BLOCK = "blk"
+    SYSTEM_CONFIG = "sys"
+    EXECUTION = "exe"
+    USER = "usr"
+    ORGANIZATION = "org"
 
 
 class SystemConfigID(StrEnum):

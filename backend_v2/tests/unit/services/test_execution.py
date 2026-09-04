@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -845,7 +846,10 @@ def test_execution_create_dto_preserves_output_profile_id() -> None:
 
 @pytest.mark.asyncio
 async def test_start_execution_fails_fast_when_no_profile_resolvable() -> None:
-    """ISTQB Negative: start_execution raises 400 VALIDATION_FAILED when neither payload nor workflow provides a profile_id."""
+    """ISTQB Negative: start_execution raises 400 VALIDATION_FAILED.
+
+    Asserts failure when neither payload nor workflow provides a profile_id.
+    """
     from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
 
     repo_mock = AsyncMock()
@@ -877,6 +881,7 @@ async def test_start_execution_fails_fast_when_no_profile_resolvable() -> None:
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=None,
+        matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
 
@@ -928,6 +933,7 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id="prof_missing",
+        matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
 
@@ -973,9 +979,7 @@ async def test_stream_status_handles_error_without_yielding_malformed_execution_
     mock_record.created_by = "u1"
     mock_record.target_locale = "fi"
     mock_record.model_copy.return_value = mock_record
-    mock_record.model_dump_json.return_value = (
-        '{"id":"exe_0b51fa35ea584ca7a42cd30b444d1241","workflow_id":"wf_1","status":"RUNNING","target_locale":"fi","output_profile_id":"prof_default"}'
-    )
+    mock_record.model_dump_json.return_value = '{"id":"exe_0b51fa35ea584ca7a42cd30b444d1241","workflow_id":"wf_1","status":"RUNNING","target_locale":"fi","output_profile_id":"prof_default"}'
 
     call_count = 0
 
@@ -1006,4 +1010,3 @@ async def test_stream_status_handles_error_without_yielding_malformed_execution_
 
     assert has_data is True
     assert has_error is True
-

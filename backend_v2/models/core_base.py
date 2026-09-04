@@ -9,16 +9,25 @@ from __future__ import annotations
 
 import logging
 import re
+import uuid
 from typing import Annotated
 
 from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import EntityPrefix
 
-__all__ = ["I18nText", "V2CoreBase"]
+__all__ = [
+    "I18nText",
+    "OPAQUE_STRIPE_ID_REGEX",
+    "V2CoreBase",
+    "generate_opaque_id",
+]
 
 logger = logging.getLogger(__name__)
+
+OPAQUE_STRIPE_ID_REGEX: str = r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
 
 
 class V2CoreBase(BaseModel):
@@ -138,3 +147,43 @@ class I18nText(V2CoreBase):
             AppException: If no valid non-empty translation is resolved.
         """
         return self.resolve(target_locale=lang_code, fallback_locale=fallback)
+
+    def with_copy_suffix(self, suffix: str = " (Copy)") -> I18nText:
+        """Creates a new I18nText with a copy suffix appended to all translations.
+
+        Args:
+            suffix: Suffix string to append to each translation value (default: ' (Copy)').
+
+        Returns:
+            New I18nText instance with updated translation values.
+        """
+        new_translations = {k: f"{v}{suffix}" for k, v in self.translations.items()}
+        return I18nText(translations=new_translations)
+
+
+def generate_opaque_id(prefix: EntityPrefix | str, length: int = 16) -> str:
+    """Generates a randomized hex ID conforming to OPAQUE_STRIPE_ID_REGEX.
+
+    Args:
+        prefix: Entity prefix (StrEnum member or string matching ^[a-z]{2,5}$).
+        length: Length of the randomized hex payload (default: 16, bounds: 16..32).
+
+    Returns:
+        Canonical Opaque Stripe ID string formatted as '{prefix}_{hex}'.
+
+    Raises:
+        AppException: If prefix or generated ID fails validation against OPAQUE_STRIPE_ID_REGEX.
+    """
+    prefix_str = prefix.value if isinstance(prefix, EntityPrefix) else str(prefix).strip().lower()
+    bounded_len = max(16, min(length, 32))
+    hex_token = uuid.uuid4().hex[:bounded_len]
+    generated_id = f"{prefix_str}_{hex_token}"
+    if not re.match(OPAQUE_STRIPE_ID_REGEX, generated_id):
+        msg = f"Generated ID '{generated_id}' does not match OPAQUE_STRIPE_ID_REGEX."
+        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+    return generated_id

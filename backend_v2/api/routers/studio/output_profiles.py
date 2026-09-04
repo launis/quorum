@@ -5,6 +5,7 @@ import logging
 from fastapi import APIRouter, Path, status
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioOutputProfileServiceDep
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import OutputProfileListResponse
@@ -73,7 +74,7 @@ async def create_output_profile_draft(
 async def get_output_profile(
     current_user: CurrentUserDep,
     studio_service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"),
+    profile_id: str = Path(..., pattern=OPAQUE_STRIPE_ID_REGEX),
 ) -> OutputProfileResponseDTO:
     """Get a specific OutputProfile.
 
@@ -98,7 +99,7 @@ async def save_output_profile(
     data: OutputProfile,
     current_user: CurrentUserDep,
     studio_service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"),
+    profile_id: str = Path(..., pattern=OPAQUE_STRIPE_ID_REGEX),
 ) -> OutputProfileResponseDTO:
     """Update a specific OutputProfile.
 
@@ -123,7 +124,7 @@ async def save_output_profile(
 async def delete_output_profile(
     current_user: CurrentUserDep,
     studio_service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"),
+    profile_id: str = Path(..., pattern=OPAQUE_STRIPE_ID_REGEX),
 ) -> None:
     """Delete a specific OutputProfile.
 
@@ -143,7 +144,7 @@ async def delete_output_profile(
 async def clone_output_profile(
     current_user: CurrentUserDep,
     studio_service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"),
+    profile_id: str = Path(..., pattern=OPAQUE_STRIPE_ID_REGEX),
 ) -> OutputProfileResponseDTO:
     """Clone an existing OutputProfile.
 

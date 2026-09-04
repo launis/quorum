@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
@@ -169,13 +169,13 @@ class StepCreateDTO(V2CoreBase):
     )
     role_block_id: Annotated[
         str | None,
-        Field(default=None, pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Role block reference"),
+        Field(default=None, pattern=OPAQUE_STRIPE_ID_REGEX, description="Role block reference"),
     ] = None
     extraction_protocol_block_id: Annotated[
         str | None,
         Field(
             default=None,
-            pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            pattern=OPAQUE_STRIPE_ID_REGEX,
             description="Global evidence extraction protocol reference",
         ),
     ] = None
@@ -183,7 +183,7 @@ class StepCreateDTO(V2CoreBase):
         str | None,
         Field(
             default=None,
-            pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            pattern=OPAQUE_STRIPE_ID_REGEX,
             description="Reference to Execution Persona PromptBlock",
         ),
     ] = None

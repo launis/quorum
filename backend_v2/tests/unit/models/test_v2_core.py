@@ -18,6 +18,7 @@ from backend_v2.models.v2_core import (
     MatrixScale,
     ModelProfile,
     ProviderExtraParamsDTO,
+    QuestionnaireItem,
     Step,
     StepRule,
     TDAAssertion,
@@ -402,3 +403,219 @@ def test_execution_record_extra_forbidden() -> None:
             target_locale="fi",
             unknown_legacy_field="illegal",  # type: ignore[call-arg]
         )
+
+
+def test_coerce_to_tuple_helper() -> None:
+    """Verifies _coerce_to_tuple converts lists to tuples."""
+    from backend_v2.models.v2_core import _coerce_to_tuple
+
+    assert _coerce_to_tuple([1, 2, 3]) == (1, 2, 3)
+    assert _coerce_to_tuple("not_a_list") == "not_a_list"
+
+
+def test_tda_assertion_validation_rules() -> None:
+    """Verifies TDAAssertion business rules fail-fast."""
+    # 1. inverse_evidence requires EXISTS
+    with pytest.raises(ValueError, match="strictly requires 'EXISTS'"):
+        TDAAssertion(
+            concept_description="Concept description valid length",
+            inverse_evidence=True,
+            aggregation_mode="ALL_MUST_COMPLY",
+        )
+
+    # 2. enforce_pre_flight requires syntactic_anchors
+    with pytest.raises(ValueError, match="requires at least one syntactic anchor"):
+        TDAAssertion(
+            concept_description="Concept description valid length",
+            inverse_evidence=False,
+            aggregation_mode="EXISTS",
+            enforce_pre_flight=True,
+            syntactic_anchors=[],
+        )
+
+    # 3. EXTRACTIVE_SENSOR requires facts_to_find and logical_expression
+    with pytest.raises(ValueError, match="requires at least one fact"):
+        TDAAssertion(
+            concept_description="Concept description valid length",
+            inverse_evidence=False,
+            aggregation_mode="EXISTS",
+            evaluation_track="EXTRACTIVE_SENSOR",
+            facts_to_find=[],
+            logical_expression="F1",
+        )
+
+    with pytest.raises(ValueError, match="requires a defined logical_expression"):
+        TDAAssertion(
+            concept_description="Concept description valid length",
+            inverse_evidence=False,
+            aggregation_mode="EXISTS",
+            evaluation_track="EXTRACTIVE_SENSOR",
+            facts_to_find=["F1"],
+            logical_expression="",
+        )
+
+
+def test_step_rule_extract_variable_references() -> None:
+    """Verifies StepRule extracts dynamic variable references correctly."""
+    rule = StepRule(
+        task_blueprint="stp_bp1",
+        input_mappings={"doc": "$inputs.document", "prev": "$steps.step_1.output", "static": "plain_text"},
+    )
+    refs = rule.extract_variable_references()
+    assert "$inputs.document" in refs
+    assert "$steps.step_1.output" in refs
+    assert "plain_text" not in refs
+
+
+def test_expected_input_questionnaire_validations() -> None:
+    """Verifies ExpectedInput questionnaire mode consistency."""
+    # Empty input modes
+    with pytest.raises(ValueError, match="must have at least one input_mode"):
+        ExpectedInput(
+            input_key="k1",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=[],
+        )
+
+    valid_q_item = QuestionnaireItem(
+        question_id="q1",
+        question=I18nText(translations={"en": "Q1"}),
+        type="text",
+    )
+
+    # Questionnaire mixed with is_chat_history
+    with pytest.raises(ValueError, match="cannot use 'questionnaire' mode when flagged as chat history"):
+        ExpectedInput(
+            input_key="k2",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["questionnaire"],
+            is_chat_history=True,
+            questionnaire_definition=[valid_q_item],
+        )
+
+    # Questionnaire mixed with other modes
+    with pytest.raises(ValueError, match="cannot mix 'questionnaire' with other input modes"):
+        ExpectedInput(
+            input_key="k3",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["questionnaire", "text"],
+            questionnaire_definition=[valid_q_item],
+        )
+
+    # Questionnaire lacks definitions
+    with pytest.raises(ValueError, match="uses 'questionnaire' mode but lacks definitions"):
+        ExpectedInput(
+            input_key="k4",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["questionnaire"],
+            questionnaire_definition=[],
+        )
+
+    # Non-questionnaire has definitions
+    with pytest.raises(ValueError, match="cannot have questionnaire_definition when 'questionnaire' mode is not active"):
+        ExpectedInput(
+            input_key="k5",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["text"],
+            questionnaire_definition=[valid_q_item],
+        )
+
+
+def test_output_profile_synthesis_properties_and_custom_scale_validation() -> None:
+    """Verifies OutputProfile synthesis properties and custom scale validations."""
+    from backend_v2.models.enums import DisplayScale
+    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
+
+    role_blk_id = "blk_1234567890abcdef"
+
+    profile = OutputProfile(
+        id="prf_1234567890abcdef",
+        slug="slug",
+        workflow_id="wf_1234567890123456",
+        name=I18nText(translations={"en": "Prof"}),
+        matrix_visible_columns=["row_explanation"],
+        target_block_order=["executive_summary_block", "matrix_graphs_block"],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                title=I18nText(translations={"en": "Group"}),
+                target_blocks=[role_blk_id],
+            )
+        ],
+    )
+    assert profile.requires_row_explanations is True
+    assert profile.requires_executive_synthesis is True
+    assert profile.requires_group_synthesis is True
+    assert profile.is_synthesis_expected is True
+
+    # Custom scale validation: missing min/max
+    with pytest.raises(ValueError, match="custom_scale_min and custom_scale_max are required"):
+        OutputProfile(
+            id="prf_1234567890abcdef",
+            slug="slug",
+            workflow_id="wf_1234567890123456",
+            name=I18nText(translations={"en": "Prof"}),
+            target_block_order=["executive_summary_block"],
+            display_scale=DisplayScale.CUSTOM,
+        )
+
+    # Custom scale validation: max <= min
+    with pytest.raises(ValueError, match="must be strictly greater than custom_scale_min"):
+        OutputProfile(
+            id="prf_1234567890abcdef",
+            slug="slug",
+            workflow_id="wf_1234567890123456",
+            name=I18nText(translations={"en": "Prof"}),
+            target_block_order=["executive_summary_block"],
+            display_scale=DisplayScale.CUSTOM,
+            custom_scale_min=10.0,
+            custom_scale_max=5.0,
+        )
+
+
+def test_base_tda_extraction_validation() -> None:
+    """Verifies BaseTDAExtraction cross-validation between exact_quotes and contextual_override."""
+    from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+    from backend_v2.models.v2_core import BaseTDAExtraction
+
+    # contextual_override=True with exact_quotes raises ValueError
+    with pytest.raises(ValueError, match="cannot be combined with exact_quotes"):
+        BaseTDAExtraction(
+            exact_quotes=[LLMExtractedQuote(text="quote")],
+            localized_anchors_found=["anchor"],
+            contextual_override=True,
+            semantic_reasoning="reasoning",
+        )
+
+    # contextual_override=False with [CONTEXTUAL_OVERRIDE_APPLIED] raises ValueError
+    with pytest.raises(ValueError, match="Cross-validation failed"):
+        BaseTDAExtraction(
+            exact_quotes=[LLMExtractedQuote(text="[CONTEXTUAL_OVERRIDE_APPLIED]")],
+            localized_anchors_found=["anchor"],
+            contextual_override=False,
+            semantic_reasoning="reasoning",
+        )
+
+
+def test_execution_create_resolve_matrix_sampling_strategy() -> None:
+    """Verifies ExecutionCreate resolves matrix_sampling_strategy when passed as None."""
+    from backend_v2.models.v2_core import ExecutionCreate
+
+    ec = ExecutionCreate.model_validate(
+        {
+            "workflow_id": "wf_1",
+            "target_locale": "fi",
+            "matrix_sampling_strategy": None,
+        }
+    )
+    assert ec.matrix_sampling_strategy is not None
+

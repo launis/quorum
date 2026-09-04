@@ -6,11 +6,19 @@ validation error fail-fast handling, and localization resolution.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.core_base import I18nText, V2CoreBase
+from backend_v2.models.core_base import (
+    OPAQUE_STRIPE_ID_REGEX,
+    I18nText,
+    V2CoreBase,
+    generate_opaque_id,
+)
+from backend_v2.models.enums import EntityPrefix
 
 
 def test_v2_core_base_immutability_and_strictness() -> None:
@@ -103,3 +111,46 @@ def test_i18n_text_resolve_unresolvable_raises_app_exception() -> None:
     with pytest.raises(AppException) as exc_info:
         i18n_empty.resolve("fi")
     assert exc_info.value.status_code == 400
+
+
+def test_i18n_text_with_copy_suffix() -> None:
+    """Verifies with_copy_suffix appends copy suffix to all translations."""
+    original = I18nText(translations={"en": "Executive Report", "fi": "Johdon raportti"})
+    copied = original.with_copy_suffix()
+    assert copied.translations["en"] == "Executive Report (Copy)"
+    assert copied.translations["fi"] == "Johdon raportti (Copy)"
+
+    custom_copied = original.with_copy_suffix(" - Cloned")
+    assert custom_copied.translations["en"] == "Executive Report - Cloned"
+    assert custom_copied.translations["fi"] == "Johdon raportti - Cloned"
+
+
+def test_generate_opaque_id_success() -> None:
+    """Verifies generate_opaque_id produces valid Opaque Stripe IDs matching regex."""
+    for prefix in EntityPrefix:
+        generated = generate_opaque_id(prefix)
+        assert generated.startswith(f"{prefix.value}_")
+        assert re.match(OPAQUE_STRIPE_ID_REGEX, generated)
+
+    # String prefix and custom length
+    custom_id = generate_opaque_id("prf", length=24)
+    assert custom_id.startswith("prf_")
+    assert len(custom_id) == 4 + 24
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, custom_id)
+
+    # Bounded length (min 16, max 32)
+    min_bounded = generate_opaque_id("wf", length=5)
+    assert len(min_bounded) == 3 + 16
+
+
+def test_generate_opaque_id_negative_invalid_prefix() -> None:
+    """Verifies generate_opaque_id fails fast when prefix is invalid."""
+    with pytest.raises(AppException) as exc_info:
+        generate_opaque_id("toolongprefix")
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+    with pytest.raises(AppException) as exc_info2:
+        generate_opaque_id("x")
+    assert exc_info2.value.status_code == 400
+

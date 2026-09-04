@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import ConfigDict, Field
 
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.dtos.base import BaseDTO, DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import LaxExecutionStatus
@@ -40,7 +41,10 @@ class ExecutionCreateDTO(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     workflow_id: Annotated[str, Field(min_length=1, description="Target workflow ID")]
-    id: Annotated[str | None, Field(default=None, description="Optional execution ID")] = None
+    id: Annotated[
+        str | None,
+        Field(default=None, pattern=OPAQUE_STRIPE_ID_REGEX, description="Optional execution ID"),
+    ] = None
     target_locale: Annotated[str, Field(default="fi", description="Target locale code")] = "fi"
     status: Annotated[str, Field(default="PENDING", description="Initial lifecycle status")] = "PENDING"
     active_profile_id: Annotated[str | None, Field(default=None, description="Active profile ID")] = None

@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.core_base import I18nText, V2CoreBase
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
@@ -406,7 +406,7 @@ class SystemConfigModelRegistry(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="model_registry")
 
-    id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
+    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")
     type: Literal["model_registry"] = Field(default="model_registry", description="Type of config")
     slug: str | None = Field(default=None, description="System Config identifier slug")
     models: dict[str, ModelProfile] = Field(
@@ -456,7 +456,7 @@ class SystemConfigMCPGateways(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="mcp_gateways")
 
-    id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
+    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")
     type: Literal["mcp_gateways"] = Field(default="mcp_gateways", description="Config type discriminator.")
     slug: str | None = Field(default=None, description="System Config identifier slug")
     tools: list[AllowedMCPTool] = Field(
@@ -480,7 +480,7 @@ class SystemConfigPerformativeLexicons(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="performative_lexicons")
 
-    id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="System config ID")
+    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")
     type: Literal["performative_lexicons"] = Field(
         default="performative_lexicons", description="Config type discriminator."
     )
@@ -507,7 +507,7 @@ class Step(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique UUID for storage optionally")
+    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique UUID for storage optionally")
     slug: str = Field(description="Human-readable identifier (e.g., 'step_guard')")
     organization_id: str | None = Field(default=None, description="Tenant organization ID.")
     name: I18nText = Field(description="Localized step name")
@@ -516,17 +516,17 @@ class Step(V2CoreBase):
     hook: str | None = Field(default=None, description="Native Python hook to execute if type is 'logic'")
     role_block_id: str | None = Field(
         default=None,
-        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        pattern=OPAQUE_STRIPE_ID_REGEX,
         description="Reference to role block (e.g. blk_role_critic)",
     )
     extraction_protocol_block_id: str | None = Field(
         default=None,
-        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        pattern=OPAQUE_STRIPE_ID_REGEX,
         description="Reference to global evidence extraction protocol block",
     )
     execution_persona_block_id: str | None = Field(
         default=None,
-        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        pattern=OPAQUE_STRIPE_ID_REGEX,
         description="Reference to the Execution Persona PromptBlock",
     )
     criteria_block_ids: list[str] = Field(
@@ -598,7 +598,7 @@ class StepRule(V2CoreBase):
 
     id: str = Field(
         default_factory=lambda: f"sr_{uuid.uuid4().hex[:16]}",
-        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        pattern=OPAQUE_STRIPE_ID_REGEX,
         description="Unique node ID in the workflow (e.g. blk_node_1).",
     )
     task_blueprint: str = Field(
@@ -640,7 +640,7 @@ class Role(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Role ID")
+    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Role ID")
     name: I18nText
     model_role: str = Field(description='Maps to SystemConfig.model_mappings (e.g., "analyst_model").')
     type: str | None = Field(default="role", description="Component type indicator.")
@@ -855,7 +855,9 @@ class ReportDataDTO(V2CoreBase):
     )
     results: list[AtomResultDTO] = Field(
         default_factory=list,
-        description="SDUI-RULE: Backend must return this list strictly topologically sorted. Frontend does not compute the DAG.",
+        description=(
+            "SDUI-RULE: Backend must return this list strictly topologically sorted. Frontend does not compute the DAG."
+        ),
     )
     hydrated_references: dict[str, HydratedAtomDTO] = Field(
         default_factory=dict, description="O(1) Dictionary: tda_id -> Static text."
@@ -908,14 +910,16 @@ class MatrixSynthesisGroup(V2CoreBase):
 
     id: str = Field(
         default_factory=lambda: f"grp_{uuid.uuid4().hex[:16]}",
-        pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+        pattern=OPAQUE_STRIPE_ID_REGEX,
         description="Unique Opaque Synthesis Group ID (e.g. grp_440a5fef9331451b)",
     )
     title: I18nText = Field(description="Localized title for the synthesis group")
     target_blocks: list[str] = Field(min_length=1, description="List of prompt block IDs targeted by this group")
     view_type: LaxPresetView = Field(
         default=PresetView.METRICS_1D,
-        description="UI presentation preset view for this matrix group (e.g. 1d_metrics, 2d_compare, 3d_matrix, text_only).",
+        description=(
+            "UI presentation preset view for this matrix group (e.g. 1d_metrics, 2d_compare, 3d_matrix, text_only)."
+        ),
     )
 
 
@@ -924,7 +928,7 @@ class OutputProfile(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Profile ID")
+    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Profile ID")
     slug: str = Field(min_length=1, pattern=r"^[a-zA-Z0-9_\-]+$", description="Fallback slug identifier")
     workflow_id: str = Field(description="ID of the associated Workflow")
     organization_id: str | None = Field(default=None, description="Tenant organization ID.")
@@ -1160,7 +1164,7 @@ class Workflow(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Unique Workflow ID")
+    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Unique Workflow ID")
     slug: str
     name: I18nText | str
     description: I18nText | str
@@ -1186,11 +1190,15 @@ class Workflow(V2CoreBase):
     )
     enable_semantic_smoothing: bool = Field(
         default=False,
-        description="If True, uses SpaCy to fix hyphenations and merge broken PDF lines into cohesive semantic sentences.",
+        description=(
+            "If True, uses SpaCy to fix hyphenations and merge broken PDF lines into cohesive semantic sentences."
+        ),
     )
     enable_eager_anonymization: bool = Field(
         default=False,
-        description="If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state.",
+        description=(
+            "If True, Microsoft Presidio will mask all PII data from raw inputs before they enter the system state."
+        ),
     )
     system_audit_trail: bool = Field(
         default=False,
@@ -1444,7 +1452,7 @@ class ExecutionRecord(ExecutionCoreFields):
         context_variables: dict[str, Any] = Field(default_factory=dict)
         context_variables_storage_path: str | None = Field(default=None)
 
-    id: str = Field(pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", description="Execution ID, usually a uuid")
+    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
     workflow_version: int = Field(default=1, ge=1, description="Version number of the executing workflow")
     active_profile_id: str | None = Field(

@@ -9,7 +9,7 @@ from typing import Annotated, Literal, Self
 from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
 from backend_v2.models.dtos.base import BaseResponseDTO
 from backend_v2.models.enums import (
     DisplayScale,
@@ -267,7 +267,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
         str | None,
         Field(
             default=None,
-            pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            pattern=OPAQUE_STRIPE_ID_REGEX,
             description="Optional Profile ID supplied in PUT payload for client-state preservation.",
         ),
     ] = None

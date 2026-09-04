@@ -10,7 +10,6 @@ from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from uuid import uuid4
 
 import pandas as pd
 from arq.connections import ArqRedis
@@ -35,6 +34,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.hooks.scoring import recalculate
 from backend_v2.models.auth import SystemOrganizations, TokenData
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
@@ -43,6 +43,7 @@ from backend_v2.models.domain.prompt_blocks import (
     SystemRulePromptBlock,
 )
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import (
     EvidenceOverrideDTO,
@@ -312,11 +313,17 @@ class ExecutionService:
                     str(e),
                     exc_info=True,
                 )
-                yield f'event: error\ndata: {{"error": "Execution interrupted: {str(e)}", "error_code": "SSE_STREAM_INTERRUPTED"}}\n\n'
+                err_data = json.dumps(
+                    {"error": f"Execution interrupted: {str(e)}", "error_code": "SSE_STREAM_INTERRUPTED"}
+                )
+                yield f"event: error\ndata: {err_data}\n\n"
                 break
             except (AppException, OSError, RuntimeError, ValueError) as e:
                 logger.error("SSE Error for execution %s: %s", execution_id, str(e), exc_info=True)
-                yield f'event: error\ndata: {{"error": "Execution interrupted: {str(e)}", "error_code": "SSE_STREAM_INTERRUPTED"}}\n\n'
+                err_data = json.dumps(
+                    {"error": f"Execution interrupted: {str(e)}", "error_code": "SSE_STREAM_INTERRUPTED"}
+                )
+                yield f"event: error\ndata: {err_data}\n\n"
                 break
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
@@ -587,7 +594,7 @@ class ExecutionService:
             msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        execution_id = f"exe_{uuid4().hex}"
+        execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
         initial_record = create_execution_record(
             execution_id=execution_id,
             workflow_id=workflow.id,

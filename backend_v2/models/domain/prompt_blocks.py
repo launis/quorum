@@ -15,7 +15,7 @@ from pydantic import (
     model_validator,
 )
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixRow, MatrixScale, TheoryGrounding
 
@@ -43,7 +43,7 @@ class PromptBlockBase(V2CoreBase):
     id: Annotated[
         str,
         Field(
-            pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            pattern=OPAQUE_STRIPE_ID_REGEX,
             description="Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID.",
         ),
     ]

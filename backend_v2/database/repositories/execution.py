@@ -10,7 +10,9 @@ from pydantic import TypeAdapter, ValidationError
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, FrozenContext, MCPAuditTrace
 from backend_v2.services.storage import get_storage_driver
@@ -227,7 +229,7 @@ class ExecutionRepositoryImpl(BaseRepository):
             The created execution ID.
         """
         data = execution_data.model_dump(mode="json", exclude_unset=True)
-        doc_id = data["id"] if "id" in data else str(uuid.uuid4())
+        doc_id = data["id"] if "id" in data else generate_opaque_id(EntityPrefix.EXECUTION)
         data["id"] = doc_id
         await self._offload_payloads(doc_id, data)
         return await self.driver.upsert("executions", data, doc_id)
