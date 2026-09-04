@@ -82,12 +82,20 @@ class ResultProjector:
                 continue
 
             node = node_map[tda_id]
-            state = states[tda_id] if tda_id in states else None
+            state = None
+            if tda_id in states:
+                state = states[tda_id]
 
-            status = state.status if state else ExecutionStatus.PENDING
-            reasoning = state.evaluation_reasoning if state else "Pending evaluation."
-            short_circuit = state.short_circuit_reason_tda_ids if state else []
-            extensions = state.extensions if state else {}
+            if state is not None:
+                status = state.status
+                reasoning = state.evaluation_reasoning
+                short_circuit = state.short_circuit_reason_tda_ids
+                extensions = state.extensions
+            else:
+                status = ExecutionStatus.PENDING
+                reasoning = "Pending evaluation."
+                short_circuit = []
+                extensions = {}
 
             error_details = None
             if status == ExecutionStatus.SYSTEM_ERROR:

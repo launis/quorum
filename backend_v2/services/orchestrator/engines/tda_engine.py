@@ -73,16 +73,19 @@ class TDAEngine(ExecutionEngine):
             )
 
         # Circuit Breaker: If preflight determined analytical data is starved, short-circuit immediately.
-        raw_blackboard = (
-            request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
-            if "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables
-            else None
-        )
+        raw_blackboard = None
+        if "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables:
+            raw_blackboard = request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
+
         is_starved = False
         if raw_blackboard and not isinstance(raw_blackboard, (str, int, float, bool, list)):
             try:
-                is_starved_flag = raw_blackboard["is_data_starved"] if "is_data_starved" in raw_blackboard else False
-                atoms_map = raw_blackboard["atoms_by_input"] if "atoms_by_input" in raw_blackboard else None
+                is_starved_flag = False
+                if "is_data_starved" in raw_blackboard:
+                    is_starved_flag = bool(raw_blackboard["is_data_starved"])
+                atoms_map = None
+                if "atoms_by_input" in raw_blackboard:
+                    atoms_map = raw_blackboard["atoms_by_input"]
                 if is_starved_flag or not atoms_map:
                     is_starved = True
             except (TypeError, KeyError):  # fmt: skip
@@ -175,11 +178,9 @@ class TDAEngine(ExecutionEngine):
                 )
                 nodes.append(LinkedAtomGraph(atom=extracted, depends_on=list(atom.depends_on)))
 
-            matrix_context = (
-                request.matrix_context.model_copy(update={"matrix_assertions": request.shuffled_atoms})
-                if request.matrix_context
-                else None
-            )
+            matrix_context = None
+            if request.matrix_context is not None:
+                matrix_context = request.matrix_context.model_copy(update={"matrix_assertions": request.shuffled_atoms})
 
             states, usage_dag = await dag_executor.execute_graph(
                 nodes,

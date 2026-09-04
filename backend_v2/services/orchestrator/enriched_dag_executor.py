@@ -92,7 +92,8 @@ class EnrichedDagExecutor:
                             await progress_callback(completed_atoms, total_atoms)
                     return pre_flight_results
 
-                async with semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps):
+                sem = semaphore if semaphore is not None else asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+                async with sem:
                     llm_results, chunk_usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
                         nodes=undecided_nodes,
                         executor=self._llm_executor,
@@ -154,8 +155,11 @@ class EnrichedDagExecutor:
 
             compiled_prompt = MatrixSensorPromptBuilder.build_caching_prefix(source_text, matrix_context)
 
-            provider_name = self._llm_client._config.provider if self._llm_client._config else "vertex_ai"
-            model_name = str(self._llm_client._config.model_name) if self._llm_client._config else "gemini-1.5-pro"
+            provider_name = "vertex_ai"
+            model_name = "gemini-1.5-pro"
+            if self._llm_client._config is not None:
+                provider_name = self._llm_client._config.provider
+                model_name = str(self._llm_client._config.model_name)
 
             await LLMCachingService.pre_cache_document(
                 provider_name=provider_name,

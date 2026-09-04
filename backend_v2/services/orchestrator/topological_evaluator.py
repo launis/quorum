@@ -105,8 +105,8 @@ class TopologicalEvaluator:
                 try:
                     results = await batch_evaluation_callback(pending_nodes, states)
                     for node in pending_nodes:
-                        res = results.get(node.atom.tda_id)
-                        if res:
+                        if node.atom.tda_id in results:
+                            res = results[node.atom.tda_id]
                             status, reasoning, extensions = res
                             states[node.atom.tda_id] = states[node.atom.tda_id].model_copy(
                                 update={
@@ -146,7 +146,7 @@ class TopologicalEvaluator:
                         states[child_id] = states[child_id].model_copy(update={"status": ExecutionStatus.BLOCKED})
                     elif parent_edge and parent_state.status != parent_edge.expected_status:
                         # Short-circuit logic
-                        reasons = states[child_id].short_circuit_reason_tda_ids or []
+                        reasons = list(states[child_id].short_circuit_reason_tda_ids)
                         if parent_id not in reasons:
                             reasons.append(parent_id)
                         states[child_id] = states[child_id].model_copy(

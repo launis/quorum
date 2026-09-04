@@ -127,9 +127,14 @@ class ScorecardAtomDTO(V2CoreBase):
         except (TypeError, ValueError):  # fmt: skip
             return data
 
-        status_val = d.get("status")
+        status_val = None
+        if "status" in d:
+            status_val = d["status"]
         is_passed = status_val == "PASSED" or status_val == ExecutionStatus.PASSED
-        if is_passed and d.get("contextual_override"):
+        has_override = False
+        if "contextual_override" in d:
+            has_override = bool(d["contextual_override"])
+        if is_passed and has_override:
             d["visual_intent"] = VisualIntent.WARNING
         return d
 

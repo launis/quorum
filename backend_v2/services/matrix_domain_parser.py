@@ -4,6 +4,8 @@ import logging
 import re
 from typing import Any
 
+from pydantic import ValidationError
+
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.dtos.atom_evaluation import (
@@ -115,7 +117,9 @@ class MatrixDomainParser:
             b_id = dto.block_id
             block_data = dto.payload
 
-            pb_meta = blocks_by_id.get(b_id)
+            pb_meta = None
+            if b_id in blocks_by_id:
+                pb_meta = blocks_by_id[b_id]
             if not pb_meta or not isinstance(pb_meta, MatrixPromptBlock):
                 continue
 
@@ -172,7 +176,9 @@ class MatrixDomainParser:
                     status_code=500,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
-            axis_description = pb_meta.description.resolve(locale) if pb_meta.description else ""
+            axis_description = ""
+            if pb_meta.description:
+                axis_description = pb_meta.description.resolve(locale)
 
             if pb_meta.computed_min is None or pb_meta.computed_max is None:
                 logger.error(
@@ -278,7 +284,9 @@ class MatrixDomainParser:
                 if target_val is None:
                     target_val = raw_score
 
-                score_float = float(round(float(target_val), 1)) if target_val is not None else None
+                score_float = None
+                if target_val is not None:
+                    score_float = float(round(float(target_val), 1))
                 if display_scale == DisplayScale.NORMALIZED_100 and score_float is not None:
                     score_float = float(round(score_float))
 
@@ -348,8 +356,9 @@ class MatrixDomainParser:
                         details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                     )
                 final_explanation = row_explanations_cache[b_id]
-            else:
-                final_explanation = row_explanations_cache[b_id] if b_id in row_explanations_cache else ""
+            final_explanation = ""
+            if b_id in row_explanations_cache:
+                final_explanation = row_explanations_cache[b_id]
 
             evaluated_atoms_list = []
             clustered_row_sources: list[Any] = []
@@ -368,19 +377,23 @@ class MatrixDomainParser:
                         l_val = int(scale.score)
                         l_name = level_names[str(l_val)]
                         for claim in scale.claims:
-                            claim_label = (
-                                claim.label.resolve(locale)
-                                if isinstance(claim.label, I18nText)
-                                else str(claim.label or "")
-                            )
+                            claim_label = ""
+                            if isinstance(claim.label, I18nText):
+                                claim_label = claim.label.resolve(locale)
+                            elif claim.label is not None:
+                                claim_label = str(claim.label)
+
                             for tda in claim.tda_assertions:
                                 atom_id = tda.tda_id
-                                ev_data = step_evals_map.get(atom_id)
-                                display_label = (
-                                    claim_label.strip()
-                                    if claim_label.strip()
-                                    else (tda.concept_description.strip() if tda.concept_description else "Kriteeri")
-                                )
+                                ev_data = None
+                                if atom_id in step_evals_map:
+                                    ev_data = step_evals_map[atom_id]
+
+                                display_label = "Kriteeri"
+                                if claim_label.strip():
+                                    display_label = claim_label.strip()
+                                elif tda.concept_description and tda.concept_description.strip():
+                                    display_label = tda.concept_description.strip()
 
                                 if ev_data:
                                     try:
@@ -393,23 +406,29 @@ class MatrixDomainParser:
                                             step_4_final_conclusion="",
                                         )
 
+                                        exact_quotes: list[QuoteEvidenceDTO] = []
+                                        if val_data.source_quote and val_data.source_quote.strip():
+                                            exact_quotes = [
+                                                QuoteEvidenceDTO.model_validate(
+                                                    {"quote": val_data.source_quote, "source_alias": []},
+                                                    context={"alias_registry": {}},
+                                                )
+                                            ]
+
+                                        atom_semantic_reasoning = ""
+                                        if val_data.evaluation_reasoning is not None:
+                                            atom_semantic_reasoning = val_data.evaluation_reasoning
+
                                         s_atom = ScorecardAtomDTO(
                                             atom_id=atom_id,
                                             level=l_val,
                                             level_name=l_name,
                                             claim_label=claim_label,
                                             extracted_facts={},
-                                            exact_quotes=[
-                                                QuoteEvidenceDTO.model_validate(
-                                                    {"quote": val_data.source_quote, "source_alias": []},
-                                                    context={"alias_registry": {}},
-                                                )
-                                            ]
-                                            if val_data.source_quote
-                                            else [],
+                                            exact_quotes=exact_quotes,
                                             internal_logic_en=r_step,
                                             status=val_data.status,
-                                            semantic_reasoning=val_data.evaluation_reasoning or "",
+                                            semantic_reasoning=atom_semantic_reasoning,
                                             contextual_override=val_data.contextual_override,
                                             structural_location=None,
                                             chart_display_label=display_label,
@@ -417,7 +436,7 @@ class MatrixDomainParser:
                                             human_override=None,
                                         )
 
-                                    except Exception as e:
+                                    except ValidationError as e:
                                         logger.error(
                                             "LLM output violated strictly typed schema during Display parsing for atom %s",
                                             atom_id,
@@ -459,7 +478,9 @@ class MatrixDomainParser:
 
             score_display_label = "-"
             if score_float is not None:
-                max_val = display_scale_max if display_scale_max is not None else 100.0
+                max_val = 100.0
+                if display_scale_max is not None:
+                    max_val = display_scale_max
                 score_display_label = f"{score_float:.1f} / {max_val:.1f}"
 
             cleaned_explanation = MatrixDomainParser._clean_hallucinated_numbers(final_explanation)
@@ -470,8 +491,12 @@ class MatrixDomainParser:
             # Resolve context_target and context_target_label from StepRule input_mappings
             context_target = None
             context_target_label = None
-            step_rule = workflow_steps.get(step_id)
-            input_mappings = step_rule.input_mappings if isinstance(step_rule, StepRule) else None
+            step_rule = None
+            if step_id in workflow_steps:
+                step_rule = workflow_steps[step_id]
+            input_mappings = None
+            if isinstance(step_rule, StepRule):
+                input_mappings = step_rule.input_mappings
             if input_mappings and isinstance(input_mappings, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
                 # Find input mapping pointing to $inputs
                 for mapped_val in input_mappings.values():
@@ -483,15 +508,52 @@ class MatrixDomainParser:
                         break
 
             if context_target:
-                input_def = expected_inputs_map.get(context_target) if expected_inputs_map else None
+                input_def = None
+                if expected_inputs_map and context_target in expected_inputs_map:
+                    input_def = expected_inputs_map[context_target]
                 if input_def and input_def.label:
                     context_target_label = input_def.label
                 else:
                     context_target_label = I18nText(translations={"fi": context_target, "en": context_target})
 
-            remediation_steps = ext.remediation_steps if ext else None
-            coaching = ext.coaching if ext else None
-            falsification = ext.falsification if ext else None
+            remediation_steps = None
+            coaching = None
+            falsification = None
+            evidence_type = None
+            cited_source_id = None
+            cited_text_quote = None
+            cited_web_citation = None
+            confidence = None
+            contextual_override = None
+
+            if ext is not None:
+                remediation_steps = ext.remediation_steps
+                coaching = ext.coaching
+                falsification = ext.falsification
+                evidence_type = ext.evidence_type
+                cited_source_id = ext.source_id
+                cited_text_quote = ext.citation
+                cited_web_citation = ext.google_citation
+                confidence = ext.confidence
+                contextual_override = ext.contextual_override
+
+            cited_source_title = None
+            if pb_meta.theory_grounding and pb_meta.theory_grounding.citation_reference:
+                cited_source_title = pb_meta.theory_grounding.citation_reference
+
+            cited_source_url = None
+            if pb_meta.theory_grounding and pb_meta.theory_grounding.source_url:
+                cited_source_url = pb_meta.theory_grounding.source_url
+            elif ext and ext.google_citation:
+                cited_source_url = ext.google_citation
+
+            row_semantic_reasoning: str | None = matrix_payload.justification
+            if ext and ext.semantic_reasoning:
+                row_semantic_reasoning = ext.semantic_reasoning
+
+            norm_score_float = None
+            if norm_score is not None:
+                norm_score_float = float(norm_score)
 
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
@@ -502,34 +564,24 @@ class MatrixDomainParser:
                 score_display_label=score_display_label,
                 scale_min=display_scale_min,
                 scale_max=display_scale_max,
-                normalized_score=float(norm_score) if norm_score is not None else None,
+                normalized_score=norm_score_float,
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
                 row_explanation=cleaned_explanation,
-                evidence_type=ext.evidence_type if ext else None,  # type: ignore[arg-type]
-                cited_source_id=ext.source_id if ext else None,
-                cited_text_quote=ext.citation if ext else None,
-                cited_web_citation=ext.google_citation if ext else None,
-                cited_source_title=(
-                    pb_meta.theory_grounding.citation_reference
-                    if pb_meta.theory_grounding and pb_meta.theory_grounding.citation_reference
-                    else None
-                ),
-                cited_source_url=(
-                    pb_meta.theory_grounding.source_url
-                    if pb_meta.theory_grounding and pb_meta.theory_grounding.source_url
-                    else (ext.google_citation if ext and ext.google_citation else None)
-                ),
+                evidence_type=evidence_type,  # type: ignore[arg-type]
+                cited_source_id=cited_source_id,
+                cited_text_quote=cited_text_quote,
+                cited_web_citation=cited_web_citation,
+                cited_source_title=cited_source_title,
+                cited_source_url=cited_source_url,
                 context_target=context_target,
                 context_target_label=context_target_label,
                 remediation_steps=remediation_steps,
                 coaching=coaching,
                 falsification=falsification,
-                confidence=ext.confidence if ext else None,
-                contextual_override=ext.contextual_override if ext else None,
-                semantic_reasoning=(
-                    ext.semantic_reasoning if ext and ext.semantic_reasoning else matrix_payload.justification
-                ),
+                confidence=confidence,
+                contextual_override=contextual_override,
+                semantic_reasoning=row_semantic_reasoning,
                 level_breakdown=axis_level_breakdown,
                 level_names=level_names,
                 ui_boundary_labels=ui_boundary_labels,

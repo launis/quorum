@@ -142,4 +142,5 @@ ignore-missing-imports = ["*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+addopts = "-p no:logfire"
 
