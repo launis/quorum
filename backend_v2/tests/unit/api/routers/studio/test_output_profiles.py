@@ -143,3 +143,33 @@ async def test_clone_output_profile(mock_studio_service):
     response = client.post("/profiles/prof_0123456789abcdef0123456789abcdef/clone")
     assert response.status_code == 201
     assert response.json()["id"] == "prof_0123456789abcdef0123456789abcdef"
+
+
+@pytest.mark.asyncio
+async def test_get_output_profile_accepts_prf_prefix(mock_studio_service):
+    prf_id = "prf_1234567890abcdef"
+    mock_profile = OutputProfile(
+        id=prf_id,
+        workflow_id="wf_1234567890abcdef",
+        slug="test-profile",
+        name={"translations": {"en": "test"}},
+        organization_id="root",
+        matrix_synthesis_groups=[
+            {
+                "id": "grp_1234567890123456",
+                "title": {"translations": {"en": "test"}},
+                "target_blocks": ["blk_sample"],
+            }
+        ],
+    )
+    mock_studio_service.get_output_profile.return_value = mock_profile
+    response = client.get(f"/profiles/{prf_id}")
+    assert response.status_code == 200
+    assert response.json()["id"] == prf_id
+
+
+@pytest.mark.asyncio
+async def test_get_output_profile_rejects_invalid_id_regex(mock_studio_service):
+    response = client.get("/profiles/12345678-1234-1234-1234-123456789abc")
+    assert response.status_code == 422
+

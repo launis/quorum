@@ -111,7 +111,7 @@ class StudioOutputProfileService:
 
         for group in profile.matrix_synthesis_groups:
             for comp in group.target_blocks:
-                if comp != "*" and comp not in allowed_blocks:
+                if comp not in allowed_blocks:
                     msg = f"Target Component '{comp}' does not exist in the context of Workflow '{workflow.id}'."
                     logger.error(
                         "[StudioOutputProfileService] %s: %s (Initiator: %s, Profile: %s)",
@@ -176,12 +176,17 @@ class StudioOutputProfileService:
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
+        workflows = await self.workflow_service.list_workflows(initiator)
+        if workflows:
+            target_wf_id = workflows[0].id
+        else:
+            target_wf_id = "wf_9d68c573802341db"
         new_id = f"prf_{uuid.uuid4().hex[:16]}"
         target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
         draft = OutputProfile(
             id=new_id,
             slug=new_id,
-            workflow_id="*",
+            workflow_id=target_wf_id,
             name=I18nText(translations={"en": "New Profile", "fi": "Uusi profiili"}),
             organization_id=target_org,
             target_block_order=[

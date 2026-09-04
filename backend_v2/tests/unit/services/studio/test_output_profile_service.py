@@ -6,11 +6,11 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.enums import TargetBlockType
-from backend_v2.models.v2_core import OutputProfile
+from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
 
 
@@ -115,23 +115,25 @@ async def test_create_and_clone_output_profile(
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
 
     workflow = AsyncMock()
-    workflow.id = "*"
+    workflow.id = "wf_1234567890abcdef"
     workflow.steps = []
-    workflow.get_allowed_layout_targets = Mock(return_value={"*", TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
+    mock_workflow_service.list_workflows.return_value = [workflow]
 
-    p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "*", "org_1", "Original")
+    p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1234567890abcdef", "org_1", "Original")
 
     async def mock_get_by_id(pid: str) -> OutputProfile | None:
         if pid == "prf_1111111111111111":
             return p1
-        return _make_valid_profile(pid, pid, "*", "org_1", "Created")
+        return _make_valid_profile(pid, pid, "wf_1234567890abcdef", "org_1", "Created")
 
     service.output_profile_repo.get_output_profile_by_id.side_effect = mock_get_by_id
 
     draft = await service.create_output_profile_draft(initiator)
     assert draft.id.startswith("prf_")
+    assert draft.workflow_id == "wf_1234567890abcdef"
 
     cloned = await service.clone_output_profile(initiator, "prf_1111111111111111")
     assert cloned.id.startswith("prf_")
@@ -150,3 +152,58 @@ async def test_output_profile_service_not_found_branches(service: StudioOutputPr
     with pytest.raises(AppException) as exc_info:
         await service.clone_output_profile(initiator, "prf_missing111111")
     assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_save_output_profile_invalid_target_component_raises_app_exception(
+    service: StudioOutputProfileService, mock_workflow_service: AsyncMock
+) -> None:
+    """Test that target block not in allowed_blocks raises 400 VALIDATION_FAILED."""
+    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+
+    workflow = AsyncMock()
+    workflow.id = "wf_1234567890abcdef"
+    workflow.steps = []
+    workflow.get_allowed_layout_targets = Mock(return_value={"blk_allowed_001"})
+    mock_workflow_service.get_workflow.return_value = workflow
+    mock_workflow_service.list_steps.return_value = []
+
+    group = MatrixSynthesisGroup(
+        id="grp_1111111111111111",
+        title=I18nText(translations={"en": "Invalid Group"}),
+        target_blocks=["blk_not_allowed_999"],
+    )
+    profile = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1234567890abcdef", "org_1", "Test")
+    profile = profile.model_copy(update={"matrix_synthesis_groups": [group]})
+
+    with pytest.raises(AppException) as exc_info:
+        await service.save_output_profile(initiator, profile.id, profile)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.asyncio
+async def test_create_output_profile_draft_fallback_to_default_workflow_when_no_workflows(
+    service: StudioOutputProfileService, mock_workflow_service: AsyncMock
+) -> None:
+    """Test that when list_workflows returns empty, draft binds to default workflow wf_9d68c573802341db."""
+    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+
+    mock_workflow_service.list_workflows.return_value = []
+    default_workflow = AsyncMock()
+    default_workflow.id = "wf_9d68c573802341db"
+    default_workflow.steps = []
+    default_workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    mock_workflow_service.get_workflow.return_value = default_workflow
+    mock_workflow_service.list_steps.return_value = []
+
+    async def mock_get_by_id(pid: str) -> OutputProfile | None:
+        return _make_valid_profile(pid, pid, "wf_9d68c573802341db", "org_1", "Created")
+
+    service.output_profile_repo.get_output_profile_by_id.side_effect = mock_get_by_id
+
+    draft = await service.create_output_profile_draft(initiator)
+    assert draft.id.startswith("prf_")
+    assert draft.workflow_id == "wf_9d68c573802341db"
+

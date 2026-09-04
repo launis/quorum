@@ -73,7 +73,7 @@ async def create_output_profile_draft(
 async def get_output_profile(
     current_user: CurrentUserDep,
     studio_service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=r"^prof_[a-fA-F0-9]{16,32}$"),
+    profile_id: str = Path(..., pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"),
 ) -> OutputProfileResponseDTO:
     """Get a specific OutputProfile.
 
@@ -98,7 +98,7 @@ async def save_output_profile(
     data: OutputProfile,
     current_user: CurrentUserDep,
     studio_service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=r"^prof_[a-fA-F0-9]{16,32}$"),
+    profile_id: str = Path(..., pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"),
 ) -> OutputProfileResponseDTO:
     """Update a specific OutputProfile.
 
@@ -123,7 +123,7 @@ async def save_output_profile(
 async def delete_output_profile(
     current_user: CurrentUserDep,
     studio_service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=r"^prof_[a-fA-F0-9]{16,32}$"),
+    profile_id: str = Path(..., pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"),
 ) -> None:
     """Delete a specific OutputProfile.
 
@@ -143,7 +143,7 @@ async def delete_output_profile(
 async def clone_output_profile(
     current_user: CurrentUserDep,
     studio_service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=r"^prof_[a-fA-F0-9]{16,32}$"),
+    profile_id: str = Path(..., pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"),
 ) -> OutputProfileResponseDTO:
     """Clone an existing OutputProfile.
 
