@@ -16,6 +16,7 @@ def test_matrix_sensor_system_prompt_structure() -> None:
         "epistemic_decision_protocol",
         "reasoning_constraints",
         "anti_repetition_mandate",
+        "evidence_extraction_mandate",
         "output_mandate",
     ]
     for tag in tags:

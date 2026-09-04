@@ -215,62 +215,68 @@ class SduiMatrixTableWidget extends StatelessWidget {
                     cellContent = Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
-                      children: sortedLevels.map((lvl) {
-                        final lvlName = axis.levelNames?[lvl.toString()] ?? '';
-                        final lvlAtoms = grouped[lvl] ?? [];
-                        final hasQuotesInLevel = lvlAtoms.any(
-                          (a) => a.exactQuotes.isNotEmpty,
-                        );
-                        if (!hasQuotesInLevel) return const SizedBox.shrink();
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '$lvl - $lvlName',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                            AppSpacing.h4,
-                            ...lvlAtoms.map((atom) {
-                              if (atom.exactQuotes.isEmpty) {
-                                return const SizedBox.shrink();
-                              }
-                              return Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppSpacing.s4,
+                      children: sortedLevels
+                          .where((lvl) {
+                            final lvlAtoms = grouped[lvl] ?? [];
+                            return lvlAtoms.any(
+                              (a) => a.exactQuotes.isNotEmpty,
+                            );
+                          })
+                          .map((lvl) {
+                            final lvlName =
+                                axis.levelNames?[lvl.toString()] ?? '';
+                            final lvlAtoms = grouped[lvl] ?? [];
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '$lvl - $lvlName',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: atom.exactQuotes.map((q) {
-                                    return Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: AppSpacing.s4,
-                                        top: AppSpacing.s2,
-                                      ),
-                                      child: Text(
-                                        '"${q.quote}"',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontStyle: FontStyle.italic,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
+                                AppSpacing.h4,
+                                ...lvlAtoms
+                                    .where(
+                                      (atom) => atom.exactQuotes.isNotEmpty,
+                                    )
+                                    .map((atom) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: AppSpacing.s4,
                                         ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              );
-                            }),
-                            AppSpacing.h4,
-                          ],
-                        );
-                      }).toList(),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: atom.exactQuotes.map((q) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                left: AppSpacing.s4,
+                                                top: AppSpacing.s2,
+                                              ),
+                                              child: Text(
+                                                '"${q.quote}"',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontStyle: FontStyle.italic,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      );
+                                    }),
+                                AppSpacing.h4,
+                              ],
+                            );
+                          })
+                          .toList(),
                     );
                   } else {
                     cellContent = const Text('-');

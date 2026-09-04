@@ -456,8 +456,8 @@
                                                 {% set lvl_name = axis.level_names[lvl|string] if axis.level_names and (lvl|string) in axis.level_names else '' %}
                                                 <div style="font-weight: bold; margin-bottom: 4px; font-size: 11px;">{{ lvl }} - {{ lvl_name }}</div>
                                                 {% for atom in atoms %}
-                                                    {% set status = (atom.status or '') | lower %}
-                                                    {% if status not in ['skipped', 'none', 'dlq'] and 'chunk processing failed' not in (atom.semantic_reasoning or '')|lower %}
+                                                    {% set status_str = (atom.status|string|lower) if atom.status else '' %}
+                                                    {% if status_str not in ['skipped', 'none', 'dlq'] and 'chunk processing failed' not in (atom.semantic_reasoning or '')|lower %}
                                                         {% if atom.exact_quotes %}
                                                             {% for quote in atom.exact_quotes %}
                                                                 <div style="margin-bottom: 6px; color: #555;">
