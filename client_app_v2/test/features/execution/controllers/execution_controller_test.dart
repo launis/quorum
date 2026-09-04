@@ -97,7 +97,34 @@ class MockErrorSseClient implements SseClient {
       'status': 'running',
     };
     yield {
-      'error': "SSE Stream Interrupted: execution with ID '$executionId' not found",
+      'error':
+          "SSE Stream Interrupted: execution with ID '$executionId' not found",
+    };
+  }
+}
+
+class MockSseClientWithErrorNull implements SseClient {
+  @override
+  Stream<Map<String, dynamic>> subscribeToExecution(String executionId) async* {
+    yield {
+      'id': executionId,
+      'workflow_id': 'test_wf',
+      'target_locale': 'fi',
+      'status': 'passed',
+      'error': null,
+    };
+  }
+}
+
+class MockSseClientWithFailedExecutionRecord implements SseClient {
+  @override
+  Stream<Map<String, dynamic>> subscribeToExecution(String executionId) async* {
+    yield {
+      'id': executionId,
+      'workflow_id': 'test_wf',
+      'target_locale': 'fi',
+      'status': 'failed',
+      'error': 'Step computation failed',
     };
   }
 }
@@ -193,11 +220,78 @@ void main() {
       expect(
         state.error.toString().contains('CheckedFromJsonException'),
         isFalse,
-        reason: 'SSE error update must not crash through CheckedFromJsonException',
+        reason:
+            'SSE error update must not crash through CheckedFromJsonException',
       );
 
       sub.close();
     },
   );
-}
 
+  test(
+    'ExecutionController handles SSE update containing error: null without misclassifying as stream error',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          executionClientProvider.overrideWithValue(MockExecutionClient()),
+          sseClientProvider.overrideWithValue(MockSseClientWithErrorNull()),
+          loggerServiceProvider.overrideWithValue(MockLoggerService()),
+        ],
+      );
+
+      final sub = container.listen(executionControllerProvider, (_, __) {});
+      final controller = container.read(executionControllerProvider.notifier);
+
+      await controller.startExecution('test_wf', {});
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final state = container.read(executionControllerProvider);
+      expect(
+        state.hasError,
+        isFalse,
+        reason:
+            'ExecutionRecord with error: null must not trigger SSE stream error defense',
+      );
+      expect(state.hasValue, isTrue);
+      expect(state.value?.id, 'test_exec');
+      expect(state.value?.status, 'PASSED');
+
+      sub.close();
+    },
+  );
+
+  test(
+    'ExecutionController handles failed ExecutionRecord containing domain error without misclassifying as stream error',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          executionClientProvider.overrideWithValue(MockExecutionClient()),
+          sseClientProvider.overrideWithValue(
+            MockSseClientWithFailedExecutionRecord(),
+          ),
+          loggerServiceProvider.overrideWithValue(MockLoggerService()),
+        ],
+      );
+
+      final sub = container.listen(executionControllerProvider, (_, __) {});
+      final controller = container.read(executionControllerProvider.notifier);
+
+      await controller.startExecution('test_wf', {});
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final state = container.read(executionControllerProvider);
+      expect(
+        state.hasError,
+        isFalse,
+        reason:
+            'Failed ExecutionRecord with domain error must deserialize normally',
+      );
+      expect(state.hasValue, isTrue);
+      expect(state.value?.id, 'test_exec');
+      expect(state.value?.status, 'FAILED');
+      expect(state.value?.error, 'Step computation failed');
+
+      sub.close();
+    },
+  );
+}

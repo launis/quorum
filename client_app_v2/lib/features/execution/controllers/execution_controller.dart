@@ -208,6 +208,7 @@ class ExecutionController extends _$ExecutionController {
   }
 
   void _connectToStream(String executionId) {
+    _sseSubscription?.cancel();
     final sseClient = ref.read(sseClientProvider);
 
     _sseSubscription = sseClient
@@ -219,8 +220,15 @@ class ExecutionController extends _$ExecutionController {
             bool needsHeavyFetch = false;
 
             // Phase 2 Step 2.1 & 2.2: SSE Error Defense
-            if (update.containsKey('error') ||
-                update.containsKey('error_code')) {
+            final hasExplicitErrorCode =
+                update['error_code'] != null &&
+                update['error_code'].toString().trim().isNotEmpty;
+            final isSseErrorPayload =
+                update['error'] != null &&
+                update['error'].toString().trim().isNotEmpty &&
+                !update.containsKey('id');
+
+            if (hasExplicitErrorCode || isSseErrorPayload) {
               final errorMessage =
                   update['error']?.toString() ??
                   update['message']?.toString() ??
