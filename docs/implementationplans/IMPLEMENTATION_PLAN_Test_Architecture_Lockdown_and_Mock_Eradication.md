@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Work Package 3: Testiarkkitehtuurin hermeettinen lukitus & Polyfactory)**
+
 # Automated Implementation Plan: WP3 — Test Architecture Lockdown, Mock-Giljotiini & Polyfactory (Testiarkkitehtuurin Hermeettinen Lukitus)
 
 > **SSOT Implementation Plan — Work Package 3 (WP3)**  

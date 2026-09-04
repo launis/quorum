@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Work Package 2: Tyypityssyntaksin ja rajapintojen modernisointi)**
+
 # Automated Implementation Plan: WP2 — Typing Syntax & Interface Modernization (Tyypityssyntaksin ja Rajapintojen Modernisointi)
 
 > **SSOT Implementation Plan — Work Package 2 (WP2)**  

@@ -1,3 +1,5 @@
+> **STATUS: AUDITED & ARCHITECTURALLY RESOLVED / ARKKITEHTONISESTI RATKAISTU (Päätös: Jaettu kahteen vaiheeseen)**
+
 # FEATURE AUDIT: REST API -ohitus ja "Kognitiivisen Saastan" Paluu (The API Bypass Risk & Admin Studio UI Matrix Linter)
 
 **Status:** AUDITED & ARCHITECTURALLY RESOLVED  

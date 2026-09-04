@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Tuleva PostgreSQL 17+ & SQLAlchemy 2.0 -migraatiosuunnitelma)**
+
 ### **IMPLEMENTOINTISUUNNITELMA**
 
 #### **Vaihe 1: Moderni Infra ja Työkalupakki**

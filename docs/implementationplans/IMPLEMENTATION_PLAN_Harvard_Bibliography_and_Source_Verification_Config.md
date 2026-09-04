@@ -1,3 +1,5 @@
+> **STATUS: COMPLETED / TOTEUTETTU (100% Implemented & Verified in commit b31e4161)**
+
 # Implementation Plan: Harvard-Style Bibliography & Configurable Source Verification
 
 Rikastetaan raportin lähdeluettelo Harvard-viittausstandardilla ja tuodaan Tulostusprofiiliin (`OutputProfile`) mahdollisuus konfiguroida lähdeluettelon esitystapaa ja tiivistelmälaatikkoa tiukasti Tripartite Pipeline- ja SDUI Adapter Pattern -arkkitehtuurien mukaisesti rajattuna, kohdellen kaikkia MCP-tiedonhakuyhdyskäytäviä (Tavily, Wikipedia, PubMed jne.) yhdenvertaisina, samantasoisina tietolähteinä.

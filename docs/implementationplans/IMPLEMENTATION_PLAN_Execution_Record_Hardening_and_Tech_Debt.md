@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (ExecutionRecord alimallien tyypitys & tekninen velka)**
+
 # Automated Implementation Plan: ExecutionRecord Hardening & Technical Debt Resolution (Minor Gaps & Future Hardening)
 
 > **SSOT Implementation Plan — ExecutionRecord Hardening**  

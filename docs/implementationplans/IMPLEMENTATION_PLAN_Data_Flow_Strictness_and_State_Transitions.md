@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Work Package 1: Datan ja tilasiirtymien tyyppilukitus)**
+
 # Automated Implementation Plan: WP1 — Data Flow Strictness & State Transitions (Datan ja Tilasiirtymien Tyyppilukitus)
 
 > **SSOT Implementation Plan — Work Package 1 (WP1)**  

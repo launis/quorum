@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Work Package 4: Flutter-skeeman kiristys ja pariteetti)**
+
 # Automated Implementation Plan: WP4 — Frontend Schema Hardening, Parity & AppErrorBoundary (Flutter-Skeeman Kiristys ja Pariteetti)
 
 > **SSOT Implementation Plan — Work Package 4 (WP4)**  

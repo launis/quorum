@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Protokollarekonstituutio, dict-hävitys ja rajapintalukitus)**
+
 # Unified Implementation Plan: Modern Python Typing, 100% Protocol Reconstitution, Dict Eradication & Strict Boundary Lockdown
 
 This comprehensive implementation plan combines Python 3.12–3.14+ typing modernization, 100% typing reconstitution of ALL 15 database protocols and repositories (Ingress DTOs & Egress Domain Models), eradication of permissive dictionary utility anti-patterns (`dict_utils.py`), new stateful In-Memory Protocol Fake testing infrastructure, static AST Guardrail engine expansion alongside **Permanent Lockdown of `BOUNDARY_EXEMPTION_FILES` to ONLY 4 physical SDK/storage drivers (`interfaces.py`, `driver.py`, `wrapper.py`, `exceptions.py`, `finops_trace_analyzer.py`, `alias_engine.py`, and `dict_utils.py` removed/deleted)**.
