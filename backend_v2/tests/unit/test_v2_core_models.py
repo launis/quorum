@@ -108,6 +108,8 @@ def test_execution_core_fields_inheritance_on_execution_record() -> None:
         "execution_trace_storage_path",
         "context_variables",
         "context_variables_storage_path",
+        "progress",
+        "status_message",
     }
     record_fields = set(ExecutionRecord.model_fields.keys())
     missing = core_field_names - record_fields

@@ -122,6 +122,7 @@ def test_backend_json_has_no_dead_unreferenced_keys() -> None:
     # Dynamic prefix generators mapped from enums and domain schemas
     dynamic_prefixes = (
         "matrix_col_",
+        "matrix_target_",
         "col_",
         "xai_ext_",
         "xai",

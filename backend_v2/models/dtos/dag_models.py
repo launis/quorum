@@ -30,7 +30,9 @@ class CausalEdge(BaseModel):
     edge_reasoning: Annotated[
         str,
         Field(
-            description="Chain-of-thought: LLM reasoning about why this causal relationship exists (Reason-then-Format)."
+            description=(
+                "Chain-of-thought: LLM reasoning about why this causal relationship exists (Reason-then-Format)."
+            )
         ),
     ]
     tda_id: Annotated[str, Field(description="The Opaque Stripe ID of the parent atom.")]
@@ -84,6 +86,14 @@ class ExtractedAtom(BaseModel):
 
     @model_validator(mode="after")
     def validate_logical_deduction_and_quote(self) -> Self:
+        """Validate that source_quote is provided if and only if is_logical_deduction is False.
+
+        Returns:
+            Self: The validated model instance.
+
+        Raises:
+            ValueError: If source_quote is present on a logical deduction, or missing on an empirical claim.
+        """
         if self.is_logical_deduction and self.source_quote is not None:
             raise ValueError("source_quote must be None if is_logical_deduction is True.")
         if not self.is_logical_deduction and not self.source_quote:

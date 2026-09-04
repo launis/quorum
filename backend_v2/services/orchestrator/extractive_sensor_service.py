@@ -132,6 +132,7 @@ class ExtractiveSensorService:
             tda: The TDAAssertion definition containing anchors and constraints.
             source_text: The raw source text.
             locale: Optional language code for dynamic fuzzy thresholding.
+            allow_contextual_override: Flag indicating whether contextual overrides are permitted during pre-flight.
 
         Returns:
             A PreFlightResult indicating if the decision was resolved early.

@@ -93,10 +93,13 @@ class MatrixDomainParser:
             profile: The OutputProfile determining which extensions and layouts are valid.
             row_explanations_cache: Rendered explanations to override raw LLM justification.
             workflow_ext_values: List of requested workflow-level extension types.
+            row_curated_quotes_cache: Cache of curated evidence quotes per matrix row ID.
+            has_synthesis_cache: Flag indicating whether synthesis cache is available.
             rejected_evq_ids: Set of IDs for rejected evidence quotes.
             mcp_audit_map: Map of audit trace ID to trace model.
             source_identity_manifest: Optional map of source ID to display names.
             execution: The execution record.
+            expected_inputs_map: Optional map of step expected input definitions for target routing.
 
         Returns:
             A tuple of (evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms).
@@ -248,7 +251,8 @@ class MatrixDomainParser:
             elif display_scale == DisplayScale.CUSTOM:
                 if profile.custom_scale_min is None or profile.custom_scale_max is None:
                     logger.error(
-                        "[MatrixDomainParser] %s: OutputProfile '%s' is missing custom_scale_min/max under custom scale.",
+                        "[MatrixDomainParser] %s: OutputProfile '%s' is missing custom_scale_min/max "
+                        "under custom scale.",
                         ErrorCodes.CONFIGURATION_ERROR.name,
                         profile.id,
                     )
@@ -349,7 +353,10 @@ class MatrixDomainParser:
 
             if synthesis_expected and not is_data_starved:
                 if b_id not in row_explanations_cache:
-                    msg = f"Fail-Fast: row_explanations_cache missing entry for matrix '{b_id}'. Worker synthesis incomplete."
+                    msg = (
+                        f"Fail-Fast: row_explanations_cache missing entry for matrix '{b_id}'. "
+                        "Worker synthesis incomplete."
+                    )
                     logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                     raise AppException(
                         message=msg,
@@ -439,7 +446,8 @@ class MatrixDomainParser:
 
                                     except ValidationError as e:
                                         logger.error(
-                                            "LLM output violated strictly typed schema during Display parsing for atom %s",
+                                            "LLM output violated strictly typed schema during Display parsing "
+                                            "for atom %s",
                                             atom_id,
                                             exc_info=True,
                                         )
