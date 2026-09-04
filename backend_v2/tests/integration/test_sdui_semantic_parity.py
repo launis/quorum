@@ -1,4 +1,4 @@
-import json
+import re
 import shutil
 import subprocess
 import tempfile
@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
@@ -21,21 +22,21 @@ from backend_v2.models.v2_core import (
     Workflow,
 )
 from backend_v2.models.view.sdui import (
-    AccordionBlock,
     AnySduiBlock,
-    BulletListBlock,
-    HeroInsightBlock,
     MarkdownBlock,
     ParagraphBlock,
     SduiMatrixTableBlock,
     SduiMetrics1DBlock,
-    SduiNACard,
-    SduiQuoteCard,
-    SduiRadarChartBlock,
-    SduiScatterPlotBlock,
-    SduiWarningCard,
 )
 from backend_v2.services.pdf_generator import PdfReportService
+
+
+class SduiSemanticTokenDTO(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    text: str
+    is_bold: bool = False
+    is_italic: bool = False
+    is_header: bool = False
 
 
 class WorkflowFactory(ModelFactory[Workflow]):
@@ -135,7 +136,14 @@ async def test_sdui_semantic_parity() -> None:
             }
         )  # Clear random dicts and explicitly mock profile_name to prevent Jinja crashes and ensure parity
 
-        new_layouts: list[AnySduiBlock] = [MarkdownBlock(text="# English test")]
+        new_layouts: list[AnySduiBlock] = [
+            MarkdownBlock(text="# English test"),
+            ParagraphBlock(
+                text="Standard unstyled parity observation narrative text.",
+                exact_quotes=[],
+                citations=[],
+            ),
+        ]
         for layout in dto.inner_sdui_blocks:
             match layout:
                 case SduiMatrixTableBlock() as table:
@@ -157,21 +165,10 @@ async def test_sdui_semantic_parity() -> None:
                     new_layouts.append(metrics.model_copy(update={"title": None}))
                 case MarkdownBlock() | ParagraphBlock():
                     new_layouts.append(layout.model_copy(update={"citations": []}))
-                case (
-                    BulletListBlock()
-                    | HeroInsightBlock()
-                    | SduiQuoteCard()
-                    | SduiWarningCard()
-                    | SduiNACard()
-                    | AccordionBlock()
-                    | SduiRadarChartBlock()
-                    | SduiScatterPlotBlock()
-                ):
-                    # Note: Filtered out of dynamic polyfactory run to prevent unrendered random fixture divergences;
-                    # comprehensive rendering of these 8 blocks is verified deterministically in test_sdui_template_parity.py.
-                    continue
                 case _:
-                    new_layouts.append(layout)
+                    # Note: Filtered out of dynamic polyfactory run to prevent unrendered random fixture divergences;
+                    # comprehensive rendering of all 17 blocks is verified deterministically in test_sdui_template_parity.py.
+                    continue
 
         # Add deterministic authorized contextual override block to verify semantic parity
         override_atom = ScorecardAtomDTOFactory.build(
@@ -249,8 +246,8 @@ async def test_sdui_semantic_parity() -> None:
         md_text = pymupdf4llm.to_markdown(str(pdf_path))
 
         # Step 6: Compare
-        with open(dump_path, encoding="utf-8") as f_json_dump:
-            flutter_text_sequence = json.load(f_json_dump)
+        flutter_tokens = TypeAdapter(list[SduiSemanticTokenDTO]).validate_json(dump_path.read_text(encoding="utf-8"))
+        assert len(flutter_tokens) > 0, "No semantic tokens extracted from Flutter!"
 
         # Parity Check: Every semantic text block visible in Flutter MUST be present in the generated PDF.
         # This proves the Dumb Painter architecture is in perfect sync with Jinja PDF.
@@ -268,24 +265,115 @@ async def test_sdui_semantic_parity() -> None:
             )
 
         cleaned_md = clean_md(md_text)
+        # Stitch adjacent identical markdown formatting tags across <br> or \n to allow multiline span matching
+        stitched_md = re.sub(r"([*_]{1,2})\s*(?:<br\s*/?>|\n)\s*\1", " ", md_text)
+        norm_md_text = re.sub(r"<br\s*/?>", " ", stitched_md)
 
-        for flutter_str in flutter_text_sequence:
-            for token in str(flutter_str).split("\n"):
-                token = token.replace("*", "").strip()
-                if not token:
-                    continue
-                assert token in cleaned_md, (
-                    f"Flutter semantic token '{token}' missing from PDF output! PDF Context: {cleaned_md}"
+        def verify_token_parity(token: SduiSemanticTokenDTO, target_md: str, target_clean_md: str) -> None:
+            norm_token = re.sub(r"\s+", " ", token.text).strip()
+            clean_token_str = token.text.replace("*", "").replace("_", "").strip()
+            clean_token_str = re.sub(r"\s+", " ", clean_token_str).strip()
+            norm_md = re.sub(r"\s+", " ", target_clean_md)
+            if clean_token_str:
+                assert clean_token_str in norm_md, (
+                    f"Token '{clean_token_str}' missing from PDF output! PDF Context: {target_clean_md[:300]}"
                 )
+
+            core_token = re.sub(r"^[\s*_]+|[\s*_]+$", "", norm_token)
+            if not core_token:
+                return
+
+            if token.is_bold:
+                is_in_bold = bool(
+                    re.search(r"\*\*[^\n|]*?" + re.escape(core_token) + r"[^\n|]*?\*\*", target_md)
+                    or re.search(r"__[^\n|]*?" + re.escape(core_token) + r"[^\n|]*?__", target_md)
+                    or re.search(r"^#{1,6}\s+.*" + re.escape(core_token), target_md, re.MULTILINE)
+                    or re.search(r"^\|.*" + re.escape(core_token) + r".*\|\s*\n\|[\s\-:|]+\|", target_md, re.MULTILINE)
+                )
+                assert is_in_bold, f"Bold token '{norm_token}' not styled as bold/heading/table-header in PDF Markdown!"
+
+            if token.is_italic:
+                is_in_italic = bool(
+                    re.search(r"(?<!_)_[^\n|_]*?" + re.escape(core_token) + r"[^\n|_]*?_(?!_)", target_md)
+                    or re.search(r"(?<!\*)\*[^\n|*]*?" + re.escape(core_token) + r"[^\n|*]*?\*(?!\*)", target_md)
+                )
+                assert is_in_italic, f"Italic token '{norm_token}' not styled as italic in PDF Markdown!"
+
+            if token.is_header:
+                is_in_header = bool(re.search(r"^#{1,6}\s+.*" + re.escape(core_token), target_md, re.MULTILINE))
+                assert is_in_header, f"Header token '{norm_token}' not styled as header in PDF Markdown!"
+
+        for token in flutter_tokens:
+            verify_token_parity(token, norm_md_text, cleaned_md)
 
         # Verify authorized contextual override semantic parity between Flutter and PDF
         expected_override_token = "Parity Override Claim: Parity cognitive override observation text"
         assert expected_override_token in cleaned_md, (
             f"Contextual override text '{expected_override_token}' missing from PDF output! PDF Context: {cleaned_md}"
         )
-        assert any(expected_override_token in clean_md(str(f_str)) for f_str in flutter_text_sequence), (
-            f"Contextual override text '{expected_override_token}' missing from Flutter extracted tokens!"
-        )
+        assert any("Parity Override Claim" in t.text for t in flutter_tokens) and any(
+            "Parity cognitive override observation text" in t.text for t in flutter_tokens
+        ), f"Contextual override text '{expected_override_token}' missing from Flutter extracted tokens!"
+
+        # ISTQB Negative Boundary Partitions (4 distinct scenarios with collision-free candidate filtering):
+        # 1. Non-existent token:
+        with pytest.raises(AssertionError):
+            verify_token_parity(
+                SduiSemanticTokenDTO(text="NON_EXISTENT_PARITY_TOKEN_XYZ"),
+                norm_md_text,
+                cleaned_md,
+            )
+
+        # Find collision-free candidate unstyled token
+        candidate_token: SduiSemanticTokenDTO | None = None
+        for t in flutter_tokens:
+            if not t.is_bold and not t.is_italic and not t.is_header:
+                core_cand = re.sub(r"^[\s*_]+|[\s*_]+$", "", t.text).strip()
+                if len(core_cand) < 3:
+                    continue
+                # Ensure the candidate does not match bold/header/italic patterns in norm_md_text
+                is_cand_bold = bool(
+                    re.search(r"\*\*[^\n|]*?" + re.escape(core_cand) + r"[^\n|]*?\*\*", norm_md_text)
+                    or re.search(r"__[^\n|]*?" + re.escape(core_cand) + r"[^\n|]*?__", norm_md_text)
+                    or re.search(r"^#{1,6}\s+.*" + re.escape(core_cand), norm_md_text, re.MULTILINE)
+                    or re.search(
+                        r"^\|.*" + re.escape(core_cand) + r".*\|\s*\n\|[\s\-:|]+\|", norm_md_text, re.MULTILINE
+                    )
+                )
+                is_cand_italic = bool(
+                    re.search(r"(?<!_)_[^\n|_]*?" + re.escape(core_cand) + r"[^\n|_]*?_(?!_)", norm_md_text)
+                    or re.search(r"(?<!\*)\*[^\n|*]*?" + re.escape(core_cand) + r"[^\n|*]*?\*(?!\*)", norm_md_text)
+                )
+                is_cand_header = bool(re.search(r"^#{1,6}\s+.*" + re.escape(core_cand), norm_md_text, re.MULTILINE))
+                if not is_cand_bold and not is_cand_header and not is_cand_italic:
+                    candidate_token = t
+                    break
+
+        assert candidate_token is not None, "No collision-free candidate token found for negative partitions!"
+
+        # 2. Unstyled text mutated to bold:
+        with pytest.raises(AssertionError):
+            verify_token_parity(
+                candidate_token.model_copy(update={"is_bold": True}),
+                norm_md_text,
+                cleaned_md,
+            )
+
+        # 3. Body text mutated to header:
+        with pytest.raises(AssertionError):
+            verify_token_parity(
+                candidate_token.model_copy(update={"is_header": True}),
+                norm_md_text,
+                cleaned_md,
+            )
+
+        # 4. Unstyled text mutated to italic:
+        with pytest.raises(AssertionError):
+            verify_token_parity(
+                candidate_token.model_copy(update={"is_italic": True}),
+                norm_md_text,
+                cleaned_md,
+            )
 
     finally:
         golden_path.unlink(missing_ok=True)

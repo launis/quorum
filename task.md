@@ -25,11 +25,11 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\8cef95ff-266
   - [x] Traverse `InlineSpan` hierarchy, cascading `TextStyle` to resolve effective `FontWeight` (`FontWeight.bold`, `w700`, `w800`, `w900`), `FontStyle.italic`, and `is_header` (`fontSize >= 20.0`).
   - [x] Split multi-line spans by `\n`, filter accessibility states and noise tokens (<2 chars).
   - [x] Emit structured JSON array `[{"text": String, "is_bold": bool, "is_italic": bool, "is_header": bool}]` to `DUMP_PATH`.
-- [ ] **Step 3: PYTHON E2E PARITY ORCHESTRATOR MARKDOWN TOKEN VERIFIER**
-  - [ ] Define strictly typed Pydantic V2 `SduiSemanticTokenDTO` with `ConfigDict(strict=True, extra="forbid", frozen=True)`.
-  - [ ] Deserialize tokens via `TypeAdapter(list[SduiSemanticTokenDTO])`.
-  - [ ] Implement `verify_token_parity` (plain text, bold with negative lookaround / headers / table delimiter anchoring, italic with negative lookaround, headers in `#` lines).
-  - [ ] Implement 4 ISTQB negative boundary partitions with collision-free candidate filtering.
+- [x] **Step 3: PYTHON E2E PARITY ORCHESTRATOR MARKDOWN TOKEN VERIFIER**
+  - [x] Define strictly typed Pydantic V2 `SduiSemanticTokenDTO` with `ConfigDict(strict=True, extra="forbid", frozen=True)`.
+  - [x] Deserialize tokens via `TypeAdapter(list[SduiSemanticTokenDTO])`.
+  - [x] Implement `verify_token_parity` (plain text, bold with negative lookaround / headers / table delimiter anchoring, italic with negative lookaround, headers in `#` lines).
+  - [x] Implement 4 ISTQB negative boundary partitions with collision-free candidate filtering.
 - [ ] **Step 4: GOLDEN MASTER DOM & WIDGET STYLISTIC ASSERTION HARDENING**
   - [ ] In `backend_v2/tests/unit/test_sdui_template_parity.py`, add BeautifulSoup DOM tag/style assertions across SDUI blocks.
   - [ ] In `client_app_v2/test/features/execution/views/widgets/sdui_golden_master_parity_test.dart`, expand widget `TextStyle` assertions.
