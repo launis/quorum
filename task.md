@@ -12,9 +12,9 @@ Implementation Plan: `docs/implementationplans/IMPLEMENTATION_PLAN_Scoring_Doubl
   - [x] Step 1.7: Clean up QGR016 ternary fallbacks in `result_projector.py` (lines 85-90)
   - [x] Step 1.8: Run AST guardrail check and backend audit loop to verify 0 QGR016 violations
 
-- [ ] **Phase 2: Eliminate Double-Inversion Bug in Matrix Hook**
-  - [ ] Step 2.1: Surgically update `matrix_hook.py` (lines 351–377) to eliminate `is_satisfied = not tda.inverse_evidence`
-  - [ ] Step 2.2: Verify with unit test `uv run pytest backend_v2/tests/unit/hooks/test_scoring.py -k "test_matrix_scoring_hook"`
+- [x] **Phase 2: Eliminate Double-Inversion Bug in Matrix Hook**
+  - [x] Step 2.1: Surgically update `matrix_hook.py` (lines 351–377) to eliminate `is_satisfied = not tda.inverse_evidence`
+  - [x] Step 2.2: Verify with unit test `uv run pytest backend_v2/tests/unit/hooks/test_scoring.py -k "test_matrix_scoring_hook"`
 
 - [ ] **Phase 3: Context Target Input Resolution, Flutter Model Parity & Clean-Slate Local Seeding**
   - [ ] Step 3.1: Verify `MatrixPromptBlock.target_input_key` in `backend_v2/models/domain/prompt_blocks.py`

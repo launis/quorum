@@ -363,9 +363,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 final_state = "FALSE"
                                         else:
                                             if status_str == "PASSED":
-                                                is_satisfied = not tda.inverse_evidence
-                                            elif status_str == "FAILED":
-                                                is_satisfied = bool(tda.inverse_evidence)
+                                                is_satisfied = True
                                             else:
                                                 is_satisfied = False
 
