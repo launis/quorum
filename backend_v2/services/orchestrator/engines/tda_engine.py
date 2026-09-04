@@ -85,7 +85,7 @@ class TDAEngine(ExecutionEngine):
                 atoms_map = raw_blackboard["atoms_by_input"] if "atoms_by_input" in raw_blackboard else None
                 if is_starved_flag or not atoms_map:
                     is_starved = True
-            except TypeError, KeyError:
+            except (TypeError, KeyError):  # fmt: skip
                 pass
 
         if is_starved:

@@ -72,6 +72,16 @@ class MatrixPromptBlock(PromptBlockBase):
     allow_decimals: bool = False
     allow_contextual_override: bool = False
     is_lightweight_protocol: bool = False
+    target_input_key: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Explicit target input key from workflow expected_inputs "
+                "(specifically: 'chat_log', 'product_text', 'all')."
+            ),
+        ),
+    ] = None
     ai_description: str | None = Field(
         default=None,
         description=(

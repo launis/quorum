@@ -124,7 +124,7 @@ class ScorecardAtomDTO(V2CoreBase):
         """
         try:
             d = dict(data)
-        except TypeError, ValueError:
+        except (TypeError, ValueError):  # fmt: skip
             return data
 
         status_val = d.get("status")
