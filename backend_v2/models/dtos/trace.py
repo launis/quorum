@@ -136,11 +136,11 @@ class StepTraceMetadataDTO(BaseDTO):
 
 
 class TraceEventMetadataEnvelope(BaseDTO):
-    """Strict hydration schema for extracting metadata from a trace event."""
+    """Strict hydration schema for extracting metadata from a polymorphic trace event."""
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=False, extra="ignore")
 
-    step_metadata: Annotated[StepTraceMetadataDTO | None, Field(alias="_step_metadata", default=None)]
+    step_metadata: Annotated[StepTraceMetadataDTO | None, Field(alias="_step_metadata", default=None)] = None
 
 
 class TraceMatrixExtensionsDTO(BaseDTO):
