@@ -35,7 +35,7 @@ def build_linguistic_context(
         f"  <source_data_language>{source_language}</source_data_language>\n"
         f"  <required_output_language>{target_locale}</required_output_language>\n"
         "  <required_reasoning_language>English</required_reasoning_language>\n"
-        "  <critical_warning>Even if the system prompt and internal thoughts are in English, ALL user-facing JSON string fields (e.g., content blocks, xai_highlights content, row_explanation) MUST be translated to the Required Output Language. NEVER output English to the user unless they explicitly requested English.</critical_warning>\n"
+        "  <critical_warning>Even if the system prompt and internal thoughts are in English, ALL user-facing JSON string fields (e.g., content blocks, xai_highlights content, row_explanation, and scorecard evaluation reasoning or semantic_reasoning contextual override explanations) MUST be translated to the Required Output Language. NEVER output English to the user unless they explicitly requested English.</critical_warning>\n"
         "</linguistic_context>"
     )
     if include_mandate:

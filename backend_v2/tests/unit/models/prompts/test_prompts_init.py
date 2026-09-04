@@ -8,6 +8,10 @@ def test_prompts_package_exports() -> None:
     assert hasattr(prompts, "__all__")
     assert len(prompts.__all__) > 0
 
+    assert hasattr(prompts, "DESC_SEMANTIC_REASONING")
+    assert "DESC_SEMANTIC_REASONING" in prompts.__all__
+    assert isinstance(prompts.DESC_SEMANTIC_REASONING, str)
+
     for symbol in prompts.__all__:
         assert hasattr(prompts, symbol), f"Prompts package missing export: {symbol}"
         val = getattr(prompts, symbol)

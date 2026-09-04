@@ -16,6 +16,10 @@ def test_global_mandates_constants() -> None:
     """Test that all global mandates are non-empty strings and formatted correctly."""
     assert isinstance(LANGUAGE_MANDATE, str)
     assert "<language_mandate>" in LANGUAGE_MANDATE
+    assert "CRITICAL EXCEPTION 1" in LANGUAGE_MANDATE
+    assert "reasoning_trace" in LANGUAGE_MANDATE
+    assert "semantic_reasoning" in LANGUAGE_MANDATE
+    assert "row_explanation" in LANGUAGE_MANDATE
 
     assert isinstance(ANTI_SCORE_MANDATE, str)
     assert "<anti_score_mandate>" in ANTI_SCORE_MANDATE
