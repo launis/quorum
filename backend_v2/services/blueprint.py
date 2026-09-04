@@ -19,7 +19,11 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDTO, TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import (
+    ExecutionUpdateDTO,
+    TraceEventMetadataEnvelope,
+    TraceScoringPayloadDTO,
+)
 from backend_v2.models.enums import (
     ScoringStrategy,
     TargetBlockType,
@@ -357,9 +361,44 @@ class BlueprintTransformer:
             execution = execution.model_copy(update={"step_states": new_step_states})
             await self.exec_repo.update_execution(execution.id, ExecutionUpdateDTO(step_states=new_step_states))
 
+        p_tokens = int(execution.prompt_tokens)
+        c_tokens = int(execution.completion_tokens)
+        r_tokens = int(execution.reasoning_tokens)
+        t_tokens = p_tokens + c_tokens + r_tokens
         total_exec_cost = float(execution.dag_cost_usd)
-        total_exec_tokens = int(execution.prompt_tokens + execution.completion_tokens + execution.reasoning_tokens)
 
+        # Fail-safe: If DAG cost or tokens are 0 on execution record, extract directly from execution_trace events
+        if (total_exec_cost == 0.0 or t_tokens == 0) and execution.execution_trace:
+            trace_p = 0
+            trace_c = 0
+            trace_r = 0
+            trace_t = 0
+            trace_cost = 0.0
+            for ev in execution.execution_trace:
+                if not ev.content:
+                    continue
+                try:
+                    envelope = TraceEventMetadataEnvelope.model_validate(ev.content)
+                    if envelope.step_metadata and envelope.step_metadata.token_usage:
+                        u = envelope.step_metadata.token_usage
+                        trace_p += u.prompt_tokens
+                        trace_c += u.completion_tokens
+                        trace_r += u.reasoning_tokens
+                        trace_t += u.total_tokens
+                        trace_cost += u.cost_usd
+                except ValidationError, ValueError:
+                    pass
+
+            if trace_cost > 0.0 or trace_t > 0:
+                if total_exec_cost == 0.0:
+                    total_exec_cost = trace_cost
+                if t_tokens == 0:
+                    p_tokens = trace_p
+                    c_tokens = trace_c
+                    r_tokens = trace_r
+                    t_tokens = trace_t
+
+        total_exec_tokens = t_tokens
         combined_cost = total_exec_cost + execution.cumulative_synthesis_cost
         combined_tokens = total_exec_tokens + execution.cumulative_synthesis_tokens
 
@@ -467,28 +506,7 @@ class BlueprintTransformer:
         engine_str = str(s_strat)
 
         try:
-            p_tokens = 0
-            c_tokens = 0
-            r_tokens = 0
-            t_tokens = 0
-            cost = 0.0
-
-            if execution.execution_trace:
-                for dto in results:
-                    if dto.block_id == VirtualSystemStepID.STEP_METADATA.value:
-                        try:
-                            step_meta = StepTraceMetadataDTO.model_validate(dto.payload)
-                            usage = step_meta.token_usage
-                            if usage is not None:
-                                p_tokens += usage.prompt_tokens or 0
-                                c_tokens += usage.completion_tokens or 0
-                                r_tokens += usage.reasoning_tokens or 0
-                                t_tokens += usage.total_tokens or 0
-                                cost += usage.cost_usd or 0.0
-                        except ValidationError, ValueError:
-                            pass
-
-            if t_tokens == 0 and execution.execution_trace:
+            if combined_tokens == 0 and execution.execution_trace:
                 logger.warning("[BlueprintTransformer] ALARM: 0 tokens for %s. Telemetry missing.", execution.id)
 
             if not visualization_blocks:
@@ -666,8 +684,8 @@ class BlueprintTransformer:
                 has_warning=has_warning,
                 inner_sdui_blocks=inner_sdui_blocks,
                 visible_metadata=visible_metadata,
-                cost_estimate=cost,
-                total_tokens=t_tokens,
+                cost_estimate=combined_cost,
+                total_tokens=combined_tokens,
                 prompt_tokens=p_tokens,
                 completion_tokens=c_tokens,
                 reasoning_tokens=r_tokens,
