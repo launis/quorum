@@ -20,11 +20,11 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\8cef95ff-266
   - [x] Replace legacy `os`, `os.path`, `tempfile.mkstemp`, `os.close`, `os.remove` with `pathlib.Path` and `Path.unlink(missing_ok=True)`.
   - [x] Eradicate `hasattr` and `getattr` duck-typing violations in layout loop with strictly typed `match layout:` pattern matching.
   - [x] Clean up `client_app_v2/test/features/execution/sdui_semantic_parity_test.dart` (remove naked `print`, replace `throw Exception()` with `throw StateError()`, wrap test in `try...finally` for `semanticsHandle.dispose()`).
-- [ ] **Step 2: FLUTTER SEMANTIC TOKEN EXTRACTOR ENHANCEMENT**
-  - [ ] Implement granular typographical token extractor covering `RichText`, `Text`, and `SelectableText`.
-  - [ ] Traverse `InlineSpan` hierarchy, cascading `TextStyle` to resolve effective `FontWeight` (`FontWeight.bold`, `w700`, `w800`, `w900`), `FontStyle.italic`, and `is_header` (`fontSize >= 20.0`).
-  - [ ] Split multi-line spans by `\n`, filter accessibility states and noise tokens (<2 chars).
-  - [ ] Emit structured JSON array `[{"text": String, "is_bold": bool, "is_italic": bool, "is_header": bool}]` to `DUMP_PATH`.
+- [x] **Step 2: FLUTTER SEMANTIC TOKEN EXTRACTOR ENHANCEMENT**
+  - [x] Implement granular typographical token extractor covering `RichText`, `Text`, and `SelectableText`.
+  - [x] Traverse `InlineSpan` hierarchy, cascading `TextStyle` to resolve effective `FontWeight` (`FontWeight.bold`, `w700`, `w800`, `w900`), `FontStyle.italic`, and `is_header` (`fontSize >= 20.0`).
+  - [x] Split multi-line spans by `\n`, filter accessibility states and noise tokens (<2 chars).
+  - [x] Emit structured JSON array `[{"text": String, "is_bold": bool, "is_italic": bool, "is_header": bool}]` to `DUMP_PATH`.
 - [ ] **Step 3: PYTHON E2E PARITY ORCHESTRATOR MARKDOWN TOKEN VERIFIER**
   - [ ] Define strictly typed Pydantic V2 `SduiSemanticTokenDTO` with `ConfigDict(strict=True, extra="forbid", frozen=True)`.
   - [ ] Deserialize tokens via `TypeAdapter(list[SduiSemanticTokenDTO])`.
