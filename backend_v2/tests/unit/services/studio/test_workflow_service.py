@@ -235,6 +235,7 @@ async def test_save_workflow_success(
     mock_output_profile_repo.get_all_output_profiles.return_value = []
     res = await workflow_service.save_workflow(admin_token, wf.id, wf)
     assert res.id == wf.id
+    mock_workflow_repo.save_workflow.assert_called_once_with(wf)
 
 
 async def test_delete_workflow_not_found(
@@ -365,6 +366,7 @@ async def test_save_step_success(
     mock_workflow_repo.get_step_by_id.side_effect = [None, step]
     res = await workflow_service.save_step(admin_token, step.id, step)
     assert res.id == step.id
+    mock_workflow_repo.save_step.assert_called_once_with(step)
 
 
 async def test_save_step_protected_system_core_slug_mutation_fails_fast(
@@ -462,3 +464,165 @@ async def test_clone_step_success(
     ]
     res = await workflow_service.clone_step(admin_token, step_data.id)
     assert res is not None
+
+
+async def test_save_workflow_aligns_mismatched_id(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: AsyncMock,
+    mock_output_profile_repo: AsyncMock,
+) -> None:
+    target_id = "wor_0123456789abcdef"
+    wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
+    aligned_wf = wf.model_copy(update={"id": target_id})
+    mock_workflow_repo.get_workflow_by_id.return_value = aligned_wf
+    mock_output_profile_repo.get_all_output_profiles.return_value = []
+
+    res = await workflow_service.save_workflow(admin_token, target_id, wf)
+    assert res.id == target_id
+    mock_workflow_repo.save_workflow.assert_called_once()
+    saved_arg = mock_workflow_repo.save_workflow.call_args[0][0]
+    assert saved_arg.id == target_id
+
+
+async def test_save_step_aligns_mismatched_id(
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+) -> None:
+    target_id = "sp_0123456789abcdef"
+    step = _valid_step(step_id="sp_aabbccddeeff0011", org_id="org_123")
+    aligned_step = step.model_copy(update={"id": target_id})
+    mock_workflow_repo.get_step_by_id.side_effect = [None, aligned_step]
+
+    res = await workflow_service.save_step(admin_token, target_id, step)
+    assert res.id == target_id
+    mock_workflow_repo.save_step.assert_called_once()
+    saved_arg = mock_workflow_repo.save_step.call_args[0][0]
+    assert saved_arg.id == target_id
+
+
+async def test_stitch_profiles_attaches_matching_workflow_profiles(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: AsyncMock,
+    mock_output_profile_repo: AsyncMock,
+) -> None:
+    wf = _valid_workflow(wf_id="wor_0123456789abcdef", org_id="org_123")
+    mock_workflow_repo.get_all_workflows.return_value = [wf]
+    matching_profile = OutputProfile(
+        id="prf_0123456789abcdef",
+        workflow_id=wf.id,
+        slug="default_profile",
+        name=I18nText(translations={"en": "Default"}),
+        organization_id="org_123",
+        description=I18nText(translations={"en": "Desc"}),
+        target_block_order=[],
+        matrix_synthesis_groups=[],
+    )
+    mock_output_profile_repo.get_all_output_profiles.return_value = [matching_profile]
+
+    res = await workflow_service.list_workflows(admin_token)
+    assert len(res) == 1
+    assert wf.id in res[0].id
+    assert matching_profile.id in res[0].output_profiles
+
+
+async def test_clone_workflow_with_steps_and_profiles(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: AsyncMock,
+    mock_output_profile_repo: AsyncMock,
+) -> None:
+    step_rule_1 = StepRule(
+        id="sr_1111111111111111",
+        task_blueprint="sp_0123456789abcdef",
+        depends_on=[],
+        input_mappings={},
+    )
+    step_rule_2 = StepRule(
+        id="sr_2222222222222222",
+        task_blueprint="sp_0123456789abcdef",
+        depends_on=["sr_1111111111111111"],
+        input_mappings={"input_a": "$steps.sr_1111111111111111.output"},
+    )
+    wf = _valid_workflow(wf_id="wor_0123456789abcdef", org_id="org_123")
+    wf_with_steps = wf.model_copy(
+        update={
+            "steps": [step_rule_1, step_rule_2],
+            "default_profile_id": "prf_0123456789abcdef",
+        }
+    )
+    matching_profile = OutputProfile(
+        id="prf_0123456789abcdef",
+        workflow_id=wf.id,
+        slug="default_profile",
+        name=I18nText(translations={"en": "Default"}),
+        organization_id="org_123",
+        description=I18nText(translations={"en": "Desc"}),
+        target_block_order=[],
+        matrix_synthesis_groups=[],
+    )
+    mock_workflow_repo.get_workflow_by_id.side_effect = [
+        wf_with_steps,
+        wf_with_steps,
+    ]
+    mock_output_profile_repo.get_all_output_profiles.return_value = [matching_profile]
+
+    res = await workflow_service.clone_workflow(admin_token, wf.id)
+    assert res is not None
+    assert mock_output_profile_repo.create_output_profile.called
+
+
+async def test_get_workflow_available_extensions_handles_exception(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: AsyncMock,
+    mock_prompt_block_repo: AsyncMock,
+    mock_output_profile_repo: AsyncMock,
+) -> None:
+    step = _valid_step(step_id="sp_0123456789abcdef", org_id="org_123")
+    step_rule = StepRule(
+        id="sr_1111111111111111",
+        task_blueprint=step.id,
+        depends_on=[],
+        input_mappings={},
+    )
+    wf = _valid_workflow(org_id="org_123")
+    wf = wf.model_copy(update={"steps": [step_rule]})
+
+    mock_workflow_repo.get_workflow_by_id.return_value = wf
+    mock_output_profile_repo.get_all_output_profiles.return_value = []
+    mock_workflow_repo.get_all_steps.return_value = [step]
+    mock_prompt_block_repo.get_prompt_block_by_id.side_effect = AppException(
+        message="Block corrupted", status_code=500
+    )
+
+    exts = await workflow_service.get_workflow_available_extensions(admin_token, wf.id)
+    assert exts == []
+
+
+async def test_list_workflows_corrupted_record_raises_app_exception(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: AsyncMock,
+) -> None:
+    mock_workflow_repo.get_all_workflows.return_value = [{"invalid": "data"}]
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.list_workflows(admin_token)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
+
+
+async def test_stitch_profiles_corrupted_profile_raises_app_exception(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: AsyncMock,
+    mock_output_profile_repo: AsyncMock,
+) -> None:
+    wf = _valid_workflow(org_id="org_123")
+    mock_workflow_repo.get_all_workflows.return_value = [wf]
+    mock_output_profile_repo.get_all_output_profiles.return_value = [{"invalid": "profile"}]
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.list_workflows(admin_token)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
+

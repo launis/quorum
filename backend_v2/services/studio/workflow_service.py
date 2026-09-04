@@ -19,7 +19,7 @@ from backend_v2.models.domain.prompt_blocks import (
     PromptBlockAdapter,
 )
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
-from backend_v2.models.dtos.studio import StepCreateDTO, WorkflowCreateDTO, WorkflowResponseDTO
+from backend_v2.models.dtos.studio import WorkflowResponseDTO
 from backend_v2.models.v2_core import (
     I18nText,
     Step,
@@ -91,7 +91,7 @@ class StudioWorkflowService:
         for wf in workflows:
             attached = {}
             for profile in all_profiles:
-                if profile.workflow_id == wf.id or profile.workflow_id == "*":
+                if profile.workflow_id == wf.id:
                     # Safely convert to DTO without triggering extra_forbidden
                     p_dict = profile.model_dump(mode="json", exclude={"metric_mappings", "score_display_label"})
                     attached[profile.id] = OutputProfileResponseDTO.model_validate(p_dict, strict=False)
@@ -199,8 +199,12 @@ class StudioWorkflowService:
                     block = PromptBlockAdapter.validate_python(data, strict=False)
                     if isinstance(block, MatrixPromptBlock) and block.output_extensions:
                         extensions.update(block.output_extensions)
-            except AppException, ValidationError, ValueError, KeyError, TypeError, OSError:
-                pass
+            except (AppException, ValidationError, ValueError, KeyError, TypeError, OSError) as e:
+                logger.debug(
+                    "[StudioService] Could not resolve prompt block %s for extensions: %s",
+                    block_id,
+                    str(e),
+                )
 
         return sorted(list(extensions))
 
@@ -216,20 +220,18 @@ class StudioWorkflowService:
             The saved workflow.
 
         Raises:
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after creation.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after save.
         """
         enforce_modification_rights(initiator, data.organization_id)
 
         DAGCompilerService.validate_workflow(data)
 
-        dump = data.model_dump(mode="json", exclude={"id"})
-        create_dto = WorkflowCreateDTO.model_validate(dump, strict=False)
-        created_id = await self.workflow_repo.create_workflow(create_dto)
+        if data.id != id:
+            data = data.model_copy(update={"id": id})
 
-        target_id = id or created_id
-        saved = await self.workflow_repo.get_workflow_by_id(target_id)
-        if not saved and created_id:
-            saved = await self.workflow_repo.get_workflow_by_id(created_id)
+        await self.workflow_repo.save_workflow(data)
+
+        saved = await self.workflow_repo.get_workflow_by_id(id)
         if not saved:
             logger.error(
                 "[StudioService] %s: Workflow %s not found after save (Initiator: %s).",
@@ -453,7 +455,7 @@ class StudioWorkflowService:
 
         Raises:
             AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to mutate system core step.
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after creation.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after save.
         """
         # Direct typed attribute access
         org_id = data.organization_id
@@ -475,14 +477,12 @@ class StudioWorkflowService:
                         details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
                     )
 
-        dump = data.model_dump(mode="json", exclude={"id"})
-        create_dto = StepCreateDTO.model_validate(dump, strict=False)
-        created_id = await self.workflow_repo.create_step(create_dto)
+        if data.id != id:
+            data = data.model_copy(update={"id": id})
 
-        target_id = id or created_id
-        saved = await self.workflow_repo.get_step_by_id(target_id)
-        if not saved and created_id:
-            saved = await self.workflow_repo.get_step_by_id(created_id)
+        await self.workflow_repo.save_step(data)
+
+        saved = await self.workflow_repo.get_step_by_id(id)
         if not saved:
             logger.error(
                 "[StudioService] %s: Step %s not found after save (Initiator: %s).",
