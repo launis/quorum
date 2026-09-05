@@ -520,7 +520,9 @@ def test_expected_input_questionnaire_validations() -> None:
         )
 
     # Non-questionnaire has definitions
-    with pytest.raises(ValueError, match="cannot have questionnaire_definition when 'questionnaire' mode is not active"):
+    with pytest.raises(
+        ValueError, match="cannot have questionnaire_definition when 'questionnaire' mode is not active"
+    ):
         ExpectedInput(
             input_key="k5",
             label=I18nText(translations={"en": "Label"}),
@@ -618,4 +620,3 @@ def test_execution_create_resolve_matrix_sampling_strategy() -> None:
         }
     )
     assert ec.matrix_sampling_strategy is not None
-

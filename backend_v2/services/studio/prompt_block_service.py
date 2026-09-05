@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import logging
-import uuid
 
 from backend_v2.database.interfaces import IPromptBlockRepository, ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.prompt_blocks import (
     PromptBlock,
     SystemRulePromptBlock,
 )
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, EntityPrefix, PromptBlockCategory
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
@@ -174,7 +173,7 @@ class StudioPromptBlockService:
         Raises:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        new_id = f"blk_{uuid.uuid4().hex[:16]}"
+        new_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
         target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
 
         draft = SystemRulePromptBlock(
@@ -216,15 +215,15 @@ class StudioPromptBlockService:
 
         enforce_tenant_isolation(initiator, block.organization_id, "prompt_block", block.id)
 
-        new_id = f"blk_{uuid.uuid4().hex[:16]}"
+        new_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
         target_org = block.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
-        new_translations = {locale: f"{text} (Copy)" for locale, text in block.label.translations.items()}
+        cloned_label = block.label.with_copy_suffix()
 
         cloned_obj = block.model_copy(
             update={
                 "id": new_id,
                 "organization_id": target_org,
-                "label": I18nText(translations=new_translations),
+                "label": cloned_label,
             }
         )
         return await self.save_prompt_block(initiator, new_id, cloned_obj)

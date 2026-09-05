@@ -172,4 +172,3 @@ async def test_get_output_profile_accepts_prf_prefix(mock_studio_service):
 async def test_get_output_profile_rejects_invalid_id_regex(mock_studio_service):
     response = client.get("/profiles/12345678-1234-1234-1234-123456789abc")
     assert response.status_code == 422
-

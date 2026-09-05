@@ -217,9 +217,7 @@ def test_build_caching_prefix_contains_evaluation_directives() -> None:
 def test_build_compiled_prompt_empty_nodes_raises_app_exception() -> None:
     """Anti-happy path: Ensure building prompt with empty nodes raises AppException."""
     with pytest.raises(AppException) as exc_info:
-        MatrixSensorPromptBuilder.build_compiled_prompt(
-            "Context", [], {}, target_locale="fi", matrix_context=None
-        )
+        MatrixSensorPromptBuilder.build_compiled_prompt("Context", [], {}, target_locale="fi", matrix_context=None)
     assert exc_info.value.status_code == 400
     assert "Cannot build prompt with empty nodes" in exc_info.value.message
 
@@ -237,9 +235,7 @@ def test_build_compiled_prompt_missing_alias_raises_app_exception() -> None:
         ),
     )
     with pytest.raises(AppException) as exc_info:
-        MatrixSensorPromptBuilder.build_compiled_prompt(
-            "Context", [node], {}, target_locale="fi", matrix_context=None
-        )
+        MatrixSensorPromptBuilder.build_compiled_prompt("Context", [node], {}, target_locale="fi", matrix_context=None)
     assert exc_info.value.status_code == 400
     assert "Missing alias for tda_id" in exc_info.value.message
 

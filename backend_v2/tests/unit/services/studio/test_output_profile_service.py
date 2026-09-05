@@ -206,4 +206,3 @@ async def test_create_output_profile_draft_fallback_to_default_workflow_when_no_
     draft = await service.create_output_profile_draft(initiator)
     assert draft.id.startswith("prf_")
     assert draft.workflow_id == "wf_9d68c573802341db"
-

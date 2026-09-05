@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-import uuid
 
 from backend_v2.database.interfaces import IOutputProfileRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
-from backend_v2.models.core_base import I18nText
-from backend_v2.models.enums import TargetBlockType
+from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.enums import EntityPrefix, TargetBlockType
 from backend_v2.models.v2_core import OutputProfile
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
@@ -181,7 +180,7 @@ class StudioOutputProfileService:
             target_wf_id = workflows[0].id
         else:
             target_wf_id = "wf_9d68c573802341db"
-        new_id = f"prf_{uuid.uuid4().hex[:16]}"
+        new_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
         target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
         draft = OutputProfile(
             id=new_id,
@@ -223,30 +222,15 @@ class StudioOutputProfileService:
 
         enforce_tenant_isolation(initiator, profile.organization_id, "output_profile", profile.id)
 
-        new_id = f"prf_{uuid.uuid4().hex[:16]}"
+        new_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
         target_org = profile.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
-        new_translations = {
-            loc: f"{txt} (Copy)" if loc == "en" else txt for loc, txt in profile.name.translations.items()
-        }
+        cloned_name = profile.name.with_copy_suffix()
 
         cloned_obj = profile.model_copy(
             update={
                 "id": new_id,
                 "organization_id": target_org,
-                "name": I18nText(translations=new_translations),
+                "name": cloned_name,
             }
         )
-
-        await self.output_profile_repo.create_output_profile(cloned_obj)
-
-        saved = await self.output_profile_repo.get_output_profile_by_id(new_id)
-        if not saved:
-            logger.error(
-                "[StudioOutputProfileService] %s: OutputProfile %s not found after clone (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                new_id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="output_profile", resource_id=new_id)
-
-        return saved
+        return await self.save_output_profile(initiator, new_id, cloned_obj)

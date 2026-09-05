@@ -1,7 +1,7 @@
 """Regression and Root Cause Analysis (RCA) tests for Studio settings persistence.
 
-Verifies that saving workflows, steps, and system configurations updates records
-in-place, preserves Opaque Stripe IDs, prevents un-prefixed orphan records, and
+Verifies that saving workflows, steps, output profiles, prompt blocks, and system configurations
+updates records in-place, preserves Opaque Stripe IDs, prevents un-prefixed orphan records, and
 guarantees that pre-flight schema validation passes upon software restart.
 """
 
@@ -22,8 +22,17 @@ from backend_v2.database.wrapper import TinyDBClient
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock, PromptBlockAdapter
 from backend_v2.models.dtos.system import AnySystemConfigAdapter
-from backend_v2.models.enums import HistoricalContextMode, ScoringStrategy, StepType, SystemConfigID, TargetBlockType
+from backend_v2.models.enums import (
+    BlockDataType,
+    HistoricalContextMode,
+    PromptBlockCategory,
+    ScoringStrategy,
+    StepType,
+    SystemConfigID,
+    TargetBlockType,
+)
 from backend_v2.models.v2_core import (
     LexiconConfigPayload,
     MatrixSynthesisGroup,
@@ -34,9 +43,25 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.services.studio.lexicon_service import StudioLexiconService
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
+from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
 
 pytestmark = pytest.mark.asyncio
+
+
+def _create_sample_prompt_block(block_id: str = "blk_1234567890abcdef") -> PersonaPromptBlock:
+    """Helper to create a valid minimal PersonaPromptBlock domain model."""
+    return PersonaPromptBlock(
+        id=block_id,
+        slug="test_persona",
+        category_id=PromptBlockCategory.EXECUTION_PERSONA,
+        type=BlockDataType.INSTRUCTION,
+        label=I18nText(translations={"en": "Test Persona", "fi": "Testipersona"}),
+        description=I18nText(translations={"en": "Persona Description", "fi": "Persoonan kuvaus"}),
+        organization_id=None,
+        role_enforcement="Strict analytical auditor.",
+        tone_directives=["Objective", "Rigorous"],
+    )
 
 
 def _create_sample_workflow(workflow_id: str = "wf_1234567890abcdef") -> Workflow:
@@ -446,3 +471,69 @@ async def test_save_output_profile_nonexistent_workflow_raises_resource_not_foun
 
     with pytest.raises(ResourceNotFoundError):
         await output_profile_service.save_output_profile(root_token, prof_id, prof)
+
+
+async def test_save_prompt_block_updates_inplace_and_preserves_preflight(tmp_path: Path) -> None:
+    """Tests that saving a prompt block updates in-place without creating orphan records.
+
+    Verifies 100% parity across all 5 Studio entities by checking in-place upsert
+    and strict pre-flight schema validation against PromptBlockAdapter.
+    """
+    db_path = str(tmp_path / "test_db.json")
+    db_client = TinyDBClient(db_path)
+    driver = TinyDBDriver(db_client)
+
+    prompt_block_repo = PromptBlockRepositoryImpl(driver=driver)
+    system_repo = SystemRepositoryImpl(driver=driver)
+
+    prompt_block_service = StudioPromptBlockService(
+        prompt_block_repo=prompt_block_repo,
+        system_repo=system_repo,
+    )
+
+    root_token = TokenData(id="usr_root", role=UserRole.ROOT)
+    target_id = "blk_1234567890abcdef"
+    initial_block = _create_sample_prompt_block(target_id)
+
+    # Seed initial prompt block into database
+    await driver.upsert("prompt_blocks", initial_block.model_dump(mode="json"), target_id)
+
+    # Update prompt block with new values
+    updated_block = initial_block.model_copy(
+        update={
+            "label": I18nText(translations={"en": "Updated Persona", "fi": "Päivitetty persona"}),
+            "role_enforcement": "Empathetic executive coach.",
+            "tone_directives": ["Constructive", "Supportive"],
+        }
+    )
+
+    res = await prompt_block_service.save_prompt_block(root_token, target_id, updated_block)
+
+    # 1. Assert returned DTO has the updated values and identical ID
+    assert res.id == target_id
+    assert isinstance(res, PersonaPromptBlock)
+    assert res.label.translations["en"] == "Updated Persona"
+    assert res.role_enforcement == "Empathetic executive coach."
+    assert res.tone_directives == ["Constructive", "Supportive"]
+
+    # 2. Assert persisted record in repo has the updated values
+    persisted = await prompt_block_repo.get_prompt_block_by_id(target_id)
+    assert persisted is not None
+    assert persisted.id == target_id
+    assert isinstance(persisted, PersonaPromptBlock)
+    assert persisted.label.translations["en"] == "Updated Persona"
+    assert persisted.role_enforcement == "Empathetic executive coach."
+    assert persisted.tone_directives == ["Constructive", "Supportive"]
+
+    # 3. Assert prompt_blocks table in TinyDB does not have duplicate/orphan records
+    with TinyDB(db_path, encoding="utf-8") as raw_db:
+        block_docs = raw_db.table("prompt_blocks").all()
+        assert len(block_docs) == 1, f"Expected exactly 1 prompt block in DB, but found {len(block_docs)}"
+
+        # 4. Assert all documents in prompt_blocks pass startup pre-flight validation
+        for doc in block_docs:
+            validated = PromptBlockAdapter.validate_python(doc)
+            assert validated.id == target_id
+            assert isinstance(validated, PersonaPromptBlock)
+            assert validated.label.translations["en"] == "Updated Persona"
+            assert validated.role_enforcement == "Empathetic executive coach."

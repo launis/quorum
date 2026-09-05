@@ -305,4 +305,3 @@ async def test_execute_graph_invalid_locale_fails_fast(
     assert exc_info.value.status_code == 400
     assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
     assert "Target locale is required for DAG execution" in exc_info.value.message
-

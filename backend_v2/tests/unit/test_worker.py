@@ -405,8 +405,13 @@ async def test_generate_pdf_task_success_path() -> None:
                 "status": "RUNNING",
                 "target_locale": "fi",
                 "metadata": {},
+                "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
                 "step_states": {
-                    "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
+                    "sys_render_prof_1111222233334444": {
+                        "id": "sys_render_prof_1111222233334444",
+                        "label": "Rendering",
+                        "status": "RUNNING",
+                    }
                 },
             }
 
@@ -451,8 +456,13 @@ async def test_generate_pdf_task_exception_handling() -> None:
                 "status": "RUNNING",
                 "target_locale": "en",
                 "metadata": {},
+                "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
                 "step_states": {
-                    "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
+                    "sys_render_prof_1111222233334444": {
+                        "id": "sys_render_prof_1111222233334444",
+                        "label": "Rendering",
+                        "status": "RUNNING",
+                    }
                 },
             }
 
@@ -1149,3 +1159,357 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
             mock_redis.enqueue_job.assert_called_once_with(
                 "generate_pdf_job", "exe_1234567890123456", "en", "prof_1111222233334444"
             )
+
+
+@pytest.mark.asyncio
+async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None:
+    """Verify execute_workflow_job hydrates offloaded trace when in-memory trace lacks metadata."""
+    mock_repo = AsyncMock()
+    mock_repo.get_workflow.return_value = {
+        "id": "wf_1234567890123456",
+        "name": "Test WF",
+        "slug": "test-wf",
+        "description": "desc",
+        "status": "draft",
+        "version": 1,
+        "steps": [],
+        "default_profile_id": "prof_1111222233334444",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "default_strictness_level": 50,
+        "default_scoring_strategy": "AVERAGE",
+    }
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111222233334444",
+        "slug": "prof-1",
+        "workflow_id": "wf_1234567890123456",
+        "name": {"translations": {"en": "Profile 1"}},
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
+    }
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
+        "status": "PENDING",
+        "target_locale": "fi",
+        "step_states": {},
+        "metadata": {},
+    }
+
+    in_memory_trace = [
+        TraceEvent(
+            v=1,
+            timestamp=datetime.now(UTC),
+            event_type="progress",
+            step_name="stp_preflight",
+            content={"message": "running", "percentage": 50},
+        )
+    ]
+
+    mock_exec_record = ExecutionRecord(
+        id="exe_1234567890123456",
+        workflow_id="wf_1234567890123456",
+        output_profile_id="prof_1111222233334444",
+        status=ExecutionStatus.PENDING,
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+        step_states={
+            "step_dag": {
+                "id": "step_dag",
+                "label": "Step DAG",
+                "status": ExecutionStatus.PASSED,
+            }
+        },
+        steps=[
+            {
+                "id": "step_dag",
+                "label": "Step DAG",
+                "status": ExecutionStatus.PENDING,
+            }
+        ],
+        execution_trace=in_memory_trace,
+        execution_trace_storage_path="executions/exe_1234567890123456/execution_trace.json",
+    )
+    mock_engine = AsyncMock()
+    mock_engine.execute_workflow.return_value = mock_exec_record
+
+    offloaded_blob = (
+        b'[{"v": 1, "step_name": "step_dag", "event_type": "output", "content": '
+        b'{"_step_metadata": {"model_strategy": "fast", "physical_model": "test_model", '
+        b'"system_fingerprint": "fp_1", "chunk_size": 1, "token_usage": {"prompt_tokens": 500, '
+        b'"completion_tokens": 100, "cached_tokens": 20, "reasoning_tokens": 10, "total_tokens": 600, '
+        b'"cost_usd": 0.05}}}}]'
+    )
+
+    mock_storage = AsyncMock()
+    mock_storage.read.return_value = offloaded_blob
+
+    with patch("backend_v2.worker.get_storage_driver", return_value=mock_storage):
+        ctx: dict[str, Any] = {"repository": mock_repo, "engine": mock_engine, "redis": None}
+        res = await execute_workflow_job(
+            ctx,
+            workflow_id="wf_1234567890123456",
+            inputs={},
+            execution_id="exe_1234567890123456",
+            organization_id="org_test",
+            user_id="usr_test",
+        )
+
+    assert res["status"] == "COMPLETED"
+    mock_storage.read.assert_called_once_with("executions/exe_1234567890123456/execution_trace.json")
+
+    update_call = mock_repo.update_execution.call_args[0][1]
+    assert update_call.dag_cost_usd == 0.05
+    assert update_call.prompt_tokens == 500
+    assert update_call.completion_tokens == 100
+    assert update_call.cached_tokens == 20
+    assert update_call.reasoning_tokens == 10
+    assert update_call.cost_estimate == 0.05
+    assert update_call.models_used == {"fast": 600}
+    assert len(update_call.steps) == 1
+    assert update_call.steps[0].status == ExecutionStatus.PASSED
+    assert update_call.steps[0].cost_usd == 0.05
+    assert update_call.steps[0].prompt_tokens == 500
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
+    """Verify render_profile_job recovers DAG telemetry from blob if dag_cost_usd is 0."""
+    mock_repo = AsyncMock()
+    mock_repo.get_workflow.return_value = {
+        "id": "wf_1234567890123456",
+        "name": "Test WF",
+        "slug": "test-wf",
+        "description": "desc",
+        "status": "draft",
+        "version": 1,
+        "steps": [],
+        "default_profile_id": "prof_1111222233334444",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "default_strictness_level": 50,
+        "default_scoring_strategy": "AVERAGE",
+    }
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111222233334444",
+        "slug": "prof-1",
+        "workflow_id": "wf_1234567890123456",
+        "name": {"translations": {"en": "Profile 1"}},
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
+    }
+    mock_repo.get_all_prompt_blocks.return_value = []
+    mock_repo.get_workflow_by_id.return_value = {
+        "id": "wf_1234567890123456",
+        "name": "Test WF",
+        "slug": "test-wf",
+        "description": "desc",
+        "status": "draft",
+        "version": 1,
+        "steps": [],
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "default_profile_id": "prof_1111222233334444",
+    }
+    mock_repo.get_model_registry.return_value = {
+        "id": "cfg_1111111111111111",
+        "type": "model_registry",
+        "slug": "model_registry",
+        "models": {
+            "synthesis": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            }
+        },
+    }
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
+        "status": "RUNNING",
+        "target_locale": "en",
+        "dag_cost_usd": 0.0,
+        "cost_estimate": 0.0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "cumulative_synthesis_cost": 0.0,
+        "cumulative_synthesis_tokens": 0,
+        "execution_trace": [],
+        "execution_trace_storage_path": "executions/exe_1234567890123456/execution_trace.json",
+        "step_states": {"sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}},
+        "metadata": {},
+    }
+
+    offloaded_blob = (
+        b'[{"v": 1, "step_name": "step_dag", "event_type": "output", "content": '
+        b'{"_step_metadata": {"model_strategy": "fast", "token_usage": {"prompt_tokens": 800, '
+        b'"completion_tokens": 200, "cached_tokens": 50, "reasoning_tokens": 20, "total_tokens": 1070, '
+        b'"cost_usd": 0.15}}}}, '
+        b'{"v": 1, "step_name": "unrelated", "event_type": "output", "content": {"unrelated": 1}}]'
+    )
+
+    mock_storage = AsyncMock()
+    mock_storage.read.return_value = offloaded_blob
+
+    with (
+        patch("backend_v2.worker.get_driver", AsyncMock()),
+        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch("backend_v2.worker.get_storage_driver", return_value=mock_storage),
+        patch(
+            "backend_v2.worker.synthesis_distiller_hook",
+            AsyncMock(
+                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"}))
+            ),
+        ),
+    ):
+        mock_redis = AsyncMock()
+        await generate_profile_synthesis_and_pdf_task(
+            "exe_1234567890123456", accept_language="en", profile_id="prof_1111222233334444", redis=mock_redis
+        )
+
+    assert mock_storage.read.called
+    update_calls = [
+        call[0][1]
+        for call in mock_repo.update_execution.call_args_list
+        if hasattr(call[0][1], "profile_syntheses") and call[0][1].profile_syntheses is not None
+    ]
+    assert len(update_calls) == 1
+    call_payload = update_calls[0]
+    assert call_payload.dag_cost_usd == 0.15
+    assert call_payload.prompt_tokens == 800
+    assert call_payload.completion_tokens == 200
+    assert call_payload.cached_tokens == 50
+    assert call_payload.reasoning_tokens == 20
+    assert call_payload.cost_estimate >= 0.15
+
+
+@pytest.mark.asyncio
+async def test_job_wrappers_call_tasks() -> None:
+    """Verify render_profile_job and generate_pdf_job invoke underlying tasks."""
+    with (
+        patch("backend_v2.worker.generate_profile_synthesis_and_pdf_task", AsyncMock()) as mock_synth,
+        patch("backend_v2.worker.generate_pdf_task", AsyncMock()) as mock_pdf,
+    ):
+        ctx: dict[str, Any] = {"redis": None}
+        r1 = await render_profile_job(ctx, "exe_123", accept_language="fi", profile_id="prof_1")
+        assert "Completed" in str(r1)
+        mock_synth.assert_called_once_with("exe_123", "fi", "prof_1", None)
+
+        r2 = await generate_pdf_job(ctx, "exe_123", accept_language="fi", profile_id="prof_1")
+        assert "PDF Generated" in str(r2)
+        mock_pdf.assert_called_once_with("exe_123", "fi", "prof_1")
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_fallback() -> None:
+    """Verify DAG cost is recovered from cost_estimate - prev_cost when storage path is missing."""
+    get_settings().use_mock_llm = True
+    mock_repo = AsyncMock()
+    mock_repo.get_workflow.return_value = {
+        "id": "wf_1234567890123456",
+        "name": "Test WF",
+        "slug": "test-wf",
+        "description": "desc",
+        "status": "draft",
+        "version": 1,
+        "steps": [],
+        "default_profile_id": "prof_1111222233334444",
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "default_strictness_level": 50,
+        "default_scoring_strategy": "AVERAGE",
+    }
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111222233334444",
+        "slug": "prof-1",
+        "workflow_id": "wf_1234567890123456",
+        "name": {"translations": {"en": "Profile 1"}},
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
+    }
+    mock_repo.get_all_prompt_blocks.return_value = []
+    mock_repo.get_workflow_by_id.return_value = {
+        "id": "wf_1234567890123456",
+        "name": "Test WF",
+        "slug": "test-wf",
+        "description": "desc",
+        "status": "draft",
+        "version": 1,
+        "steps": [],
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "default_profile_id": "prof_1111222233334444",
+    }
+    mock_repo.get_model_registry.return_value = {
+        "id": "cfg_1111111111111111",
+        "type": "model_registry",
+        "slug": "model_registry",
+        "models": {
+            "synthesis": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            }
+        },
+    }
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
+        "status": "RUNNING",
+        "target_locale": "en",
+        "dag_cost_usd": 0.0,
+        "cost_estimate": 1.25,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "cumulative_synthesis_cost": 0.25,
+        "cumulative_synthesis_tokens": 100,
+        "execution_trace": [],
+        "execution_trace_storage_path": None,
+        "step_states": {},
+        "metadata": {},
+    }
+
+    with (
+        patch("backend_v2.worker.get_driver", AsyncMock()),
+        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.worker.synthesis_distiller_hook",
+            AsyncMock(
+                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"}))
+            ),
+        ),
+    ):
+        mock_redis = AsyncMock()
+        await generate_profile_synthesis_and_pdf_task(
+            "exe_1234567890123456", accept_language="en", profile_id="prof_1111222233334444", redis=mock_redis
+        )
+
+    update_calls = [
+        call[0][1]
+        for call in mock_repo.update_execution.call_args_list
+        if hasattr(call[0][1], "profile_syntheses") and call[0][1].profile_syntheses is not None
+    ]
+    assert len(update_calls) == 1
+    call_payload = update_calls[0]
+    assert call_payload.dag_cost_usd == 1.0
+    assert call_payload.cost_estimate >= 1.0

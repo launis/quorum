@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.prompts.field_prompts import DESC_SEMANTIC_REASONING
 from backend_v2.models.dtos.dag_models import (
     AtomEvaluationResultDTO,
     ExtractedAtom,
@@ -14,6 +13,7 @@ from backend_v2.models.dtos.dag_models import (
 )
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.prompts.field_prompts import DESC_SEMANTIC_REASONING
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import (
@@ -282,25 +282,19 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker() -> None:
         {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quote=None)},
         None,  # 3rd call failed transiently
     ]
-    res_pos = ExtractiveSensorService.resolve_majority_vote(
-        [tda_id], results_split, is_inverse_map={tda_id: False}
-    )
+    res_pos = ExtractiveSensorService.resolve_majority_vote([tda_id], results_split, is_inverse_map={tda_id: False})
     assert res_pos[tda_id].status == ExecutionStatus.FAILED
     assert res_pos[tda_id].source_quote is None
     assert "EPISTEMIC_TIE_BREAKER" in (res_pos[tda_id].reasoning or "")
 
     # 2. Partition B (Inverse Claim Split: 1 PASSED, 1 FAILED, is_inverse=True -> PASSED)
-    res_inv = ExtractiveSensorService.resolve_majority_vote(
-        [tda_id], results_split, is_inverse_map={tda_id: True}
-    )
+    res_inv = ExtractiveSensorService.resolve_majority_vote([tda_id], results_split, is_inverse_map={tda_id: True})
     assert res_inv[tda_id].status == ExecutionStatus.PASSED
     assert res_inv[tda_id].source_quote is None
     assert "EPISTEMIC_TIE_BREAKER" in (res_inv[tda_id].reasoning or "")
 
     # 3. Partition C (Missing Polarity Map: 1 PASSED, 1 FAILED, is_inverse_map=None -> SYSTEM_ERROR)
-    res_no_map = ExtractiveSensorService.resolve_majority_vote(
-        [tda_id], results_split, is_inverse_map=None
-    )
+    res_no_map = ExtractiveSensorService.resolve_majority_vote([tda_id], results_split, is_inverse_map=None)
     assert res_no_map[tda_id].status == ExecutionStatus.SYSTEM_ERROR
     assert res_no_map[tda_id].reasoning == "INSUFFICIENT_CONSENSUS"
 
@@ -328,12 +322,9 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker() -> None:
         {"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")},
         {"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r2")},
     ]
-    res_zero = ExtractiveSensorService.resolve_majority_vote(
-        [tda_id], results_empty, is_inverse_map={tda_id: True}
-    )
+    res_zero = ExtractiveSensorService.resolve_majority_vote([tda_id], results_empty, is_inverse_map={tda_id: True})
     assert res_zero[tda_id].status == ExecutionStatus.SYSTEM_ERROR
     assert "UNRETURNED_BY_MODEL" in (res_zero[tda_id].reasoning or "")
-
 
 
 @pytest.mark.asyncio
@@ -750,4 +741,3 @@ async def test_evaluate_atom_boolean_batch_invalid_locale_fails_fast(invalid_loc
     assert exc_info.value.status_code == 400
     assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
     assert "target_locale must be a non-empty string" in exc_info.value.message
-

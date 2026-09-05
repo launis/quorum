@@ -6,16 +6,18 @@ all branches, system core protection, tenant isolation, cloning, and error state
 
 from __future__ import annotations
 
+import re
 from unittest.mock import AsyncMock
 
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, generate_opaque_id
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, ProtocolPromptBlock
 from backend_v2.models.enums import (
     BlockDataType,
+    EntityPrefix,
     HistoricalContextMode,
     PromptBlockCategory,
     StepType,
@@ -260,18 +262,55 @@ async def test_delete_workflow_success(
     mock_workflow_repo.delete_workflow.assert_called_once_with(wf.id)
 
 
-async def test_create_workflow_draft_root(
-    workflow_service: StudioWorkflowService,
-    root_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
-) -> None:
-    mock_workflow_repo.get_workflow_by_id.side_effect = lambda id_: _valid_workflow(
-        id_, org_id=SystemOrganizations.ROOT_SYSTEM, status="draft"
+async def test_create_workflow_draft_root(root_token: TokenData) -> None:
+    """Tests creating a workflow draft as root user using in-memory stateful persistence."""
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
     )
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
-    res = await workflow_service.create_workflow_draft(root_token)
+    res = await service.create_workflow_draft(root_token)
     assert res.status == "draft"
+    assert res.organization_id == SystemOrganizations.ROOT_SYSTEM
+    assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
+    assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
+    assert isinstance(res.name, I18nText)
+    assert res.name.translations["en"] == "New Työnkulku"
+
+    persisted = await wf_repo.get_workflow_by_id(res.id)
+    assert persisted is not None
+    assert persisted.id == res.id
+    assert persisted.status == "draft"
+    assert persisted.organization_id == SystemOrganizations.ROOT_SYSTEM
+
+
+async def test_create_workflow_draft_admin(admin_token: TokenData) -> None:
+    """Tests creating a workflow draft as admin user with tenant isolation."""
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+    )
+    res = await service.create_workflow_draft(admin_token)
+    assert res.status == "draft"
+    assert res.organization_id == "org_123"
+    assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
+    assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
+    assert isinstance(res.name, I18nText)
+    assert res.name.translations["en"] == "New Työnkulku"
+    assert res.name.translations["fi"] == "Uusi työnkulku"
+
+    persisted = await wf_repo.get_workflow_by_id(res.id)
+    assert persisted is not None
+    assert persisted.id == res.id
+    assert persisted.status == "draft"
+    assert persisted.organization_id == "org_123"
 
 
 async def test_clone_workflow_not_found(
@@ -282,32 +321,55 @@ async def test_clone_workflow_not_found(
         await workflow_service.clone_workflow(admin_token, "wor_missing111111")
 
 
-async def test_clone_workflow_success(
-    workflow_service: StudioWorkflowService,
-    admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
-) -> None:
-    wf = _valid_workflow(org_id="org_123")
-    wf_cloned = _valid_workflow("wor_0123456789abcdef22", org_id="org_123")
-    mock_workflow_repo.get_workflow_by_id.side_effect = [wf, wf_cloned]
-    mock_output_profile_repo.get_all_output_profiles.return_value = [
-        OutputProfile(
-            id="prf_0123456789abcdef01",
-            slug="prof_standard",
-            workflow_id=wf.id,
-            name=I18nText(translations={"en": "Standard"}),
-            target_block_order=[
-                TargetBlockType.METADATA_BLOCK,
-                TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
-                TargetBlockType.SYNTHESIS_TEXT_BLOCK,
-            ],
-        )
-    ]
+async def test_clone_workflow_success(admin_token: TokenData) -> None:
+    """Tests cloning a workflow with in-memory stateful persistence roundtrip."""
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+    )
+    orig_wf = _valid_workflow(wf_id=generate_opaque_id(EntityPrefix.WORKFLOW), org_id="org_123")
+    orig_profile = OutputProfile(
+        id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
+        slug="prof_standard",
+        workflow_id=orig_wf.id,
+        name=I18nText(translations={"en": "Standard"}),
+        target_block_order=[
+            TargetBlockType.METADATA_BLOCK,
+            TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+            TargetBlockType.SYNTHESIS_TEXT_BLOCK,
+        ],
+    )
+    orig_wf = orig_wf.model_copy(update={"default_profile_id": orig_profile.id})
+    await wf_repo.save_workflow(orig_wf)
+    await op_repo.create_output_profile(orig_profile)
 
-    res = await workflow_service.clone_workflow(admin_token, wf.id)
+    res = await service.clone_workflow(admin_token, orig_wf.id)
     assert res is not None
-    mock_output_profile_repo.create_output_profile.assert_called_once()
+    assert res.id != orig_wf.id
+    assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
+    assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
+    assert res.organization_id == "org_123"
+    assert isinstance(res.name, I18nText)
+    assert res.name.translations["en"] == "Test Workflow (Copy)"
+
+    # Profile clone assertions
+    assert res.default_profile_id != orig_profile.id
+    assert res.default_profile_id.startswith(f"{EntityPrefix.OUTPUT_PROFILE}_")
+    cloned_op = await op_repo.get_output_profile_by_id(res.default_profile_id)
+    assert cloned_op is not None
+    assert cloned_op.workflow_id == res.id
+    assert cloned_op.organization_id == "org_123"
+
+    # Stateful roundtrip verification
+    persisted = await wf_repo.get_workflow_by_id(res.id)
+    assert persisted is not None
+    assert persisted.id == res.id
+    assert isinstance(persisted.name, I18nText)
+    assert persisted.name.translations["en"] == "Test Workflow (Copy)"
 
 
 async def test_list_steps_empty(
@@ -427,27 +489,38 @@ async def test_create_step_draft_no_protocol_block_raises(
     assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR
 
 
-async def test_create_step_draft_success(
-    workflow_service: StudioWorkflowService,
-    admin_token: TokenData,
-    mock_prompt_block_repo: AsyncMock,
-    mock_workflow_repo: AsyncMock,
-) -> None:
-    mock_prompt_block_repo.get_all_prompt_blocks.return_value = [
-        ProtocolPromptBlock(
-            id="blk_0123456789abcdef",
-            slug="extraction_protocol_default",
-            category_id=PromptBlockCategory.PROTOCOL,
-            type=BlockDataType.INSTRUCTION,
-            label=I18nText(translations={"en": "Default Protocol"}),
-            description=I18nText(translations={"en": "Default Protocol Description"}),
-            organization_id="org_123",
-            protocol_instructions="Default protocol instruction",
-        )
-    ]
-    mock_workflow_repo.get_step_by_id.side_effect = lambda id_: _valid_step(id_, org_id="org_123")
-    res = await workflow_service.create_step_draft(admin_token)
+async def test_create_step_draft_success(admin_token: TokenData) -> None:
+    """Tests creating a step draft using in-memory stateful persistence."""
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+    )
+    proto_block = ProtocolPromptBlock(
+        id="blk_0123456789abcdef",
+        slug="extraction_protocol_default",
+        category_id=PromptBlockCategory.PROTOCOL,
+        type=BlockDataType.INSTRUCTION,
+        label=I18nText(translations={"en": "Default Protocol"}),
+        description=I18nText(translations={"en": "Default Protocol Description"}),
+        organization_id="org_123",
+        protocol_instructions="Default protocol instruction",
+    )
+    await pb_repo.create_prompt_block(proto_block)
+
+    res = await service.create_step_draft(admin_token)
     assert res is not None
+    assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
+    assert res.id.startswith(f"{EntityPrefix.STEP}_")
+    assert res.organization_id == "org_123"
+    assert res.extraction_protocol_block_id == proto_block.id
+
+    persisted = await wf_repo.get_step_by_id(res.id)
+    assert persisted is not None
+    assert persisted.id == res.id
 
 
 async def test_clone_step_not_found(
@@ -458,17 +531,31 @@ async def test_clone_step_not_found(
         await workflow_service.clone_step(admin_token, "sp_missing111111")
 
 
-async def test_clone_step_success(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
-) -> None:
-    step_data = _valid_step("sp_0123456789abcdef", org_id="org_123")
-    mock_workflow_repo.get_step_by_id.side_effect = [
-        step_data,
-        None,
-        step_data.model_copy(update={"id": "sp_0123456789abcdef02"}),
-    ]
-    res = await workflow_service.clone_step(admin_token, step_data.id)
+async def test_clone_step_success(admin_token: TokenData) -> None:
+    """Tests cloning a step using in-memory stateful persistence."""
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+    )
+    step_data = _valid_step(generate_opaque_id(EntityPrefix.STEP), org_id="org_123")
+    await wf_repo.save_step(step_data)
+
+    res = await service.clone_step(admin_token, step_data.id)
     assert res is not None
+    assert res.id != step_data.id
+    assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
+    assert res.id.startswith(f"{EntityPrefix.STEP}_")
+    assert res.name.translations["en"] == "Test Step (Copy)"
+    assert res.organization_id == "org_123"
+
+    persisted = await wf_repo.get_step_by_id(res.id)
+    assert persisted is not None
+    assert persisted.id == res.id
+    assert persisted.name.translations["en"] == "Test Step (Copy)"
 
 
 async def test_save_workflow_aligns_mismatched_id(
@@ -531,34 +618,32 @@ async def test_stitch_profiles_attaches_matching_workflow_profiles(
     assert matching_profile.id in res[0].output_profiles
 
 
-async def test_clone_workflow_with_steps_and_profiles(
-    workflow_service: StudioWorkflowService,
-    admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
-) -> None:
+async def test_clone_workflow_with_steps_and_profiles(admin_token: TokenData) -> None:
+    """Tests cloning a complex workflow with steps, dependencies, input mappings, and output profiles."""
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+    )
     step_rule_1 = StepRule(
-        id="sr_1111111111111111",
+        id=generate_opaque_id(EntityPrefix.STEP_REFERENCE),
         task_blueprint="sp_0123456789abcdef",
         depends_on=[],
-        input_mappings={},
+        input_mappings={"static_key": "raw_val"},
     )
     step_rule_2 = StepRule(
-        id="sr_2222222222222222",
+        id=generate_opaque_id(EntityPrefix.STEP_REFERENCE),
         task_blueprint="sp_0123456789abcdef",
-        depends_on=["sr_1111111111111111"],
-        input_mappings={"input_a": "$steps.sr_1111111111111111.output"},
+        depends_on=[step_rule_1.id],
+        input_mappings={"input_a": f"$steps.{step_rule_1.id}.output"},
     )
-    wf = _valid_workflow(wf_id="wor_0123456789abcdef", org_id="org_123")
-    wf_with_steps = wf.model_copy(
-        update={
-            "steps": [step_rule_1, step_rule_2],
-            "default_profile_id": "prf_0123456789abcdef",
-        }
-    )
+    wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
     matching_profile = OutputProfile(
-        id="prf_0123456789abcdef",
-        workflow_id=wf.id,
+        id=generate_opaque_id(EntityPrefix.OUTPUT_PROFILE),
+        workflow_id=wf_id,
         slug="default_profile",
         name=I18nText(translations={"en": "Default"}),
         organization_id="org_123",
@@ -566,15 +651,50 @@ async def test_clone_workflow_with_steps_and_profiles(
         target_block_order=[],
         matrix_synthesis_groups=[],
     )
-    mock_workflow_repo.get_workflow_by_id.side_effect = [
-        wf_with_steps,
-        wf_with_steps,
-    ]
-    mock_output_profile_repo.get_all_output_profiles.return_value = [matching_profile]
+    wf = _valid_workflow(wf_id=wf_id, org_id="org_123").model_copy(
+        update={
+            "name": I18nText(translations={"en": "Complex Pipeline", "fi": "Monimutkainen putki"}),
+            "steps": [step_rule_1, step_rule_2],
+            "default_profile_id": matching_profile.id,
+        }
+    )
+    await wf_repo.save_workflow(wf)
+    await op_repo.create_output_profile(matching_profile)
 
-    res = await workflow_service.clone_workflow(admin_token, wf.id)
+    res = await service.clone_workflow(admin_token, wf.id)
     assert res is not None
-    assert mock_output_profile_repo.create_output_profile.called
+    assert res.id != wf.id
+    assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
+    assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
+    assert isinstance(res.name, I18nText)
+    assert res.name.translations["en"] == "Complex Pipeline (Copy)"
+    assert res.name.translations["fi"] == "Monimutkainen putki (Copy)"
+
+    # Step remapping assertions
+    assert len(res.steps) == 2
+    cloned_s1 = res.steps[0]
+    cloned_s2 = res.steps[1]
+    assert cloned_s1.id != step_rule_1.id
+    assert cloned_s1.id.startswith(f"{EntityPrefix.STEP_REFERENCE}_")
+    assert cloned_s2.id != step_rule_2.id
+    assert cloned_s2.id.startswith(f"{EntityPrefix.STEP_REFERENCE}_")
+    assert cloned_s2.depends_on == [cloned_s1.id]
+    assert cloned_s2.input_mappings["input_a"] == f"$steps.{cloned_s1.id}.output"
+    assert cloned_s1.input_mappings["static_key"] == "raw_val"
+
+    # Profile clone assertions
+    assert res.default_profile_id != matching_profile.id
+    assert res.default_profile_id.startswith(f"{EntityPrefix.OUTPUT_PROFILE}_")
+    persisted_prof = await op_repo.get_output_profile_by_id(res.default_profile_id)
+    assert persisted_prof is not None
+    assert persisted_prof.workflow_id == res.id
+
+    # Stateful workflow persistence
+    persisted_wf = await wf_repo.get_workflow_by_id(res.id)
+    assert persisted_wf is not None
+    assert persisted_wf.id == res.id
+    assert len(persisted_wf.steps) == 2
+    assert persisted_wf.steps[1].depends_on == [persisted_wf.steps[0].id]
 
 
 async def test_get_workflow_available_extensions_handles_exception(

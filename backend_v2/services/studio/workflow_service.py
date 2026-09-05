@@ -1,7 +1,6 @@
 """Studio Workflow Service."""
 
 import logging
-import uuid
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -13,6 +12,7 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
@@ -20,9 +20,11 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
+from backend_v2.models.enums import EntityPrefix, HistoricalContextMode, StepType
 from backend_v2.models.v2_core import (
     I18nText,
     Step,
+    StepRule,
     Workflow,
 )
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
@@ -74,7 +76,10 @@ class StudioWorkflowService:
             try:
                 all_profiles.append(OutputProfile.model_validate(p_data, strict=False))
             except ValidationError as e:
-                p_id = p_data.id if isinstance(p_data, OutputProfile) else "unknown"
+                if isinstance(p_data, OutputProfile):
+                    p_id = p_data.id
+                else:
+                    p_id = "unknown"
                 logger.error(
                     "[StudioService] %s: OutputProfile %s failed hydration. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -122,7 +127,10 @@ class StudioWorkflowService:
             try:
                 workflows.append(Workflow.model_validate(x, strict=False))
             except ValidationError as e:
-                x_id = x.id if isinstance(x, Workflow) else "unknown"
+                if isinstance(x, Workflow):
+                    x_id = x.id
+                else:
+                    x_id = "unknown"
                 logger.error(
                     "[StudioService] %s: Workflow %s failed hydration. DB is corrupt. Error: %s",
                     ErrorCodes.STATE_INTEGRITY_ERROR.name,
@@ -277,24 +285,23 @@ class StudioWorkflowService:
         Returns:
             The created workflow draft.
         """
-        new_id = f"wf_{uuid.uuid4().hex[:16]}"
-        draft_dict: dict[str, Any] = {
-            "id": new_id,
-            "slug": new_id,
-            "name": {"translations": {"en": "New Työnkulku", "fi": "Uusi työnkulku"}},
-            "description": {"translations": {"en": "Draft workflow", "fi": "Luonnos"}},
-            "status": "draft",
-            "version": 1,
-            "organization_id": (
+        new_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+        draft = Workflow(
+            id=new_id,
+            slug=new_id,
+            name=I18nText(translations={"en": "New Työnkulku", "fi": "Uusi työnkulku"}),
+            description=I18nText(translations={"en": "Draft workflow", "fi": "Luonnos"}),
+            status="draft",
+            version=1,
+            organization_id=(
                 SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
             ),
-            "expected_inputs": [],
-            "steps": [],
-            "allowed_exports": ["pdf"],
-            "historical_context_mode": "DISABLED",
-            "default_profile_id": "prof_0000000000000000",
-        }
-        draft = Workflow.model_validate(draft_dict, strict=False)
+            expected_inputs=[],
+            steps=[],
+            allowed_exports=["pdf"],
+            historical_context_mode=HistoricalContextMode.DISABLED,
+            default_profile_id="prf_0000000000000000",
+        )
         return await self.save_workflow(initiator, new_id, draft)
 
     async def clone_workflow(self, initiator: TokenData, id: str) -> WorkflowResponseDTO:
@@ -323,25 +330,18 @@ class StudioWorkflowService:
         wf = Workflow.model_validate(data, strict=False)
         enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id)
 
-        new_id = f"wf_{uuid.uuid4().hex[:16]}"
-        cloned_data = wf.model_dump(mode="json")
-        cloned_data["id"] = new_id
+        new_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+        target_org_id = wf.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
 
-        if initiator.role != UserRole.ROOT:
-            cloned_data["organization_id"] = initiator.organization_id
+        cloned_name: I18nText | str = (
+            wf.name.with_copy_suffix() if isinstance(wf.name, I18nText) else f"{wf.name} (Copy)"
+        )
 
-        if isinstance(wf.name, I18nText):
-            new_translations = {locale: f"{text} (Copy)" for locale, text in wf.name.translations.items()}
-            cloned_data["name"] = {"translations": new_translations}
-        else:
-            cloned_data["name"] = f"{wf.name} (Copy)"
+        sr_mapping: dict[str, str] = {
+            step_cfg.id: generate_opaque_id(EntityPrefix.STEP_REFERENCE) for step_cfg in wf.steps
+        }
 
-        sr_mapping: dict[str, str] = {}
-        for step_cfg in wf.steps:
-            new_sr_id = f"sr_{uuid.uuid4().hex[:16]}"
-            sr_mapping[step_cfg.id] = new_sr_id
-
-        new_steps: list[dict[str, Any]] = []
+        new_steps: list[StepRule] = []
         for step_cfg in wf.steps:
             new_depends = [sr_mapping[dep] if dep in sr_mapping else dep for dep in step_cfg.depends_on]
             new_mappings: dict[str, Any] = {}
@@ -353,13 +353,14 @@ class StudioWorkflowService:
                     new_mappings[k] = new_v
                 else:
                     new_mappings[k] = v
-            cfg_dict = step_cfg.model_dump(mode="json")
-            cfg_dict["id"] = sr_mapping[step_cfg.id]
-            cfg_dict["depends_on"] = new_depends
-            cfg_dict["input_mappings"] = new_mappings
-            new_steps.append(cfg_dict)
-
-        cloned_data["steps"] = new_steps
+            new_step = step_cfg.model_copy(
+                update={
+                    "id": sr_mapping[step_cfg.id],
+                    "depends_on": new_depends,
+                    "input_mappings": new_mappings,
+                }
+            )
+            new_steps.append(new_step)
 
         # Deep clone standalone output profiles mapped to this old workflow
         all_profiles = await self.output_profile_repo.get_all_output_profiles()
@@ -374,7 +375,7 @@ class StudioWorkflowService:
                 continue
 
             if p_obj.workflow_id == id:
-                new_profile_id = f"prf_{uuid.uuid4().hex[:16]}"
+                new_profile_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
                 profile_mapping[p_obj.id] = new_profile_id
                 cloned_profile = p_obj.model_copy(
                     update={
@@ -389,14 +390,21 @@ class StudioWorkflowService:
                 await self.output_profile_repo.create_output_profile(cloned_profile)
 
         # Update the default profile ID referencing the old profile
-        if "default_profile_id" in cloned_data and cloned_data["default_profile_id"] in profile_mapping:
-            cloned_data["default_profile_id"] = profile_mapping[cloned_data["default_profile_id"]]
+        new_default_profile_id = (
+            profile_mapping[wf.default_profile_id]
+            if wf.default_profile_id in profile_mapping
+            else wf.default_profile_id
+        )
 
-        # Clear embedded profiles from workflow clone since they are standalone now
-        if "output_profiles" in cloned_data:
-            cloned_data["output_profiles"] = {}
-
-        cloned_workflow = Workflow.model_validate(cloned_data, strict=False)
+        cloned_workflow = wf.model_copy(
+            update={
+                "id": new_id,
+                "name": cloned_name,
+                "organization_id": target_org_id,
+                "steps": new_steps,
+                "default_profile_id": new_default_profile_id,
+            }
+        )
         return await self.save_workflow(initiator, new_id, cloned_workflow)
 
     async def list_steps(self, initiator: TokenData) -> list[Step]:
@@ -561,26 +569,24 @@ class StudioWorkflowService:
                 details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
             )
 
-        new_id = f"sp_{uuid.uuid4().hex[:16]}"
-        draft_dict: dict[str, Any] = {
-            "id": new_id,
-            "slug": new_id,
-            "name": {"translations": {"en": "New Askel", "fi": "Uusi askel"}},
-            "description": {"translations": {"en": "Draft step", "fi": "Luonnos"}},
-            "type": "llm",
-            "role_block_id": None,
-            "extraction_protocol_block_id": protocol_block_id,
-            "criteria_block_ids": ["blk_440a5fef9331451b"],
-            "pre_hooks": [],
-            "post_hooks": [],
-            "safety": "safe",
-            "allowed_mcp_tools": [],
-            "model_strategy": "fast",
-            "organization_id": (
-                SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
-            ),
-        }
-        draft = Step.model_validate(draft_dict, strict=False)
+        new_id = generate_opaque_id(EntityPrefix.STEP)
+        target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
+        draft = Step(
+            id=new_id,
+            slug=new_id,
+            name=I18nText(translations={"en": "New Askel", "fi": "Uusi askel"}),
+            description=I18nText(translations={"en": "Draft step", "fi": "Luonnos"}),
+            type=StepType.LLM,
+            role_block_id=None,
+            extraction_protocol_block_id=protocol_block_id,
+            criteria_block_ids=["blk_440a5fef9331451b"],
+            pre_hooks=[],
+            post_hooks=[],
+            safety="safe",
+            allowed_mcp_tools=[],
+            model_strategy="fast",
+            organization_id=target_org,
+        )
         return await self.save_step(initiator, new_id, draft)
 
     async def clone_step(self, initiator: TokenData, id: str) -> Step:
@@ -609,16 +615,15 @@ class StudioWorkflowService:
         step = Step.model_validate(data, strict=False)
         enforce_tenant_isolation(initiator, step.organization_id, "step", step.id)
 
-        new_id = f"sp_{uuid.uuid4().hex[:16]}"
+        new_id = generate_opaque_id(EntityPrefix.STEP)
+        target_org = step.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
+        cloned_name = step.name.with_copy_suffix()
 
-        cloned_data = step.model_dump(mode="json")
-        cloned_data["id"] = new_id
-
-        if initiator.role != UserRole.ROOT:
-            cloned_data["organization_id"] = initiator.organization_id
-
-        new_translations = {locale: f"{text} (Copy)" for locale, text in step.name.translations.items()}
-        cloned_data["name"] = {"translations": new_translations}
-
-        cloned_obj = Step.model_validate(cloned_data, strict=False)
+        cloned_obj = step.model_copy(
+            update={
+                "id": new_id,
+                "organization_id": target_org,
+                "name": cloned_name,
+            }
+        )
         return await self.save_step(initiator, new_id, cloned_obj)

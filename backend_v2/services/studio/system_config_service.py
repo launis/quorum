@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from typing import Any
 
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.dtos.studio import GCPLocationDTO
-from backend_v2.models.enums import GCPVertexLocation, LLMPlatformType
+from backend_v2.models.enums import EntityPrefix, GCPVertexLocation, LLMPlatformType
 from backend_v2.models.v2_core import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
@@ -233,7 +233,7 @@ class StudioSystemConfigService:
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
 
-        new_id = f"sys_{uuid.uuid4().hex[:16]}"
+        new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         draft = SystemConfigModelRegistry(
             id=new_id,
             slug=new_id,
@@ -272,16 +272,18 @@ class StudioSystemConfigService:
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
 
-        new_id = f"sys_{uuid.uuid4().hex[:16]}"
+        new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+        if data.slug:
+            cloned_slug = f"{data.slug}-copy"
+        else:
+            cloned_slug = None
         cloned_obj = data.model_copy(
             update={
                 "id": new_id,
-                "slug": f"{data.slug}-copy" if data.slug else None,
+                "slug": cloned_slug,
             }
         )
-
-        await self.system_repo.update_model_registry(cloned_obj)
-        return await self.system_repo.get_model_registry()
+        return await self.save_system_config(initiator, new_id, cloned_obj)
 
     async def delete_system_config(self, initiator: TokenData, id: str) -> None:
         """Delete system config.
@@ -392,7 +394,7 @@ class StudioSystemConfigService:
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
 
-        new_id = f"sys_{uuid.uuid4().hex[:16]}"
+        new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         draft = SystemConfigMCPGateways(id=new_id, slug=new_id, type="mcp_gateways", tools=[])
         return await self.save_mcp_gateways(initiator, new_id, draft)
 
@@ -419,11 +421,10 @@ class StudioSystemConfigService:
             raise PermissionDeniedError("Only ROOT can clone system configs.")
         data = await self.system_repo.get_mcp_gateways(id=id)
 
-        new_id = f"sys_{uuid.uuid4().hex[:16]}"
+        new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         cloned_obj = data.model_copy(update={"id": new_id})
 
-        await self.system_repo.update_mcp_gateways(cloned_obj)
-        return await self.system_repo.get_mcp_gateways(id=new_id)
+        return await self.save_mcp_gateways(initiator, new_id, cloned_obj)
 
     async def list_system_configs(self, initiator: TokenData) -> list[SystemConfigModelRegistry]:
         """List system configs.

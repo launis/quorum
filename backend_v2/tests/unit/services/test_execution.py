@@ -979,7 +979,10 @@ async def test_stream_status_handles_error_without_yielding_malformed_execution_
     mock_record.created_by = "u1"
     mock_record.target_locale = "fi"
     mock_record.model_copy.return_value = mock_record
-    mock_record.model_dump_json.return_value = '{"id":"exe_0b51fa35ea584ca7a42cd30b444d1241","workflow_id":"wf_1","status":"RUNNING","target_locale":"fi","output_profile_id":"prof_default"}'
+    mock_record.model_dump_json.return_value = (
+        '{"id":"exe_0b51fa35ea584ca7a42cd30b444d1241","workflow_id":"wf_1",'
+        '"status":"RUNNING","target_locale":"fi","output_profile_id":"prof_default"}'
+    )
 
     call_count = 0
 

@@ -70,7 +70,7 @@ from backend_v2.models.prompts import (
     SynthesisPromptRegistry,
     build_linguistic_context,
 )
-from backend_v2.models.state import StateProjector, TraceEvent
+from backend_v2.models.state import ErrorTraceEvent, StateProjector, TombstoneEvent, TraceEvent
 from backend_v2.models.v2_core import (
     DataStarvationEvent,
     ExecutionRecord,
@@ -249,6 +249,30 @@ async def execute_workflow_job(
             # Final Status Update (Completed)
             if exec_id:
                 # Phase 2, Step 2.1: Parse execution_trace to extract final models_used, step_telemetry, and FinOps
+                def _has_step_metadata(evt: ErrorTraceEvent | TombstoneEvent | TraceEvent) -> bool:
+                    if not evt.content:
+                        return False
+                    try:
+                        envelope = TraceEventMetadataEnvelope.model_validate(evt.content)
+                        return envelope.step_metadata is not None
+                    except ValidationError, ValueError:
+                        return False
+
+                trace_events = list(updated_exec_record.execution_trace)
+                if (
+                    not any(_has_step_metadata(e) for e in trace_events)
+                    and updated_exec_record.execution_trace_storage_path
+                ):
+                    try:
+                        storage_driver = get_storage_driver()
+                        blob_data = await storage_driver.read(updated_exec_record.execution_trace_storage_path)
+                        if blob_data:
+                            trace_events = TypeAdapter(
+                                list[ErrorTraceEvent | TombstoneEvent | TraceEvent]
+                            ).validate_json(blob_data)
+                    except (OSError, UnicodeDecodeError, ValidationError, ValueError, KeyError) as err:
+                        logger.warning("[Worker] Failed to hydrate offloaded trace for telemetry: %s", err)
+
                 models_used: dict[str, int] = (
                     updated_exec_record.models_used.copy() if updated_exec_record.models_used else {}
                 )
@@ -260,7 +284,7 @@ async def execute_workflow_job(
                 total_reasoning_tokens = 0
                 is_degraded = False
 
-                for event in updated_exec_record.execution_trace:
+                for event in trace_events:
                     if event.event_type in ("error", "dlq_routed"):
                         is_degraded = True
                     try:
@@ -341,10 +365,20 @@ async def execute_workflow_job(
                     ]
                 )
                 for st in existing_steps:
+                    st_state = updated_exec_record.step_states.get(st.id)
+                    actual_status = st_state.status if st_state else st.status
+                    last_err = st_state.last_error if st_state else st.last_error
+                    msg_code = st_state.message_code if st_state else st.message_code
+                    scorecard = st_state.scorecard_atoms if st_state else st.scorecard_atoms
+
                     tel = step_telemetry.get(st.id)
                     if tel:
                         updated_st = st.model_copy(
                             update={
+                                "status": actual_status,
+                                "last_error": last_err,
+                                "message_code": msg_code,
+                                "scorecard_atoms": scorecard,
                                 "model_strategy": tel["model_strategy"],
                                 "physical_model": tel["physical_model"],
                                 "system_fingerprint": tel["system_fingerprint"],
@@ -358,7 +392,15 @@ async def execute_workflow_job(
                         )
                         updated_steps.append(updated_st)
                     else:
-                        updated_steps.append(st)
+                        updated_st = st.model_copy(
+                            update={
+                                "status": actual_status,
+                                "last_error": last_err,
+                                "message_code": msg_code,
+                                "scorecard_atoms": scorecard,
+                            }
+                        )
+                        updated_steps.append(updated_st)
 
                 actual_locale = updated_exec_record.target_locale
 
@@ -1463,17 +1505,72 @@ async def generate_profile_synthesis_and_pdf_task(
         prev_cost = execution.cumulative_synthesis_cost
         new_cum_tokens = prev_tokens + synth_tokens
         new_cum_cost = prev_cost + synth_cost
-        total_cost = execution.dag_cost_usd + new_cum_cost
 
-        await repo.update_execution(
-            execution_id,
-            ExecutionUpdateDTO(
-                profile_syntheses=current_syntheses,
-                cumulative_synthesis_tokens=new_cum_tokens,
-                cumulative_synthesis_cost=new_cum_cost,
-                cost_estimate=total_cost,
-            ),
+        dag_cost = float(execution.dag_cost_usd)
+        recovered_prompt_tokens = None
+        recovered_comp_tokens = None
+        recovered_cached_tokens = None
+        recovered_reasoning_tokens = None
+
+        if dag_cost == 0.0 and execution.cost_estimate > 0.0 and execution.cost_estimate > prev_cost:
+            dag_cost = float(execution.cost_estimate - prev_cost)
+
+        if dag_cost == 0.0 and execution.execution_trace_storage_path:
+            try:
+                storage_driver = get_storage_driver()
+                blob_data = await storage_driver.read(execution.execution_trace_storage_path)
+                if blob_data:
+                    stored_trace = TypeAdapter(list[ErrorTraceEvent | TombstoneEvent | TraceEvent]).validate_json(
+                        blob_data
+                    )
+                    rec_p = 0
+                    rec_c = 0
+                    rec_cac = 0
+                    rec_r = 0
+                    rec_cost = 0.0
+                    for ev in stored_trace:
+                        if ev.content:
+                            try:
+                                env = TraceEventMetadataEnvelope.model_validate(ev.content)
+                                if env.step_metadata and env.step_metadata.token_usage:
+                                    u = env.step_metadata.token_usage
+                                    rec_p += u.prompt_tokens
+                                    rec_c += u.completion_tokens
+                                    rec_cac += u.cached_tokens
+                                    rec_r += u.reasoning_tokens
+                                    rec_cost += u.cost_usd
+                            except ValidationError, ValueError:
+                                pass
+                    if rec_cost > 0.0:
+                        dag_cost = rec_cost
+                    if rec_p > 0 or rec_c > 0:
+                        recovered_prompt_tokens = rec_p
+                        recovered_comp_tokens = rec_c
+                        recovered_cached_tokens = rec_cac
+                        recovered_reasoning_tokens = rec_r
+            except (OSError, UnicodeDecodeError, ValidationError, ValueError, KeyError) as err:
+                logger.warning("[Task] Failed to recover DAG telemetry from storage blob: %s", err)
+
+        total_cost = dag_cost + new_cum_cost
+
+        dto = ExecutionUpdateDTO(
+            profile_syntheses=current_syntheses,
+            cumulative_synthesis_tokens=new_cum_tokens,
+            cumulative_synthesis_cost=new_cum_cost,
+            cost_estimate=total_cost,
         )
+        if dag_cost > execution.dag_cost_usd:
+            dto = dto.model_copy(update={"dag_cost_usd": dag_cost})
+        if recovered_prompt_tokens is not None and execution.prompt_tokens == 0:
+            dto = dto.model_copy(update={"prompt_tokens": recovered_prompt_tokens})
+        if recovered_comp_tokens is not None and execution.completion_tokens == 0:
+            dto = dto.model_copy(update={"completion_tokens": recovered_comp_tokens})
+        if recovered_cached_tokens is not None and execution.cached_tokens == 0:
+            dto = dto.model_copy(update={"cached_tokens": recovered_cached_tokens})
+        if recovered_reasoning_tokens is not None and execution.reasoning_tokens == 0:
+            dto = dto.model_copy(update={"reasoning_tokens": recovered_reasoning_tokens})
+
+        await repo.update_execution(execution_id, dto)
 
         logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
 

@@ -1,59 +1,58 @@
-# Task Tracking: Sensor Reliability & Epistemic Variance Hardening (Phases 1–3)
+# Task Tracking: Root Cause Remediation & Anti-Deceptive Persistence Architecture
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
   <rule>@[.agents/rules/03_seed_vault.md]</rule>
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
-  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
-  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
-  <knowledge_item>@[ki_tda_best_of_three_flash.md]</knowledge_item>
-  <knowledge_item>@[ki_structured_forensic_quotes.md]</knowledge_item>
   <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
-  <knowledge_item>@[ki_matrix_boolean_evaluation_strictness.md]</knowledge_item>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
 </required_context_rules>
 
-Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\78d4f10f-bb9e-4447-b1dc-ac6a9497bff9\implementation_plan.md]
+Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\c378f615-5b01-4092-8c17-ec7068432325\implementation_plan.md]
 
 ## Execution Tasks
-- [x] **Step 1: Null Hypothesis Tie-Breaker in Bo3 Reconciliation**
-  - [x] Update `resolve_majority_vote` signature to accept `is_inverse_map: dict[str, bool] | None = None`
-  - [x] Implement empty tally check (`not tally`) -> `ExecutionStatus.SYSTEM_ERROR` with `"UNRETURNED_BY_MODEL: No valid votes cast for atom"`
-  - [x] Implement Null Hypothesis resolution for `is_inverse=True` -> `ExecutionStatus.PASSED`
-  - [x] Implement Null Hypothesis resolution for `is_inverse=False` -> `ExecutionStatus.FAILED`
-  - [x] Implement missing polarity fallback -> `ExecutionStatus.SYSTEM_ERROR` with `"INSUFFICIENT_CONSENSUS"`
-  - [x] In `evaluate_atom_boolean_batch`, pre-compute `is_inverse_map` upfront and optimize ensemble call lookup to $O(1)$
-  - [x] Pass `is_inverse_map` to `resolve_majority_vote`
-- [x] **Step 2: Unit Tests for Tie-Breaker Resolution**
-  - [x] Add 6-partition test in `test_extractive_sensor_service.py` covering positive split, inverse split, missing map, unregistered TDA, unanimous consensus, and zero votes cast
-  - [x] Verify test suite passes with `backend_audit_loop.py` (19 passed, 92% coverage)
-- [x] **Step 3: Contextual Override Directive Hardening**
-  - [x] Harden `CONTEXTUAL_OVERRIDE_DIRECTIVE` in `matrix_evaluation.py` with banned speculative overrides, qualifying criteria, and null hypothesis burden
-  - [x] Update `test_matrix_evaluation.py` to assert negative boundary presence and absence of banned ambiguity tokens
-  - [x] Verify test suite passes with `backend_audit_loop.py` (4 passed, 100% coverage)
-- [x] **Step 4: Top 5 Unstable Atom Calibration in Seed Vault**
-  - [x] Backup `seed_data.json` before edits (`backend_v2/seed/backups/`)
-  - [x] Calibrate `tda_6ecd649b48c24e68824e27e30ed8a63e` (Score 4)
-  - [x] Calibrate `tda_680dc2c703b3425fa0b0d943dbd5af16` (Score 5)
-  - [x] Calibrate `tda_37b0cf6ecd3146071662bd1bf899df74` (Score 3)
-  - [x] Calibrate `tda_74711aa33ba39f6fcf767ea0b96ceab0` (Score 3)
-  - [x] Calibrate `tda_43516f120e4a415bb0ee3a878a53a5bc` (Score 4)
-- [x] **Step 5: Deterministic Quality Gates & Database Reseeding**
-  - [x] Run `uv run python scripts/audit_database_atoms.py --strict` (PASSED 0 ERRORS)
-  - [x] Run `uv run python backend_v2/seed/run_seed.py local --dry-run` (PASSED)
-  - [x] Run `uv run python backend_v2/seed/run_seed.py local` (PASSED & PERSISTED)
-  - [x] Run `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/extractive_sensor_service.py --test` (PASSED)
-  - [x] Run `uv run python scripts/backend_audit_loop.py backend_v2/models/prompts/matrix_evaluation.py --test` (PASSED)
-- [x] **Step 6: End-to-End Variance Verification**
-  - [x] Run `uv run python scripts/run_e2e_variance_test.py "tmp/e2e_inputs_run1.json"`
-  - [x] Verify scratch diff report metrics in `scratch/diff_report_2026-09-04_2041.md`:
-    - Zero `SYSTEM_ERROR` / `INSUFFICIENT_CONSENSUS` failures: **0** (target: 0)
-    - Pairwise self-consistency: **97.38%** (target: >= 95.0%)
-    - Fleiss Kappa: **0.9343** (target: >= 0.85)
-    - Discrepancies reduced from 28 to 8 (71.4% improvement)
-    - All 5 calibrated atoms achieved 100% consistency
+
+- [x] **Step 1: Resolve Linter Blocker and Establish SSOT Constructs**
+  - [x] (VERIFIED_EXISTING - Commit 331e4d4b) Define `EntityPrefix(StrEnum)` in `backend_v2/models/enums.py` and register in `__all__`
+  - [x] (VERIFIED_EXISTING - Commit 331e4d4b) Define `OPAQUE_STRIPE_ID_REGEX`, `generate_opaque_id`, and `I18nText.with_copy_suffix()` in `backend_v2/models/core_base.py` and register in `__all__`
+  - [x] (VERIFIED_EXISTING - Commit 331e4d4b) Replace raw regex literals with `OPAQUE_STRIPE_ID_REGEX` in models and routers
+  - [x] (VERIFIED_EXISTING) Refactor `start_execution` in `backend_v2/services/execution.py` to `generate_opaque_id(EntityPrefix.EXECUTION)`
+  - [x] (VERIFIED_EXISTING) Replace raw uuid fallback in `backend_v2/database/repositories/execution.py#create_execution` with `generate_opaque_id(EntityPrefix.EXECUTION)`
+  - [x] (VERIFIED_EXISTING) Bind `OPAQUE_STRIPE_ID_REGEX` to `ExecutionCreateDTO.id` in `backend_v2/models/dtos/trace.py`
+  - [x] Fix Ruff E501 over-length line 982 in `backend_v2/tests/unit/services/test_execution.py`
+
+- [x] **Step 2: Harden Agentic Rules and Knowledge Base** (VERIFIED_EXISTING - Commit 8b44b085)
+  - [x] Add `deceptive_persistence_mocking_ban` and `preflight_schema_assertion_mandate` to `00-antigravity-core.md`
+  - [x] Replace `local_data_ephemeral_nature` with `root_cause_first_over_reseed_mandate` in `03_seed_vault.md`
+  - [x] Add `in_place_upsert_standard_mandate` and `crud_and_clone_lifecycle_standard_mandate` to `01-python-backend.md`
+  - [x] Add Section 6 to `ki_zero_permissive_typing.md`
+
+- [x] **Step 3: Refactor Studio Services to Unified SSOT Cloning**
+  - [x] Refactor `create_workflow_draft` and `clone_workflow` in `workflow_service.py` to pure Pydantic V2
+  - [x] Harmonize `output_profile_service.py`, `prompt_block_service.py`, `system_config_service.py` with `generate_opaque_id` and `with_copy_suffix`
+
+- [x] **Step 4: Upgrade Studio Persistence Tests with Stateful Roundtrip**
+  - [x] Stateful roundtrip persistence and negative partition tests in `test_prompt_block_service.py`
+  - [x] Stateful roundtrip persistence and negative partition tests in `test_system_config_service.py`
+  - [x] Pure Pydantic clone and draft persistence tests in `test_workflow_service.py`
+  - [x] Full 5-entity parity tests in `test_settings_persistence_rca.py`
+
+- [x] **Step 5: Two-Stage Verification and Global Quality Gate**
+  - [x] Run Stage 1 localized unit tests (138 passed in 1.87s)
+  - [x] Run Stage 2 localized audit loops (`backend_v2/services/studio/` 126 passed, 96.46% coverage; `backend_v2/tests/unit/services/test_execution.py` passed)
+  - [x] Run Stage 3 global quality gate (`backend_audit_loop.py backend_v2/ --test` passed: 2,883 passed, 93.95% coverage, exit code 0)
 
 ## # Session Handover Context
-- **Achieved:** Successfully executed Phases 1–3 of Sensor Reliability & Epistemic Variance Hardening. Built Null Hypothesis tie-breaker in `extractive_sensor_service.py`, added 6-partition unit tests, hardened `CONTEXTUAL_OVERRIDE_DIRECTIVE`, calibrated top 5 unstable atoms in `seed_data.json`, reseeded database, and mathematically proved with E2E variance tests that `SYSTEM_ERROR` is completely eliminated (0 errors) and Fleiss Kappa improved to 0.9343.
-- **Learned:** Resolving inconclusive Best-of-Three split votes according to atom polarity (`is_inverse: true` -> `PASSED`, `is_inverse: false` -> `FAILED`) eliminated all 13 transient consensus failures and stabilized the whole pipeline without any regression.
-- **Remaining:** None for this plan. Handover to `/tier8-audit-plan` for independent red-team verification.
+- **Achieved:**
+  1. Resolved the Ruff `E501` line-length violation in `backend_v2/tests/unit/services/test_execution.py:982`.
+  2. Verified and completed SSOT identifiers across `EntityPrefix`, `generate_opaque_id`, and `OPAQUE_STRIPE_ID_REGEX` in `models/core_base.py`, `models/dtos/trace.py`, `services/execution.py`, and `repositories/execution.py`.
+  3. Verified agentic rule hardening and Section 6 in `ki_zero_permissive_typing.md`.
+  4. Verified pure Pydantic V2 cloning and draft creation across all 4 Studio services (`workflow_service.py`, `output_profile_service.py`, `prompt_block_service.py`, `system_config_service.py`).
+  5. Verified stateful roundtrip persistence tests across all 5 Studio entities in `test_prompt_block_service.py`, `test_system_config_service.py`, `test_workflow_service.py`, and `test_settings_persistence_rca.py`.
+  6. Verified complete Stage 1, Stage 2, and Stage 3 global quality gates: 2,883 tests passed with 93.95% code coverage, 0 AST violations, and 0 lint/type errors.
+- **Learned:**
+  - Running `backend_audit_loop.py` directly against a test file (e.g. `test_execution.py`) targets the coverage filter to the test file name itself; standalone unit tests should be verified via pytest directly or audited through package targets.
+  - Re-splitting large JSON strings in test mock setup cleanly resolves `E501` without sacrificing readable test assertions.
+- **Remaining:**
+  - Instruct git commit and route to `/tier8-audit-plan` for independent System 2 evaluation.

@@ -78,6 +78,7 @@ class DomainSecurityVisitor(ast.NodeVisitor):
                             if isinstance(stmt.value, ast.Call):
                                 match stmt.value.func:
                                     case ast.Name(id="ConfigDict"):
+                                        allowed_exceptions = {"TraceEventMetadataEnvelope"}
                                         for kw in stmt.value.keywords:
                                             if (
                                                 kw.arg == "strict"
@@ -88,7 +89,10 @@ class DomainSecurityVisitor(ast.NodeVisitor):
                                             if (
                                                 kw.arg == "extra"
                                                 and isinstance(kw.value, ast.Constant)
-                                                and kw.value.value == "forbid"
+                                                and (
+                                                    kw.value.value == "forbid"
+                                                    or (node.name in allowed_exceptions and kw.value.value == "ignore")
+                                                )
                                             ):
                                                 has_forbid = True
                                     case _:

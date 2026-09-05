@@ -153,4 +153,3 @@ def test_generate_opaque_id_negative_invalid_prefix() -> None:
     with pytest.raises(AppException) as exc_info2:
         generate_opaque_id("x")
     assert exc_info2.value.status_code == 400
-

@@ -3,15 +3,11 @@
 Enforces DRY and ensures exact matching across all dynamic and static DTOs.
 """
 
-from backend_v2.models.prompts.linguistic_directives import DESC_TRANSLATION_MANDATE
-
 DESC_EXACT_QUOTES = "List of physically contiguous sentences extracted verbatim as evidence."
 
 DESC_CONTEXTUAL_OVERRIDE = "True only if the rule is satisfied contextually without a verbatim quote."
 
-DESC_SEMANTIC_REASONING = (
-    f"Concise natural language explanation of the evaluation outcome or contextual override. {DESC_TRANSLATION_MANDATE}"
-)
+DESC_SEMANTIC_REASONING = "Concise natural language explanation of the evaluation outcome or contextual override."
 
 DESC_REASONING_TRACE = "Extensive analytical reasoning trace explaining the decision-making process."
 

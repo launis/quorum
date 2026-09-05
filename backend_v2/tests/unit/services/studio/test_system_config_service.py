@@ -1,30 +1,35 @@
-"""Unit tests for StudioSystemConfigService."""
+"""Unit tests for StudioSystemConfigService with Stateful Roundtrip Parity."""
 
 from __future__ import annotations
 
+import re
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
 from backend_v2.models.enums import GCPVertexLocation, LLMPlatformType
 from backend_v2.models.v2_core import (
     AllowedMCPTool,
-    I18nText,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
 @pytest.fixture
-def mock_system_repo() -> AsyncMock:
-    return AsyncMock()
+def system_repo() -> InMemorySystemRepository:
+    """Provide isolated in-memory system repository for stateful roundtrip tests."""
+    return InMemorySystemRepository()
 
 
 @pytest.fixture
 def root_token() -> TokenData:
+    """Provide root user token."""
     return TokenData(
         id="usr_root000000000000000000000001",
         email="root@example.com",
@@ -35,6 +40,7 @@ def root_token() -> TokenData:
 
 @pytest.fixture
 def admin_token() -> TokenData:
+    """Provide admin user token."""
     return TokenData(
         id="usr_admin00000000000000000000001",
         email="admin@example.com",
@@ -45,6 +51,7 @@ def admin_token() -> TokenData:
 
 @pytest.fixture
 def member_token() -> TokenData:
+    """Provide regular member user token."""
     return TokenData(
         id="usr_member0000000000000000000001",
         email="member@example.com",
@@ -54,8 +61,9 @@ def member_token() -> TokenData:
 
 
 @pytest.fixture
-def service(mock_system_repo: AsyncMock) -> StudioSystemConfigService:
-    return StudioSystemConfigService(system_repo=mock_system_repo)
+def service(system_repo: InMemorySystemRepository) -> StudioSystemConfigService:
+    """Provide StudioSystemConfigService backed by real in-memory repository."""
+    return StudioSystemConfigService(system_repo=system_repo)
 
 
 # ============================================================================
@@ -64,7 +72,7 @@ def service(mock_system_repo: AsyncMock) -> StudioSystemConfigService:
 
 
 def test_get_available_models_success(service: StudioSystemConfigService, root_token: TokenData) -> None:
-    """Positive: fetches and flattens available models from LLM handler."""
+    """Fetch and flatten available models from LLM handler."""
     llm_handler = MagicMock()
     llm_handler.fetch_all_available_models.return_value = {
         "chat": ["gpt-4o", "claude-3-5-sonnet"],
@@ -77,21 +85,21 @@ def test_get_available_models_success(service: StudioSystemConfigService, root_t
 
 
 def test_get_available_models_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
-    """Negative: non-root/admin raises PermissionDeniedError."""
+    """Assert non-root/admin raises PermissionDeniedError."""
     llm_handler = MagicMock()
     with pytest.raises(PermissionDeniedError):
         service.get_available_models(member_token, llm_handler)
 
 
 def test_get_supported_locations_success(service: StudioSystemConfigService, admin_token: TokenData) -> None:
-    """Positive: returns list of supported GCP locations."""
+    """Return list of supported GCP locations."""
     locations = service.get_supported_locations(admin_token)
     assert len(locations) == len(GCPVertexLocation)
     assert locations[0].id == GCPVertexLocation.EUROPE_NORTH1.value
 
 
 def test_get_supported_locations_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
-    """Negative: non-root/admin raises PermissionDeniedError."""
+    """Assert non-root/admin raises PermissionDeniedError."""
     with pytest.raises(PermissionDeniedError):
         service.get_supported_locations(member_token)
 
@@ -103,57 +111,59 @@ def test_get_supported_locations_permission_denied(service: StudioSystemConfigSe
 
 @pytest.mark.asyncio
 async def test_get_system_config_success(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Positive: returns hydrated SystemConfigModelRegistry."""
-    mock_system_repo.get_model_registry.return_value = SystemConfigModelRegistry(
-        id="sys_0123456789abcdef",
-        type="model_registry",
-        models={},
-    )
-    res = await service.get_system_config(root_token, "sys_0123456789abcdef")
-    assert res.id == "sys_0123456789abcdef"
+    """Return hydrated SystemConfigModelRegistry from repository."""
+    current = await system_repo.get_model_registry()
+    res = await service.get_system_config(root_token, current.id)
+    assert res.id == current.id
+    assert res.type == "model_registry"
 
 
 @pytest.mark.asyncio
 async def test_get_system_config_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
-    """Negative: member role raises PermissionDeniedError."""
+    """Assert member role raises PermissionDeniedError."""
     with pytest.raises(PermissionDeniedError):
         await service.get_system_config(member_token, "sys_0123456789abcdef")
 
 
 @pytest.mark.asyncio
 async def test_get_system_config_not_found(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    monkeypatch: pytest.MonkeyPatch,
+    system_repo: InMemorySystemRepository,
 ) -> None:
-    """Negative: missing model registry raises ResourceNotFoundError."""
-    mock_system_repo.get_model_registry.return_value = None
+    """Assert missing model registry raises ResourceNotFoundError."""
+    monkeypatch.setattr(system_repo, "get_model_registry", AsyncMock(return_value=None))
     with pytest.raises(ResourceNotFoundError):
         await service.get_system_config(root_token, "sys_0123456789abcdef")
 
 
 @pytest.mark.asyncio
 async def test_save_system_config_success(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Positive: saves model registry and returns hydrated object."""
+    """Save model registry and verify true stateful roundtrip persistence."""
     reg = SystemConfigModelRegistry(
         id="sys_0123456789abcdef",
         type="model_registry",
         models={},
     )
-    mock_system_repo.get_model_registry.return_value = reg
-
     res = await service.save_system_config(root_token, "sys_0123456789abcdef", reg)
     assert res.id == "sys_0123456789abcdef"
-    mock_system_repo.update_model_registry.assert_called_once()
+
+    # Stateful Roundtrip Verification via repository
+    persisted = await system_repo.get_model_registry()
+    assert persisted.id == "sys_0123456789abcdef"
+    assert persisted.type == "model_registry"
 
 
 @pytest.mark.asyncio
 async def test_save_system_config_permission_denied(
     service: StudioSystemConfigService, member_token: TokenData
 ) -> None:
-    """Negative: non-root user cannot save model registry."""
+    """Assert non-root user cannot save model registry."""
     reg = SystemConfigModelRegistry(
         id="sys_0123456789abcdef",
         type="model_registry",
@@ -163,102 +173,128 @@ async def test_save_system_config_permission_denied(
         await service.save_system_config(member_token, "sys_0123456789abcdef", reg)
 
 
+def test_save_system_config_corrupted_id_fails_fast() -> None:
+    """Assert creating model registry with non-conforming ID raises ValidationError."""
+    with pytest.raises(ValidationError):
+        SystemConfigModelRegistry(
+            id="not_an_opaque_id",
+            type="model_registry",
+            models={},
+        )
+
+
 @pytest.mark.asyncio
 async def test_create_model_registry_draft(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Positive: creates draft model registry."""
-    mock_system_repo.get_model_registry.return_value = SystemConfigModelRegistry(
-        id="sys_0123456789abcdef",
-        type="model_registry",
-        models={},
-    )
+    """Create draft model registry and verify stateful persistence."""
     res = await service.create_system_config_draft(root_token)
-    assert res.id == "sys_0123456789abcdef"
+    assert res.id.startswith("sys_")
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
+    assert res.type == "model_registry"
+
+    # Stateful Roundtrip:
+    persisted = await system_repo.get_model_registry()
+    assert persisted.id == res.id
 
 
 @pytest.mark.asyncio
 async def test_clone_system_config_success(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Positive: clones existing model registry."""
-    mock_system_repo.get_model_registry.side_effect = [
-        SystemConfigModelRegistry(id="sys_0123456789abcdef", type="model_registry", models={}),
-        SystemConfigModelRegistry(id="sys_fedcba9876543210", type="model_registry", models={}),
-    ]
-    res = await service.clone_system_config(root_token, "sys_0123456789abcdef")
-    assert res.id == "sys_fedcba9876543210"
+    """Clone existing model registry and verify stateful roundtrip."""
+    original = await system_repo.get_model_registry()
+    res = await service.clone_system_config(root_token, original.id)
+    assert res.id != original.id
+    assert res.id.startswith("sys_")
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
+
+    # Stateful Roundtrip:
+    persisted = await system_repo.get_model_registry()
+    assert persisted.id == res.id
 
 
 @pytest.mark.asyncio
 async def test_clone_system_config_not_found(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    monkeypatch: pytest.MonkeyPatch,
+    system_repo: InMemorySystemRepository,
 ) -> None:
-    """Negative: clone non-existent model registry raises ResourceNotFoundError."""
-    mock_system_repo.get_model_registry.return_value = None
+    """Assert clone non-existent model registry raises ResourceNotFoundError."""
+    monkeypatch.setattr(system_repo, "get_model_registry", AsyncMock(return_value=None))
     with pytest.raises(ResourceNotFoundError):
         await service.clone_system_config(root_token, "sys_0123456789abcdef")
 
 
 @pytest.mark.asyncio
 async def test_save_system_config_not_found_after_save(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    monkeypatch: pytest.MonkeyPatch,
+    system_repo: InMemorySystemRepository,
 ) -> None:
-    """Negative: raises ResourceNotFoundError if registry not found after save."""
+    """Assert ResourceNotFoundError if registry not found after save."""
     reg = SystemConfigModelRegistry(
         id="sys_0123456789abcdef",
         type="model_registry",
         models={},
     )
-    mock_system_repo.get_model_registry.return_value = None
+    original_update = system_repo.update_model_registry
+
+    async def mock_update_and_clear(data: SystemConfigModelRegistry) -> bool:
+        await original_update(data)
+        monkeypatch.setattr(system_repo, "get_model_registry", AsyncMock(return_value=None))
+        return True
+
+    monkeypatch.setattr(system_repo, "update_model_registry", mock_update_and_clear)
     with pytest.raises(ResourceNotFoundError):
         await service.save_system_config(root_token, "sys_0123456789abcdef", reg)
 
 
 @pytest.mark.asyncio
 async def test_delete_system_config_success(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Positive: ROOT user deletes system config successfully."""
-    mock_system_repo.get_model_registry.return_value = SystemConfigModelRegistry(
-        id="sys_0123456789abcdef",
-        type="model_registry",
-        models={},
-    )
-    await service.delete_system_config(root_token, "sys_0123456789abcdef")
+    """Assert ROOT user deletes system config successfully."""
+    reg = await system_repo.get_model_registry()
+    await service.delete_system_config(root_token, reg.id)
 
 
 @pytest.mark.asyncio
 async def test_delete_system_config_permission_denied(
     service: StudioSystemConfigService, member_token: TokenData
 ) -> None:
-    """Negative: non-ROOT user raises PermissionDeniedError on delete."""
+    """Assert non-ROOT user raises PermissionDeniedError on delete."""
     with pytest.raises(PermissionDeniedError):
         await service.delete_system_config(member_token, "sys_0123456789abcdef")
 
 
 @pytest.mark.asyncio
 async def test_delete_system_config_not_found(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    monkeypatch: pytest.MonkeyPatch,
+    system_repo: InMemorySystemRepository,
 ) -> None:
-    """Negative: delete non-existent system config raises ResourceNotFoundError."""
-    mock_system_repo.get_model_registry.return_value = None
+    """Assert delete non-existent system config raises ResourceNotFoundError."""
+    monkeypatch.setattr(system_repo, "get_model_registry", AsyncMock(return_value=None))
     with pytest.raises(ResourceNotFoundError):
         await service.delete_system_config(root_token, "sys_0123456789abcdef")
 
 
 @pytest.mark.asyncio
 async def test_list_system_configs(
-    service: StudioSystemConfigService, root_token: TokenData, member_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    member_token: TokenData,
+    system_repo: InMemorySystemRepository,
 ) -> None:
-    """Positive & Negative: lists configs for ROOT, empty for non-ROOT."""
-    mock_system_repo.get_model_registry.return_value = SystemConfigModelRegistry(
-        id="sys_0123456789abcdef",
-        type="model_registry",
-        models={},
-    )
+    """List configs for ROOT and assert empty list for non-ROOT."""
     configs = await service.list_system_configs(root_token)
     assert len(configs) == 1
+    current = await system_repo.get_model_registry()
+    assert configs[0].id == current.id
 
     configs_member = await service.list_system_configs(member_token)
     assert configs_member == []
@@ -271,18 +307,16 @@ async def test_list_system_configs(
 
 @pytest.mark.asyncio
 async def test_list_mcp_gateways(
-    service: StudioSystemConfigService, root_token: TokenData, member_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    member_token: TokenData,
+    system_repo: InMemorySystemRepository,
 ) -> None:
-    """Positive: returns list of MCP gateways for ROOT, empty for non-ROOT."""
-    mock_system_repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
-        type="mcp_gateways",
-        tools=[],
-    )
-
+    """Return list of MCP gateways for ROOT, empty for non-ROOT."""
     res = await service.list_mcp_gateways(root_token)
     assert len(res) == 1
-    assert res[0].id == "sys_8172bda70c8641c5"
+    current = await system_repo.get_mcp_gateways()
+    assert res[0].id == current.id
 
     res_member = await service.list_mcp_gateways(member_token)
     assert res_member == []
@@ -290,40 +324,26 @@ async def test_list_mcp_gateways(
 
 @pytest.mark.asyncio
 async def test_get_mcp_gateways_success(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Positive: retrieves specific MCP gateway by id."""
-    mock_system_repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
-        type="mcp_gateways",
-        tools=[
-            AllowedMCPTool(
-                tool_id="mcp_tavily_search",
-                name=I18nText(translations={"en": "Tavily Search"}),
-                description="Tavily web search",
-                input_schema={},
-            )
-        ],
-    )
-
-    res = await service.get_mcp_gateways(root_token, "sys_8172bda70c8641c5")
-    assert res.id == "sys_8172bda70c8641c5"
-    assert len(res.tools) == 1
-    mock_system_repo.get_mcp_gateways.assert_called_once_with(id="sys_8172bda70c8641c5")
+    """Retrieve specific MCP gateway by id."""
+    current = await system_repo.get_mcp_gateways()
+    res = await service.get_mcp_gateways(root_token, current.id)
+    assert res.id == current.id
 
 
 @pytest.mark.asyncio
 async def test_get_mcp_gateways_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
-    """Negative: non-ROOT user raises PermissionDeniedError."""
+    """Assert non-ROOT user raises PermissionDeniedError."""
     with pytest.raises(PermissionDeniedError):
         await service.get_mcp_gateways(member_token, "sys_8172bda70c8641c5")
 
 
 @pytest.mark.asyncio
 async def test_save_mcp_gateways_success(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Positive: saves MCP gateways and returns hydrated object."""
+    """Save MCP gateways and verify true stateful roundtrip."""
     gw = SystemConfigMCPGateways(
         id="sys_8172bda70c8641c5",
         type="mcp_gateways",
@@ -336,17 +356,21 @@ async def test_save_mcp_gateways_success(
             )
         ],
     )
-    mock_system_repo.get_mcp_gateways.return_value = gw
-
     res = await service.save_mcp_gateways(root_token, "sys_8172bda70c8641c5", gw)
     assert res.id == "sys_8172bda70c8641c5"
-    mock_system_repo.update_mcp_gateways.assert_called_once()
-    mock_system_repo.get_mcp_gateways.assert_called_once_with(id="sys_8172bda70c8641c5")
+    assert len(res.tools) == 1
+    assert res.tools[0].tool_id == "mcp_tavily_search"
+
+    # Stateful Roundtrip Verification via repository
+    persisted = await system_repo.get_mcp_gateways(id="sys_8172bda70c8641c5")
+    assert persisted.id == "sys_8172bda70c8641c5"
+    assert len(persisted.tools) == 1
+    assert persisted.tools[0].tool_id == "mcp_tavily_search"
 
 
 @pytest.mark.asyncio
 async def test_save_mcp_gateways_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
-    """Negative: non-ROOT user raises PermissionDeniedError on save."""
+    """Assert non-ROOT user raises PermissionDeniedError on save."""
     gw = SystemConfigMCPGateways(
         id="sys_8172bda70c8641c5",
         type="mcp_gateways",
@@ -358,38 +382,39 @@ async def test_save_mcp_gateways_permission_denied(service: StudioSystemConfigSe
 
 @pytest.mark.asyncio
 async def test_create_mcp_gateway_draft(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Positive: creates draft MCP gateway."""
-    mock_system_repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
-        id="sys_0123456789abcdef",
-        type="mcp_gateways",
-        tools=[],
-    )
-
+    """Create draft MCP gateway and verify stateful roundtrip."""
     res = await service.create_mcp_gateway_draft(root_token)
-    assert res.id == "sys_0123456789abcdef"
+    assert res.id.startswith("sys_")
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
+    assert res.type == "mcp_gateways"
+
+    # Stateful Roundtrip:
+    persisted = await system_repo.get_mcp_gateways(id=res.id)
+    assert persisted.id == res.id
 
 
 @pytest.mark.asyncio
 async def test_clone_mcp_gateways_success(
-    service: StudioSystemConfigService, root_token: TokenData, mock_system_repo: AsyncMock
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Positive: clones existing MCP gateway."""
-    mock_system_repo.get_mcp_gateways.side_effect = [
-        SystemConfigMCPGateways(id="sys_8172bda70c8641c5", type="mcp_gateways", tools=[]),
-        SystemConfigMCPGateways(id="sys_fedcba9876543210", type="mcp_gateways", tools=[]),
-    ]
+    """Clone existing MCP gateway and verify stateful roundtrip."""
+    original = await system_repo.get_mcp_gateways()
+    res = await service.clone_mcp_gateways(root_token, original.id)
+    assert res.id != original.id
+    assert res.id.startswith("sys_")
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
 
-    res = await service.clone_mcp_gateways(root_token, "sys_8172bda70c8641c5")
-    assert res.id == "sys_fedcba9876543210"
-    assert mock_system_repo.update_mcp_gateways.called
+    # Stateful Roundtrip:
+    persisted = await system_repo.get_mcp_gateways(id=res.id)
+    assert persisted.id == res.id
 
 
 @pytest.mark.asyncio
 async def test_clone_mcp_gateways_permission_denied(
     service: StudioSystemConfigService, member_token: TokenData
 ) -> None:
-    """Negative: non-ROOT user raises PermissionDeniedError on clone."""
+    """Assert non-ROOT user raises PermissionDeniedError on clone."""
     with pytest.raises(PermissionDeniedError):
         await service.clone_mcp_gateways(member_token, "sys_8172bda70c8641c5")
