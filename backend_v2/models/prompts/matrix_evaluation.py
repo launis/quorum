@@ -15,7 +15,7 @@ CONTEXTUAL_OVERRIDE_DIRECTIVE: str = (
     "- Formulate a concise causal explanation describing what reasoning pattern or action the author took instead of committing the error.\n"
     "- Ground the explanation in the holistic reasoning or concrete action observed in the text.\n"
     "- Strict brevity constraint: maximum 25 words per claim.\n"
-    "- Return plain text only; do not include markdown or system IDs.\n"
+    "- Return plain text only into the 'reasoning' field; do not include markdown or system IDs.\n"
     "</contextual_override_directive>"
 )
 

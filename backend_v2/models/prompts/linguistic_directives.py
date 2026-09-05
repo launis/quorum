@@ -35,7 +35,7 @@ def build_linguistic_context(
         f"  <source_data_language>{source_language}</source_data_language>\n"
         f"  <required_output_language>{target_locale}</required_output_language>\n"
         "  <required_reasoning_language>English</required_reasoning_language>\n"
-        "  <critical_warning>Even if the system prompt and internal thoughts are in English, ALL user-facing JSON string fields (e.g., content blocks, xai_highlights content, row_explanation, and scorecard evaluation reasoning or semantic_reasoning contextual override explanations) MUST be translated to the Required Output Language. NEVER output English to the user unless they explicitly requested English.</critical_warning>\n"
+        f"  <critical_warning>Even if the system prompt and internal thoughts are in English, ALL user-facing JSON string fields (e.g., content blocks, xai_highlights content, row_explanation, and scorecard evaluation reasoning or semantic_reasoning contextual override explanations) MUST be translated to the Required Output Language ({target_locale}). The `<required_reasoning_language>` directive applies strictly to hidden internal thought traces (such as `reasoning_trace`); the schema field `reasoning` in atom/scorecard evaluations (specifically when contextual_override is True or explaining an evaluation) is user-facing and MUST be generated strictly in {target_locale}, NEVER in English (unless {target_locale} is 'en').</critical_warning>\n"
         "</linguistic_context>"
     )
     if include_mandate:

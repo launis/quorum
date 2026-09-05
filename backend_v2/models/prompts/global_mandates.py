@@ -25,7 +25,7 @@ LANGUAGE_MANDATE = (
     "exclusively in the language specified in <required_output_language>.\n"
     "- CRITICAL EXCEPTION 1: Internal reasoning fields (e.g., `reasoning_trace`) MUST remain in "
     "English for maximum analytical depth. However, all user-facing justification and explanation fields (specifically "
-    "`row_explanation`, and `reasoning` or `semantic_reasoning` in scorecard atoms) MUST follow the target output language.\n"
+    "`row_explanation`, and `reasoning` or `semantic_reasoning` in scorecard atoms, particularly contextual override explanations) MUST follow the target output language.\n"
     "- CRITICAL EXCEPTION 2: The JSON fields `exact_quotes` and `source_quote` MUST ALWAYS remain in the raw, "
     "original language of the source text. NEVER translate, paraphrase, or modify the language "
     "of the extracted quotes.\n"

@@ -214,7 +214,7 @@ class MatrixSensorPromptBuilder:
         exec_params = TemplateProcessor.safe_interpolate(
             "<execution_parameters>\n{c}\n</execution_parameters>", c=claims_str
         )
-        linguistic_context = build_linguistic_context(target_locale=target_locale.strip(), include_mandate=False)
+        linguistic_context = build_linguistic_context(target_locale=target_locale.strip(), include_mandate=True)
         user_content = f"{linguistic_context}\n\n{exec_params}"
 
         # 3. Assemble CompiledPrompt properly (Context text in static user message!)

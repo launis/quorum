@@ -102,6 +102,7 @@ def test_build_compiled_prompt_cdata_encapsulation() -> None:
 
     assert "<linguistic_context>" in dyn_content
     assert "<required_output_language>fi</required_output_language>" in dyn_content
+    assert "<language_mandate>" in dyn_content
     assert f'alias="{alias}"' in dyn_content
     assert "Is this a test? <bad>tag</bad>" in dyn_content
     assert "Extract something" in dyn_content

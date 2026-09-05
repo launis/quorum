@@ -169,6 +169,7 @@ def test_build_compiled_prompt_with_assertions() -> None:
     # Linguistic context injection validation
     assert "<linguistic_context>" in content
     assert "<required_output_language>fi</required_output_language>" in content
+    assert "<language_mandate>" in content
 
     # Should contain XML formatted elements mapped to alias a0
     assert "a0" in content
