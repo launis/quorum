@@ -7,9 +7,9 @@ architectural parity, strict typing, and ISTQB equivalence partitioning.
 from typing import Any
 from unittest.mock import AsyncMock
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
-import pytest
 
 from backend_v2.api.dependencies import (
     get_current_user_from_header,
@@ -243,4 +243,3 @@ async def test_clone_output_profile_invalid_id_returns_422(
     response = client.post("/api/v2/output-profiles/invalid-id/clone")
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     mock_studio_service.clone_output_profile.assert_not_called()
-
