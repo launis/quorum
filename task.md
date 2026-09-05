@@ -53,5 +53,7 @@ Bug Fix Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\73f27b73-80fb-4396-
   - Parallel routers directly cause "Ghost Endpoints" where tests pass on phantom paths while frontend fails on production paths.
   - An automated OpenAPI route registry guardrail test prevents router and route duplication statically and dynamically.
 - **Remaining:**
-  - Execute atomic git commit and route to `/tier8-audit-plan`.
+  - Complete. Ready for Tier 8 Red-Team audit.
 
+## Next Command:
+`/tier5-resume --target="@[task.md]" --workflow=/tier8-audit-plan`
