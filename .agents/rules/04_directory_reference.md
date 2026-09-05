@@ -33,8 +33,8 @@
     <instruction>High-Level Abstraction Map for search and navigation.</instruction>
 
     <module path="backend_v2/api/routers/">
-        <responsibility>HTTP REST ENDPOINTS ONLY</responsibility>
-        <key_domains>execution/, iam/, studio/, system/, output_profiles.py</key_domains>
+        <responsibility>HTTP REST ENDPOINTS ONLY (1 ENTITY = 1 ROUTER SSOT)</responsibility>
+        <key_domains>execution/, iam/, studio/, system/, output_profiles.py (NO PARALLEL SHADOW ROUTERS)</key_domains>
     </module>
     
     <module path="backend_v2/services/">

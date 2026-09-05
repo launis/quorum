@@ -1,58 +1,57 @@
-# Task Tracking: Root Cause Remediation & Anti-Deceptive Persistence Architecture
+# Task Tracker: Output Profile Clone 404 Route Fix & Router Hardening
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
-  <rule>@[.agents/rules/03_seed_vault.md]</rule>
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
   <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
-  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
 </required_context_rules>
 
-Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\c378f615-5b01-4092-8c17-ec7068432325\implementation_plan.md]
+Bug Fix Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\73f27b73-80fb-4396-b14b-b559e2242c3c\bug_fix_plan.md]
 
 ## Execution Tasks
 
-- [x] **Step 1: Resolve Linter Blocker and Establish SSOT Constructs**
-  - [x] (VERIFIED_EXISTING - Commit 331e4d4b) Define `EntityPrefix(StrEnum)` in `backend_v2/models/enums.py` and register in `__all__`
-  - [x] (VERIFIED_EXISTING - Commit 331e4d4b) Define `OPAQUE_STRIPE_ID_REGEX`, `generate_opaque_id`, and `I18nText.with_copy_suffix()` in `backend_v2/models/core_base.py` and register in `__all__`
-  - [x] (VERIFIED_EXISTING - Commit 331e4d4b) Replace raw regex literals with `OPAQUE_STRIPE_ID_REGEX` in models and routers
-  - [x] (VERIFIED_EXISTING) Refactor `start_execution` in `backend_v2/services/execution.py` to `generate_opaque_id(EntityPrefix.EXECUTION)`
-  - [x] (VERIFIED_EXISTING) Replace raw uuid fallback in `backend_v2/database/repositories/execution.py#create_execution` with `generate_opaque_id(EntityPrefix.EXECUTION)`
-  - [x] (VERIFIED_EXISTING) Bind `OPAQUE_STRIPE_ID_REGEX` to `ExecutionCreateDTO.id` in `backend_v2/models/dtos/trace.py`
-  - [x] Fix Ruff E501 over-length line 982 in `backend_v2/tests/unit/services/test_execution.py`
+- [x] **Step 1: Router Hardening & Output Profile Clone Implementation (`output_profiles.py`)**
+  - [x] Import `Path` and `OPAQUE_STRIPE_ID_REGEX` in `@[backend_v2/api/routers/output_profiles.py]`
+  - [x] Enforce `profile_id: str = Path(..., pattern=OPAQUE_STRIPE_ID_REGEX)` on all path endpoints
+  - [x] Add explicit `status_code=status.HTTP_201_CREATED` on `create_output_profile`
+  - [x] Clean up dict mutation anti-pattern and add `ID_MISMATCH` check in `upsert_output_profile`
+  - [x] Implement `@router.post("/{profile_id}/clone")` with `OutputProfileResponseDTO` and `status.HTTP_201_CREATED`
 
-- [x] **Step 2: Harden Agentic Rules and Knowledge Base** (VERIFIED_EXISTING - Commit 8b44b085)
-  - [x] Add `deceptive_persistence_mocking_ban` and `preflight_schema_assertion_mandate` to `00-antigravity-core.md`
-  - [x] Replace `local_data_ephemeral_nature` with `root_cause_first_over_reseed_mandate` in `03_seed_vault.md`
-  - [x] Add `in_place_upsert_standard_mandate` and `crud_and_clone_lifecycle_standard_mandate` to `01-python-backend.md`
-  - [x] Add Section 6 to `ki_zero_permissive_typing.md`
+- [x] **Step 2: Elimination of the Phantom Router (`backend_v2/api/routers/studio/output_profiles.py`)**
+  - [x] Remove `output_profiles` router import and mount from `@[backend_v2/api/routers/studio/__init__.py]`
+  - [x] Delete phantom router file `@[backend_v2/api/routers/studio/output_profiles.py]`
+  - [x] Delete phantom router tests `@[backend_v2/tests/unit/api/routers/studio/test_output_profiles.py]`
 
-- [x] **Step 3: Refactor Studio Services to Unified SSOT Cloning**
-  - [x] Refactor `create_workflow_draft` and `clone_workflow` in `workflow_service.py` to pure Pydantic V2
-  - [x] Harmonize `output_profile_service.py`, `prompt_block_service.py`, `system_config_service.py` with `generate_opaque_id` and `with_copy_suffix`
+- [x] **Step 3: Rules & Knowledge Base Lockdown (Never Duplicate Routers)**
+  - [x] Add `single_router_ssot_mandate` to `@[.agents/rules/01-python-backend.md]`
+  - [x] Update `@[.agents/rules/04_directory_reference.md]` router laws
+  - [x] Create Knowledge Item `@[ki_api_router_ssot_governance.md]` in `<appDataDir>\knowledge\api_router_ssot_governance\`
 
-- [x] **Step 4: Upgrade Studio Persistence Tests with Stateful Roundtrip**
-  - [x] Stateful roundtrip persistence and negative partition tests in `test_prompt_block_service.py`
-  - [x] Stateful roundtrip persistence and negative partition tests in `test_system_config_service.py`
-  - [x] Pure Pydantic clone and draft persistence tests in `test_workflow_service.py`
-  - [x] Full 5-entity parity tests in `test_settings_persistence_rca.py`
+- [x] **Step 4: Router SSOT AST Guardrail & Comprehensive Unit Testing**
+  - [x] Create `@[backend_v2/tests/unit/api/test_router_ssot_guardrails.py]` asserting no duplicate entity routers or shadow prefixes in OpenAPI schema
+  - [x] Update `@[backend_v2/tests/unit/test_api_clone_endpoints.py]` to assert `/api/v2/output-profiles/{id}/clone`
+  - [x] Create `@[backend_v2/tests/unit/api/routers/test_output_profiles.py]` with 13 ISTQB test cases (CRUD + clone, 200, 201, 204, 400, 404, 422)
 
-- [x] **Step 5: Two-Stage Verification and Global Quality Gate**
-  - [x] Run Stage 1 localized unit tests (138 passed in 1.87s)
-  - [x] Run Stage 2 localized audit loops (`backend_v2/services/studio/` 126 passed, 96.46% coverage; `backend_v2/tests/unit/services/test_execution.py` passed)
-  - [x] Run Stage 3 global quality gate (`backend_audit_loop.py backend_v2/ --test` passed: 2,883 passed, 93.95% coverage, exit code 0)
+- [x] **Step 5: Quality Gate Verification**
+  - [x] Run `uv run pytest backend_v2/tests/unit/test_api_clone_endpoints.py` (7 passed)
+  - [x] Run `uv run pytest backend_v2/tests/unit/api/routers/test_output_profiles.py` (13 passed, 100% coverage, 0 deprecation warnings)
+  - [x] Run `uv run pytest backend_v2/tests/unit/api/test_router_ssot_guardrails.py` (3 passed, clean AST guardrail check)
+  - [x] Run `uv run python scripts/backend_audit_loop.py backend_v2/api/routers/output_profiles.py --test` (100% PASS, exit code 0)
+  - [x] Run full pytest suite across all 3 test files (23 passed, exit code 0)
 
 ## # Session Handover Context
 - **Achieved:**
-  1. Resolved the Ruff `E501` line-length violation in `backend_v2/tests/unit/services/test_execution.py:982`.
-  2. Verified and completed SSOT identifiers across `EntityPrefix`, `generate_opaque_id`, and `OPAQUE_STRIPE_ID_REGEX` in `models/core_base.py`, `models/dtos/trace.py`, `services/execution.py`, and `repositories/execution.py`.
-  3. Verified agentic rule hardening and Section 6 in `ki_zero_permissive_typing.md`.
-  4. Verified pure Pydantic V2 cloning and draft creation across all 4 Studio services (`workflow_service.py`, `output_profile_service.py`, `prompt_block_service.py`, `system_config_service.py`).
-  5. Verified stateful roundtrip persistence tests across all 5 Studio entities in `test_prompt_block_service.py`, `test_system_config_service.py`, `test_workflow_service.py`, and `test_settings_persistence_rca.py`.
-  6. Verified complete Stage 1, Stage 2, and Stage 3 global quality gates: 2,883 tests passed with 93.95% code coverage, 0 AST violations, and 0 lint/type errors.
+  1. Implemented deep cloning `POST /{profile_id}/clone`, `Path(..., pattern=OPAQUE_STRIPE_ID_REGEX)` validation, and typed `ID_MISMATCH` validation in SSOT router `@[backend_v2/api/routers/output_profiles.py]`.
+  2. Eliminated phantom router `backend_v2/api/routers/studio/output_profiles.py` and unmounted it from `backend_v2/api/routers/studio/__init__.py`.
+  3. Hardcoded `single_router_ssot_mandate` in `@[.agents/rules/01-python-backend.md]` and directory reference in `@[.agents/rules/04_directory_reference.md]`.
+  4. Established Knowledge Item `api_router_ssot_governance` with `metadata.json` and `artifacts/ki_api_router_ssot_governance.md`.
+  5. Implemented automated route guardrail `@[backend_v2/tests/unit/api/test_router_ssot_guardrails.py]` and 13 comprehensive unit tests in `@[backend_v2/tests/unit/api/routers/test_output_profiles.py]`.
+  6. Verified 100% passing Universal Quality Gate with exit code 0 (100% coverage on router, zero ruff/mypy/AST warnings).
 - **Learned:**
-  - Running `backend_audit_loop.py` directly against a test file (e.g. `test_execution.py`) targets the coverage filter to the test file name itself; standalone unit tests should be verified via pytest directly or audited through package targets.
-  - Re-splitting large JSON strings in test mock setup cleanly resolves `E501` without sacrificing readable test assertions.
+  - Parallel routers directly cause "Ghost Endpoints" where tests pass on phantom paths while frontend fails on production paths.
+  - An automated OpenAPI route registry guardrail test prevents router and route duplication statically and dynamically.
 - **Remaining:**
-  - Instruct git commit and route to `/tier8-audit-plan` for independent System 2 evaluation.
+  - Execute atomic git commit and route to `/tier8-audit-plan`.
+

@@ -75,6 +75,10 @@
     <rule_block id="pydantic_discriminated_union_mandate">
         <mandate>NEVER create "Chameleon/Pseudo-Classes" inheriting from BaseModel that hijack `__new__`, override `model_construct`/`model_validate` with `# type: ignore[override]`, use `if-elif` chains with raw string literals, or fall back to default subclasses. ALWAYS implement polymorphic schemas strictly as Pydantic V2 Discriminated Unions: 1) Pure Type Alias (`AnyPromptBlock = Annotated[SubA | SubB, Field(discriminator="category_id")]`), 2) Centralized `TypeAdapter(AnyPromptBlock)`, 3) Strict Enum Registry (`PROMPT_BLOCK_REGISTRY: dict[PromptBlockCategory, type[PromptBlockBase]]`), 4) Absolute Fail-Fast with zero silent fallbacks, 5) Concrete instantiation in business logic and fixtures.</mandate>
     </rule_block>
+
+    <rule_block id="single_router_ssot_mandate">
+        <mandate>NEVER define multiple or parallel FastAPI APIRouters for the same domain entity (e.g. `/output-profiles/` and `/studio/profiles/`), create shadow routes under secondary prefixes, or split route handlers of a single domain entity across multiple files. Every domain entity MUST possess exactly ONE authoritative APIRouter mounted at a single canonical endpoint prefix (SSOT). All CRUD, draft, simulation, and clone operations for that entity MUST reside strictly within that single router file. Before creating or modifying endpoints, agents MUST perform `grep_search` across `backend_v2/api/routers/` to verify no existing router handles the entity.</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

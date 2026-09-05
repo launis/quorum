@@ -16,7 +16,13 @@ from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.enums import (
+    BlockDataType,
+    HistoricalContextMode,
+    PromptBlockCategory,
+    StepType,
+    TargetBlockType,
+)
 from backend_v2.models.v2_core import (
     I18nText,
     Step,
@@ -50,7 +56,7 @@ def mock_studio_service() -> AsyncMock:
     # Configure mock returns for cloning
     service.clone_workflow.return_value = Workflow(
         allowed_exports=["pdf"],
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_3333333333333333",
         slug="test_wf_3333333333333333",
         status="draft",
@@ -63,7 +69,7 @@ def mock_studio_service() -> AsyncMock:
         id="step_1111111111111112",
         slug="test_step_clone",
         name=I18nText(translations={"en": "Step (Copy)", "fi": "Step (Copy)"}),
-        type="llm",
+        type=StepType.LLM,
         model_strategy="fast",
         role_block_id=None,
         extraction_protocol_block_id="blk_573802341db9d68c",
@@ -96,6 +102,7 @@ def mock_studio_service() -> AsyncMock:
         slug="test_prof_clone",
         workflow_id="wf_3333333333333333",
         name=I18nText(translations={"en": "Profile (Copy)", "fi": "Profile (Copy)"}),
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
                 id="grp_0000000000000001",
@@ -179,7 +186,22 @@ def test_clone_mcp_gateways_endpoint(client_root: TestClient, mock_studio_servic
 
 
 def test_clone_output_profile_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/studio/profiles/prof_1111111111111111/clone")
+    response = client_admin.post("/api/v2/output-profiles/prof_1111111111111111/clone")
+    assert response.status_code == 201
+    data = response.json()
+    assert data["id"] == "prof_1111111111111112"
+    mock_studio_service.clone_output_profile.assert_called_once()
+
+
+def test_clone_output_profile_via_output_profiles_route(
+    client_admin: TestClient, mock_studio_service: AsyncMock
+) -> None:
+    """Regression test reproducing 404 from backend_debug.log.
+
+    Flutter client StudioClient.cloneOutputProfile calls:
+    POST /api/v2/output-profiles/{profile_id}/clone
+    """
+    response = client_admin.post("/api/v2/output-profiles/prf_c3283d90d2f54c85/clone")
     assert response.status_code == 201
     data = response.json()
     assert data["id"] == "prof_1111111111111112"
