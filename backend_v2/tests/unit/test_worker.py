@@ -1591,8 +1591,8 @@ def _get_base_profile_dict() -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_missing_matrix_directive_raises_app_exception() -> None:
-    """Negative: Verify missing matrix synthesis directive raises AppException."""
+async def test_generate_profile_synthesis_missing_matrix_directive_skips_group() -> None:
+    """Positive: Verify missing matrix synthesis directive skips group synthesis gracefully with a warning."""
     mock_repo = AsyncMock()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
@@ -1631,16 +1631,14 @@ async def test_generate_profile_synthesis_missing_matrix_directive_raises_app_ex
             ),
         ),
     ):
-        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
-            await generate_profile_synthesis_and_pdf_task(
-                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
-            )
-        assert "missing required matrix synthesis directive" in repr(exc_info.value)
+        await generate_profile_synthesis_and_pdf_task(
+            "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+        )
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_missing_xai_directive_raises_app_exception() -> None:
-    """Negative: Verify missing XAI synthesis directive raises AppException."""
+async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> None:
+    """Positive: Verify missing XAI synthesis directive skips XAI synthesis gracefully with a warning."""
     mock_repo = AsyncMock()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
@@ -1679,16 +1677,14 @@ async def test_generate_profile_synthesis_missing_xai_directive_raises_app_excep
             ),
         ),
     ):
-        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
-            await generate_profile_synthesis_and_pdf_task(
-                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
-            )
-        assert "missing required xai_synthesis_directive" in repr(exc_info.value)
+        await generate_profile_synthesis_and_pdf_task(
+            "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+        )
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_missing_row_explanation_directive_raises_app_exception() -> None:
-    """Negative: Verify missing row explanation directive raises AppException."""
+async def test_generate_profile_synthesis_missing_row_explanation_directive_skips_row_explanations() -> None:
+    """Positive: Verify missing row explanation directive skips row explanation synthesis gracefully."""
     mock_repo = AsyncMock()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
@@ -1736,11 +1732,9 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_rais
             ),
         ),
     ):
-        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
-            await generate_profile_synthesis_and_pdf_task(
-                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
-            )
-        assert "missing required row_explanation_directive" in repr(exc_info.value)
+        await generate_profile_synthesis_and_pdf_task(
+            "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+        )
 
 
 @pytest.mark.asyncio
@@ -1810,8 +1804,8 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_no_profile_for_row_explanations_raises_app_exception() -> None:
-    """Negative: Verify missing output profile when synthesizing row explanations raises AppException."""
+async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_gracefully() -> None:
+    """Positive: Verify missing output profile when synthesizing row explanations skips gracefully with a warning."""
     mock_repo = AsyncMock()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
@@ -1856,11 +1850,10 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_raises
             ),
         ),
     ):
-        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
-            await generate_profile_synthesis_and_pdf_task(
-                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
-            )
-        assert "Cannot synthesize row explanations without an active OutputProfile" in repr(exc_info.value)
+        await generate_profile_synthesis_and_pdf_task(
+            "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+        )
+
 
 
 

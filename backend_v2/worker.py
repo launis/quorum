@@ -55,12 +55,10 @@ from backend_v2.models.enums import ExecutionStatus, PresetView, StrictnessAncho
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
-    DEFAULT_COACHING_TONE_MANDATE,
     DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT,
     DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
     DEFAULT_VARIANCE_SYSTEM_PROMPT,
     EXECUTIVE_SUMMARY_SECTION_ID,
-    GLOBAL_MANDATES_XML,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     STATIC_LINGUISTIC_PROTOCOL,
     SYNTHESIS_CITATION_RULES_HARVARD,
@@ -1044,8 +1042,6 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 # Dynamic context parts injected into user message <dynamic_context>
                 base_dynamic_parts: list[str] = [
-                    GLOBAL_MANDATES_XML,
-                    DEFAULT_COACHING_TONE_MANDATE,
                     SYNTHESIS_CITATION_RULES_HARVARD,
                 ]
                 lang_params = build_linguistic_parameters(source_language="Unknown", target_locale=accept_language)
@@ -1060,6 +1056,16 @@ async def generate_profile_synthesis_and_pdf_task(
                     tone = active_profile_dto.tone_instruction.strip()
                     if tone:
                         base_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
+                    else:
+                        logger.warning(
+                            "[generate_profile_synthesis_and_pdf_task] OutputProfile '%s' has empty tone_instruction. Skipping tone directive.",
+                            active_profile_dto.id,
+                        )
+                elif active_profile_dto:
+                    logger.warning(
+                        "[generate_profile_synthesis_and_pdf_task] OutputProfile '%s' has no tone_instruction configured. Skipping tone directive.",
+                        active_profile_dto.id,
+                    )
 
                 client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
 
@@ -1075,12 +1081,13 @@ async def generate_profile_synthesis_and_pdf_task(
                             not active_profile_dto.executive_summary_directive
                             or not active_profile_dto.executive_summary_directive.strip()
                         ):
-                            raise AppException(
-                                message=f"OutputProfile '{active_profile_dto.id}' is missing required executive_summary_directive.",
-                                status_code=400,
-                                details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
+                            logger.warning(
+                                "[generate_profile_synthesis_and_pdf_task] OutputProfile '%s' is missing executive_summary_directive. Skipping Executive Summary synthesis.",
+                                active_profile_dto.id,
                             )
-                        exec_directive = active_profile_dto.executive_summary_directive.strip()
+                            exec_directive = None
+                        else:
+                            exec_directive = active_profile_dto.executive_summary_directive.strip()
 
                     if exec_directive:
                         exec_dynamic_parts = list(base_dynamic_parts)
@@ -1141,14 +1148,13 @@ async def generate_profile_synthesis_and_pdf_task(
                                 directive_content = None
 
                         if not directive_content or not directive_content.strip():
-                            raise AppException(
-                                message=(
-                                    f"OutputProfile '{active_profile_dto.id}' is missing required matrix synthesis directive "
-                                    f"for view_type '{grp.view_type}' (group '{grp_id}')."
-                                ),
-                                status_code=400,
-                                details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
+                            logger.warning(
+                                "[generate_profile_synthesis_and_pdf_task] OutputProfile '%s' is missing matrix synthesis directive for view_type '%s' (group '%s'). Skipping group synthesis.",
+                                active_profile_dto.id,
+                                grp.view_type,
+                                grp_id,
                             )
+                            continue
                         directive_content = directive_content.strip()
 
                         target_titles = []
@@ -1159,6 +1165,10 @@ async def generate_profile_synthesis_and_pdf_task(
                         target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
 
                         grp_dynamic_parts = list(base_dynamic_parts)
+                        if active_profile_dto and active_profile_dto.matrix_graph_length_constraint:
+                            grp_dynamic_parts.append(
+                                f"<section_budget>{active_profile_dto.matrix_graph_length_constraint}</section_budget>"
+                            )
                         grp_section_rule = (
                             f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{grp_id}" title="{grp_title}"{target_str}>\n'
                             f"{directive_content}\n"
@@ -1209,100 +1219,98 @@ async def generate_profile_synthesis_and_pdf_task(
                         not active_profile_dto.xai_synthesis_directive
                         or not active_profile_dto.xai_synthesis_directive.strip()
                     ):
-                        raise AppException(
-                            message=f"OutputProfile '{active_profile_dto.id}' is missing required xai_synthesis_directive.",
-                            status_code=400,
-                            details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
+                        logger.warning(
+                            "[generate_profile_synthesis_and_pdf_task] OutputProfile '%s' is missing xai_synthesis_directive. Skipping XAI highlights synthesis.",
+                            active_profile_dto.id,
                         )
-                    xai_directive_str = active_profile_dto.xai_synthesis_directive.strip()
+                    else:
+                        xai_directive_str = active_profile_dto.xai_synthesis_directive.strip()
 
-                    xai_cur = (
-                        f"{xai_directive_str}\n\n"
-                        f"{SYNTHESIS_XAI_CURATION.replace('<max_extension_items>', str(max_ext)).replace('<requested_extensions>', req_exts)}"
-                    )
-
-                    xai_dynamic_parts = list(base_dynamic_parts)
-                    if active_profile_dto.xai_length_constraint:
-                        xai_dynamic_parts.append(
-                            f"<section_budget>{active_profile_dto.xai_length_constraint}</section_budget>"
+                        xai_cur = (
+                            f"{xai_directive_str}\n\n"
+                            f"{SYNTHESIS_XAI_CURATION.replace('<max_extension_items>', str(max_ext)).replace('<requested_extensions>', req_exts)}"
                         )
-                    xai_dynamic_parts.append(xai_cur)
-                    xai_dynamic_context = "\n\n".join(xai_dynamic_parts)
 
-                    xai_messages: list[dict[str, Any]] = [
-                        {"role": "system", "content": sys_prompt},
-                        {
-                            "role": "user",
-                            "content": (
-                                f"<dynamic_context>\n{xai_dynamic_context}\n</dynamic_context>"
-                                f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
-                            ),
-                        },
-                    ]
-                    t_xai = tg.create_task(
-                        client.run_structured_task(
-                            messages=xai_messages,
-                            response_model=XaiHighlightsResult,
-                            mock_identity="XaiHighlightsTask",
+                        xai_dynamic_parts = list(base_dynamic_parts)
+                        if active_profile_dto.xai_length_constraint:
+                            xai_dynamic_parts.append(
+                                f"<section_budget>{active_profile_dto.xai_length_constraint}</section_budget>"
+                            )
+                        xai_dynamic_parts.append(xai_cur)
+                        xai_dynamic_context = "\n\n".join(xai_dynamic_parts)
+
+                        xai_messages: list[dict[str, Any]] = [
+                            {"role": "system", "content": sys_prompt},
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"<dynamic_context>\n{xai_dynamic_context}\n</dynamic_context>"
+                                    f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
+                                ),
+                            },
+                        ]
+                        t_xai = tg.create_task(
+                            client.run_structured_task(
+                                messages=xai_messages,
+                                response_model=XaiHighlightsResult,
+                                mock_identity="XaiHighlightsTask",
+                            )
                         )
-                    )
 
             if matrices_to_explain and (active_profile_dto is None or active_profile_dto.requires_row_explanations):
                 client = await LLMClient.from_strategy("strict", repository=repo)
                 row_sys_prompt = f"{DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
                 row_lang_params = build_linguistic_parameters(source_language="Unknown", target_locale=accept_language)
+                row_directive_str = None
                 if active_profile_dto:
                     if (
                         not active_profile_dto.row_explanation_directive
                         or not active_profile_dto.row_explanation_directive.strip()
                     ):
-                        raise AppException(
-                            message=f"OutputProfile '{active_profile_dto.id}' is missing required row_explanation_directive.",
-                            status_code=400,
-                            details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
+                        logger.warning(
+                            "[generate_profile_synthesis_and_pdf_task] OutputProfile '%s' is missing row_explanation_directive. Skipping row explanation synthesis.",
+                            active_profile_dto.id,
                         )
-                    row_directive_str = active_profile_dto.row_explanation_directive.strip()
+                    else:
+                        row_directive_str = active_profile_dto.row_explanation_directive.strip()
                 else:
-                    raise AppException(
-                        message="Cannot synthesize row explanations without an active OutputProfile.",
-                        status_code=400,
-                        details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
+                    logger.warning(
+                        "[generate_profile_synthesis_and_pdf_task] No active OutputProfile for row explanation synthesis. Skipping row explanations."
                     )
 
-                row_dynamic_parts = [
-                    GLOBAL_MANDATES_XML,
-                    DEFAULT_COACHING_TONE_MANDATE,
-                    row_lang_params,
-                ]
-                if active_profile_dto and active_profile_dto.tone_instruction:
-                    tone = active_profile_dto.tone_instruction.strip()
-                    if tone:
-                        row_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
-                row_dynamic_parts.append(row_directive_str)
-                if active_profile_dto and active_profile_dto.row_explanation_length_constraint:
-                    row_dynamic_parts.append(
-                        f"<section_budget>{active_profile_dto.row_explanation_length_constraint}</section_budget>"
-                    )
-                row_dynamic_ctx = "\n\n".join(row_dynamic_parts)
+                if row_directive_str:
+                    row_dynamic_parts = [
+                        row_lang_params,
+                    ]
+                    if active_profile_dto and active_profile_dto.tone_instruction:
+                        tone = active_profile_dto.tone_instruction.strip()
+                        if tone:
+                            row_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
+                    row_dynamic_parts.append(row_directive_str)
+                    if active_profile_dto and active_profile_dto.row_explanation_length_constraint:
+                        row_dynamic_parts.append(
+                            f"<section_budget>{active_profile_dto.row_explanation_length_constraint}</section_budget>"
+                        )
+                    row_dynamic_ctx = "\n\n".join(row_dynamic_parts)
 
-                row_messages: list[dict[str, Any]] = [
-                    {"role": "system", "content": row_sys_prompt},
-                    {
-                        "role": "user",
-                        "content": (
-                            f"<dynamic_context>\n{row_dynamic_ctx}\n</dynamic_context>"
-                            f"\n\nMATRICES TO EXPLAIN:\n{MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')}"
-                        ),
-                    },
-                ]
-                t_row = tg.create_task(
-                    client.run_structured_task(
-                        messages=row_messages,
-                        response_model=MatrixExplanationsResult,
-                        mock_identity="row_explainer",
+                    row_messages: list[dict[str, Any]] = [
+                        {"role": "system", "content": row_sys_prompt},
+                        {
+                            "role": "user",
+                            "content": (
+                                f"<dynamic_context>\n{row_dynamic_ctx}\n</dynamic_context>"
+                                f"\n\nMATRICES TO EXPLAIN:\n{MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode('utf-8')}"
+                            ),
+                        },
+                    ]
+                    t_row = tg.create_task(
+                        client.run_structured_task(
+                            messages=row_messages,
+                            response_model=MatrixExplanationsResult,
+                            mock_identity="row_explainer",
+                        )
                     )
-                )
 
             if (
                 active_profile_dto
@@ -1410,47 +1418,45 @@ async def generate_profile_synthesis_and_pdf_task(
                         not active_profile_dto.variance_synthesis_directive
                         or not active_profile_dto.variance_synthesis_directive.strip()
                     ):
-                        raise AppException(
-                            message=f"OutputProfile '{active_profile_dto.id}' is missing required variance_synthesis_directive.",
-                            status_code=400,
-                            details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
+                        logger.warning(
+                            "[generate_profile_synthesis_and_pdf_task] OutputProfile '%s' is missing variance_synthesis_directive. Skipping variance synthesis.",
+                            active_profile_dto.id,
                         )
-                    var_directive_str = active_profile_dto.variance_synthesis_directive.strip()
+                    else:
+                        var_directive_str = active_profile_dto.variance_synthesis_directive.strip()
 
-                    var_dynamic_parts = [
-                        GLOBAL_MANDATES_XML,
-                        DEFAULT_COACHING_TONE_MANDATE,
-                        var_lang_params,
-                    ]
-                    if active_profile_dto and active_profile_dto.tone_instruction:
-                        tone = active_profile_dto.tone_instruction.strip()
-                        if tone:
-                            var_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
-                    var_dynamic_parts.append(var_directive_str)
-                    if active_profile_dto.variance_length_constraint:
-                        var_dynamic_parts.append(
-                            f"<section_budget>{active_profile_dto.variance_length_constraint}</section_budget>"
+                        var_dynamic_parts = [
+                            var_lang_params,
+                        ]
+                        if active_profile_dto and active_profile_dto.tone_instruction:
+                            tone = active_profile_dto.tone_instruction.strip()
+                            if tone:
+                                var_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
+                        var_dynamic_parts.append(var_directive_str)
+                        if active_profile_dto.variance_length_constraint:
+                            var_dynamic_parts.append(
+                                f"<section_budget>{active_profile_dto.variance_length_constraint}</section_budget>"
+                            )
+                        var_dynamic_ctx = "\n\n".join(var_dynamic_parts)
+
+                        var_messages: list[dict[str, Any]] = [
+                            {"role": "system", "content": var_sys_prompt},
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>"
+                                    f"\n\nSCORES TO EXPLAIN:\nCognitive Score: {authenticity_score}\nMechanical Phrases Count: {performative_phrases_count}"
+                                ),
+                            },
+                        ]
+
+                        t_variance = tg.create_task(
+                            client_var.run_structured_task(
+                                messages=var_messages,
+                                response_model=VarianceExplanationResult,
+                                mock_identity="variance_explainer",
+                            )
                         )
-                    var_dynamic_ctx = "\n\n".join(var_dynamic_parts)
-
-                    var_messages: list[dict[str, Any]] = [
-                        {"role": "system", "content": var_sys_prompt},
-                        {
-                            "role": "user",
-                            "content": (
-                                f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>"
-                                f"\n\nSCORES TO EXPLAIN:\nCognitive Score: {authenticity_score}\nMechanical Phrases Count: {performative_phrases_count}"
-                            ),
-                        },
-                    ]
-
-                    t_variance = tg.create_task(
-                        client_var.run_structured_task(
-                            messages=var_messages,
-                            response_model=VarianceExplanationResult,
-                            mock_identity="variance_explainer",
-                        )
-                    )
 
         synth_cost = 0.0
         synth_tokens = 0

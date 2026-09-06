@@ -39,27 +39,27 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42c
   - [x] Update baseline output profile `prf_5d6e7f8091a2b3c4` in `backend_v2/seed/seed_data.json`.
   - [x] Run domain, DTO, and seed validation tests.
 
-- [ ] **Phase 3: Tripartite Prompt Architecture Migration**
-  - [ ] Move `global_mandates.py` from `common/` to `execution/`.
-  - [ ] Move `field_prompts.py` from `common/` to `execution/`.
-  - [ ] Update `models/prompts/execution/__init__.py` to re-export relocated symbols.
-  - [ ] Update `models/prompts/common/__init__.py` to re-export execution symbols as backwards compatibility shim.
-  - [ ] Update `models/prompts/__init__.py` root barrel exports.
-  - [ ] Purge `DEFAULT_COACHING_TONE_MANDATE` and `SYNTHESIS_LENGTH_CONSTRAINT` from `style_directives.py`.
-  - [ ] Rename `DEFAULT_*` system prompts in `synthesis_directives.py` and maintain backwards-compatible aliases.
-  - [ ] Refactor `backend_v2/worker.py` synthesis prompt assembly:
-    - [ ] Purge `GLOBAL_MANDATES_XML` from synthesis user messages.
-    - [ ] Purge `DEFAULT_COACHING_TONE_MANDATE` and use dynamic `tone_instruction` (omit tone block if empty).
-    - [ ] Replace `raise AppException` on empty directives with `logger.warning` and skip section.
-    - [ ] Inject `<section_budget>{matrix_graph_length_constraint}</section_budget>` for matrix synthesis groups.
-    - [ ] Clean unused imports in `worker.py`.
-  - [ ] Update consumers and AST tests:
-    - [ ] `test_ast_prompt_xml_sovereignty.py#L151` path update.
-    - [ ] `test_global_mandates.py#L1` import update.
-    - [ ] `test_field_prompts.py#L6` import update.
-    - [ ] `test_extractive_sensor_service.py#L16` import update.
-    - [ ] `test_worker_synthesis.py` assertions for directive skipping.
-    - [ ] `test_output_profile_studio_parity.py` and `test_style_directives.py` test updates.
+- [x] **Phase 3: Tripartite Prompt Architecture Migration**
+  - [x] Move `global_mandates.py` from `common/` to `execution/`.
+  - [x] Move `field_prompts.py` from `common/` to `execution/`.
+  - [x] Update `models/prompts/execution/__init__.py` to re-export relocated symbols.
+  - [x] Update `models/prompts/common/__init__.py` to re-export execution symbols as backwards compatibility shim.
+  - [x] Update `models/prompts/__init__.py` root barrel exports.
+  - [x] Purge `DEFAULT_COACHING_TONE_MANDATE` and `SYNTHESIS_LENGTH_CONSTRAINT` from `style_directives.py`.
+  - [x] Rename `DEFAULT_*` system prompts in `synthesis_directives.py` and maintain backwards-compatible aliases.
+  - [x] Refactor `backend_v2/worker.py` synthesis prompt assembly:
+    - [x] Purge `GLOBAL_MANDATES_XML` from synthesis user messages.
+    - [x] Purge `DEFAULT_COACHING_TONE_MANDATE` and use dynamic `tone_instruction` (omit tone block if empty).
+    - [x] Replace `raise AppException` on empty directives with `logger.warning` and skip section.
+    - [x] Inject `<section_budget>{matrix_graph_length_constraint}</section_budget>` for matrix synthesis groups.
+    - [x] Clean unused imports in `worker.py`.
+  - [x] Update consumers and AST tests:
+    - [x] `test_ast_prompt_xml_sovereignty.py#L151` path update.
+    - [x] `test_global_mandates.py#L1` import update.
+    - [x] `test_field_prompts.py#L6` import update.
+    - [x] `test_extractive_sensor_service.py#L16` import update.
+    - [x] `test_worker_synthesis.py` assertions for directive skipping.
+    - [x] `test_output_profile_studio_parity.py` and `test_style_directives.py` test updates.
 
 - [ ] **Phase 4: Frontend Dart Models & Studio UI**
   - [ ] Add `matrixGraphLengthConstraint` to Freezed `OutputProfile` in `output_profile.dart`.
@@ -77,6 +77,6 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42c
   - [ ] Update `ki_domain_model_prompt_separation.md`.
 
 ## Session Handover Context
-- **Achieved**: Pre-Flight codebase scan completed. Plan analyzed and all target files inspected. Task tracker initialized.
-- **Learned**: Clean working tree. `variance_length_constraint` on `OutputProfileUpdateDTO` confirmed `ge=2000` typo. All 6 phases confirmed pending.
-- **Remaining**: Execution of Phases 1-6 step-by-step.
+- **Achieved**: Phases 1, 2, and 3 completed and verified with 100% audit pass rate and SDUI semantic parity. Relocated Phase 1 execution prompts to `models/prompts/execution/` with backwards-compatibility shim in `common/`, updated barrels, purged legacy mandates from `style_directives.py` and `worker.py`, made worker gracefully skip empty directives with warnings and inject matrix graph budget, and updated all tests and consumers.
+- **Learned**: `backend_audit_loop.py` tests both `models/prompts/` and `worker.py` (via `test_worker.py`), requiring test assertions to reflect the graceful skip pattern. All 77 unit tests in prompts + 58 tests in worker + SDUI semantic parity pass cleanly.
+- **Remaining**: Phase 4 (Frontend Dart Models & Studio UI), Phase 5 (Directory Reference Update), Phase 6 (Knowledge Items Update).

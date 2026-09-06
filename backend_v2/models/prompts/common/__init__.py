@@ -1,6 +1,16 @@
-"""Common prompts and foundational epistemic mandates."""
+"""Common prompts, foundational epistemic mandates, and backwards-compatibility re-export shim.
 
-from backend_v2.models.prompts.common.field_prompts import (
+True cross-phase directives (linguistic protocols and translation mandates) reside
+natively in common. Execution-layer mandates and field prompts relocated to
+`backend_v2.models.prompts.execution` are re-exported here for backwards compatibility.
+"""
+
+from backend_v2.models.prompts.common.linguistic_directives import (
+    DESC_TRANSLATION_MANDATE,
+    STATIC_LINGUISTIC_PROTOCOL,
+    build_linguistic_parameters,
+)
+from backend_v2.models.prompts.execution.field_prompts import (
     DESC_CONTEXTUAL_OVERRIDE,
     DESC_EVALUATION_NOTES,
     DESC_EXACT_QUOTES,
@@ -13,7 +23,7 @@ from backend_v2.models.prompts.common.field_prompts import (
     XAI_DESC_FALSIFICATION,
     XAI_DESC_JUSTIFICATION,
 )
-from backend_v2.models.prompts.common.global_mandates import (
+from backend_v2.models.prompts.execution.global_mandates import (
     ANTI_ID_MANDATE,
     ANTI_SCORE_MANDATE,
     CONTEXT_SEGREGATION_MANDATE,
@@ -24,11 +34,6 @@ from backend_v2.models.prompts.common.global_mandates import (
     SCHEMA_PURITY_MANDATE,
     SEMANTIC_BLEED_MANDATE,
     VERBATIM_EXTRACTION_MANDATE,
-)
-from backend_v2.models.prompts.common.linguistic_directives import (
-    DESC_TRANSLATION_MANDATE,
-    STATIC_LINGUISTIC_PROTOCOL,
-    build_linguistic_parameters,
 )
 
 __all__ = [

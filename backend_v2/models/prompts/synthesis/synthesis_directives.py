@@ -11,26 +11,34 @@ __all__ = [
     "DEFAULT_SYNTHESIS_SYSTEM_PROMPT",
     "DEFAULT_VARIANCE_SYSTEM_PROMPT",
     "EXECUTIVE_SUMMARY_SECTION_ID",
+    "ROW_EXPLANATION_SYSTEM_PROMPT",
     "SYNTHESIS_SECTION_RULES_PREFIX",
+    "SYNTHESIS_SYSTEM_PROMPT",
     "SYNTHESIS_XAI_CURATION",
+    "VARIANCE_SYSTEM_PROMPT",
 ]
 
-DEFAULT_SYNTHESIS_SYSTEM_PROMPT: str = (
+SYNTHESIS_SYSTEM_PROMPT: str = (
     "You are a Senior Executive Coach and Strategic Evaluator. Synthesize the evaluated "
     "cognitive matrix data into structured Server-Driven UI (SDUI) blocks with executive rigor, "
     "mathematical clarity, and actionable developmental feedback."
 )
 
-DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT: str = (
+ROW_EXPLANATION_SYSTEM_PROMPT: str = (
     "You are a Forensic Evidence Analyst and Strategic Evaluator. Provide ultra-concise, "
     "evidence-grounded causal explanations for evaluated matrix scores."
 )
 
-DEFAULT_VARIANCE_SYSTEM_PROMPT: str = (
+VARIANCE_SYSTEM_PROMPT: str = (
     "You are a Forensic Evidence Analyst and Cognitive Evaluator. Explain the variance between "
     "the Cognitive (authenticity and reasoning depth) and Mechanical (performative language patterns) "
     "evaluation scores in concise, evidence-grounded prose."
 )
+
+# Backwards-compatible aliases
+DEFAULT_SYNTHESIS_SYSTEM_PROMPT: str = SYNTHESIS_SYSTEM_PROMPT
+DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT: str = ROW_EXPLANATION_SYSTEM_PROMPT
+DEFAULT_VARIANCE_SYSTEM_PROMPT: str = VARIANCE_SYSTEM_PROMPT
 
 EXECUTIVE_SUMMARY_SECTION_ID: str = TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
 

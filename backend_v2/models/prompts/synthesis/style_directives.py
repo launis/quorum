@@ -1,27 +1,16 @@
 """Tone, style, and qualitative coaching behavioral prompt directives (Synthesis Layer).
 
-Single Source of Truth (SSOT) for Senior Executive Coach tone instructions,
-anti-jargon guidelines, sparse data handling, and presentation posture.
+Single Source of Truth (SSOT) for anti-jargon guidelines, sparse data handling,
+and citation rules. Stylistic coaching tone and length constraints are dynamically
+governed by OutputProfile in the database.
 """
 
 __all__ = [
     "ANTI_JARGON_MANDATE_BLOCK",
-    "DEFAULT_COACHING_TONE_MANDATE",
     "SPARSE_DATA_SYNTHESIS_MANDATE",
     "SYNTHESIS_CITATION_RULES_HARVARD",
-    "SYNTHESIS_LENGTH_CONSTRAINT",
     "SYNTHESIS_NO_CITATION_RULES",
 ]
-
-DEFAULT_COACHING_TONE_MANDATE: str = (
-    "<coaching_tone_mandate>\n"
-    "SENIOR EXECUTIVE COACH BEHAVIORAL POSTURE:\n"
-    "- Address the client directly ('You' / 'Your text' / 'Sinä' / 'Tekstisi').\n"
-    "- Avoid passive, impersonal, or academic third-person phrasing ('The text shows', 'It was observed').\n"
-    "- Provide clear strategic focus, high-leverage feedback, and constructive growth challenges.\n"
-    "- Base all observations firmly on documented evidence without hedging or generic consultant platitudes.\n"
-    "</coaching_tone_mandate>"
-)
 
 ANTI_JARGON_MANDATE_BLOCK: str = (
     "<anti_jargon_mandate>\n"
@@ -38,13 +27,6 @@ SPARSE_DATA_SYNTHESIS_MANDATE: str = (
     "- Do NOT invent narrative filler, do NOT guess, and do NOT generate generic consultant advice.\n"
     "- If a matrix dimension or report section lacks observations, output an empty structure according to schema.\n"
     "</sparse_data_synthesis_mandate>"
-)
-
-SYNTHESIS_LENGTH_CONSTRAINT: str = (
-    "<length_constraint>\n"
-    "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
-    "specified in <global_length_constraint_chars>.\n"
-    "</length_constraint>"
 )
 
 SYNTHESIS_CITATION_RULES_HARVARD: str = (

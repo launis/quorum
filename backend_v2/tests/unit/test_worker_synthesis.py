@@ -605,15 +605,15 @@ async def test_worker_synthesis_matrix_layout_directives(
     mock_from_strategy.return_value = mock_client
 
     if not should_execute_group:
-        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
-            await generate_profile_synthesis_and_pdf_task(
-                execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
-            )
-        exc = exc_info.value
-        if isinstance(exc, ExceptionGroup):
-            exc = exc.exceptions[0]
-        assert isinstance(exc, AppException)
-        assert exc.details.get("error_code") == ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value
+        await generate_profile_synthesis_and_pdf_task(
+            execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+        )
+        group_calls = [
+            call
+            for call in mock_client.run_structured_task.call_args_list
+            if call.kwargs.get("response_model") is MatrixSectionSynthesesResult
+        ]
+        assert len(group_calls) == 0
         return
 
     await generate_profile_synthesis_and_pdf_task(

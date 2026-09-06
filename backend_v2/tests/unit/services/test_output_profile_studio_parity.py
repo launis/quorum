@@ -11,13 +11,11 @@ from backend_v2.models.dtos.output_profile import (
 from backend_v2.models.enums import PresetView
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
-    DEFAULT_COACHING_TONE_MANDATE,
     DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     SPARSE_DATA_SYNTHESIS_MANDATE,
     STATE_ISOLATION_BLOCK,
     SYNTHESIS_CITATION_RULES_HARVARD,
-    SYNTHESIS_LENGTH_CONSTRAINT,
     SYNTHESIS_SDUI_MANDATES,
 )
 from backend_v2.models.v2_core import (
@@ -45,10 +43,8 @@ def test_prompt_architecture_segregation() -> None:
     assert "state_isolation_mandate" in STATE_ISOLATION_BLOCK
 
     # Qualitative coaching style and tone directives
-    assert "SENIOR EXECUTIVE COACH BEHAVIORAL POSTURE" in DEFAULT_COACHING_TONE_MANDATE
     assert "ANTI-JARGON MANDATE" in ANTI_JARGON_MANDATE_BLOCK
     assert "sparse_data_synthesis_mandate" in SPARSE_DATA_SYNTHESIS_MANDATE
-    assert "length_constraint" in SYNTHESIS_LENGTH_CONSTRAINT
     assert "citation_rules" in SYNTHESIS_CITATION_RULES_HARVARD
     assert "Senior Executive Coach and Strategic Evaluator" in DEFAULT_SYNTHESIS_SYSTEM_PROMPT
 

@@ -1,4 +1,4 @@
-from backend_v2.models.prompts.common.global_mandates import (
+from backend_v2.models.prompts.execution.global_mandates import (
     ANTI_ID_MANDATE,
     ANTI_SCORE_MANDATE,
     CONTEXT_SEGREGATION_MANDATE,

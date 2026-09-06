@@ -3,7 +3,7 @@
 Ensures strict 1:1 File-to-Test matching mandate of the Universal Quality Gate.
 """
 
-from backend_v2.models.prompts.common.field_prompts import (
+from backend_v2.models.prompts.execution.field_prompts import (
     DESC_CONTEXTUAL_OVERRIDE,
     DESC_EVALUATION_NOTES,
     DESC_EXACT_QUOTES,

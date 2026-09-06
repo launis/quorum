@@ -148,7 +148,7 @@ def test_prompt_factory_ast_no_naked_dicts_in_mechanical_anchors() -> None:
 
 def test_ast_xml_layer_ordering_compliance() -> None:
     """Verifies prompt_factory.py and global mandates define Layer 1 through Layer 4 cleanly."""
-    tree = _load_ast("backend_v2/models/prompts/common/global_mandates.py")
+    tree = _load_ast("backend_v2/models/prompts/execution/global_mandates.py")
     has_global_mandates = False
 
     for node in ast.walk(tree):

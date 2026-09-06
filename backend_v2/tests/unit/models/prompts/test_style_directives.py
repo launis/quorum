@@ -2,10 +2,8 @@
 
 from backend_v2.models.prompts.synthesis.style_directives import (
     ANTI_JARGON_MANDATE_BLOCK,
-    DEFAULT_COACHING_TONE_MANDATE,
     SPARSE_DATA_SYNTHESIS_MANDATE,
     SYNTHESIS_CITATION_RULES_HARVARD,
-    SYNTHESIS_LENGTH_CONSTRAINT,
     SYNTHESIS_NO_CITATION_RULES,
     __all__,
 )
@@ -16,9 +14,7 @@ def test_style_directives_exports() -> None:
     assert "SYNTHESIS_CITATION_RULES_HARVARD" in __all__
     assert "SYNTHESIS_NO_CITATION_RULES" in __all__
     assert "ANTI_JARGON_MANDATE_BLOCK" in __all__
-    assert "DEFAULT_COACHING_TONE_MANDATE" in __all__
     assert "SPARSE_DATA_SYNTHESIS_MANDATE" in __all__
-    assert "SYNTHESIS_LENGTH_CONSTRAINT" in __all__
 
 
 def test_harvard_citation_directive_structure() -> None:
@@ -42,10 +38,8 @@ def test_no_citation_directive_structure() -> None:
 def test_style_directives_xml_tag_closure() -> None:
     """Negative / Integrity: verify all directives have balanced XML tags."""
     directives = [
-        DEFAULT_COACHING_TONE_MANDATE,
         ANTI_JARGON_MANDATE_BLOCK,
         SPARSE_DATA_SYNTHESIS_MANDATE,
-        SYNTHESIS_LENGTH_CONSTRAINT,
         SYNTHESIS_CITATION_RULES_HARVARD,
         SYNTHESIS_NO_CITATION_RULES,
     ]
@@ -53,3 +47,4 @@ def test_style_directives_xml_tag_closure() -> None:
         assert isinstance(directive, str)
         assert len(directive.strip()) > 0
         assert "<" in directive and ">" in directive
+
