@@ -116,8 +116,6 @@ Implementation Plan: @[docs/implementationplans/IMPLEMENTATION_PLAN_Prompt_Archi
   - Passing `.value` strings (e.g. `TargetBlockType.METADATA_BLOCK.value`) when instantiating `OutputProfile.target_block_order` triggers MyPy strict `[arg-type]` error because `target_block_order` expects `list[TargetBlockType]` enum instances. Per rule `strict_enum_hydration_and_validation`, native Enum objects must always be passed directly.
   - `TaskGroup` in Python 3.14 wraps unhandled child task exceptions in `ExceptionGroup`. Unit tests testing worker Fail-Fast must assert `(AppException, ExceptionGroup)` or inspect `exc_group.exceptions`.
   - `MatrixSynthesisGroup` cardinality is strictly coupled to `view_type`: 1D (1 target block), 2D (2 target blocks), 3D (3 target blocks), text_only (>=1 target blocks).
-- **Remaining (Post-Audit Remediation Task):**
-  - Fix Finding 1 in `backend_v2/services/factories/output_profile_factory.py`:
-    - Remove `.value` from `target_block_order` list initialization on lines 88-93 (`TargetBlockType.METADATA_BLOCK`, etc.) and line 97 (`TargetBlockType.MATRIX_GRAPHS_BLOCK`).
-  - Verify fix by running `uv run python scripts/backend_audit_loop.py backend_v2/services/factories/output_profile_factory.py --test`.
-  - Execute atomic commit: `git commit -m "fix(prompts): use bare TargetBlockType enum instances in output profile factory draft"`.
+- **Remaining:**
+  - All 9 Implementation Plan Steps and Post-Audit Remediation Findings are 100% complete and verified against Universal Quality Gates.
+  - Ready for final merge or deployment.

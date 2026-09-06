@@ -21,9 +21,7 @@ __all__ = [
     "build_draft_output_profile",
 ]
 
-DEFAULT_FACTORY_TONE_INSTRUCTION: str = (
-    "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data."
-)
+DEFAULT_FACTORY_TONE_INSTRUCTION: str = "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data."
 
 DEFAULT_FACTORY_EXECUTIVE_SUMMARY_DIRECTIVE: str = (
     "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n"
@@ -86,17 +84,17 @@ def build_draft_output_profile(
     """Build a fully populated, runnable OutputProfile draft for headless API and Studio creation."""
     settings = get_settings()
 
-    target_block_order = [
-        TargetBlockType.METADATA_BLOCK.value,
-        TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value,
-        TargetBlockType.SYNTHESIS_TEXT_BLOCK.value,
-        TargetBlockType.GROUPED_EXTENSIONS_BLOCK.value,
-        TargetBlockType.VARIANCE_VALIDATION_BLOCK.value,
+    target_block_order: list[TargetBlockType] = [
+        TargetBlockType.METADATA_BLOCK,
+        TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+        TargetBlockType.SYNTHESIS_TEXT_BLOCK,
+        TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
+        TargetBlockType.VARIANCE_VALIDATION_BLOCK,
     ]
 
     matrix_synthesis_groups: list[MatrixSynthesisGroup] = []
     if initial_target_block:
-        target_block_order.insert(3, TargetBlockType.MATRIX_GRAPHS_BLOCK.value)
+        target_block_order.insert(3, TargetBlockType.MATRIX_GRAPHS_BLOCK)
         matrix_synthesis_groups.append(
             MatrixSynthesisGroup(
                 title=I18nText(translations={"en": "Executive Overview", "fi": "Johdon yleiskuva"}),
