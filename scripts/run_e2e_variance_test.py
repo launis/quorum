@@ -214,7 +214,7 @@ def force_kill_services() -> None:
                 shell=True,
                 timeout=30,
             )
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             print(f"Warning running kill_services.bat: {e}")
 
     current_pid = os.getpid()
@@ -236,7 +236,7 @@ def force_kill_services() -> None:
         )
         if res.stdout.strip():
             print(f"[Clean-up] Terminated lingering process PIDs: {res.stdout.strip().split()}")
-    except Exception as e:
+    except (subprocess.SubprocessError, OSError) as e:
         print(f"Warning in PowerShell process kill: {e}")
 
     subprocess.run('taskkill /F /T /FI "WINDOWTITLE eq CQ Worker V2*" 2>nul', shell=True, capture_output=True)

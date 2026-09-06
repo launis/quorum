@@ -52,7 +52,13 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\997a2478-eec
   - [x] 4.1 Create `backend_v2/tests/unit/test_diff_executions.py` covering positive, negative, and boundary test contracts.
   - [x] 4.2 Run complete test suite and execute `backend_audit_loop.py` on both scripts.
 
+- [x] **Phase 5: Post-Audit Remediations (from Tier 8 Red-Team Audit)**
+  - [x] 5.1 Fix residual comma exception syntax at `scripts/diff_executions.py#L548, L550, L619` (`except (E1, E2):`).
+  - [x] 5.2 Narrow broad `except Exception as e:` at `scripts/run_e2e_variance_test.py#L217, L239` and `scripts/diff_executions.py#L802, L804`.
+  - [x] 5.3 Resolve 12 Ruff `E501` line-length violations in `scripts/diff_executions.py`.
+  - [x] 5.4 Re-run `backend_audit_loop.py` on both scripts to verify clean pass.
+
 ## Session Handover Context
-- **Achieved**: 100% of Phases 1, 2, 3, and 4 implemented and verified. All 59 unit tests pass across `test_run_e2e_variance_test.py` and `test_diff_executions.py`. Both scripts pass `backend_audit_loop.py` with strict >=90% test coverage (92% on runner, 90% on diff engine) and zero Ruff/MyPy errors.
-- **Learned**: Fleiss standard error calculation requires a strict boundary singularity guard when $p_o = 1.0$ or $p_e \ge 1.0$ to prevent negative roots or division-by-zero. 0-100 normalization elegantly bridges heterogeneous block scale lengths (1-5 vs 1-6).
-- **Remaining**: Implementation plan execution complete. Ready for atomic commit and mandatory Tier 8 Red-Team audit routing (`/tier8-audit-plan`).
+- **Achieved**: 100% of Phases 1, 2, 3, 4, and 5 implemented and verified. All 59 unit tests pass across `test_run_e2e_variance_test.py` and `test_diff_executions.py`. Both scripts pass `backend_audit_loop.py` with strict >=90% test coverage (92% on runner, 90% on diff engine), zero Ruff errors (all 12 E501 violations resolved), zero MyPy errors, and all exception handlers narrowed to specific tuples.
+- **Learned**: Fleiss standard error calculation requires a strict boundary singularity guard when $p_o = 1.0$ or $p_e \ge 1.0$ to prevent negative roots or division-by-zero. 0-100 normalization elegantly bridges heterogeneous block scale lengths (1-5 vs 1-6). AST inspection uncovered residual comma exception syntax at lines 548, 550, and 619 in `diff_executions.py` that was remediated with parenthesized tuples.
+- **Remaining**: Implementation and post-audit remediations 100% completed. Ready for atomic commit and final sign-off.

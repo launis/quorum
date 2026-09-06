@@ -799,9 +799,9 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
                 f"    - max_concurrent_llm_steps = {cfg.max_concurrent_llm_steps}\n"
                 f"    - llm_max_retries = {cfg.llm_max_retries}"
             )
-        except Exception as e:
+        except (ImportError, AttributeError, KeyError, ValueError, RuntimeError) as e:
             sys_enums += f"\n  - **SystemConcurrency**: N/A ({e})"
-    except Exception as e:
+    except (ImportError, AttributeError, KeyError, ValueError, RuntimeError) as e:
         sys_enums = f"Virhe Enumien luvussa: {e}"
 
     db_executions: dict[str, Any] = {}
@@ -1128,19 +1128,21 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
             )
         else:
             f.write(
-                "> **⚠️ HUOMIO (Suorituksessa havaittu poikkeamia):** Vertailluissa ajoissa havaittiin teknisiä virheitä, "
-                "DLQ-pudotuksia, aineiston näivettymistä tai keskeneräisiä statuksia.\n\n"
+                "> **⚠️ HUOMIO (Suorituksessa havaittu poikkeamia):** Vertailluissa ajoissa havaittiin teknisiä "
+                "virheitä, DLQ-pudotuksia, aineiston näivettymistä tai keskeneräisiä statuksia.\n\n"
             )
 
         if isolation_audit.is_fully_isolated:
             f.write(
                 "> **✅ TÄYSI SYÖTE-ERISTYS (Ei välimuistivuotoa):** Kaikkien syötetiedostojen SHA-256-tiivisteet "
-                "poikkesivat toisistaan ajojen välillä. Googlen prefiksipohjainen KV-välimuisti ei ole voinut siirtyä ajosta toiseen.\n\n"
+                "poikkesivat toisistaan ajojen välillä. Googlen prefiksipohjainen KV-välimuisti ei ole voinut "
+                "siirtyä ajosta toiseen.\n\n"
             )
         else:
+            shared_files_str = ", ".join(isolation_audit.shared_identical_files)
             f.write(
-                f"> **⚠️ MAHDOLLINEN VÄLIMUISTIVUOTO:** Seuraavat syötetiedostot olivat täysin identtisiä ajojen välillä: "
-                f"{', '.join(isolation_audit.shared_identical_files)}.\n\n"
+                f"> **⚠️ MAHDOLLINEN VÄLIMUISTIVUOTO:** Seuraavat syötetiedostot olivat täysin identtisiä "
+                f"ajojen välillä: {shared_files_str}.\n\n"
             )
 
         if isolation_audit.disable_vertex_cache_active:
@@ -1265,7 +1267,8 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
                 f"Tuotos: `{comp_tok:,}`, Välimuisti: `{cached_tok:,}`, Synteesi: `{synth_tok:,}`)\n"
             )
             f.write(
-                f"  - **Kustannusarvio:** `${combined_cost:.4f}` (DAG: `${dag_cost:.4f}`, Synteesi: `${synth_cost:.4f}`)\n"
+                f"  - **Kustannusarvio:** `${combined_cost:.4f}` "
+                f"(DAG: `${dag_cost:.4f}`, Synteesi: `${synth_cost:.4f}`)\n"
             )
             f.write(f"  - **Tekniset virheet (Crash):** `{error_count}` kpl\n")
             f.write(f"  - **DLQ-pudotetut atomit:** `{dlq_count}` kpl\n")
@@ -1392,18 +1395,14 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
         p_rea = (root_cause_breakdown.reasoning_gap_count / tot_m * 100) if tot_m > 0 else 0.0
         p_ovr = (root_cause_breakdown.contextual_override_count / tot_m * 100) if tot_m > 0 else 0.0
         p_tec = (root_cause_breakdown.technical_error_count / tot_m * 100) if tot_m > 0 else 0.0
-        f.write(
-            f"| 🔍 **Tiedonhaun aukko (Retrieval Gap)** | {root_cause_breakdown.retrieval_gap_count} | {p_ret:.1f} % |\n"
-        )
-        f.write(
-            f"| 🧠 **Päättelyn aukko (Reasoning Gap)** | {root_cause_breakdown.reasoning_gap_count} | {p_rea:.1f} % |\n"
-        )
-        f.write(
-            f"| ⚡ **Kontekstuaalinen ohitus (Contextual Override)** | {root_cause_breakdown.contextual_override_count} | {p_ovr:.1f} % |\n"
-        )
-        f.write(
-            f"| 🛠️ **Tekninen virhe / DLQ (Technical Error)** | {root_cause_breakdown.technical_error_count} | {p_tec:.1f} % |\n"
-        )
+        rc_ret = root_cause_breakdown.retrieval_gap_count
+        rc_rea = root_cause_breakdown.reasoning_gap_count
+        rc_ovr = root_cause_breakdown.contextual_override_count
+        rc_tec = root_cause_breakdown.technical_error_count
+        f.write(f"| 🔍 **Tiedonhaun aukko (Retrieval Gap)** | {rc_ret} | {p_ret:.1f} % |\n")
+        f.write(f"| 🧠 **Päättelyn aukko (Reasoning Gap)** | {rc_rea} | {p_rea:.1f} % |\n")
+        f.write(f"| ⚡ **Kontekstuaalinen ohitus (Contextual Override)** | {rc_ovr} | {p_ovr:.1f} % |\n")
+        f.write(f"| 🛠️ **Tekninen virhe / DLQ (Technical Error)** | {rc_tec} | {p_tec:.1f} % |\n")
         f.write(f"| **Yhteensä** | **{tot_m}** | **100.0 %** |\n\n")
 
         # Macro Score Drift (0-100)
@@ -1436,20 +1435,22 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
             # Cached token savings: Gemini 2.5 Flash caching discount is ~75% ($0.05625 per 1M cached tokens)
             r1_savings = (r1["cached_tok"] / 1_000_000) * 0.05625
             r2_savings = (r2["cached_tok"] / 1_000_000) * 0.05625
+            diff_prompt = r2["prompt_tok"] - r1["prompt_tok"]
+            diff_comp = r2["comp_tok"] - r1["comp_tok"]
+            diff_cached = r2["cached_tok"] - r1["cached_tok"]
+            diff_savings = r2_savings - r1_savings
+
             f.write("| FinOps -metriikka | Run 1 | Run 2 | $\\Delta$ (R2 - R1) |\n")
             f.write("| :--- | :---: | :---: | :---: |\n")
             f.write(f"| **Kokonaiskustannus ($)** | ${r1['cost_usd']:.4f} | ${r2['cost_usd']:.4f} | ${c_diff:+.4f} |\n")
+            f.write(f"| **Syötetokenit (Prompt)** | {r1['prompt_tok']:,} | {r2['prompt_tok']:,} | {diff_prompt:+,} |\n")
+            f.write(f"| **Tuotostokenit (Completion)** | {r1['comp_tok']:,} | {r2['comp_tok']:,} | {diff_comp:+,} |\n")
             f.write(
-                f"| **Syötetokenit (Prompt)** | {r1['prompt_tok']:,} | {r2['prompt_tok']:,} | {r2['prompt_tok'] - r1['prompt_tok']:+,} |\n"
+                f"| **Välimuistitokenit (Cached)** | {r1['cached_tok']:,} | {r2['cached_tok']:,} | {diff_cached:+,} |\n"
             )
             f.write(
-                f"| **Tuotostokenit (Completion)** | {r1['comp_tok']:,} | {r2['comp_tok']:,} | {r2['comp_tok'] - r1['comp_tok']:+,} |\n"
-            )
-            f.write(
-                f"| **Välimuistitokenit (Cached)** | {r1['cached_tok']:,} | {r2['cached_tok']:,} | {r2['cached_tok'] - r1['cached_tok']:+,} |\n"
-            )
-            f.write(
-                f"| **Välimuistin tuoma säästö ($)** | ${r1_savings:.4f} | ${r2_savings:.4f} | ${r2_savings - r1_savings:+.4f} |\n\n"
+                f"| **Välimuistin tuoma säästö ($)** | ${r1_savings:.4f} | ${r2_savings:.4f} | "
+                f"{diff_savings:+.4f} |\n\n"
             )
         else:
             f.write("FinOps-vertailu vaatii vähintään kaksi suoritusta.\n\n")
@@ -1460,9 +1461,7 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
             "Kaikki mallin poimimat suorat sitaatit tarkastetaan sanatarkasti (`str.find`) suhteessa alkuperäisiin "
             "syötetiedostoihin chimera- ja hallusinaatioriskien varalta.\n\n"
         )
-        f.write(
-            "| Ajo | Syötteet Saatavilla | Sitaatteja Yhteensä | Verifioidut Sitaatit | Vahvistamattomat | Aitoustaso (%) |\n"
-        )
+        f.write("| Ajo | Syötteet Saatavilla | Sitaatteja | Verifioidut | Vahvistamattomat | Aitoustaso (%) |\n")
         f.write("| :--- | :---: | :---: | :---: | :---: | :---: |\n")
         for gr in grounding_results_by_run:
             c_avail = "✅ Kyllä" if gr["has_corpus"] else "❌ Ei (Inputs-kansio puuttuu)"
@@ -1552,9 +1551,7 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
 
 def main() -> None:
     """CLI entry point for execution diff tool."""
-    parser = argparse.ArgumentParser(
-        description="Execution Trace Differential Analysis and Kappa Suite"
-    )
+    parser = argparse.ArgumentParser(description="Execution Trace Differential Analysis and Kappa Suite")
     parser.add_argument(
         "execution_ids",
         nargs="*",
