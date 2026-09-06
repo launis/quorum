@@ -7,9 +7,7 @@ anti-jargon guidelines, sparse data handling, and presentation posture.
 __all__ = [
     "ANTI_JARGON_MANDATE_BLOCK",
     "DEFAULT_COACHING_TONE_MANDATE",
-    "SDUI_BLOCK_STRUCTURE_MANDATE",
     "SPARSE_DATA_SYNTHESIS_MANDATE",
-    "SYNTHESIS_CITATION_RULES",
     "SYNTHESIS_CITATION_RULES_HARVARD",
     "SYNTHESIS_LENGTH_CONSTRAINT",
     "SYNTHESIS_NO_CITATION_RULES",
@@ -42,13 +40,6 @@ SPARSE_DATA_SYNTHESIS_MANDATE: str = (
     "</sparse_data_synthesis_mandate>"
 )
 
-SDUI_BLOCK_STRUCTURE_MANDATE: str = (
-    "<sdui_block_structure_mandate>\n"
-    "- UNIVERSAL SDUI PRESENTATION RULE: Structure all report findings directly as Server-Driven UI (SDUI) blocks.\n"
-    "- Format each analytical observation into an allowed block type ('paragraph', 'bullet_list', 'alert_box', 'quote_card', 'warning_card').\n"
-    "</sdui_block_structure_mandate>"
-)
-
 SYNTHESIS_LENGTH_CONSTRAINT: str = (
     "<length_constraint>\n"
     "GLOBAL SYNTHESIS LENGTH CONSTRAINT: The global output should be roughly the length "
@@ -78,6 +69,3 @@ SYNTHESIS_NO_CITATION_RULES: str = (
     "- Leave `cited_sources` as an empty list `[]`.\n"
     "</citation_rules>"
 )
-
-# Canonical alias for backward compatibility
-SYNTHESIS_CITATION_RULES: str = SYNTHESIS_CITATION_RULES_HARVARD

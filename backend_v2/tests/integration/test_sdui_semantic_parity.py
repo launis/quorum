@@ -96,6 +96,7 @@ class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     risk_flag: bool | None = None
     context_target: str | None = None
     context_target_label: I18nText | None = None
+    inner_sdui_blocks: list[AnySduiBlock] = []
     __set_as_default_factory_for_type__ = True
 
 

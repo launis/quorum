@@ -16,7 +16,7 @@ from backend_v2.models.prompts import (
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     SPARSE_DATA_SYNTHESIS_MANDATE,
     STATE_ISOLATION_BLOCK,
-    SYNTHESIS_CITATION_RULES,
+    SYNTHESIS_CITATION_RULES_HARVARD,
     SYNTHESIS_LENGTH_CONSTRAINT,
     SYNTHESIS_SDUI_MANDATES,
 )
@@ -49,7 +49,7 @@ def test_prompt_architecture_segregation() -> None:
     assert "ANTI-JARGON MANDATE" in ANTI_JARGON_MANDATE_BLOCK
     assert "sparse_data_synthesis_mandate" in SPARSE_DATA_SYNTHESIS_MANDATE
     assert "length_constraint" in SYNTHESIS_LENGTH_CONSTRAINT
-    assert "citation_rules" in SYNTHESIS_CITATION_RULES
+    assert "citation_rules" in SYNTHESIS_CITATION_RULES_HARVARD
     assert "Senior Executive Coach and Strategic Evaluator" in DEFAULT_SYNTHESIS_SYSTEM_PROMPT
 
 

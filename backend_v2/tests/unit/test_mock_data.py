@@ -3,11 +3,34 @@ import pytest
 from backend_v2.llm.mock_data import get_fallback_data
 
 
-def test_get_fallback_data_success() -> None:
-    """Test that a valid key returns the expected mock data dict."""
-    data = get_fallback_data("analyst_agent")
+@pytest.mark.parametrize(
+    "key",
+    [
+        "guard_agent",
+        "analyst_agent",
+        "interaction_agent",
+        "logician_agent",
+        "falsifier_agent",
+        "causal_agent",
+        "performativity_agent",
+        "fact_checker_agent",
+        "profiler_agent",
+        "archivist_agent",
+        "judge_agent",
+        "xai_agent",
+        "text_consolidation_hook",
+        "row_explainer",
+        "variance_explainer",
+        "ExecutiveSummaryTask",
+        "MatrixSectionTask_m0",
+        "XaiHighlightsTask",
+    ],
+)
+def test_get_fallback_data_success(key: str) -> None:
+    """Test that valid keys return expected mock data dictionaries."""
+    data = get_fallback_data(key)
     assert isinstance(data, dict)
-    assert "thought_process" in data
+    assert len(data) > 0
 
 
 def test_get_fallback_data_atomize_mock() -> None:

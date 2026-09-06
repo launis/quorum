@@ -15,6 +15,7 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
+from backend_v2.models.enums import RoleClassification
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
@@ -572,7 +573,7 @@ async def test_worker_synthesis_matrix_layout_directives(
         if resp_model is ExecutiveSummarySectionResult:
             return (
                 ExecutiveSummarySectionResult(
-                    user_role="Executive",
+                    user_role=RoleClassification.ARCHITECT,
                     user_role_justification="Target executive persona",
                     cited_sources=[],
                     executive_summary=[ParagraphBlock(text="Executive Summary", exact_quotes=[], citations=[])],
@@ -667,7 +668,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
         if resp_model is ExecutiveSummarySectionResult:
             return (
                 ExecutiveSummarySectionResult(
-                    user_role="Executive",
+                    user_role=RoleClassification.ARCHITECT,
                     user_role_justification="Target executive persona",
                     cited_sources=[],
                     executive_summary=[],
@@ -735,7 +736,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
         if resp_model is ExecutiveSummarySectionResult:
             return (
                 ExecutiveSummarySectionResult(
-                    user_role="ROLE_ARCHITECT",
+                    user_role=RoleClassification.ARCHITECT,
                     user_role_justification="Demonstrates high strategic maturity",
                     cited_sources=[],
                     executive_summary=[
@@ -820,7 +821,7 @@ async def test_worker_synthesis_multi_section_aggregation(
         if resp_model is ExecutiveSummarySectionResult:
             return (
                 ExecutiveSummarySectionResult(
-                    user_role="Executive",
+                    user_role=RoleClassification.ARCHITECT,
                     user_role_justification="Target executive persona",
                     cited_sources=[],
                     executive_summary=[ParagraphBlock(text="Executive Summary", exact_quotes=[], citations=[])],
@@ -908,7 +909,7 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
         if resp_model is ExecutiveSummarySectionResult:
             return (
                 ExecutiveSummarySectionResult(
-                    user_role="Executive",
+                    user_role=RoleClassification.ARCHITECT,
                     user_role_justification="Target executive persona",
                     cited_sources=[],
                     executive_summary=[],
@@ -1003,7 +1004,7 @@ async def test_worker_synthesis_custom_directives_resolution(
         if resp_model is ExecutiveSummarySectionResult:
             return (
                 ExecutiveSummarySectionResult(
-                    user_role="Executive",
+                    user_role=RoleClassification.ARCHITECT,
                     user_role_justification="Target executive persona",
                     cited_sources=[],
                     executive_summary=[],

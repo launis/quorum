@@ -1274,8 +1274,12 @@ async def generate_profile_synthesis_and_pdf_task(
                     GLOBAL_MANDATES_XML,
                     DEFAULT_COACHING_TONE_MANDATE,
                     row_lang_params,
-                    row_directive_str,
                 ]
+                if active_profile_dto and active_profile_dto.tone_instruction:
+                    tone = active_profile_dto.tone_instruction.strip()
+                    if tone:
+                        row_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
+                row_dynamic_parts.append(row_directive_str)
                 if active_profile_dto and active_profile_dto.row_explanation_length_constraint:
                     row_dynamic_parts.append(
                         f"<section_budget>{active_profile_dto.row_explanation_length_constraint}</section_budget>"
@@ -1417,8 +1421,12 @@ async def generate_profile_synthesis_and_pdf_task(
                         GLOBAL_MANDATES_XML,
                         DEFAULT_COACHING_TONE_MANDATE,
                         var_lang_params,
-                        var_directive_str,
                     ]
+                    if active_profile_dto and active_profile_dto.tone_instruction:
+                        tone = active_profile_dto.tone_instruction.strip()
+                        if tone:
+                            var_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
+                    var_dynamic_parts.append(var_directive_str)
                     if active_profile_dto.variance_length_constraint:
                         var_dynamic_parts.append(
                             f"<section_budget>{active_profile_dto.variance_length_constraint}</section_budget>"

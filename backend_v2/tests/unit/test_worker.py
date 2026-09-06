@@ -711,9 +711,12 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "workflow_id": "wf_1234567890123456",
                 "name": {"translations": {"en": "Profile"}},
                 "synthesis_length_constraint": 500,
-                "tone_instruction": {
-                    "translations": {"en": "Direct tone", "fi": "Suora sävy"},
-                },
+                "tone_instruction": "Direct tone",
+                "executive_summary_directive": "Synthesize executive summary.",
+                "matrix_1d_synthesis_directive": "Synthesize 1D matrix metrics.",
+                "xai_synthesis_directive": "Synthesize XAI highlights.",
+                "row_explanation_directive": "Explain matrix row causality.",
+                "variance_synthesis_directive": "Synthesize cognitive variance.",
                 "matrix_synthesis_groups": [
                     {
                         "id": "grp_1111111111111111",
@@ -1513,3 +1516,352 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
     call_payload = update_calls[0]
     assert call_payload.dag_cost_usd == 1.0
     assert call_payload.cost_estimate >= 1.0
+
+
+def _get_base_model_registry_dict() -> dict[str, Any]:
+    return {
+        "id": "cfg_1111111111111111",
+        "type": "model_registry",
+        "slug": "model_registry",
+        "models": {
+            "synthesis": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
+            "strict": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
+        },
+    }
+
+
+def _get_base_workflow_dict() -> dict[str, Any]:
+    return {
+        "id": "wf_1234567890123456",
+        "name": "Test WF",
+        "slug": "test-wf",
+        "description": "desc",
+        "status": "draft",
+        "version": 1,
+        "steps": [],
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "default_profile_id": "prof_1111222233334444",
+        "default_strictness_level": 50,
+        "default_scoring_strategy": "AVERAGE",
+    }
+
+
+def _get_base_profile_dict() -> dict[str, Any]:
+    return {
+        "id": "prof_1111222233334444",
+        "slug": "prof-1",
+        "workflow_id": "wf_1234567890123456",
+        "name": {"translations": {"en": "Profile"}},
+        "synthesis_length_constraint": 500,
+        "tone_instruction": "Direct tone",
+        "executive_summary_directive": "Synthesize executive summary.",
+        "matrix_1d_synthesis_directive": "Synthesize 1D matrix metrics.",
+        "xai_synthesis_directive": "Synthesize XAI highlights.",
+        "row_explanation_directive": "Explain matrix row causality.",
+        "variance_synthesis_directive": "Synthesize cognitive variance.",
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_1111111111111111",
+                "title": {"translations": {"en": "Matrix Section", "fi": "Matriisiosio"}},
+                "target_blocks": ["blk_1111222233334444"],
+            }
+        ],
+        "target_block_order": ["matrix_graphs_block"],
+        "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
+        "max_extension_items": 3,
+        "performativity_detector_step_id": "step_perf",
+    }
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_missing_matrix_directive_raises_app_exception() -> None:
+    """Negative: Verify missing matrix synthesis directive raises AppException."""
+    mock_repo = AsyncMock()
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
+        "status": "RUNNING",
+        "target_locale": "fi",
+        "execution_trace": [],
+        "execution_trace_storage_path": None,
+        "step_states": {},
+        "metadata": {},
+    }
+    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
+    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+    prof_dict = _get_base_profile_dict()
+    prof_dict["matrix_1d_synthesis_directive"] = None
+    mock_repo.get_output_profile_by_id.return_value = prof_dict
+
+    with (
+        patch("backend_v2.worker.get_driver", AsyncMock()),
+        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.worker.synthesis_distiller_hook",
+            AsyncMock(
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(
+                        delta={
+                            "distilled_inputs": "Sample analytical summary data.",
+                            "matrices_to_explain": [],
+                            "language": "fi",
+                            "title_map": {},
+                        }
+                    ),
+                )
+            ),
+        ),
+    ):
+        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
+            await generate_profile_synthesis_and_pdf_task(
+                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            )
+        assert "missing required matrix synthesis directive" in repr(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_missing_xai_directive_raises_app_exception() -> None:
+    """Negative: Verify missing XAI synthesis directive raises AppException."""
+    mock_repo = AsyncMock()
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
+        "status": "RUNNING",
+        "target_locale": "fi",
+        "execution_trace": [],
+        "execution_trace_storage_path": None,
+        "step_states": {},
+        "metadata": {},
+    }
+    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
+    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+    prof_dict = _get_base_profile_dict()
+    prof_dict["xai_synthesis_directive"] = None
+    mock_repo.get_output_profile_by_id.return_value = prof_dict
+
+    with (
+        patch("backend_v2.worker.get_driver", AsyncMock()),
+        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.worker.synthesis_distiller_hook",
+            AsyncMock(
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(
+                        delta={
+                            "distilled_inputs": "Sample analytical summary data.",
+                            "matrices_to_explain": [],
+                            "language": "fi",
+                            "title_map": {},
+                        }
+                    ),
+                )
+            ),
+        ),
+    ):
+        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
+            await generate_profile_synthesis_and_pdf_task(
+                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            )
+        assert "missing required xai_synthesis_directive" in repr(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_missing_row_explanation_directive_raises_app_exception() -> None:
+    """Negative: Verify missing row explanation directive raises AppException."""
+    mock_repo = AsyncMock()
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
+        "status": "RUNNING",
+        "target_locale": "fi",
+        "execution_trace": [],
+        "execution_trace_storage_path": None,
+        "step_states": {},
+        "metadata": {},
+    }
+    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
+    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+    prof_dict = _get_base_profile_dict()
+    prof_dict["target_block_order"] = ["matrix_graphs_block", "matrix_summary_table_block"]
+    prof_dict["row_explanation_directive"] = None
+    mock_repo.get_output_profile_by_id.return_value = prof_dict
+
+    with (
+        patch("backend_v2.worker.get_driver", AsyncMock()),
+        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.worker.synthesis_distiller_hook",
+            AsyncMock(
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(
+                        delta={
+                            "distilled_inputs": "Sample analytical summary data.",
+                            "matrices_to_explain": [
+                                {
+                                    "real_matrix_id": "blk_1111222233334444",
+                                    "matrix_id": "m0",
+                                    "matrix_label": "Target Matrix",
+                                    "score": 85.0,
+                                    "justification": "Evidence verified.",
+                                }
+                            ],
+                            "language": "fi",
+                            "title_map": {},
+                        }
+                    ),
+                )
+            ),
+        ),
+    ):
+        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
+            await generate_profile_synthesis_and_pdf_task(
+                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            )
+        assert "missing required row_explanation_directive" in repr(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_missing_state_delta_raises_app_exception() -> None:
+    """Negative: Verify missing state_delta from distiller hook raises AppException."""
+    mock_repo = AsyncMock()
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
+        "status": "RUNNING",
+        "target_locale": "fi",
+        "execution_trace": [],
+        "execution_trace_storage_path": None,
+        "step_states": {},
+        "metadata": {},
+    }
+    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
+    mock_repo.get_output_profile_by_id.return_value = _get_base_profile_dict()
+
+    with (
+        patch("backend_v2.worker.get_driver", AsyncMock()),
+        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.worker.synthesis_distiller_hook",
+            AsyncMock(return_value=HookResult(success=True, state_delta=None)),
+        ),
+    ):
+        with pytest.raises(AppException) as exc_info:
+            await generate_profile_synthesis_and_pdf_task(
+                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            )
+        assert "hook_result.state_delta cannot be None" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_exception() -> None:
+    """Negative: Verify missing distilled_inputs from state_delta raises AppException."""
+    mock_repo = AsyncMock()
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
+        "status": "RUNNING",
+        "target_locale": "fi",
+        "execution_trace": [],
+        "execution_trace_storage_path": None,
+        "step_states": {},
+        "metadata": {},
+    }
+    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
+    mock_repo.get_output_profile_by_id.return_value = _get_base_profile_dict()
+
+    with (
+        patch("backend_v2.worker.get_driver", AsyncMock()),
+        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.worker.synthesis_distiller_hook",
+            AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"other_key": 1}))),
+        ),
+    ):
+        with pytest.raises(AppException) as exc_info:
+            await generate_profile_synthesis_and_pdf_task(
+                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            )
+        assert "distilled_inputs missing from state_delta" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_no_profile_for_row_explanations_raises_app_exception() -> None:
+    """Negative: Verify missing output profile when synthesizing row explanations raises AppException."""
+    mock_repo = AsyncMock()
+    mock_repo.get_execution.return_value = {
+        "id": "exe_1234567890123456",
+        "workflow_id": "wf_1234567890123456",
+        "output_profile_id": "prof_1111222233334444",
+        "status": "RUNNING",
+        "target_locale": "fi",
+        "execution_trace": [],
+        "execution_trace_storage_path": None,
+        "step_states": {},
+        "metadata": {},
+    }
+    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
+    mock_repo.get_output_profile_by_id.return_value = None
+    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+
+    with (
+        patch("backend_v2.worker.get_driver", AsyncMock()),
+        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch(
+            "backend_v2.worker.synthesis_distiller_hook",
+            AsyncMock(
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(
+                        delta={
+                            "distilled_inputs": "Sample analytical summary data.",
+                            "matrices_to_explain": [
+                                {
+                                    "real_matrix_id": "blk_1111222233334444",
+                                    "matrix_id": "m0",
+                                    "matrix_label": "Target Matrix",
+                                    "score": 85.0,
+                                    "justification": "Evidence verified.",
+                                }
+                            ],
+                            "language": "fi",
+                            "title_map": {},
+                        }
+                    ),
+                )
+            ),
+        ),
+    ):
+        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
+            await generate_profile_synthesis_and_pdf_task(
+                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            )
+        assert "Cannot synthesize row explanations without an active OutputProfile" in repr(exc_info.value)
+
+
+
+

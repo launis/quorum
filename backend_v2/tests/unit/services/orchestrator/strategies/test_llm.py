@@ -1555,9 +1555,7 @@ async def test_execute_matrix_chunking_flow(
         "workflow_id": "wf_0123456789abcdef0123456789abcdef",
         "name": {"translations": {"en": "Profile"}},
         "description": {"translations": {"en": "Profile"}},
-        "tone_instruction": {
-            "translations": {"en": "Professional and analytical."},
-        },
+        "tone_instruction": "Professional and analytical.",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_1234567890123456",

@@ -9,6 +9,7 @@ from typing import Annotated
 from pydantic import ConfigDict, Field, TypeAdapter
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.enums import LaxRoleClassification
 from backend_v2.models.view.sdui import (
     AlertBlock,
     BulletListBlock,
@@ -137,14 +138,12 @@ class ExecutiveSummarySectionResult(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     user_role: Annotated[
-        str,
+        LaxRoleClassification,
         Field(
-            description="Extracted targeted user role for the output (e.g. ROLE_ARCHITECT).",
+            description="Extracted targeted user role for the output (ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, ROLE_ARCHITECT).",
         ),
     ]
-    user_role_justification: Annotated[
-        str, Field(description="LLM justification for role mapping.")
-    ]
+    user_role_justification: Annotated[str, Field(description="LLM justification for role mapping.")]
     cited_sources: Annotated[
         list[str],
         Field(default_factory=list, description="List of references or citations found."),
@@ -216,9 +215,7 @@ class SynthesisOutputDTO(V2CoreBase):
             description="Extracted targeted user role for the output (e.g. ROLE_ARCHITECT).",
         ),
     ]
-    user_role_justification: Annotated[
-        str, Field(description="LLM justification for role mapping.")
-    ]
+    user_role_justification: Annotated[str, Field(description="LLM justification for role mapping.")]
 
     cited_sources: Annotated[
         list[str],

@@ -54,6 +54,12 @@ def test_executive_summary_section_result_strictness() -> None:
             extra_field="fail",
         )  # type: ignore
 
+    with pytest.raises(ValidationError):
+        ExecutiveSummarySectionResult(
+            user_role="ROLE_EXECUTIVE_STRATEGIST",  # type: ignore[arg-type]
+            user_role_justification="Invalid role hallucination",
+        )
+
 
 def test_matrix_section_syntheses_result_strictness() -> None:
     dto = MatrixSectionSynthesesResult(

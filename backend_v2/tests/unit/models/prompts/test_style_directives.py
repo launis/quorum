@@ -3,9 +3,7 @@
 from backend_v2.models.prompts.synthesis.style_directives import (
     ANTI_JARGON_MANDATE_BLOCK,
     DEFAULT_COACHING_TONE_MANDATE,
-    SDUI_BLOCK_STRUCTURE_MANDATE,
     SPARSE_DATA_SYNTHESIS_MANDATE,
-    SYNTHESIS_CITATION_RULES,
     SYNTHESIS_CITATION_RULES_HARVARD,
     SYNTHESIS_LENGTH_CONSTRAINT,
     SYNTHESIS_NO_CITATION_RULES,
@@ -17,10 +15,8 @@ def test_style_directives_exports() -> None:
     """Verify that all style directives are non-empty strings and in __all__."""
     assert "SYNTHESIS_CITATION_RULES_HARVARD" in __all__
     assert "SYNTHESIS_NO_CITATION_RULES" in __all__
-    assert "SYNTHESIS_CITATION_RULES" in __all__
     assert "ANTI_JARGON_MANDATE_BLOCK" in __all__
     assert "DEFAULT_COACHING_TONE_MANDATE" in __all__
-    assert "SDUI_BLOCK_STRUCTURE_MANDATE" in __all__
     assert "SPARSE_DATA_SYNTHESIS_MANDATE" in __all__
     assert "SYNTHESIS_LENGTH_CONSTRAINT" in __all__
 
@@ -33,7 +29,6 @@ def test_harvard_citation_directive_structure() -> None:
     assert "(Author, Year)" in SYNTHESIS_CITATION_RULES_HARVARD
     assert "cited_sources" in SYNTHESIS_CITATION_RULES_HARVARD
     assert "STRICT PROHIBITIONS" in SYNTHESIS_CITATION_RULES_HARVARD
-    assert SYNTHESIS_CITATION_RULES == SYNTHESIS_CITATION_RULES_HARVARD
 
 
 def test_no_citation_directive_structure() -> None:

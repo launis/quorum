@@ -1,7 +1,7 @@
 """Mock Data Store for AI Layer Testing (Zero-Token Cost)."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from backend_v2.models.domain import (
@@ -63,7 +63,7 @@ from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 
 # 0. Shared Metadata
 MOCK_METADATA = Metadata(
-    luontiaika=datetime.now(), agentti="MockAgent", vaihe=1, versio="1.0", suoritus_ymparisto="Testing"
+    luontiaika=datetime.now(timezone.utc), agentti="MockAgent", vaihe=1, versio="1.0", suoritus_ymparisto="Testing"
 )
 
 MOCK_CHAT_HISTORY = ChatHistoryDTO(
@@ -195,7 +195,7 @@ MOCK_JUDGE_OUTPUT = EvaluationResult(
     conclusion="High quality output.",
     confidence_score=0.9,
     matrix_id="matrix_standard_v1",
-    timestamp=datetime.now(),
+    timestamp=datetime.now(timezone.utc),
     total_score=4.5,
     final_verdict="Excellent",
     dimensions=[DimensionResultItem(dimension_id="logic", dimension_label="Logic", score=5, reasoning="Perfect logic")],
@@ -287,12 +287,12 @@ MOCK_SYNTHESIS_OUTPUT = SynthesisOutputDTO(
     cited_sources=[],
     section_syntheses=[],
     xai_highlights=[],
-    user_role="Mock Analyst",
+    user_role=RoleClassification.ARCHITECT.value,
     user_role_justification="Default mock role assignment",
 )
 
 MOCK_EXECUTIVE_SUMMARY_OUTPUT = ExecutiveSummarySectionResult(
-    user_role="Mock Analyst",
+    user_role=RoleClassification.ARCHITECT,
     user_role_justification="Default mock role assignment",
     cited_sources=[],
     executive_summary=[],
