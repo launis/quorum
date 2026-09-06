@@ -348,6 +348,9 @@ def test_matrix_synthesis_group_cardinality_validation() -> None:
     # Text only: at least 1 block
     MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=["b1"], view_type=PresetView.TEXT_ONLY)
     MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=["b1", "b2"], view_type=PresetView.TEXT_ONLY)
+    with pytest.raises(ValidationError) as exc:
+        MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=[], view_type=PresetView.TEXT_ONLY)
+    assert "List should have at least 1 item after validation" in str(exc.value)
 
 
 def test_output_profile_unique_group_ids_validation() -> None:

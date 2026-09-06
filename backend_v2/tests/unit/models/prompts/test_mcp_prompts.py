@@ -2,14 +2,14 @@
 
 import pytest
 
-from backend_v2.models.prompts.mcp_prompts import (
+from backend_v2.models.prompts.execution.mcp_prompts import (
     CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION,
     MCP_EVIDENCE_INJECTION_DIRECTIVE,
     SOURCE_EXTRACTION_SYSTEM_INSTRUCTION,
     SOURCE_VERIFICATION_SYSTEM_INSTRUCTION,
     build_mcp_citation_extraction_directive,
 )
-from backend_v2.models.prompts.mcp_prompts import (
+from backend_v2.models.prompts.execution.mcp_prompts import (
     __all__ as mcp_prompts_all,
 )
 

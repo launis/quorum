@@ -1,4 +1,5 @@
 import backend_v2.models.state  # noqa: F401
+from backend_v2.models.enums import PresetView
 from backend_v2.models.v2_core import (
     I18nText,
     MatrixScorecardRowDTO,
@@ -99,6 +100,7 @@ def test_matrix_graphs_adapter_single_group_2d() -> None:
                 id="grp_2222222222222222",
                 title=I18nText(translations={"en": "Compare 2D"}),
                 target_blocks=["m1", "m2"],
+                view_type=PresetView.COMPARE_2D,
             )
         ],
     )
@@ -153,6 +155,7 @@ def test_matrix_graphs_adapter_success_3d() -> None:
                 id="grp_3333333333333333",
                 title=I18nText(translations={"en": "Graph 3D"}),
                 target_blocks=["m1", "m2", "m3"],
+                view_type=PresetView.MATRIX_3D,
             )
         ],
     )

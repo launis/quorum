@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -146,12 +147,14 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "scoring_strategy": "AVERAGE",
         "max_extension_items": 3,
         "synthesis_length_constraint": 1000,
-        "tone_instruction": {"translations": {"en": "Professional"}},
+        "tone_instruction": "Professional",
+        "matrix_1d_synthesis_directive": "1D DIRECTIVE",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_1111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
                 "target_blocks": ["blk_1"],
+                "view_type": "1d_metrics",
             }
         ],
         "target_block_order": ["matrix_graphs_block"],
@@ -265,6 +268,10 @@ def _setup_mock_repo_for_metrics(
         "strictness_level": 85,
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
+        "tone_instruction": "Professional",
+        "xai_synthesis_directive": "XAI DIRECTIVE",
+        "variance_synthesis_directive": "VARIANCE DIRECTIVE",
+        "max_extension_items": 3,
         "visible_workflow_extensions": ["variance_validation"],
         "performativity_detector_step_id": "sp_det_step",
         "matrix_synthesis_groups": [],
@@ -472,35 +479,35 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
         (
             "2d_compare",
             "matrix_2d_synthesis_directive",
-            {"translations": {"en": "CUSTOM 2D MANDATE:", "fi": "CUSTOM 2D MANDATE:"}},
+            "CUSTOM 2D MANDATE:",
             "CUSTOM 2D MANDATE:",
             True,
         ),
         (
             "3d_matrix",
             "matrix_3d_synthesis_directive",
-            {"translations": {"en": "CUSTOM 3D MANDATE:", "fi": "CUSTOM 3D MANDATE:"}},
+            "CUSTOM 3D MANDATE:",
             "CUSTOM 3D MANDATE:",
             True,
         ),
         (
             "1d_metrics",
             "matrix_1d_synthesis_directive",
-            {"translations": {"en": "CUSTOM 1D MANDATE:", "fi": "CUSTOM 1D MANDATE:"}},
+            "CUSTOM 1D MANDATE:",
             "CUSTOM 1D MANDATE:",
             True,
         ),
         (
             "text_only",
             "matrix_text_synthesis_directive",
-            {"translations": {"en": "CUSTOM TEXT MANDATE:", "fi": "CUSTOM TEXT MANDATE:"}},
+            "CUSTOM TEXT MANDATE:",
             "CUSTOM TEXT MANDATE:",
             True,
         ),
         (
             "2d_compare",
             "matrix_1d_synthesis_directive",
-            {"translations": {"en": "1D ONLY", "fi": "1D ONLY"}},
+            "1D ONLY",
             None,
             False,
         ),
@@ -515,7 +522,7 @@ async def test_worker_synthesis_matrix_layout_directives(
     mock_repo_class: AsyncMock,
     view_type: str,
     directive_field: str,
-    directive_value: dict[str, Any] | None,
+    directive_value: str | None,
     expected_snippet: str | None,
     should_execute_group: bool,
 ) -> None:
@@ -526,6 +533,12 @@ async def test_worker_synthesis_matrix_layout_directives(
     mock_repo_class.return_value = mock_repo
     _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
+    target_blocks_map = {
+        "1d_metrics": ["blk_1"],
+        "2d_compare": ["blk_1", "blk_2"],
+        "3d_matrix": ["blk_1", "blk_2", "blk_3"],
+        "text_only": ["blk_1"],
+    }
     prof_dict: dict[str, Any] = {
         "id": "prof_1111111111111111",
         "slug": "prof_test",
@@ -535,12 +548,12 @@ async def test_worker_synthesis_matrix_layout_directives(
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
-        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        "tone_instruction": "Professional",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_1234567890123456",
                 "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
-                "target_blocks": ["blk_1"],
+                "target_blocks": target_blocks_map.get(view_type, ["blk_1"]),
                 "view_type": view_type,
             }
         ],
@@ -590,6 +603,18 @@ async def test_worker_synthesis_matrix_layout_directives(
     mock_client.run_structured_task.side_effect = _mock_run_structured_task
     mock_from_strategy.return_value = mock_client
 
+    if not should_execute_group:
+        with pytest.raises((AppException, ExceptionGroup)) as exc_info:
+            await generate_profile_synthesis_and_pdf_task(
+                execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+            )
+        exc = exc_info.value
+        if isinstance(exc, ExceptionGroup):
+            exc = exc.exceptions[0]
+        assert isinstance(exc, AppException)
+        assert exc.details.get("error_code") == ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value
+        return
+
     await generate_profile_synthesis_and_pdf_task(
         execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
     )
@@ -600,10 +625,7 @@ async def test_worker_synthesis_matrix_layout_directives(
             messages = call.kwargs["messages"]
             all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
 
-    if should_execute_group and expected_snippet:
-        assert expected_snippet in all_user_content
-    else:
-        assert "grp_1234567890123456" not in all_user_content
+    assert expected_snippet in all_user_content
 
 
 @pytest.mark.asyncio
@@ -631,10 +653,8 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
-        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
-        "executive_summary_directive": {
-            "translations": {"en": "EXECUTIVE SUMMARY DIRECTIVE", "fi": "EXECUTIVE SUMMARY DIRECTIVE"}
-        },
+        "tone_instruction": "Professional",
+        "executive_summary_directive": "EXECUTIVE SUMMARY DIRECTIVE",
         "matrix_synthesis_groups": [],
         "target_block_order": ["executive_summary_block"],
     }
@@ -701,10 +721,8 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
-        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
-        "executive_summary_directive": {
-            "translations": {"en": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:", "fi": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:"}
-        },
+        "tone_instruction": "Professional",
+        "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:",
         "matrix_synthesis_groups": [],
         "target_block_order": ["executive_summary_block"],
     }
@@ -781,10 +799,8 @@ async def test_worker_synthesis_multi_section_aggregation(
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
-        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
-        "matrix_1d_synthesis_directive": {
-            "translations": {"en": "CUSTOM CAUSALITY DIRECTIVE", "fi": "CUSTOM CAUSALITY DIRECTIVE"}
-        },
+        "tone_instruction": "Professional",
+        "matrix_1d_synthesis_directive": "CUSTOM CAUSALITY DIRECTIVE",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_c5804a9143c34cb1",
@@ -872,7 +888,8 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
-        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        "tone_instruction": "Professional",
+        "matrix_1d_synthesis_directive": "1D DIRECTIVE",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000000",
@@ -967,16 +984,10 @@ async def test_worker_synthesis_custom_directives_resolution(
         "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
-        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
-        "row_explanation_directive": {
-            "translations": {"en": "CUSTOM ROW EXPLANATION DIRECTIVE EN", "fi": "CUSTOM ROW EXPLANATION DIRECTIVE FI"}
-        },
-        "xai_synthesis_directive": {
-            "translations": {"en": "CUSTOM XAI SYNTHESIS DIRECTIVE EN", "fi": "CUSTOM XAI SYNTHESIS DIRECTIVE FI"}
-        },
-        "variance_synthesis_directive": {
-            "translations": {"en": "CUSTOM VARIANCE DIRECTIVE EN", "fi": "CUSTOM VARIANCE DIRECTIVE FI"}
-        },
+        "tone_instruction": "Professional",
+        "row_explanation_directive": "CUSTOM ROW EXPLANATION DIRECTIVE",
+        "xai_synthesis_directive": "CUSTOM XAI SYNTHESIS DIRECTIVE",
+        "variance_synthesis_directive": "CUSTOM VARIANCE DIRECTIVE",
         "visible_workflow_extensions": ["variance_validation"],
         "performativity_detector_step_id": "sp_det_step",
         "matrix_visible_columns": ["label", "row_explanation"],
@@ -1022,5 +1033,5 @@ async def test_worker_synthesis_custom_directives_resolution(
             messages = call.kwargs["messages"]
             all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
 
-    assert "CUSTOM XAI SYNTHESIS DIRECTIVE FI" in all_user_content
-    assert "CUSTOM VARIANCE DIRECTIVE FI" in all_user_content
+    assert "CUSTOM XAI SYNTHESIS DIRECTIVE" in all_user_content
+    assert "CUSTOM VARIANCE DIRECTIVE" in all_user_content

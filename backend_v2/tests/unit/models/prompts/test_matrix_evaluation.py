@@ -2,7 +2,7 @@
 
 import re
 
-from backend_v2.models.prompts.matrix_evaluation import (
+from backend_v2.models.prompts.execution.matrix_evaluation import (
     CONTEXTUAL_OVERRIDE_DIRECTIVE,
     MATRIX_SENSOR_SYSTEM_PROMPT,
 )

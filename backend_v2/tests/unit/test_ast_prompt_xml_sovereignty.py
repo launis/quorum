@@ -148,7 +148,7 @@ def test_prompt_factory_ast_no_naked_dicts_in_mechanical_anchors() -> None:
 
 def test_ast_xml_layer_ordering_compliance() -> None:
     """Verifies prompt_factory.py and global mandates define Layer 1 through Layer 4 cleanly."""
-    tree = _load_ast("backend_v2/models/prompts/global_mandates.py")
+    tree = _load_ast("backend_v2/models/prompts/common/global_mandates.py")
     has_global_mandates = False
 
     for node in ast.walk(tree):
@@ -287,6 +287,151 @@ def bad_function(data):
                     found_violation = True
 
     assert found_violation, "AST scanner should have detected PromptBlock.model_validate in mock code"
+
+
+# ---------------------------------------------------------------------------
+# Prompt Architecture Harmonization AST Guardrails (Option B)
+# ---------------------------------------------------------------------------
+
+
+def test_ast_synthesis_prompt_registry_purged() -> None:
+    """AST Guardrail: SynthesisPromptRegistry class must not exist anywhere in backend_v2."""
+    found: list[str] = []
+    for file_path in _ALL_PY_FILES:
+        try:
+            tree = _load_ast(file_path)
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == "SynthesisPromptRegistry":
+                found.append(f"{file_path}:{node.lineno}")
+    assert not found, f"SynthesisPromptRegistry must be completely purged from codebase: {found}"
+
+
+def test_ast_no_include_mandate_parameter() -> None:
+    """AST Guardrail: No function/method in backend_v2 defines an argument named 'include_mandate'."""
+    violations: list[str] = []
+    for file_path in _ALL_PY_FILES:
+        try:
+            tree = _load_ast(file_path)
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+                for arg in all_args:
+                    if arg.arg == "include_mandate":
+                        violations.append(f"{file_path}:{node.name}:{node.lineno}")
+    assert not violations, f"Found legacy 'include_mandate' parameter: {violations}"
+
+
+def test_ast_output_profile_directives_use_str_not_i18n() -> None:
+    """AST Guardrail: OutputProfile directives in v2_core.py must use str | None, never I18nText."""
+    tree = _load_ast("backend_v2/models/v2_core.py")
+    directive_fields = {
+        "tone_instruction",
+        "executive_summary_directive",
+        "matrix_1d_synthesis_directive",
+        "matrix_2d_synthesis_directive",
+        "matrix_3d_synthesis_directive",
+        "matrix_text_synthesis_directive",
+        "row_explanation_directive",
+        "xai_synthesis_directive",
+        "variance_synthesis_directive",
+    }
+    checked_fields: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == "OutputProfile":
+            for stmt in node.body:
+                if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                    if stmt.target.id in directive_fields:
+                        checked_fields.add(stmt.target.id)
+                        ann_str = ast.unparse(stmt.annotation)
+                        assert "I18nText" not in ann_str, (
+                            f"Field {stmt.target.id} on OutputProfile must not use I18nText: {ann_str}"
+                        )
+                        assert "str" in ann_str, (
+                            f"Field {stmt.target.id} on OutputProfile must use str | None: {ann_str}"
+                        )
+
+    assert checked_fields == directive_fields, (
+        f"Missing checked directive fields on OutputProfile: {directive_fields - checked_fields}"
+    )
+
+
+def test_ast_no_desc_translation_mandate_in_dtos() -> None:
+    """AST Guardrail: DESC_TRANSLATION_MANDATE must not be used in backend_v2/models/dtos/."""
+    dto_files = [p for p in _ALL_PY_FILES if "backend_v2\\models\\dtos" in p or "backend_v2/models/dtos" in p]
+    violations: list[str] = []
+
+    for file_path in dto_files:
+        try:
+            tree = _load_ast(file_path)
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and node.id == "DESC_TRANSLATION_MANDATE":
+                violations.append(f"{file_path}:{getattr(node, 'lineno', '?')}")
+            elif isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    if alias.name == "DESC_TRANSLATION_MANDATE":
+                        violations.append(f"{file_path}:{node.lineno}")
+
+    assert not violations, f"Found illegal DESC_TRANSLATION_MANDATE in DTOs: {violations}"
+
+
+def test_ast_prompt_subpackage_isolation_firewall() -> None:
+    """AST Guardrail: Execution prompts must not import Synthesis prompts, and vice versa."""
+    execution_files = [
+        p
+        for p in _ALL_PY_FILES
+        if ("backend_v2/models/prompts/execution" in p or "backend_v2\\models\\prompts\\execution" in p)
+        and not p.endswith("__init__.py")
+    ]
+    synthesis_files = [
+        p
+        for p in _ALL_PY_FILES
+        if ("backend_v2/models/prompts/synthesis" in p or "backend_v2\\models\\prompts\\synthesis" in p)
+        and not p.endswith("__init__.py")
+    ]
+
+    violations: list[str] = []
+    for file_path in execution_files:
+        try:
+            tree = _load_ast(file_path)
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module and "synthesis" in node.module:
+                violations.append(f"Execution module {file_path} imports from synthesis: {node.module}")
+
+    for file_path in synthesis_files:
+        try:
+            tree = _load_ast(file_path)
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module and "execution" in node.module:
+                violations.append(f"Synthesis module {file_path} imports from execution: {node.module}")
+
+    assert not violations, f"Subpackage isolation firewall violated: {violations}"
+
+
+def test_ast_guardrail_catches_include_mandate_negative() -> None:
+    """Anti-happy path: Proves AST scanner catches function with include_mandate parameter."""
+    bad_code = """
+def sample_builder(locale: str, include_mandate: bool = True):
+    pass
+"""
+    mock_tree = ast.parse(bad_code)
+    found = False
+    for node in ast.walk(mock_tree):
+        if isinstance(node, ast.FunctionDef):
+            for arg in node.args.args:
+                if arg.arg == "include_mandate":
+                    found = True
+    assert found, "AST scanner failed to catch include_mandate parameter"
 
 
 # ---------------------------------------------------------------------------

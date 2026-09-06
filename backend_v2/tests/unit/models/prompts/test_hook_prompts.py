@@ -1,4 +1,4 @@
-from backend_v2.models.prompts.hook_prompts import (
+from backend_v2.models.prompts.execution.hook_prompts import (
     INTERACTION_OBJECTIVE,
     INTERACTION_RULES,
 )

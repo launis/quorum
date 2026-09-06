@@ -13,7 +13,7 @@ from backend_v2.models.dtos.dag_models import (
 )
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.prompts.field_prompts import DESC_SEMANTIC_REASONING
+from backend_v2.models.prompts.common.field_prompts import DESC_SEMANTIC_REASONING
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import (

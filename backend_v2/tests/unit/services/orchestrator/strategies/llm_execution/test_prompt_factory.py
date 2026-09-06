@@ -128,7 +128,7 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None
 
 
 def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock) -> None:
-    """Test that LANGUAGE_MANDATE is included in the user payload."""
+    """Test that static linguistic protocol is in base_system_prompt and parameters in user_payload."""
     payload = PromptFactory.build(
         compiler=mock_compiler,
         role_block=None,
@@ -143,8 +143,9 @@ def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock) -> N
         has_shuffled_atoms=False,
     )
 
-    # The LANGUAGE_MANDATE must be injected into the user_payload via linguistic_directives
-    assert "CRITICAL LANGUAGE MANDATE" in payload.user_payload
+    assert "<linguistic_mandate>" in payload.base_system_prompt
+    assert "<linguistic_parameters>" in payload.user_payload
+    assert "<required_output_language>fi</required_output_language>" in payload.user_payload
 
 
 def test_prompt_factory_prompt_purity_assertion(mock_compiler: MagicMock) -> None:

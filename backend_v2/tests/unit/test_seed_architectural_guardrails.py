@@ -53,12 +53,22 @@ def test_output_profiles_do_not_contain_execution_logic() -> None:
     if "output_profiles" in data:
         for raw_profile in data["output_profiles"]:
             profile = OutputProfile.model_validate(raw_profile)
-            if profile.tone_instruction:
-                for lang, text in profile.tone_instruction.translations.items():
-                    prompt = text.upper()
+            for directive in [
+                profile.tone_instruction,
+                profile.executive_summary_directive,
+                profile.matrix_1d_synthesis_directive,
+                profile.matrix_2d_synthesis_directive,
+                profile.matrix_3d_synthesis_directive,
+                profile.matrix_text_synthesis_directive,
+                profile.row_explanation_directive,
+                profile.xai_synthesis_directive,
+                profile.variance_synthesis_directive,
+            ]:
+                if directive:
+                    prompt = directive.upper()
                     for term in execution_terms:
                         assert term not in prompt, (
-                            f"Execution terminology '{term}' found in Root Profile {profile.id} ({lang})"
+                            f"Execution terminology '{term}' found in Root Profile {profile.id}"
                         )
 
     if "workflows" in data:

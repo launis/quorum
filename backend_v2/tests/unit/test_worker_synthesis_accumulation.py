@@ -95,7 +95,8 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
         "scoring_strategy": "AVERAGE",
         "max_extension_items": 3,
         "synthesis_length_constraint": 1000,
-        "tone_instruction": {"translations": {"en": "Professional", "fi": "Ammattimainen"}},
+        "tone_instruction": "Professional",
+        "matrix_1d_synthesis_directive": "1D directive",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_1111111111111111",

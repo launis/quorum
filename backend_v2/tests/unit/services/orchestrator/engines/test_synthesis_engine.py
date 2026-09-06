@@ -11,7 +11,7 @@ from backend_v2.exceptions import AppException
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.dtos.engine import EngineExecutionRequest
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.prompts.style_directives import SPARSE_DATA_SYNTHESIS_MANDATE
+from backend_v2.models.prompts.synthesis.style_directives import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TokenUsage
 from backend_v2.models.v2_core import StepRule
 from backend_v2.services.llm_task_executor import LLMTaskExecutor

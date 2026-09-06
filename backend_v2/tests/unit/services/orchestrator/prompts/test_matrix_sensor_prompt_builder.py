@@ -167,9 +167,9 @@ def test_build_compiled_prompt_with_assertions() -> None:
     content = prompt.dynamic_messages[0].content
 
     # Linguistic context injection validation
-    assert "<linguistic_context>" in content
+    assert "<linguistic_parameters>" in content
     assert "<required_output_language>fi</required_output_language>" in content
-    assert "<language_mandate>" in content
+    assert "<linguistic_mandate>" in prompt.static_messages[0].content
 
     # Should contain XML formatted elements mapped to alias a0
     assert "a0" in content

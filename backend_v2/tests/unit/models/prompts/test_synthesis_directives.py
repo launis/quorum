@@ -1,26 +1,27 @@
-"""Unit tests for synthesis prompt directives."""
+"""Unit tests for synthesis prompt directives and factory defaults."""
 
 import xml.etree.ElementTree as ET
 
 from backend_v2.models.enums import TargetBlockType
-from backend_v2.models.prompts import (
-    ANTI_JARGON_MANDATE_BLOCK,
-    EXECUTIVE_SUMMARY_DIRECTIVE,
+from backend_v2.models.prompts.synthesis.synthesis_directives import (
+    DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT,
+    DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
+    DEFAULT_VARIANCE_SYSTEM_PROMPT,
     EXECUTIVE_SUMMARY_SECTION_ID,
-    MATRIX_1D_SYNTHESIS_DIRECTIVE,
-    MATRIX_2D_SYNTHESIS_DIRECTIVE,
-    MATRIX_3D_SYNTHESIS_DIRECTIVE,
-    SDUI_SYNTHESIS_MANDATE_BLOCK,
-    SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
-    STATE_ISOLATION_BLOCK,
+    SYNTHESIS_SECTION_RULES_PREFIX,
+    SYNTHESIS_XAI_CURATION,
 )
-
-
-def test_anti_jargon_mandate_valid_xml() -> None:
-    """Verify ANTI_JARGON_MANDATE_BLOCK is valid XML and contains anti-jargon instructions."""
-    root = ET.fromstring(ANTI_JARGON_MANDATE_BLOCK)
-    assert root.tag == "anti_jargon_mandate"
-    assert "ANTI-JARGON MANDATE" in (root.text or "")
+from backend_v2.services.factories.output_profile_factory import (
+    DEFAULT_FACTORY_EXECUTIVE_SUMMARY_DIRECTIVE,
+    DEFAULT_FACTORY_MATRIX_1D_DIRECTIVE,
+    DEFAULT_FACTORY_MATRIX_2D_DIRECTIVE,
+    DEFAULT_FACTORY_MATRIX_3D_DIRECTIVE,
+    DEFAULT_FACTORY_MATRIX_TEXT_DIRECTIVE,
+    DEFAULT_FACTORY_ROW_EXPLANATION_DIRECTIVE,
+    DEFAULT_FACTORY_TONE_INSTRUCTION,
+    DEFAULT_FACTORY_VARIANCE_DIRECTIVE,
+    DEFAULT_FACTORY_XAI_DIRECTIVE,
+)
 
 
 def test_executive_summary_section_id_ssot_parity() -> None:
@@ -29,38 +30,28 @@ def test_executive_summary_section_id_ssot_parity() -> None:
     assert EXECUTIVE_SUMMARY_SECTION_ID == TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
 
 
-def test_executive_summary_directive_valid_xml() -> None:
-    """Verify EXECUTIVE_SUMMARY_DIRECTIVE is valid XML with expected root tag and content."""
-    root = ET.fromstring(EXECUTIVE_SUMMARY_DIRECTIVE)
-    assert root.tag == "executive_summary_directive"
-    assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in (root.text or "")
+def test_default_synthesis_prompts_content() -> None:
+    """Verify default system prompts have substantive instructions."""
+    assert "Senior Executive Coach" in DEFAULT_SYNTHESIS_SYSTEM_PROMPT
+    assert "Forensic Evidence Analyst" in DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT
+    assert "Cognitive Evaluator" in DEFAULT_VARIANCE_SYSTEM_PROMPT
+    assert "<xai_curation_mandate>" in SYNTHESIS_XAI_CURATION
+    assert "<section_rules>" in SYNTHESIS_SECTION_RULES_PREFIX
 
 
-def test_matrix_directives_valid_xml() -> None:
-    """Verify that all matrix directives wrap valid XML blocks."""
-    # 1D directive
-    root_1d = ET.fromstring(MATRIX_1D_SYNTHESIS_DIRECTIVE)
-    assert root_1d.tag == "matrix_1d_directive"
-    assert "1D METRICS SYNTHESIS MANDATE" in root_1d.text
-
-    # 2D directive
-    root_2d = ET.fromstring(MATRIX_2D_SYNTHESIS_DIRECTIVE)
-    assert root_2d.tag == "matrix_2d_directive"
-    assert "2D COMPARISON SYNTHESIS MANDATE" in root_2d.text
-
-    # 3D directive
-    root_3d = ET.fromstring(MATRIX_3D_SYNTHESIS_DIRECTIVE)
-    assert root_3d.tag == "matrix_3d_directive"
-    assert "3D RADAR SYNTHESIS MANDATE" in root_3d.text
-
-
-def test_sdui_and_section_directives_valid_xml() -> None:
-    """Verify that global synthesis mandate and section directive are valid XML."""
-    root_sdui = ET.fromstring(SDUI_SYNTHESIS_MANDATE_BLOCK)
-    assert root_sdui.tag in ("sdui_mandate", "sdui_synthesis_mandate")
-
-    root_section = ET.fromstring(SECTION_SYNTHESIS_DIRECTIVE_BLOCK)
-    assert root_section.tag == "section_synthesis_directive"
-
-    root_state = ET.fromstring(STATE_ISOLATION_BLOCK)
-    assert root_state.tag == "state_isolation_mandate"
+def test_factory_default_directives_are_valid_strings() -> None:
+    """Verify all factory default directives are non-empty strings with content."""
+    directives = [
+        DEFAULT_FACTORY_TONE_INSTRUCTION,
+        DEFAULT_FACTORY_EXECUTIVE_SUMMARY_DIRECTIVE,
+        DEFAULT_FACTORY_MATRIX_1D_DIRECTIVE,
+        DEFAULT_FACTORY_MATRIX_2D_DIRECTIVE,
+        DEFAULT_FACTORY_MATRIX_3D_DIRECTIVE,
+        DEFAULT_FACTORY_MATRIX_TEXT_DIRECTIVE,
+        DEFAULT_FACTORY_ROW_EXPLANATION_DIRECTIVE,
+        DEFAULT_FACTORY_XAI_DIRECTIVE,
+        DEFAULT_FACTORY_VARIANCE_DIRECTIVE,
+    ]
+    for d in directives:
+        assert isinstance(d, str)
+        assert len(d.strip()) > 0

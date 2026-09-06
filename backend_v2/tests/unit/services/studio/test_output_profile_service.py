@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.enums import TargetBlockType
@@ -122,18 +122,38 @@ async def test_create_and_clone_output_profile(
     mock_workflow_service.list_steps.return_value = []
     mock_workflow_service.list_workflows.return_value = [workflow]
 
+    saved_profiles: dict[str, OutputProfile] = {}
+
+    async def mock_create(profile: OutputProfile) -> None:
+        saved_profiles[profile.id] = profile
+
+    service.output_profile_repo.create_output_profile.side_effect = mock_create
+
     p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1234567890abcdef", "org_1", "Original")
+    saved_profiles[p1.id] = p1
 
     async def mock_get_by_id(pid: str) -> OutputProfile | None:
-        if pid == "prf_1111111111111111":
-            return p1
-        return _make_valid_profile(pid, pid, "wf_1234567890abcdef", "org_1", "Created")
+        return saved_profiles.get(pid)
 
     service.output_profile_repo.get_output_profile_by_id.side_effect = mock_get_by_id
 
     draft = await service.create_output_profile_draft(initiator)
     assert draft.id.startswith("prf_")
     assert draft.workflow_id == "wf_1234567890abcdef"
+    assert draft.tone_instruction is not None and isinstance(draft.tone_instruction, str)
+    assert draft.executive_summary_directive is not None
+    assert draft.matrix_1d_synthesis_directive is not None
+    assert draft.matrix_2d_synthesis_directive is not None
+    assert draft.matrix_3d_synthesis_directive is not None
+    assert draft.matrix_text_synthesis_directive is not None
+    assert draft.row_explanation_directive is not None
+    assert draft.xai_synthesis_directive is not None
+    assert draft.variance_synthesis_directive is not None
+    assert draft.synthesis_length_constraint is not None
+    assert draft.row_explanation_length_constraint is not None
+    assert draft.xai_length_constraint is not None
+    assert draft.variance_length_constraint is not None
+    assert len(draft.matrix_synthesis_groups) >= 1
 
     cloned = await service.clone_output_profile(initiator, "prf_1111111111111111")
     assert cloned.id.startswith("prf_")

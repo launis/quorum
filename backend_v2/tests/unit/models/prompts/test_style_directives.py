@@ -1,8 +1,9 @@
 """Unit tests for backend_v2/models/prompts/style_directives.py."""
 
-from backend_v2.models.prompts.style_directives import (
+from backend_v2.models.prompts.synthesis.style_directives import (
     ANTI_JARGON_MANDATE_BLOCK,
     DEFAULT_COACHING_TONE_MANDATE,
+    SDUI_BLOCK_STRUCTURE_MANDATE,
     SPARSE_DATA_SYNTHESIS_MANDATE,
     SYNTHESIS_CITATION_RULES,
     SYNTHESIS_CITATION_RULES_HARVARD,
@@ -19,6 +20,7 @@ def test_style_directives_exports() -> None:
     assert "SYNTHESIS_CITATION_RULES" in __all__
     assert "ANTI_JARGON_MANDATE_BLOCK" in __all__
     assert "DEFAULT_COACHING_TONE_MANDATE" in __all__
+    assert "SDUI_BLOCK_STRUCTURE_MANDATE" in __all__
     assert "SPARSE_DATA_SYNTHESIS_MANDATE" in __all__
     assert "SYNTHESIS_LENGTH_CONSTRAINT" in __all__
 

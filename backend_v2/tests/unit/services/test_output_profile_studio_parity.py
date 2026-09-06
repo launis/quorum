@@ -13,20 +13,12 @@ from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
     DEFAULT_COACHING_TONE_MANDATE,
     DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
-    EXECUTIVE_SUMMARY_DIRECTIVE,
-    MATRIX_1D_SYNTHESIS_DIRECTIVE,
-    MATRIX_2D_SYNTHESIS_DIRECTIVE,
-    MATRIX_3D_SYNTHESIS_DIRECTIVE,
-    MATRIX_TEXT_SYNTHESIS_DIRECTIVE,
-    ROW_EXPLANATION_DIRECTIVE,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     SPARSE_DATA_SYNTHESIS_MANDATE,
     STATE_ISOLATION_BLOCK,
     SYNTHESIS_CITATION_RULES,
     SYNTHESIS_LENGTH_CONSTRAINT,
     SYNTHESIS_SDUI_MANDATES,
-    VARIANCE_EXPLANATION_DIRECTIVE,
-    XAI_EXPLANATIONS_DIRECTIVE,
 )
 from backend_v2.models.v2_core import (
     I18nText,
@@ -39,24 +31,14 @@ from backend_v2.models.view.sdui import (
     SduiRadarChartBlock,
     SduiScatterPlotBlock,
 )
+from backend_v2.services.factories.output_profile_factory import build_draft_output_profile
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
 from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
 
 
 def test_prompt_architecture_segregation() -> None:
-    """Verify 3-way segregation of prompt modules and their content invariants."""
-    # Directives for direct syntheses
-    assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE" in EXECUTIVE_SUMMARY_DIRECTIVE
-    assert "1D METRICS SYNTHESIS MANDATE" in MATRIX_1D_SYNTHESIS_DIRECTIVE
-    assert "2D COMPARISON SYNTHESIS MANDATE" in MATRIX_2D_SYNTHESIS_DIRECTIVE
-    assert "3D RADAR SYNTHESIS MANDATE" in MATRIX_3D_SYNTHESIS_DIRECTIVE
-    assert "TEXT-ONLY MATRIX SYNTHESIS MANDATE" in MATRIX_TEXT_SYNTHESIS_DIRECTIVE
-    assert "MATRIX ROW CAUSAL EXPLANATION MANDATE" in ROW_EXPLANATION_DIRECTIVE
-    assert "XAI HIGHLIGHTS & EXTENSIONS SYNTHESIS MANDATE" in XAI_EXPLANATIONS_DIRECTIVE
-    assert "VARIANCE & AUTHENTICITY EVALUATION MANDATE" in VARIANCE_EXPLANATION_DIRECTIVE
-    assert "Senior Executive Coach and Strategic Evaluator" in DEFAULT_SYNTHESIS_SYSTEM_PROMPT
-
+    """Verify segregation of prompt modules and structural invariants."""
     # SDUI structural mandates
     assert "SDUI POLYMORPHIC SYNTHESIS MANDATE" in SYNTHESIS_SDUI_MANDATES
     assert "section_synthesis_directive" in SECTION_SYNTHESIS_DIRECTIVE_BLOCK
@@ -68,6 +50,23 @@ def test_prompt_architecture_segregation() -> None:
     assert "sparse_data_synthesis_mandate" in SPARSE_DATA_SYNTHESIS_MANDATE
     assert "length_constraint" in SYNTHESIS_LENGTH_CONSTRAINT
     assert "citation_rules" in SYNTHESIS_CITATION_RULES
+    assert "Senior Executive Coach and Strategic Evaluator" in DEFAULT_SYNTHESIS_SYSTEM_PROMPT
+
+
+def test_output_profile_substantive_directives_database_sovereignty() -> None:
+    """Verify that all 8 substantive directives are pre-populated in OutputProfile drafts (Database Sovereignty)."""
+    profile = build_draft_output_profile(
+        profile_id="prf_1234567890abcdef",
+        workflow_id="wf_1234567890abcdef",
+    )
+    assert profile.executive_summary_directive is not None
+    assert profile.matrix_1d_synthesis_directive is not None
+    assert profile.matrix_2d_synthesis_directive is not None
+    assert profile.matrix_3d_synthesis_directive is not None
+    assert profile.matrix_text_synthesis_directive is not None
+    assert profile.row_explanation_directive is not None
+    assert profile.xai_synthesis_directive is not None
+    assert profile.variance_synthesis_directive is not None
 
 
 def test_output_profile_dto_put_save_with_id() -> None:
