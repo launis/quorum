@@ -260,6 +260,9 @@ class Settings(BaseSettings):
     default_variance_length_constraint: Annotated[
         int, Field(description="Default character length constraint for Variance Validation.")
     ] = 500
+    default_matrix_graph_length_constraint: Annotated[
+        int, Field(description="Default character length constraint for each Matrix Graph synthesis.")
+    ] = 400
 
     llm_max_retries: Annotated[int, Field(description="Dynamic retries based on execution mode")] = 2
     ensemble_parallelism: Annotated[int, Field(description="Dynamic parallel BoX calls based on execution mode")] = 3

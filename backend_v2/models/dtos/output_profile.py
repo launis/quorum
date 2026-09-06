@@ -193,6 +193,15 @@ class OutputProfileCreateDTO(V2CoreBase):
         int | None,
         Field(default=None, ge=50, le=2000, description="Max character length for variance evaluation."),
     ] = None
+    matrix_graph_length_constraint: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=50,
+            le=2000,
+            description="Max character length for each individual matrix graph causal explanation.",
+        ),
+    ] = None
     max_quotes_per_matrix: Annotated[
         int | None,
         Field(default=None, description="Per-profile override for quotes per matrix in explanations."),
@@ -403,6 +412,15 @@ class OutputProfileUpdateDTO(V2CoreBase):
         int | None,
         Field(default=None, ge=50, le=2000, description="Max character length for variance evaluation."),
     ] = None
+    matrix_graph_length_constraint: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=50,
+            le=2000,
+            description="Max character length for each individual matrix graph causal explanation.",
+        ),
+    ] = None
     max_quotes_per_matrix: Annotated[
         int | None,
         Field(default=None, description="Per-profile override for quotes per matrix in explanations."),
@@ -565,6 +583,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     row_explanation_length_constraint: int | None = None
     xai_length_constraint: int | None = None
     variance_length_constraint: int | None = None
+    matrix_graph_length_constraint: int | None = None
     max_quotes_per_matrix: int | None = None
     max_unmet_criteria: int | None = None
     matrix_synthesis_groups: Annotated[

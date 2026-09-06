@@ -407,4 +407,40 @@ def test_output_profile_plain_string_directives_and_length_constraints() -> None
     assert profile.row_explanation_length_constraint == 250
     assert profile.xai_length_constraint == 300
     assert profile.variance_length_constraint == 500
+    assert profile.matrix_graph_length_constraint is None
+
+
+def test_output_profile_matrix_graph_length_constraint_validation() -> None:
+    """Verify matrix_graph_length_constraint valid partition [50-2000] and boundary rejection."""
+    from backend_v2.models.enums import TargetBlockType
+    from backend_v2.models.v2_core import I18nText, OutputProfile
+
+    title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
+    base_kwargs = {
+        "id": "prf_1234567890123456",
+        "slug": "test-profile",
+        "workflow_id": "wf_1234567890123456",
+        "name": title,
+        "target_block_order": [TargetBlockType.METADATA_BLOCK],
+    }
+
+    # Valid partitions
+    p_valid_50 = OutputProfile(**base_kwargs, matrix_graph_length_constraint=50)
+    assert p_valid_50.matrix_graph_length_constraint == 50
+
+    p_valid_400 = OutputProfile(**base_kwargs, matrix_graph_length_constraint=400)
+    assert p_valid_400.matrix_graph_length_constraint == 400
+
+    p_valid_2000 = OutputProfile(**base_kwargs, matrix_graph_length_constraint=2000)
+    assert p_valid_2000.matrix_graph_length_constraint == 2000
+
+    # Negative: < 50
+    with pytest.raises(ValidationError) as exc_low:
+        OutputProfile(**base_kwargs, matrix_graph_length_constraint=49)
+    assert "Input should be greater than or equal to 50" in str(exc_low.value)
+
+    # Negative: > 2000
+    with pytest.raises(ValidationError) as exc_high:
+        OutputProfile(**base_kwargs, matrix_graph_length_constraint=2001)
+    assert "Input should be less than or equal to 2000" in str(exc_high.value)
 

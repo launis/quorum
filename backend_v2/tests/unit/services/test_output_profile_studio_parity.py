@@ -67,6 +67,7 @@ def test_output_profile_substantive_directives_database_sovereignty() -> None:
     assert profile.row_explanation_directive is not None
     assert profile.xai_synthesis_directive is not None
     assert profile.variance_synthesis_directive is not None
+    assert profile.matrix_graph_length_constraint == 400
 
 
 def test_output_profile_dto_put_save_with_id() -> None:

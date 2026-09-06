@@ -31,13 +31,13 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42c
   - [x] Fix `OutputProfileUpdateDTO.variance_length_constraint` constraint inconsistency in `backend_v2/models/dtos/output_profile.py` (`ge=50, le=2000`).
   - [x] Verify existing test suite passes before modifications (updated `test_output_profile_synthesis_directives` for `str` directives).
 
-- [ ] **Phase 2: Backend Core & Configuration**
-  - [ ] Add `default_matrix_graph_length_constraint` to `backend_v2/settings.py` (default: 400).
-  - [ ] Add `matrix_graph_length_constraint` to `OutputProfile` in `backend_v2/models/v2_core.py` (`ge=50, le=2000`).
-  - [ ] Add `matrix_graph_length_constraint` to `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO` in `backend_v2/models/dtos/output_profile.py`.
-  - [ ] Bind `matrix_graph_length_constraint` in `backend_v2/services/factories/output_profile_factory.py`.
-  - [ ] Update baseline output profile `prf_5d6e7f8091a2b3c4` in `backend_v2/seed/seed_data.json`.
-  - [ ] Run domain, DTO, and seed validation tests.
+- [x] **Phase 2: Backend Core & Configuration**
+  - [x] Add `default_matrix_graph_length_constraint` to `backend_v2/settings.py` (default: 400).
+  - [x] Add `matrix_graph_length_constraint` to `OutputProfile` in `backend_v2/models/v2_core.py` (`ge=50, le=2000`).
+  - [x] Add `matrix_graph_length_constraint` to `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO` in `backend_v2/models/dtos/output_profile.py`.
+  - [x] Bind `matrix_graph_length_constraint` in `backend_v2/services/factories/output_profile_factory.py`.
+  - [x] Update baseline output profile `prf_5d6e7f8091a2b3c4` in `backend_v2/seed/seed_data.json`.
+  - [x] Run domain, DTO, and seed validation tests.
 
 - [ ] **Phase 3: Tripartite Prompt Architecture Migration**
   - [ ] Move `global_mandates.py` from `common/` to `execution/`.

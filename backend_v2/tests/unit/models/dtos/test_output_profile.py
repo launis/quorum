@@ -584,3 +584,54 @@ def test_output_profile_synthesis_directives() -> None:
                 "variance_synthesis_directive": ["invalid", "list"],
             }
         )
+
+
+def test_output_profile_matrix_graph_length_constraint_dto_roundtrip() -> None:
+    """Test matrix_graph_length_constraint validation across Create, Update, and Response DTOs."""
+    # CreateDTO valid
+    create_dto = OutputProfileCreateDTO.model_validate(
+        {
+            **_VALID_CREATE_PAYLOAD,
+            "matrix_graph_length_constraint": 400,
+        }
+    )
+    assert create_dto.matrix_graph_length_constraint == 400
+
+    # CreateDTO boundary negatives
+    with pytest.raises(ValidationError, match="greater than or equal to 50"):
+        OutputProfileCreateDTO.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "matrix_graph_length_constraint": 49,
+            }
+        )
+    with pytest.raises(ValidationError, match="less than or equal to 2000"):
+        OutputProfileCreateDTO.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "matrix_graph_length_constraint": 2001,
+            }
+        )
+
+    # UpdateDTO valid & boundary negatives
+    update_dto = OutputProfileUpdateDTO.model_validate({"matrix_graph_length_constraint": 250})
+    assert update_dto.matrix_graph_length_constraint == 250
+
+    with pytest.raises(ValidationError, match="greater than or equal to 50"):
+        OutputProfileUpdateDTO.model_validate({"matrix_graph_length_constraint": 49})
+    with pytest.raises(ValidationError, match="less than or equal to 2000"):
+        OutputProfileUpdateDTO.model_validate({"matrix_graph_length_constraint": 2001})
+
+    # ResponseDTO valid
+    resp_dto = OutputProfileResponseDTO.model_validate(
+        {
+            "id": "prf_1234567890abcdef",
+            "slug": "test-prof",
+            "workflow_id": "wf_123",
+            "name": {"translations": {"en": "Test Profile"}},
+            "matrix_graph_length_constraint": 400,
+        }
+    )
+    assert resp_dto.matrix_graph_length_constraint == 400
+    dumped = resp_dto.model_dump(mode="json")
+    assert dumped["matrix_graph_length_constraint"] == 400

@@ -1080,6 +1080,15 @@ class OutputProfile(V2CoreBase):
         int | None,
         Field(default=None, ge=50, le=2000, description="Max character length for variance evaluation."),
     ] = None
+    matrix_graph_length_constraint: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=50,
+            le=2000,
+            description="Max character length for each individual matrix graph causal explanation.",
+        ),
+    ] = None
     max_quotes_per_matrix: Annotated[
         int | None,
         Field(default=None, description="Per-profile override for quotes per matrix in explanations."),

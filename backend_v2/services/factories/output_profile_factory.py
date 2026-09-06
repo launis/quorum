@@ -131,4 +131,5 @@ def build_draft_output_profile(
         row_explanation_length_constraint=settings.default_row_explanation_length_constraint,
         xai_length_constraint=settings.default_xai_length_constraint,
         variance_length_constraint=settings.default_variance_length_constraint,
+        matrix_graph_length_constraint=settings.default_matrix_graph_length_constraint,
     )

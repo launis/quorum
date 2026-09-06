@@ -18202,6 +18202,7 @@
       "row_explanation_length_constraint": 250,
       "xai_length_constraint": 300,
       "variance_length_constraint": 500,
+      "matrix_graph_length_constraint": 400,
       "visible_metadata": [
         "date",
         "execution_id",
