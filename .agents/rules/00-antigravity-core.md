@@ -38,7 +38,7 @@ trigger: always_on
         <mandate>ALL code-level artifacts (variables, functions, classes, docstrings, inline comments, git commit messages) MUST be written EXCLUSIVELY in English. NEVER mix Finnish or other languages in code artifacts even if the user speaks Finnish.</mandate>
     </rule_block>
     <rule_block id="documentation_present_tense_mandate">
-        <mandate>ALWAYS document code (comments, docstrings) in present tense describing CURRENT state and functionality. NEVER write historical context or past iterations (e.g. "Epic XX brought this...").</mandate>
+        <mandate>ALWAYS document code and architecture in present tense describing CURRENT state and functionality. In `docs/architecture/` documents, NEVER describe project phases, development stages, or historical progressions (e.g., "Phase 1", "Phase 2", "vaiheet", "Epic XX brought this..."), and NEVER use artificial meta-rules like "- **Law:**" / "- **Enforcement:**" or label sections as "(The Laws)". Describe purely, directly, and authoritatively what the system currently has and how it operates right now ("kerro ainoastaan ja puhtaasti se mitä meillä on nyt").</mandate>
     </rule_block>
     <rule_block id="ssot_reuse_mandate">
         <mandate>1. INVESTIGATE: Identify code that can be abstracted into an SSOT. 2. MIGRATE: Refactor legacy code to the new SSOT immediately (timebox to wiring pipes without rewriting internal business rules). 3. NEVER build parallel systems, write new components without analyzing reusability, or force false unifications across decoupled domains.</mandate>

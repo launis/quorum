@@ -3,33 +3,27 @@
 ## 1. Executive Summary
 The **System Context & Core Invariants** capability forms the foundational "constitution" of the Compound AI System. It establishes the absolute architectural laws (The Zero-Compromise Pledges) that govern how all other components (Backend, Frontend, LLM Engine) must behave. This capability exists to ensure **Forensic Sovereignty**, deterministic execution, and the total eradication of silent failures, LLM hallucinations, and undocumented state mutations.
 
-## 2. Core Architectural Invariants (The Laws)
+## 2. Architectural Principles & Invariants
 
-These absolute rules (Knowledge Items) govern the global context and must NEVER be violated:
+Quorum operates on strict structural boundaries, deterministic execution, and end-to-end auditability:
 
-### 2.1. The Zero-Compromise Pledge & Universal Fail-Fast
-- **Law:** The system forbids "duct-tape" coding, fallback chains (`v.get('field', '')`), or silent error absorption. Any data entering or leaving a system boundary must be strictly validated against immutable schemas (Pydantic V2 in Python, Freezed in Dart).
-- **Enforcement:** If data is missing, malformed, or an expected state is not reached, the system MUST crash immediately (`AppException` or `AppErrorBoundary`). Masking errors by returning empty arrays or hiding UI widgets (`SizedBox.shrink()`) is strictly prohibited.
+### 2.1. Universal Fail-Fast & Strict Schema Validation
+All data crossing system boundaries is strictly validated against immutable schemas (Pydantic V2 in Python, Freezed in Dart). Fallback chains, silent error absorption, and duct-tape workarounds are eliminated. If data is missing, malformed, or an expected state is not reached, the system halts immediately with an explicit `AppException` on the backend or renders an `AppErrorBoundary` on the client. Masking errors by returning empty arrays or hiding UI widgets is strictly prohibited.
 
-### 2.2. Global Config Sovereignty
-- **Law:** Business logic (e.g., retry limits, API timeouts, maximum token limits) must NEVER be hardcoded deep within operational code or prompt templates.
-- **Enforcement:** All thresholds and system-wide limitations must be centrally defined and governed by the backend's master configuration layer. This ensures that a single architectural update propagates deterministically across all services.
+### 2.2. Centralized Configuration Sovereignty
+Operational thresholds and limits (retry counts, timeouts, token limits, section constraints) are centrally defined in the master configuration layer (`settings.py`). Business logic and prompt templates resolve limits from this single source of truth rather than hardcoding values in operational code.
 
-### 2.3. Opaque ID Hydration (AliasEngine)
-- **Law:** LLMs are inherently prone to token bloat and hallucination when handling long UUIDs or complex database keys.
-- **Enforcement:** Raw database identifiers MUST NOT be exposed to the LLM directly. The system uses an "AliasEngine" to replace long UUIDs with deterministic, semantic "Attention Anchors" (e.g., `a0`, `src_1`) during the prompt compilation phase. These opaque IDs are hydrated back into their true physical UUIDs post-execution by the backend.
+### 2.3. Opaque ID Hydration via AliasEngine
+To prevent LLM token bloat and hallucination from long database UUIDs, the prompt compiler substitutes raw identifiers with short, deterministic "Attention Anchors" (e.g., `a0`, `src_1`). After execution completes, the service layer hydrates these short aliases back to their physical database identifiers.
 
-### 2.4. Hybrid UI Sanitization (Sandwich Architecture)
-- **Law:** LLM outputs are naturally noisy and may contain conversational filler or broken markdown schemas, which would crash the UI parser.
-- **Enforcement:** A deterministic Python interceptor layer (The Sandwich) strictly sanitizes and validates LLM output *before* it is returned to the frontend. It strips technical metadata, enforces UI constraints, and ensures the payload is 100% compliant with the expected SDUI schema.
+### 2.4. Server-Side UI Sanitization (Sandwich Architecture)
+To ensure output stability, a deterministic Python interceptor layer sanitizes and validates LLM generation before payload delivery to the client. It strips conversational artifacts, validates markdown structures, and ensures 100% compliance with expected Server-Driven UI schemas.
 
 ### 2.5. Dual-Reporting Protocol (RFC 7807)
-- **Law:** Crashing the system without a forensic trace creates "black box" failures.
-- **Enforcement:** Every `AppException` thrown must be preceded by a structured `logger.error` containing the exact logical reason for the failure and contextual parameters. This enables the UI to display a user-friendly error card while preserving the deep forensic trace in backend logs (e.g., Logfire).
+Every backend exception (`AppException`) logs a structured error with exact logical error codes, parameters, and forensic trace identifiers before propagating. This provides immediate forensic traceability in monitoring systems while returning safe, structured error representations to client interfaces.
 
-### 2.6. Agent Context Quarantine & Hybrid XML Sandwich
-- **Law:** Relying on massive context windows for complex agent tasks leads to context amnesia and token-saturation crashes.
-- **Enforcement:** The system enforces a strict Context Quarantine strategy to isolate analysis from execution. Workflows that generate implementation plans (e.g., God Code Decomposition, Bug Hunting) must output their instructions within a strict `<execution_protocol>` XML block. The execution phase then consumes this rigid schema in a fresh context session to guarantee structural fidelity. For feature refactoring, a conditional threshold (>2 files or >3 steps) mandates a hard quarantine boundary.
+### 2.6. Agent Context Quarantine
+To prevent context amnesia and token saturation, complex agent workflows isolate planning from execution. Automated implementation plans are compiled into structured `<execution_protocol>` blocks, allowing execution sessions to consume clean, validated instructions without carrying conversational history debt.
 
 ## 3. Logical Data Flow
 ```mermaid

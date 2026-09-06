@@ -25,15 +25,17 @@ The core architecture is strictly divided into 7 timeless pillars:
 6. **Enriched Atom Graph Engine (`06_`)**
 7. **EU AI Act Compliance & Governance (`07_`)**
 
-## 3. The Golden Rule: Timelessness
+## 3. The Golden Rule: Timelessness & Pure Present-Tense Description
 
-The documents in this directory MUST remain absolutely timeless and stateless.
+The documents in this directory MUST remain absolutely timeless, stateless, and focused purely on what the system currently consists of:
+- **BANNED:** Project phases or development stages (e.g., "Phase 1", "Phase 2", "vaiheet", "rollout phases").
 - **BANNED:** Mentioning Epic IDs (e.g., "In Epic 115 we added...").
 - **BANNED:** Historical comparisons or legacy migrations (e.g., "The old V1 system used X, but now we use Y").
 - **BANNED:** Dates, future roadmaps, or "in-progress" markers.
 - **BANNED:** Physical file paths (e.g., `backend_v2/api/routers/`).
+- **BANNED:** Artificial meta-rule framing such as `- **Law:**` / `- **Enforcement:**` or labeling sections as "(The Laws)".
 
-The documents must describe the system exactly as it exists *now*, in the present tense, as an immutable state of truth.
+The documents must describe the system purely and exclusively as it exists *now*, in the present tense, as an objective state of truth ("kerro ainoastaan ja puhtaasti se mitä meillä on nyt").
 
 ## 4. How to Update the Architecture
 

@@ -3,37 +3,30 @@
 ## 1. Executive Summary
 The **Data Seeding & Ontology** capability dictates that the Compound AI System is fundamentally **data-driven**, not code-driven. The entire behavior of the system—ranging from LLM instructions (PromptBlocks), allowed models, MCP tool gateways, to performative vocabularies—is defined externally in the central static data vault. The backend's primary role is simply to parse, hydrate, and route this declarative ontology rather than hardcoding operational instructions.
 
-## 2. Core Architectural Invariants (The Laws)
+## 2. Architectural Principles & Implementation
 
-These absolute rules (Knowledge Items) govern the global context and must NEVER be violated:
+The Data Seeding & Ontology layer establishes the declarative schemas, dynamic rules, and static datasets that power the platform:
 
 ### 2.1. Polymorphic Rule Routing
-- **Law:** The system prohibits fractured rule models or hardcoded prompt logic inside Python files.
-- **Enforcement:** All dynamic rules must be modeled as a unified `PromptBlock` entity within the database. The system utilizes Polymorphic Collection Parsing to automatically route different categories of data (e.g., `system_config`, `prompt_blocks`, `mcp_gateways`) into their respective Pydantic validation structures, simplifying the LLM DAG engine.
+All dynamic rules and criteria are modeled as a unified `PromptBlock` entity within the database. Polymorphic collection parsing automatically routes different categories of configuration data (`system_config`, `prompt_blocks`, `mcp_gateways`) into their respective Pydantic validation structures, ensuring typed domain validation before runtime execution.
 
-### 2.2. Single Source of Truth (SSOT) Immutability
-- **Law:** The JSON structure of the central static data vault is the highest architectural authority for data shape.
-- **Enforcement:** You MUST NEVER physically alter the root persistence arrays in the central static data vault to match transient API shapes. While the backend API may expose nested, stitched structures (e.g., combining Workflows and Profiles), the underlying physical seed data must remain flat and relational to avoid cascading data corruption.
+### 2.2. Single Source of Truth (SSOT) Relational Persistence
+The central static data vault (`seed_data.json`) serves as the immutable structural authority for baseline entities. The underlying storage remains flat and relational across root collections, while backend APIs construct nested and stitched views (such as combining Workflows with Output Profiles) dynamically via dedicated response DTOs.
 
-### 2.3. The Y-Funnel Pre-Hook Architecture
-- **Law:** Data transformations during seeding must not pollute the pure domain objects.
-- **Enforcement:** The system uses a Y-Funnel architecture where Pre-Hooks perform structural data normalization *before* data enters the domain validation phase. This ensures heterogeneous JSON definitions are canonicalized into strict Pydantic V2 Domain Models without polluting the domain layer with transformation logic.
+### 2.3. Y-Funnel Pre-Hook Normalization
+Data transformations during initialization utilize a Y-Funnel architecture where pre-hooks normalize legacy or heterogeneous input shapes before domain validation. This keeps core Pydantic V2 domain models pure and focused strictly on business invariants rather than ingestion gymnastics.
 
-### 2.4. Semantic Localization (Performative Lexicons)
-- **Law:** System personality and localization strings are data, not code.
-- **Enforcement:** Attributes like specific vocabulary (e.g., forcing the AI to use "delve into" or "syventyä") are injected dynamically via `performative_lexicons` defined in the seed data. The LLM engine must apply these lexicons post-resolution, allowing multi-lingual operation without altering the core logic.
+### 2.4. Semantic Localization via Performative Lexicons
+System personality traits, terminology standards, and vocabulary constraints are governed as data rather than code. Declarative `performative_lexicons` defined in seed data are injected dynamically during prompt compilation, supporting multilingual enforcement without code modifications.
 
-### 2.5. Universal I18n Domain Model (I18nText)
-- **Law:** Dynamic localized strings must never be flattened into dictionary maps, legacy default locale properties, or separate schema fields (e.g., `title_en`).
-- **Enforcement:** Any user-facing string that exists within the ontology (like profile titles, layout descriptions, and preambles) MUST use the strictly typed `I18nText` object in Python and Flutter. The schema mandates a required `translations` mapping containing non-empty baseline `'en'` and target language keys with 100% bilingual parity. This ensures Fail-Fast translation fallback resolution logic (`target -> fallback -> en`), structural parity across boundaries, and prevents UI crashes due to missing translation keys.
+### 2.5. Universal Bilingual Localization (I18nText)
+User-facing dynamic strings across the ontology (profile titles, layout descriptions, preambles) utilize the strictly typed `I18nText` model in both Python and Flutter. The schema mandates complete baseline translations (`en` and target locale) with structured fallback resolution, ensuring bilingual parity across backend services, frontend widgets, and PDF generators.
 
-### 2.6. Workflow Context Governance & System Core Protections
-- **Law:** Foundational pipeline steps and synthesis context boundaries must be declaratively governed within the ontology rather than assumed by ad-hoc runtime code.
-- **Enforcement:** Foundational pipeline step definitions (such as raw document ingestion, scoring, holistic synthesis, and forensic XAI reporting) declare explicit system core protections (`is_system_core: true`). The system enforces immutable protection against deletion or unauthorized schema mutations on protected core resources. Furthermore, step rules declare explicit synthesis source flags (`is_synthesis_source`), enabling deterministic context boundary governance between upstream document extraction and downstream synthesis distillation.
+### 2.6. Workflow Context Governance & Step Protection
+Pipeline step definitions declare explicit system core protections (`is_system_core: true`) for foundational operations (document ingestion, scoring, synthesis, forensic reporting). The studio interface and API guardrails prevent unauthorized deletion or mutation of protected resources. Step definitions additionally declare synthesis source flags (`is_synthesis_source`), enabling deterministic context boundary governance between upstream text extraction and downstream qualitative synthesis.
 
-### 2.7. The Epistemic Separation Paradigm (TheoryGrounding SSOT)
-- **Law:** Bibliographic references and provenance metadata must be strictly decoupled from operational prompting instructions.
-- **Enforcement:** `PromptBlock.theory_grounding` (`TheoryGrounding`) is the sole Single Source of Truth for citation references (`citation_reference`) and target URLs (`source_url`). `PromptBlock.ai_description` is strictly reserved for operational prompts (`OBJECTIVE:`, `ROLE:`, `MANDATE:`). Standardizing this structure eliminates semantic drift, prevents duplicate persistence of academic citations, and ensures that presentation layers and PDF reports consume clean, structured metadata without brittle string scraping.
+### 2.7. Epistemic Separation (TheoryGrounding SSOT)
+Bibliographic references and academic provenance metadata are strictly decoupled from operational prompting instructions. `PromptBlock.theory_grounding` (`TheoryGrounding`) is the sole Single Source of Truth for academic citations (`citation_reference`) and source URLs (`source_url`). `PromptBlock.ai_description` contains purely operational prompt text, allowing presentation layers and PDF reports to consume structured academic citations without prompt-scraping or token bloat.
 
 ## 3. Logical Data Flow
 ```mermaid

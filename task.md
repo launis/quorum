@@ -71,13 +71,26 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42c
 - [x] **Phase 5: Rules & Directory Reference Update**
   - [x] Update `backend_v2/models/` in `.agents/rules/04_directory_reference.md` to document tripartite prompt subpackages (`common/`, `execution/`, `synthesis/`).
 
-- [ ] **Phase 6: Knowledge Items (KI) Synchronization**
-  - [ ] Update `ki_prompt_generation_architecture.md`.
-  - [ ] Update `ki_sdui_matrix_synthesis.md`.
-  - [ ] Update `ki_domain_model_prompt_separation.md`.
+- [x] **Phase 6: Knowledge Items (KI) Synchronization**
+  - [x] Update `ki_prompt_generation_architecture.md`.
+  - [x] Update `ki_sdui_matrix_synthesis.md`.
+  - [x] Update `ki_domain_model_prompt_separation.md`.
+
+- [x] **Tier 7: Describe Architecture Synchronization & Rule Hardening**
+  - [x] Ingested 6 Capability Pillars in `docs/architecture/` and meta-architecture.
+  - [x] Anchored physical code paths and verified zero orphaned or rogue modules outside the 6 pillars.
+  - [x] Synchronized `docs/architecture/` pillar documents to eliminate project phase labels and artificial Law/Enforcement framings, describing purely current system architecture.
+  - [x] Hardened documentation rules in `.agents/workflows/tier7-describe-architecture.md`, `docs/architecture/00_README_META_ARCHITECTURE.md`, and `.agents/rules/00-antigravity-core.md` to permanently ban project phases and Law labels in architectural documentation.
+  - [x] Verified prompt unit and AST guardrail test suite (55/55 passed).
 
 ## Session Handover Context
-- **Achieved**: Phases 1 through 5 completed and verified. Updated `.agents/rules/04_directory_reference.md` to formally document the tripartite prompt architecture separation (`prompts/common/`, `prompts/execution/`, `prompts/synthesis/`) under `backend_v2/models/`.
-- **Learned**: Rule 04 directory map now accurately reflects modern execution vs synthesis prompt boundaries.
-- **Remaining**: Phase 6 (Knowledge Items Update).
-
+- **Achieved**: All 6 Phases of the implementation plan, the Tier 7 Architecture Synchronization, and the Documentation Rule Hardening have been completed, tested, and verified with 100% pass rates across all quality gates.
+  - Phase 1: Pre-implementation cleanups & technical debt sweeps (fixed DTO constraint typo and English test strings).
+  - Phase 2: Added `matrix_graph_length_constraint` across settings, domain models, DTOs, factories, and re-seeded baseline database.
+  - Phase 3: Migrated execution prompts to `models/prompts/execution/`, added `common/` re-export shim, purged Phase 1 mandates and duplicate coaching tone from synthesis, implemented graceful skipping of empty directives with `logger.warning`, and injected `<section_budget>{matrix_graph_length_constraint}</section_budget>`.
+  - Phase 4: Added `matrixGraphLengthConstraint` to Flutter Freezed `OutputProfile`, generated models and localization keys, added input field to `MatrixGraphsBlockCard`, fixed test fixtures, and verified all 133 studio unit tests and Flutter audit loop.
+  - Phase 5: Updated `.agents/rules/04_directory_reference.md` to document the tripartite prompt layout.
+  - Phase 6: Synchronized `ki_prompt_generation_architecture.md`, `ki_sdui_matrix_synthesis.md`, and `ki_domain_model_prompt_separation.md`.
+  - Tier 7 & Rules: Streamlined all `docs/architecture/` pillar documents to pure as-built descriptions and codified the strict ban on project phases and Law labels into `tier7-describe-architecture.md`, `00_README_META_ARCHITECTURE.md`, and `00-antigravity-core.md`.
+- **Learned**: Architectural documentation remains timeless and authoritative when it describes current functional mechanisms directly without project phase history or dogmatic meta-law framing.
+- **Remaining**: None. Ready for atomic commit.
