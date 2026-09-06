@@ -16,6 +16,7 @@ from scripts.run_e2e_variance_test import (
     check_backend,
     force_kill_services,
     load_inputs_from_path,
+    main,
     make_noise_injector,
     run_variance_test,
     trigger_execution,
@@ -334,7 +335,7 @@ def test_run_variance_test_with_dict_fallback(monkeypatch: pytest.MonkeyPatch, t
 def test_run_variance_test_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     inputs_file = tmp_path / "inputs_timeout.json"
     with inputs_file.open("w", encoding="utf-8") as f:
-        json.dump({"product_text": "Sample"}, f)
+        json.dump({"product_text": "Sample product text"}, f)
 
     db_file = tmp_path / "mock_empty_db.json"
     with db_file.open("w", encoding="utf-8") as f:
@@ -433,7 +434,7 @@ def test_run_variance_test_aborts_on_data_starvation(monkeypatch: pytest.MonkeyP
     """Test that run_variance_test aborts execution immediately when data starvation is detected."""
     inputs_file = tmp_path / "inputs_starved.json"
     with inputs_file.open("w", encoding="utf-8") as f:
-        json.dump({"product_text": "Sample"}, f)
+        json.dump({"product_text": "Sample product text"}, f)
 
     db_file = tmp_path / "mock_starved_db.json"
     with db_file.open("w", encoding="utf-8") as f:
@@ -471,3 +472,182 @@ def test_run_variance_test_aborts_on_data_starvation(monkeypatch: pytest.MonkeyP
 
     with pytest.raises(SystemExit):
         run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=10, db_path=db_file)
+
+
+def test_multi_field_noise_perturbation() -> None:
+    """Test that all string fields containing whitespace are perturbed across runs."""
+    raw_inputs = {
+        "chat_log": "Hello world from chat",
+        "product_text": "Final product document",
+        "reflection_text": "Self reflection text here",
+        "number_field": 42,
+        "dict_field": {"inner": "value"},
+    }
+    injector_0 = make_noise_injector(0)
+    injector_1 = make_noise_injector(1)
+
+    injected_0 = dict(raw_inputs)
+    injected_1 = dict(raw_inputs)
+
+    for k in ["chat_log", "product_text", "reflection_text"]:
+        injected_0[k] = injector_0(str(raw_inputs[k]))
+        injected_1[k] = injector_1(str(raw_inputs[k]))
+
+    assert injected_0["number_field"] == 42
+    assert injected_0["dict_field"] == {"inner": "value"}
+
+    for k in ["chat_log", "product_text", "reflection_text"]:
+        h0 = hashlib.sha256(str(injected_0[k]).encode("utf-8")).hexdigest()
+        h1 = hashlib.sha256(str(injected_1[k]).encode("utf-8")).hexdigest()
+        assert h0 != h1, f"Hash for {k} must differ across runs"
+        assert "\u00a0" in str(injected_0[k])
+        assert "\u2002" in str(injected_1[k])
+
+
+def test_noise_perturbation_fail_fast_on_zero_whitespace(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Test that run_variance_test raises RuntimeError when raw_inputs has no whitespace-containing strings."""
+    inputs_file = tmp_path / "inputs_nospace.json"
+    with inputs_file.open("w", encoding="utf-8") as f:
+        json.dump({"product_text": "NoSpacesHere", "number": 123}, f)
+
+    db_file = tmp_path / "mock_db.json"
+    with db_file.open("w", encoding="utf-8") as f:
+        json.dump({"executions": {}}, f)
+
+    monkeypatch.setattr("scripts.run_e2e_variance_test.force_kill_services", lambda: None)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.check_backend", lambda: True)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    class MockPopen:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+    monkeypatch.setattr("subprocess.Popen", MockPopen)
+
+    with pytest.raises(RuntimeError, match="No whitespace found in any string input fields"):
+        run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=10, db_path=db_file)
+
+
+def test_no_cache_flag_propagation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Test that no_cache=True appends --no-cache to cmd and sets DISABLE_VERTEX_CACHE=true in env."""
+    inputs_file = tmp_path / "inputs.json"
+    with inputs_file.open("w", encoding="utf-8") as f:
+        json.dump({"product_text": "Sample text with space"}, f)
+
+    db_file = tmp_path / "mock_db.json"
+    with db_file.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "executions": {
+                    "exe_1": {
+                        "id": "exe_1",
+                        "status": "PASSED",
+                        "profile_syntheses": {"prf_1": {"data_starvation": None}},
+                    }
+                }
+            },
+            f,
+        )
+
+    spawned_cmds: list[list[str]] = []
+    spawned_envs: list[dict[str, str]] = []
+
+    class MockPopen:
+        def __init__(self, cmd: list[str], *args: Any, **kwargs: Any) -> None:
+            spawned_cmds.append(cmd)
+            if "env" in kwargs and kwargs["env"] is not None:
+                spawned_envs.append(kwargs["env"])
+
+    monkeypatch.setattr("scripts.run_e2e_variance_test.force_kill_services", lambda: None)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.check_backend", lambda: True)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.trigger_execution", lambda inp: "exe_1")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    monkeypatch.setattr("subprocess.Popen", MockPopen)
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: type("Res", (), {"stdout": "OK", "stderr": ""})(),
+    )
+
+    run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=10, db_path=db_file, no_cache=True)
+
+    assert len(spawned_cmds) == 1
+    assert "--no-cache" in spawned_cmds[0]
+    assert len(spawned_envs) == 1
+    assert spawned_envs[0].get("DISABLE_VERTEX_CACHE") == "true"
+
+
+def test_cooldown_seconds_and_scratch_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Test that cooldown_seconds triggers time.sleep on subsequent runs and writes to scratch dir."""
+    inputs_file = tmp_path / "inputs.json"
+    with inputs_file.open("w", encoding="utf-8") as f:
+        json.dump({"product_text": "Sample text with space"}, f)
+
+    db_file = tmp_path / "mock_db.json"
+    with db_file.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "executions": {
+                    "exe_1": {
+                        "id": "exe_1",
+                        "status": "PASSED",
+                        "profile_syntheses": {"prf_1": {"data_starvation": None}},
+                    },
+                    "exe_2": {
+                        "id": "exe_2",
+                        "status": "PASSED",
+                        "profile_syntheses": {"prf_1": {"data_starvation": None}},
+                    },
+                }
+            },
+            f,
+        )
+
+    slept_durations: list[int | float] = []
+    exec_counter = 0
+
+    def mock_trigger(inp: Any) -> str:
+        nonlocal exec_counter
+        exec_counter += 1
+        return f"exe_{exec_counter}"
+
+    monkeypatch.setattr("scripts.run_e2e_variance_test.force_kill_services", lambda: None)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.check_backend", lambda: True)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.trigger_execution", mock_trigger)
+    monkeypatch.setattr("time.sleep", lambda s: slept_durations.append(s))
+
+    class MockPopen:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+    monkeypatch.setattr("subprocess.Popen", MockPopen)
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: type("Res", (), {"stdout": "OK", "stderr": ""})(),
+    )
+
+    run_variance_test(str(inputs_file), num_runs=2, timeout_seconds=10, db_path=db_file, cooldown_seconds=15)
+
+    assert 15 in slept_durations, "Cooldown sleep of 15s must be called for Run 2"
+    assert Path("scratch/variance_inputs/e2e_inputs_run1.json").exists()
+    assert Path("scratch/variance_inputs/e2e_inputs_noisy.json").exists()
+    assert not Path("tmp/e2e_inputs_run1.json").exists()
+
+
+def test_main_cli_argparse(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that main() correctly parses CLI arguments and forwards them to run_variance_test."""
+    captured_kwargs: dict[str, Any] = {}
+
+    def mock_run_variance_test(**kwargs: Any) -> list[str]:
+        captured_kwargs.update(kwargs)
+        return ["exe_cli_1", "exe_cli_2"]
+
+    monkeypatch.setattr("scripts.run_e2e_variance_test.run_variance_test", mock_run_variance_test)
+
+    res = main(["path/to/inputs", "--no-cache", "--cooldown-seconds", "30", "--num-runs", "3", "--timeout-seconds", "3600"])
+
+    assert res == ["exe_cli_1", "exe_cli_2"]
+    assert captured_kwargs["inputs_target"] == "path/to/inputs"
+    assert captured_kwargs["no_cache"] is True
+    assert captured_kwargs["cooldown_seconds"] == 30
+    assert captured_kwargs["num_runs"] == 3
+    assert captured_kwargs["timeout_seconds"] == 3600

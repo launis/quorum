@@ -33,6 +33,8 @@ Input Format and Default Fixture Notice:
 
 from __future__ import annotations
 
+import argparse
+import datetime
 import json
 import os
 import subprocess
@@ -48,6 +50,7 @@ __all__ = [
     "check_backend",
     "force_kill_services",
     "load_inputs_from_path",
+    "main",
     "make_noise_injector",
     "run_variance_test",
     "trigger_execution",
@@ -76,13 +79,14 @@ def check_backend(base_url: str = "http://127.0.0.1:8000/docs", max_retries: int
     Returns:
         True if the backend responded with HTTP 200, False otherwise.
     """
-    for _ in range(max_retries):
+    for attempt in range(max_retries):
         try:
             r = requests.get(base_url, timeout=2)
             if r.status_code == 200:
                 return True
-        except Exception:
-            pass
+        except requests.RequestException as e:
+            if attempt % 10 == 0:
+                print(f"[Probe] Readiness probe attempt {attempt + 1}/{max_retries}: {e}")
         time.sleep(2)
     return False
 
@@ -163,7 +167,7 @@ def load_inputs_from_path(path: str | Path) -> dict[str, Any]:
             valid_dates = sorted(extracted_dates, reverse=True)
             inputs["document_date"] = valid_dates[0]
         else:
-            inputs["document_date"] = "2026-06-25T07:38:55+03:00"
+            inputs["document_date"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         return inputs
 
@@ -248,8 +252,8 @@ def force_kill_services() -> None:
             capture_output=True,
             timeout=5,
         )
-    except Exception:
-        pass
+    except (subprocess.SubprocessError, OSError) as e:
+        print(f"[Clean-up] Redis flush skipped or unavailable: {e}")
 
     print("[Clean-up] Verifying ports and process cleanup...")
     for attempt in range(10):
@@ -316,7 +320,13 @@ def trigger_execution(raw_inputs: dict[str, Any]) -> str:
     w_res = requests.get(f"{base_url}/studio/workflows/", headers=headers, timeout=10)
     w_res.raise_for_status()
     workflows = w_res.json()
-    workflow_id = workflows[0]["id"] if workflows else "wf_9d68c573802341db"
+    if not workflows:
+        msg = "No workflows found in database"
+        raise RuntimeError(msg)
+    if "id" not in workflows[0] or not workflows[0]["id"]:
+        msg = "Workflow definition missing 'id'"
+        raise RuntimeError(msg)
+    workflow_id = str(workflows[0]["id"])
 
     print(f"Sending POST to {base_url}/execution/executions/ using workflow {workflow_id}")
     resp = requests.post(
@@ -392,8 +402,8 @@ def validate_execution_kelvollisuus(
                                 False,
                                 f"Trace event starvation in step '{step.get('step_id', 'unknown')}': {reason}",
                             )
-        except Exception:
-            pass
+        except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
+            print(f"[Kelvollisuus] Warning reading trace file {trace_path}: {e}")
 
     return True, "Execution is valid and contains sufficient observations"
 
@@ -403,6 +413,8 @@ def run_variance_test(
     num_runs: int = 2,
     timeout_seconds: int = 7200,
     db_path: str | Path | None = None,
+    no_cache: bool = False,
+    cooldown_seconds: int = 0,
 ) -> list[str]:
     """Execute automated end-to-end variance test suite across multiple runs.
 
@@ -411,6 +423,8 @@ def run_variance_test(
         num_runs: Number of consecutive runs to compare.
         timeout_seconds: Maximum polling timeout per execution in seconds.
         db_path: Optional path to the database file (defaults to data/db_v2.json).
+        no_cache: Whether to bypass native LLM provider context cache.
+        cooldown_seconds: Cool-down pause between runs in seconds.
 
     Returns:
         List of generated execution IDs.
@@ -430,6 +444,10 @@ def run_variance_test(
         print(f"\n=== RUN {i + 1} ===")
         force_kill_services()
 
+        if cooldown_seconds > 0 and i > 0:
+            print(f"[Cooldown] Pausing for {cooldown_seconds}s for port and TCP socket drain...")
+            time.sleep(cooldown_seconds)
+
         print("Starting run_local.bat...")
         dev_mode = os.environ.get("DEV_EXECUTION_MODE", "full")
         os.environ["DEV_EXECUTION_MODE"] = dev_mode
@@ -437,8 +455,15 @@ def run_variance_test(
         backend_env["DEV_EXECUTION_MODE"] = dev_mode
 
         run_bat = Path("run_local.bat").resolve()
+        cmd: list[str] = [str(run_bat)]
+
+        if no_cache:
+            cmd.append("--no-cache")
+            backend_env["DISABLE_VERTEX_CACHE"] = "true"
+            print("[Cache Policy] Native Vertex cache disabled via --no-cache CLI argument to run_local.bat")
+
         subprocess.Popen(
-            [str(run_bat)],
+            cmd,
             env=backend_env,
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
@@ -454,22 +479,22 @@ def run_variance_test(
         print(f"Injecting noise into inputs for Run {i + 1} (to test normalizer)...")
         inject_noise = make_noise_injector(i)
 
-        if "product_text" in raw_inputs and isinstance(raw_inputs["product_text"], str):
-            raw_inputs["product_text"] = inject_noise(raw_inputs["product_text"])
-        else:
-            injected = False
-            for k, v in raw_inputs.items():
-                if isinstance(v, str):
-                    raw_inputs[k] = inject_noise(v)
-                    injected = True
-                    break
-            if not injected:
-                print("Warning: Could not inject noise. No string fields found in raw_inputs.")
+        injected_keys: list[str] = []
+        for k, v in raw_inputs.items():
+            if isinstance(v, str) and " " in v:
+                raw_inputs[k] = inject_noise(v)
+                injected_keys.append(k)
 
-        tmp_dir = Path("tmp")
-        tmp_dir.mkdir(exist_ok=True)
+        if not injected_keys:
+            msg = "Failed to inject Unicode noise: No whitespace found in any string input fields"
+            raise RuntimeError(msg)
+
+        print(f"Injected Unicode space variant into {len(injected_keys)} input fields: {injected_keys}")
+
+        scratch_inputs_dir = Path("scratch/variance_inputs")
+        scratch_inputs_dir.mkdir(parents=True, exist_ok=True)
         output_filename = "e2e_inputs_run1.json" if i == 0 else "e2e_inputs_noisy.json"
-        output_path = tmp_dir / output_filename
+        output_path = scratch_inputs_dir / output_filename
 
         with output_path.open("w", encoding="utf-8") as f:
             json.dump(raw_inputs, f)
@@ -499,8 +524,8 @@ def run_variance_test(
                             target_exec = found_exec
                             done = True
                             break
-            except Exception:
-                pass
+            except (json.JSONDecodeError, OSError) as e:
+                print(f"[Polling] Notice while reading database {target_db_path}: {e}")
 
         if not done or not target_exec:
             print("Timeout waiting for execution!")
@@ -532,6 +557,24 @@ def run_variance_test(
     return execution_ids
 
 
+def main(argv: list[str] | None = None) -> list[str]:
+    """CLI entrypoint for end-to-end variance test runner."""
+    parser = argparse.ArgumentParser(description="End-to-End Variance and Reliability Test Runner")
+    parser.add_argument("inputs_target", nargs="?", default=None, help="File or directory path containing test inputs")
+    parser.add_argument("--no-cache", action="store_true", help="Bypass native LLM provider context cache")
+    parser.add_argument("--cooldown-seconds", type=int, default=0, help="Cool-down pause between runs in seconds")
+    parser.add_argument("--num-runs", type=int, default=2, help="Number of consecutive runs to compare")
+    parser.add_argument("--timeout-seconds", type=int, default=7200, help="Polling timeout per execution in seconds")
+
+    args = parser.parse_args(argv)
+    return run_variance_test(
+        inputs_target=args.inputs_target,
+        num_runs=args.num_runs,
+        timeout_seconds=args.timeout_seconds,
+        no_cache=args.no_cache,
+        cooldown_seconds=args.cooldown_seconds,
+    )
+
+
 if __name__ == "__main__":
-    target_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    run_variance_test(target_arg)
+    main()
