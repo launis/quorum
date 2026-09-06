@@ -61,12 +61,12 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42c
     - [x] `test_worker_synthesis.py` assertions for directive skipping.
     - [x] `test_output_profile_studio_parity.py` and `test_style_directives.py` test updates.
 
-- [ ] **Phase 4: Frontend Dart Models & Studio UI**
-  - [ ] Add `matrixGraphLengthConstraint` to Freezed `OutputProfile` in `output_profile.dart`.
-  - [ ] Add localization keys in `app_en.arb` and `app_fi.arb`.
-  - [ ] Add `TextFormField` bound to `payload.matrixGraphLengthConstraint` in `matrix_graphs_block_card.dart`.
-  - [ ] Run `dart run build_runner build --delete-conflicting-outputs` and `flutter gen-l10n`.
-  - [ ] Run flutter unit tests and `flutter_audit_loop.py`.
+- [x] **Phase 4: Frontend Dart Models & Studio UI**
+  - [x] Add `matrixGraphLengthConstraint` to Freezed `OutputProfile` in `output_profile.dart`.
+  - [x] Add localization keys in `app_en.arb` and `app_fi.arb`.
+  - [x] Add `TextFormField` bound to `payload.matrixGraphLengthConstraint` in `matrix_graphs_block_card.dart`.
+  - [x] Run `dart run build_runner build --delete-conflicting-outputs` and `flutter gen-l10n`.
+  - [x] Run flutter unit tests and `flutter_audit_loop.py`.
 
 - [ ] **Phase 5: Rules & Directory Reference Update**
   - [ ] Update `backend_v2/models/` in `.agents/rules/04_directory_reference.md` to document tripartite prompt subpackages (`common/`, `execution/`, `synthesis/`).
@@ -77,6 +77,7 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42c
   - [ ] Update `ki_domain_model_prompt_separation.md`.
 
 ## Session Handover Context
-- **Achieved**: Phases 1, 2, and 3 completed and verified with 100% audit pass rate and SDUI semantic parity. Relocated Phase 1 execution prompts to `models/prompts/execution/` with backwards-compatibility shim in `common/`, updated barrels, purged legacy mandates from `style_directives.py` and `worker.py`, made worker gracefully skip empty directives with warnings and inject matrix graph budget, and updated all tests and consumers.
-- **Learned**: `backend_audit_loop.py` tests both `models/prompts/` and `worker.py` (via `test_worker.py`), requiring test assertions to reflect the graceful skip pattern. All 77 unit tests in prompts + 58 tests in worker + SDUI semantic parity pass cleanly.
-- **Remaining**: Phase 4 (Frontend Dart Models & Studio UI), Phase 5 (Directory Reference Update), Phase 6 (Knowledge Items Update).
+- **Achieved**: Phases 1, 2, 3, and 4 completed and verified with 100% audit pass rate and SDUI semantic parity. Freezed models generated for `matrixGraphLengthConstraint`, localization keys added (`profileMatrixGraphLengthLabel`, `Hint`, `Helper`), `MatrixGraphsBlockCard` updated with number input, and all 133 Flutter studio unit tests + Flutter audit loop passing cleanly.
+- **Learned**: Fixed legacy test fixtures in `output_profile_controller_test.dart` and `output_profile_test.dart` which were passing `I18nText` instead of `String` for prompt directives. Added widget test in `matrix_graphs_block_card_test.dart` validating input and null-clearing.
+- **Remaining**: Phase 5 (Directory Reference Update), Phase 6 (Knowledge Items Update).
+

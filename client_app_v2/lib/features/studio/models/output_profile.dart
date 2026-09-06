@@ -68,6 +68,8 @@ abstract class OutputProfile with _$OutputProfile {
     int? rowExplanationLengthConstraint,
     @JsonKey(name: 'xai_length_constraint') int? xaiLengthConstraint,
     @JsonKey(name: 'variance_length_constraint') int? varianceLengthConstraint,
+    @JsonKey(name: 'matrix_graph_length_constraint')
+    int? matrixGraphLengthConstraint,
     @JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,
     @JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,
     @JsonKey(name: 'tone_instruction') String? toneInstruction,

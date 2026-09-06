@@ -91,21 +91,12 @@ void main() {
         'synthesis_length_constraint': 300,
         'max_quotes_per_matrix': 5,
         'max_unmet_criteria': 3,
-        'tone_instruction': {
-          'translations': {'en': 'Formal'},
-        },
-        'matrix_1d_synthesis_directive': {
-          'translations': {'en': '1D Directive'},
-        },
-        'matrix_2d_synthesis_directive': {
-          'translations': {'en': '2D Directive'},
-        },
-        'matrix_3d_synthesis_directive': {
-          'translations': {'en': '3D Directive'},
-        },
-        'matrix_text_synthesis_directive': {
-          'translations': {'en': 'Text Directive'},
-        },
+        'tone_instruction': 'Formal',
+        'matrix_1d_synthesis_directive': '1D Directive',
+        'matrix_2d_synthesis_directive': '2D Directive',
+        'matrix_3d_synthesis_directive': '3D Directive',
+        'matrix_text_synthesis_directive': 'Text Directive',
+        'matrix_graph_length_constraint': 400,
         'language': 'en',
         'matrix_synthesis_groups': [
           {
@@ -144,20 +135,22 @@ void main() {
       expect(profile.synthesisLengthConstraint, 300);
       expect(profile.maxQuotesPerMatrix, 5);
       expect(profile.maxUnmetCriteria, 3);
+      expect(profile.matrixGraphLengthConstraint, 400);
+      expect(profile.toneInstruction, 'Formal');
       expect(
-        profile.matrix1dSynthesisDirective?.translations['en'],
+        profile.matrix1dSynthesisDirective,
         '1D Directive',
       );
       expect(
-        profile.matrix2dSynthesisDirective?.translations['en'],
+        profile.matrix2dSynthesisDirective,
         '2D Directive',
       );
       expect(
-        profile.matrix3dSynthesisDirective?.translations['en'],
+        profile.matrix3dSynthesisDirective,
         '3D Directive',
       );
       expect(
-        profile.matrixTextSynthesisDirective?.translations['en'],
+        profile.matrixTextSynthesisDirective,
         'Text Directive',
       );
       expect(profile.targetBlockOrder.length, 12);

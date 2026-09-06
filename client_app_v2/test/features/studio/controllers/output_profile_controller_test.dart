@@ -36,7 +36,7 @@ void main() {
           description: emptyI18n,
           userRoleLabel: emptyI18n,
           customPreface: emptyI18n,
-          toneInstruction: emptyI18n,
+          toneInstruction: '',
           maxExtensionItems: 3,
           displayScale: DisplayScale.original,
           matrixSynthesisGroups: const [],

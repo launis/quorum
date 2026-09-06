@@ -4741,6 +4741,17 @@ class AppLocalizationsFi extends AppLocalizations {
   String get profileVarianceLengthHint => 'esim. 500 merkkiä';
 
   @override
+  String get profileMatrixGraphLengthLabel =>
+      'Kaavioselitteen tavoitepituus (merkkiä / kaavio)';
+
+  @override
+  String get profileMatrixGraphLengthHint => 'esim. 400 merkkiä';
+
+  @override
+  String get profileMatrixGraphLengthHelper =>
+      'Määrittää yhden yksittäisen matriisitulosteen selitteen maksimipituuden.';
+
+  @override
   String get profileMatrixViewDirectivesTitle =>
       'Matriisinäkymien synteesiohjeet';
 

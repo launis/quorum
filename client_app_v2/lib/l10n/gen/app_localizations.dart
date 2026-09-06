@@ -8508,6 +8508,24 @@ abstract class AppLocalizations {
   /// **'e.g. 500 characters'**
   String get profileVarianceLengthHint;
 
+  /// No description provided for @profileMatrixGraphLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix graph explanation target length (characters / graph)'**
+  String get profileMatrixGraphLengthLabel;
+
+  /// No description provided for @profileMatrixGraphLengthHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 400 characters'**
+  String get profileMatrixGraphLengthHint;
+
+  /// No description provided for @profileMatrixGraphLengthHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Defines the maximum length for an individual matrix output explanation.'**
+  String get profileMatrixGraphLengthHelper;
+
   /// No description provided for @profileMatrixViewDirectivesTitle.
   ///
   /// In en, this message translates to:

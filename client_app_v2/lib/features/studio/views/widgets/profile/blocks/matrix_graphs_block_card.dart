@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -178,6 +179,30 @@ class MatrixGraphsBlockCard extends StatelessWidget {
               icon: const Icon(Icons.add),
               label: Text(l10n.addGraphButton),
             ),
+          ),
+          AppSpacing.h16,
+          TextFormField(
+            key: const Key('profile_matrix_graph_length_constraint_field'),
+            initialValue: payload.matrixGraphLengthConstraint?.toString() ?? '',
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: l10n.profileMatrixGraphLengthLabel,
+              hintText: l10n.profileMatrixGraphLengthHint,
+              helperText: l10n.profileMatrixGraphLengthHelper,
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              final trimmed = val.trim();
+              updatePayload(
+                payload.copyWith(
+                  matrixGraphLengthConstraint: trimmed.isNotEmpty
+                      ? int.tryParse(trimmed)
+                      : null,
+                ),
+              );
+            },
           ),
         ],
       ),

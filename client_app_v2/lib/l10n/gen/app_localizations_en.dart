@@ -4710,6 +4710,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVarianceLengthHint => 'e.g. 500 characters';
 
   @override
+  String get profileMatrixGraphLengthLabel =>
+      'Matrix graph explanation target length (characters / graph)';
+
+  @override
+  String get profileMatrixGraphLengthHint => 'e.g. 400 characters';
+
+  @override
+  String get profileMatrixGraphLengthHelper =>
+      'Defines the maximum length for an individual matrix output explanation.';
+
+  @override
   String get profileMatrixViewDirectivesTitle =>
       'Matrix View Type Synthesis Directives';
 
