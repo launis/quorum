@@ -68,8 +68,8 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42c
   - [x] Run `dart run build_runner build --delete-conflicting-outputs` and `flutter gen-l10n`.
   - [x] Run flutter unit tests and `flutter_audit_loop.py`.
 
-- [ ] **Phase 5: Rules & Directory Reference Update**
-  - [ ] Update `backend_v2/models/` in `.agents/rules/04_directory_reference.md` to document tripartite prompt subpackages (`common/`, `execution/`, `synthesis/`).
+- [x] **Phase 5: Rules & Directory Reference Update**
+  - [x] Update `backend_v2/models/` in `.agents/rules/04_directory_reference.md` to document tripartite prompt subpackages (`common/`, `execution/`, `synthesis/`).
 
 - [ ] **Phase 6: Knowledge Items (KI) Synchronization**
   - [ ] Update `ki_prompt_generation_architecture.md`.
@@ -77,7 +77,7 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42c
   - [ ] Update `ki_domain_model_prompt_separation.md`.
 
 ## Session Handover Context
-- **Achieved**: Phases 1, 2, 3, and 4 completed and verified with 100% audit pass rate and SDUI semantic parity. Freezed models generated for `matrixGraphLengthConstraint`, localization keys added (`profileMatrixGraphLengthLabel`, `Hint`, `Helper`), `MatrixGraphsBlockCard` updated with number input, and all 133 Flutter studio unit tests + Flutter audit loop passing cleanly.
-- **Learned**: Fixed legacy test fixtures in `output_profile_controller_test.dart` and `output_profile_test.dart` which were passing `I18nText` instead of `String` for prompt directives. Added widget test in `matrix_graphs_block_card_test.dart` validating input and null-clearing.
-- **Remaining**: Phase 5 (Directory Reference Update), Phase 6 (Knowledge Items Update).
+- **Achieved**: Phases 1 through 5 completed and verified. Updated `.agents/rules/04_directory_reference.md` to formally document the tripartite prompt architecture separation (`prompts/common/`, `prompts/execution/`, `prompts/synthesis/`) under `backend_v2/models/`.
+- **Learned**: Rule 04 directory map now accurately reflects modern execution vs synthesis prompt boundaries.
+- **Remaining**: Phase 6 (Knowledge Items Update).
 

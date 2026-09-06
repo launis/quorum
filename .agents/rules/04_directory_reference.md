@@ -56,7 +56,13 @@
     
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
-        <key_domains>core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries), view/ (SDUI Blocks), prompts/ (LLM directives SSOT), v2_core.py, state.py, enums.py</key_domains>
+        <key_domains>
+          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries), view/ (SDUI Blocks), v2_core.py, state.py, enums.py
+          - Prompts SSOT (Tripartite Separation):
+            * prompts/common/: Cross-phase linguistic and schema purity directives (linguistic_directives.py, re-export shim for execution/ symbols)
+            * prompts/execution/: Phase 1 DAG, sensor evaluation, micro-evaluator, and quote extraction mandates (global_mandates.py, field_prompts.py, matrix_evaluation.py, hook_prompts.py, mcp_prompts.py)
+            * prompts/synthesis/: Phase 2 reporting, executive summary, SDUI directives, and style mandates (synthesis_directives.py, sdui_directives.py, style_directives.py)
+        </key_domains>
     </module>
 
     <module path="backend_v2/core/">
