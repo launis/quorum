@@ -1,121 +1,82 @@
-# Task Tracker: Prompt Architecture Harmonization
+# Task Tracker: Matrix Graph Length Constraint & Tripartite Prompt Alignment
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
   <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
-  <rule>@[.agents/rules/03_seed_vault.md]</rule>
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
   <rule>@[.agents/rules/05_llm_architecture.md]</rule>
-  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
-  <knowledge_item>@[ki_prompt_generation_architecture.md]</knowledge_item>
   <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
-  <knowledge_item>@[ki_provider_agnostic_caching.md]</knowledge_item>
-  <knowledge_item>@[ki_dumb_painter_sdui.md]</knowledge_item>
+  <knowledge_item>@[ki_prompt_generation_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_sdui_matrix_synthesis.md]</knowledge_item>
   <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
-  <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_dumb_painter_sdui.md]</knowledge_item>
+  <knowledge_item>@[ki_domain_model_prompt_separation.md]</knowledge_item>
 </required_context_rules>
 
-Implementation Plan: @[docs/implementationplans/IMPLEMENTATION_PLAN_Prompt_Architecture_Harmonization.md]
+Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42ca-4c7c-8448-845d85a77ea7\implementation_plan.md]
 
 ## Pre-Flight Checklist (<constraint> tags)
-- [x] Constraint: `root_cause_first_over_reseed_mandate` - All corrupting data paths and legacy fallback debt must be excised before building new logic.
-- [x] Constraint: `static_first_dynamic_last_topology` - STATIC_LINGUISTIC_PROTOCOL must contain zero f-string interpolations. All dynamic parameters reside strictly inside build_linguistic_parameters.
-- [x] Constraint: `anti_ambiguity_mandate` - Do not use ambiguous terminology in comments or prompt definitions.
-- [x] Constraint: `tripartite_pipeline_architecture` - Execution layer prompts must contain zero Server-Driven UI instructions and zero coaching tone instructions.
-- [x] Constraint: `zero_service_layer_fallbacks` - Synthesis directives are derived 100% dynamically from database OutputProfile during runtime execution. No runtime fallback registries are created.
-- [x] Constraint: `anti_duplication` - Legacy prompt files at models/prompts root must be removed immediately after subpackage relocation.
-- [x] Constraint: `the_duct_tape_ban` - Never truncate text mid-sentence or slice strings with text[:limit] without sentence boundary analysis.
-- [x] Constraint: `dumb_painter_sdui` - UI widgets strictly bind and emit DTO state; no semantic logic or fallback synthesis is performed in Dart layers.
-- [x] Constraint: `universal_fail_fast` - Do not swallow missing configurations silently; fail fast with OUTPUT_PROFILE_INCOMPLETE.
-- [x] Constraint: `two_stage_testing` - Execute isolated unit tests first, followed by the global quality gate audit loop.
-- [x] Constraint: `multi_session_handover` - This is a multi-session plan. Mandatory /tier5-session-handover checkpoints after Steps 1-3, Steps 4-5, Steps 6-7, and Steps 8-9.
+- [ ] Constraint: `feature_sovereignty_mandate` - Preserve all cognitive features, metrics, and matrix metadata.
+- [ ] Constraint: `the_zero_compromise_pledge` - Strict Pydantic V2 / Freezed schemas with extra='forbid' and zero naked dicts.
+- [ ] Constraint: `zero_service_layer_fallbacks` - No fallback defaults; log warning and skip empty cosmetic directives without crashing.
+- [ ] Constraint: `tripartite_phase_isolation` - Strict segregation: Phase 1 execution prompts in execution/, cross-phase in common/, Phase 2 in synthesis/.
+- [ ] Constraint: `backwards_compat_barrel_reexport` - common/__init__.py must re-export relocated execution symbols for 1-hop callers.
+- [ ] Constraint: `two_stage_testing` - Run isolated unit tests first, then backend_audit_loop and flutter_audit_loop.
+- [ ] Constraint: `step_by_step_mode` - Stop after each cohesive milestone and request user approval before proceeding.
 
 ## Execution Tasks
 
-- [x] (VERIFIED_EXISTING) **Step 1: Pre-Implementation Cleanups and Seed Preparation**
-  - [x] Audit and resolve 7 technical debt items across boundaries.
-  - [x] Backup `backend_v2/seed/seed_data.json` per `03_seed_vault.md`.
-  - [x] Sanitize `output_profiles` in `seed_data.json` (convert 9 directives to English `str`, set length constraints).
-  - [x] Fix matrix synthesis groups in `seed_data.json` (view_type 1d_metrics -> 2d_compare for 2-block groups).
-  - [x] Sanitize or isolate orphan prompt block `blk_eeea566da4ab45f9`.
-  - [x] Update Flutter widgets (`matrix_graph_item_editor.dart`, `executive_summary_block_card.dart`, `matrix_graphs_block_card.dart`).
-  - [x] Update `output_profile_service.py` to raise `ResourceNotFoundError` when workflows list empty.
-  - [x] Purge `DESC_TRANSLATION_MANDATE` from `backend_v2/models/dtos/synthesis.py` field descriptions.
-  - [x] Anchor length constraints in SSOT constants.
-  - [x] In-memory seed dry-run and re-seed execution.
+- [x] **Phase 1: Pre-Implementation Cleanups & Technical Debt Sweeps**
+  - [x] Fix `OutputProfileUpdateDTO.variance_length_constraint` constraint inconsistency in `backend_v2/models/dtos/output_profile.py` (`ge=50, le=2000`).
+  - [x] Verify existing test suite passes before modifications (updated `test_output_profile_synthesis_directives` for `str` directives).
 
-- [x] (VERIFIED_EXISTING) **Step 2: Scaffolding Subpackages and Common Layer**
-  - [x] Create `common/`, `execution/`, `synthesis/` directories.
-  - [x] Create `models/prompts/common/__init__.py`.
-  - [x] Create `models/prompts/common/field_prompts.py`.
-  - [x] Create `models/prompts/common/global_mandates.py` (purified).
-  - [x] Create `models/prompts/common/linguistic_directives.py` (`STATIC_LINGUISTIC_PROTOCOL` & `build_linguistic_parameters`).
+- [ ] **Phase 2: Backend Core & Configuration**
+  - [ ] Add `default_matrix_graph_length_constraint` to `backend_v2/settings.py` (default: 400).
+  - [ ] Add `matrix_graph_length_constraint` to `OutputProfile` in `backend_v2/models/v2_core.py` (`ge=50, le=2000`).
+  - [ ] Add `matrix_graph_length_constraint` to `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO` in `backend_v2/models/dtos/output_profile.py`.
+  - [ ] Bind `matrix_graph_length_constraint` in `backend_v2/services/factories/output_profile_factory.py`.
+  - [ ] Update baseline output profile `prf_5d6e7f8091a2b3c4` in `backend_v2/seed/seed_data.json`.
+  - [ ] Run domain, DTO, and seed validation tests.
 
-- [x] (VERIFIED_EXISTING) **Step 3: Execution Layer Relocation and Purification**
-  - [x] Create `models/prompts/execution/__init__.py`.
-  - [x] Create `models/prompts/execution/matrix_evaluation.py`.
-  - [x] Create `models/prompts/execution/hook_prompts.py` (pure execution hooks).
-  - [x] Create `models/prompts/execution/mcp_prompts.py`.
+- [ ] **Phase 3: Tripartite Prompt Architecture Migration**
+  - [ ] Move `global_mandates.py` from `common/` to `execution/`.
+  - [ ] Move `field_prompts.py` from `common/` to `execution/`.
+  - [ ] Update `models/prompts/execution/__init__.py` to re-export relocated symbols.
+  - [ ] Update `models/prompts/common/__init__.py` to re-export execution symbols as backwards compatibility shim.
+  - [ ] Update `models/prompts/__init__.py` root barrel exports.
+  - [ ] Purge `DEFAULT_COACHING_TONE_MANDATE` and `SYNTHESIS_LENGTH_CONSTRAINT` from `style_directives.py`.
+  - [ ] Rename `DEFAULT_*` system prompts in `synthesis_directives.py` and maintain backwards-compatible aliases.
+  - [ ] Refactor `backend_v2/worker.py` synthesis prompt assembly:
+    - [ ] Purge `GLOBAL_MANDATES_XML` from synthesis user messages.
+    - [ ] Purge `DEFAULT_COACHING_TONE_MANDATE` and use dynamic `tone_instruction` (omit tone block if empty).
+    - [ ] Replace `raise AppException` on empty directives with `logger.warning` and skip section.
+    - [ ] Inject `<section_budget>{matrix_graph_length_constraint}</section_budget>` for matrix synthesis groups.
+    - [ ] Clean unused imports in `worker.py`.
+  - [ ] Update consumers and AST tests:
+    - [ ] `test_ast_prompt_xml_sovereignty.py#L151` path update.
+    - [ ] `test_global_mandates.py#L1` import update.
+    - [ ] `test_field_prompts.py#L6` import update.
+    - [ ] `test_extractive_sensor_service.py#L16` import update.
+    - [ ] `test_worker_synthesis.py` assertions for directive skipping.
+    - [ ] `test_output_profile_studio_parity.py` and `test_style_directives.py` test updates.
 
-- [x] (VERIFIED_EXISTING) **Step 4: Synthesis Layer Relocation and Purification**
-  - [x] Create `models/prompts/synthesis/__init__.py`.
-  - [x] Create `models/prompts/synthesis/style_directives.py`.
-  - [x] Create `models/prompts/synthesis/sdui_directives.py` (purified of role extraction).
-  - [x] Create `models/prompts/synthesis/synthesis_directives.py`.
-  - [x] Create `backend_v2/services/factories/output_profile_factory.py`.
+- [ ] **Phase 4: Frontend Dart Models & Studio UI**
+  - [ ] Add `matrixGraphLengthConstraint` to Freezed `OutputProfile` in `output_profile.dart`.
+  - [ ] Add localization keys in `app_en.arb` and `app_fi.arb`.
+  - [ ] Add `TextFormField` bound to `payload.matrixGraphLengthConstraint` in `matrix_graphs_block_card.dart`.
+  - [ ] Run `dart run build_runner build --delete-conflicting-outputs` and `flutter gen-l10n`.
+  - [ ] Run flutter unit tests and `flutter_audit_loop.py`.
 
-- [x] (VERIFIED_EXISTING) **Step 5: Root Barrel Re-export and Legacy Purge**
-  - [x] Update `backend_v2/models/prompts/__init__.py`.
-  - [x] Delete legacy root files in `backend_v2/models/prompts/`.
-  - [x] Delete `backend_v2/tests/unit/models/prompts/test_synthesis_registry.py`.
-  - [x] Verify `test_prompts_init.py`.
+- [ ] **Phase 5: Rules & Directory Reference Update**
+  - [ ] Update `backend_v2/models/` in `.agents/rules/04_directory_reference.md` to document tripartite prompt subpackages (`common/`, `execution/`, `synthesis/`).
 
-- [x] (VERIFIED_EXISTING) **Step 6: Two-Tier Length Budget Engine and DTO Expansion**
-  - [x] Implement `backend_v2/services/length_budget_enforcer.py`.
-  - [x] Add unit tests in `backend_v2/tests/unit/services/test_length_budget_enforcer.py`.
-  - [x] Update `v2_core.py`, `domain/output_profile.py`, and `dtos/output_profile.py` for English `str` directives & length constraints.
-  - [x] Implement cardinality `@model_validator` on `MatrixSynthesisGroup`.
-  - [x] Implement group ID uniqueness `@model_validator` on `OutputProfile`.
-  - [x] Bind factory in `output_profile_service.py:create_output_profile_draft`.
-  - [x] Eliminate `seen_axes` in `matrix_graphs_adapter.py`.
+- [ ] **Phase 6: Knowledge Items (KI) Synchronization**
+  - [ ] Update `ki_prompt_generation_architecture.md`.
+  - [ ] Update `ki_sdui_matrix_synthesis.md`.
+  - [ ] Update `ki_domain_model_prompt_separation.md`.
 
-- [x] **Step 7: Studio UI Directive Segregation and Length Inputs**
-  - [x] Prune 1:1 section directives from `ProfileGeneralTab` Card 3.
-  - [x] Retain 4 matrix view type directives with `profileMatrixViewDirectivesTitle`.
-  - [x] Update Dart Freezed models in `output_profile.dart` (`String?` directives + length constraints).
-  - [x] Run `build_runner`.
-  - [x] Update block cards with English `TextFormField` & length inputs.
-  - [x] Update `matrix_graph_item_editor.dart` (ban auto-clamp, radio 1D, quota chip disable).
-  - [x] Update `matrix_graphs_block_card.dart` (`ReorderableListView` + Up/Down buttons).
-  - [x] Update `.arb` files and Flutter unit tests.
-
-- [x] **Step 8: Caller Harmonization and Budget Injection**
-  - [x] Update `matrix_sensor_prompt_builder.py`.
-  - [x] Update `prompt_factory.py`.
-  - [x] Update `worker.py` (purge `resolve_i18n`, inject `<section_budget>`, budget enforcer, Fail-Fast).
-  - [x] Normalize imports in 1-hop caller modules.
-
-- [x] **Step 9: AST Guardrails and Test Suite Validation**
-  - [x] Update `test_ast_prompt_xml_sovereignty.py`.
-  - [x] Update and run all unit, integration, and parity test suites.
-  - [x] Run backend and flutter audit loops.
-
-## # Session Handover Context
-- **Achieved:**
-  - All 9 Steps of `IMPLEMENTATION_PLAN_Prompt_Architecture_Harmonization.md` implemented, audited, and committed to `main` across 4 atomic commits (6fceba3c, d5a0af93, 1da01268, 2fbbbf9e).
-  - Completed Tier 8 System 2 Post-Implementation Audit: verified As-Built code against all plan requirements, AST guardrails, destructive deletions, and quality gates. Audit report persisted in `red_team_audit_prompt_architecture_harmonization.md`.
-  - Converted all 9 prompt directives across Python backend, database seed, and Flutter Studio to single-language English `str | None` / `String?` (excising `resolve_i18n` runtime overhead).
-  - Replaced legacy `SYNTHESIS_PROMPT_REGISTRY` fallback dictionary with runtime Dynamic Directive Resolution and Fail-Fast on missing substantive directives (`OUTPUT_PROFILE_INCOMPLETE`).
-  - Purged 10 legacy prompt root files and established Tripartite Domain Partitioning (`common/`, `execution/`, `synthesis/`) with strict architectural subpackage boundaries verified by AST guardrails.
-  - Implemented length budgeting engine (`enforce_sentence_boundary_budget`) in `backend_v2/services/length_budget_enforcer.py` respecting linguistic sentence boundaries.
-  - Added section length constraint inputs and view type directive editors across Flutter Studio UI tabs with reorderable matrix graph list.
-  - Expanded AST guardrail engine with 6 new rules asserting no `SYNTHESIS_PROMPT_REGISTRY`, no `include_mandate`, `str` directives in `v2_core.py`, no `DESC_TRANSLATION_MANDATE` in DTOs, and prompt subpackage isolation.
-  - All 31 subpackage prompt tests, 24 AST guardrails, 56 unit/worker tests, and 10 Flutter tests passing.
-- **Learned:**
-  - Passing `.value` strings (e.g. `TargetBlockType.METADATA_BLOCK.value`) when instantiating `OutputProfile.target_block_order` triggers MyPy strict `[arg-type]` error because `target_block_order` expects `list[TargetBlockType]` enum instances. Per rule `strict_enum_hydration_and_validation`, native Enum objects must always be passed directly.
-  - `TaskGroup` in Python 3.14 wraps unhandled child task exceptions in `ExceptionGroup`. Unit tests testing worker Fail-Fast must assert `(AppException, ExceptionGroup)` or inspect `exc_group.exceptions`.
-  - `MatrixSynthesisGroup` cardinality is strictly coupled to `view_type`: 1D (1 target block), 2D (2 target blocks), 3D (3 target blocks), text_only (>=1 target blocks).
-- **Remaining:**
-  - All 9 Implementation Plan Steps and Post-Audit Remediation Findings are 100% complete and verified against Universal Quality Gates.
-  - Ready for final merge or deployment.
+## Session Handover Context
+- **Achieved**: Pre-Flight codebase scan completed. Plan analyzed and all target files inspected. Task tracker initialized.
+- **Learned**: Clean working tree. `variance_length_constraint` on `OutputProfileUpdateDTO` confirmed `ge=2000` typo. All 6 phases confirmed pending.
+- **Remaining**: Execution of Phases 1-6 step-by-step.

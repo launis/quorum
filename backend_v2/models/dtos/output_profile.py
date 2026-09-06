@@ -401,7 +401,7 @@ class OutputProfileUpdateDTO(V2CoreBase):
     ] = None
     variance_length_constraint: Annotated[
         int | None,
-        Field(default=None, ge=2000, description="Max character length for variance evaluation."),
+        Field(default=None, ge=50, le=2000, description="Max character length for variance evaluation."),
     ] = None
     max_quotes_per_matrix: Annotated[
         int | None,

@@ -502,13 +502,13 @@ def test_output_profile_language_enum_validation() -> None:
 def test_output_profile_synthesis_directives() -> None:
     """Test positive validation, null handling, and negative cases for profile-level synthesis directives."""
     directive_payload = {
-        "matrix_1d_synthesis_directive": {"translations": {"en": "1D directive", "fi": "1D ohje"}},
-        "matrix_2d_synthesis_directive": {"translations": {"en": "2D directive"}},
-        "matrix_3d_synthesis_directive": {"translations": {"en": "3D directive"}},
-        "matrix_text_synthesis_directive": {"translations": {"en": "Text directive"}},
-        "row_explanation_directive": {"translations": {"en": "Row causal directive", "fi": "Riviraportointiohje"}},
-        "xai_synthesis_directive": {"translations": {"en": "XAI highlights directive"}},
-        "variance_synthesis_directive": {"translations": {"en": "Variance evaluation directive"}},
+        "matrix_1d_synthesis_directive": "1D directive",
+        "matrix_2d_synthesis_directive": "2D directive",
+        "matrix_3d_synthesis_directive": "3D directive",
+        "matrix_text_synthesis_directive": "Text directive",
+        "row_explanation_directive": "Row causal directive",
+        "xai_synthesis_directive": "XAI highlights directive",
+        "variance_synthesis_directive": "Variance evaluation directive",
     }
 
     # Positive: CreateDTO with directives
@@ -518,23 +518,21 @@ def test_output_profile_synthesis_directives() -> None:
             **directive_payload,
         }
     )
-    assert create_dto.matrix_1d_synthesis_directive is not None
-    assert create_dto.matrix_1d_synthesis_directive.translations["en"] == "1D directive"
-    assert create_dto.matrix_2d_synthesis_directive is not None
-    assert create_dto.matrix_3d_synthesis_directive is not None
-    assert create_dto.matrix_text_synthesis_directive is not None
-    assert create_dto.row_explanation_directive is not None
-    assert create_dto.row_explanation_directive.translations["fi"] == "Riviraportointiohje"
-    assert create_dto.xai_synthesis_directive is not None
-    assert create_dto.variance_synthesis_directive is not None
+    assert create_dto.matrix_1d_synthesis_directive == "1D directive"
+    assert create_dto.matrix_2d_synthesis_directive == "2D directive"
+    assert create_dto.matrix_3d_synthesis_directive == "3D directive"
+    assert create_dto.matrix_text_synthesis_directive == "Text directive"
+    assert create_dto.row_explanation_directive == "Row causal directive"
+    assert create_dto.xai_synthesis_directive == "XAI highlights directive"
+    assert create_dto.variance_synthesis_directive == "Variance evaluation directive"
 
     # Positive: UpdateDTO with directives
     update_dto = OutputProfileUpdateDTO.model_validate(directive_payload)
-    assert update_dto.matrix_1d_synthesis_directive is not None
-    assert update_dto.matrix_3d_synthesis_directive is not None
-    assert update_dto.row_explanation_directive is not None
-    assert update_dto.xai_synthesis_directive is not None
-    assert update_dto.variance_synthesis_directive is not None
+    assert update_dto.matrix_1d_synthesis_directive == "1D directive"
+    assert update_dto.matrix_3d_synthesis_directive == "3D directive"
+    assert update_dto.row_explanation_directive == "Row causal directive"
+    assert update_dto.xai_synthesis_directive == "XAI highlights directive"
+    assert update_dto.variance_synthesis_directive == "Variance evaluation directive"
 
     # Positive: ResponseDTO with directives
     resp_dto = OutputProfileResponseDTO.model_validate(
@@ -546,11 +544,11 @@ def test_output_profile_synthesis_directives() -> None:
             **directive_payload,
         }
     )
-    assert resp_dto.matrix_1d_synthesis_directive is not None
-    assert resp_dto.matrix_text_synthesis_directive is not None
-    assert resp_dto.row_explanation_directive is not None
-    assert resp_dto.xai_synthesis_directive is not None
-    assert resp_dto.variance_synthesis_directive is not None
+    assert resp_dto.matrix_1d_synthesis_directive == "1D directive"
+    assert resp_dto.matrix_text_synthesis_directive == "Text directive"
+    assert resp_dto.row_explanation_directive == "Row causal directive"
+    assert resp_dto.xai_synthesis_directive == "XAI highlights directive"
+    assert resp_dto.variance_synthesis_directive == "Variance evaluation directive"
 
     # Null defaults check
     create_null = OutputProfileCreateDTO.model_validate(_VALID_CREATE_PAYLOAD)
@@ -562,24 +560,24 @@ def test_output_profile_synthesis_directives() -> None:
     assert create_null.xai_synthesis_directive is None
     assert create_null.variance_synthesis_directive is None
 
-    # Negative: invalid non-dict/non-I18nText value
-    with pytest.raises(ValidationError, match="Input should be a valid dictionary or instance of I18nText"):
+    # Negative: invalid non-string values
+    with pytest.raises(ValidationError, match="Input should be a valid string"):
         OutputProfileCreateDTO.model_validate(
             {
                 **_VALID_CREATE_PAYLOAD,
-                "matrix_1d_synthesis_directive": "invalid string instead of I18nText",
+                "matrix_1d_synthesis_directive": 12345,
             }
         )
 
-    with pytest.raises(ValidationError, match="Input should be a valid dictionary or instance of I18nText"):
+    with pytest.raises(ValidationError, match="Input should be a valid string"):
         OutputProfileCreateDTO.model_validate(
             {
                 **_VALID_CREATE_PAYLOAD,
-                "row_explanation_directive": 12345,
+                "row_explanation_directive": {"translations": {"en": "dict instead of str"}},
             }
         )
 
-    with pytest.raises(ValidationError, match="Input should be a valid dictionary or instance of I18nText"):
+    with pytest.raises(ValidationError, match="Input should be a valid string"):
         OutputProfileCreateDTO.model_validate(
             {
                 **_VALID_CREATE_PAYLOAD,
